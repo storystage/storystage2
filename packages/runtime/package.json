@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Interpreter in a Web Worker with a scheduler (do in order, do together, loops, events) and a fixed time step.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

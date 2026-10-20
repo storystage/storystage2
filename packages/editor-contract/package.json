@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/editor-contract",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The interface both code editors implement: read the program, apply edit operations, highlight, focus, keyboard commands.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

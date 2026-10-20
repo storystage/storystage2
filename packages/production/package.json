@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/production",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The .storystage format, scenes, running order, transitions, storyboard data, links, Fountain import and export.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

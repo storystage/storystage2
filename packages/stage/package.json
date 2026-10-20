@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/stage",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Babylon.js scene, model loading, joints, cameras and markers, picking, transforms, offscreen render.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

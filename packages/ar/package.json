@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/ar",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

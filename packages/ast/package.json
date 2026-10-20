@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/ast",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AST types, JSON schema, node ids, validation, edit operations (undo/redo), migrations.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}
