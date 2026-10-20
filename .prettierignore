@@ -9,3 +9,4 @@ docs/
 handover/
 CLAUDE.md
 *.md
+.claude/
