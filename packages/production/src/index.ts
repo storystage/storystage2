@@ -2,7 +2,9 @@
  * @storystage/production: The .storystage format, scenes, running order, transitions, storyboard data, links, Fountain import and export.
  *
  * Owner: S2 until 8.1 merges, then S4. Workplan: WP8.
- * Stub created by WP0.2. Other sessions use this package only through its
- * WP0.8 contract; changes to the contract go in their own pull request.
+ *
+ * WP0.8: the production and storyboard data types (`types.ts`) and an example production for
+ * tests (`example.ts`). Reading and writing the zip arrives with WP8.
  */
-export {};
+export * from './types.ts';
+export { exampleProduction } from './example.ts';
