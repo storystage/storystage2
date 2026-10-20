@@ -15,7 +15,7 @@ Planned against actual time for WP0 and the first spike lanes, recorded for two 
 | WP0.5 specs and decisions (#5) | | 20 Oct 18:44 | 20 Oct 18:45 | as above | |
 | WP0.6 NOTICE and licences (#18) | | 20 Oct 18:46 | 20 Oct 21:05 | about 2.5 h | One CI fix (cargo-deny and our own unlicensed crate) |
 | WP0.7 carried over (#21) | | 20 Oct 21:06 | 20 Oct 21:10 | minutes | |
-| WP0.1 settings record (#22) | | 20 Oct | | | Org items wait on the owner |
+| WP0.1 settings record (#22) | | 20 Oct 21:11 | 20 Oct 21:12 | minutes; the repository settings themselves were applied at 13:05 | Org items wait on the owner |
 | **WP0.1–0.7 together** | **about 1 week of the 1.5** | **20 Oct** | **20 Oct** | **one working day** | WP0.8 (contracts) is still to do; the WP0 done-when needs it |
 
 Times are local (BST). For WP0, merges were done by S1 when CI was green, as the owner agreed on 20 Oct. From WP0.8 onwards the owner reviews first, so owner time joins the critical path.
