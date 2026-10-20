@@ -17,21 +17,28 @@ It is a rewrite on web technology. It contains **no Alice code**, but keeps Alic
 - Tauri 2 apps for Windows, macOS, iPad and Android/Chromebook, plus a browser version without the Prompter. **No Linux in the first release.**
 - Speech: whisper.cpp in WebAssembly on the device; on-device voices out; captions always.
 
-Repository layout and package boundaries: workplan section 4. In short: `ast` depends on nothing; `runtime` on `ast` and `story-api`; `studio` on everything; nothing depends on `studio`.
+Repository layout and package boundaries: workplan section 4. In short: `ast` depends on nothing; `runtime` on `ast` and `story-api`; `studio` on everything; nothing depends on `studio` (or on `apps/desktop`). `pnpm lint` enforces this (`tools/repo/src/boundaries.ts`); a new rule goes there with a test.
 
 ## Commands
 
-WP0.4 fills these in once the repository exists. Expected:
+Node 24 LTS and pnpm 10 (pinned in `package.json`; `corepack enable` installs it).
 
 ```
-pnpm install
-pnpm dev            # Vite dev server for apps/studio
-pnpm test           # Vitest, all packages
-pnpm test:e2e       # Playwright (CI)
-pnpm lint && pnpm typecheck
+pnpm install            # from the lockfile; CI uses --frozen-lockfile
+pnpm dev                # Vite dev server for apps/studio (http://localhost:5173)
+pnpm build              # production build of apps/studio
+pnpm test               # Vitest, every workspace package (pnpm test:watch while working)
+pnpm test:e2e           # Playwright, Chromium with software rendering (needs `pnpm exec playwright install chromium`; normally CI only)
+pnpm lint               # ESLint, then the package-boundary check
+pnpm typecheck          # tsc --noEmit in every package
+pnpm format             # Prettier (format:check in CI)
+pnpm --filter @storystage/<name> <script>   # one package
 ```
 
-Rust, Tauri, iOS and Android builds run in CI (GitHub Actions), not on the owner's PC (4 GB RAM, 2 cores).
+- **Packages** are consumed as TypeScript source (`"exports": "./src/index.ts"`); there is no build step between packages. `erasableSyntaxOnly` is on: no `enum` or `namespace`, use unions and `as const` objects.
+- **File names:** unit tests are `*.test.ts(x)` beside the code; end-to-end tests are `e2e/*.e2e.ts`, so the two runners never overlap.
+- **CI** (`.github/workflows/`): `ci.yml` runs `check` (format, lint, typecheck, test) and `e2e` on every push; both are required to merge. `desktop.yml` (Windows, macOS) and `mobile.yml` (Android; iOS once `APPLE_DEVELOPMENT_TEAM` is set) build the Tauri apps on `main` and on pull requests that touch `apps/desktop`, and keep them as artifacts. Actions are pinned to commit SHAs.
+- Rust, Tauri, iOS and Android builds run in CI (GitHub Actions), not on the owner's PC (4 GB RAM, 2 cores, little free disk). Keep local work to TypeScript, unit tests and the dev server.
 
 ## Rules that never bend
 
@@ -43,7 +50,10 @@ Rust, Tauri, iOS and Android builds run in CI (GitHub Actions), not on the owner
 6. **Low-end devices first.** Anything touching rendering, speech or memory is measured on the reference 4 GB Chromebook and non-Pro iPad.
 7. **Accessibility:** WCAG 2.2 AA, full keyboard paths through all three tabs, captions for all speech.
 8. **Licences:** prefer MIT, BSD, Apache-2.0; MPL-2.0 unmodified is fine; GPL only for offline build tools, never linked into the app. Record every dependency in `NOTICE` in the same pull request. Every Backstage asset has a licence, credit line and source in `backstage.json`.
-9. **Plain words on screen.** No "AST", "node", "token", "schema" or "API" in the learner's interface. Follow the wording rules carried over from StoryStage 1 (spec 04, section 5).
+9. **Plain words on screen.** No "AST", "node", "token", "schema" or "API" in the learner's interface. The wording rules carried over from StoryStage 1 (spec 04, section 5; `docs/carried-over/`):
+    - Use the learner's view: "the cat", "your scene", "the move block"; never AST, node, field, invocation, edit, token, schema or API.
+    - Name each step after what changed: "Add cat", "Make cat say Hello". These are also the undo labels (WP2.3).
+    - Errors say what happened and what to do next, with no apologies.
 
 ## How we work
 
