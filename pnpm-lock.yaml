@@ -87,7 +87,14 @@ importers:
 
   packages/prompter: {}
 
-  packages/runtime: {}
+  packages/runtime:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
 
   packages/selftest: {}
 
