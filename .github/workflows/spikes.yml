@@ -64,3 +64,34 @@ jobs:
             spikes/1.5-editors/playwright-report/
             spikes/1.5-editors/test-results/
           retention-days: 30
+
+  spike-1-8:
+    name: spike 1.8 (MP4 export, browsers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: spikes/1.8-mp4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Install browsers (Google Chrome has H.264; open-source Chromium does not)
+        run: pnpm exec playwright install --with-deps chrome chromium webkit
+      - name: Encode in each browser
+        run: pnpm exec playwright test
+      - name: Check each clip with ffprobe, and decode it all the way through
+        if: always()
+        run: |
+          command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          shopt -s nullglob
+          for f in test-results/*.mp4; do
+            echo "== $f"
+            ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate,nb_frames:format=duration,size -of json "$f" | tee "$f.ffprobe.json"
+            ffmpeg -v error -i "$f" -f null - && echo "decodes: yes" | tee -a "$f.ffprobe.json"
+          done
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-1.8-results
+          path: spikes/1.8-mp4/test-results/
+          retention-days: 30
