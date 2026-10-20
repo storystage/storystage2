@@ -12,11 +12,16 @@ export type ToWorker =
   | { type: 'timeline'; seconds: number };
 
 export type FromWorker =
+  | { type: 'ready' }
   | { type: 'commands'; commands: Command[]; sentAt: number; done: boolean }
   | { type: 'timeline'; commands: Command[]; computeMs: number };
 
 const wall = () => performance.timeOrigin + performance.now();
 const post = (m: FromWorker) => (self as unknown as DedicatedWorkerGlobalScope).postMessage(m);
+
+// Tell the main thread the worker has loaded, so it can start the clock (the first run of the
+// spike started the clock before the worker existed, and its first command was late).
+post({ type: 'ready' });
 
 self.onmessage = (e: MessageEvent<ToWorker>) => {
   const msg = e.data;
