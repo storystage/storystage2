@@ -1,8 +1,11 @@
 /**
  * @storystage/selftest: Built-in self-test.
  *
- * Owner: S1. Workplan: WP18.
- * Stub created by WP0.2. Other sessions use this package only through its
- * WP0.8 contract; changes to the contract go in their own pull request.
+ * Owner: S1. Workplan: WP18.1.
+ *
+ * `runSelfTest(STEPS, context)` runs the self-test; `reportText` turns the result into plain
+ * words. The studio's menu item (S5), CI, and each app build (WP18b) all run the same steps.
  */
-export {};
+export * from './runner.ts';
+export { reportText } from './report.ts';
+export { STEPS, type SelfTestContext } from './steps.ts';
