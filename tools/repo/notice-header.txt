@@ -1,0 +1,21 @@
+StoryStage 2
+Copyright (c) 2026 the StoryStage contributors.
+
+StoryStage 2 contains no Alice code. It uses the third-party software listed below.
+
+How this file is made: the two JavaScript sections at the end are generated from
+pnpm-lock.yaml by `pnpm notice`, and CI fails when they are out of date or when a licence
+breaks the policy (CLAUDE.md rule 8; tools/repo/src/licences.ts). This header is
+tools/repo/notice-header.txt. Rust crates in apps/desktop are checked
+against the same policy by cargo-deny (apps/desktop/src-tauri/deny.toml) and are listed in
+the "Native layer" section, kept by hand until the app bundles carry their own notices (WP15).
+Backstage models and sketches carry their licence, credit line and source in backstage.json.
+
+Each line: package  version(s)  licence.
+
+== Native layer (Rust, apps/desktop/src-tauri/Cargo.toml, direct dependencies) ==
+
+tauri  2  Apache-2.0 OR MIT
+tauri-build  2  Apache-2.0 OR MIT
+serde  1  MIT OR Apache-2.0
+serde_json  1  MIT OR Apache-2.0

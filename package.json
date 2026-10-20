@@ -15,6 +15,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "lint": "eslint . && node tools/repo/src/boundaries-cli.ts",
+    "licences": "node tools/repo/src/licences-cli.ts",
+    "notice": "node tools/repo/src/licences-cli.ts --write",
     "typecheck": "pnpm -r --workspace-concurrency=2 typecheck",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
