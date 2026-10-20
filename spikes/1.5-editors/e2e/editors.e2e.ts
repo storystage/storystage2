@@ -191,23 +191,33 @@ test.describe('option B: Blockly', () => {
     expect(await blockly<number>(page, 'blockCount')).toBe(count);
   });
 
-  test('keyboard: focus can enter the workspace and arrows move it', async ({ page }) => {
+  test('keyboard: Tab reaches the workspace, and arrows move between blocks there', async ({
+    page,
+  }) => {
     await page.goto('/?editor=blockly');
     await expect(page.locator('.blocklyFlyout')).toBeVisible();
-    const seen: (string | null)[] = [];
-    for (let i = 0; i < 6; i++) {
+    // Put a block in the program first, so there is something to move between.
+    const target = offset(await blockly<Point>(page, 'mainDo'));
+    await mouseDrag(page, await grabPoint(page, 'move'), target);
+    await answerCascade(page, [0, 0, 0]);
+    const inWorkspace = () =>
+      page.evaluate(() => {
+        const el = document.activeElement;
+        return !!el?.closest('.blockly-host') && !el.closest('.blocklyFlyout');
+      });
+    const tabs: (string | null)[] = [];
+    for (let i = 0; i < 12 && !(await inWorkspace()); i++) {
       await page.keyboard.press('Tab');
-      seen.push(await blockly<string | null>(page, 'focused'));
+      tabs.push(await blockly<string | null>(page, 'focused'));
     }
-    for (const key of ['ArrowDown', 'ArrowRight', 'ArrowDown', 'ArrowUp']) {
+    const arrows: (string | null)[] = [];
+    for (const key of ['ArrowDown', 'ArrowDown', 'ArrowRight', 'ArrowUp']) {
       await page.keyboard.press(key);
-      seen.push(await blockly<string | null>(page, 'focused'));
+      arrows.push(await blockly<string | null>(page, 'focused'));
     }
-    results['blockly.keyboardFocus'] = seen;
-    const insideBlockly = await page.evaluate(
-      () => !!document.activeElement?.closest('.blockly-host'),
-    );
-    expect(insideBlockly).toBe(true);
+    results['blockly.keyboardFocus'] = { tabs, arrows };
+    expect(await inWorkspace()).toBe(true);
+    expect(new Set(arrows).size).toBeGreaterThan(1);
   });
 });
 
