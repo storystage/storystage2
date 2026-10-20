@@ -8,9 +8,9 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | 1.3 whisper.cpp in WebAssembly | not started (needs reference devices, #6) | | | |
 | **1.4 Interpreter and scheduler** | **passed in CI** (Chromium, SwiftShader) | 60 fixed-step frames identical twice (pixels and scene state); live: 0 of 16 commands late with a 100 ms lookahead, worst 7.3 ms early; 60 fps | **go**, with the design rules below | [spike-1.4-scheduler](../decisions/spike-1.4-scheduler.md) |
 | **1.5 Both code editors** | **passed in CI** (Chromium, SwiftShader); devices pending (#6) | Both editors: typed move, nested do together, object slot, wrong drops refused, arguments asked on drop, keyboard paths (6 Playwright tests). Drag: tiles 0 long frames (mouse and touch); Blockly 0–3 long frames, worst 66–150 ms | **go for both**, with the findings below; touch numbers on the reference devices still needed | [spike-1.5-editors](../decisions/spike-1.5-editors.md) |
-| 1.6 Tauri key path | not started | | | |
+| **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | [spike-1.6-key-path](../decisions/spike-1.6-key-path.md) |
 | 1.7 Tauri Android on a Chromebook | not started (needs reference devices, #6) | | | |
-| 1.8 MP4 export | not started | | | |
+| **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | [spike-1.8-mp4](../decisions/spike-1.8-mp4.md) |
 | 1.9 AR | not started (needs devices) | | | |
 
 ## 1.4 Interpreter and scheduler
@@ -75,3 +75,65 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 7. Option C's React rows must be render functions, not components defined inside the editor, or they remount on every update and lose keyboard focus. The spike hit this.
 
 **Not covered:** the reference devices, and real touch on an iPad and a Chromebook (needs #6); programs of 500 statements (7.10); screen-reader passes; "add detail"; switching between the editors mid-task.
+
+## 1.8 MP4 export
+
+**Task:** WebCodecs plus Mediabunny (MPL-2.0) encode a 10-second, 30 fps, 1280×720 clip from offscreen Babylon.js frames. Test in Chrome, Safari 26 and each Tauri webview. Record where it fails, and the fallback. Code: `spikes/1.8-mp4/` (the page) and `spikes/1.6-key-path/` (the Tauri harness that runs the page inside WebView2 and WKWebView). Run: `.github/workflows/spikes.yml`.
+
+**How it works.** Frames are drawn at a fixed time step, in a canvas that's never on screen. The scene waits for `whenReadyAsync` first (spike 1.4, rule 5). The page encodes with the first MP4 codec it can (H.264 first), using Mediabunny's `CanvasSource` with backpressure. Each clip is checked with ffprobe and decoded all the way through with ffmpeg.
+
+**Results (20 Oct 2026; GitHub runners, software rendering):**
+
+| Where | Video codecs it can encode | AAC audio | Encode 10 s of 720p | Clip (ffprobe; full decode) |
+|---|---|---|---|---|
+| Google Chrome (Playwright, Linux) | H.264, VP9, AV1 (no HEVC) | **no** | 15.4 s (0.65× real time) | H.264, 1280×720, 30 fps, 300 frames, 10.000 s; decodes |
+| Chromium, open source (Linux) | H.264, VP9, AV1 | **no** | 14.7 s (0.68×) | same |
+| WebKit (Playwright, Linux) | H.264, HEVC, VP9, AV1 | yes | 4.5 s (2.2×) | same |
+| **Tauri on macOS (WKWebView)** | H.264, HEVC, VP9, AV1 | yes | **2.9 s (3.5×)** | same |
+| **Tauri on Windows (WebView2, Edge 154)** | H.264, VP9, AV1 (no HEVC) | yes | **3.2 s (3.2×)** | same |
+| Built-in browser on the owner's PC (Chromium 152, 2 cores) | H.264, VP9, AV1 | yes | 7.1 s (1.4×) | (not checked with ffprobe) |
+
+Playwright's device presets replace the user-agent string, so the user agents in the raw results don't say which engine ran. The project names do.
+
+**Findings for WP11 (S2; S1 for the encoder, 11.3 and 11.5):**
+1. **Video works everywhere we could test.** H.264 MP4 from offscreen Babylon.js frames, with no fallback needed for video, in Chrome, Chromium, WebKit, and both desktop Tauri webviews (WebView2 and WKWebView).
+2. **Audio is the gap, but only in the browser on Chromebooks and Linux.** Both desktop Tauri webviews encode AAC. **Chrome and Chromium on Linux can't**, and ChromeOS is close kin, so the browser version and the Android app on the reference Chromebook must be checked (#6). Options, for WP11.5:
+   - Opus audio in the MP4: plays in most players, but not reliably in QuickTime on older Macs or iPads
+   - AAC from the native layer on desktop
+   - an FFmpeg sidecar on desktop, as the workplan suggests
+   - export on another device
+3. **Speed:** encoding, not rendering, is the cost (rendering is under 10% of the total). Software encoders on a 2-core runner are slower than real time, so export needs the progress bar and cancel that 11.3 already asks for. The reference devices set the real budget (18.3).
+4. Mediabunny needs no changes. It's MPL-2.0, used unmodified, and recorded in `NOTICE`.
+
+**Not covered:** Safari 26 itself and the reference iPad (needs #6); audio tracks (only probed, not encoded); export of a real production with transitions and captions (WP11.3, 11.4).
+
+## 1.6 Tauri key path
+
+**Task:** on Windows, store a key in Credential Manager and send a streamed Messages API request from Rust to the fake Claude server. Stream the events to the web UI, and prove the key never appears in the webview: no JS API returns it, and it doesn't appear in devtools. Code: `spikes/1.6-key-path/` (Rust in `src-tauri/`, page in `src/`, CI scripts in `scripts/`). Run: `.github/workflows/spikes.yml`, job "spike 1.6".
+
+**How it works.**
+- **The native layer:** reads the key from the OS store (`keyring` 3.6, Credential Manager on Windows, Keychain on macOS) only inside `prompter_send`, after a first-cut **policy enforcement point** has passed the request. The policy checks the models allowed for the mode, a 32,000-token ceiling, streaming, the SHA-256 of the pinned system prompt, a 10-a-minute cap, and anything key-shaped or auth-like in the body.
+- **The reply:** it sends the request with the key added, and streams the reply to the page over a Tauri `Channel` in the transport contract's shape (#32). Each HTTP status maps to one error code, with at most two retries with backoff.
+- **The test key:** CI stores a **random test key** that it makes itself; no real key is involved. The fake Claude server checks the key by its SHA-256 hash, so the key is never printed, and logs only whether it matched.
+- **The scan:** CI collects everything the webview can see: the page's own report (its HTML, storage, window properties and every native reply), the live page through WebView2's DevTools port, and a full JS heap snapshot. A helper then scans all of it, plus the server log, for the key. The helper's own positive control finds a key planted in a file.
+
+**Results (CI, 20 Oct 2026, windows-latest, WebView2 / Edge 154):**
+
+| Check | Result |
+|---|---|
+| Rust unit tests (policy, SSE parsing, status codes, Credential Manager round trip) | 10 of 10 pass |
+| Status reports the Prompter available, with no key in the reply | pass |
+| A request streams to the page and ends, with the text whole | pass (284 ms, 8 events) |
+| A request containing a key-shaped string | refused by policy, before the network |
+| The wrong model for the mode / an unpinned system prompt | refused by the allowlist, before the network |
+| Requests that reached the fake server | exactly 1, and it carried the stored key |
+| The key in the page's report, the live page, the 2.8 MB heap snapshot, or the server log | **not found** in any (scanner proven on a planted key) |
+
+**Findings for WP15.2 (S8) and WP13 (S7):**
+1. **The design works as decided.** The webview builds the request, and the native layer checks it, adds the key and streams. The key never needs to be in web code, so no JS API returns it.
+2. **Refusing before the network is cheap and testable.** The policy is plain Rust with unit tests, and the error codes match the transport contract. The real version adds tool-schema hashes, the per-day cap (24.5), policy-file settings and per-mode models from configuration.
+3. **The DevTools heap-snapshot scan is a reusable test.** It belongs in WP15.2's CI and the WP18 self-test on every desktop build. The real app must **never** ship with the remote-debugging port, which the spike harness turns on.
+4. `keyring` 4 now splits its stores into separate crates. The spike used 3.6 for a known API; S8 picks one for WP15.2.
+5. The Tauri `--config` override let one harness embed a different page (spike 1.8) without code changes. That's useful for running the self-test (WP18.1) inside each webview.
+
+**Not covered:** macOS Keychain and Android Keystore (the code is written for Keychain but only Windows was run); iOS; the native key wizard (the key was stored by the CI helper, not typed by a person); the human security review (recommended before the pilot).
