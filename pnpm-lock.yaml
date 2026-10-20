@@ -81,7 +81,11 @@ importers:
 
   packages/blocks: {}
 
-  packages/editor-contract: {}
+  packages/editor-contract:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
 
   packages/export: {}
 
