@@ -60,7 +60,14 @@ function fnv(bytes: Uint8Array, hash = 0x811c9dc5) {
   return hash;
 }
 
-const worker = () => new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+/** Starts the worker and resolves once it has loaded (its `ready` message). */
+const worker = () =>
+  new Promise<Worker>((resolve) => {
+    const w = new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+    w.onmessage = (e: MessageEvent<FromWorker>) => {
+      if (e.data.type === 'ready') resolve(w);
+    };
+  });
 const ask = (w: Worker, msg: ToWorker) =>
   new Promise<FromWorker>((resolve) => {
     w.onmessage = (e: MessageEvent<FromWorker>) => resolve(e.data);
@@ -69,15 +76,18 @@ const ask = (w: Worker, msg: ToWorker) =>
 
 /** Fixed time step: 60 frames at 30 fps, rendered offscreen, pixels and scene state hashed. */
 async function fixedStep() {
-  const w = worker();
+  const w = await worker();
   const reply = await ask(w, { type: 'timeline', seconds: SECONDS });
   w.terminate();
   if (reply.type !== 'timeline') throw new Error('unexpected reply');
   const canvas = document.createElement('canvas'); // never attached to the page
   canvas.width = 640;
   canvas.height = 360;
-  const run = async () => {
+  const run = async (waitForReady: boolean) => {
     const { engine, scene, apply } = makeStage(canvas);
+    // Babylon.js compiles shaders asynchronously: frames drawn before the scene is ready differ
+    // from run to run. Offscreen export must wait for this (WP5.5, WP11.3).
+    if (waitForReady) await scene.whenReadyAsync();
     const pixels: number[] = [];
     const states: number[] = [];
     for (let f = 0; f < 60; f++) {
@@ -89,19 +99,27 @@ async function fixedStep() {
     engine.dispose();
     return { pixels, states };
   };
-  const a = await run();
-  const b = await run();
+  const compare = (a: { pixels: number[]; states: number[] }, b: typeof a) => ({
+    pixelsIdentical: a.pixels.every((h, i) => h === b.pixels[i]),
+    firstDifferentFrame: a.pixels.findIndex((h, i) => h !== b.pixels[i]),
+    statesIdentical: a.states.every((h, i) => h === b.states[i]),
+    distinctFrames: new Set(a.pixels).size,
+  });
+  // Run without waiting first, to record whether the shader warm-up really is the cause.
+  const cold = compare(await run(false), await run(false));
+  const a = await run(true);
+  const b = await run(true);
   return {
     commands: reply.commands.length,
     computeMs: reply.computeMs,
-    pixelsIdentical: a.pixels.every((h, i) => h === b.pixels[i]),
-    statesIdentical: a.states.every((h, i) => h === b.states[i]),
-    distinctFrames: new Set(a.pixels).size,
+    ...compare(a, b),
+    withoutWaiting: cold,
   };
 }
 
 /** Live: the worker paces the scheduler by the wall clock; measure how early commands arrive. */
-function live(canvas: HTMLCanvasElement, lookahead: number) {
+async function live(canvas: HTMLCanvasElement, lookahead: number) {
+  const w = await worker();
   return new Promise<{
     commands: number;
     worstMarginMs: number;
@@ -113,8 +131,7 @@ function live(canvas: HTMLCanvasElement, lookahead: number) {
     let worstMargin = Infinity;
     let late = 0;
     let frames = 0;
-    const t0 = wall() + 50;
-    const w = worker();
+    const t0 = wall() + 20; // the worker has loaded, so only message time is left
     let done = false;
     w.onmessage = (e: MessageEvent<FromWorker>) => {
       const m = e.data;
