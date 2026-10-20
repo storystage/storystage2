@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/a3p-import",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Alice .a3p reader to the StoryStage 2 program.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

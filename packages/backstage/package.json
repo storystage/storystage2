@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/backstage",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Backstage: model manifest (ids, sections, classes, joints, licences), loader, thumbnails.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

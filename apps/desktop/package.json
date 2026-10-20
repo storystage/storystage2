@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Tauri 2 shell for Windows, macOS, iPad and Android: key store, Claude transport and policy enforcement point, files, sidecars.",
+  "type": "module",
+  "scripts": {
+    "tauri": "tauri"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.12.3"
+  }
+}

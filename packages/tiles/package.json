@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/tiles",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Option C: Alice-style tile editor in React (rows, drop targets, cascading menus, add detail).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

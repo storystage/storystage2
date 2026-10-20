@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/speech",
+  "version": "0.0.0",
+  "private": true,
+  "description": "whisper.cpp WASM input, speech synthesis output, narration queue.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

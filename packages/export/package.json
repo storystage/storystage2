@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/export",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Frame-by-frame render to MP4, captions, title and credits; AR pack.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

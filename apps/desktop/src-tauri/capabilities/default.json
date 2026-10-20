@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "The main window. No permissions yet: the webview gets nothing it is not given explicitly.",
+  "windows": ["main"],
+  "permissions": []
+}
