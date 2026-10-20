@@ -374,7 +374,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 - [x] 0.4 `CLAUDE.md` with commands, package boundaries and the rules in section 4. (C)
 - [x] 0.5 `docs/spec/` skeleton: one file per spec in section 7. `docs/decisions/` with one short record per fixed decision in section 2. (C)
 - [x] 0.6 `NOTICE` and a dependency-licence check in CI that fails on a disallowed licence (GPL or AGPL linked into the app). (C)
-- [ ] 0.7 Copy the StoryStage 1 artefacts that carry over into `docs/carried-over/`:
+- [x] 0.7 Copy the StoryStage 1 artefacts that carry over into `docs/carried-over/`:
     - specs 01 (Prompter protocol), 02 (keys, privacy, switches), 03 (speech), 04 (UX words) and 05 (testing);
     - `docs/eval/requests.jsonl`;
     - the TR1 manual test script.
