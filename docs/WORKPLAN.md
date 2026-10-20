@@ -362,7 +362,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 ### WP0: Repository, CI and spec skeleton
 **Objective:** a repository ready for systematic, test-first delivery.
 **Depends on:** nothing.
-- [ ] 0.1 Create `storystage/storystage2`; branch protection on `main`; secret scanning and push protection; labels (`wp-N`, `type:bug`, `type:task`, `needs-owner`, `spike`). (C; U approves the org settings)
+- [x] 0.1 Create `storystage/storystage2`; branch protection on `main`; secret scanning and push protection; labels (`wp-N`, `type:bug`, `type:task`, `needs-owner`, `spike`). (C; U approves the org settings)
 - [x] 0.2 pnpm monorepo with the layout in section 4; TypeScript strict; ESLint + Prettier; a shared `tsconfig`. (C)
 - [x] 0.3 GitHub Actions jobs:
     - lint, type-check and Vitest on every push;
