@@ -16,6 +16,8 @@ targets = [
 
 [licenses]
 confidence-threshold = 0.9
+# The allow list is the whole policy, so an entry no crate uses yet is fine.
+unused-allowed-license = "allow"
 allow = [
   "0BSD",
   "Apache-2.0",
@@ -33,3 +35,7 @@ allow = [
   "Unlicense",
   "Zlib",
 ]
+
+# Our own crate is `publish = false` and its licence is the project's (not yet decided).
+[licenses.private]
+ignore = true
