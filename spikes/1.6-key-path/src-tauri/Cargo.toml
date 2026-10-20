@@ -1,0 +1,34 @@
+[package]
+name = "spike-key-path"
+version = "0.1.0"
+description = "Spike 1.6 (throwaway): the key stays in the native layer. Also the Tauri harness for spike 1.8."
+edition = "2021"
+publish = false
+default-run = "spike-key-path"
+
+[lib]
+name = "spike_key_path_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "spike-key-path"
+path = "src/main.rs"
+
+# CI helper: puts a random test key in the OS store, and scans files for it without printing it.
+[[bin]]
+name = "spike-key"
+path = "src/bin/spike-key.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+keyring = { version = "3", features = ["windows-native", "apple-native"] }
+reqwest = { version = "0.13", features = ["stream"] }
+futures-util = "0.3"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"

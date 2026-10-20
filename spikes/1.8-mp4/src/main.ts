@@ -121,12 +121,14 @@ async function main() {
   result.probe = await probe();
   const supported = (result.probe as { video: Record<string, boolean> }).video;
   const codec = (['avc', 'hevc', 'vp9', 'av1'] as VideoCodec[]).find((c) => supported[c]);
+  let clip: ArrayBuffer | null = null;
   if (!codec) {
     result.encode = { error: 'No MP4 video codec can be encoded here: the fallback is needed.' };
   } else {
     try {
       const { buffer, ...stats } = await encode(codec);
       result.encode = stats;
+      clip = buffer;
       const link = document.getElementById('download') as HTMLAnchorElement;
       link.href = URL.createObjectURL(new Blob([buffer], { type: 'video/mp4' }));
       link.download = `spike-1.8-${codec}.mp4`;
@@ -137,9 +139,31 @@ async function main() {
   }
   out.textContent = JSON.stringify(result, null, 2);
   (window as unknown as { spikeResult: unknown }).spikeResult = result;
+  if ('__TAURI_INTERNALS__' in window) await reportToHarness(result, clip);
 }
 
-main().catch((e: unknown) => {
+/** Inside the spike harness (spikes/1.6-key-path), hand the results and the clip to CI and close. */
+async function reportToHarness(result: Record<string, unknown>, clip: ArrayBuffer | null) {
+  const { invoke } = await import('@tauri-apps/api/core');
+  let fileBase64: string | null = null;
+  if (clip) {
+    const bytes = new Uint8Array(clip);
+    let text = '';
+    for (let i = 0; i < bytes.length; i += 0x8000)
+      text += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    fileBase64 = btoa(text);
+  }
+  await invoke('spike_report', {
+    name: 'spike-1.8',
+    json: JSON.stringify(result, null, 2),
+    fileName: clip ? 'spike-1.8.mp4' : null,
+    fileBase64,
+  });
+  await invoke('spike_exit');
+}
+
+main().catch(async (e: unknown) => {
   (window as unknown as { spikeResult: unknown }).spikeResult = { error: String(e) };
   document.getElementById('out')!.textContent = `Failed: ${String(e)}`;
+  if ('__TAURI_INTERNALS__' in window) await reportToHarness({ error: String(e) }, null);
 });

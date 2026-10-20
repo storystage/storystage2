@@ -1,0 +1,17 @@
+{
+  "name": "@storystage/spike-1-6-key-path",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spike 1.6 (throwaway): the key stays in the native layer. Also the Tauri harness for spike 1.8.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/cli": "^2.12.3",
+    "vite": "^8.3.4"
+  }
+}

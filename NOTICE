@@ -26,7 +26,7 @@ react  19.3.1  MIT
 react-dom  19.3.1  MIT
 scheduler  0.28.0  MIT
 
-== Build and test tools, not shipped (210) ==
+== Build and test tools, not shipped (211) ==
 
 @asamuzakjp/css-color  7.1.7  MIT
 @asamuzakjp/dom-selector  10.0.4  MIT
@@ -80,6 +80,7 @@ scheduler  0.28.0  MIT
 @oxc-project/types  0.154.0  MIT
 @playwright/test  1.64.1  Apache-2.0
 @rolldown/pluginutils  1.0.1  MIT
+@tauri-apps/api  2.12.4  Apache-2.0 OR MIT
 @tauri-apps/cli  2.12.3  Apache-2.0 OR MIT
 @types/chai  5.2.3  MIT
 @types/deep-eql  4.0.2  MIT
