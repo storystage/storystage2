@@ -1,0 +1,35 @@
+# Licence policy for the native layer's Rust crates (WP0.6): the same rules as NOTICE for
+# JavaScript (tools/repo/src/licences.ts). Everything here is linked into the app, so no GPL.
+# Run by the `licences (rust)` job in .github/workflows/desktop.yml.
+
+[graph]
+# Only the platforms StoryStage ships on (no Linux in the first release).
+targets = [
+  "x86_64-pc-windows-msvc",
+  "aarch64-pc-windows-msvc",
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "aarch64-apple-ios",
+  "aarch64-linux-android",
+  "x86_64-linux-android",
+]
+
+[licenses]
+confidence-threshold = 0.9
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "BSL-1.0",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unicode-DFS-2016",
+  "Unlicense",
+  "Zlib",
+]
