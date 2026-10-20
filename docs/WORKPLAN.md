@@ -371,7 +371,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
     - Android and iOS build jobs (iOS waits for the Apple account, WP15.5).
 
     Cache pnpm and Cargo. (C)
-- [ ] 0.4 `CLAUDE.md` with commands, package boundaries and the rules in section 4. (C)
+- [x] 0.4 `CLAUDE.md` with commands, package boundaries and the rules in section 4. (C)
 - [ ] 0.5 `docs/spec/` skeleton: one file per spec in section 7. `docs/decisions/` with one short record per fixed decision in section 2. (C)
 - [ ] 0.6 `NOTICE` and a dependency-licence check in CI that fails on a disallowed licence (GPL or AGPL linked into the app). (C)
 - [ ] 0.7 Copy the StoryStage 1 artefacts that carry over into `docs/carried-over/`:
