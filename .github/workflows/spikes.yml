@@ -115,13 +115,16 @@ jobs:
         with:
           workspaces: spikes/1.6-key-path/src-tauri -> target
       - uses: ./.github/actions/setup
-      - name: Rust unit tests (policy, SSE, status codes, Credential Manager round trip)
-        working-directory: spikes/1.6-key-path/src-tauri
-        run: cargo test
-      - name: Build the pages and the harness
+      # Tauri embeds the page at compile time, so the pages are built first.
+      - name: Build the pages
         run: |
           pnpm build
           pnpm --filter @storystage/spike-1-8-mp4 build
+      - name: Rust unit tests (policy, SSE, status codes, Credential Manager round trip)
+        working-directory: spikes/1.6-key-path/src-tauri
+        run: cargo test
+      - name: Build the harness
+        run: |
           pnpm tauri build --debug --no-bundle
           (cd src-tauri && cargo build --bin spike-key)
       - name: Put a random test key in Credential Manager (never printed)
