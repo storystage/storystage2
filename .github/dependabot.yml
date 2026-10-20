@@ -1,0 +1,9 @@
+# Keeps the SHA-pinned GitHub Actions current. npm and Cargo updates are done by hand,
+# because every new dependency needs its licence checked and a NOTICE entry (WP0.6).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [type:task, lane:s1]
