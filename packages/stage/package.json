@@ -5,9 +5,16 @@
   "description": "Babylon.js scene, model loading, joints, cameras and markers, picking, transforms, offscreen render.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/story-api": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
   }
 }
