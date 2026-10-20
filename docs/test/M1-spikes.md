@@ -2,9 +2,9 @@
 
 **Gate:** each spike passes on the reference devices, or the plan changes (WP1.10). CI has already run each spike in its browsers (see `docs/spikes/REPORT.md`). This script adds the numbers only real devices can give. **Who:** the owner, on the reference Chromebook and iPad (WP1.1, #6), and a Windows PC. Results: `docs/test/results/M1-<date>.md`, with each device's model, OS version and browser version.
 
-**The spike pages:** these are throwaway pages that collect no data. To open them on a device they need to be reachable. **Owner decision:** either S1 publishes the built pages to a GitHub Pages site for this repository (public, no accounts, no analytics), or you serve them from your PC on the school or home network. Until you choose, use the second: S1 can give you a zip of each spike's built pages (`pnpm build` in its folder makes `dist/`). Unzip it on your PC, run `npx serve dist`, and open the address it prints on the device, which must be on the same network.
+**The spike pages:** open **https://storystage.github.io/storystage2/** on each device. It lists the pages (published by `.github/workflows/spike-pages.yml`, owner's approval of 21 Oct 2026). They are static, collect nothing and load nothing from elsewhere; the index shows which build you're on.
 
-Before each spike: close other apps and tabs, plug the device in, and note the battery level and whether it is warm.
+Before each spike: close other apps and tabs, plug the device in, and note the battery level and whether it is warm. **Keep the page in view, with the screen on, until its results appear:** browsers pause a hidden page's animation, and spike 1.4 then never finishes.
 
 ## 1.4 Interpreter and scheduler (`spikes/1.4-scheduler`)
 
