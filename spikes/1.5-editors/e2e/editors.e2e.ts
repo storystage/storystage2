@@ -8,6 +8,9 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 
 type Point = { x: number; y: number };
+/** A target, or a function that finds it once the drag has started (drop zones change size). */
+type Target = Point | (() => Promise<Point>);
+const resolve = (t: Target) => (typeof t === 'function' ? t() : Promise.resolve(t));
 type Stats = { frames: number; medianMs: number; p95Ms: number; maxMs: number; longFrames: number };
 const results: Record<string, unknown> = {};
 
@@ -21,13 +24,17 @@ async function center(page: Page, selector: string): Promise<Point> {
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
-async function mouseDrag(page: Page, from: Point, to: Point, steps = 40) {
+async function mouseDrag(page: Page, from: Point, to: Target, steps = 40) {
   await page.mouse.move(from.x, from.y);
   await page.mouse.down();
+  // Start the drag, then find the target: allowed drop zones grow while dragging.
+  for (let i = 1; i <= 3; i++) await page.mouse.move(from.x + i * 4, from.y + i * 4);
+  const start = { x: from.x + 12, y: from.y + 12 };
+  const end = await resolve(to);
   for (let i = 1; i <= steps; i++) {
     await page.mouse.move(
-      from.x + ((to.x - from.x) * i) / steps,
-      from.y + ((to.y - from.y) * i) / steps,
+      start.x + ((end.x - start.x) * i) / steps,
+      start.y + ((end.y - start.y) * i) / steps,
     );
     await page.waitForTimeout(16);
   }
@@ -35,16 +42,23 @@ async function mouseDrag(page: Page, from: Point, to: Point, steps = 40) {
 }
 
 /** Touch drag through the DevTools protocol (Playwright has no touch-move helper). */
-async function touchDrag(page: Page, from: Point, to: Point, steps = 40) {
+async function touchDrag(page: Page, from: Point, to: Target, steps = 40) {
   const cdp = await page.context().newCDPSession(page);
   const at = (x: number, y: number) => [{ x, y, id: 1, radiusX: 4, radiusY: 4, force: 1 }];
   await cdp.send('Input.dispatchTouchEvent', {
     type: 'touchStart',
     touchPoints: at(from.x, from.y),
   });
+  for (let i = 1; i <= 3; i++)
+    await cdp.send('Input.dispatchTouchEvent', {
+      type: 'touchMove',
+      touchPoints: at(from.x + i * 4, from.y + i * 4),
+    });
+  const start = { x: from.x + 12, y: from.y + 12 };
+  const end = await resolve(to);
   for (let i = 1; i <= steps; i++) {
-    const x = from.x + ((to.x - from.x) * i) / steps;
-    const y = from.y + ((to.y - from.y) * i) / steps;
+    const x = start.x + ((end.x - start.x) * i) / steps;
+    const y = start.y + ((end.y - start.y) * i) / steps;
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: at(x, y) });
     await page.waitForTimeout(16);
   }
@@ -75,24 +89,23 @@ async function answerCascade(page: Page, downs: number[]) {
 
 const tile = (label: string) => `.palette-tile:text-is("${label}")`;
 
-test.describe.configure({ mode: 'serial' });
-
 test.describe('option C: React tiles', () => {
   test('mouse: nested do together, typed move, arguments on drop, number refused in the object slot', async ({
     page,
   }) => {
     await page.goto('/?editor=tiles');
-    const head = await center(page, '.program-head');
-    await mouseDrag(page, await center(page, tile('do together')), { x: head.x, y: head.y + 22 });
+    await mouseDrag(page, await center(page, tile('do together')), () =>
+      center(page, '.program .gap.allowed'),
+    );
     expect(await text(page)).toBe('do together:\n  (empty)');
 
-    const inside = await center(page, '.tile.container .gap');
+    const inside = () => center(page, '.tile.container .gap.allowed');
     const from = await center(page, tile('move'));
     await measured(page, 'tiles.mouseDrag', () => mouseDrag(page, from, inside));
     await answerCascade(page, [1, 0, 2]); // the dog, forward, 1 m
     expect(await text(page)).toBe('do together:\n  dog.move(forward, 1)');
 
-    const objectSlot = await center(page, '.tile.move .slot');
+    const objectSlot = () => center(page, '.tile.move .slot');
     await mouseDrag(page, await center(page, tile('2')), objectSlot);
     expect(await text(page)).toBe('do together:\n  dog.move(forward, 1)');
     await expect(page.locator('.live')).toHaveText("2 can't go there");
@@ -130,10 +143,9 @@ test.describe('option C with touch', () => {
   test.use({ hasTouch: true });
   test('touch: drag a tile into the program', async ({ page }) => {
     await page.goto('/?editor=tiles');
-    const head = await center(page, '.program-head');
     const from = await center(page, tile('do together'));
     await measured(page, 'tiles.touchDrag', () =>
-      touchDrag(page, from, { x: head.x, y: head.y + 22 }),
+      touchDrag(page, from, () => center(page, '.program .gap.allowed')),
     );
     expect(await text(page)).toBe('do together:\n  (empty)');
   });
