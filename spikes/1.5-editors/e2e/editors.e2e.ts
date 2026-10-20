@@ -184,11 +184,13 @@ test.describe('option B: Blockly', () => {
     const slot = offset((await blockly<Point>(page, 'firstMoveTarget'))!);
     await mouseDrag(page, await grabPoint(page, '1'), slot);
     expect(await text(page)).toBe('cat.move(forward, 0.25)');
-    expect(await blockly<number>(page, 'blockCount')).toBe(count);
+    // Blockly fires its events asynchronously, so the refused block goes a moment later.
+    await expect.poll(() => blockly<number>(page, 'blockCount')).toBe(count);
 
     // A block dropped on empty workspace is refused too.
     await mouseDrag(page, await grabPoint(page, 'do together'), { x: 700, y: 450 });
-    expect(await blockly<number>(page, 'blockCount')).toBe(count);
+    // Blockly fires its events asynchronously, so the refused block goes a moment later.
+    await expect.poll(() => blockly<number>(page, 'blockCount')).toBe(count);
   });
 
   test('keyboard: Tab reaches the workspace, and arrows move between blocks there', async ({
