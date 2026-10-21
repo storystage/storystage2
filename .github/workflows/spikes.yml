@@ -17,6 +17,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  spike-1-2:
+    name: spike 1.2 (characters, budget sweep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: spikes/1.2-models
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: 'Run the sweep (software rendering only checks it works; the devices give the budgets)'
+        run: pnpm exec playwright test
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-1.2-results
+          path: spikes/1.2-models/test-results/
+          retention-days: 30
+
   spike-1-4:
     name: spike 1.4 (scheduler)
     runs-on: ubuntu-latest

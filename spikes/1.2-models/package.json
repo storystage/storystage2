@@ -1,0 +1,17 @@
+{
+  "name": "@storystage/spike-1-2-models",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spike 1.2 (throwaway): rigged characters in Babylon.js, a budget sweep, and a local loader for converted Alice models.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@babylonjs/core": "^9.31.1",
+    "@babylonjs/loaders": "^9.31.3",
+    "vite": "^8.3.4"
+  }
+}

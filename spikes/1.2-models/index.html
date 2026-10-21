@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spike 1.2: characters in Babylon.js</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 1rem;
+      }
+      canvas {
+        width: 100%;
+        max-width: 960px;
+        aspect-ratio: 16 / 9;
+        display: block;
+        background: #ccd;
+      }
+      button,
+      label {
+        font-size: 1rem;
+        margin: 0.5rem 0.5rem 0.5rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Spike 1.2: characters in Babylon.js</h1>
+    <p>Keep this page in view, with the screen on, while it measures (about 30 seconds).</p>
+    <p>
+      <button id="sweep">Run the budget sweep</button>
+      <label
+        >Or open a model from this device (.glb): <input id="file" type="file" accept=".glb,.gltf"
+      /></label>
+    </p>
+    <canvas id="stage"></canvas>
+    <pre id="out">Ready.</pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

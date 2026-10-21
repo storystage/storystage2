@@ -28,7 +28,7 @@ jobs:
       - name: Build each spike page with relative paths
         run: |
           site="$GITHUB_WORKSPACE/_site"
-          for spike in 1.4-scheduler 1.5-editors 1.8-mp4; do
+          for spike in 1.2-models 1.4-scheduler 1.5-editors 1.8-mp4; do
             (cd "spikes/$spike" && pnpm exec vite build --base ./ --outDir "$site/$spike" --emptyOutDir)
           done
           sed -e "s|BRANCH|${GITHUB_REF_NAME}|" -e "s|COMMIT|${GITHUB_SHA::7}|" spikes/pages/index.html > "$site/index.html"

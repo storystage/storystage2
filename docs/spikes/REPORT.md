@@ -4,7 +4,7 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 
 | Spike | Status | Measured | Proposed | Owner decision |
 |---|---|---|---|---|
-| 1.2 Alice model in Babylon.js | not started (needs reference devices, #6) | | | |
+| **1.2 Alice model in Babylon.js** | **built; device runs pending** (#6); Alice models wait for S4's converter (WP3b) and the licence (WP17.1) | CI (software rendering): all four presets run, from 19k triangles in 3 characters to 270k in 5 | decide after the M1 device runs | pending |
 | 1.3 whisper.cpp in WebAssembly | not started (needs reference devices, #6) | | | |
 | **1.4 Interpreter and scheduler** | **passed in CI** (Chromium, SwiftShader) | 60 fixed-step frames identical twice (pixels and scene state); live: 0 of 16 commands late with a 100 ms lookahead, worst 7.3 ms early; 60 fps | **go**, with the design rules below | **go**, 21 Oct 2026 ([record](../decisions/spike-1.4-scheduler.md)) |
 | **1.5 Both code editors** | **passed in CI** (Chromium, SwiftShader); devices pending (#6) | Both editors: typed move, nested do together, object slot, wrong drops refused, arguments asked on drop, keyboard paths (6 Playwright tests). Drag: tiles 0 long frames (mouse and touch); Blockly 0–3 long frames, worst 66–150 ms | **go for both**, with the findings below; touch numbers on the reference devices still needed | **go for both**, 21 Oct 2026 ([record](../decisions/spike-1.5-editors.md)) |
@@ -137,3 +137,24 @@ Playwright's device presets replace the user-agent string, so the user agents in
 5. The Tauri `--config` override let one harness embed a different page (spike 1.8) without code changes. That's useful for running the self-test (WP18.1) inside each webview.
 
 **Not covered:** macOS Keychain and Android Keystore (the code is written for Keychain but only Windows was run); iOS; the native key wizard (the key was stored by the CI helper, not typed by a person); the human security review (recommended before the pilot).
+
+## 1.2 Characters in Babylon.js (Alice model)
+
+**Task:** convert three Alice models (a biped, a quadruped, a prop) to glTF with their joints. Load them in Babylon.js, and animate a turn of the head joint and a walk. Measure frame rate and memory on both reference devices, in Chrome, Safari and the Tauri app. Code: `spikes/1.2-models/`. Page: https://storystage.github.io/storystage2/1.2-models/
+
+**What changed, and why.** Converting Alice's models needs S4's converter (`tools/convert-alice-models`, WP3b), which uses StoryStage 1's Java loader. And until CMU answers (WP17.1), Alice's models mustn't go into this public repository or onto the public spike pages. So the spike is in two halves:
+1. **Now: a budget sweep with characters made in code.** A biped with VRM bone names (22 joints, or 52 with fingers) and a quadruped with Alice's joint set (27): one skinned mesh each, at a chosen triangle count, with two bone influences per vertex and a generated texture. Four presets, from 3 small characters to a crowd of 12, each turn their heads and walk. The page records frame rate, frame-time spread, stutters, draw calls, build time and memory, and **flags any measurement taken while the page was hidden** (browsers slow a hidden page to about a frame a second; that's what happened on the first local try).
+2. **Later: the Alice models themselves.** The same page opens a `.glb` from the device, finds its joints by Alice or VRM name, and animates its head and walk. S4's converted models are tested that way, on the devices, without being published.
+
+**Results so far (CI, 21 Oct 2026, SwiftShader: a CPU, no GPU, so a floor and not a budget):**
+
+| Preset | Characters × triangles | Texture | Total triangles | Bones | Graphics memory (estimate) | fps | Frames over 50 ms in 5 s |
+|---|---|---|---|---|---|---|---|
+| small | 3 × 5k | 512 | 19k | 71 | 5 MB | 28.6 | 5 |
+| medium | 5 × 20k | 1024 | 107k | 120 | 33 MB | 8.8 | 43 |
+| large | 5 × 50k, fingers | 2048 | 269k | 210 | 124 MB | 6.4 | 31 |
+| crowd | 12 × 20k | 1024 | 256k | 294 | 79 MB | 7.2 | 28 |
+
+**For WP3.9 (S4) and WP5a (S3), once the devices have run it:** the triangle, bone and texture budgets per model and per scene come from the largest preset that holds 30 fps on the reference Chromebook at "low" (WP5 done-when). Until then, a working assumption is about 20k triangles and 1024 px textures per character, and no more than about 100k triangles per scene.
+
+**Not covered yet:** the reference devices (#6); the three real Alice models (WP3b and WP17.1); Safari and the Tauri app on the devices. The Tauri harness from spike 1.6 can embed this page the same way it embedded 1.8.
