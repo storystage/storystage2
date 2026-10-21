@@ -4,6 +4,8 @@ import { defineConfig, devices } from '@playwright/test';
 // works without a GPU. Pixel comparisons stay within one renderer (workplan 18.2).
 export default defineConfig({
   testMatch: '**/e2e/**/*.e2e.ts',
+  // Spikes have their own Playwright configs and servers.
+  testIgnore: ['**/spikes/**', '**/node_modules/**'],
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : 'list',
