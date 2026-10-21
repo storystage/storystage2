@@ -9,5 +9,12 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/editor-contract": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/stage": "workspace:*",
+    "@storystage/story-api": "workspace:*"
   }
 }

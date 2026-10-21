@@ -114,7 +114,23 @@ importers:
         specifier: workspace:*
         version: link:../story-api
 
-  packages/selftest: {}
+  packages/selftest:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../editor-contract
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
 
   packages/sketches: {}
 
