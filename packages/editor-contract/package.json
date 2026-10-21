@@ -5,9 +5,13 @@
   "description": "The interface both code editors implement: read the program, apply edit operations, highlight, focus, keyboard commands.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/test-host.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*"
   }
 }
