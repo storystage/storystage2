@@ -24,10 +24,10 @@ The required checks run on `push`, not `pull_request`. A `pull_request` trigger 
 
 These need organisation-admin rights (the `admin:org` scope), which this session doesn't use. In rough order of importance:
 
-1. **Require two-factor authentication** for everyone in the organisation (currently off). Every session's pull requests and the release builds depend on these accounts.
-2. **Turn on push protection and Dependabot alerts for new repositories** by default (currently off), so later repositories (website, Backstage assets) start protected.
-3. **Actions policy for the organisation:** allow only GitHub's actions and selected actions, and require SHA pinning, to match this repository.
-4. **Restrict who can create public repositories** (currently any member can), so nothing children's-data-adjacent is published by mistake.
+1. ~~**Require two-factor authentication** for everyone in the organisation (currently off). Every session's pull requests and the release builds depend on these accounts.~~ **Done 21 Oct 2026:** required for everyone (checked through the API).
+2. ~~**Turn on push protection and Dependabot alerts for new repositories** by default (currently off), so later repositories (website, Backstage assets) start protected.~~ **Done 21 Oct 2026:** the "GitHub recommended" security configuration is the default for new public repositories (checked through the API). For private repositories it needs the paid Secret Protection add-on.
+3. ~~**Actions policy for the organisation:** allow only GitHub's actions and selected actions, and require SHA pinning, to match this repository.~~ **Done 21 Oct 2026:** set by the owner. This session can't read the organisation's Actions policy (it needs the `admin:org` scope).
+4. **Restrict who can create public repositories** (currently any member can), so nothing children's-data-adjacent is published by mistake. **Still open (21 Oct 2026):** the API still shows that members can create public repositories. Check Member privileges → Repository creation, untick Public, and Save.
 5. ~~Decide whether an emergency bypass is wanted~~: done 21 Oct 2026, the owner (organisation admin) can bypass `main` (decision 0029).
 6. **Later, for WP15:** environments and secrets for code signing (Windows certificate, Apple), and the repository variable `APPLE_DEVELOPMENT_TEAM`, which switches on the iOS build.
 
