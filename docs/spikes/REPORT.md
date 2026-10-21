@@ -5,7 +5,7 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | Spike | Status | Measured | Proposed | Owner decision |
 |---|---|---|---|---|
 | **1.2 Alice model in Babylon.js** | **built; device runs pending** (#6); Alice models wait for S4's converter (WP3b) and the licence (WP17.1) | CI (software rendering): all four presets run, from 19k triangles in 3 characters to 270k in 5 | decide after the M1 device runs | pending |
-| 1.3 whisper.cpp in WebAssembly | not started (needs reference devices, #6) | | | |
+| **1.3 whisper.cpp in WebAssembly** | **built and passing in CI**; device runs pending (#6) | Both tiny models transcribe a clear recording perfectly; a 5-second robotic request with 1–2 words wrong; **644–758 MB of memory**; model ready in under 0.5 s once downloaded | decide after the M1 device runs; memory is the risk | pending |
 | **1.4 Interpreter and scheduler** | **passed in CI** (Chromium, SwiftShader) | 60 fixed-step frames identical twice (pixels and scene state); live: 0 of 16 commands late with a 100 ms lookahead, worst 7.3 ms early; 60 fps | **go**, with the design rules below | **go**, 21 Oct 2026 ([record](../decisions/spike-1.4-scheduler.md)) |
 | **1.5 Both code editors** | **passed in CI** (Chromium, SwiftShader); devices pending (#6) | Both editors: typed move, nested do together, object slot, wrong drops refused, arguments asked on drop, keyboard paths (6 Playwright tests). Drag: tiles 0 long frames (mouse and touch); Blockly 0–3 long frames, worst 66–150 ms | **go for both**, with the findings below; touch numbers on the reference devices still needed | **go for both**, 21 Oct 2026 ([record](../decisions/spike-1.5-editors.md)) |
 | **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | **go**, 21 Oct 2026 ([record](../decisions/spike-1.6-key-path.md)) |
@@ -158,3 +158,32 @@ Playwright's device presets replace the user-agent string, so the user agents in
 **For WP3.9 (S4) and WP5a (S3), once the devices have run it:** the triangle, bone and texture budgets per model and per scene come from the largest preset that holds 30 fps on the reference Chromebook at "low" (WP5 done-when). Until then, a working assumption is about 20k triangles and 1024 px textures per character, and no more than about 100k triangles per scene.
 
 **Not covered yet:** the reference devices (#6); the three real Alice models (WP3b and WP17.1); Safari and the Tauri app on the devices. The Tauri harness from spike 1.6 can embed this page the same way it embedded 1.8.
+
+## 1.3 whisper.cpp in WebAssembly
+
+**Task:** the tiny model transcribes a 5-second request on both devices. Measure load time, transcription time and peak memory. Code: `spikes/1.3-whisper/`. Page: https://storystage.github.io/storystage2/1.3-whisper/
+
+**How it works.**
+- **The build:** CI builds **whisper.cpp v1.9.5** to WebAssembly with **Emscripten 6.0.13**, using whisper.cpp's own example. The only change is exporting Emscripten's file system, so the page can hand over the model.
+- **The models:** the **tiny English model**, full (78 MB) and quantised q5_1 (32 MB). They come from whisper.cpp's model repository, are each checked against a pinned SHA-256, and are hosted beside the page, so devices load only from our site.
+- **The clips:** a 5-second request made with espeak-ng ("Make the cat walk to the tree, and then wave hello."), and whisper.cpp's public-domain sample, President Kennedy in 1961.
+- **The microphone:** a button records 5 seconds and transcribes it. The audio never leaves the tab.
+- **Cross-origin isolation:** whisper uses threads, which on a web page need it. On GitHub Pages `coi-serviceworker` provides it.
+
+**Results (CI, 22 Oct 2026, Chromium on a 4-core runner, software only):**
+
+| Model | Memory (WebAssembly) | Model ready (after download) | Request: heard | Request: wrong words | Kennedy (4 s of speech in 11 s): heard | Kennedy: wrong words | Kennedy: time |
+|---|---|---|---|---|---|---|---|
+| tiny.en q5_1 (32 MB) | **644 MB** | 0.3 s | "make the catwalk to the tree and then wave the low." | 36% | exactly right | 0% | 5.0 s |
+| tiny.en (78 MB) | **758 MB** | 0.4 s | "Make the catwalk to the tree and then wave below." | 27% | exactly right | 0% | 7.9 s |
+
+The first transcription after loading took longer (13.4 s for the quantised model's first clip), so the 5-second request's times include warm-up. The device runs repeat each clip.
+
+**Findings for WP14 (S7):**
+1. **It works with no server.** whisper.cpp in WebAssembly transcribes in the page, and clear speech comes out right with the tiny model.
+2. **Memory is the risk on a 4 GB Chromebook.** whisper.cpp's example reserves **512 MB at start** and grew to 644–758 MB. WP14.1 should try a smaller starting reservation, the quantised model, and freeing whisper after each request, and measure on the device (M1).
+3. **The robotic test voice is hard for the tiny model** ("catwalk", "wave the low"). Children's real voices are the test that matters, so the M1 script records the owner's voice. The pilot should add children's voices, with consent (WP19).
+4. **Cross-origin isolation** is needed for whisper's threads. The Tauri apps can set the headers themselves; the browser version needs them from its host (WP15.6), or the `coi-serviceworker` workaround.
+5. **Licences:** whisper.cpp is MIT. OpenAI's Whisper model weights are MIT too, but check this for the shipped model in WP17. espeak-ng (GPL) was used only as a build tool to make the test clip, and isn't shipped.
+
+**Not covered:** the reference devices (#6), and Safari and the Tauri webviews (the device runs cover Safari); children's voices; the base model (WP1.3 asks only for tiny).
