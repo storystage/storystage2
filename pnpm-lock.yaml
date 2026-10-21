@@ -87,7 +87,15 @@ importers:
         specifier: workspace:*
         version: link:../ast
 
-  packages/export: {}
+  packages/export:
+    dependencies:
+      mediabunny:
+        specifier: ^1.62.0
+        version: 1.62.0
+    devDependencies:
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)
 
   packages/production:
     dependencies:

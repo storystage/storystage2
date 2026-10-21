@@ -22,10 +22,19 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: 'pnpm --filter @storystage/studio build && pnpm --filter @storystage/studio preview',
-    url: 'http://localhost:4173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: 'pnpm --filter @storystage/studio build && pnpm --filter @storystage/studio preview',
+      url: 'http://localhost:4173',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // The export harness (packages/export/e2e/harness): real MP4s made in the browser.
+      command: 'pnpm --filter @storystage/export harness',
+      url: 'http://localhost:4180',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 });

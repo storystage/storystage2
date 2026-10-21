@@ -8,6 +8,7 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
+      '**/dist-harness/**',
       '**/coverage/**',
       'apps/desktop/src-tauri/**',
       'playwright-report/**',
