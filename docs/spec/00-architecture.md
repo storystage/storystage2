@@ -94,7 +94,7 @@ Sessions work in parallel by coding against these contracts. Each one lands in i
 | **Backstage manifest schema** | Model ids, sections, classes, joints, licences, budgets | S4 (`backstage`) | stage, sketches, prompter, export |
 | **Prompter transport** | How `prompter` sends a request and receives a stream, without the key | S7 (`prompter`), S8 (native side) | studio, desktop |
 | **Editor contract** | What both code editors implement: read the program, apply edit operations, highlight, focus, keyboard commands | S1 (`editor-contract`), then S5 and S6 | blocks, tiles, studio |
-| **Host interface** (proposed here; not in the 0.8 list) | Files, transport or none, policy in force (section 1) | S8 (`desktop`) and S5 (`studio`) | studio |
+| **Host interface** (agreed 21 Oct 2026, decision 0028) | Files, transport or none, policy in force (section 1) | S8 (`desktop`) and S5 (`studio`) | studio |
 
 ## 7. Tests
 
