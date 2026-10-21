@@ -1,6 +1,6 @@
 # Spike 1.5: both code editors
 
-- **Status:** proposed: **go for both** (S1, 20 Oct 2026). Waiting for the owner's decision.
+- **Status:** decided: **go for both** (owner, 21 Oct 2026). Proposed by S1 on 20 Oct 2026.
 - **Evidence:** `docs/spikes/REPORT.md`, section 1.5; code in `spikes/1.5-editors/`.
 
 ## Proposal
@@ -11,4 +11,6 @@ This is not a choice between the editors: the pilot study (WP19.5–19.8) makes 
 
 ## Owner decision
 
-_Go / no-go, date:_
+Go for both editors, over one shared drop rule and cascade. Repeat the touch measurement on the reference devices in the M1 run (`docs/test/M1-spikes.md`) before WP7 sets its budgets.
+
+Recorded by S1 from the owner's answer in the S1 session, 21 Oct 2026.

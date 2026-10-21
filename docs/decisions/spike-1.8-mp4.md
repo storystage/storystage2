@@ -1,6 +1,6 @@
 # Spike 1.8: MP4 export
 
-- **Status:** proposed: **go for video**, with a decision needed on audio (S1, 20 Oct 2026). Waiting for the owner's decision.
+- **Status:** decided: **go for video; audio after the Chromebook check** (owner, 21 Oct 2026). Proposed by S1 on 20 Oct 2026.
 - **Evidence:** `docs/spikes/REPORT.md`, section 1.8; code in `spikes/1.8-mp4/`.
 
 ## Proposal
@@ -16,4 +16,6 @@ First check the reference Chromebook (#6).
 
 ## Owner decision
 
-_Go / no-go, date:_
+Go for video now. Decide how export handles audio once the M1 run shows whether the reference Chromebook can encode AAC (#6).
+
+Recorded by S1 from the owner's answer in the S1 session, 21 Oct 2026.
