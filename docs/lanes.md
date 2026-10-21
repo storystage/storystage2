@@ -4,11 +4,13 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S1 Platform and quality
 - Merged:
-  - 20 Oct: WP0.1 repo settings and owner list (this PR); WP0.7 carried-over artefacts (#21); WP0.6 NOTICE and licence check (#18); WP0.5 spec skeleton, architecture, decisions (#5); WP0.4 CLAUDE.md (#4); WP0.3 CI and app builds (#2); WP0.2 monorepo (#1). **Other sessions can now open branches and pull requests: CI, the package stubs and `CLAUDE.md` are in place. Code against the WP0.8 contracts once they land.**
+  - 21 Oct: **the WP0.8 contracts are on `main`**: vocabulary (#26), stage and fake stage (#27), runtime messages (#29), Backstage manifest (#30), production and storyboard (#31), editor contract (#33), Prompter transport (#32). **S2–S8: build on them; a change to one is a `contract` pull request.**
+  - 21 Oct: spikes **1.4, 1.5, 1.6 go; 1.8 go for video** (#25, #28, #35; records in `docs/decisions/spike-*.md`). Spike pages for device runs: https://storystage.github.io/storystage2/
+  - 20 Oct: WP0.1–0.7 (#1, #2, #4, #5, #18, #21, #22).
+- Open: #36 WP18a self-test skeleton and M0, M1 scripts; #37 the owner's decisions of 21 Oct and the Apache-2.0 licence; #23 capacity probe; #24 classroom questions. All for the owner.
 - Blocked on:
-  - Owner: reference devices, WP1.1 (#6) for the device spikes; org settings in `docs/github-settings.md`; licence (#19); app id (#20).
-- Open for owner review: WP1.4 spike, proposed go (#25, critical); WP1.12 capacity probe (#23); WP1.11 questions (#24).
-- Next: WP1.5 editors spike, then WP0.8 contracts (critical: S2–S8 code against them). WP0.9 (threat model) is S8's, per the roster.
+  - Owner: reference devices (#6) for spikes 1.2, 1.3, 1.7, 1.9, the M1 device runs, and the audio choice for export (does the Chromebook encode AAC?).
+- Next: spike 1.2 (an Alice-style model in Babylon.js, the build and CI half), then WP11a (MP4 encoder module, on 1.8's findings). WP0.9 (threat model) is S8's (decision 0027).
 
 ## S2 Language, runtime and Screening room
 - Merged:
