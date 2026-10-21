@@ -73,7 +73,11 @@ importers:
 
   packages/ast: {}
 
-  packages/backstage: {}
+  packages/backstage:
+    dependencies:
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
 
   packages/blocks: {}
 
