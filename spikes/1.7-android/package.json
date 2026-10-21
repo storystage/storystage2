@@ -1,0 +1,23 @@
+{
+  "name": "@storystage/spike-1-7-android",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Spike 1.7 (throwaway): a Babylon.js scene and a Blockly workspace in the Tauri Android app, for the reference Chromebook.",
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "tauri": "tauri",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@babylonjs/core": "^9.31.1",
+    "@tauri-apps/cli": "^2.12.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "blockly": "^13.4.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.4"
+  }
+}
