@@ -8,6 +8,13 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "harness": "vite build --config e2e/harness/vite.config.ts && vite preview --config e2e/harness/vite.config.ts"
+  },
+  "dependencies": {
+    "mediabunny": "^1.62.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
   }
 }
