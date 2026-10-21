@@ -6,6 +6,15 @@
 
 Before each spike: close other apps and tabs, plug the device in, and note the battery level and whether it is warm. **Keep the page in view, with the screen on, until its results appear:** browsers pause a hidden page's animation, and spike 1.4 then never finishes.
 
+## 1.2 Characters in Babylon.js (`spikes/1.2-models`)
+
+| # | Do | Expect | ✓ |
+|---|---|---|---|
+| 1 | Open the page in Chrome on the Chromebook, and in Safari on the iPad. Tap **Run the budget sweep** and keep the page in view for about 30 seconds. | Walking figures appear, four times, each time with more or bigger ones. The results show `"warning": null` (if not, run it again without switching away). | |
+| 2 | For each of `small`, `medium`, `large` and `crowd`, note `fps`, `p95Ms`, `stutters` and `buildMs`. | ______ (copy the whole result into the results file) | |
+| 3 | Does the motion look smooth to you in each? Where does it start to feel jerky? | ______ | |
+| 4 | Only once S4 has converted Alice models (WP3b): tap **Choose file** and pick a converted `.glb` on the device. It stays on the device. | It loads, its head turns and its legs walk. Note `loadMs`, `fps` and `triangles`. Never put Alice's models on the shared site until the licence is cleared (WP17.1). | |
+
 ## 1.4 Interpreter and scheduler (`spikes/1.4-scheduler`)
 
 | # | Do | Expect | ✓ |
@@ -36,7 +45,7 @@ Before each spike: close other apps and tabs, plug the device in, and note the b
 
 ## Later spikes
 
-1.2 (an Alice model in Babylon.js), 1.3 (whisper in WebAssembly), 1.7 (the Android app on the Chromebook) and 1.9 (AR) are added here as S1 builds them. 1.6 (the key path) needs no device run: it ran on Windows in CI.
+1.3 (whisper in WebAssembly), 1.7 (the Android app on the Chromebook) and 1.9 (AR) are added here as S1 builds them. 1.6 (the key path) needs no device run: it ran on Windows in CI.
 
 ## Record
 
