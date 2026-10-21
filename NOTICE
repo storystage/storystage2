@@ -26,8 +26,10 @@ react  19.3.1  MIT
 react-dom  19.3.1  MIT
 scheduler  0.28.0  MIT
 
-== Build and test tools, not shipped (172) ==
+== Build and test tools, not shipped (207) ==
 
+@asamuzakjp/css-color  7.1.7  MIT
+@asamuzakjp/dom-selector  10.0.4  MIT
 @babel/code-frame  7.29.7  MIT
 @babel/compat-data  7.29.7  MIT
 @babel/core  7.29.7  MIT
@@ -45,8 +47,15 @@ scheduler  0.28.0  MIT
 @babel/traverse  7.29.10  MIT
 @babel/types  7.29.8  MIT
 @babylonjs/core  9.31.1  Apache-2.0
+@bramus/specificity  2.4.3  MIT
 @cacheable/memory  2.2.0  MIT
 @cacheable/utils  2.5.0  MIT
+@csstools/color-helpers  6.1.2  MIT-0
+@csstools/css-calc  3.4.3  MIT
+@csstools/css-color-parser  4.2.6  MIT
+@csstools/css-parser-algorithms  4.0.2  MIT
+@csstools/css-syntax-patches-for-csstree  1.1.15  MIT-0
+@csstools/css-tokenizer  4.0.2  MIT
 @eslint-community/eslint-utils  4.10.1  MIT
 @eslint-community/regexpp  4.12.2  MIT
 @eslint/config-array  0.23.5  Apache-2.0
@@ -55,6 +64,7 @@ scheduler  0.28.0  MIT
 @eslint/js  10.0.1  MIT
 @eslint/object-schema  3.0.5  Apache-2.0
 @eslint/plugin-kit  0.7.3  Apache-2.0
+@exodus/bytes  1.16.0  MIT
 @humanfs/core  0.19.2  Apache-2.0
 @humanfs/node  0.16.8  Apache-2.0
 @humanfs/types  0.15.0  Apache-2.0
@@ -98,6 +108,8 @@ ajv  6.15.0  MIT
 assertion-error  2.0.1  MIT
 balanced-match  4.0.4  MIT
 baseline-browser-mapping  2.11.30  Apache-2.0
+bidi-js  1.1.0  MIT
+blockly  13.4.0  Apache-2.0
 brace-expansion  5.0.12  MIT
 browserslist  4.29.4  MIT
 cacheable  2.5.0  MIT
@@ -105,11 +117,15 @@ caniuse-lite  1.0.30001817  CC-BY-4.0
 chai  6.3.0  MIT
 convert-source-map  2.0.0  MIT
 cross-spawn  7.0.6  MIT
+css-tree  3.2.1  MIT
 csstype  3.2.3  MIT
+data-urls  8.0.0  MIT
 debug  4.4.3  MIT
+decimal.js  10.6.0  MIT
 deep-is  0.1.4  MIT
 detect-libc  2.1.2  Apache-2.0
 electron-to-chromium  1.5.461  ISC
+entities  8.1.0  BSD-2-Clause
 es-module-lexer  2.3.2  MIT
 escalade  3.2.0  MIT
 escape-string-regexp  4.0.0  MIT
@@ -139,12 +155,15 @@ hashery  1.5.1  MIT
 hermes-estree  0.25.1  MIT
 hermes-parser  0.25.1  MIT
 hookified  1.15.1, 2.2.0  MIT
+html-encoding-sniffer  7.0.0  MIT
 ignore  5.3.2, 7.0.13  MIT
 imurmurhash  0.1.4  MIT
 is-extglob  2.1.1  MIT
 is-glob  4.0.3  MIT
+is-potential-custom-element-name  1.0.1  MIT
 isexe  2.0.0  ISC
 js-tokens  4.0.0  MIT
+jsdom  30.1.3  MIT
 jsesc  3.1.0  MIT
 json-schema-traverse  0.4.1  MIT
 json-stable-stringify-without-jsonify  1.0.1  MIT
@@ -154,7 +173,9 @@ levn  0.4.1  MIT
 lightningcss  1.33.0  MPL-2.0
 locate-path  6.0.0  MIT
 lru-cache  5.1.1  ISC
+lru-cache  11.5.3  BlueOak-1.0.0
 magic-string  1.4.3  MIT
+mdn-data  2.27.1  CC0-1.0
 minimatch  10.2.6  BlueOak-1.0.0
 ms  2.1.3  MIT
 nanoid  3.3.20  MIT
@@ -164,6 +185,7 @@ obug  3.0.0  MIT
 optionator  0.9.4  MIT
 p-limit  3.1.0  MIT
 p-locate  5.0.0  MIT
+parse5  8.0.1  MIT
 path-exists  4.0.0  MIT
 path-key  3.1.1  MIT
 picocolors  1.1.1  ISC
@@ -175,7 +197,9 @@ prelude-ls  1.2.1  MIT
 prettier  3.9.10  MIT
 punycode  2.3.1  MIT
 qified  0.10.1  MIT
+require-from-string  2.0.2  MIT
 rolldown  1.2.14  MIT
+saxes  6.0.0  ISC
 semver  6.3.1, 7.8.5  ISC
 shebang-command  2.0.0  MIT
 shebang-regex  3.0.0  MIT
@@ -184,18 +208,29 @@ std-env  4.3.0  MIT
 tinybench  6.2.2  MIT
 tinyexec  1.3.1  MIT
 tinyglobby  0.2.17  MIT
+tldts  7.4.19  MIT
+tldts-core  7.4.19  MIT
+tough-cookie  6.0.2  BSD-3-Clause
+tr46  7.0.0  MIT
 ts-api-utils  2.5.0  MIT
 type-check  0.4.0  MIT
 typescript  6.0.3  Apache-2.0
 typescript-eslint  8.72.0  MIT
+undici  8.12.3  MIT
 undici-types  8.9.0  MIT
 update-browserslist-db  1.3.4  MIT
 uri-js  4.4.1  BSD-2-Clause
 vite  8.3.4  MIT
 vitest  5.0.5  MIT
+w3c-xmlserializer  6.0.0  MIT
+webidl-conversions  8.0.1  BSD-2-Clause
+whatwg-mimetype  5.0.0  MIT
+whatwg-url  17.3.0  MIT
 which  2.0.2  ISC
 why-is-node-running  3.2.1  MIT
 word-wrap  1.2.5  MIT
+xml-name-validator  5.0.0  Apache-2.0
+xmlchars  2.2.0  MIT
 yallist  3.1.1  ISC
 yocto-queue  0.1.0  MIT
 zod  4.6.7  MIT

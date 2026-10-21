@@ -1,0 +1,153 @@
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  background: #f4f1ea;
+  color: #222;
+}
+nav {
+  padding: 8px 12px;
+  background: #333;
+}
+nav a {
+  color: #fff;
+  margin-right: 16px;
+}
+nav a[aria-current] {
+  font-weight: bold;
+}
+.editor {
+  display: flex;
+  gap: 16px;
+  padding: 12px;
+  touch-action: none;
+  user-select: none;
+}
+.blockly-host {
+  width: 900px;
+  height: 560px;
+}
+.palette {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 140px;
+}
+.tile {
+  border-radius: 6px;
+  padding: 6px 10px;
+  background: #8fc1e3;
+  border: 1px solid #5a8fb3;
+  cursor: grab;
+}
+.tile:focus-visible,
+.cascade li:focus-visible {
+  outline: 3px solid #1a1a8c;
+  outline-offset: 2px;
+}
+.tile.value {
+  background: #f2c48d;
+  border-color: #c28a4a;
+}
+.tile.container {
+  background: #b9e0b0;
+  border-color: #6ea362;
+}
+.tile.grabbed {
+  opacity: 0.6;
+  outline: 3px dashed #1a1a8c;
+}
+.container-head {
+  font-weight: 600;
+  cursor: grab;
+}
+.list {
+  padding-left: 16px;
+  min-height: 8px;
+}
+.program {
+  flex: 1;
+  background: #fffdf7;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 400px;
+}
+.program-head {
+  font-weight: 600;
+  background: #f5d76e;
+  border-radius: 6px;
+  padding: 6px 10px;
+  display: inline-block;
+}
+.gap {
+  height: 6px;
+  margin: 2px 0;
+  border-radius: 3px;
+}
+.gap.allowed {
+  height: 14px;
+  background: #d7ecff;
+}
+.gap.over,
+.slot.over {
+  background: #2b6cb0;
+}
+.slot {
+  display: inline-block;
+  min-width: 40px;
+  padding: 2px 6px;
+  margin: 0 4px;
+  background: #fff;
+  border: 1px dashed #888;
+  border-radius: 4px;
+  text-align: center;
+}
+.slot.allowed {
+  background: #d7ecff;
+  border-style: solid;
+}
+.field {
+  padding: 2px 6px;
+  background: #fff;
+  border-radius: 4px;
+}
+.ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #8fc1e3cc;
+  will-change: transform;
+}
+.cascade {
+  position: fixed;
+  z-index: 10;
+  background: #fff;
+  border: 1px solid #888;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px #0003;
+  min-width: 140px;
+}
+.cascade-question {
+  padding: 6px 10px;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+}
+.cascade ul {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+.cascade li {
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.cascade li.active {
+  background: #d7ecff;
+}
+.live {
+  position: absolute;
+  left: -9999px;
+}

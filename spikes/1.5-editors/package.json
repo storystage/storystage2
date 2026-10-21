@@ -1,0 +1,22 @@
+{
+  "name": "@storystage/spike-1-5-editors",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spike 1.5 (throwaway): option B (Blockly, Alice-style) and option C (React tiles) side by side.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "blockly": "^13.4.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "vite": "^8.3.4"
+  }
+}
