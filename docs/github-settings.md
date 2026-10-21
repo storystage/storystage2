@@ -15,6 +15,7 @@ What is set on `storystage/storystage2` and what the owner still needs to change
 | Actions | Only GitHub's own actions plus `pnpm/action-setup`, `dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `EmbarkStudios/cargo-deny-action`; **full-length SHA pinning required** | Supply chain (threat model, WP0.9) |
 | Workflow token | Read-only by default; workflows can't approve pull requests | Least privilege |
 | Wiki | Off | Docs live in `docs/` |
+| GitHub Pages | On, published by Actions (`.github/workflows/spike-pages.yml`) at https://storystage.github.io/storystage2/; the `github-pages` environment accepts deployments from `main` and `lane/s1-wp1-*` | The owner's device runs of the spikes (M1). Added 21 Oct 2026 with the owner's approval. Static pages only; nothing collected |
 | Labels | `wp-0` … `wp-24`, `type:bug`, `type:task`, `needs-owner`, `spike`, `critical`, `contract`, `lane:s1` … `lane:s8`, `lane:d` | Workplan section 10; the lane labels and `contract` are additions |
 
 The required checks run on `push`, not `pull_request`. A `pull_request` trigger added skipped runs with the same names, and GitHub counts a skipped required check as passed. Pull requests from forks therefore get no CI and can't merge.

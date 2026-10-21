@@ -1,0 +1,18 @@
+{
+  "name": "@storystage/spike-1-8-mp4",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spike 1.8 (throwaway): offscreen Babylon.js frames encoded to MP4 with WebCodecs and Mediabunny.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@babylonjs/core": "^9.31.1",
+    "@tauri-apps/api": "^2.12.4",
+    "mediabunny": "^1.62.0",
+    "vite": "^8.3.4"
+  }
+}

@@ -1,0 +1,51 @@
+# Publishes the spike pages to GitHub Pages so the owner can open them on the reference devices
+# (docs/test/M1-spikes.md): https://storystage.github.io/storystage2/
+# The pages are static, collect nothing and load nothing from elsewhere.
+name: Spike pages
+
+on:
+  push:
+    branches: ['lane/s1-wp1-*', main]
+    paths:
+      - spikes/**
+      - .github/workflows/spike-pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Build each spike page with relative paths
+        run: |
+          site="$GITHUB_WORKSPACE/_site"
+          for spike in 1.4-scheduler 1.5-editors 1.8-mp4; do
+            (cd "spikes/$spike" && pnpm exec vite build --base ./ --outDir "$site/$spike" --emptyOutDir)
+          done
+          sed -e "s|BRANCH|${GITHUB_REF_NAME}|" -e "s|COMMIT|${GITHUB_SHA::7}|" spikes/pages/index.html > "$site/index.html"
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

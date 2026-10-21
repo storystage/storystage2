@@ -64,3 +64,152 @@ jobs:
             spikes/1.5-editors/playwright-report/
             spikes/1.5-editors/test-results/
           retention-days: 30
+
+  spike-1-8:
+    name: spike 1.8 (MP4 export, browsers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: spikes/1.8-mp4
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Install browsers (Google Chrome has H.264; open-source Chromium does not)
+        run: pnpm exec playwright install --with-deps chrome chromium webkit
+      - name: Encode in each browser
+        run: pnpm exec playwright test
+      - name: Check each clip with ffprobe, and decode it all the way through
+        if: always()
+        run: |
+          command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          shopt -s nullglob
+          for f in test-results/*.mp4; do
+            echo "== $f"
+            ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate,nb_frames:format=duration,size -of json "$f" | tee "$f.ffprobe.json"
+            ffmpeg -v error -i "$f" -f null - && echo "decodes: yes" | tee -a "$f.ffprobe.json"
+          done
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-1.8-results
+          path: spikes/1.8-mp4/test-results/
+          retention-days: 30
+
+  spike-1-6:
+    name: spike 1.6 (key path) and 1.8 in WebView2 (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: spikes/1.6-key-path
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The runner context isn't available in job-level env, so set the output folder here.
+      - run: echo "OUT=$RUNNER_TEMP/spike-1.6" >> "$GITHUB_ENV"
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: spikes/1.6-key-path/src-tauri -> target
+      - uses: ./.github/actions/setup
+      # Tauri embeds the page at compile time, so the pages are built first.
+      - name: Build the pages
+        run: |
+          pnpm build
+          pnpm --filter @storystage/spike-1-8-mp4 build
+      - name: Rust unit tests (policy, SSE, status codes, Credential Manager round trip)
+        working-directory: spikes/1.6-key-path/src-tauri
+        run: cargo test
+      - name: Build the harness
+        run: |
+          pnpm tauri build --debug --no-bundle
+          (cd src-tauri && cargo build --bin spike-key)
+      - name: Put a random test key in Credential Manager (never printed)
+        run: |
+          mkdir -p "$OUT"
+          src-tauri/target/debug/spike-key.exe set "$OUT/key.sha256"
+          src-tauri/target/debug/spike-key.exe selftest
+      - name: Run the app against the fake Claude server, then look inside the webview
+        run: |
+          node scripts/fake-claude.mjs 8787 "$OUT/key.sha256" "$OUT/fake-claude.log" &
+          SPIKE_OUT="$OUT" FAKE_CLAUDE_URL=http://127.0.0.1:8787 src-tauri/target/debug/spike-key-path.exe &
+          node scripts/cdp-check.mjs "$OUT/spike-1.6.done" "$OUT"
+          taskkill //F //IM spike-key-path.exe || true
+      - name: Check the results
+        run: node scripts/assert-1.6.mjs "$OUT/spike-1.6.json" "$OUT/fake-claude.log"
+      - name: Scan everything the webview could see for the key
+        run: src-tauri/target/debug/spike-key.exe scan "$OUT/spike-1.6.json" "$OUT/devtools-page.json" "$OUT/devtools-heap.heapsnapshot" "$OUT/fake-claude.log"
+      - name: Remove the test key
+        if: always()
+        run: src-tauri/target/debug/spike-key.exe delete || true
+      - name: Spike 1.8 inside WebView2
+        run: |
+          pnpm tauri build --debug --no-bundle --config '{"build":{"frontendDist":"../../1.8-mp4/dist"}}'
+          mkdir -p "$OUT/1.8"
+          SPIKE_OUT="$OUT/1.8" timeout 300 src-tauri/target/debug/spike-key-path.exe || true
+          cat "$OUT/1.8/spike-1.8.json"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-1.6-results
+          path: |
+            ${{ runner.temp }}/spike-1.6/
+            !${{ runner.temp }}/spike-1.6/*.heapsnapshot
+          retention-days: 30
+
+  spike-1-8-macos:
+    name: spike 1.8 in WKWebView (macOS)
+    runs-on: macos-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: spikes/1.6-key-path
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: spikes/1.6-key-path/src-tauri -> target
+      - uses: ./.github/actions/setup
+      - name: Build the 1.8 page into the harness
+        run: |
+          pnpm --filter @storystage/spike-1-8-mp4 build
+          pnpm tauri build --debug --no-bundle --config '{"build":{"frontendDist":"../../1.8-mp4/dist"}}'
+      - name: Run it (the page reports, then closes the app)
+        run: |
+          mkdir -p "$RUNNER_TEMP/spike-1.8"
+          SPIKE_OUT="$RUNNER_TEMP/spike-1.8" src-tauri/target/debug/spike-key-path &
+          APP=$!
+          for i in $(seq 1 300); do [ -f "$RUNNER_TEMP/spike-1.8/spike-1.8.done" ] && break; sleep 1; done
+          kill $APP 2>/dev/null || true
+          cat "$RUNNER_TEMP/spike-1.8/spike-1.8.json"
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-1.8-macos-results
+          path: ${{ runner.temp }}/spike-1.8/
+          retention-days: 30
+
+  spike-1-8-webviews-ffprobe:
+    name: spike 1.8 clips from the webviews (ffprobe)
+    needs: [spike-1-6, spike-1-8-macos]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: clips
+      - name: Check each clip
+        run: |
+          command -v ffprobe || (sudo apt-get update && sudo apt-get install -y ffmpeg)
+          shopt -s globstar nullglob
+          for f in clips/**/*.mp4; do
+            echo "== $f"
+            ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate,nb_frames:format=duration,size -of json "$f"
+            ffmpeg -v error -i "$f" -f null - && echo "decodes: yes"
+          done
