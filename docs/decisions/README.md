@@ -1,6 +1,6 @@
 # Decision records
 
-One short record per settled decision. Records 0001 to 0024 are the fixed decisions in workplan section 2 (WP0.5); `docs/decisions.md` keeps the full list, including what the owner still has to decide.
+One short record per settled decision. Records 0001 to 0024 are the fixed decisions in workplan section 2 (WP0.5); 0025 onwards are later owner decisions; `docs/decisions.md` keeps the full list, including what the owner still has to decide.
 
 Settled decisions change only by the owner. To propose a change, open an issue labelled `needs-owner`; when the owner decides, add a new record that supersedes the old one and update `docs/decisions.md`. Spike go/no-go records (WP1.10) go here too, named `spike-1.N-<topic>.md`.
 
@@ -30,3 +30,8 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0022](0022-off-switches.md) | Off switches | Carried over |
 | [0023](0023-projection-mapping.md) | Projection mapping | 18 Oct 2026 |
 | [0024](0024-ar.md) | AR | 18 Oct 2026 |
+| [0025](0025-licence.md) | Licence | 21 Oct 2026 |
+| [0026](0026-app-identifier.md) | App identifier | 21 Oct 2026 |
+| [0027](0027-threat-model-owner.md) | Threat model owner | 21 Oct 2026 |
+| [0028](0028-host-interface.md) | Host interface | 21 Oct 2026 |
+| [0029](0029-main-bypass-and-merging.md) | Main branch bypass and merging | 21 Oct 2026 |

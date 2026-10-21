@@ -2,7 +2,7 @@
   "name": "storystage2",
   "private": true,
   "description": "StoryStage 2: Storyboard, Production stage, Screening room.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "type": "module",
   "packageManager": "pnpm@10.18.0",
   "engines": {

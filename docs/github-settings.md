@@ -8,7 +8,7 @@ What is set on `storystage/storystage2` and what the owner still needs to change
 |---|---|---|
 | Visibility | Public | Same as StoryStage 1. Secret scanning and push protection are free on public repositories |
 | Merging | Squash only; title and body from the pull request; head branches deleted after merge | One workplan task per squashed commit |
-| Ruleset `main` | No deletion, no force push, linear history, pull request required (0 approvals, conversations resolved), required checks `check` and `e2e` (GitHub Actions), no bypass | A pull request with a failing test can't merge (WP0 done-when, shown on #3) |
+| Ruleset `main` | No deletion, no force push, linear history, pull request required (0 approvals, conversations resolved), required checks `check` and `e2e` (GitHub Actions), the owner, as organisation admin, may bypass it in an emergency (decision 0029); nobody else | A pull request with a failing test can't merge (WP0 done-when, shown on #3) |
 | Secret scanning and push protection | On | CLAUDE.md rule 1 |
 | Dependabot alerts and security updates | On. Version updates for GitHub Actions only (`.github/dependabot.yml`) | npm and Cargo updates need a licence check and a `NOTICE` entry, so they're done by hand |
 | Private vulnerability reporting | On | `SECURITY.md` |
@@ -28,7 +28,7 @@ These need organisation-admin rights (the `admin:org` scope), which this session
 2. **Turn on push protection and Dependabot alerts for new repositories** by default (currently off), so later repositories (website, Backstage assets) start protected.
 3. **Actions policy for the organisation:** allow only GitHub's actions and selected actions, and require SHA pinning, to match this repository.
 4. **Restrict who can create public repositories** (currently any member can), so nothing children's-data-adjacent is published by mistake.
-5. **Decide whether an emergency bypass is wanted** on the `main` ruleset. Today nobody can push to `main` directly, admins included. To change that, add yourself as a bypass actor in Settings → Rules → `main`.
+5. ~~Decide whether an emergency bypass is wanted~~: done 21 Oct 2026, the owner (organisation admin) can bypass `main` (decision 0029).
 6. **Later, for WP15:** environments and secrets for code signing (Windows certificate, Apple), and the repository variable `APPLE_DEVELOPMENT_TEAM`, which switches on the iOS build.
 
 ## Decisions raised as `needs-owner` issues

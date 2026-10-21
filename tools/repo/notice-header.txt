@@ -1,5 +1,6 @@
 StoryStage 2
-Copyright (c) 2026 the StoryStage contributors.
+Copyright 2026 the StoryStage contributors.
+Licensed under the Apache License, Version 2.0 (LICENSE).
 
 StoryStage 2 contains no Alice code. It uses the third-party software listed below.
 
