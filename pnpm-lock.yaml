@@ -85,7 +85,17 @@ importers:
 
   packages/export: {}
 
-  packages/production: {}
+  packages/production:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
 
   packages/projection: {}
 
