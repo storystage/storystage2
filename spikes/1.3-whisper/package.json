@@ -1,0 +1,16 @@
+{
+  "name": "@storystage/spike-1-3-whisper",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spike 1.3 (throwaway): whisper.cpp in WebAssembly, the tiny model, on the device.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "coi-serviceworker": "^0.1.7",
+    "vite": "^8.3.4"
+  }
+}

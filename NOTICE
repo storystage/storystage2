@@ -30,7 +30,7 @@ react  19.3.1  MIT
 react-dom  19.3.1  MIT
 scheduler  0.28.0  MIT
 
-== Build and test tools, not shipped (210) ==
+== Build and test tools, not shipped (211) ==
 
 @asamuzakjp/css-color  7.1.7  MIT
 @asamuzakjp/dom-selector  10.0.4  MIT
@@ -122,6 +122,7 @@ browserslist  4.29.4  MIT
 cacheable  2.5.0  MIT
 caniuse-lite  1.0.30001817  CC-BY-4.0
 chai  6.3.0  MIT
+coi-serviceworker  0.1.7  MIT
 convert-source-map  2.0.0  MIT
 cross-spawn  7.0.6  MIT
 css-tree  3.2.1  MIT

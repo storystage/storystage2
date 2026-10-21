@@ -25,10 +25,17 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/setup
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/whisper-work
+          key: whisper-${{ hashFiles('spikes/1.3-whisper/scripts/prepare-assets.sh') }}
+      - name: Spike 1.3's whisper build, models and clips
+        working-directory: spikes/1.3-whisper
+        run: bash scripts/prepare-assets.sh "$RUNNER_TEMP/whisper-work"
       - name: Build each spike page with relative paths
         run: |
           site="$GITHUB_WORKSPACE/_site"
-          for spike in 1.2-models 1.4-scheduler 1.5-editors 1.8-mp4; do
+          for spike in 1.2-models 1.3-whisper 1.4-scheduler 1.5-editors 1.8-mp4; do
             (cd "spikes/$spike" && pnpm exec vite build --base ./ --outDir "$site/$spike" --emptyOutDir)
           done
           sed -e "s|BRANCH|${GITHUB_REF_NAME}|" -e "s|COMMIT|${GITHUB_SHA::7}|" spikes/pages/index.html > "$site/index.html"

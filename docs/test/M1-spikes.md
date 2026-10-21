@@ -15,6 +15,15 @@ Before each spike: close other apps and tabs, plug the device in, and note the b
 | 3 | Does the motion look smooth to you in each? Where does it start to feel jerky? | ______ | |
 | 4 | Only once S4 has converted Alice models (WP3b): tap **Choose file** and pick a converted `.glb` on the device. It stays on the device. | It loads, its head turns and its legs walk. Note `loadMs`, `fps` and `triangles`. Never put Alice's models on the shared site until the licence is cleared (WP17.1). | |
 
+## 1.3 Speech to text on the device (`spikes/1.3-whisper`)
+
+| # | Do | Expect | ✓ |
+|---|---|---|---|
+| 1 | Open the page in Chrome on the Chromebook, and in Safari on the iPad, on Wi-Fi (the first visit downloads about 110 MB of model). It reloads itself once; that's expected. | The page says Ready. | |
+| 2 | Tap **Run the test clips** and keep the page in view (a few minutes). | For each model: `loadMs`, `wasmMemoryMb`, and for each clip `heard`, `wordErrorRate` and `transcribeMs`. Copy the whole result into the results file. | |
+| 3 | Choose the quantised model, tap **Talk for 5 seconds**, and say "make the dog jump, then turn around". Allow the microphone when asked. | `heard` is close to what you said. Note `transcribeMs`: ______. Repeat with the full model. | |
+| 4 | Turn on airplane mode after step 1 and repeat step 3. | It still works: speech never needs the network once the model is on the device. | |
+
 ## 1.4 Interpreter and scheduler (`spikes/1.4-scheduler`)
 
 | # | Do | Expect | ✓ |
@@ -45,7 +54,7 @@ Before each spike: close other apps and tabs, plug the device in, and note the b
 
 ## Later spikes
 
-1.3 (whisper in WebAssembly), 1.7 (the Android app on the Chromebook) and 1.9 (AR) are added here as S1 builds them. 1.6 (the key path) needs no device run: it ran on Windows in CI.
+1.7 (the Android app on the Chromebook) and 1.9 (AR) are added here as S1 builds them. 1.6 (the key path) needs no device run: it ran on Windows in CI.
 
 ## Record
 
