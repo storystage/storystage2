@@ -32,12 +32,13 @@ pnpm test:e2e           # Playwright, Chromium with software rendering (needs `p
 pnpm lint               # ESLint, then the package-boundary check
 pnpm typecheck          # tsc --noEmit in every package
 pnpm format             # Prettier (format:check in CI)
+pnpm schedule           # rewrite workplan 5a and the roster from tools/plan/schedule.yaml (schedule:check in CI)
 pnpm --filter @storystage/<name> <script>   # one package
 ```
 
 - **Packages** are consumed as TypeScript source (`"exports": "./src/index.ts"`); there is no build step between packages. `erasableSyntaxOnly` is on: no `enum` or `namespace`, use unions and `as const` objects.
 - **File names:** unit tests are `*.test.ts(x)` beside the code; end-to-end tests are `e2e/*.e2e.ts`, so the two runners never overlap.
-- **CI** (`.github/workflows/`): `ci.yml` runs `check` (format, lint, typecheck, test) and `e2e` on every push; both are required to merge. `desktop.yml` (Windows, macOS) and `mobile.yml` (Android; iOS once `APPLE_DEVELOPMENT_TEAM` is set) build the Tauri apps on `main` and on pull requests that touch `apps/desktop`, and keep them as artifacts. Actions are pinned to commit SHAs.
+- **CI** (`.github/workflows/`): `ci.yml` runs `check` (format, lint, licences, schedule, typecheck, test) and `e2e` on every push; both are required to merge. `desktop.yml` (Windows, macOS) and `mobile.yml` (Android; iOS once `APPLE_DEVELOPMENT_TEAM` is set) build the Tauri apps on `main` and on pull requests that touch `apps/desktop`, and keep them as artifacts. Actions are pinned to commit SHAs.
 - Rust, Tauri, iOS and Android builds run in CI (GitHub Actions), not on the owner's PC (4 GB RAM, 2 cores, little free disk). Keep local work to TypeScript, unit tests and the dev server.
 
 ## Rules that never bend
@@ -65,4 +66,4 @@ pnpm --filter @storystage/<name> <script>   # one package
 - **Critical path first.** Items on the critical path (workplan 5a; marked in the briefs) are labelled `critical` and kept small, so the owner reviews them first.
 - **The owner.** Label `needs-owner` with a one-line summary of the decision needed, then carry on with the next item that doesn't depend on it.
 - **The lane log.** Keep `docs/lanes.md` current: merged, blocked, next.
-- **Plans change.** If an estimate is badly wrong, update `tools/plan/schedule.py`, re-run it, and say what moved.
+- **Plans change.** If an estimate is badly wrong, update `tools/plan/schedule.yaml`, run `pnpm schedule`, and say what moved.

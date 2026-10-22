@@ -37,7 +37,7 @@ importers:
         version: 8.72.0(eslint@10.13.0)(typescript@6.0.3)
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5))
+        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
 
   apps/desktop:
     devDependencies:
@@ -62,10 +62,10 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5))
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   packages/a3p-import: {}
 
@@ -95,7 +95,7 @@ importers:
     devDependencies:
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   packages/production:
     dependencies:
@@ -152,7 +152,7 @@ importers:
     devDependencies:
       vitest:
         specifier: ^5.0.5
-        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5))
+        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
 
   packages/story-api: {}
 
@@ -170,7 +170,7 @@ importers:
         version: 9.31.3(@babylonjs/core@9.31.1)(babylonjs-gltf2interface@9.31.3)
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   spikes/1.3-whisper:
     devDependencies:
@@ -179,7 +179,7 @@ importers:
         version: 0.1.7
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   spikes/1.4-scheduler:
     devDependencies:
@@ -188,7 +188,7 @@ importers:
         version: 9.31.1
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   spikes/1.5-editors:
     devDependencies:
@@ -200,7 +200,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5))
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
       blockly:
         specifier: ^13.4.0
         version: 13.4.0(jsdom@30.1.3)
@@ -212,7 +212,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   spikes/1.6-key-path:
     devDependencies:
@@ -224,7 +224,7 @@ importers:
         version: 2.12.3
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   spikes/1.7-android:
     devDependencies:
@@ -242,7 +242,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitejs/plugin-react':
         specifier: ^6.1.2
-        version: 6.1.2(vite@8.3.4(@types/node@26.6.5))
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
       blockly:
         specifier: ^13.4.0
         version: 13.4.0(jsdom@30.1.3)
@@ -254,7 +254,7 @@ importers:
         version: 19.3.1(react@19.3.1)
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   spikes/1.8-mp4:
     devDependencies:
@@ -269,7 +269,13 @@ importers:
         version: 1.62.0
       vite:
         specifier: ^8.3.4
-        version: 8.3.4(@types/node@26.6.5)
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
+
+  tools/plan:
+    devDependencies:
+      yaml:
+        specifier: ^2.9.1
+        version: 2.9.1
 
   tools/repo: {}
 
@@ -1539,6 +1545,11 @@ packages:
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
 
+  yaml@2.9.1:
+    resolution: {integrity: sha512-3NxN8+78OdzbT7C/WjGsyfPAtJaN3FNDsWxv7Y7mcDsT/oOmgW8BpyQQFFBnvZE3j9Y2Sdz1ULFLezL7Eb2yFw==}
+    engines: {node: '>= 14.6'}
+    hasBin: true
+
   yocto-queue@0.1.0:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
@@ -2027,19 +2038,19 @@ snapshots:
       '@typescript-eslint/types': 8.72.0
       eslint-visitor-keys: 5.0.1
 
-  '@vitejs/plugin-react@6.1.2(vite@8.3.4(@types/node@26.6.5))':
+  '@vitejs/plugin-react@6.1.2(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
-      vite: 8.3.4(@types/node@26.6.5)
+      vite: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
-  '@vitest/mocker@5.0.5(vite@8.3.4(@types/node@26.6.5))':
+  '@vitest/mocker@5.0.5(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.5
       estree-walker: 3.0.3
       magic-string: 1.4.3
     optionalDependencies:
-      vite: 8.3.4(@types/node@26.6.5)
+      vite: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   '@vitest/spy@5.0.5': {}
 
@@ -2604,7 +2615,7 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  vite@8.3.4(@types/node@26.6.5):
+  vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -2614,11 +2625,12 @@ snapshots:
     optionalDependencies:
       '@types/node': 26.6.5
       fsevents: 2.3.3
+      yaml: 2.9.1
 
-  vitest@5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)):
+  vitest@5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.3.4(@types/node@26.6.5))
+      '@vitest/mocker': 5.0.5(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -2629,7 +2641,7 @@ snapshots:
       tinybench: 6.2.2
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.3.4(@types/node@26.6.5)
+      vite: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@types/node': 26.6.5
@@ -2673,6 +2685,8 @@ snapshots:
   xmlchars@2.2.0: {}
 
   yallist@3.1.1: {}
+
+  yaml@2.9.1: {}
 
   yocto-queue@0.1.0: {}
 

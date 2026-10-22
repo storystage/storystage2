@@ -1,0 +1,524 @@
+# StoryStage 2: the one schedule file (WP0.10).
+# Every planned item, what it waits for, its estimate, the basis for the estimate and, once it
+# has run, its actual dates. Workplan section 5a (tables and chart), the "Schedule items" line
+# under each "Depends on" in section 6, and the session roster in handover/README.md are
+# generated from this file: run `pnpm schedule` after changing it. CI fails when they disagree.
+# Recalibrate the estimates at every milestone (WP1.12, docs/spikes/capacity.md).
+#
+# Item fields:
+#   id        the item id the workplan cites; WP<n>... items belong to section 6's WP<n>
+#   label     what the item is, with its task numbers
+#   lane      the strand of work (the chart's sections)
+#   who       C (Claude Code session), U (owner) or C+U; only C items count against the lane cap
+#   weeks     estimated elapsed weeks for one lane, including owner review
+#   basis     why the estimate is what it is: a key under `bases`
+#   after     the items it waits for
+#   started   actual start date, once it has started
+#   finished  actual finish date (the last pull request merged), once it has finished
+
+week0: 2026-10-19
+
+# Lanes for strands that start only after the release candidate; their slack is measured to the
+# end of the whole plan rather than the end of the pilot.
+later_lanes: [Beyond, AR, Projection]
+
+# Workplan 5a "How many lanes?": the caps to simulate, and the one recommended.
+lane_caps: [8, 6, 5, 4]
+recommended_lanes: 8
+
+bases:
+  first plan: The owner's estimate in the workplan of 17 Oct 2026, before anything was measured.
+
+items:
+  - id: WP0
+    label: Repo, CI, specs, interface contracts (0.1–0.8)
+    lane: Foundations
+    who: C
+    weeks: 1.5
+    basis: first plan
+    after: []
+    started: 2026-10-20
+    finished: 2026-10-21
+  - id: WP1.1
+    label: Choose reference devices (1.1)
+    lane: Spikes
+    who: U
+    weeks: 1
+    basis: first plan
+    after: []
+    started: 2026-10-21
+  - id: WP1g
+    label: 'Classroom ground truth: TR1 lessons, school IT managers (1.11)'
+    lane: Spikes
+    who: U
+    weeks: 2
+    basis: first plan
+    after: []
+    started: 2026-10-21
+  - id: WP3a
+    label: Licence audit and joint map (3.1, 3.3)
+    lane: Backstage
+    who: C+U
+    weeks: 1.5
+    basis: first plan
+    after: []
+  - id: WP12a
+    label: Interface mock-ups (12.1)
+    lane: Interface
+    who: C+U
+    weeks: 2
+    basis: first plan
+    after: []
+  - id: WP16a
+    label: Curriculum mapping, four nations (16.1–16.5)
+    lane: Curriculum and legal
+    who: C
+    weeks: 5
+    basis: first plan
+    after: []
+  - id: WP17a
+    label: CMU/EA letters, rights checks, contract (17.1, 17.5–17.9)
+    lane: Curriculum and legal
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: []
+  - id: WP1
+    label: Spikes 1.2–1.9, go/no-go per spike (1.10)
+    lane: Spikes
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: [WP0, WP1.1]
+    started: 2026-10-21
+  - id: WP0s
+    label: Threat model and security spec (0.9)
+    lane: Foundations
+    who: C
+    weeks: 1.5
+    basis: first plan
+    after: [WP0]
+  - id: WP2
+    label: AST and edit operations
+    lane: Language
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP0]
+  - id: WP4a
+    label: Story API spec, types, crosswalk fields (4.1, 4.2, 4.7)
+    lane: Language
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP0, WP3a]
+  - id: WP3b
+    label: 'Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7)'
+    lane: Backstage
+    who: C
+    weeks: 4
+    basis: first plan
+    after: [WP0, WP3a]
+  - id: WP10s
+    label: Sketch library tool (10.5)
+    lane: Backstage
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP0, WP3a]
+  - id: WP9a
+    label: '.a3p reader (9.1)'
+    lane: Productions
+    who: C
+    weeks: 1
+    basis: first plan
+    after: [WP0, WP0s]
+  - id: WP12b
+    label: Design system and components (12.2–12.5)
+    lane: Interface
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP0, WP12a]
+  - id: WP13a
+    label: Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8)
+    lane: Prompter and speech
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP0]
+  - id: WP15a
+    label: Tauri targets, policy, release channels (15.1, 15.3, 15.7)
+    lane: Apps
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP0]
+  - id: WP18a
+    label: Test harness, fake stage, self-test skeleton (18.1, 18.4)
+    lane: Foundations
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP0]
+    started: 2026-10-21
+    finished: 2026-10-21
+  - id: WP19a
+    label: Website and teacher guide drafts (19.1, 19.2)
+    lane: Curriculum and legal
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: [WP12a]
+  - id: WP16b
+    label: Curriculum templates and use cases (16.6)
+    lane: Curriculum and legal
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: [WP16a]
+  - id: WP3d
+    label: Storybook cast commissioned and delivered (3.6)
+    lane: Backstage
+    who: U
+    weeks: 10
+    basis: first plan
+    after: [WP16a, WP17a]
+  - id: WP4d
+    label: Publish Story API open specification (4.8)
+    lane: Language
+    who: C+U
+    weeks: 1
+    basis: first plan
+    after: [WP4a]
+  - id: WP8f
+    label: Production format spec and data model (8.1)
+    lane: Productions
+    who: C
+    weeks: 1.5
+    basis: first plan
+    after: [WP2]
+  - id: WP5a
+    label: 'Stage core: scene, models, camera, picking, offscreen (5.1–5.5)'
+    lane: Stage
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP0, WP1]
+  - id: WP5b
+    label: 'Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8)'
+    lane: Stage
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP5a]
+  - id: WP6
+    label: Runtime interpreter
+    lane: Language
+    who: C
+    weeks: 4
+    basis: first plan
+    after: [WP2, WP4a, WP1]
+  - id: WP3c
+    label: Manifest, budgets, lazy loading (3.4, 3.9)
+    lane: Backstage
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP1, WP3b]
+  - id: WP3i
+    label: Import into Backstage, in-app sketches, licence capture (3.11, 3.12)
+    lane: Backstage
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP3c, WP10s, WP8]
+  - id: WP11a
+    label: MP4 encoder module (11.3, 11.5)
+    lane: Screening room
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP1]
+    started: 2026-10-21
+    finished: 2026-10-22
+  - id: WP14a
+    label: 'Speech engines: whisper WASM, voices (14.1, 14.2)'
+    lane: Prompter and speech
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP1]
+  - id: WP15k
+    label: Key store, transport and policy enforcement point (15.2)
+    lane: Apps
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP15a, WP1, WP0s]
+  - id: WP15b
+    label: Signing, stores, browser hosting (15.4–15.6)
+    lane: Apps
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: [WP15a]
+  - id: WP9b
+    label: Map Alice worlds onto the AST (9.2, 9.3)
+    lane: Productions
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP9a, WP2, WP4a, WP3c]
+  - id: WP4b
+    label: Story API procedures, new blocks, shot types (4.3, 4.4, 4.10)
+    lane: Language
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP4a, WP5a]
+  - id: WP8
+    label: Scenes, running order, save and open (8.2–8.5)
+    lane: Productions
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP8f, WP5a, WP6, WP0s]
+  - id: WP10a
+    label: 'Storyboard: script, arcs, cards, frame canvas, PDF'
+    lane: Interface
+    who: C
+    weeks: 4
+    basis: first plan
+    after: [WP8f, WP12b, WP10s]
+  - id: WP13b
+    label: 'Prompter core: transport, context, AST tools, modes, plan before change, wizard'
+    lane: Prompter and speech
+    who: C
+    weeks: 4.5
+    basis: first plan
+    after: [WP13a, WP2, WP4a, WP15k]
+  - id: WP4c
+    label: Character actions, animation, faces (4.5, 4.6)
+    lane: Stage
+    who: C
+    weeks: 4
+    basis: first plan
+    after: [WP4b, WP5b, WP3c]
+  - id: WP7c
+    label: Alice-style tile editor, full (option C)
+    lane: Tile editor
+    who: C
+    weeks: 7
+    basis: first plan
+    after: [WP2, WP4a, WP12b]
+  - id: WP7t
+    label: Editor switch, parity tests, study build (7.11–7.13)
+    lane: Tile editor
+    who: C
+    weeks: 1.5
+    basis: first plan
+    after: [WP7, WP7c]
+  - id: WP7
+    label: Production stage and Code editor, Blockly option B
+    lane: Interface
+    who: C
+    weeks: 4
+    basis: first plan
+    after: [WP5a, WP6, WP12b, WP4b]
+  - id: WP11b
+    label: 'Screening room: rough cut, compare, titles, credits, captions'
+    lane: Screening room
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP8, WP11a, WP12b]
+  - id: WP11c
+    label: Automatic check against the storyboard (11.6)
+    lane: Screening room
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP10b, WP11b]
+  - id: WP17b
+    label: DPIA and privacy notice (17.3, 17.4)
+    lane: Curriculum and legal
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: [WP13b, WP14a]
+  - id: WP10b
+    label: Frames to code links, storyboard rule
+    lane: Interface
+    who: C
+    weeks: 2
+    basis: first plan
+    after: [WP10a, WP7, WP8]
+  - id: WP10c
+    label: Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10)
+    lane: Interface
+    who: C
+    weeks: 1.5
+    basis: first plan
+    after: [WP10a, WP3i, WP8, WP5b]
+  - id: WP13c
+    label: Prompter panel, storyboard tools, story coach, live eval
+    lane: Prompter and speech
+    who: C+U
+    weeks: 2
+    basis: first plan
+    after: [WP13b, WP10a, WP7]
+  - id: WP14b
+    label: Speak line and narration (14.3)
+    lane: Prompter and speech
+    who: C
+    weeks: 1
+    basis: first plan
+    after: [WP14a, WP13b, WP4b]
+  - id: WP24a
+    label: Teacher journey, Prompter access model, relay spike (24.1–24.3)
+    lane: Apps
+    who: C+U
+    weeks: 2
+    basis: first plan
+    after: [WP1g, WP15a, WP8f]
+  - id: WP24b
+    label: 'Class set-up: pupil folders, class caps, log export (24.4–24.7)'
+    lane: Apps
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP24a, WP8, WP15k, WP13b]
+  - id: WP18b
+    label: Milestone gate tests and device runs (18.2, 18.3)
+    lane: Foundations
+    who: C+U
+    weeks: 2
+    basis: first plan
+    after: [WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b]
+  - id: RC
+    label: Release candidate (first release)
+    lane: Foundations
+    who: —
+    weeks: 0
+    basis: first plan
+    after: [WP18b, WP11c, WP3i, WP10c]
+  - id: WP19
+    label: Pilot in schools (19.3, 19.4)
+    lane: Curriculum and legal
+    who: U
+    weeks: 6
+    basis: first plan
+    after: [RC, WP16b, WP17b, WP19a]
+  - id: WP20
+    label: 'Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial'
+    lane: Beyond
+    who: C+U
+    weeks: 6
+    basis: first plan
+    after: [WP4a, WP8, RC]
+  - id: WP21
+    label: AR design mode
+    lane: AR
+    who: C+U
+    weeks: 6
+    basis: first plan
+    after: [WP1, WP5a, WP8, WP15a, RC]
+  - id: WP22a
+    label: 'AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4)'
+    lane: AR
+    who: C
+    weeks: 4
+    basis: first plan
+    after: [WP6, WP8, WP11a, RC]
+  - id: WP22b
+    label: AR player, AR staging, Export for AR (22.5–22.7)
+    lane: AR
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP22a, WP21, WP11b, WP10a]
+  - id: WP22c
+    label: Mixed-reality film and safeguards (22.8, 22.9)
+    lane: AR
+    who: C+U
+    weeks: 2
+    basis: first plan
+    after: [WP22b]
+  - id: WP23a
+    label: 'Projection spike: surface bake renderer, Pixera build script (23.1, 23.2)'
+    lane: Projection
+    who: C+U
+    weeks: 2
+    basis: first plan
+    after: [WP5a, WP6]
+  - id: WP23b
+    label: 'Projection stage: surfaces, virtual projectors, preview (23.3, 23.4)'
+    lane: Projection
+    who: C
+    weeks: 3
+    basis: first plan
+    after: [WP23a, WP8, WP12b, RC]
+  - id: WP23c
+    label: 'Classroom projection: full-screen warped output (23.5)'
+    lane: Projection
+    who: C
+    weeks: 1.5
+    basis: first plan
+    after: [WP23b, WP15a]
+  - id: WP23d
+    label: Export for projection and Export to Pixera, flash check, guide (23.6–23.9)
+    lane: Projection
+    who: C+U
+    weeks: 3
+    basis: first plan
+    after: [WP23b, WP11a, WP11b]
+
+# The session roster (handover/README.md): each session works its items one at a time, in this
+# order; `later` items start after the release candidate.
+sessions:
+  S1:
+    brief: S1-platform-quality.md
+    area: Platform and quality
+    first_release: [WP0, WP1, WP18a, WP11a, WP23a, WP14b, WP18b]
+    later: [WP21, WP22b, WP22c]
+  S2:
+    brief: S2-language-runtime-screening.md
+    area: Language, runtime and Screening room
+    first_release: [WP2, WP8f, WP6, WP11b, WP11c]
+    later: [WP20]
+  S3:
+    brief: S3-stage-story-api.md
+    area: Stage and Story API procedures
+    first_release: [WP5a, WP4b, WP5b, WP4c]
+    later: [WP23b, WP23d]
+  S4:
+    brief: S4-backstage-productions.md
+    area: Backstage and Productions
+    first_release: [WP3a, WP10s, WP3b, WP3c, WP8, WP3i]
+    later: [WP22a]
+  S5:
+    brief: S5-studio-interface.md
+    area: Studio interface
+    first_release: [WP12a, WP12b, WP10a, WP7, WP10b, WP10c]
+    later: [WP23c]
+  S6:
+    brief: S6-story-api-spec-tiles-import.md
+    area: Story API spec, Tile editor and Alice import
+    first_release: [WP4a, WP4d, WP7c, WP9a, WP9b, WP7t]
+    later: []
+  S7:
+    brief: S7-prompter-speech.md
+    area: Prompter and speech
+    first_release: [WP13a, WP14a, WP13b, WP13c]
+    later: []
+  S8:
+    brief: S8-apps-security-class-setup.md
+    area: Apps, security and class set-up
+    first_release: [WP15a, WP0s, WP15k, WP24a, WP15b, WP24b]
+    later: []
+  D:
+    brief: D-documents.md
+    area: 'Documents: curriculum, legal, privacy, website'
+    first_release: [WP17a, WP16a, WP16b, WP19a, WP17b]
+    later: []
