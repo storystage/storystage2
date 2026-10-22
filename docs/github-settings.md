@@ -11,6 +11,8 @@ What is set on `storystage/storystage2` and what the owner still needs to change
 | Ruleset `main` | No deletion, no force push, linear history, pull request required (0 approvals, conversations resolved), required checks `check` and `e2e` (GitHub Actions), the owner, as organisation admin, may bypass it in an emergency (decision 0029); nobody else | A pull request with a failing test can't merge (WP0 done-when, shown on #3) |
 | Secret scanning and push protection | On | CLAUDE.md rule 1 |
 | Dependabot alerts and security updates | On. Version updates for GitHub Actions only (`.github/dependabot.yml`) | npm and Cargo updates need a licence check and a `NOTICE` entry, so they're done by hand |
+| Rust advisories | `cargo deny check advisories` in `desktop.yml`, on the platforms we ship (`deny.toml`), and weekly | Dependabot reads `Cargo.lock` for every platform, Linux included. Alert 1 (glib 0.18, RUSTSEC-2024-0429, 22 Oct 2026) is dismissed as not used: glib comes only from Tauri's Linux parts, and Tauri 2 can't take glib 0.20. Revisit if Linux is added |
+| Code scanning | CodeQL default setup: Actions, JavaScript/TypeScript, Rust. Python was removed on 22 Oct 2026, after WP0.10 deleted the last Python scripts and the scan on `main` failed | Threat model, WP0.9 |
 | Private vulnerability reporting | On | `SECURITY.md` |
 | Actions | Only GitHub's own actions plus `pnpm/action-setup`, `dtolnay/rust-toolchain`, `Swatinem/rust-cache`, `EmbarkStudios/cargo-deny-action`; **full-length SHA pinning required** | Supply chain (threat model, WP0.9) |
 | Workflow token | Read-only by default; workflows can't approve pull requests | Least privilege |
