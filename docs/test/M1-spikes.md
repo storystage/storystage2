@@ -43,6 +43,19 @@ Before each spike: close other apps and tabs, plug the device in, and note the b
 | 5 | Which felt easier to use by touch, and why? (Your impression; the study decides later.) | ______ | |
 | 6 | On a keyboard (the Chromebook): in `?editor=tiles`, Tab to **move**, press Enter, and answer the menu with the arrow keys and Enter. Then press Space on the new tile, Up, and Space again. | The tile is added, then moved, with the focus outline always visible. | |
 
+## 1.7 The Android app on the Chromebook (`spikes/1.7-android`)
+
+ChromeOS installs Android apps from the Play Store; installing one from a file needs its developer settings. Do this on **your own** Chromebook (the Acer), signed in with your own account, not on a school-managed one.
+
+| # | Do | Expect | ✓ |
+|---|---|---|---|
+| 1 | On a PC: GitHub → Actions → "Spike 1.7 (Android)" → the latest green run → Artifacts → download `spike-1.7-apk` and unzip it. | A file ending `universal-debug.apk`. Copy it to the Chromebook's Downloads folder (a USB stick or Google Drive). | |
+| 2 | On the Chromebook: Settings → About ChromeOS → Developers → **Linux development environment** → Turn on (this takes a few minutes). Then in the same place: **Develop Android apps** → turn on **Enable ADB debugging**, and restart when asked. | A Linux terminal app appears. | |
+| 3 | In the terminal: `sudo apt install -y adb`, then `adb connect arc` (accept the prompt that appears on screen), then `adb install ~/Downloads/` followed by the APK's name (move the APK into "Linux files" first if it isn't found). | `Success`. "StoryStage spike 1.7" appears in the launcher. | |
+| 4 | Open it and keep it in view for 10 seconds. | Three figures walk above a Blockly workspace with tiles; then the numbers appear. Note `fps`, `p95Ms`, `stutters`, `jsHeapMb` and the Chrome version in `userAgent`: ______ | |
+| 5 | Drag a Blockly tile by finger, and with the touchpad. | It drags smoothly, and the "Who moves?" menu appears when it lands. | |
+| 6 | Turn ADB debugging off again afterwards (Settings → Developers). | | |
+
 ## 1.8 MP4 export (`spikes/1.8-mp4`)
 
 | # | Do | Expect | ✓ |
@@ -54,7 +67,7 @@ Before each spike: close other apps and tabs, plug the device in, and note the b
 
 ## Later spikes
 
-1.7 (the Android app on the Chromebook) and 1.9 (AR) are added here as S1 builds them. 1.6 (the key path) needs no device run: it ran on Windows in CI.
+1.9 (AR) is added here when S1 builds it. 1.6 (the key path) needs no device run: it ran on Windows in CI.
 
 ## Record
 

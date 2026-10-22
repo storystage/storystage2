@@ -9,7 +9,7 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | **1.4 Interpreter and scheduler** | **passed in CI** (Chromium, SwiftShader) | 60 fixed-step frames identical twice (pixels and scene state); live: 0 of 16 commands late with a 100 ms lookahead, worst 7.3 ms early; 60 fps | **go**, with the design rules below | **go**, 21 Oct 2026 ([record](../decisions/spike-1.4-scheduler.md)) |
 | **1.5 Both code editors** | **passed in CI** (Chromium, SwiftShader); devices pending (#6) | Both editors: typed move, nested do together, object slot, wrong drops refused, arguments asked on drop, keyboard paths (6 Playwright tests). Drag: tiles 0 long frames (mouse and touch); Blockly 0–3 long frames, worst 66–150 ms | **go for both**, with the findings below; touch numbers on the reference devices still needed | **go for both**, 21 Oct 2026 ([record](../decisions/spike-1.5-editors.md)) |
 | **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | **go**, 21 Oct 2026 ([record](../decisions/spike-1.6-key-path.md)) |
-| 1.7 Tauri Android on a Chromebook | not started (needs reference devices, #6) | | | |
+| **1.7 Tauri Android on a Chromebook** | **built and passing in CI** (Android 14 emulator, 4 GB); Chromebook run pending (#6) | The APK (ARM and x86_64) installs and starts; Babylon.js scene with WebGL2 at 20.9 fps in software; Blockly draws all its blocks; 33 MB of JS memory | decide after the Chromebook run and the school-policy question | pending |
 | **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | **go for video**; audio after the Chromebook check, 21 Oct 2026 ([record](../decisions/spike-1.8-mp4.md)) |
 | 1.9 AR | not started (needs devices) | | | |
 
@@ -187,3 +187,31 @@ The first transcription after loading took longer (13.4 s for the quantised mode
 5. **Licences:** whisper.cpp is MIT. OpenAI's Whisper model weights are MIT too, but check this for the shipped model in WP17. espeak-ng (GPL) was used only as a build tool to make the test clip, and isn't shipped.
 
 **Not covered:** the reference devices (#6), and Safari and the Tauri webviews (the device runs cover Safari); children's voices; the base model (WP1.3 asks only for tiny).
+
+## 1.7 Tauri Android on a Chromebook
+
+**Task:** a Babylon.js scene and a Blockly workspace run in the Android build on the reference Chromebook. Record whether the school's device policy allows installing it. Code: `spikes/1.7-android/`. Run: `.github/workflows/spike-android.yml`.
+
+**How it works.** It's a Tauri app with no native commands: one page with spike 1.2's walking characters (3 of them, 16.5k triangles) above spike 1.5's Alice-style Blockly workspace, so the code tested is the same as in those spikes. After 10 seconds the page prints one result line to the Android log. CI builds a **debug APK for ARM and x86_64**, then:
+- boots an **Android 14 emulator** (x86_64, **4 GB**, software graphics)
+- installs and starts the app
+- reads the result line, takes a screenshot, and keeps the APK for the owner
+
+**Results (CI, 22 Oct 2026):**
+
+| Check | Result |
+|---|---|
+| The APK builds for ARM and x86_64 | yes (244 MB; a debug build, unstripped; a release build is far smaller) |
+| Installs and starts on Android 14 | yes |
+| WebGL2 in the app's WebView (Chrome 113 on that image) | yes |
+| The scene animates | 20.9 fps, median 23 ms per frame, 12 frames over 50 ms in 10 s (software graphics) |
+| Blockly draws its blocks | yes, all 8 |
+| JS memory | 33 MB |
+
+**Findings for WP15 (S8):**
+1. **The Tauri Android build works for the studio's two heaviest libraries together**, Babylon.js and Blockly.
+2. **Installing outside the Play Store isn't easy on ChromeOS.** A personal Chromebook needs its Android developer settings turned on (the M1 script has the steps), and a managed school Chromebook will usually allow Android apps only from **managed Google Play**. Distribution to schools therefore depends on the Play Store listing (WP15.5), and the IT-manager questions (#24) ask exactly whether Android apps are allowed.
+3. **The WebView version depends on the device.** The emulator image had Chrome 113; a real Chromebook updates its Android WebView through Play. Record the real version in the M1 run.
+4. The emulator in CI needed time limits on every wait, and `ANDROID_AVD_HOME` set, or it hung. That's noted in the workflow for whoever builds WP15's Android tests.
+
+**Not covered:** the reference Chromebook (#6), and an ARM Chromebook; whether the school policy allows the install (#24); a release build's size.
