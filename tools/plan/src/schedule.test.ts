@@ -92,11 +92,7 @@ describe('readPlan', () => {
       ),
       'A is in both S1 and S2',
     ],
-    [
-      'no pilot',
-      small().replace('id: WP19', 'id: WP20').replace('after: [RC]', 'after: [RC]'),
-      'The item WP19 is missing',
-    ],
+    ['no pilot', small().replace('id: WP19', 'id: WP20'), 'The item WP19 is missing'],
   ])('reports %s', (_, text, message) => {
     const { plan, errors } = readPlan(text);
     expect(plan).toBeUndefined();
