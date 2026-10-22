@@ -45,7 +45,7 @@ Before each spike: close other apps and tabs, plug the device in, and note the b
 
 ## 1.7 The Android app on the Chromebook (`spikes/1.7-android`)
 
-ChromeOS installs Android apps from the Play Store; installing one from a file needs its developer settings. Do this on **your own** Chromebook (the Acer), signed in with your own account, not on a school-managed one.
+ChromeOS installs Android apps from the Play Store; installing one from a file needs its developer settings. Do this on **your own** Chromebook (the Acer), signed in with your own account, not on a school-managed one. **Before you start:** as far as I know from Google's guide ("Set up ADB for Android apps on ChromeOS"), turning ADB debugging on needs a restart, and **turning it off again needs a Powerwash, which erases the Chromebook**. So do this while the Acer has nothing on it you'd mind losing, and check Google's current guide first.
 
 | # | Do | Expect | ✓ |
 |---|---|---|---|
@@ -54,7 +54,7 @@ ChromeOS installs Android apps from the Play Store; installing one from a file n
 | 3 | In the terminal: `sudo apt install -y adb`, then `adb connect arc` (accept the prompt that appears on screen), then `adb install ~/Downloads/` followed by the APK's name (move the APK into "Linux files" first if it isn't found). | `Success`. "StoryStage spike 1.7" appears in the launcher. | |
 | 4 | Open it and keep it in view for 10 seconds. | Three figures walk above a Blockly workspace with tiles; then the numbers appear. Note `fps`, `p95Ms`, `stutters`, `jsHeapMb` and the Chrome version in `userAgent`: ______ | |
 | 5 | Drag a Blockly tile by finger, and with the touchpad. | It drags smoothly, and the "Who moves?" menu appears when it lands. | |
-| 6 | Turn ADB debugging off again afterwards (Settings → Developers). | | |
+| 6 | Leave ADB debugging on until all the M1 device runs are done. To turn it off afterwards, Powerwash the Chromebook (Settings → Advanced → Reset settings), which erases it. | | |
 
 ## 1.8 MP4 export (`spikes/1.8-mp4`)
 
