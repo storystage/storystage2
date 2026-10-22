@@ -4,6 +4,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S1 Platform and quality
 - Merged:
+  - 22 Oct: build halves of spikes **1.3 whisper in WebAssembly** (#43; CI: clear speech right, 644–758 MB of memory) and **1.7 the Android app** (#44; Babylon.js and Blockly run on an Android 14 emulator with 4 GB; the APK is a workflow artifact).
   - 22 Oct: **WP11a, the MP4 encoder module** (#41): `exportMp4` and `probeExport` in `@storystage/export` (H.264, AAC by default, progress, cancel, coded errors). **S2: WP11b's Screening room can build on it.**
   - 21 Oct: spike 1.2 build half, the character budget sweep (#40); the owner's decisions, Apache-2.0 licence (#37); WP18a self-test skeleton and M0, M1 scripts (#36); capacity probe (#23); classroom questions (#24); organisation settings (#38, #39).
   - 21 Oct: **the WP0.8 contracts** (#26, #27, #29–#33) and spikes **1.4, 1.5, 1.6 go; 1.8 go for video** (#25, #28, #35). Spike pages: https://storystage.github.io/storystage2/
@@ -11,7 +12,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: the reference Chromebook (Acer Spin 314, N100, 4 GB, chosen) and iPad (#6) for the M1 device runs of 1.2, 1.4, 1.5 and 1.8, and the export audio choice (does the Chromebook encode AAC?).
   - S4: the Alice converter (WP3b) for the Alice half of spike 1.2.
-- Next: the build halves of spikes 1.3 (whisper in WebAssembly) and 1.7 (the Android app with Babylon.js and Blockly), ready for the devices. WP23a waits for WP5a (S3) and WP6 (S2).
+- Next: spike 1.9 (AR) needs the devices; WP23a waits for WP5a (S3) and WP6 (S2); WP14b waits for S7. Until those land, S1 helps the M1 device runs and keeps CI healthy.
 
 ## S2 Language, runtime and Screening room
 - Merged:
