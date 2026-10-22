@@ -1,0 +1,13 @@
+{
+  "name": "@storystage/plan-tools",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The one schedule file (WP0.10): tools/plan/schedule.yaml and the workplan parts made from it.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "yaml": "^2.9.1"
+  }
+}

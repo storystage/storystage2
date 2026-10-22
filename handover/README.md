@@ -13,7 +13,7 @@ Everything Claude Code needs to build StoryStage 2, split so that parallel sessi
 | `docs/spec/10-crosswalk.md` | `docs/spec/10-crosswalk.md` | Joint and behaviour crosswalk (Alice, VRM, H-Anim, BML, X3D, engines) |
 | `docs/reviews/` | `docs/reviews/` | The two board reviews of 18 Oct 2026, for background |
 | `docs/lanes.md` | `docs/lanes.md` | The lane log each session keeps current |
-| `tools/plan/` | `tools/plan/` | `schedule.py` (dependencies and earliest-start schedule), `capsim.py` (session caps), `sessions.py` (this roster) |
+| `tools/plan/` | `tools/plan/` | `schedule.yaml` (every item: dependencies, estimate, actual dates; the session roster), and the code that makes workplan 5a and this roster from it (`pnpm schedule`) |
 | `docs/slides/` | `docs/slides/` | The architecture deck and the one-slide Gantt chart |
 | `handover/` | `handover/` | This file, one brief per session, the owner's brief and all kickoff prompts |
 
@@ -27,7 +27,12 @@ Everything Claude Code needs to build StoryStage 2, split so that parallel sessi
 
 ## The sessions
 
-Eight code sessions plus one documents session. Each owns its own packages, so sessions rarely touch the same files. With this split the schedule matches the workplan: **release candidate week 18.5 (26 Feb 2027), pilot ends week 24.5 (9 Apr 2027)**, later strands done by week 29.5 (13 May 2027).
+Eight code sessions plus one documents session. Each owns its own packages, so sessions rarely touch the same files.
+<!-- schedule:roster-summary -->
+With this split the schedule matches the workplan: **release candidate week 18.5 (26 Feb 2027), pilot ends week 24.5 (9 Apr 2027)**, later strands done by week 29.5 (13 May 2027).
+<!-- /schedule:roster-summary -->
+
+<!-- schedule:roster -->
 
 | Session | Area | Starts | Items before the release candidate | After it | Critical-path items |
 |---|---|---|---|---|---|
@@ -40,6 +45,8 @@ Eight code sessions plus one documents session. Each owns its own packages, so s
 | [S7](S7-prompter-speech.md) | Prompter and speech | wk 1.5 | WP13a → WP14a → WP13b → WP13c | — | WP13c |
 | [S8](S8-apps-security-class-setup.md) | Apps, security and class set-up | wk 1.5 | WP15a → WP0s → WP15k → WP24a → WP15b → WP24b | — | — |
 | [D](D-documents.md) | Documents: curriculum, legal, privacy, website | wk 0 | WP17a → WP16a → WP16b → WP19a → WP17b | — | — |
+
+<!-- /schedule:roster -->
 
 The critical path runs across sessions: S1 (WP0, WP1) → S3 (WP5a, WP4b) → S5 (WP7, WP10b) with S7 (WP13c) and S2 (WP11c) → S1 (WP18b) → release candidate → owner (WP19 pilot).
 

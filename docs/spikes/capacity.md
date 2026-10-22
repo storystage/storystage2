@@ -1,13 +1,13 @@
 # Capacity probe (WP1.12)
 
-Planned against actual time for WP0 and the first spike lanes, recorded for two weeks from 20 Oct 2026, so that `tools/plan/schedule.py` (and `schedule.yaml`, WP0.10) and workplan section 5a can be recalibrated at M1.
+Planned against actual time for WP0 and the first spike lanes, recorded for two weeks from 20 Oct 2026, so that `tools/plan/schedule.yaml` (WP0.10) and workplan section 5a can be recalibrated at M1.
 
 - **Session time** is elapsed time in one Claude Code session, from its first commit or pull request to the merge.
 - **Owner time** is the owner's review and decision time. Only the owner can record it: please add a line a day below, or comment on #17.
 
 ## S1
 
-| Item | Planned (schedule.py) | Started | Merged | Actual elapsed | Notes |
+| Item | Planned (schedule.yaml) | Started | Merged | Actual elapsed | Notes |
 |---|---|---|---|---|---|
 | WP0.2 monorepo (#1) | part of WP0: 1.5 weeks | 20 Oct 13:15 | 20 Oct 17:49 | about 4.5 h, mostly waiting on WP0.3 (the PRs were stacked) | Node and pnpm installed on the PC first; TypeScript held at 6.0 for typescript-eslint |
 | WP0.3 CI and app builds (#2) | | 20 Oct 13:18 | 20 Oct 18:37 | about 5 h | Every workflow passed on the first run; reworked so skipped jobs can't satisfy required checks; Cargo.lock taken from CI |

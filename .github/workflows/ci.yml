@@ -27,6 +27,8 @@ jobs:
       - run: pnpm lint
       - name: Licences and NOTICE
         run: pnpm licences
+      - name: Schedule matches the workplan (WP0.10)
+        run: pnpm schedule:check
       - run: pnpm typecheck
       - run: pnpm test
 

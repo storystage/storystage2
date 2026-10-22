@@ -110,7 +110,7 @@ tools/
   convert-alice-models/   Offline converter: Alice .a3r/.a3t models -> glTF (uses StoryStage 1's Java loader; not shipped)
   make-sketches/          Offline renderer: glTF -> black-and-white sketch views
   fake-claude/            Fake Claude server replaying recorded streams
-  plan/                   schedule.py: the WP dependency model and earliest-start schedule (section 5a)
+  plan/                   schedule.yaml: the WP dependency model; `pnpm schedule` makes section 5a from it
 docs/
   WORKPLAN.md  spec/  decisions/  eval/  privacy.md  NOTICE
 ```
@@ -163,13 +163,17 @@ The aim is to run as many WPs in parallel as the dependencies allow. Four change
 
 The same dependencies, scheduled with a cap on parallel Claude Code sessions. Owner-only tasks are not capped, and first-release work goes first; the later strands (AR, pathway, projection) start only after the release candidate:
 
+<!-- schedule:lanes -->
+
 | Parallel lanes | Release candidate | Pilot ends |
 |---|---|---|
-| Unlimited (13 at the peak, in weeks 2–3) | week 18.5 (26 Feb 2027) | week 24.5 (9 Apr 2027) |
+| Unlimited (13 at the peak, in weeks 1.5–3) | week 18.5 (26 Feb 2027) | week 24.5 (9 Apr 2027) |
 | **8 (recommended)** | **week 18.5** | **week 24.5** |
 | 6 | week 22.5 | week 28.5 |
 | 5 | week 26 | week 32 |
 | 4 | week 31.5 | week 38 |
+
+<!-- /schedule:lanes -->
 
 **Eight lanes reach the shortest possible schedule, including both code editors, the threat model and class set-up.** Beyond eight, the dependencies, not the number of sessions, set the pace. Run eight lanes only if the owner can review their pull requests promptly; otherwise six is the practical choice.
 
@@ -202,74 +206,81 @@ On these estimates:
 
 ### Dependency table
 
-Generated from `tools/plan/schedule.py`: copy that script into the repository and re-run it when estimates change. Slack is how many weeks an item can slip without moving the end of the pilot (or, for the later strands, the end of the plan).
+Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails when this section or a "Schedule items" line in section 6 doesn't match it. Actual is elapsed weeks from an item's first day of work to its last merge. Slack is how many weeks an item can slip without moving the end of the pilot (or, for the later strands, the end of the plan).
 
-| Item | Work | Lane | Depends on | Weeks (est.) | Earliest start | Slack (weeks) |
-|---|---|---|---|---|---|---|
-| WP3a | Licence audit and joint map (3.1, 3.3) | Backstage | — | 1.5 | wk 0 (19 Oct 2026) | 3 |
-| WP16a | Curriculum mapping, four nations (16.1–16.5) | Curriculum and legal | — | 5 | wk 0 (19 Oct 2026) | 9.5 |
-| WP17a | CMU/EA letters, rights checks, contract (17.1, 17.5–17.9) | Curriculum and legal | — | 3 | wk 0 (19 Oct 2026) | 11.5 |
-| WP0 | Repo, CI, specs, interface contracts (0.1–0.8) | Foundations | — | 1.5 | wk 0 (19 Oct 2026) | **0 (critical)** |
-| WP12a | Interface mock-ups (12.1) | Interface | — | 2 | wk 0 (19 Oct 2026) | 3 |
-| WP1.1 | Choose reference devices (1.1) | Spikes | — | 1 | wk 0 (19 Oct 2026) | 0.5 |
-| WP1g | Classroom ground truth: TR1 lessons, school IT managers (1.11) | Spikes | — | 2 | wk 0 (19 Oct 2026) | 9.5 |
-| WP15a | Tauri targets, policy, release channels (15.1, 15.3, 15.7) | Apps | WP0 | 2 | wk 1.5 (29 Oct 2026) | 2.5 |
-| WP10s | Sketch library tool (10.5) | Backstage | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 7 |
-| WP3b | Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7) | Backstage | WP0, WP3a | 4 | wk 1.5 (29 Oct 2026) | 5 |
-| WP0s | Threat model and security spec (0.9) | Foundations | WP0 | 1.5 | wk 1.5 (29 Oct 2026) | 3 |
-| WP18a | Test harness, fake stage, self-test skeleton (18.1, 18.4) | Foundations | WP0 | 2 | wk 1.5 (29 Oct 2026) | 21 |
-| WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 |
-| WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 |
-| WP13a | Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8) | Prompter and speech | WP0 | 3 | wk 1.5 (29 Oct 2026) | 4.5 |
-| WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** |
-| WP19a | Website and teacher guide drafts (19.1, 19.2) | Curriculum and legal | WP12a | 3 | wk 2 (2 Nov 2026) | 13.5 |
-| WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 |
-| WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 |
-| WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |
-| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |
-| WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |
-| WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 |
-| WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 |
-| WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 8 |
-| WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 |
-| WP5a | Stage core: scene, models, camera, picking, offscreen (5.1–5.5) | Stage | WP0, WP1 | 3 | wk 4.5 (20 Nov 2026) | **0 (critical)** |
-| WP3d | Storybook cast commissioned and delivered (3.6) | Backstage | WP16a, WP17a | 10 | wk 5 (23 Nov 2026) | 9.5 |
-| WP16b | Curriculum templates and use cases (16.6) | Curriculum and legal | WP16a | 3 | wk 5 (23 Nov 2026) | 10.5 |
-| WP7c | Alice-style tile editor, full (option C) | Tile editor | WP2, WP4a, WP12b | 7 | wk 5 (23 Nov 2026) | 3 |
-| WP3c | Manifest, budgets, lazy loading (3.4, 3.9) | Backstage | WP1, WP3b | 2 | wk 5.5 (26 Nov 2026) | 5 |
-| WP24a | Teacher journey, Prompter access model, relay spike (24.1–24.3) | Apps | WP1g, WP15a, WP8f | 2 | wk 6 (30 Nov 2026) | 5.5 |
-| WP10a | Storyboard: script, arcs, cards, frame canvas, PDF | Interface | WP8f, WP12b, WP10s | 4 | wk 6 (30 Nov 2026) | 4.5 |
-| WP4b | Story API procedures, new blocks, shot types (4.3, 4.4, 4.10) | Language | WP4a, WP5a | 3 | wk 7.5 (10 Dec 2026) | **0 (critical)** |
-| WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 |
-| WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 |
-| WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 |
-| WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 |
-| WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 |
-| WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** |
-| WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 |
-| WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 |
-| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 |
-| WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 |
-| WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 |
-| WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP13b, WP4b | 1 | wk 12 (11 Jan 2027) | 3.5 |
-| WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** |
-| WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 |
-| WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** |
-| WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 |
-| WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** |
-| WP11c | Automatic check against the storyboard (11.6) | Screening room | WP10b, WP11b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** |
-| WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** |
-| WP22a | AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4) | AR | WP6, WP8, WP11a, RC | 4 | wk 18.5 (26 Feb 2027) | 2 |
-| WP20 | Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial | Beyond | WP4a, WP8, RC | 6 | wk 18.5 (26 Feb 2027) | 5 |
-| WP19 | Pilot in schools (19.3, 19.4) | Curriculum and legal | RC, WP16b, WP17b, WP19a | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** |
-| WP23b | Projection stage: surfaces, virtual projectors, preview (23.3, 23.4) | Projection | WP23a, WP8, WP12b, RC | 3 | wk 18.5 (26 Feb 2027) | 5 |
-| WP23c | Classroom projection: full-screen warped output (23.5) | Projection | WP23b, WP15a | 1.5 | wk 21.5 (18 Mar 2027) | 6.5 |
-| WP23d | Export for projection and Export to Pixera, flash check, guide (23.6–23.9) | Projection | WP23b, WP11a, WP11b | 3 | wk 21.5 (18 Mar 2027) | 5 |
-| WP22b | AR player, AR staging, Export for AR (22.5–22.7) | AR | WP22a, WP21, WP11b, WP10a | 3 | wk 24.5 (9 Apr 2027) | **0 (critical)** |
-| WP22c | Mixed-reality film and safeguards (22.8, 22.9) | AR | WP22b | 2 | wk 27.5 (29 Apr 2027) | **0 (critical)** |
+<!-- schedule:dependency-table -->
+
+| Item | Work | Lane | Depends on | Weeks (est.) | Earliest start | Slack (weeks) | Actual (weeks) |
+|---|---|---|---|---|---|---|---|
+| WP3a | Licence audit and joint map (3.1, 3.3) | Backstage | — | 1.5 | wk 0 (19 Oct 2026) | 3 |  |
+| WP16a | Curriculum mapping, four nations (16.1–16.5) | Curriculum and legal | — | 5 | wk 0 (19 Oct 2026) | 9.5 |  |
+| WP17a | CMU/EA letters, rights checks, contract (17.1, 17.5–17.9) | Curriculum and legal | — | 3 | wk 0 (19 Oct 2026) | 11.5 |  |
+| WP0 | Repo, CI, specs, interface contracts (0.1–0.8) | Foundations | — | 1.5 | wk 0 (19 Oct 2026) | **0 (critical)** | 0.3 (20–21 Oct) |
+| WP12a | Interface mock-ups (12.1) | Interface | — | 2 | wk 0 (19 Oct 2026) | 3 |  |
+| WP1.1 | Choose reference devices (1.1) | Spikes | — | 1 | wk 0 (19 Oct 2026) | 0.5 | started 21 Oct |
+| WP1g | Classroom ground truth: TR1 lessons, school IT managers (1.11) | Spikes | — | 2 | wk 0 (19 Oct 2026) | 9.5 | started 21 Oct |
+| WP15a | Tauri targets, policy, release channels (15.1, 15.3, 15.7) | Apps | WP0 | 2 | wk 1.5 (29 Oct 2026) | 2.5 |  |
+| WP10s | Sketch library tool (10.5) | Backstage | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 7 |  |
+| WP3b | Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7) | Backstage | WP0, WP3a | 4 | wk 1.5 (29 Oct 2026) | 5 |  |
+| WP0s | Threat model and security spec (0.9) | Foundations | WP0 | 1.5 | wk 1.5 (29 Oct 2026) | 3 |  |
+| WP18a | Test harness, fake stage, self-test skeleton (18.1, 18.4) | Foundations | WP0 | 2 | wk 1.5 (29 Oct 2026) | 21 | 0.1 (21 Oct) |
+| WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 |  |
+| WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 |  |
+| WP13a | Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8) | Prompter and speech | WP0 | 3 | wk 1.5 (29 Oct 2026) | 4.5 |  |
+| WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct |
+| WP19a | Website and teacher guide drafts (19.1, 19.2) | Curriculum and legal | WP12a | 3 | wk 2 (2 Nov 2026) | 13.5 |  |
+| WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 |  |
+| WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 |  |
+| WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |  |
+| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
+| WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
+| WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 |  |
+| WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 |  |
+| WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 8 |  |
+| WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 | 0.3 (21–22 Oct) |
+| WP5a | Stage core: scene, models, camera, picking, offscreen (5.1–5.5) | Stage | WP0, WP1 | 3 | wk 4.5 (20 Nov 2026) | **0 (critical)** |  |
+| WP3d | Storybook cast commissioned and delivered (3.6) | Backstage | WP16a, WP17a | 10 | wk 5 (23 Nov 2026) | 9.5 |  |
+| WP16b | Curriculum templates and use cases (16.6) | Curriculum and legal | WP16a | 3 | wk 5 (23 Nov 2026) | 10.5 |  |
+| WP7c | Alice-style tile editor, full (option C) | Tile editor | WP2, WP4a, WP12b | 7 | wk 5 (23 Nov 2026) | 3 |  |
+| WP3c | Manifest, budgets, lazy loading (3.4, 3.9) | Backstage | WP1, WP3b | 2 | wk 5.5 (26 Nov 2026) | 5 |  |
+| WP24a | Teacher journey, Prompter access model, relay spike (24.1–24.3) | Apps | WP1g, WP15a, WP8f | 2 | wk 6 (30 Nov 2026) | 5.5 |  |
+| WP10a | Storyboard: script, arcs, cards, frame canvas, PDF | Interface | WP8f, WP12b, WP10s | 4 | wk 6 (30 Nov 2026) | 4.5 |  |
+| WP4b | Story API procedures, new blocks, shot types (4.3, 4.4, 4.10) | Language | WP4a, WP5a | 3 | wk 7.5 (10 Dec 2026) | **0 (critical)** |  |
+| WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 |  |
+| WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 |  |
+| WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 |  |
+| WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 |  |
+| WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 |  |
+| WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** |  |
+| WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 |  |
+| WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 |  |
+| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 |  |
+| WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 |  |
+| WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 |  |
+| WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP13b, WP4b | 1 | wk 12 (11 Jan 2027) | 3.5 |  |
+| WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** |  |
+| WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 |  |
+| WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** |  |
+| WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 |  |
+| WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** |  |
+| WP11c | Automatic check against the storyboard (11.6) | Screening room | WP10b, WP11b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** |  |
+| WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** |  |
+| WP22a | AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4) | AR | WP6, WP8, WP11a, RC | 4 | wk 18.5 (26 Feb 2027) | 2 |  |
+| WP20 | Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial | Beyond | WP4a, WP8, RC | 6 | wk 18.5 (26 Feb 2027) | 5 |  |
+| WP19 | Pilot in schools (19.3, 19.4) | Curriculum and legal | RC, WP16b, WP17b, WP19a | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** |  |
+| WP23b | Projection stage: surfaces, virtual projectors, preview (23.3, 23.4) | Projection | WP23a, WP8, WP12b, RC | 3 | wk 18.5 (26 Feb 2027) | 5 |  |
+| WP23c | Classroom projection: full-screen warped output (23.5) | Projection | WP23b, WP15a | 1.5 | wk 21.5 (18 Mar 2027) | 6.5 |  |
+| WP23d | Export for projection and Export to Pixera, flash check, guide (23.6–23.9) | Projection | WP23b, WP11a, WP11b | 3 | wk 21.5 (18 Mar 2027) | 5 |  |
+| WP22b | AR player, AR staging, Export for AR (22.5–22.7) | AR | WP22a, WP21, WP11b, WP10a | 3 | wk 24.5 (9 Apr 2027) | **0 (critical)** |  |
+| WP22c | Mixed-reality film and safeguards (22.8, 22.9) | AR | WP22b | 2 | wk 27.5 (29 Apr 2027) | **0 (critical)** |  |
+
+<!-- /schedule:dependency-table -->
+
 ### Schedule chart
 
 GitHub renders this chart. Critical items are marked `crit`.
+
+<!-- schedule:chart -->
 
 ```mermaid
 gantt
@@ -355,6 +366,8 @@ gantt
     WP20 Pathway - Unreal, Unity, Godot export; guide; MetaHuman trial :WP20, 2027-02-26, 42d
 ```
 
+<!-- /schedule:chart -->
+
 ## 6. Work packages
 
 Each WP lists its objective, dependencies, tasks (C or U), deliverables and the check that closes it ("done when").
@@ -362,6 +375,9 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 ### WP0: Repository, CI and spec skeleton
 **Objective:** a repository ready for systematic, test-first delivery.
 **Depends on:** nothing.
+<!-- schedule:wp0 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP0 needs nothing first; WP0s after WP0.
+<!-- /schedule:wp0 -->
 - [x] 0.1 Create `storystage/storystage2`; branch protection on `main`; secret scanning and push protection; labels (`wp-N`, `type:bug`, `type:task`, `needs-owner`, `spike`). (C; U approves the org settings)
 - [x] 0.2 pnpm monorepo with the layout in section 4; TypeScript strict; ESLint + Prettier; a shared `tsconfig`. (C)
 - [x] 0.3 GitHub Actions jobs:
@@ -383,13 +399,16 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 - [x] 0.8 **Interface contracts**, so lanes can work in parallel (section 5a): TypeScript interfaces and stub packages for the stage (with a fake stage that records calls), runtime messages between worker and main thread, production and storyboard data types, the Backstage manifest schema, the Prompter transport, and the **editor contract** that both code editors implement (WP7, WP7c). Changes to a contract go in their own small pull request, reviewed before the code that uses them. (C)
 
 - [ ] 0.9 **Threat model** (`docs/spec/15-security.md`): a STRIDE pass over every trust boundary: the webview and the native layer, imported files (`.storystage`, `.a3p`, glTF, Fountain), learner text sent to the Prompter, sidecars, the browser version, and (if chosen) the classroom relay. Each threat gets a control and a test. Import code (8.4, 9.1, 10.4) and the transport (15.2) start only after it. (C; a human security review is recommended before the pilot)
-- [ ] 0.10 **One schedule file:** `tools/plan/schedule.yaml` holds every item, its dependencies, its duration, the basis for the estimate and the actual duration. Section 5a's tables and charts are generated from it, section 6's "Depends on" lines cite its item ids, and CI fails when they disagree. Recalibrate at every milestone. (C)
+- [x] 0.10 **One schedule file:** `tools/plan/schedule.yaml` holds every item, its dependencies, its duration, the basis for the estimate and the actual duration. Section 5a's tables and charts are generated from it, section 6's "Depends on" lines cite its item ids, and CI fails when they disagree. Recalibrate at every milestone. (C)
 
 **Done when:** a pull request with a failing test is blocked by CI, and a passing one merges. Both desktop builds produce an empty Tauri window as a workflow artifact. The contract packages (0.8) build, and the fake stage passes its own tests.
 
 ### WP1: Spikes on the riskiest parts
 **Objective:** prove or disprove the platform choices on real low-end devices before building on them.
 **Depends on:** WP0.
+<!-- schedule:wp1 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP1.1 needs nothing first; WP1g needs nothing first; WP1 after WP0, WP1.1.
+<!-- /schedule:wp1 -->
 - [ ] 1.1 **Reference devices:** pick one 4 GB school Chromebook and one non-Pro iPad as reference devices. Record their models, OS versions and whether Android apps are allowed. (U)
 - [ ] 1.2 **Alice model in Babylon.js:** convert three Alice models (a biped, a quadruped, a prop) to glTF with their joints. Load them in Babylon.js, and animate a turn of the head joint and a walk. Measure frame rate and memory on both reference devices, in Chrome, Safari and the Tauri app. (C; U runs on devices)
 - [ ] 1.3 **whisper.cpp in WebAssembly:** the tiny model transcribes a 5-second request on both devices. Measure load time, transcription time and peak memory. (C; U runs on devices)
@@ -408,6 +427,9 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 ### WP2: AST and project model
 **Objective:** one typed program model that the blocks, the runtime, the Prompter and the storyboard links all share.
 **Depends on:** WP0. Can start alongside WP1.
+<!-- schedule:wp2 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP2 after WP0.
+<!-- /schedule:wp2 -->
 - [ ] 2.1 Spec `docs/spec/01-ast.md`:
     - node kinds: types, fields, methods, statements (do in order, do together, count, while, for each, each together, if, local, assign, comment, call), expressions and event listeners;
     - JSON schema;
@@ -425,6 +447,9 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 ### WP3: Backstage (the model library)
 **Objective:** Backstage, a glTF model library in four sections (Cast, Props, Set, Backdrops) with named joints, every asset licence-checked, that the Story API, the sketch library and the Prompter can rely on. It replaces the Sims 2 cast's job (diverse everyday people) and adds culturally recognisable characters.
 **Depends on:** WP0 and 3.1/3.3 for the pipelines (3.2, 3.5, 3.7), which can start before the spikes finish; WP1.2 (go) for the budgets (3.9); WP17.1 and WP17.7 (licence answers) only before *shipping* Alice models or any Sims content, not before converting them for testing.
+<!-- schedule:wp3 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP3a needs nothing first; WP3b after WP0, WP3a; WP3d after WP16a, WP17a; WP3c after WP1, WP3b; WP3i after WP3c, WP10s, WP8.
+<!-- /schedule:wp3 -->
 
 **Backstage's sections:**
 
@@ -501,6 +526,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP4: Story API
 **Objective:** the StoryStage 2 Story API: the procedures, functions, details and events learners use, with Alice's vocabulary.
 **Depends on:** WP0.8, WP3.3 for the spec and metadata (4.1, 4.2, 4.7); WP5a for the implementation (4.3, 4.4, 4.10, developed against the fake stage first); WP5b and WP3.9 for the character actions (4.5, 4.6).
+<!-- schedule:wp4 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP4a after WP0, WP3a; WP4d after WP4a; WP4b after WP4a, WP5a; WP4c after WP4b, WP5b, WP3c.
+<!-- /schedule:wp4 -->
 - [ ] 4.1 Spec `docs/spec/02-story-api.md`, generated from Alice's `PRIME_TIME` methods (StoryStage 1's `ApiCatalog` output). It covers:
     - classes (Scene, Camera, Biped, Quadruped, Flyer, Swimmer, Slitherer, Prop, Transport, Ground, Billboard, Text);
     - procedures (move, turn, roll, resize, say, think, moveTo, moveToward, turnToFace, pointAt, orientTo, moveAndOrientTo, setOpacity, setPaint, play audio…);
@@ -537,6 +565,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP5: Stage (Babylon.js)
 **Objective:** the 3D stage: scene, models, camera, picking and rendering, for both live play and offscreen export.
 **Depends on:** WP0.8 (stage interface), WP1.2 (go). Kenney's CC0 models are enough to build against; the rest of WP3 isn't needed to start. Planned in two parts: **5a** core (5.1–5.5), which unblocks WP4.3, WP7, WP8 and WP21; **5b** extras (5.6–5.8), which unblock WP4.5–4.6.
+<!-- schedule:wp5 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP5a after WP0, WP1; WP5b after WP5a.
+<!-- /schedule:wp5 -->
 - [ ] 5.1 Stage interface (`packages/stage`), so the runtime and story API never touch Babylon.js directly. (C)
 - [ ] 5.2 Scene with backdrops (ground types, sky, lighting, fog) matching Alice's starting templates; these are Backstage's **Backdrops** section. (C)
 - [ ] 5.3 Model placement, transforms, joints, opacity and paint; vehicles (parenting). (C)
@@ -556,6 +587,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP6: Runtime (interpreter)
 **Objective:** run learners' programs with Alice's semantics, safely and smoothly.
 **Depends on:** WP1.4 (go), WP2, WP4.1–4.2 (metadata). It runs against the fake stage until WP5a is ready.
+<!-- schedule:wp6 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP6 after WP2, WP4a, WP1.
+<!-- /schedule:wp6 -->
 - [ ] 6.1 Interpreter in a Web Worker over the AST. A cooperative scheduler covers do in order, do together, each in together, count, while, for each and if, plus locals, parameters and return values. (C)
 - [ ] 6.2 **Events:** when the scene starts, mouse click on object or screen, key press, arrow keys, move with arrow keys, timer, proximity and collision; event handlers with parameters. (C)
 - [ ] 6.3 **Safety:** an infinite-loop guard, a recursion limit and a time-slice budget. The stop button always works. Errors are explained in plain words, with the block highlighted. (C)
@@ -567,6 +601,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP7: Production stage and Code editor
 **Objective:** the second tab: set the scene and code it.
 **Depends on:** WP2, WP5, WP6; WP12.1 for the visual design.
+<!-- schedule:wp7 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP7c after WP2, WP4a, WP12b; WP7t after WP7, WP7c; WP7 after WP5a, WP6, WP12b, WP4b.
+<!-- /schedule:wp7 -->
 - [ ] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
 - [ ] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. (C)
 - [ ] 7.6 **Option B made Alice-like:**
@@ -600,6 +637,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP8: Productions and the `.storystage` file
 **Objective:** several scenes in one production, played in the storyboard's order.
 **Depends on:** WP2 for the spec and data model (8.1), which unblocks WP10; WP5a, WP6 and the threat model (0.9) for scenes, playback and file handling (8.2–8.5); 24.2 for where saved work lives.
+<!-- schedule:wp8 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP8f after WP2; WP8 after WP8f, WP5a, WP6, WP0s.
+<!-- /schedule:wp8 -->
 - [ ] 8.1 Spec `docs/spec/03-production-format.md`:
     - zip layout: `manifest.json`, `program.json`, `scenes/*.json`, `storyboard.json`, `script.fountain`, `frames/*.json` and `audio/`;
     - versioning;
@@ -616,6 +656,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP9: Alice `.a3p` import
 **Objective:** open existing Alice worlds as one-scene productions, so Alice's lessons and teachers still have a route in.
 **Depends on:** WP0 and the threat model (0.9) for the reader (9.1); WP2, WP4.1–4.2 and WP3.4 for the mapping (9.2, 9.3).
+<!-- schedule:wp9 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP9a after WP0, WP0s; WP9b after WP9a, WP2, WP4a, WP3c.
+<!-- /schedule:wp9 -->
 - [ ] 9.1 Read `.a3p` (zip, `programType.xml`, `type.xml`, `resources.xml`, `version.txt`; XML encoded UTF-8 before 3.7, UTF-16 from 3.7), with the same import hardening as 8.4. (C)
 - [ ] 9.2 Map Alice types, fields, methods, statements and events onto the StoryStage 2 AST. Map Alice gallery fields onto the converted models in Backstage. Report anything that can't be mapped (for example Sims models) in plain words. (C)
 - [ ] 9.3 Imported worlds are marked "imported", so the teacher's switch can relax the storyboard rule for them (WP10.8). (C)
@@ -625,6 +668,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP10: Storyboard
 **Objective:** the first tab: plan the film, write the script and draw the frames.
 **Depends on:** WP0 and WP3.3 for the sketch tool (10.5), re-run as models arrive (the in-app version is built with 3.11); WP8.1 (data model), WP12.2–12.3 and 10.5 for the Storyboard itself (10.1–10.4, 10.6, 10.7); WP7 and WP8 for the links to code and the storyboard rule (10.8); WP3.11 (import), WP5 and WP8 for Backstage from the Storyboard and setting the stage (10.9, 10.10).
+<!-- schedule:wp10 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP10s after WP0, WP3a; WP10a after WP8f, WP12b, WP10s; WP10b after WP10a, WP7, WP8; WP10c after WP10a, WP3i, WP8, WP5b.
+<!-- /schedule:wp10 -->
 - [ ] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
 - [ ] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
 - [ ] 10.3 Scene cards: heading (place and time), cast, arc part and transition. Cards are reordered by drag and by keyboard. (C)
@@ -646,6 +692,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP11: Screening room and export
 **Objective:** the third tab: watch the rough cut and export the finished film.
 **Depends on:** WP1.8 (go) for the encoder (11.3, 11.5), tested with synthetic frames first; WP5.5, WP6.5, WP8 and WP12 for the Screening room (11.1, 11.2, 11.4); WP10.8 (frame-to-block links) for the automatic check (11.6).
+<!-- schedule:wp11 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP11a after WP1; WP11b after WP8, WP11a, WP12b; WP11c after WP10b, WP11b.
+<!-- /schedule:wp11 -->
 - [ ] 11.1 Rough-cut playback of the whole running order with transitions; jump between scenes; frame strip alongside showing the current frame. (C)
 - [ ] 11.2 **Compare:** a frame's sketch layout beside a still from the rough cut; notes per scene for retakes. (C)
 - [ ] 11.3 **Export for distribution:** a frame-by-frame offscreen render at a fixed rate (30 fps, 1280×720 by default), encoded to MP4 with H.264 video and AAC audio. Progress bar and cancel. (C)
@@ -666,6 +715,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP12: Interface and design system
 **Objective:** one designed, accessible interface for all three tabs.
 **Depends on:** nothing for the mock-ups (12.1), which start on day one; WP0 and 12.1 for the rest.
+<!-- schedule:wp12 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP12a needs nothing first; WP12b after WP0, WP12a.
+<!-- /schedule:wp12 -->
 - [ ] 12.1 Mock-ups of the three tabs, the Prompter panel, the set-up wizard and the teacher's class set-up, at laptop, Chromebook (1366×768) and iPad sizes. Reviewed against the teacher interviews (16.7) and the first use cases (16.6) before approval. (C drafts; U approves)
 - [ ] 12.2 Design tokens (colour, type, spacing, sizes for touch and young users), light and dark themes, and an icon set. (C)
 - [ ] 12.3 Component library on an accessible base (for example React Aria), with each component checked for keyboard access and contrast. (C)
@@ -677,6 +729,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP13: Prompter (port)
 **Objective:** the Prompter from StoryStage 1, rebuilt over the StoryStage 2 AST, with the storyboard tools added.
 **Depends on:** WP0 for the spec, fake Claude server, system prompt and evaluation set (13.1, 13.7, 13.8), which start early; WP2, WP4.1–4.2 and WP15.2 for the core (13.2–13.6 with the AST tools); WP7, WP10.1–10.6 for the Prompter panel, the storyboard tools and the story coach.
+<!-- schedule:wp13 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP13a after WP0; WP13b after WP13a, WP2, WP4a, WP15k; WP13c after WP13b, WP10a, WP7.
+<!-- /schedule:wp13 -->
 - [ ] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
 - [ ] 13.2 **Transport:** the request body is built in TypeScript without the key. It goes to the native layer through a Tauri command, which **checks it against the policy enforcement point (15.2)**, adds the key and streams events back. Learner text (script, storyboard, captions) goes into the context as clearly delimited data, never as instructions. In the browser version, all Prompter features are switched off. (C)
 - [ ] 13.3 **Context:**
@@ -714,6 +769,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP14: Speech
 **Objective:** voice in and out, on the device.
 **Depends on:** WP1.3 (go) for the speech engines (14.1, 14.2), which don't need the Prompter; WP13 core and WP4.3 for narration tied to Prompter steps and the speak line block (14.3).
+<!-- schedule:wp14 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP13b, WP4b.
+<!-- /schedule:wp14 -->
 - [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). Download on first use after consent, with a checksum. Hold to talk; an editable transcript; audio is discarded after transcription. (C)
 - [ ] 14.2 Speech output with speech synthesis, filtered to voices marked `localService`, preferring en-GB. A narration queue tied to Prompter steps, stop, and captions always shown. (C)
 - [ ] 14.3 **Speak line** block: characters speak script dialogue through the same voices, captioned. (C)
@@ -724,6 +782,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP15: Desktop and mobile apps, browser version
 **Objective:** StoryStage 2 installed on every target, with the key safe and the school lock working.
 **Depends on:** WP0.3 for the targets and policy (15.1, 15.3, 15.7); WP1.6 and WP1.7 (go) for the key store and transport (15.2). Signing and store accounts (15.4, 15.5) start early, because purchases and reviews take time; submissions wait for the release candidate.
+<!-- schedule:wp15 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP15a after WP0; WP15k after WP15a, WP1, WP0s; WP15b after WP15a.
+<!-- /schedule:wp15 -->
 - [ ] 15.1 Tauri 2 targets: Windows, macOS, iOS and Android, from `apps/desktop`. (C)
 - [ ] 15.2 **Key store, Claude transport and the policy enforcement point, in Rust:**
     - storage in Windows Credential Manager, macOS and iOS Keychain, or Android Keystore;
@@ -752,6 +813,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP16: UK curriculum mapping
 **Objective:** find every touch point with the curricula of all four UK nations, and turn them into arc templates and classroom use cases.
 **Depends on:** nothing; runs from the start.
+<!-- schedule:wp16 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP16a needs nothing first; WP16b after WP16a.
+<!-- /schedule:wp16 -->
 - [ ] 16.1 **England:** the national curriculum programmes of study for computing (KS1–KS3), English (writing narrative, drafting, spoken language and drama, KS1–KS3), art and design, and other subjects where storytelling or modelling fits (for example history and science explanations). (C)
 - [ ] 16.2 **Scotland:** Curriculum for Excellence experiences and outcomes and benchmarks, for technologies (computing science), literacy and English, and expressive arts (drama). (C)
 - [ ] 16.3 **Wales:** Curriculum for Wales areas of learning and experience (science and technology; languages, literacy and communication; expressive arts) and the cross-curricular digital competence framework. (C)
@@ -766,6 +830,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP17: Legal, privacy and licences
 **Objective:** clear, documented rights to everything shipped, and privacy compliance for a children's product.
 **Depends on:** nothing; runs from the start.
+<!-- schedule:wp17 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP17a needs nothing first; WP17b after WP13b, WP14a.
+<!-- /schedule:wp17 -->
 - [ ] 17.1 **CMU:** confirm whether Alice's own gallery models (not the Sims models) may be converted to glTF and shipped in StoryStage 2. The Alice 3 EULA, clause 5, describes the gallery as EA-contributed and limited to non-commercial use. Also confirm the credit wording. (C drafts; U sends)
 - [ ] 17.2 Licence register for every dependency and asset (NOTICE), checked in CI (WP0.6). (C)
 - [ ] 17.3 **Data protection impact assessment (DPIA)** and a review against the ICO Children's code's 15 standards. Covers the Prompter's data flow to Anthropic under the user's account, scene pictures, speech (on device), shared devices and the Prompter route (WP24.2, 24.3), the AR camera (WP21.5), AR packs and mixed-reality films (WP22.8, 22.9), the editor study (WP7.13, 19.5–19.6), Drive/OneDrive and app-store privacy labels. (C drafts; U approves)
@@ -785,6 +852,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP18: Quality: self-test, end-to-end and performance
 **Objective:** confidence at every merge and on every device.
 **Depends on:** WP0; grows with each WP. The harness, fake stage and self-test skeleton (18.1, 18.4) start straight after WP0; the gate tests and device runs (18.2, 18.3) close the release candidate.
+<!-- schedule:wp18 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP18a after WP0; WP18b after WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b.
+<!-- /schedule:wp18 -->
 - [ ] 18.1 Built-in **self-test** (as in StoryStage 1): builds a three-scene production, codes it, rehearses it, exports five seconds, and checks undo. Runs from a menu item and in CI. (C)
 - [ ] 18.2 Playwright end-to-end tests for each milestone's gate. Determinism is checked on scene state (a hash of every transform per frame), which must match across renderers; pixel comparison only within one renderer, with a tolerance. (C)
 - [ ] 18.3 Performance budgets per reference device (start-up, scene load, frame rate, export speed, memory), measured in CI where possible and by the owner on the devices. (C; U runs on devices)
@@ -796,6 +866,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP19: Pilot and website
 **Objective:** StoryStage 2 in real classrooms.
 **Depends on:** the release candidate, WP16.6 and WP17.3–17.4 for the pilot (19.3, 19.4). The website and teacher guide (19.1, 19.2) start once the mock-ups are approved.
+<!-- schedule:wp19 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP19a after WP12a; WP19 after RC, WP16b, WP17b, WP19a.
+<!-- /schedule:wp19 -->
 - [ ] 19.1 Website pages on `storystage.org.uk`: download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
 - [ ] 19.2 Teacher guide: the three tabs, the storyboard rule, the Prompter modes, the curriculum use cases. (C)
 - [ ] 19.3 Recruit 2–3 schools across at least two UK nations, plus at least one after-school club. Ask each whether it would fund a Prompter key, and which Prompter route (24.3) suits it. (U)
@@ -810,6 +883,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP20: Pathway to industry tools
 **Objective:** make StoryStage 2 a first step towards professional tools, with Unreal Engine as the flagship destination, while keeping the core engine-neutral.
 **Depends on:** WP4.7, WP8, the release candidate; starts after the release candidate.
+<!-- schedule:wp20 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP20 after WP4a, WP8, RC.
+<!-- /schedule:wp20 -->
 **Not in scope:** Export to Roblox (decided 18 October 2026). Roblox Studio is in the benchmark (design doc, section 2), and two of its ideas are adapted in 13.9 and 11.6.
 - [ ] 20.1 "Under the hood" view: in the text view and teacher notes, each block can show the industry concept it stands for (for example, `walk to` uses a navigation mesh; `play animation` is like an Unreal montage). (C)
 - [ ] 20.2 **Export to Unreal:** export a production's models (glTF) and its scene-exchange file (`16-scene-exchange.md`, produced by the baker in 22.2) that an Unreal project can import into a level and a Sequencer sequence. Built as a small open-source Unreal plugin, tested with a free Unreal licence. (C)
@@ -823,6 +899,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP21: AR design mode
 **Objective:** let learners place their set on a real table or floor through a tablet camera, check camera angles by walking round it, and rehearse in the room.
 **Depends on:** WP1.9 (go), WP5a, WP8, WP15.1 and the release candidate; starts after the release candidate.
+<!-- schedule:wp21 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP21 after WP1, WP5a, WP8, WP15a, RC.
+<!-- /schedule:wp21 -->
 - [ ] 21.1 Spec `docs/spec/11-ar.md`:
     - placement (find a surface, place, scale from toy-size to life-size, anchor);
     - rehearse in AR;
@@ -846,6 +925,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 ### WP22: AR for audiences and distribution
 **Objective:** let audiences watch a finished production in AR, as a play on a table or life-size, inside StoryStage or with no StoryStage at all, and let learners share it as an AR pack or a mixed-reality film.
 **Depends on:** the release candidate; WP6.5, WP8 and WP11.3 for the baker and AR pack (22.1–22.4); WP21.2–21.3, WP10 and WP11.1 for the player's AR mode, AR staging and Export for AR (22.5–22.7). Shares WP21's spike, placement code and safeguards.
+<!-- schedule:wp22 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP22a after WP6, WP8, WP11a, RC; WP22b after WP22a, WP21, WP11b, WP10a; WP22c after WP22b.
+<!-- /schedule:wp22 -->
 
 **The audience experiences:**
 
@@ -894,6 +976,9 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 ### WP23: Projection mapping and Export to Pixera
 **Objective:** a projection mapping pathway: learners stage their production on a real object (a model, a wall, a building front), preview it with virtual projectors, project it in the classroom, and export it for professional software, with Pixera as the flagship destination.
 **Depends on:** WP5a and WP6.5 for the spike (23.1, 23.2), which may run before the release candidate; the release candidate, WP8 and WP12 for the Projection stage (23.3, 23.4); WP15.1 for classroom output (23.5); WP11.3 and WP11.1 for the exports (23.6–23.9).
+<!-- schedule:wp23 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP23a after WP5a, WP6; WP23b after WP23a, WP8, WP12b, RC; WP23c after WP23b, WP15a; WP23d after WP23b, WP11a, WP11b.
+<!-- /schedule:wp23 -->
 
 **What Pixera needs** (from its documentation, October 2026):
 
@@ -936,6 +1021,9 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 ### WP24: The teacher's journey and class set-up
 **Objective:** a teacher can set up a class, pupils can find their own work next lesson on a shared device, and the Prompter can be offered to a group without putting the school's key on every device by hand.
 **Depends on:** WP1.11 (classroom ground truth), WP15.1, WP8.1 for the journey and the decisions (24.1 to 24.3); WP8, WP15.2 and WP13 core for the build (24.4 to 24.7).
+<!-- schedule:wp24 -->
+**Schedule items** (`tools/plan/schedule.yaml`): WP24a after WP1g, WP15a, WP8f; WP24b after WP24a, WP8, WP15k, WP13b.
+<!-- /schedule:wp24 -->
 - [ ] 24.1 **The teacher's journey**, written into `docs/spec/07-ux.md` and the doc: install through device management → set the school lock → start a class → pupils return to their work next lesson → collect films → export study logs → mark. Each step has an owner task. (C drafts; U reviews with a pilot teacher)
 - [ ] 24.2 **Where a pupil's work lives between lessons** (decide before WP8.4 is built). Options: in-app class and pupil folders on a shared device, a device-management profile per class, or school Google or Microsoft accounts. Record the choice in the DPIA. (C proposes; U decides)
 - [ ] 24.3 **How the Prompter reaches a group** (decide at M1, after 1.11):
