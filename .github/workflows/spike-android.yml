@@ -67,7 +67,12 @@ jobs:
           yes | "$sdk/sdkmanager" --licenses > /dev/null
           "$sdk/sdkmanager" "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
           emulator -accel-check
-          echo no | "$sdk/avdmanager" create avd -n spike -k "system-images;android-34;google_apis;x86_64"
+          # avdmanager and the emulator must agree where virtual devices live.
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          echo no | "$sdk/avdmanager" create avd -n spike -k "system-images;android-34;google_apis;x86_64" -p "$ANDROID_AVD_HOME/spike.avd"
+          emulator -list-avds
           mkdir -p "$RUNNER_TEMP/spike-1.7"
           nohup emulator -avd spike -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -no-metrics -accel on -memory 4096 > "$RUNNER_TEMP/spike-1.7/emulator.log" 2>&1 &
           # Every wait has a limit: a hung emulator must fail the step, not the whole job.
