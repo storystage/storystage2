@@ -47,6 +47,8 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Main branch bypass and merging | The owner, as organisation admin, may bypass the `main` ruleset in an emergency; nobody else can, and sessions acting through the owner's account never use it. S1 squash-merges its own WP0 contract and WP1 spike pull requests once the required checks pass, in stack order, and the owner reviews afterwards; other pull requests wait for the owner unless they say otherwise. | 21 Oct 2026 |
 | Age range | Learners aged 6 to 13, **provisional**: tested against the full curriculum review (WP16a) and the teacher interviews (16.7), then confirmed or changed (0030) | 25 Oct 2026 |
 | Fonts | Bricolage Grotesque and Atkinson Hyperlegible under OFL-1.1, Material Symbols Rounded (Apache-2.0). OFL-1.1 is allowed for font packages only; fonts are bundled, never loaded from Google Fonts (0031) | 25 Oct 2026 |
+| Light theme | A light theme as well as the dark one in the first release; drawn as mock-ups and approved before any light-theme code is built (0032) | 25 Oct 2026 |
+| Narrow windows | Designed for windows 1024 px wide and up; below that, a note asks to turn the iPad sideways or widen the window. No portrait layout in the first release (0033) | 25 Oct 2026 |
 
 ## Still to decide (owner)
 

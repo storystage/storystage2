@@ -35,8 +35,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Merged:
   - 25 Oct (#58, open, waits for the owner's merge): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, and `docs/spec/07-ux.md` §1 (screen sizes). 12.1 stays unticked until the owner approves it.
 - Blocked on:
-  - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6); a light theme or not (12.2); below 1024 px wide (iPad portrait).
-- Next: WP12b, design system and components (12.2–12.5): `07-ux.md` §2–5 first, then tokens and the component library checked against screen 14. It doesn't wait for the approval.
+  - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6); approving the light-theme mock-ups before any light-theme code (decision 0032).
+- Next: the light-theme mock-ups (0032), then WP12b, design system and components (12.2–12.5): `07-ux.md` §2–5 first, then tokens and the component library checked against screen 14. It doesn't wait for the approval.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:

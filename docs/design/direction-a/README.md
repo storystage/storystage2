@@ -10,10 +10,10 @@ This is the owner's handoff of 22 Oct 2026, edited where it disagreed with `CLAU
 | 3 | Stack | Fixed: React and TypeScript ([0006](../../decisions/0006-ui.md)), Babylon.js ([0007](../../decisions/0007-3d.md)) |
 | 4 | School key, school service, "Email me at 80%" (11b) | **Open** until WP24.3 (M1). Build 11b with the key and limits on the device ([0005](../../decisions/0005-api-key.md)) |
 | 5 | Fonts | Bundled from Fontsource, never from Google Fonts ([0031](../../decisions/0031-fonts.md)) |
-| 6 | Theme | Dark is drawn here; WP12.2 also asks for a light theme. **Owner to decide** |
+| 6 | Theme | Dark is drawn here; a light theme follows as mock-ups, approved before it is built ([0032](../../decisions/0032-light-theme.md)) |
 | 7 | Tiles look | Alice 3's grammar with our own artwork until Carnegie Mellon replies (WP17.1) |
 | 8 | Alice screenshots (`reference/`) | Not in this repository; the owner holds them |
-| 9 | Sizes | Laptop and iPad sizes added in [`sizes/`](sizes/index.html) (12.1); rules in `docs/spec/07-ux.md` §1 |
+| 9 | Sizes | Laptop and iPad sizes added in [`sizes/`](sizes/index.html) (12.1); rules in `docs/spec/07-ux.md` §1; nothing below 1024 px wide ([0033](../../decisions/0033-narrow-windows.md)) |
 | 10 | Storyboard first | The closed Code editor (10.8) added as screen 02c |
 | 11 | Prompter levels | Mapped to the policy keys and modes (see "The Prompter" below) |
 | 12 | Study logs | "Anonymised" changed: the logs are pseudonymous (7.13, 24.6) |
@@ -64,7 +64,7 @@ Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to e
 
   Switching any label back to Alice's wording is a copy change only.
 - **Screenshots** of every screen are in `screenshots/` (1366 × 768 PNG; the component sheet is 1366 wide), and at laptop and iPad sizes in `screenshots/sizes/`. Use them for side-by-side checks.
-- **Screen sizes:** the app is designed for 1024 px wide and up. Laptop (1440 and up), Chromebook (1280–1439, as drawn) and iPad landscape (1024–1279) each have their own layout rules (`docs/spec/07-ux.md` §1). Below 1024 px wide (iPad portrait, narrow windows) is **open for the owner**.
+- **Screen sizes:** the app is designed for 1024 px wide and up. Laptop (1440 and up), Chromebook (1280–1439, as drawn) and iPad landscape (1024–1279) each have their own layout rules (`docs/spec/07-ux.md` §1). Below 1024 px wide (iPad portrait, narrow windows) the studio shows a neutral note asking to turn the iPad sideways or widen the window (decision 0033).
 
 ---
 
@@ -92,7 +92,7 @@ Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to e
 
 ## Design tokens
 
-**Theme:** these are the dark theme's values; dark is the only theme drawn. WP12.2 also asks for a light theme. Whether the first release has one, and if so whether it is drawn and approved before it is built, is **open for the owner**. Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
+**Theme:** these are the dark theme's values; dark is the only theme drawn. The first release also has a light theme (decision 0032): it is drawn as mock-ups and approved by the owner before it is built, so WP12b builds the dark theme first. Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
 
 ### Colour (Direction A)
 | Token | Hex | Use |
