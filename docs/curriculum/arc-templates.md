@@ -86,7 +86,7 @@ For short explanation films in science, geography or technology: day and night, 
 | `whyItHappens` | Why it happens | What is really going on? Show it moving. | The explanation, modelled: the Earth turning, the Sun still. The scientific accuracy is the teacher's to check. |
 | `soWhat` | What it means | What should we remember? | The conclusion, in one or two sentences of narration. |
 
-- **Suggested length:** 4 to 6 scenes, narrated (a recorded voice or an on-device voice, with captions).
+- **Suggested length:** 4 to 6 scenes, narrated by an on-device voice, with captions (recording a learner's own voice comes in release 1.2, WP14.4).
 - **StoryStage animates; it doesn't simulate.** The model shows what the learner codes, so a wrong explanation looks just as smooth as a right one. Checking the science is part of the lesson.
 - **Curriculum:** `EN-SC-Y5-1`, `EN-SC-KS3-1`, `EN-SC-KS3-2`, `EN-SC-LKS2-1`, `EN-SC-UKS2-1`, `SC-SCN-1-06`, `SC-SCN-2-06`, `SC-LIT-x-28`, `WA-ST-FE-3`, `NI-WAU-KS2-1`; with computing `EN-CO-KS2-1`, `SC-TCH-3-13`.
 
