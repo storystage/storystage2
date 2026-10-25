@@ -18,7 +18,8 @@ export interface ButtonProps extends Omit<AriaButtonProps, 'children' | 'classNa
   iconFilled?: boolean;
   /** `key` is 52 px tall, for key actions such as Build these steps. */
   size?: 'normal' | 'key';
-  children: ReactNode;
+  /** The label. An icon-only button has none, and must have an `aria-label` instead. */
+  children?: ReactNode;
 }
 
 /**

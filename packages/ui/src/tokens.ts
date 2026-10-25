@@ -17,6 +17,7 @@ export const COLOR_TOKENS = [
   'panel-3', // cards on panels
   'panel-4', // raised chips, thumbnails
   'band', // panel title bands
+  'tab', // an inactive mode tab
   'field', // text fields
   'dialog',
   // Lines
@@ -71,6 +72,7 @@ export const colors: Readonly<Record<Theme, Readonly<Record<ColorToken, string>>
     'panel-3': '#2F2822',
     'panel-4': '#3A3129',
     band: '#342B24',
+    tab: '#2A231E',
     field: '#13100E',
     dialog: '#1B1714',
     'line-1': '#5A4B3D',
@@ -115,6 +117,7 @@ export const colors: Readonly<Record<Theme, Readonly<Record<ColorToken, string>>
     'panel-3': '#FFFFFF',
     'panel-4': '#E9E1D5',
     band: '#EFE6D9',
+    tab: '#EDE5D9',
     field: '#F6F1E9',
     dialog: '#FFFFFF',
     'line-1': '#D5C8B8',

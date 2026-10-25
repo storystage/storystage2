@@ -1,5 +1,6 @@
 {
   "app.name": "StoryStage",
+  "mode.label": "Modes",
   "mode.storyboard": "Storyboard",
   "mode.production": "Production stage",
   "mode.screening": "Screening room",
@@ -33,6 +34,8 @@
   "note.prompterNotInBrowser": "The Prompter isn’t part of the browser version. Rehearse, Blocks and Tiles all work here.",
   "note.tooNarrow": "Turn your iPad sideways, or make the window wider.",
   "saving.saved": "All changes saved",
+  "field.speak": "Say it: {label}",
+  "dialog.close": "Close",
   "count.frames.one": "{count} frame",
   "count.frames.other": "{count} frames",
   "count.scenes.one": "{count} scene",

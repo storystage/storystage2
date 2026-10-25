@@ -5,7 +5,7 @@ The design system: tokens for the dark and light themes, fonts, icons, component
 - **Owner:** S5
 - **Workplan:** WP12 (12.2–12.5)
 - **Design:** Direction A, `docs/design/direction-a/README.md`; the component sheet is screen 14
-- **Status:** tokens, strings, fonts, icons, `ThemeRoot`, `Button`, `StatusChip`, `AiBadge`; more components follow (12.3)
+- **Status:** tokens, strings, fonts, icons, and the components `ThemeRoot`, `Button`, `StatusChip`, `AiBadge`, `ModeTabs`, `Segmented`, `Toggle`, `Checkbox`, `RadioCards`, `TextField`, `Dialog` and `NeutralNote`; the plan step and frame card follow (12.3)
 
 ## Using it
 
