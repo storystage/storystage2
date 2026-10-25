@@ -239,7 +239,7 @@ function match(
 function numberedSpine(bones: readonly string[], found: Map<string, string>) {
   const used = new Set(found.values());
   const numbered = bones
-    .map((bone) => ({ bone, m: /^spine0*(\d+)$/.exec(normalizeBoneName(bone)) }))
+    .map((bone) => ({ bone, m: /^spine(\d+)$/.exec(normalizeBoneName(bone)) }))
     .filter((x) => x.m && !used.has(x.bone))
     .sort((a, b) => Number(a.m![1]) - Number(b.m![1]))
     .map((x) => x.bone);
