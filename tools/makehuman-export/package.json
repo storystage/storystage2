@@ -1,0 +1,14 @@
+{
+  "name": "@storystage/makehuman-export",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WP3.5: everyday people made with MakeHuman's CC0 assets (MPFB2 in Blender, in CI). The people list and its review page. Not shipped.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "people": "node src/people-cli.ts"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  }
+}
