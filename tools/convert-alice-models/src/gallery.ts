@@ -163,3 +163,31 @@ export function renderGalleryTable(models: readonly GalleryModel[]): string {
     ...rows,
   ].join('\n');
 }
+
+const csvCell = (s: string | number) => {
+  const t = String(s);
+  return /[",\r\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+};
+
+/**
+ * The list sent to CMU (`docs/legal/letters/cmu-models.csv`): `alice` is the models we ask
+ * about, with only their own (non-Sims 2) variants; `sims2` is the models drawn wholly from
+ * The Sims 2's art, which we leave out. Numbered in gallery order, for Excel or any spreadsheet.
+ */
+export function renderGalleryCsv(
+  models: readonly GalleryModel[],
+  which: 'alice' | 'sims2',
+): string {
+  const chosen = models.filter((m) => (which === 'sims2') === isSims2Model(m));
+  const rows = chosen.map((m, i) => {
+    const variants = (m.variants ?? []).filter((v) => which === 'sims2' || !v.sims2);
+    return [i + 1, m.aliceName, m.folder, variants.length, variants.map((v) => v.name).join('; ')]
+      .map(csvCell)
+      .join(',');
+  });
+  return [
+    ['Number', 'Name in Alice', 'Class', 'Variants', 'Variant names'].join(','),
+    ...rows,
+    '',
+  ].join('\r\n');
+}

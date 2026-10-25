@@ -49,7 +49,7 @@ Answered on 25 Oct 2026:
 
 - **Open Source Avatars:** ship any CC0 collection in the registry, not only the 100Avatars series, with each avatar checked first (section 1).
 - **Quaternius:** ask for written permission. Until it comes, Quaternius stays out. The draft request is `docs/legal/letters/quaternius.md`.
-- **CMU:** S4 drafts the request; the owner sends it. The draft is `docs/legal/letters/cmu.md`, with appendix A as the list. It asks about the 340 Alice models only.
+- **CMU:** S4 drafts the request; the owner sends it. The draft is `docs/legal/letters/cmu.md`. It attaches `cmu-models.csv` (the 340 Alice models it asks about) and `cmu-sims2-models-left-out.csv` (the 95 Sims 2 models), generated from the same data as appendix A. It also asks whether CMU objects to StoryStage 2's Alice-style tile editor, and to calling it "Alice-style".
 - **Sign-off:** the owner reviews this audit in its pull request; merging it records the sign-off (WP3 done-when).
 
 Still to do:
