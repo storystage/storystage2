@@ -1,0 +1,19 @@
+{
+  "name": "@storystage/make-sketches",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Offline renderer: Backstage glTF models to black-and-white storyboard sketches (WP10.5). Not shipped.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "make-sketches": "node src/cli.ts"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@storystage/backstage": "workspace:*",
+    "@storystage/sketches": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  }
+}
