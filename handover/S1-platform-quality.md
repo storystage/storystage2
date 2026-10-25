@@ -42,7 +42,7 @@ Each work package's test, from the workplan. An item counts as done when its tas
 - **WP11: Screening room and export**: a three-scene production exports to an MP4 that plays in the default player on Windows, macOS, iPad and ChromeOS, with captions and credits; and the automatic check flags each of five planted differences (a missing character, a mirrored position, an unsaid line, a frame twice its planned length, a character off camera) with no false flags on a matching frame.
 - **WP23: Projection mapping and Export to Pixera**: a three-scene production is projected onto a model box in a classroom from the desktop app; its Export to Pixera package, with the build script and guide, produces a working timeline in Pixera Creator; and the flashing check catches a test clip that flashes at 5 Hz.
 - **WP14: Speech**: a spoken request on each reference device is transcribed with no network traffic other than the one-off model download, and narration plays with captions.
-- **WP21: AR design mode**: on an Android tablet and an iPad, a learner can place a scene on a table, walk round it and rehearse it, with the safeguards on and the DPIA updated.
+- **WP21: AR design mode**: on the reference iPad (and an Android tablet, if decision 0042 adds one), a learner can place a scene on a table, walk round it and rehearse it, with the safeguards on and the DPIA updated.
 - **WP22: AR for audiences and distribution**: a three-scene production exports an AR pack within budget that plays on an Android phone through Scene Viewer and on an iPad through AR Quick Look; the same production plays interactively in AR in the Android and iPad apps; a mixed-reality film exports only with the teacher setting on; and the DPIA covers all of it.
 
 ## Who is waiting on this session

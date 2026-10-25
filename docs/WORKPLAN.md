@@ -417,7 +417,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 - [x] 1.6 **Tauri key path:** on Windows, store a key in Credential Manager and send a streamed Messages API request from Rust to the fake Claude server. Stream the events to the web UI, and prove the key never appears in the webview: no JS API returns it, and it doesn't appear in devtools. (C)
 - [ ] 1.7 **Tauri Android on a Chromebook:** a Babylon.js scene and a Blockly workspace run in the Android build on the reference Chromebook. Record whether the school's device policy allows installing it. (C builds; U installs)
 - [x] 1.8 **MP4 export:** WebCodecs plus Mediabunny (MPL-2.0) encode a 10-second, 30 fps, 1280×720 clip from offscreen Babylon.js frames. Test in Chrome, Safari 26 and each Tauri webview. Record where it fails and the fallback (for example, an FFmpeg sidecar on desktop). (C)
-- [ ] 1.9 **AR:** place and anchor a glTF set on a real table with Babylon.js WebXR on an Android tablet. Prototype a native ARKit plugin for the Tauri iOS app on the reference iPad. Record whether school device policies allow camera use. (C; U runs on devices)
+- [ ] 1.9 **AR:** prototype a native ARKit plugin for the Tauri iOS app on the reference iPad: place and anchor a glTF set on a real table. **iPad-first** (decision 0042): Babylon.js WebXR on an Android tablet only if the school IT managers (1.11) show schools have them. Record whether school device policies allow camera use. (C; U runs on devices)
 - [ ] 1.10 **Spike report** `docs/spikes/REPORT.md`: one table of pass/fail with measured numbers, and plan changes proposed. Record go/no-go **for each spike as it finishes**, so the work that depends on it starts without waiting for the others (for example WP6 on 1.4, WP5 on 1.2, WP14 on 1.3). (C; U decides)
 - [ ] 1.11 **Classroom ground truth:** watch two or three TR1 lessons (lesson length, how many lessons a production takes, how pupils find and save work) and talk to two school IT managers (which devices, whether they are shared between classes, whether Android apps are allowed on managed Chromebooks, whether Wi-Fi lets devices see each other). Feeds 24.2, 24.3 and 8.4. (U; C prepares the questions)
 - [ ] 1.12 **Capacity probe:** in the first two weeks, record actual durations and owner review hours for WP0 and the first spike lanes; recalibrate `schedule.yaml` and section 5a at M1. (C; U records review time)
@@ -918,9 +918,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - a policy key `ar.enabled` lets a school turn AR off.
 
     Covered in the DPIA (WP17.3). (C; U approves)
-- [ ] 21.6 Performance on the reference Android tablet and iPad: 30 fps with a three-character set. (C; U runs on devices)
+- [ ] 21.6 Performance on the reference iPad (and a reference Android tablet, if decision 0042 adds one): 30 fps with a three-character set. (C; U runs on devices)
 
-**Done when:** on an Android tablet and an iPad, a learner can place a scene on a table, walk round it and rehearse it, with the safeguards on and the DPIA updated.
+**Done when:** on the reference iPad (and an Android tablet, if decision 0042 adds one), a learner can place a scene on a table, walk round it and rehearse it, with the safeguards on and the DPIA updated.
 
 ### WP22: AR for audiences and distribution
 **Objective:** let audiences watch a finished production in AR, as a play on a table or life-size, inside StoryStage or with no StoryStage at all, and let learners share it as an AR pack or a mixed-reality film.
