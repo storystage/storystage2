@@ -19,7 +19,7 @@
 
 ### Decisions before first use
 
-1. **Who is "the Commissioner"?** "The project" is not a legal person. Until an organisation exists (the open decision on who runs StoryStage after the pilot), the contract has to name you personally, trading as StoryStage. Clause 5.3 lets you pass the rights on to a charity, company or university partner later without asking the artist again.
+1. **Who is "the Commissioner"? Decided, 25 October 2026: the owner, trading as StoryStage.** "The project" is not a legal person, and the organisation that runs StoryStage after the pilot doesn't exist yet. Clause 5.3 lets the owner pass the rights on to a charity, company or university partner later without asking the artist again.
 2. **The licence the cast is published under.** Clause 5.4 lets you publish the models under any licence. Choose one before the first release (for example CC BY 4.0, so schools and other projects can reuse them with credit, matching the Apache-2.0 spirit of decision 0025), and record it as a decision.
 3. **Fee and payment** (Schedule 2): the budget is an open owner decision (WP3.6, due at M2).
 4. **Legal review:** a solicitor checks the template once; after that, each commission fills in the schedules only.
