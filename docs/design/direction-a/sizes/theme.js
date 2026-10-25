@@ -35,9 +35,9 @@ const LIGHT = {
     '#8F8476': '#8A7D70', // unavailable
     '#F4B740': '#8F5600', // amber as text
     '#6FD3C7': '#0B6E64', // the Prompter as text
-    '#7BD88F': '#1D7A33', // ok, Checked, Matches
+    '#7BD88F': '#1C7431', // ok, Checked, Matches
     '#FFB59A': '#B13D14', // flag, Look at
-    '#E58A6A': '#B4432A', // stop
+    '#E58A6A': '#B0412A', // stop
     '#D8CDBF': '#5A4F44', // Planned
     '#8FBBFF': '#2357B5', // Staged
     '#BBA6FF': '#6443C0', // Coded
@@ -52,7 +52,7 @@ const LIGHT = {
     '#F4B740': '#B87300', // amber outlines: selection
     '#6FD3C7': '#0E7C70', // the Prompter's outline
     '#FFB59A': '#C2522B', // flag outline
-    '#E58A6A': '#B4432A', // stop outline
+    '#E58A6A': '#B0412A', // stop outline
   },
   shadow: {
     '#13100E': '#F6F1E9', // the 2px gap of a focus ring takes its surface's colour
