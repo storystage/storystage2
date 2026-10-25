@@ -54,5 +54,5 @@ Until we hear from you, we will convert models only for testing and ship none of
 With thanks and best wishes,
 
 [Name]
-StoryStage, https://storystage.org.uk
+StoryStage, https://storystage.org
 [email address you will keep]
