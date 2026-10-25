@@ -6,6 +6,7 @@ import {
   homeSection,
   parseGalleryNames,
   parseResource,
+  renderGalleryCsv,
   renderGalleryTable,
   storyClassOf,
 } from './gallery.ts';
@@ -135,5 +136,43 @@ describe('parseConverterList', () => {
     expect(list[1]!.verdict).toMatch(/Never ship the Sims 2 variants \(THICKET/);
     expect(isSims2Model(list[1]!)).toBe(false);
     expect(renderGalleryTable(list)).toContain('| 2 (2 Sims 2) |');
+  });
+});
+
+describe('renderGalleryCsv', () => {
+  const names = [
+    { folder: 'Automobile', pkg: 'automobile', name: 'Bus', aliceName: 'Bus' },
+    { folder: 'Prop', pkg: 'prop', name: 'Bamboo', aliceName: 'Bamboo, "tall"' },
+  ];
+  const list = galleryList(
+    names,
+    new Map(),
+    new Map([
+      ['Automobile/Bus', [{ name: 'TEAM', sims2: true }]],
+      [
+        'Prop/Bamboo',
+        [
+          { name: 'SHOOT1', sims2: false },
+          { name: 'CLUSTER1', sims2: false },
+          { name: 'THICKET', sims2: true },
+        ],
+      ],
+    ]),
+  );
+
+  it("lists Alice's own models, with only their own variants, and quotes where needed", () => {
+    expect(renderGalleryCsv(list, 'alice').split('\r\n')).toEqual([
+      'Number,Name in Alice,Class,Variants,Variant names',
+      '1,"Bamboo, ""tall""",Prop,2,SHOOT1; CLUSTER1',
+      '',
+    ]);
+  });
+
+  it('lists the models drawn wholly from Sims 2 art separately', () => {
+    expect(renderGalleryCsv(list, 'sims2').split('\r\n')).toEqual([
+      'Number,Name in Alice,Class,Variants,Variant names',
+      '1,Bus,Automobile,1,TEAM',
+      '',
+    ]);
   });
 });

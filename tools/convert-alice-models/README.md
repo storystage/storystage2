@@ -23,5 +23,7 @@ It runs from an Alice 3.9 installation with Alice's bundled Java 21, which inclu
 ## The gallery list (licence audit, appendix A)
 
 ```
-node tools/convert-alice-models/src/list-gallery-cli.ts <storystage1> --jars <--list report> --write docs/legal/licence-audit.md
+node tools/convert-alice-models/src/list-gallery-cli.ts <storystage1> --jars <--list report> --write docs/legal/licence-audit.md --csv docs/legal/letters
 ```
+
+`--csv` also writes the two spreadsheets attached to the CMU letter: `cmu-models.csv` (the 340 Alice models) and `cmu-sims2-models-left-out.csv` (the 95 Sims 2 models).
