@@ -4,6 +4,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S1 Platform and quality
 - Merged:
+  - 25 Oct: **Rust security advisories check** (#48): `cargo deny check advisories` in `desktop.yml` on the platforms we ship, and weekly (Mondays). Its first run found tokio 1.54.0 (RUSTSEC-2026-0384, yanked), updated to 1.54.1. Dependabot's glib alert is Linux-only, so it doesn't reach the app (`docs/github-settings.md`). CodeQL on `main` is green again without Python.
   - 25 Oct: **the Direction A design handoff** in `docs/design/direction-a/` (#49, without the Alice 3 screenshots), with the differences from the workplan listed on #49; the owner's decisions on it: age range (0030) and fonts (0031) (#50), and teacher Prompter levels (0034).
   - 22 Oct: platform upkeep: S1 sessions can push again (Claude GitHub App reinstalled for the organisation); CodeQL default setup saved without Python, which has had no source since WP0.10 and failed the `main` scan.
   - 22 Oct: **WP0.10, the one schedule file**: `tools/plan/schedule.yaml` holds every item, its estimate, basis and actual dates; `pnpm schedule` writes workplan 5a, a "Schedule items" line in each section 6 WP and the handover roster, and CI fails when they disagree. It replaces schedule.py, capsim.py and sessions.py with the same numbers.
