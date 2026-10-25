@@ -144,6 +144,7 @@ The light theme keeps every role and swaps its value. Neutrals turn from a dark 
 | panel-3 | `#2F2822` | `#FFFFFF` | cards |
 | panel-4 | `#3A3129` | `#E9E1D5` | raised chips, thumbnails |
 | band | `#342B24` | `#EFE6D9` | panel title bands |
+| tab | `#2A231E` | `#EDE5D9` | an inactive mode tab |
 | line-1 | `#5A4B3D` | `#D5C8B8` | dividers (decorative) |
 | line-2 | `#8A7B6A` | `#7D6E5D` | control outlines, 3:1 or more |
 | chalk | `#F5EFE6` | `#1F1A17` (ink) | primary text; as a fill (selected segment, strong button) `#2A2420` with `#FBF8F3` text |

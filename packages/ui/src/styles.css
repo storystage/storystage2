@@ -173,3 +173,327 @@
     fill: currentColor;
   }
 }
+
+/* Mode tabs (Direction A header): 50 px, radius 12 12 0 0, Bricolage 800 16 px uppercase. */
+.ss-mode-tabs {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+}
+.ss-mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 50px;
+  padding: 0 16px;
+  border-radius: 12px 12px 0 0;
+  color: var(--ss-text);
+  background: var(--ss-tab);
+  box-shadow:
+    inset 0 1px 0 var(--ss-line-1),
+    inset 1px 0 0 var(--ss-line-1),
+    inset -1px 0 0 var(--ss-line-1);
+  cursor: pointer;
+  outline: none;
+}
+.ss-mode-tab-label {
+  font-family: var(--ss-font-display);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.ss-mode-tab[data-selected] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+  box-shadow: none;
+}
+.ss-mode-tab[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.ss-mode-tab[data-selected][data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-amber),
+    0 0 0 4px var(--ss-focus-on-amber);
+}
+.ss-mode-panel {
+  outline: none;
+}
+
+/* Segmented: 44 px segments in a stage-coloured track; the chosen one is the strong fill. */
+.ss-segmented {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--ss-field);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.ss-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ss-text);
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.ss-segment[data-selected] {
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+}
+.ss-segment[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-field),
+    0 0 0 5px var(--ss-focus);
+}
+.ss-segment[data-disabled] {
+  color: var(--ss-unavailable-text);
+  cursor: default;
+}
+
+/* Toggle: 52 × 30; on is amber with a dark knob. */
+.ss-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.ss-toggle-track {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 30px;
+  border-radius: 999px;
+  background: var(--ss-panel-4);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+}
+.ss-toggle-knob {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ss-text);
+  transition: left 120ms;
+}
+.ss-toggle[data-selected] .ss-toggle-track {
+  background: var(--ss-amber);
+  box-shadow: none;
+}
+.ss-toggle[data-selected] .ss-toggle-knob {
+  left: 26px;
+  background: var(--ss-on-amber);
+}
+.ss-toggle[data-focus-visible] .ss-toggle-track {
+  box-shadow:
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.ss-toggle[data-disabled] {
+  color: var(--ss-unavailable-text);
+  cursor: default;
+}
+
+/* Check box: 26 px, radius 7; checked is amber with a check mark. */
+.ss-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  cursor: pointer;
+}
+.ss-checkbox-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  box-shadow: inset 0 0 0 1.5px var(--ss-line-2);
+}
+.ss-checkbox-box svg {
+  fill: none;
+  stroke: var(--ss-on-amber);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  visibility: hidden;
+}
+.ss-checkbox[data-selected] .ss-checkbox-box {
+  background: var(--ss-amber);
+  box-shadow: none;
+}
+.ss-checkbox[data-selected] .ss-checkbox-box svg {
+  visibility: visible;
+}
+.ss-checkbox[data-focus-visible] .ss-checkbox-box {
+  box-shadow:
+    inset 0 0 0 1.5px var(--ss-line-2),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+
+/* Radio cards: 44 px or taller; the chosen one is amber-tinted with a 1.5 px amber line and dot. */
+.ss-radio-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ss-group-label {
+  font-family: var(--ss-font-display);
+  font-size: 19px;
+  font-weight: 700;
+}
+.ss-radio-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  outline: none;
+}
+.ss-radio-dot {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px var(--ss-line-2);
+}
+.ss-radio-text {
+  display: flex;
+  flex-direction: column;
+}
+.ss-radio-label {
+  font-weight: 700;
+}
+.ss-radio-description {
+  color: var(--ss-muted);
+}
+.ss-radio-card[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 1.5px var(--ss-amber-line);
+}
+.ss-radio-card[data-selected] .ss-radio-dot {
+  box-shadow:
+    inset 0 0 0 2px var(--ss-amber),
+    inset 0 0 0 7px var(--ss-amber-tint);
+  background: var(--ss-amber);
+}
+.ss-radio-card[data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--ss-amber-line),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+
+/* Text field: 48 px, radius 12, a 1 px control outline, and the mic button beside it. */
+.ss-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ss-field-label {
+  font-weight: 700;
+}
+.ss-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ss-input {
+  flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  color: var(--ss-text);
+  background: var(--ss-field);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  outline: none;
+}
+.ss-input::placeholder {
+  color: var(--ss-placeholder);
+}
+.ss-input[data-focus-visible],
+.ss-input[data-focused] {
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-2),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.ss-field-description {
+  color: var(--ss-muted);
+  font-size: 15px;
+}
+
+/* Dialog: radius 20 over a dark scrim. Scrims stay dark in both themes. */
+.ss-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ss-sketch-ink) 74%, transparent);
+}
+.ss-modal {
+  --ss-surface: var(--ss-dialog);
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border-radius: 20px;
+  color: var(--ss-text);
+  background: var(--ss-dialog);
+  box-shadow: inset 0 0 0 1px var(--ss-dialog-line);
+}
+.ss-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px 22px;
+  outline: none;
+}
+.ss-dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ss-dialog-title {
+  flex: 1;
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Neutral note: panel-3, a 1 px line and a muted info icon. Never styled as an error. */
+.ss-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--ss-text-2);
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.ss-note .ss-icon {
+  fill: var(--ss-muted);
+}

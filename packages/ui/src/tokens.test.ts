@@ -55,6 +55,7 @@ const TEXT_ON_FILLS: readonly (readonly [ColorToken, ColorToken])[] = [
   ['text', 'field'],
   ['placeholder', 'field'],
   ['text', 'panel-4'],
+  ['text', 'tab'],
   ['prompter-text', 'prompter-bg'],
   ['sketch-ink', 'sketch-paper'],
 ];
