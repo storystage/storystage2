@@ -10,7 +10,7 @@ This is the owner's handoff of 22 Oct 2026, edited where it disagreed with `CLAU
 | 3 | Stack | Fixed: React and TypeScript ([0006](../../decisions/0006-ui.md)), Babylon.js ([0007](../../decisions/0007-3d.md)) |
 | 4 | School key, school service, "Email me at 80%" (11b) | **Open** until WP24.3 (M1). Build 11b with the key and limits on the device ([0005](../../decisions/0005-api-key.md)) |
 | 5 | Fonts | Bundled from Fontsource, never from Google Fonts ([0031](../../decisions/0031-fonts.md)) |
-| 6 | Theme | Dark is drawn here; a light theme follows as mock-ups, approved before it is built ([0032](../../decisions/0032-light-theme.md)) |
+| 6 | Theme | Dark as drawn, plus a light theme drawn on 25 Oct 2026 for the owner's approval ([0032](../../decisions/0032-light-theme.md)); see "Colour, light theme" |
 | 7 | Tiles look | Alice 3's grammar with our own artwork until Carnegie Mellon replies (WP17.1) |
 | 8 | Alice screenshots (`reference/`) | Not in this repository; the owner holds them |
 | 9 | Sizes | Laptop and iPad sizes added in [`sizes/`](sizes/index.html) (12.1); rules in `docs/spec/07-ux.md` §1; nothing below 1024 px wide ([0033](../../decisions/0033-narrow-windows.md)) |
@@ -92,7 +92,7 @@ Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to e
 
 ## Design tokens
 
-**Theme:** these are the dark theme's values; dark is the only theme drawn. The first release also has a light theme (decision 0032): it is drawn as mock-ups and approved by the owner before it is built, so WP12b builds the dark theme first. Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
+**Theme:** these are the dark theme's values; dark is the only theme drawn. The first release also has a light theme (decision 0032). Its values are in "Colour, light theme" below, drawn for the owner's approval; until it is approved, WP12b builds the dark theme first. Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
 
 ### Colour (Direction A)
 | Token | Hex | Use |
@@ -131,6 +131,39 @@ Status colours, by status:
 - Look at `#FFB59A` with `flag` (filled).
 
 **Status is never shown by colour alone.** Every status always shows its icon and its word.
+
+### Colour, light theme (decision 0032; draft for the owner's approval)
+The light theme keeps every role and swaps its value. Neutrals turn from a dark stage to warm paper and ink. Fills keep the amber, the Prompter teal and the block colours, so the active tab, primary buttons, the AI badge and blocks look the same in both themes. An accent used as **text or an outline** takes a darker shade, so text reaches 4.5:1 and outlines 3:1 on paper. Mock-ups: open any screen in `sizes/` with `?theme=light`, or `sizes/index.html?theme=light`; PNGs in `screenshots/light/`.
+
+| Token | Dark | Light | Notes |
+|---|---|---|---|
+| stage-0 | `#13100E` | `#F6F1E9` | page and stage |
+| stage-0b | `#0E0C0B` | `#F1EBE1` | Screening room |
+| panel-1 | `#1E1915` | `#F0EAE1` | side rails, code area |
+| panel-2 | `#241E1A` | `#FBF8F3` | panels and sidebars |
+| panel-3 | `#2F2822` | `#FFFFFF` | cards |
+| panel-4 | `#3A3129` | `#E9E1D5` | raised chips, thumbnails |
+| band | `#342B24` | `#EFE6D9` | panel title bands |
+| line-1 | `#5A4B3D` | `#D5C8B8` | dividers (decorative) |
+| line-2 | `#8A7B6A` | `#7D6E5D` | control outlines, 3:1 or more |
+| chalk | `#F5EFE6` | `#1F1A17` (ink) | primary text; as a fill (selected segment, strong button) `#2A2420` with `#FBF8F3` text |
+| chalk-2 | `#E3D9CC` | `#3A322B` | body text |
+| muted | `#C2B6A7` | `#665A4E` | secondary text |
+| placeholder | `#AFA394` | `#74685B` | |
+| amber | `#F4B740` | `#F4B740` as a fill; `#8F5600` as text; `#B87300` as an outline; `#A35F00` focus ring | the 3 px frame stays `#F4B740` |
+| amber-ink | `#1B1407` | `#1B1407` | text on amber |
+| amber-tint | `#2E2519` | `#FCEFD0` | selected card |
+| prompter | `#6FD3C7` | `#6FD3C7` as a fill (AI badge); `#0B6E64` as text; `#0E7C70` as an outline | still reserved for the Prompter |
+| prompter-bg | `#173A36` | `#D3F2EE` | Prompter icon disc |
+| ok | `#7BD88F` | `#1D7A33` | Checked, Matches |
+| flag | `#FFB59A` | `#B13D14` text, `#C2522B` outline | Look at |
+| flag-bg | `#2A1E19` | `#FDECE5` | |
+| stop | `#E58A6A` | `#B4432A` | |
+| unavailable | `#2B2520` / `#8F8476` | `#ECE6DD` / `#8A7D70` | |
+| Planned, Staged, Coded | `#D8CDBF`, `#8FBBFF`, `#BBA6FF` | `#5A4F44`, `#2357B5`, `#6443C0` | Rehearsed, Checked, Look at as amber, ok and flag |
+| sketch-paper, sketch-ink | `#FFFFFF`, `#161412` | unchanged | sketches are black on white in both themes |
+
+The 3D scene view, the film player and the Blocks and Tiles editors look the same in both themes. Shadows are lighter (`rgba(60,40,20,.22)`); a focus ring keeps its 2 px gap in the surface's own colour. Dialog scrims stay dark.
 
 ### Blocks editor colours
 - **Motion block:** `#2F64C8`, white text.
@@ -482,8 +515,10 @@ design/
 sizes/                                          added for 12.1: screens 01, 02, 02c, 03, 10a and 11, laid out by viewport size
   index.html                                    ← every screen at laptop, Chromebook and iPad sizes
   sizes.css, sizes.js                           the size rules, and scaling for the frame canvas and player
+  theme.js                                      the light theme: open any screen with ?theme=light
 screenshots/                                    1366 × 768 PNGs of every screen, named by screen number
   sizes/                                        the same screens at 1536 × 864 and 1180 × 820, and 02c at 1366 × 768
+  light/                                        the same screens in the light theme, at 1366 × 768 and 1180 × 820
 reference/                                      not in this repository (Carnegie Mellon's images; the owner holds them)
   alice3-drag-drop-line.png, alice3-nested-if-else.png, alice3-value-menu-functions.png
 ```

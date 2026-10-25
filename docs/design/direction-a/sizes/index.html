@@ -21,6 +21,7 @@
 <body>
 <h1>Direction A at three sizes</h1>
 <p>The screens 12.1 names, at laptop (1536 × 864), Chromebook (1366 × 768, the handoff size) and iPad landscape (1180 × 820), shown here at 42%. Open any screen on its own and resize the window to see the layout change. The rules are in <code>docs/spec/07-ux.md</code>, section 1.</p>
+<p class="themes">Theme: <a href="index.html">Dark</a> · <a href="index.html?theme=light">Light</a> (decision 0032; the light colours are tabled in the handoff README, "Colour, light theme").</p>
 <div id="screens"></div>
 <script>
   const screens = [
@@ -36,11 +37,13 @@
     [1366, 768, 'Chromebook'],
     [1180, 820, 'iPad'],
   ];
+  const theme = new URLSearchParams(location.search).get('theme') === 'light' ? '?theme=light' : '';
+  for (const a of document.querySelectorAll('.themes a')) if (a.search === theme) a.style.fontWeight = '700';
   const root = document.getElementById('screens');
   for (const [file, title] of screens) {
     const h2 = document.createElement('h2');
     const link = document.createElement('a');
-    link.href = `${file}.html`;
+    link.href = `${file}.html${theme}`;
     link.textContent = title;
     h2.append(link);
     const row = document.createElement('div');
@@ -54,7 +57,7 @@
       frame.style.width = `${Math.round(w * 0.42)}px`;
       frame.style.height = `${Math.round(h * 0.42)}px`;
       const iframe = document.createElement('iframe');
-      iframe.src = `${file}.html`;
+      iframe.src = `${file}.html${theme}`;
       iframe.title = `${title}, ${name}`;
       iframe.width = w;
       iframe.height = h;
