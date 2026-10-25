@@ -1,5 +1,6 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { Dialog } from './Dialog.tsx';
 import { ThemeRoot } from './ThemeRoot.tsx';
 
 describe('ThemeRoot', () => {
@@ -22,5 +23,20 @@ describe('ThemeRoot', () => {
     const { container } = render(<ThemeRoot textSize={1.5}>Stage</ThemeRoot>);
     const root = container.firstElementChild as HTMLElement;
     expect(root.style.getPropertyValue('--ss-text-size')).toBe('1.5');
+  });
+});
+
+describe('a dialog inside ThemeRoot', () => {
+  it('carries the theme across its portal', () => {
+    render(
+      <ThemeRoot theme="light">
+        <Dialog isOpen onOpenChange={() => {}} title="Export film">
+          <p>Settings are locked while exporting.</p>
+        </Dialog>
+      </ThemeRoot>,
+    );
+    const overlay = document.querySelector('.ss-scrim') as HTMLElement;
+    expect(overlay.style.getPropertyValue('--ss-dialog')).toBe('#FFFFFF');
+    expect(overlay.style.getPropertyValue('--ss-text')).toBe('#1F1A17');
   });
 });
