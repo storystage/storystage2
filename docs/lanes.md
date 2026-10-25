@@ -30,7 +30,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Merged:
 - In review (25 Oct, waiting for the owner under decision 0029):
   - **WP3.3 joint map** (#57): VRM 1.0 ids with H-Anim and Alice's words, Alice's animal joint sets as our extension, and `mapSkeleton` for Alice, VRM, Mixamo, Unreal/MakeHuman, Rigify and generic rigs. **S6: the Story API's joint names can build on `JOINT_MAP` in `@storystage/backstage`.**
-  - **WP3.1 licence audit**: `docs/legal/licence-audit.md`, with every source's licence and verdict, and all 435 Alice gallery models listed for CMU.
+  - **WP3.1 licence audit**: `docs/legal/licence-audit.md`, with every source's licence and verdict, and Alice's gallery listed for CMU: 340 Alice models, and 95 that are Sims 2 art and never ship.
 - Blocked on:
   - Owner: review and merge the licence audit (#60, the sign-off); send the drafted letters to CMU (WP17.1) and Quaternius (`docs/legal/letters/`).
 - Next: WP10s, the sketch library tool (10.5), for S5.

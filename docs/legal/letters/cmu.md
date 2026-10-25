@@ -2,7 +2,7 @@
 
 - **For:** the owner to send (WP17.1; licence audit, section 3).
 - **To:** the Alice team, Carnegie Mellon University (the contact address on alice.org).
-- **Attach:** the licence audit's appendix A (`docs/legal/licence-audit.md`), the list of all 435 models.
+- **Attach:** the licence audit's appendix A (`docs/legal/licence-audit.md`): all 435 gallery models, with the 340 we ask about and the 95 Sims 2 models we leave out marked.
 - **When the reply comes:** save it in `docs/legal/` (for example `docs/legal/cmu-2026-11.md`), and S4 updates the audit's verdicts.
 
 ---
@@ -17,7 +17,7 @@ We are now building StoryStage 2 on web technology (Apache-2.0, at github.com/st
 
 Clause 5 of the Alice 3 licence says the gallery was contributed by Electronic Arts and may be used for personal, non-commercial and academic use only. Before we use any model, we would be grateful for your help with these questions:
 
-1. **Which models did CMU make, or hold the rights to?** The attached list has all 435 models in the gallery. We will not use anything drawn from The Sims 2's art, including the Alice 3 people and two Bamboo variants.
+1. **Which models did CMU make, or hold the rights to?** We are asking about the 340 gallery models that Alice itself does not mark as drawn from The Sims 2's art; the attached list shows them. We will not use anything Alice marks as Sims 2 art: the Alice 3 people, 95 further gallery models (mostly cars, furniture and house plants) and two Bamboo variants.
 2. **For those models, may we:**
     - convert them to glTF and simplify them so they run on low-cost school devices;
     - include them in StoryStage 2, which is free and has no accounts, adverts or data collection, on Windows, macOS, iPad, Chromebook and in the browser;

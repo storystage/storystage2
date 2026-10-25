@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   galleryList,
+  isSims2Model,
+  parseConverterList,
   homeSection,
   parseGalleryNames,
   parseResource,
@@ -83,7 +85,55 @@ describe('galleryList and renderGalleryTable', () => {
     const table = renderGalleryTable(list).split('\n');
     expect(table[0]).toMatch(/^\| # \| Key \|/);
     expect(table).toHaveLength(2 + 3);
-    expect(table[4]).toMatch(/^\| 3 \| `Prop\/Bamboo` \| Bamboo \| Prop \| props or set \| 3 \|/);
+    expect(table[4]).toMatch(
+      /^\| 3 \| `Prop\/Bamboo` \| Bamboo \| Prop \| props or set \| 3 \(1 Sims 2\) \|/,
+    );
     expect(table[2]).toMatch(/\| not in source \|/);
+  });
+});
+
+describe('parseConverterList', () => {
+  const report = JSON.stringify({
+    models: [
+      {
+        key: 'Automobile/Bus',
+        variant: 'TEAM',
+        error: "skipped: drawn from The Sims 2's art (WP17.7)",
+      },
+      {
+        key: 'Automobile/Bus',
+        variant: 'SCHOOL',
+        error: "skipped: drawn from The Sims 2's art (WP17.7)",
+      },
+      { key: 'Prop/Bamboo', variant: 'SHOOT1', error: null },
+      {
+        key: 'Prop/Bamboo',
+        variant: 'THICKET',
+        error: "skipped: drawn from The Sims 2's art (WP17.7)",
+      },
+      { key: 'Prop/Broken', variant: null, error: 'no resource class' },
+    ],
+  });
+
+  it("reads each model's variants from Alice's jars, marking Sims 2 art", () => {
+    const jars = parseConverterList(report);
+    expect(jars.get('Automobile/Bus')).toEqual([
+      { name: 'TEAM', sims2: true },
+      { name: 'SCHOOL', sims2: true },
+    ]);
+    expect(jars.has('Prop/Broken')).toBe(false);
+  });
+
+  it('marks a model drawn wholly from Sims 2 art "never ship", and prefers the jars to the source', () => {
+    const names = [
+      { folder: 'Automobile', pkg: 'automobile', name: 'Bus', aliceName: 'Bus' },
+      { folder: 'Prop', pkg: 'prop', name: 'Bamboo', aliceName: 'Bamboo' },
+    ];
+    const list = galleryList(names, new Map(), parseConverterList(report));
+    expect(list[0]!.verdict).toMatch(/^Never ship: drawn from The Sims 2/);
+    expect(isSims2Model(list[0]!)).toBe(true);
+    expect(list[1]!.verdict).toMatch(/Never ship the Sims 2 variants \(THICKET/);
+    expect(isSims2Model(list[1]!)).toBe(false);
+    expect(renderGalleryTable(list)).toContain('| 2 (2 Sims 2) |');
   });
 });

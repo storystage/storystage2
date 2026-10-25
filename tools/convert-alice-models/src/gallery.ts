@@ -4,9 +4,9 @@
  * - `core/i18n/.../GalleryNames.properties` names every model in the installed gallery;
  * - `core/models/.../resources/<package>/<Name>Resource.java` gives each model's variants
  *   (textures and sizes) where StoryStage 1 has its source, and marks variants drawn from The
- *   Sims 2's art (`ImplementationAndVisualType.SIMS2`), which never ship (WP17.7).
- *
- * The converter itself (3.2) comes with WP3b.
+ *   Sims 2's art (`ImplementationAndVisualType.SIMS2`), which never ship (WP17.7);
+ * - the converter's `--list` report (`java/ConvertAliceModels.java`) gives the same for every
+ *   model, from Alice's own jars, including the 95 StoryStage 1 has no source for.
  */
 
 export interface GalleryName {
@@ -95,34 +95,66 @@ export function homeSection(pkg: string): GalleryModel['section'] {
 }
 
 const WAIT = 'Not yet: convert for testing only; ship only if CMU confirms (WP17.1)';
+const NEVER = "Never ship: drawn from The Sims 2's art (WP17.7)";
+
+/**
+ * Each model's variants as Alice's own jars report them: the converter's `--list` report
+ * (`java/ConvertAliceModels.java`), which covers the models StoryStage 1 has no source for.
+ */
+export function parseConverterList(json: string): Map<string, Variant[]> {
+  const report = JSON.parse(json) as {
+    models: { key: string; variant: string | null; error: string | null }[];
+  };
+  const out = new Map<string, Variant[]>();
+  for (const m of report.models) {
+    if (m.variant === null) continue;
+    const list = out.get(m.key) ?? [];
+    list.push({ name: m.variant, sims2: /Sims 2/.test(m.error ?? '') });
+    out.set(m.key, list);
+  }
+  return out;
+}
 
 export function galleryList(
   names: readonly GalleryName[],
   resources: ReadonlyMap<string, string>,
+  fromJars: ReadonlyMap<string, readonly Variant[]> = new Map(),
 ): GalleryModel[] {
   return names.map((n) => {
+    const key = `${n.folder}/${n.name}`;
     const java = resources.get(`${n.pkg}/${n.name}`);
-    const variants = java === undefined ? null : parseResource(java);
+    const variants = fromJars.get(key) ?? (java === undefined ? null : parseResource(java));
     const sims = (variants ?? []).filter((v) => v.sims2).map((v) => v.name);
+    const allSims = variants !== null && variants.length > 0 && sims.length === variants.length;
     return {
       ...n,
-      key: `${n.folder}/${n.name}`,
+      key,
       storyClass: storyClassOf(n.pkg),
       section: homeSection(n.pkg),
       variants,
-      verdict: sims.length
-        ? `Never ship the Sims 2 variants (${sims.join(', ')}; WP17.7). Others: ${WAIT}`
-        : WAIT,
+      verdict: allSims
+        ? NEVER
+        : sims.length
+          ? `Never ship the Sims 2 variants (${sims.join(', ')}; WP17.7). Others: ${WAIT}`
+          : WAIT,
     };
   });
 }
+
+/** True if every variant of the model is drawn from The Sims 2's art. */
+export const isSims2Model = (m: Pick<GalleryModel, 'verdict'>): boolean => m.verdict === NEVER;
+
+const variantCount = (variants: readonly Variant[]) => {
+  const sims = variants.filter((v) => v.sims2).length;
+  return sims === 0 ? `${variants.length}` : `${variants.length} (${sims} Sims 2)`;
+};
 
 /** Appendix A of the licence audit: one numbered row per model. */
 export function renderGalleryTable(models: readonly GalleryModel[]): string {
   const rows = models.map(
     (m, i) =>
       `| ${i + 1} | \`${m.key}\` | ${m.aliceName} | ${m.storyClass} | ${m.section} | ${
-        m.variants === null ? 'not in source' : m.variants.length
+        m.variants === null ? 'not in source' : variantCount(m.variants)
       } | ${m.verdict} |`,
   );
   return [

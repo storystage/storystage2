@@ -67,7 +67,7 @@ The licence audit, `docs/legal/licence-audit.md` (workplan 3.1), lists every can
 3. **A source URL for every item,** pointing at the item's own page, with the date retrieved. The licence is checked item by item, never per pack.
 4. **Not shipped:**
     - Alice's models, until CMU confirms (WP17.1). They may still be converted for testing.
-    - Anything drawn from The Sims 2's art (WP17.7), including two Bamboo variants in Alice's own gallery.
+    - Anything drawn from The Sims 2's art (WP17.7). That includes 95 of the 435 models in Alice's own gallery and two Bamboo variants; Alice's jars mark them `SIMS2`.
     - Quaternius, whose licence forbids redistribution as an asset pack, unless Quaternius gives written permission (the owner is asking).
     - Mixamo and general Sketchfab.
 
@@ -97,6 +97,6 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 |---|---|---|
 | 2a.1–2a.6: unique ids and words; parents in the same set; every VRM bone and only those flagged VRM; VRM's required set; an H-Anim joint for each humanoid joint; every joint Alice defines per class has a place; wrist and hand, ankle and foot folding; ring finger; shared face joints; extras and the model's own joints | `packages/backstage/src/joints.test.ts` | Unit (Vitest) |
 | 2a.7 and mapping: normalising names; each convention maps its fixture with every required joint; the shoulder trap; numbered spines; Rigify's hips; wrist over hand; prop only with the missing joints listed; one bone per joint | `packages/backstage/src/skeleton-map.test.ts` | Unit (Vitest) |
-| 3: the gallery list in the audit's appendix A comes from StoryStage 1's sources, with Sims 2 variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
+| 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
 | 3.1–3.3: every shipped item has an allowed licence, a credit and a source | `validateManifest` (`packages/backstage/src/manifest.test.ts`); refusing SA and NC in shipped items comes with WP3c | Unit (Vitest) |
 | Every shipped model loads in Babylon.js with its mapped joints (WP3 done-when) | With the first shipped models (WP3b) | Integration, in CI |

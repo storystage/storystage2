@@ -1,18 +1,41 @@
 /**
  * Lists Alice's gallery from a StoryStage 1 checkout for the licence audit (WP3.1).
  *
- *   node tools/convert-alice-models/src/list-gallery-cli.ts <storystage1> [--write <audit.md>]
+ *   node tools/convert-alice-models/src/list-gallery-cli.ts <storystage1>
+ *        [--jars <converter --list report>] [--write <audit.md>]
  *
+ * `--jars` takes the report from `java/ConvertAliceModels.java --list`, which reads every
+ * model's variants from Alice's own jars, including the models StoryStage 1 has no source for.
  * Without `--write` it prints the table. With it, it replaces the text between
  * `<!-- alice-gallery -->` and `<!-- /alice-gallery -->` in the audit file.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { galleryList, parseGalleryNames, renderGalleryTable } from './gallery.ts';
+import {
+  galleryList,
+  isSims2Model,
+  parseConverterList,
+  parseGalleryNames,
+  renderGalleryTable,
+} from './gallery.ts';
 
-const [ss1, flag, audit] = process.argv.slice(2);
-if (!ss1 || (flag !== undefined && (flag !== '--write' || !audit))) {
-  console.error('Usage: list-gallery-cli.ts <storystage1 checkout> [--write <audit.md>]');
+const args = process.argv.slice(2);
+const ss1 = args[0];
+const option = (name: string) => {
+  const i = args.indexOf(name);
+  return i > 0 ? args[i + 1] : undefined;
+};
+const jars = option('--jars');
+const audit = option('--write');
+if (
+  !ss1 ||
+  ss1.startsWith('--') ||
+  (args.includes('--write') && !audit) ||
+  (args.includes('--jars') && !jars)
+) {
+  console.error(
+    'Usage: list-gallery-cli.ts <storystage1 checkout> [--jars <report.json>] [--write <audit.md>]',
+  );
   process.exit(2);
 }
 
@@ -27,10 +50,11 @@ for (const n of names) {
   const file = join(resourceDir, n.pkg, `${n.name}Resource.java`);
   if (existsSync(file)) resources.set(`${n.pkg}/${n.name}`, readFileSync(file, 'utf8'));
 }
-const models = galleryList(names, resources);
+const fromJars = jars ? parseConverterList(readFileSync(jars, 'utf8')) : new Map();
+const models = galleryList(names, resources, fromJars);
 const table = renderGalleryTable(models);
-const inSource = models.filter((m) => m.variants !== null).length;
-const summary = `${models.length} models; ${inSource} with source in StoryStage 1.`;
+const sims = models.filter(isSims2Model).length;
+const summary = `${models.length} models: ${models.length - sims} Alice models, ${sims} drawn wholly from The Sims 2's art.`;
 
 if (!audit) {
   console.log(table);
