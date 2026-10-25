@@ -3,6 +3,7 @@ import { Dialog as AriaDialog, Heading, Modal, ModalOverlay } from 'react-aria-c
 import { Button } from './Button.tsx';
 import { Icon, type IconName } from './Icon.tsx';
 import { messages } from './messages.ts';
+import { useThemeStyle } from './ThemeRoot.tsx';
 
 export interface DialogProps {
   isOpen: boolean;
@@ -29,9 +30,12 @@ export function Dialog({
   isDismissable = true,
   children,
 }: DialogProps) {
+  // The dialog is drawn in a portal, outside ThemeRoot, so it carries the theme itself.
+  const themeStyle = useThemeStyle();
   return (
     <ModalOverlay
-      className="ss-scrim"
+      className="ss-root ss-scrim"
+      style={themeStyle}
       isOpen={isOpen}
       onOpenChange={onOpenChange}
       isDismissable={isDismissable}
