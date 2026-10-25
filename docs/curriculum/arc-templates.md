@@ -2,7 +2,7 @@
 
 - **Workplan:** 16.6, "curriculum arc templates and 6–10 classroom use cases with lesson outlines (C drafts; U reviews with teachers)". The use cases are in [use-cases/](use-cases/README.md).
 - **Decisions:** 0018 (3- and 5-part templates ship regardless; curriculum templates follow the mapping), 0038 (ages 6–13), 0012 (storyboard first), rule 4 (the learner writes every word of the story; the story coach only asks).
-- **Status:** draft. **The owner chooses which templates ship** (WP16's done-when), then reviews them with teachers. Recommendations come from the mapping ([mapping.md](mapping.md), section 5).
+- **Status:** **the owner chose on 25 October 2026 to ship tale, myth, scene and explain; recount is held** (WP16's done-when). The wording is a draft until the owner has reviewed it with teachers (16.6).
 - **Licence:** CC BY 4.0 (decision 0040).
 
 ## How a template works
@@ -16,9 +16,9 @@ A learner picks an arc template after writing the title, logline and synopsis (W
 
 **The words on screen** follow the plain-words rules (CLAUDE.md rule 9): short, in the learner's view, readable by a 7-year-old with help. Every label and question goes into the translation files (decision 0036), with Welsh first in release 1.1 (0039).
 
-## Recommendation
+## The choice (owner, 25 October 2026)
 
-| Template | Id | Ages | Recommendation | Why (from the mapping) |
+| Template | Id | Ages | Decision | Why (from the mapping) |
 |---|---|---|---|---|
 | Traditional tale | `tale` | 6–9 | **Ship** | 15 statements, 13 strong, in all four nations; the youngest learners' main use |
 | Myth, legend or quest | `myth` | 8–13 | **Ship** | 13 statements, 10 strong; myths and legends at KS2, and the storybook cast |
