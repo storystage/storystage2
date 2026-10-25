@@ -25,7 +25,8 @@ import { makeSketches, type MakeReport } from '@storystage/make-sketches';
 import { meshFromModel, readModel } from '@storystage/sketches';
 import { backstageId, type JointName } from '@storystage/story-api';
 import { fetchModel, httpFetch, type Fetcher } from './fetch.ts';
-import { validateSources, type SourceItem } from './sources.ts';
+import { applyExcludes, type Exclude } from './exclude.ts';
+import { excludesFor, validateSources, type SourceItem } from './sources.ts';
 
 export interface Provenance {
   readonly source: string;
@@ -37,6 +38,8 @@ export interface Provenance {
   readonly textureMaxPx: number;
   readonly skeleton: 'mapped' | 'prop-only' | 'none';
   readonly missingJoints: readonly string[];
+  /** What the list's `exclude` removed. */
+  readonly excluded: { readonly nodes: readonly string[]; readonly animations: readonly string[] };
 }
 
 export interface BuildReport {
@@ -52,11 +55,12 @@ export async function buildSources(
   const fetcher = options.fetcher ?? httpFetch;
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const lists = (await readdir(join(dir, 'sources'))).filter((f) => f.endsWith('.json')).sort();
-  const items: { item: SourceItem; source: string }[] = [];
+  const items: { item: SourceItem; source: string; exclude: Exclude }[] = [];
   for (const file of lists) {
     const checked = validateSources(JSON.parse(await readFile(join(dir, 'sources', file), 'utf8')));
     if (!checked.ok) throw new Error(`sources/${file} is not valid:\n${checked.errors.join('\n')}`);
-    for (const item of checked.list.items) items.push({ item, source: checked.list.source });
+    for (const item of checked.list.items)
+      items.push({ item, source: checked.list.source, exclude: excludesFor(checked.list, item) });
   }
 
   const manifestPath = join(dir, 'backstage.json');
@@ -69,8 +73,15 @@ export async function buildSources(
     : {};
   const built = new Map<string, BackstageItem>();
 
-  for (const { item, source } of items) {
-    const { bytes, ext, fetched } = await fetchModel(item, fetcher);
+  for (const { item, source, exclude } of items) {
+    const got = await fetchModel(item, fetcher);
+    const { ext, fetched } = got;
+    // VRM files are kept byte for byte; excludes apply to glTF models only.
+    const trimmed =
+      ext === 'glb'
+        ? await applyExcludes(got.bytes, exclude)
+        : { bytes: got.bytes, removed: { nodes: [], animations: [] } };
+    const bytes = trimmed.bytes;
     const model = `models/${item.id}.${ext}`;
     await mkdir(dirname(join(dir, model)), { recursive: true });
     await writeFile(join(dir, model), bytes);
@@ -120,6 +131,7 @@ export async function buildSources(
       textureMaxPx,
       skeleton: mapping ? mapping.status : 'none',
       missingJoints: mapping ? mapping.missingRequired : [],
+      excluded: trimmed.removed,
     };
   }
 
@@ -142,6 +154,14 @@ export async function buildSources(
   return { items: built.size, sketches, provenance: ordered };
 }
 
+const removedText = (p: Provenance) =>
+  [
+    p.excluded.nodes.length ? `${p.excluded.nodes.length} parts` : '',
+    p.excluded.animations.length ? `${p.excluded.animations.length} clips` : '',
+  ]
+    .filter(Boolean)
+    .join(', ') || '—';
+
 /** Height in metres at scale 1: the model's extent along Y. */
 function height(positions: Float32Array): number {
   let lo = Infinity;
@@ -162,15 +182,15 @@ function report(
     .filter((i) => built.has(i.id))
     .map((i) => {
       const p = provenance[i.id]!;
-      return `| \`${i.id}\` | ${i.displayName} | ${i.licence} | ${i.section} | ${p.triangles} | ${p.textureMaxPx || '—'} | ${p.skeleton}${p.missingJoints.length ? ` (missing ${p.missingJoints.join(', ')})` : ''} | ${i.defaultSize.height} m | ${p.vrm ? `VRM ${p.vrm}` : 'glTF'} | ${i.sketches.length} |`;
+      return `| \`${i.id}\` | ${i.displayName} | ${i.licence} | ${i.section} | ${p.triangles} | ${p.textureMaxPx || '—'} | ${p.skeleton}${p.missingJoints.length ? ` (missing ${p.missingJoints.join(', ')})` : ''} | ${i.defaultSize.height} m | ${p.vrm ? `VRM ${p.vrm}` : 'glTF'} | ${removedText(p)} | ${i.sketches.length} |`;
     });
   return [
     '# Backstage sources: build report',
     '',
     "Written by `tools/backstage-sources` (WP3.7). Before merging, look at each item's sketches (`sketches/<id>/`) for respectful, age-appropriate representation (licence audit, section 1), and at `sketches/touch-up.md`.",
     '',
-    '| Item | Name | Licence | Section | Triangles | Largest texture | Skeleton | Height | Format | Sketches |',
-    '|---|---|---|---|---|---|---|---|---|---|',
+    '| Item | Name | Licence | Section | Triangles | Largest texture | Skeleton | Height | Format | Removed | Sketches |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
     ...rows,
     '',
     "Triangles and textures are as fetched; WP3c reduces them to the device budget. VRM 0.x avatars face -Z and must be turned by the stage's loader.",

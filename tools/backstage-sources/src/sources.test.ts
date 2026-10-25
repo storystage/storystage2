@@ -77,6 +77,19 @@ describe('validateSources', () => {
     expect(r.errors.join('\n')).toMatch(/credit/);
   });
 
+  it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
+    const list = (exclude: unknown, itemExclude?: unknown) =>
+      validateSources({
+        source: 'k',
+        exclude,
+        items: [item(itemExclude === undefined ? {} : { exclude: itemExclude })],
+      }).ok;
+    expect(list({ nodes: ['*Sword*'], animations: ['*Attack*'] }, { nodes: ['Cape'] })).toBe(true);
+    expect(list({ meshes: ['x'] })).toBe(false);
+    expect(list({ nodes: 'Sword' })).toBe(false);
+    expect(list(undefined, { animations: [''] })).toBe(false);
+  });
+
   it('lets an Arweave address, which names fixed content, leave out the sha256', () => {
     const tx = 'gfVzs1oH_aPaHVxpQK86HT_rqzyrFPOUKUrDJ30yprs';
     const vrm = (url: string) =>
@@ -178,6 +191,7 @@ describe('buildSources', () => {
     const provenance = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'));
     expect(provenance['osa/Biped/robert']).toMatchObject({ vrm: '0', skeleton: 'mapped' });
     expect(provenance['kaykit/Prop/crate'].fetched).toHaveLength(2);
+    expect(provenance['kaykit/Biped/knight'].excluded).toEqual({ nodes: [], animations: [] });
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
     expect(md).toContain('| `osa/Biped/robert` | Robert | CC0-1.0 |');
     expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);

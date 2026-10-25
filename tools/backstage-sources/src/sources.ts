@@ -7,6 +7,7 @@
  */
 import { SECTIONS, type Section } from '@storystage/backstage';
 import { STORY_CLASSES, type StoryClass } from '@storystage/story-api';
+import type { Exclude } from './exclude.ts';
 
 /** Licences the audit allows in the shipped catalogue (audit, section 2, rule 1). */
 export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0'] as const;
@@ -29,12 +30,30 @@ export interface SourceItem {
   /** The item's own page: the manifest's `source.url`. */
   readonly page: string;
   readonly fetch: FetchSpec;
+  /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
+  readonly exclude?: Exclude;
 }
 
 export interface SourceList {
   readonly source: string;
+  /** Parts to remove from every item in the list, for example the weapons a game pack carries. */
+  readonly exclude?: Exclude;
   readonly items: readonly SourceItem[];
 }
+
+/** The list's and the item's excludes together. */
+export const excludesFor = (list: SourceList, item: SourceItem): Exclude => ({
+  nodes: [...(list.exclude?.nodes ?? []), ...(item.exclude?.nodes ?? [])],
+  animations: [...(list.exclude?.animations ?? []), ...(item.exclude?.animations ?? [])],
+});
+
+const badExclude = (x: unknown) =>
+  x !== undefined &&
+  !(
+    isObject(x) &&
+    Object.keys(x).every((k) => k === 'nodes' || k === 'animations') &&
+    Object.values(x).every((v) => Array.isArray(v) && v.every(isText))
+  );
 
 type Result = { ok: true; list: SourceList } | { ok: false; errors: string[] };
 
@@ -47,6 +66,8 @@ export function validateSources(json: unknown): Result {
   if (!isObject(json) || !isText(json.source) || !Array.isArray(json.items))
     return { ok: false, errors: ['A source list needs a "source" name and a list of "items".'] };
   const errors: string[] = [];
+  const EXCLUDE = 'exclude must be { nodes?: [...], animations?: [...] }, lists of name patterns.';
+  if (badExclude(json.exclude)) errors.push(EXCLUDE);
   const seen = new Set<string>();
   json.items.forEach((item: unknown, i: number) => {
     const e = (m: string) =>
@@ -69,6 +90,7 @@ export function validateSources(json: unknown): Result {
       e(`licence must be one the audit allows to ship: ${SHIPPABLE_LICENCES.join(', ')}.`);
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
+    if (badExclude(item.exclude)) e(EXCLUDE);
     const f = item.fetch;
     if (!isObject(f)) e('needs a fetch: { github, commit, path } or { url, sha256, ext }.');
     else if ('github' in f) {
