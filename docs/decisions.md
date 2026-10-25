@@ -45,12 +45,14 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Threat model owner | The threat model (WP0.9, `docs/spec/15-security.md`) is written by **S8**, as the session roster says, not by the first session as workplan section 11 suggested. Import code (8.4, 9.1, 10.4) and the transport (15.2) start only after it. | 21 Oct 2026 |
 | Host interface | The studio is handed a **host interface** by the build it runs in (files, the Prompter transport or none, the policy in force), rather than detecting whether it is in Tauri or a browser (`docs/spec/00-architecture.md`, sections 1 and 6). S8 and S5 define it together when the studio first needs files or policy; it is a contract like the WP0.8 ones. | 21 Oct 2026 |
 | Main branch bypass and merging | The owner, as organisation admin, may bypass the `main` ruleset in an emergency; nobody else can, and sessions acting through the owner's account never use it. S1 squash-merges its own WP0 contract and WP1 spike pull requests once the required checks pass, in stack order, and the owner reviews afterwards; other pull requests wait for the owner unless they say otherwise. | 21 Oct 2026 |
+| Age range | Learners aged 6 to 13, **provisional**: tested against the full curriculum review (WP16a) and the teacher interviews (16.7), then confirmed or changed (0030) | 25 Oct 2026 |
+| Fonts | Bricolage Grotesque and Atkinson Hyperlegible under OFL-1.1, Material Symbols Rounded (Apache-2.0). OFL-1.1 is allowed for font packages only; fonts are bundled, never loaded from Google Fonts (0031) | 25 Oct 2026 |
 
 ## Still to decide (owner)
 
 | Decision | Needed by | Where |
 |---|---|---|
-| Approve or rewrite the purpose and vision statements, and settle the age range | M0 | Design doc section 1 |
+| Approve or rewrite the purpose and vision statements; confirm the provisional age range (0030) after the curriculum review | M0; age range after WP16a | Design doc section 1 |
 | Choose the reference Chromebook and iPad | Week 1.5, before the spikes (slack 0.5 weeks) | WP1.1 |
 | Watch two or three TR1 lessons; talk to two school IT managers | M1 | WP1.11 |
 | Interview five teachers on the job they'd hire StoryStage for | M1 | WP16.7 |

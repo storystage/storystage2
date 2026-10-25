@@ -46,6 +46,16 @@ describe('findProblems', () => {
     expect(findProblems([], [dep('tool', 'AGPL-3.0-only')])).toHaveLength(1);
   });
 
+  it('allows OFL-1.1 for font packages only (decision 0031)', () => {
+    const fonts = [
+      dep('@fontsource/atkinson-hyperlegible', 'OFL-1.1'),
+      dep('@fontsource-variable/bricolage-grotesque', 'OFL-1.1'),
+    ];
+    expect(findProblems(fonts, [])).toEqual([]);
+    expect(findProblems([dep('some-widget', 'OFL-1.1')], [])).toHaveLength(1);
+    expect(findProblems([dep('@fontsource/x', 'GPL-3.0-only')], [])).toHaveLength(1);
+  });
+
   it('refuses unknown licences until they are reviewed', () => {
     expect(findProblems([dep('a', 'Custom')], [])).toHaveLength(1);
     const exceptions = [
