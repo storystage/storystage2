@@ -64,7 +64,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - #65 **16.2** Scotland: computing science benchmarks are the strongest fit of any nation; films count as texts.
   - #66 **16.3** Wales: film and digital media is an expressive arts discipline; the DCF's digital rights element matches Backstage's licences.
   - #67 **16.4** Northern Ireland, from the statutory minimum content: Using ICT names coding and film and animation; KS3 English with Media Education.
-  - #68 **16.5** the four nations together: 156 statements, 95 strong; the storyboard check serves 20 statements, all strong; no statement needs the Prompter. **Owner:** confirm ages 6–13 (0030); interface languages (Welsh, Gaelic, Irish); a licence for `docs/curriculum/`. **S2:** the storyboard check (WP11.6) carries the most strong curriculum fits.
+  - #68 **16.5** the four nations together: 156 statements, 95 strong; the storyboard check serves 20 statements, all strong; no statement needs the Prompter. Owner decided: ages 6–13 confirmed; Welsh interface in release 1.1 (**S5:** keep all wording in one place); `docs/curriculum/` under CC BY 4.0. **S2:** the storyboard check (WP11.6) carries the most strong curriculum fits.
 - Reviewing: #60 (S4's licence audit, in `docs/legal/`): its 435 Alice models include 95 from StoryStage 1's non-free Sims-engine tree; the CMU email counts 343. To reconcile before the owner sends the email.
 - Blocked on: nothing for WP16b.
 - Next: **WP16b**, curriculum arc templates and 6–10 use cases (16.6); the owner then chooses the templates to ship.
