@@ -6,7 +6,7 @@
  * to their joints; other vertices are weighted wholly to the node that holds them, so a hat on
  * a head bone follows the head when the model is posed.
  */
-import { Primitive, WebIO, type Document, type Node } from '@gltf-transform/core';
+import { Primitive, WebIO, type Accessor, type Document, type Node } from '@gltf-transform/core';
 import { IDENTITY, multiply, transformPoint, type Mat4, type Vec3 } from './math.ts';
 import type { SketchMesh, SketchNode } from './mesh.ts';
 
@@ -63,28 +63,41 @@ export function meshFromDocument(doc: Document): SketchMesh {
       if (prim.getMode() !== Primitive.Mode.TRIANGLES) continue;
       const pos = prim.getAttribute('POSITION');
       if (!pos) continue;
-      const jointsAttr = skin ? prim.getAttribute('JOINTS_0') : null;
-      const weightsAttr = skin ? prim.getAttribute('WEIGHTS_0') : null;
+      // Up to two sets of four joints and weights; Alice's exports use both.
+      const sets = skin
+        ? [0, 1]
+            .map((n) => [prim.getAttribute(`JOINTS_${n}`), prim.getAttribute(`WEIGHTS_${n}`)])
+            .filter((s): s is [Accessor, Accessor] => s[0] !== null && s[1] !== null)
+        : [];
       const base = positions.length / 3;
       for (let v = 0; v < pos.getCount(); v++) {
         const p = pos.getElement(v, el).slice(0, 3) as unknown as Vec3;
-        if (jointsAttr && weightsAttr) {
-          const js = jointsAttr.getElement(v, []);
-          const ws = weightsAttr.getElement(v, []);
-          const total = ws.reduce((a, b) => a + b, 0) || 1;
+        if (sets.length) {
+          const pairs: { k: number; w: number }[] = [];
+          for (const [ja, wa] of sets) {
+            const js = ja.getElement(v, []);
+            const ws = wa.getElement(v, []);
+            for (let i = 0; i < 4; i++)
+              if ((ws[i] ?? 0) > 0 && skinJoints[js[i]!] !== undefined)
+                pairs.push({ k: js[i]!, w: ws[i]! });
+          }
+          // The rest position uses every influence; posing keeps the strongest four.
+          const total = pairs.reduce((a, b) => a + b.w, 0) || 1;
           let [x, y, z] = [0, 0, 0];
-          for (let k = 0; k < 4; k++) {
-            const w = (ws[k] ?? 0) / total;
-            const j = skinJoints[js[k] ?? 0];
-            infNodes.push(j ?? 0);
-            infWeights.push(j === undefined ? 0 : w);
-            if (w === 0 || j === undefined) continue;
-            const q = transformPoint(jointMats[js[k]!]!, p);
-            x += w * q[0];
-            y += w * q[1];
-            z += w * q[2];
+          for (const { k, w } of pairs) {
+            const q = transformPoint(jointMats[k]!, p);
+            x += (w / total) * q[0];
+            y += (w / total) * q[1];
+            z += (w / total) * q[2];
           }
           positions.push(x, y, z);
+          const strongest = [...pairs].sort((a, b) => b.w - a.w).slice(0, 4);
+          const kept = strongest.reduce((a, b) => a + b.w, 0) || 1;
+          for (let i = 0; i < 4; i++) {
+            const s = strongest[i];
+            infNodes.push(s ? skinJoints[s.k]! : 0);
+            infWeights.push(s ? s.w / kept : 0);
+          }
         } else {
           positions.push(...transformPoint(world[ni]!, p));
           infNodes.push(ni, 0, 0, 0);

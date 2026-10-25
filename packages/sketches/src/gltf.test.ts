@@ -31,6 +31,33 @@ describe('meshFromDocument', () => {
     );
   });
 
+  it('reads a second set of joints and weights, keeping the strongest four', () => {
+    const doc = documentFromMesh(figure());
+    const prim = doc.getRoot().listMeshes()[0]!.listPrimitives()[0]!;
+    const n = prim.getAttribute('POSITION')!.getCount();
+    const w0 = new Float32Array(n * 4);
+    const j1 = new Uint16Array(n * 4);
+    const w1 = new Float32Array(n * 4);
+    for (let v = 0; v < n; v++) {
+      w0[v * 4] = 0.3; // each vertex's own node, from the figure
+      j1[v * 4] = 0; // hips
+      w1[v * 4] = 0.7;
+    }
+    const buffer = doc.getRoot().listBuffers()[0]!;
+    const acc = (a: Float32Array | Uint16Array) =>
+      doc.createAccessor().setType('VEC4').setArray(a).setBuffer(buffer);
+    prim.setAttribute('WEIGHTS_0', acc(w0));
+    prim.setAttribute('JOINTS_1', acc(j1)).setAttribute('WEIGHTS_1', acc(w1));
+    const mesh = meshFromDocument(doc);
+    const hips = mesh.nodes!.findIndex((x) => x.name === 'hips');
+    const head = mesh.nodes!.findIndex((x) => x.name === 'head');
+    expect(mesh.influences!.nodes[0]).toBe(hips);
+    expect(mesh.influences!.weights[0]).toBeCloseTo(0.7);
+    // A head vertex: hips first (0.7), then its own head joint (0.3).
+    const v = [...Array(n).keys()].find((i) => mesh.influences!.nodes[i * 4 + 1] === head)!;
+    expect(mesh.influences!.weights[v * 4 + 1]).toBeCloseTo(0.3);
+  });
+
   it('skips points and lines, and copes with an empty document', () => {
     const doc = documentFromMesh(box([0, 0, 0], [1, 1, 1]));
     doc.getRoot().listMeshes()[0]!.listPrimitives()[0]!.setMode(1);
