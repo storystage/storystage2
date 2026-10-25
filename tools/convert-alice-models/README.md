@@ -19,6 +19,18 @@ It runs from an Alice 3.9 installation with Alice's bundled Java 21, which inclu
 - It writes `<Folder>/<Name>/<Name>_<VARIANT>.glb` and `conversion-report.json`.
 - Variants Alice marks `SIMS2` (The Sims 2's art) are never converted.
 - `--list` lists every model and variant without converting anything, for the licence audit.
+- It names each mesh uniquely before exporting. Alice's exporter finds a mesh's skin by its name, so unnamed meshes would all get the last skin and fall apart.
+
+Then finish the output:
+
+```
+node tools/convert-alice-models/src/finish-cli.ts <folder>
+```
+
+- It turns every model to face +Z (Alice's face -Z), once, however often it runs.
+- It writes `alice-models.json` and `conversion-report.md`: each variant's class, home section, triangles, largest texture, and whether its skeleton maps onto the joint map.
+
+Converted models are for testing until the licence audit clears them (WP17.1). Don't publish them or commit them to a public repository.
 
 ## The gallery list (licence audit, appendix A)
 
