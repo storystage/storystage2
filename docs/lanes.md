@@ -66,7 +66,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - #67 **16.4** Northern Ireland, from the statutory minimum content: Using ICT names coding and film and animation; KS3 English with Media Education.
   - #68 **16.5** the four nations together: 156 statements, 95 strong; the storyboard check serves 20 statements, all strong; no statement needs the Prompter. Owner decided: ages 6–13 confirmed; Welsh interface in release 1.1 (**S5:** keep all wording in one place); `docs/curriculum/` under CC BY 4.0. **S2:** the storyboard check (WP11.6) carries the most strong curriculum fits.
 - Reviewing: #60 (S4's licence audit, in `docs/legal/`): its 435 Alice models include 95 from StoryStage 1's non-free Sims-engine tree; the CMU email counts 343. To reconcile before the owner sends the email.
-- Open (25 Oct): #70 decision records 0038 (ages 6–13 confirmed), 0039 (Welsh first, release 1.1), 0040 (`docs/curriculum/` CC BY 4.0), 0041 (UK and US app stores).
+- Open (25 Oct): #70 decision records 0039 (ages 6–13 confirmed), 0040 (Welsh first, release 1.1), 0041 (`docs/curriculum/` CC BY 4.0), 0043 (UK and US app stores), 0044 (mock-ups approved). Renumbered after main took 0038 and #74 claimed 0042. **S5:** `docs/design/README.md` still lists approving the mock-ups as open.
 - Open for review (25 Oct, **WP16b** drafted, 16.6):
   - #72 curriculum arc templates. Owner chose: ship tale, myth, scene and explain; hold recount. **S4/S5:** proposed JSON for WP10.2; store part ids in `arc.parts`/`arcPart`, labels in translation files.
   - #73 eight classroom use cases with lesson outlines, ages 6–13, all four nations, all working with the Prompter off. **Owner:** review templates and use cases with teachers.
