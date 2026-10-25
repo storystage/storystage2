@@ -2,7 +2,7 @@
 
 - **Workplan:** WP3.1 (part of WP3a). **Spec:** `docs/spec/17-backstage.md`, section 3.
 - **Owner:** S4 drafts; the owner signs off (WP3 done-when) and asks CMU (WP17.1).
-- **Status:** draft for the owner's sign-off, 25 Oct 2026. Licences were checked on the sources' own pages on that date (links below).
+- **Status:** draft for the owner's sign-off, 25 Oct 2026, with the owner's answers of that date (section 3). Licences were checked on the sources' own pages on that date (links below).
 
 Every candidate source for Backstage, with its licence, credit line and verdict. Appendix A lists every model in Alice's gallery. Item-level rows for the other sources are added to `backstage.json` as WP3b picks them: each item records its own licence, credit line and source URL (`packages/backstage/src/manifest.ts`), and the rules in section 2 apply to every one.
 
@@ -23,11 +23,11 @@ Verdicts:
 | **Commissioned storybook cast** | Ours: the contract assigns copyright to the project | 12–20 public-domain characters (3.6) | "<Character> designed by <artist> for StoryStage" | **Ship**, once commissioned | Licence `permission`, citing the contract in `docs/legal/`. Designs come from public-domain text and illustrations only, with trade-mark checks (WP17.8) |
 | **[Kenney](https://kenney.nl/support)** | CC0. No attribution needed; the Kenney logo is reserved | Rigged characters, props, scenery in glTF (3.7) | "<Model> by Kenney (CC0)" | **Ship** | Check the `License.txt` in each pack as it is downloaded. Don't use the Kenney logo. The Blocky and Mini character packs have no skeleton, so they are props or prop-only characters |
 | **[KayKit](https://kaylousberg.itch.io/kaykit-adventurers)** (Kay Lousberg) | CC0, free and paid tiers alike. The page asks that unmodified copies not be resold | Rigged, animated characters (free tier: 5 Adventurers) and the free animation pack | "<Model> by Kay Lousberg, KayKit (CC0)" | **Ship** | Ship only inside StoryStage, never as a separate asset download. Paid tiers only if the owner buys them |
-| **[100Avatars](https://github.com/toxsam/open-source-avatars)** (Polygonal Mind) | The 100Avatars series is CC0. The same registry has other CC0 collections and one CC-BY collection (VIPE Heroes) | Rigged humanoids in VRM (3.7) | "<Avatar> by Polygonal Mind, 100Avatars (CC0)" | **Ship** the 100Avatars series only | Leave out the other collections (CC-BY or linked to NFTs) unless the owner decides otherwise. Record each avatar's own licence entry from the registry |
+| **[Open Source Avatars](https://github.com/toxsam/open-source-avatars)** registry: Polygonal Mind's 100Avatars series and the other CC0 collections | CC0: 100Avatars, Grifters Squaddies, ToxSam, Halloween Rising, Xmas Chibis, NeonGlitch86. CC-BY: VIPE Heroes | Rigged humanoids in VRM (3.7) | "<Avatar> by <maker>, <collection> (CC0)", for example "Robot by Polygonal Mind, 100Avatars (CC0)" | **Ship per item**: any CC0 collection (owner, 25 Oct 2026) | Record each avatar's own licence entry from the registry. Before an avatar ships, check it for respectful representation and age-appropriate content, and that its files carry no NFT, token or wallet link. Leave out VIPE Heroes (CC-BY) and any collection added later until it has been checked here |
 | **[Poly Pizza](https://poly.pizza)** | Per model. The catalogue mixes CC0, CC-BY and other CC licences (SA, ND, NC variants) | Low-poly props and scenery | CC0: "<Model> by <author> (CC0), via Poly Pizza". CC-BY: "<Model> by <author>, CC BY <version>, via Poly Pizza" | **Ship per item**: CC0, or CC-BY 3.0 or 4.0 | Never CC-BY-SA, ND or NC in the shipped catalogue. ND forbids the simplification every model gets (3.9); SA would bind learners' exports; NC blocks distribution. Items are picked offline. The API needs an account and isn't used by the app (any in-app search waits for the DPIA, 3.12) |
 | **[Poly Haven](https://polyhaven.com/license)** | CC0 for HDRIs, textures and models. Site logos, renders and text are not CC0; the API has separate terms | Skies, environment images, ground textures for Backdrops | "<Asset> by <author>, Poly Haven (CC0)" | **Ship** | Download the asset files themselves, never site images. Don't scrape; use the API only under its terms |
 | **[ambientCG](https://docs.ambientcg.com/license/)** | CC0 | Ground and material textures for Backdrops | "<Asset> from ambientCG.com (CC0)" | **Ship** | None |
-| **[Quaternius](https://quaternius.com/license.html)** (optional) | Quaternius Asset License: free for commercial use and needs no credit, but section 3(a) forbids redistributing the assets as an asset pack, stock file or template, or extracting and repackaging them. The version in force when the assets were obtained governs | Animated low-poly characters | — | **Don't ship** | Backstage is a library learners pick models from and export in AR packs and pathway exports (WP20, WP22), which comes close to what 3(a) forbids. Shipping needs Quaternius's written permission, or evidence that a pack was obtained under an earlier CC0 release. Needs the owner (section 3) |
+| **[Quaternius](https://quaternius.com/license.html)** (optional) | Quaternius Asset License: free for commercial use and needs no credit, but section 3(a) forbids redistributing the assets as an asset pack, stock file or template, or extracting and repackaging them. The version in force when the assets were obtained governs | Animated low-poly characters | "<Model> by Quaternius", with the terms of the permission | **Not yet**: the owner is asking Quaternius for permission (25 Oct 2026) | Backstage is a library learners pick models from and export in AR packs and pathway exports (WP20, WP22), which comes close to what 3(a) forbids. Ship only with Quaternius's written permission covering Backstage and learners' exports, recorded in `docs/legal/` with the licence `permission`. Draft request: `docs/legal/letters/quaternius.md` |
 | **Museum scans**: [Science Museum Group, Scottish Maritime Museum, University of Dundee](https://sketchfab.com/blogs/community/sketchfab-launches-public-domain-dedication-for-3d-cultural-heritage) on Sketchfab, and the Smithsonian's Open Access | CC0 per item, through Sketchfab's public-domain dedication for cultural organisations (2020) and Smithsonian Open Access. Other items from the same museums can carry other licences | Historical and scientific objects as props and sets (3.7) | "<Object>, <museum> (CC0)" | **Ship per item** | Only items whose own page shows CC0. Record the item URL and the date. Leave out items that note third-party rights. Usually needs simplifying (3.9) |
 | **[Blender Studio](https://studio.blender.org/remixing/)** (optional, 3.8) | CC-BY, copyright Blender Foundation. Each asset page gives its version (older films CC BY 3.0, newer CC BY 4.0) | Two or three open-movie characters, if they simplify to the budget | "<Character> from <film> by Blender Studio, CC BY <version>" | **Ship per item**, only if 3.8 passes | Check each asset page for exceptions. The credit line is required and goes into every film that uses the character (WP11.4) |
 | **Mixamo** | Adobe's terms forbid redistributing the raw files, and need an Adobe account | Nothing | — | **Don't ship** | Learners may import their own Mixamo files (3.11). The skeleton mapper reads Mixamo names (spec 17, section 2a) |
@@ -43,12 +43,18 @@ These apply to every row WP3b adds to `backstage.json`. They extend what `valida
 4. **One record per item,** never per pack. A pack's licence is checked against each item's own licence file or page as it is added.
 5. **Nothing from a "Don't ship" or "Not yet" row,** until the condition in section 1 is met and this audit is updated.
 
-## 3. What the owner needs to do
+## 3. The owner's part
 
-- **Sign off this audit** (WP3 done-when).
-- **Ask CMU** which of Alice's 435 gallery models CMU made and on what terms StoryStage 2 may ship, convert and let learners export them (WP17.1). Appendix A is the list to send. Until CMU replies, Alice models are for testing only.
-- **Quaternius:** decide whether to ask Quaternius for written permission to ship in Backstage and allow learners' exports, or to leave it out. The recommendation is to leave it out: Kenney, KayKit and 100Avatars cover the same ground under CC0.
-- **100Avatars:** confirm that only the 100Avatars series ships (recommended), or name other CC0 collections from the registry to add.
+Answered on 25 Oct 2026:
+
+- **Open Source Avatars:** ship any CC0 collection in the registry, not only the 100Avatars series, with each avatar checked first (section 1).
+- **Quaternius:** ask for written permission. Until it comes, Quaternius stays out. The draft request is `docs/legal/letters/quaternius.md`.
+- **CMU:** S4 drafts the request; the owner sends it. The draft is `docs/legal/letters/cmu.md`, with appendix A as the list.
+- **Sign-off:** the owner reviews this audit in its pull request; merging it records the sign-off (WP3 done-when).
+
+Still to do:
+
+- **Send the two letters**, and add each reply to `docs/legal/`. Then update the verdicts here: Alice's gallery (WP17.1) and Quaternius.
 
 ## Appendix A: Alice's gallery
 

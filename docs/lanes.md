@@ -32,7 +32,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - **WP3.3 joint map** (#57): VRM 1.0 ids with H-Anim and Alice's words, Alice's animal joint sets as our extension, and `mapSkeleton` for Alice, VRM, Mixamo, Unreal/MakeHuman, Rigify and generic rigs. **S6: the Story API's joint names can build on `JOINT_MAP` in `@storystage/backstage`.**
   - **WP3.1 licence audit**: `docs/legal/licence-audit.md`, with every source's licence and verdict, and all 435 Alice gallery models listed for CMU.
 - Blocked on:
-  - Owner: sign off the licence audit; ask CMU about Alice's models (WP17.1); decide on Quaternius and the 100Avatars collections (audit section 3).
+  - Owner: review and merge the licence audit (#60, the sign-off); send the drafted letters to CMU (WP17.1) and Quaternius (`docs/legal/letters/`).
 - Next: WP10s, the sketch library tool (10.5), for S5.
 
 ## S5 Studio interface

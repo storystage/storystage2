@@ -68,7 +68,7 @@ The licence audit, `docs/legal/licence-audit.md` (workplan 3.1), lists every can
 4. **Not shipped:**
     - Alice's models, until CMU confirms (WP17.1). They may still be converted for testing.
     - Anything drawn from The Sims 2's art (WP17.7), including two Bamboo variants in Alice's own gallery.
-    - Quaternius, whose licence forbids redistribution as an asset pack.
+    - Quaternius, whose licence forbids redistribution as an asset pack, unless Quaternius gives written permission (the owner is asking).
     - Mixamo and general Sketchfab.
 
 A change to a source's verdict changes the audit first, then the manifest.
