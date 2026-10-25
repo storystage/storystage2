@@ -16,7 +16,7 @@ StoryStage is free on every device. The apps include the optional Prompter; the 
 | **Mac** (macOS **[version]** or later) | Download the app **[link]** | Yes | Yes |
 | **iPad** (iPadOS **[version]** or later) | The App Store **[link]** | Yes | Yes |
 | **Chromebook** that can run Android apps | Google Play **[link]**; schools can use managed Google Play | Yes | Yes |
-| **Any other device**, or a Chromebook where Android apps are blocked | The browser version at **[storystage.org.uk/studio]** in an up-to-date Chrome, Edge, Safari or Firefox | No | No |
+| **Any other device**, or a Chromebook where Android apps are blocked | The browser version at **app.storystage.org** in an up-to-date Chrome, Edge, Safari or Firefox | No | No |
 
 ## What you need
 

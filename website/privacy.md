@@ -34,7 +34,7 @@ When a learner asks the Prompter something, the app sends the request to **Anthr
 
 ## The browser version
 
-The browser version has no Prompter and no voice input, so nothing a learner does leaves the device. Like any website, the server that delivers it keeps ordinary logs (for example, IP addresses). **[Open: the host, and how long it keeps its logs (19.1).]**
+The browser version has no Prompter and no voice input, so nothing a learner does leaves the device. Like any website, the server that delivers it keeps ordinary logs (for example, IP addresses). The browser version and this website are hosted by Bluehost. **[Open: how long Bluehost keeps its logs, and where, in the full notice (17.4).]**
 
 ## Children, parents and teachers
 

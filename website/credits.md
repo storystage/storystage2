@@ -54,7 +54,7 @@ StoryStage is built with open-source software, including:
 
 ## Curriculum material
 
-The curriculum mapping, story templates and classroom use cases are published under the Creative Commons Attribution 4.0 licence (CC BY 4.0): teachers may copy and adapt them, crediting "From StoryStage (storystage.org.uk), CC BY 4.0".
+The curriculum mapping, story templates and classroom use cases are published under the Creative Commons Attribution 4.0 licence (CC BY 4.0): teachers may copy and adapt them, crediting "From StoryStage (storystage.org), CC BY 4.0". The text of this website and the teacher guide is under the same licence.
 
 ## Thanks
 
