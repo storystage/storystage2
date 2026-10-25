@@ -271,6 +271,8 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
+  tools/convert-alice-models: {}
+
   tools/plan:
     devDependencies:
       yaml:
