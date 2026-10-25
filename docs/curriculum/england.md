@@ -61,7 +61,7 @@ Drama has no programme of its own in England; it sits in English (spoken languag
 | `EN-EN-KS3-2` | Study plot, setting and characters and their effects | English, KS3, reading | `F-LOG`, `F-SCN`, `F-ARC` | `A-RETELL`, `A-PLAN` | `ARC-5`, `ARC-MYTH` | 11–13 | Strong |
 | `EN-EN-KS3-3` | Write stories, scripts and other imaginative writing for a range of audiences | English, KS3, writing | `F-SCR`, `F-LOG` | `A-SCRIPT` | `ARC-5`, `ARC-SCENE` | 11–13 | Strong |
 | `EN-EN-KS3-4` | Plan, draft, edit and proof-read, thinking about audience and purpose | English, KS3, writing | `F-LOG`, `F-SCR`, `F-SCRN` | `A-PLAN`, `A-SCREEN` | `ARC-5` | 11–13 | Strong |
-| `EN-EN-KS3-5` | Improvise, rehearse and perform play scripts and poetry, using voice, tone, volume, silence, stillness and action for effect | English, KS3, spoken English | `F-VOX`, `F-CODE` (timing, pauses, gestures), `F-RUN` | `A-PERFORM`, `A-SHAKES` | `ARC-SCENE` | 11–13 | Partial: the learner directs the performance rather than performing it in person, unless they record their own voice |
+| `EN-EN-KS3-5` | Improvise, rehearse and perform play scripts and poetry, using voice, tone, volume, silence, stillness and action for effect | English, KS3, spoken English | `F-VOX`, `F-CODE` (timing, pauses, gestures), `F-RUN` | `A-PERFORM`, `A-SHAKES` | `ARC-SCENE` | 11–13 | Partial: the learner directs the performance (voice, timing, gesture) rather than performing it; recording their own voice comes later (WP14.4) |
 
 ## Art and design
 

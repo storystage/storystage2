@@ -18,7 +18,7 @@ The fixed list the mapping rows point to. Features are as the workplan plans the
 | `F-TXT` | **Text view**: the same program as read-only, Python-like text, highlighted as it runs | WP2.5, text-view |
 | `F-RUN` | **Rehearse**: run a scene, watch each block light up as it runs, stop, step, undo with named steps | Runtime and Production stage (WP6, WP7) |
 | `F-CHK` | **Check against the storyboard**: StoryStage rehearses each frame and says in plain words where the scene differs from the storyboard (who is on screen, position, facing, framing, lines, length) | WP11.6; no Prompter needed |
-| `F-VOX` | **Voices and captions**: speak lines with on-device voices, record a learner's own voice, captions always shown; voice input to type | WP14 |
+| `F-VOX` | **Voices and captions**: characters speak script lines with on-device voices (the speak line block) and narration, captions always shown; voice input to type. Recording a learner's own voice is **later** (WP14.4, release 1.2) | WP14 |
 | `F-SCRN` | **Screening room**: the rough cut of every scene in order with transitions, compared side by side with the storyboard, with notes | WP11 |
 | `F-EXP` | **Export**: an MP4 film with title card, credits and captions | WP11 (decision 0017) |
 | `F-A3P` | **Open Alice worlds** (`.a3p`) | WP9 |
@@ -40,7 +40,7 @@ What a class does with the features. WP16b turns the strongest of these into use
 | `A-STAGE` | Stage a scene from the storyboard: place the cast, set and camera | `F-SET`, `F-BKS` |
 | `A-CODE` | Code the action: break each scene into steps, in order and together, with loops and events | `F-CODE`, `F-PLAN`, `F-TXT` |
 | `A-DEBUG` | Predict, rehearse, compare with the storyboard, find and fix the difference | `F-RUN`, `F-CHK` |
-| `A-PERFORM` | Voice the characters, or record narration, with intonation, volume and timing | `F-VOX`, `F-CODE` |
+| `A-PERFORM` | Direct the characters' performance: choose voices, timing, pauses, gestures and movement for each line | `F-VOX`, `F-CODE` |
 | `A-SCREEN` | Screen the rough cut, compare with the storyboard, give and act on peer feedback | `F-SCRN`, `F-CHK` |
 | `A-PUBLISH` | Export and show the film, with credits for every model and voice | `F-EXP`, `F-LIC` |
 | `A-EXPLAIN` | Explain a science process with an animated model (day and night, a skeleton moving, a lever) | `F-SET`, `F-CODE`, `F-VOX` |
