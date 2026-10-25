@@ -1,7 +1,25 @@
 # Handoff: StoryStage 2 — first-release UI (Direction A, "Film studio")
 
+## Reconciled with the decisions (25 Oct 2026)
+This is the owner's handoff of 22 Oct 2026, edited where it disagreed with `CLAUDE.md`, the workplan or `docs/decisions/` (the list S1 made on #49). The handoff as delivered is in the history of this file (commit `b0a73ea`). Where the owner has not decided yet, the text says what to build meanwhile.
+
+| # | Point | Now |
+|---|---|---|
+| 1 | Platforms | Apps for Windows, macOS, iPad and Chromebook, plus the browser version ([0003](../../decisions/0003-delivery.md)) |
+| 2 | Age range | 6–13, provisional ([0030](../../decisions/0030-age-range.md)) |
+| 3 | Stack | Fixed: React and TypeScript ([0006](../../decisions/0006-ui.md)), Babylon.js ([0007](../../decisions/0007-3d.md)) |
+| 4 | School key, school service, "Email me at 80%" (11b) | **Open** until WP24.3 (M1). Build 11b with the key and limits on the device ([0005](../../decisions/0005-api-key.md)) |
+| 5 | Fonts | Bundled from Fontsource, never from Google Fonts ([0031](../../decisions/0031-fonts.md)) |
+| 6 | Theme | Dark is drawn here; WP12.2 also asks for a light theme. **Owner to decide** |
+| 7 | Tiles look | Alice 3's grammar with our own artwork until Carnegie Mellon replies (WP17.1) |
+| 8 | Alice screenshots (`reference/`) | Not in this repository; the owner holds them |
+| 9 | Sizes | Laptop and iPad sizes added in [`sizes/`](sizes/index.html) (12.1); rules in `docs/spec/07-ux.md` §1 |
+| 10 | Storyboard first | The closed Code editor (10.8) added as screen 02c |
+| 11 | Prompter levels | Mapped to the policy keys and modes (see "The Prompter" below) |
+| 12 | Study logs | "Anonymised" changed: the logs are pseudonymous (7.13, 24.6) |
+
 ## Overview
-StoryStage 2 is a free 3D animated-film studio for learners aged 6–13 in UK schools, clubs and homes. Learners make films the way the industry does, in three modes that are always visible as the primary navigation:
+StoryStage 2 is a free 3D animated-film studio for learners aged 6–13 (provisional, decision 0030) in UK schools, clubs and homes. Learners make films the way the industry does, in three modes that are always visible as the primary navigation:
 
 1. **Storyboard** – plan: title, logline, synopsis, scenes, frames, script lines pinned to frames, black-and-white sketches, shot type and length.
 2. **Production stage** – build and code each frame: colour 3D scene view plus a code editor (Blocks or Tiles), with Backstage (Cast, Props, Set, Backdrops) and an optional AI helper, **the Prompter**.
@@ -9,12 +27,12 @@ StoryStage 2 is a free 3D animated-film studio for learners aged 6–13 in UK sc
 
 The Prompter is an optional AI helper. It coaches, and builds only on request after showing a plan. It never writes the learner's story. Code is drag-and-drop only, so programs cannot contain syntax errors.
 
-This package covers 20 screens plus a component sheet, all drawn at **1366 × 768** (a school Chromebook or laptop).
+This package covers 20 screens plus a component sheet, all drawn at **1366 × 768** (a school Chromebook). [`sizes/`](sizes/index.html) adds the screens 12.1 names at **laptop (1536 × 864)** and **iPad (1180 × 820, landscape)**, and one new state (02c).
 
 ## About the design files
-The files in `design/` are **design references created in HTML**. They are static, hand-built prototypes that show the intended look, layout, copy and states. They are **not production code**: the markup is inline-styled for review and is not structured for reuse.
+The files in `design/` are **design references created in HTML**. They are static, hand-built prototypes that show the intended look, layout, copy and states. They are **not production code**: the markup is inline-styled for review and is not structured for reuse. They load React and Babel from unpkg, and fonts from Google Fonts, for preview only; nothing from them goes into the app.
 
-Your task is to **recreate these designs in the target app's environment**. No codebase exists yet, so choose the stack that fits the product's constraints (see "Platform decisions" below). Use the HTML as the visual source of truth and this README as the behavioural spec.
+Your task is to **recreate these designs in `apps/studio`**. The stack is fixed: React and TypeScript in this monorepo (decision 0006) and Babylon.js (decision 0007); `CLAUDE.md` has the rest. Use the HTML as the visual source of truth and this README as the behavioural spec.
 
 Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to every screen file. Each file opens on its own, as long as `support.js` and `Figure.dc.html` sit beside it.
 
@@ -24,27 +42,29 @@ Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to e
 - **The dragon model preview** on screen 07 is a striped placeholder box.
 
 ## Platform decisions (settled)
-- **Two deployments from one codebase:**
-  - **Desktop app** (Windows and ChromeOS), with the Prompter.
-  - **Browser version**, with **no Prompter** at all: no panel, no rail, no set-up steps 10b–10c, and no Prompter settings. It uses the layout in 12b plus the neutral note. Build the Prompter as a feature that can be compiled or flagged out.
+- **Two deployments from one codebase** (decision 0003):
+  - **Apps** (Tauri 2) for **Windows, macOS, iPad and Chromebook** (Android, where the school allows it), all with the Prompter. No Linux in the first release.
+  - **Browser version**, with **no Prompter** at all: no panel, no rail, no set-up steps 10b–10c, and no Prompter settings. It uses the layout in 12b plus the neutral note. The build hands the studio a host interface that says whether a Prompter transport exists (decision 0028); the studio never checks which platform it is on.
 - **Claude key model**, depending on context:
-  - **Home or individual use:** a key **per device**, entered by the adult on first run (10a → 10c) and kept in the OS secure store.
+  - **Home or individual use:** a key **per device**, entered by the adult on first run (10a → 10c) and kept in the OS secure store. Only the app's native layer uses it; web code never sees it (decision 0005).
   - **School or club group use:** a key **per school or class**, set by the teacher or IT manager under Settings › Prompter key (screen **11b**). Learners never see or enter it. The class Prompter level and daily limit (11) apply on top. Group devices should skip 10b–10c, or show "Your school manages the Prompter".
-- **3D engine: Babylon.js 9.31** (Apache 2.0), used for both the desktop and browser builds. Pin the latest 9.31 patch (9.31.2 at the time of writing). The 9.31.0 publish was interrupted, so do not pin 9.31.0. Notes for the screens:
+  - **Open (WP24.3, due at M1): how the Prompter reaches a group.** The options are A (clubs and home: the adult who owns the key), B (a classroom relay through the teacher's app) and C (keys put on devices by device management). There is no StoryStage server and no school service. Until the owner decides, build 11b with the key in the secure store of the device it is entered on, and enforce the limits there.
+- **3D engine: Babylon.js** (Apache 2.0, decision 0007), used for both the app and browser builds. S3 pins the version once, in `packages/stage`; the spikes use `^9.31.1`. The 9.31.0 publish was interrupted, so never pin 9.31.0. Notes for the screens:
   - **Scene view (02, 04, 12b):** use an `ArcRotateCamera` for "Look around" and the shot camera for "Camera view". Draw the camera-frame overlay ("Camera · Medium") as HTML over the canvas, not in the 3D scene. Keep it 2px chalk with the label chip.
   - **Shot types:** Wide, Medium and Close-up are camera presets (distance and field of view) framed on the subjects in the shot.
   - **Film stills and rough cut (03, 08):** render frames from the shot camera. Write the MP4 with WebCodecs where available, falling back to a desktop encoder. The progress steps on screen 09 map to rendering, compositing captions and credits, and saving the file.
   - **Backstage import (07):** load glTF/GLB with the Babylon loaders. Do the triangle reduction and texture resizing before adding the model to the scene. Use Babylon 9's animation retargeting to map the skeleton onto the Cast rig; the result is shown as "20 of 22 joints".
   - **Automatic check (08):** measure left, centre and right by projecting each actor's bounds into the shot camera's screen space, then compare with the sketch's placement in the storyboard frame.
   - **School hardware:** target WebGL2 as the baseline for Chromebooks, with WebGPU as an optional enhancement. Keep each scene within the import budget (about 12,000 triangles and 1K textures per model).
-- **Tiles look and feel:** **copy Alice 3 closely**. Permission from Carnegie Mellon University is being sought, and support is expected. Do not use the name "Alice" in the product. Keep these deliberate deviations unless told otherwise:
+- **Tiles look and feel:** follow **Alice 3's grammar** closely: how tiles nest, the drop line, value menus, add detail. Draw it with our own artwork until Carnegie Mellon University replies (WP17.1); then the owner decides how closely to copy Alice's look. Do not use the name "Alice" in the product. Keep these deliberate deviations unless told otherwise:
   - darker tile blue and green for 4.5:1 contrast;
   - 44px hit targets;
   - plain-words labels ("owl", not "this.owl"; "code for", not "declare procedure"; Actions and Questions for Procedures and Functions; "Parts of the cat" for Joints);
   - the "Drops here" label on the drop line.
 
   Switching any label back to Alice's wording is a copy change only.
-- **Screenshots** of every screen are in `screenshots/` (1366 × 768 PNG; the component sheet is 1366 wide). Use them for side-by-side checks.
+- **Screenshots** of every screen are in `screenshots/` (1366 × 768 PNG; the component sheet is 1366 wide), and at laptop and iPad sizes in `screenshots/sizes/`. Use them for side-by-side checks.
+- **Screen sizes:** the app is designed for 1024 px wide and up. Laptop (1440 and up), Chromebook (1280–1439, as drawn) and iPad landscape (1024–1279) each have their own layout rules (`docs/spec/07-ux.md` §1). Below 1024 px wide (iPad portrait, narrow windows) is **open for the owner**.
 
 ---
 
@@ -68,8 +88,11 @@ Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to e
     - Inactive: background `#2A231E`, text `#F5EFE6`, 1px inset border `#5A4B3D` on the top, left and right.
   - **Right group**, after a divider: **Learn** and **Settings**. Each is 84 × 46px, with a 22px icon above a 15px label and a 1px border `#8A7B6A`. When active they become an amber tab (Settings) or an amber button (Learn). They are deliberately separate from the three modes.
 - **Amber frame:** a 3px solid `#F4B740` border around the whole working area, with radius `0 0 8px 8px`. The header sits outside it.
+- **Other sizes:** on iPad the wordmark folds to the logo mark and the tabs narrow; on a laptop the extra room goes to the frame canvas, the scene view and the player. See `sizes/` and `docs/spec/07-ux.md` §1.
 
 ## Design tokens
+
+**Theme:** these are the dark theme's values; dark is the only theme drawn. WP12.2 also asks for a light theme. Whether the first release has one, and if so whether it is drawn and approved before it is built, is **open for the owner**. Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
 
 ### Colour (Direction A)
 | Token | Hex | Use |
@@ -166,7 +189,7 @@ We darkened Alice's original tile blue and green so that white or dark text pass
 | Script dialogue (frame) | Atkinson Hyperlegible | 18px |
 | Key entry | ui-monospace | 16px, 0.08em |
 
-Both fonts are on Google Fonts and are free to bundle. Icons are **Material Symbols Rounded** (variable; use FILL 1 for status icons that are filled).
+Both fonts are under the SIL Open Font Licence 1.1, which the licence policy allows for font packages only (decision 0031). Install them from npm as Fontsource packages, bundle them as published, list them in `NOTICE`, and never load them from Google Fonts at run time. Icons are **Material Symbols Rounded** (Apache-2.0; variable; use FILL 1 for status icons that are filled), bundled the same way.
 
 ### Spacing, radius, elevation
 - **Spacing:** a 4px base. Common values are 4, 6, 8, 10, 12, 14, 16 and 22px.
@@ -195,7 +218,7 @@ Both fonts are on Google Fonts and are free to bundle. Icons are **Material Symb
   - Its colour is never used for anything else.
   - It always offers **Stop** and **Undo this request**.
 - **Product terms, used exactly:** Storyboard, Production stage, Screening room, Backstage, Cast, Props, Set, Backdrops, the Prompter, Rehearse, frame, shot.
-- **Words never shown on screen:** AST, node, token, API, schema.
+- **Words never shown on screen:** AST, node, field, invocation, edit, token, schema, API (`CLAUDE.md` rule 9). Name each step after what changed ("Add cat"); these are also the undo labels. Errors say what happened and what to do next, with no apologies.
 - **Copy style:** UK English, short and encouraging, with no exclamation-mark overload.
 - **Art style:** storyboard sketches are black lines on white; the 3D scene is in colour. Keep that contrast deliberate.
 
@@ -317,9 +340,21 @@ A calm adult page: the Settings tab is active in amber and the page title reads 
 - **Three columns:**
   1. **Pupils and folders:** Add pupil, search, a list of pupil rows (folder icon, name, film count, chevron), "Import class list" and "21 more". The pupil names are invented.
   2. **Default code editor:** Blocks | Tiles, then **Lock for pupils** (toggle on). **The Prompter** (AI badge) radio: Off, Explain only, **Plan only** (selected, focus shown), Full.
-  3. **Daily Prompter limit:** a stepper "20 requests a day, per pupil, resets at midnight". **When the limit is reached:** a select, "Switch to Explain only". **Backstage imports:** Off | **Teacher only** | Learners. **Study logs:** "Anonymised record of Prompter use and checks. No pupil names." with the button **Export study logs**.
+  3. **Daily Prompter limit:** a stepper "20 requests a day, per pupil, resets at midnight". **When the limit is reached:** a select, "Switch to Explain only". **Backstage imports:** Off | **Teacher only** | Learners. **Study logs:** "A record of Prompter use and checks, with no pupil names." with the button **Export study logs**. (The handoff said "Anonymised". The logs carry pseudonymous session ids (7.13, 24.6), which is not anonymous, so the screen must not say so. The DPIA (WP17.3) settles the final wording.)
+- **Prompter levels** map onto the policy keys (15.3) and the Prompter's modes (13.5):
+
+  | Level | Policy | Modes the learner gets |
+  |---|---|---|
+  | Off | `prompter.enabled` false | none; the neutral note from 12a |
+  | Explain only | `prompter.explainOnly` | Explain only, and the story coach (proposed: neither changes the production; S7 to confirm in `04-prompter.md`) |
+  | Plan only | `prompter.planOnly` | Show me how with plan before change (13.9): the Prompter plans, the learner builds every block |
+  | Full | neither | all four, including Build it |
+
+  A school or exam lock (decision 0022) can hold the level where the teacher can't change it.
 
 ### 11b Settings, school Prompter key — `11-12`
+> **Open (WP24.3, due at M1).** This screen assumes the school's key sits on a school service that relays Prompter requests, and that StoryStage can send email. Both need a server, which rule 2 and decision 0005 rule out as drawn. Until the owner decides how the Prompter reaches a group, build it like this: the key goes into the secure store of the device it is entered on, and only that device's native layer uses it; the monthly limit and usage are counted on that device; leave out **Email me at 80%** and show the usage bar instead. The words "the school's secure store" become "this device's secure store".
+
 For **group use**. The Settings tab and the navigation item **Prompter key** are active; the footer reads "Signed in as the IT manager". Header: "Prompter key", the AI badge, "Hazel Lane Primary · group use", "All changes saved". Three columns:
 1. **Who provides the key** (radio cards): **One key for the whole school** (selected), Each class has its own key, or No key (the Prompter stays off everywhere). **Who can change this**: a list of people with roles (IT manager, Head teacher) and **Add person**. Only these people see this page.
 2. **School key**:
@@ -340,7 +375,7 @@ Behaviour:
 - **Each class has its own key:** the School key card is replaced by a key field per class on each class's set-up page.
 - **No key:** the Prompter is off on every school device. Learners see the neutral note from 12a, worded "switched off by your school".
 - **Removing or replacing the key:** both ask for confirmation.
-- **Key stays on the server side:** the key never reaches learner devices in readable form, so route Prompter requests through the school's service.
+- **The key never reaches learner devices in readable form.** How group requests reach Claude is open (WP24.3): see the note at the top of this screen.
 
 ### 12a Storyboard, Prompter off (by school) — `11-12`
 The same as 01, except that the "Ask the Prompter" button is replaced by a neutral note: "ⓘ The Prompter is switched off by your school. Everything else works as usual." There is no gap and no error styling.
@@ -395,7 +430,8 @@ The canonical source for buttons, mode tabs, status chips, a block, tiles (inclu
   5. **Stop** cancels a request in progress.
   6. **Undo this request** reverts everything that request built, as a single step.
 
-  The Prompter never writes story text (logline, synopsis, dialogue). It respects the class Prompter level (Off, Explain only, Plan only, Full) and the daily limit, applying the configured action when the limit is reached.
+  The Prompter never writes story text (logline, synopsis, dialogue). It respects the class Prompter level (Off, Explain only, Plan only, Full; see screen 11 for how they map to the policy keys and modes) and the daily limit, applying the configured action when the limit is reached.
+- **Storyboard first** (10.8, decision 0012): a scene's Code editor stays closed until the scene has a heading and at least one frame, and the script has a logline and synopsis. The Production stage says what is left in plain words and offers **Go to the Storyboard** (screen 02c in `sizes/`). A teacher can relax the rule for imported worlds (`storyboard.allowImportedWithoutStoryboard`).
 - **Blocks and Tiles** are two views of **one** program model. Switching views is lossless. The teacher can set the default editor and lock it.
 - **Tiles:**
   - **Dragging:** dragging from the palette shows a ghost and a drop line at the insertion point. Dropping into an empty slot replaces the slot.
@@ -419,15 +455,16 @@ The canonical source for buttons, mode tabs, status chips, a block, tiles (inclu
 - `check { results[ { frameId, items[ { label, state: 'match'|'flag', blockRef, sketchRef, kept } ] } ] }`
 - `export { titleCard, credits[], captions, resolution, estimateMB, progress, step, blockedByLicence }`
 - `classSettings { pupils[], defaultEditor, editorLocked, prompterLevel, dailyCap, capAction, imports: 'off'|'teacher'|'learners' }`
-- `schoolKey { mode: 'school'|'perClass'|'none', status, lastChecked, monthlyCap, usedThisMonth, capAction, emailAt80, admins[] }`
+- `schoolKey { mode: 'school'|'perClass'|'none', status, lastChecked, monthlyCap, usedThisMonth, capAction, admins[] }` (`emailAt80` waits for WP24.3)
 - `onboarding { who: 'learner'|'adult', consent, keyStored }` The key itself is stored only in the OS secure store and never in app state.
 - `learn { guidedFilms[ { id, steps, progress } ], tipsOn, readAloud, tipsSeen[] }`
 
 ## Assets
-- **Fonts:** Bricolage Grotesque, Atkinson Hyperlegible (Google Fonts, OFL). Icons: Material Symbols Rounded (Apache 2.0).
+- **Fonts:** Bricolage Grotesque, Atkinson Hyperlegible (OFL-1.1), bundled from Fontsource (decision 0031). Icons: Material Symbols Rounded (Apache 2.0).
 - **Logo:** the mark and wordmark are built in CSS (see the header spec). Redraw them as SVG for production.
 - **Character figures** in `design/Figure.dc.html` are placeholder vector drawings, each with a sketch and a colour version. Replace them with the real art.
-- **reference/**: three Alice 3 screenshots (drag with the drop line; nested if/else; value menu with a Questions submenu). These are the source for the Tiles grammar. Use them for reference only and do not ship them.
+- **reference/**: three Alice 3 screenshots (drag with the drop line; nested if/else; value menu with a Questions submenu). These are the source for the Tiles grammar. They are Carnegie Mellon University's images, so they are **not in this repository**; ask the owner for them. Use them for reference only and do not ship them.
+- **Sample data:** the pupil, class and school names on screens 11 and 11b are invented. Keep fixtures and tests invented too.
 
 ## Files
 ```
@@ -442,8 +479,12 @@ design/
   Direction A - 13 Learn.dc.html                13a–13c
   Direction A - 14 Component sheet.dc.html
   Figure.dc.html, support.js                    runtime for the previews
+sizes/                                          added for 12.1: screens 01, 02, 02c, 03, 10a and 11, laid out by viewport size
+  index.html                                    ← every screen at laptop, Chromebook and iPad sizes
+  sizes.css, sizes.js                           the size rules, and scaling for the frame canvas and player
 screenshots/                                    1366 × 768 PNGs of every screen, named by screen number
-reference/
+  sizes/                                        the same screens at 1536 × 864 and 1180 × 820, and 02c at 1366 × 768
+reference/                                      not in this repository (Carnegie Mellon's images; the owner holds them)
   alice3-drag-drop-line.png, alice3-nested-if-else.png, alice3-value-menu-functions.png
 ```
 
@@ -457,4 +498,4 @@ reference/
 7. First-run set-up and Settings (10a–d, 11, 11b).
 8. Learn (13a, 13b).
 
-Compare each built screen side by side with its mock-up at 1366 × 768.
+Compare each built screen side by side with its mock-up at 1366 × 768, and at laptop and iPad sizes where `sizes/` has it.

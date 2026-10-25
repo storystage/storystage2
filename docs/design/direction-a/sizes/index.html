@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction A · screen sizes</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,700..800&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; padding: 40px; background: #d9d5ce; color: #1f1a33; font: 16px/1.4 'Atkinson Hyperlegible', sans-serif; }
+  h1 { margin: 0 0 6px; font: 800 40px/1.1 'Bricolage Grotesque', sans-serif; letter-spacing: -0.02em; }
+  h2 { margin: 40px 0 12px; font: 700 24px/1.2 'Bricolage Grotesque', sans-serif; }
+  p { max-width: 70ch; }
+  .row { display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap; }
+  figure { margin: 0; }
+  figcaption { margin-bottom: 6px; font-weight: 700; }
+  figcaption span { font-weight: 400; color: #575170; }
+  .frame { overflow: hidden; border-radius: 8px; box-shadow: 0 20px 40px -24px rgba(20, 16, 14, 0.6); }
+  .frame iframe { border: 0; transform-origin: 0 0; transform: scale(0.42); display: block; }
+</style>
+</head>
+<body>
+<h1>Direction A at three sizes</h1>
+<p>The screens 12.1 names, at laptop (1536 × 864), Chromebook (1366 × 768, the handoff size) and iPad landscape (1180 × 820), shown here at 42%. Open any screen on its own and resize the window to see the layout change. The rules are in <code>docs/spec/07-ux.md</code>, section 1.</p>
+<div id="screens"></div>
+<script>
+  const screens = [
+    ['01-storyboard', '01 Storyboard'],
+    ['02-production-stage', '02 Production stage, Blocks and the Prompter'],
+    ['02c-code-editor-closed', '02c Production stage, before the storyboard (new)'],
+    ['03-screening-room', '03 Screening room'],
+    ['10a-setup-who', '10a First-run set-up'],
+    ['11-class-setup', '11 Class set-up'],
+  ];
+  const sizes = [
+    [1536, 864, 'Laptop'],
+    [1366, 768, 'Chromebook'],
+    [1180, 820, 'iPad'],
+  ];
+  const root = document.getElementById('screens');
+  for (const [file, title] of screens) {
+    const h2 = document.createElement('h2');
+    const link = document.createElement('a');
+    link.href = `${file}.html`;
+    link.textContent = title;
+    h2.append(link);
+    const row = document.createElement('div');
+    row.className = 'row';
+    for (const [w, h, name] of sizes) {
+      const fig = document.createElement('figure');
+      const cap = document.createElement('figcaption');
+      cap.innerHTML = `${name} <span>${w} × ${h}</span>`;
+      const frame = document.createElement('div');
+      frame.className = 'frame';
+      frame.style.width = `${Math.round(w * 0.42)}px`;
+      frame.style.height = `${Math.round(h * 0.42)}px`;
+      const iframe = document.createElement('iframe');
+      iframe.src = `${file}.html`;
+      iframe.title = `${title}, ${name}`;
+      iframe.width = w;
+      iframe.height = h;
+      iframe.loading = 'lazy';
+      frame.append(iframe);
+      fig.append(cap, frame);
+      row.append(fig);
+    }
+    root.append(h2, row);
+  }
+</script>
+</body>
+</html>
