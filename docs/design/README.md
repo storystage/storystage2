@@ -10,4 +10,8 @@ The first-release interface design, handed over by the owner on 22 Oct 2026: 20 
 
 **Not in the repository:** the handoff's three Alice 3 screenshots (`reference/`), the source for the Tiles grammar. They show Carnegie Mellon University's software, and the handoff says not to ship them, so they stay in the owner's handoff folder until CMU's permission arrives (WP17.1). Ask the owner for them if you need them.
 
-**Where the handoff and the workplan differ,** the owner's decisions are recorded in `docs/decisions/` and listed here once made.
+**Where the handoff and the workplan differ,** the owner's decisions are recorded in `docs/decisions/` and listed here once made. The full list of differences is in the S1 comment on #49.
+
+- **Age range:** 6 to 13, provisionally, until the curriculum review (decision 0030).
+- **Fonts:** Bricolage Grotesque, Atkinson Hyperlegible (OFL-1.1) and Material Symbols Rounded, bundled from Fontsource packages, never loaded from Google Fonts (decision 0031).
+- **School key and Prompter use reports (screen 11b):** routing through "the school's service" and "Email me at 80%" both need a server, so they stay open until the decision on how the Prompter reaches a group (WP24.3, due at M1). Until then, build 11b's key and limits on the device only.

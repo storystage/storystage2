@@ -35,3 +35,5 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0027](0027-threat-model-owner.md) | Threat model owner | 21 Oct 2026 |
 | [0028](0028-host-interface.md) | Host interface | 21 Oct 2026 |
 | [0029](0029-main-bypass-and-merging.md) | Main branch bypass and merging | 21 Oct 2026 |
+| [0030](0030-age-range.md) | Age range (provisional) | 25 Oct 2026 |
+| [0031](0031-fonts.md) | Fonts | 25 Oct 2026 |

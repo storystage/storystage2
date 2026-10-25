@@ -3,6 +3,7 @@
  * - linked into the app (`dependencies`): permissive licences and MPL-2.0 (file-level, used unmodified);
  * - build and test tools (`devDependencies`): the same, plus GPL and LGPL for tools whose output we
  *   ship but which are never linked into the app;
+ * - fonts only: the SIL Open Font Licence (OFL-1.1), for Fontsource font packages (decision 0031);
  * - never: AGPL, SSPL, non-commercial or unlicensed packages.
  * Anything the policy does not recognise fails until it is reviewed and added to the exceptions file.
  */
@@ -32,6 +33,10 @@ const ALLOWED = new Set([
 const BUILD_ONLY = /^L?GPL-(2\.0|2\.1|3\.0)(-only|-or-later|\+)?$/;
 const DISALLOWED = /^(AGPL-|SSPL-|CC-BY-NC|CC-BY-ND|UNLICENSED$|BUSL-)/;
 
+// OFL-1.1 is a font licence: allowed for font packages, nowhere else (decision 0031).
+const FONT_PACKAGE = /^@fontsource(-variable)?\//;
+const FONT_ONLY = 'OFL-1.1';
+
 const RANK: Record<Verdict, number> = { allowed: 0, 'build-only': 1, unknown: 2, disallowed: 3 };
 const worst = (a: Verdict, b: Verdict): Verdict => (RANK[a] >= RANK[b] ? a : b);
 const best = (a: Verdict, b: Verdict): Verdict => (RANK[a] <= RANK[b] ? a : b);
@@ -57,6 +62,12 @@ export function licenceVerdict(expression: string): Verdict {
         .reduce(worst),
     )
     .reduce(best);
+}
+
+/** The verdict for one dependency: its licence, plus the font-only allowance for OFL-1.1. */
+function dependencyVerdict(d: Dependency): Verdict {
+  if (FONT_PACKAGE.test(d.name) && d.licence.trim() === FONT_ONLY) return 'allowed';
+  return licenceVerdict(d.licence);
 }
 
 export interface Dependency {
@@ -91,12 +102,12 @@ export function findProblems(
     );
   const problems: Problem[] = [];
   for (const dependency of linked) {
-    const verdict = licenceVerdict(dependency.licence);
+    const verdict = dependencyVerdict(dependency);
     if (verdict !== 'allowed' && !excepted(dependency))
       problems.push({ dependency, verdict, linked: true });
   }
   for (const dependency of tools) {
-    const verdict = licenceVerdict(dependency.licence);
+    const verdict = dependencyVerdict(dependency);
     if ((verdict === 'unknown' || verdict === 'disallowed') && !excepted(dependency))
       problems.push({ dependency, verdict, linked: false });
   }

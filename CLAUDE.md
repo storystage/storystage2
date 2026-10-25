@@ -4,7 +4,7 @@ Read this first, every session. Then read your session brief in `handover/`, the
 
 ## What we're building
 
-StoryStage 2 lets young people in schools and clubs across the four UK nations (the exact age range is still an owner decision) make 3D animated films the way the film industry does: **Storyboard** (logline, synopsis, scenes, script, sketch frames) → **Production stage** (set the scene from Backstage, then code it in blocks) → **Screening room** (rough cut, compare with the storyboard, export an MP4). An optional Claude assistant, **the Prompter**, coaches and builds on request, using the user's or school's own key. It never writes the learner's story.
+StoryStage 2 lets young people in schools and clubs across the four UK nations (aged 6 to 13, provisionally: decision 0030) make 3D animated films the way the film industry does: **Storyboard** (logline, synopsis, scenes, script, sketch frames) → **Production stage** (set the scene from Backstage, then code it in blocks) → **Screening room** (rough cut, compare with the storyboard, export an MP4). An optional Claude assistant, **the Prompter**, coaches and builds on request, using the user's or school's own key. It never writes the learner's story.
 
 It is a rewrite on web technology. It contains **no Alice code**, but keeps Alice's vocabulary, program semantics, tile-editor design and (subject to licence) its models. StoryStage 1, the Java fork of Alice 3, stays in use until StoryStage 2 replaces it.
 
@@ -50,7 +50,7 @@ pnpm --filter @storystage/<name> <script>   # one package
 5. **Storyboard first.** A scene's Code editor stays closed until the scene has a heading and a frame (10.8). No import of outside drawings; every sketch stands for a Backstage model or a stand-in.
 6. **Low-end devices first.** Anything touching rendering, speech or memory is measured on the reference 4 GB Chromebook and non-Pro iPad.
 7. **Accessibility:** WCAG 2.2 AA, full keyboard paths through all three tabs, captions for all speech.
-8. **Licences:** prefer MIT, BSD, Apache-2.0; MPL-2.0 unmodified is fine; GPL only for offline build tools, never linked into the app. Record every dependency in `NOTICE` in the same pull request. Every Backstage asset has a licence, credit line and source in `backstage.json`.
+8. **Licences:** prefer MIT, BSD, Apache-2.0; MPL-2.0 unmodified is fine; OFL-1.1 for fonts only (decision 0031); GPL only for offline build tools, never linked into the app. Record every dependency in `NOTICE` in the same pull request. Every Backstage asset has a licence, credit line and source in `backstage.json`.
 9. **Plain words on screen.** No "AST", "node", "token", "schema" or "API" in the learner's interface. The wording rules carried over from StoryStage 1 (spec 04, section 5; `docs/carried-over/`):
     - Use the learner's view: "the cat", "your scene", "the move block"; never AST, node, field, invocation, edit, token, schema or API.
     - Name each step after what changed: "Add cat", "Make cat say Hello". These are also the undo labels (WP2.3).
