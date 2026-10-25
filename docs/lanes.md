@@ -71,5 +71,9 @@ Each session keeps its own section current. Newest entries first. One line each.
   - #72 curriculum arc templates. Owner chose: ship tale, myth, scene and explain; hold recount. **S4/S5:** proposed JSON for WP10.2; store part ids in `arc.parts`/`arcPart`, labels in translation files.
   - #73 eight classroom use cases with lesson outlines, ages 6–13, all four nations, all working with the Prompter off. **Owner:** review templates and use cases with teachers.
   - Corrected in #64, #65, #67, #72: recording a learner's own voice is WP14.4 (release 1.2), not the first release.
-- Blocked on: the owner's actions on WP17a (send the CMU and Anthropic emails) before WP17b's DPIA can cite their answers; WP19a waits for WP12a (S5).
-- Next: **WP19a**, website and teacher guide drafts (19.1, 19.2), once the mock-ups (WP12a) are approved; then **WP17b**, the DPIA and privacy notice (17.3, 17.4), after WP13b and WP14a (S7).
+- Open for review (25 Oct, **WP19a** drafted, mock-ups approved by the owner: 0044 in #70):
+  - #79 **19.1** website page drafts in `website/`: home, downloads per device and the browser version, getting started (learner, adult with a Claude key, class set-up, the school lock with every 15.3 policy key), privacy at a glance (draft until 17.4), credits. Rules for the site itself: no analytics, cookies or third-party loads. **Owner:** host and site tool, contact address, licence for the website text, then publish.
+  - #81 **19.2** the teacher guide, ten pages in `website/teacher-guide/`, with a home for the 24.7 journey pages. **Owner:** review with a pilot teacher.
+  - Both mark what isn't decided (24.2, 24.3, 17.8, 17.1, 19.4–19.6, signed builds) rather than promise it.
+- Blocked on: the owner's WP17a actions (the CMU and Anthropic emails) before WP17b's DPIA can cite their answers; WP17b also waits for WP13b and WP14a (S7).
+- Next: **WP17b**, the DPIA and privacy notice (17.3, 17.4), when S7's WP13b and WP14a land; meanwhile the owner's reviews of WP17a, WP16b and WP19a.
