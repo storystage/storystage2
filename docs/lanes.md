@@ -5,6 +5,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 ## S1 Platform and quality
 - Merged:
   - 8 Nov (#141): **the Prompter's Backstage catalogue (13.3)**: `catalogueText(manifest)` in `@storystage/backstage`, shipped models only, by section and class, with joint sets listed once; the build writes it as `prompter-catalogue.txt` and stops above 12,000 tokens (spec 17, section 4a). Descriptions for the 30 MakeHuman people. **S7: pass `catalogueText(manifest)` as `SystemCatalogs.backstage`.** Today's 50 models take about 2,800 tokens.
+  - 25 Oct: **the M1 device-run checklist** (#69, `docs/test/M1-device-checklist.md`): preparing the reference devices, the order of the runs (1.7 last: undoing its developer settings erases the Chromebook), a results template, and what each run decides. **AR is iPad-first** (decision 0042, #74): spike 1.9 and WP21 on the reference iPad; no Android tablet unless the IT managers (1.11) show schools have them.
   - 25 Oct: **Rust security advisories check** (#48): `cargo deny check advisories` in `desktop.yml` on the platforms we ship, and weekly (Mondays). Its first run found tokio 1.54.0 (RUSTSEC-2026-0384, yanked), updated to 1.54.1. Dependabot's glib alert is Linux-only, so it doesn't reach the app (`docs/github-settings.md`). CodeQL on `main` is green again without Python.
   - 25 Oct: **the Direction A design handoff** in `docs/design/direction-a/` (#49, without the Alice 3 screenshots), with the differences from the workplan listed on #49; the owner's decisions on it: age range (0030) and fonts (0031) (#50), and teacher Prompter levels (0034).
   - 22 Oct: platform upkeep: S1 sessions can push again (Claude GitHub App reinstalled for the organisation); CodeQL default setup saved without Python, which has had no source since WP0.10 and failed the `main` scan.
@@ -15,9 +16,9 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 21 Oct: **the WP0.8 contracts** (#26, #27, #29–#33) and spikes **1.4, 1.5, 1.6 go; 1.8 go for video** (#25, #28, #35). Spike pages: https://storystage.github.io/storystage2/
   - 20 Oct: WP0.1–0.7 (#1, #2, #4, #5, #18, #21, #22).
 - Blocked on:
-  - Owner: the reference Chromebook (Acer Spin 314, N100, 4 GB, chosen) and iPad (#6) for the M1 device runs of 1.2, 1.4, 1.5 and 1.8, and the export audio choice (does the Chromebook encode AAC?).
+  - Owner: the reference iPad, not yet chosen (#6), and the reference Chromebook (Acer Spin 314, N100, 4 GB, ordered), for the M1 device runs of 1.2, 1.3, 1.4, 1.5, 1.7 and 1.8 (steps: `docs/test/M1-device-checklist.md`), and for spike 1.9; then the export audio choice (does the Chromebook encode AAC?).
   - S4: the Alice converter (WP3b) for the Alice half of spike 1.2.
-- Next: spike 1.9 (AR) needs the devices; WP23a waits for WP5a (S3) and WP6 (S2); WP14b waits for S7. Until those land, S1 helps the M1 device runs and keeps CI healthy.
+- Next: spike 1.9 (AR) on the reference iPad, once it's chosen (0042); WP23a waits for WP5a (S3) and WP6 (S2); WP14b waits for S7. Until those land, S1 helps the M1 device runs and keeps CI healthy.
 
 ## S2 Language, runtime and Screening room
 - Merged:
