@@ -4,7 +4,7 @@ Eight lesson sequences built on the curriculum mapping ([../mapping.md](../mappi
 
 - **Workplan:** 16.6, "6–10 classroom use cases with lesson outlines (C drafts; U reviews with teachers)". They feed the teacher guide (19.2) and the pilot (WP19).
 - **Status:** draft, for the owner to review with teachers. The timings are estimates, to be tested in the pilot.
-- **Licence:** CC BY 4.0 (decision 0040). Teachers may copy and adapt them.
+- **Licence:** CC BY 4.0 (decision 0041). Teachers may copy and adapt them.
 
 ## The eight
 
