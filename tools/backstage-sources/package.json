@@ -1,0 +1,21 @@
+{
+  "name": "@storystage/backstage-sources",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WP3.7: fetches Backstage's CC0 sources from pinned URLs, writes them into a Backstage folder with their licence, credit and provenance, and draws their sketches. Not shipped.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "build-sources": "node src/cli.ts"
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@storystage/backstage": "workspace:*",
+    "@storystage/make-sketches": "workspace:*",
+    "@storystage/sketches": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
+  }
+}

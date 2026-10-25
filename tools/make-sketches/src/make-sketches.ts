@@ -13,7 +13,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { NodeIO } from '@gltf-transform/core';
 import {
   validateManifest,
   type BackstageItem,
@@ -23,7 +22,7 @@ import {
   BACKDROP_SKETCHES,
   canPose,
   makeItemSketches,
-  meshFromDocument,
+  meshFromModel,
   type SketchFlag,
 } from '@storystage/sketches';
 
@@ -54,7 +53,6 @@ export async function makeSketches(
   const touchUp: TouchUp = existsSync(touchUpFile)
     ? JSON.parse(await readFile(touchUpFile, 'utf8'))
     : {};
-  const io = new NodeIO();
   let written = 0;
   const overridden: string[] = [];
   const flagged: { file: string; flags: readonly SketchFlag[] }[] = [];
@@ -65,7 +63,7 @@ export async function makeSketches(
     const mesh =
       item.section === 'backdrops'
         ? null
-        : meshFromDocument(await io.read(join(dir, item.files.model)));
+        : await meshFromModel(await readFile(join(dir, item.files.model)));
     if (mesh && item.section === 'cast' && !canPose(mesh)) unposed.push(item.id);
     const made = makeItemSketches(item, mesh);
     for (const sketch of made) {

@@ -15,5 +15,8 @@
   },
   "devDependencies": {
     "vitest": "^5.0.5"
+  },
+  "exports": {
+    ".": "./src/make-sketches.ts"
   }
 }
