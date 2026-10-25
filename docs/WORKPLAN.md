@@ -482,7 +482,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
 - [ ] 3.1 **Licence audit:** list every candidate asset with its source, licence, credit line and ship / don't ship. For Alice's own models (about 340), the Alice 3 EULA, clause 5, says the gallery "is contributed by Electronic Arts Inc. and may be used for personal, non-commercial, and academic use only"; confirm with CMU which models CMU made and on what terms (WP17.1). (C drafts; U confirms with CMU)
 - [ ] 3.2 `tools/convert-alice-models`: a Java CLI that reuses StoryStage 1's model-loading code to read `.a3r` and `.a3t` files and write glTF 2.0. It keeps meshes, textures, skeleton and joint names, and the default pose. It runs once, on StoryStage 1's checkout, never ships, and writes a conversion report; the glTF files and report are committed with their provenance to an assets repository and the tool is archived, so StoryStage 1 need not stay buildable. Only models cleared in 3.1 are published. (C)
-- [ ] 3.3 **Joint map** (see `docs/spec/10-crosswalk.md`):
+- [x] 3.3 **Joint map** (see `docs/spec/10-crosswalk.md`):
     - humanoids use **VRM 1.0 bone names** as internal ids, with an **H-Anim (ISO/IEC 19774)** mapping;
     - Alice's friendly words (for example "mouth", "left elbow") are display names on the blocks;
     - Alice's two-joint wrist/hand and ankle/foot map onto the single standard bone, and a ring finger is added;
