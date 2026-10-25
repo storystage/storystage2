@@ -285,6 +285,28 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
+  tools/backstage-sources:
+    dependencies:
+      '@gltf-transform/core':
+        specifier: ^4.5.1
+        version: 4.5.1
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../../packages/backstage
+      '@storystage/make-sketches':
+        specifier: workspace:*
+        version: link:../make-sketches
+      '@storystage/sketches':
+        specifier: workspace:*
+        version: link:../../packages/sketches
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../../packages/story-api
+    devDependencies:
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
+
   tools/convert-alice-models:
     dependencies:
       '@gltf-transform/core':
