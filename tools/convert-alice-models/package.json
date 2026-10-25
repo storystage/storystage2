@@ -1,0 +1,11 @@
+{
+  "name": "@storystage/convert-alice-models",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Offline converter: Alice .a3r and .a3t models to glTF, using StoryStage 1's Java loader. Not shipped. Also lists Alice's gallery for the licence audit (WP3.1).",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p .",
+    "list-gallery": "node src/list-gallery-cli.ts"
+  }
+}
