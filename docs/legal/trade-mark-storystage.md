@@ -49,7 +49,7 @@
    5. For the US: does application 98855490 (STORY STAGE, class 28) or anything of Scholastic's block us; should we file in the US directly or through the Madrid system from the UK filing; and does a free app need "use in commerce" evidence first?
    6. What does a clearance search and opinion cost, and how long does it take?
 4. **Decide:** file, rename, or carry on unregistered with the known risk. Record the outcome as a decision in `docs/decisions/`.
-5. **Domains:** confirm who controls `storystage.org` (decision 0026 assumes StoryStage does) and `storystage.org.uk` (the website, WP19.1).
+5. **Domains:** the owner holds `storystage.org` (registered 21 Oct 2026; the website and `app.storystage.org`, decision 0046). `storystage.org.uk` is unregistered and the owner chose not to take it; ask the attorney whether someone else registering it is a risk worth a few pounds a year to avoid.
 
 ## 5. If the answer is "rename"
 
