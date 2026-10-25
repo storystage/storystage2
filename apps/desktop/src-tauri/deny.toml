@@ -1,6 +1,7 @@
 # Licence policy for the native layer's Rust crates (WP0.6): the same rules as NOTICE for
 # JavaScript (tools/repo/src/licences.ts). Everything here is linked into the app, so no GPL.
-# Run by the `licences (rust)` job in .github/workflows/desktop.yml.
+# Also the security advisories check (RustSec). Run by the `licences (rust)` and
+# `advisories (rust)` jobs in .github/workflows/desktop.yml.
 
 [graph]
 # Only the platforms StoryStage ships on (no Linux in the first release).
@@ -13,6 +14,12 @@ targets = [
   "aarch64-linux-android",
   "x86_64-linux-android",
 ]
+
+# Any advisory for a crate we ship fails the check, including unmaintained and unsound ones.
+# An entry in `ignore` needs its advisory id and the reason it can't reach the app.
+[advisories]
+unmaintained = "all"
+ignore = []
 
 [licenses]
 confidence-threshold = 0.9
