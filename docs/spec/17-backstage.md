@@ -3,7 +3,7 @@
 - **Covers:** Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches
 - **Work package:** WP3
 - **Owner:** S4
-- **Status:** sections 2a (the joint map, WP3.3) and 3 (sources and licences, WP3.1) written 25 Oct 2026. The other sections are written before the code they govern: 1 and 4 with WP3c, 2 with 3.10, 5 to 7 with WP3i.
+- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1) and 7 (sketches, WP10.5) written 25 Oct 2026. The other sections are written before the code they govern: 1 and 4 with WP3c, 2 with 3.10, 5 and 6 with WP3i.
 
 ## 0. Decisions this spec relies on
 
@@ -85,9 +85,48 @@ _To be written._
 
 _To be written._
 
-## 7. In-app sketches
+## 7. Sketches
 
-_To be written._
+The Storyboard's frames use sketches only (decision 0014). Every sketch is generated from a Backstage model, or hand-made for backdrops and storyboard marks (workplan 10.5; decision of 18 Oct 2026, "Storyboard sketches"). The code is `packages/sketches` (the renderer, used offline and in the app) and `tools/make-sketches` (the offline run over a Backstage folder).
+
+### Rules
+
+1. **What each item gets.**
+    - Every model gets four **facings**: front, three-quarter, side and back.
+    - A **Cast** member whose skeleton maps onto the joint map (section 2a) also gets each standard **pose** in each facing: walk, point and sit. That makes 16 sketches. Its plain facings are drawn standing, with arms down, whatever pose the model rests in.
+    - Cast that can't be posed, and all Props and Set items, get the four facings of the model as it is.
+    - **Backdrops** get one hand-made sketch (section 7, rule 6).
+2. **Facing on the page.** A model faces +Z. Front shows its face, and back its back. Side and three-quarter show it **facing the sketch's left**. A placed sketch's `flipped` (`PlacedSketch` in `@storystage/production`) turns it to face right. Setting the stage (10.10) reads facing and flip together.
+3. **Style.** Black lines on a white shape, as a storyboard artist draws:
+    - outer and silhouette lines 3 units wide; inner folds 1.5 units wide;
+    - an inner fold is drawn where faces meet at more than 45°;
+    - hidden lines are never drawn;
+    - the white shape covers the model's whole outline, holes left open, so a sketch in front hides one behind on a frame.
+
+    The longer side is 320 units, with a margin of 4 units.
+4. **Each sketch carries its model's Backstage id** (`data-backstage-id` in the SVG), its facing and pose (`data-facing`, `data-pose`), and a title for screen readers in plain words ("Robot, side, walking"). Files sit at `sketches/<id>/<facing>[-<pose>].svg` in the Backstage folder. A backdrop's sketch is at `sketches/<id>/backdrop.svg`. Each item's `sketches` list in `backstage.json` records them.
+5. **Poses** are set as directions for each limb segment in model space, not as joint turns, so one pose works on any rig, whether it rests in a T-pose or an A-pose. The skin follows on the CPU. Only the arms and legs move. The pose names are `POSES` in `@storystage/sketches`, and `pose: null` on a placed sketch means standing.
+6. **Hand-made sketches** in the same style:
+    - storyboard marks: speech bubble, thought bubble, movement arrow, camera move, text;
+    - backdrop sketches: open ground, hills, trees, buildings, sea, room, night sky, day sky.
+
+    A backdrop's sketch is chosen from words in its name and themes ("Forest floor" gives trees), unless `touch-up.json` names another.
+7. **The touch-up list.** Each run writes `sketches/touch-up.md`. It flags sketches a person should look at:
+    - **empty:** nothing shows;
+    - **thin:** under 12 units across, such as a sign seen edge-on;
+    - **busy:** lines more than 14 times the length of the sketch's outline box.
+
+    It also lists Cast drawn without poses. A hand-drawn SVG in the same style can replace any sketch through `sketches/touch-up.json` (`overrides`: sketch file → replacement file). Later runs keep it.
+8. **The renderer runs on the CPU, in plain TypeScript, with no GPU or browser API** (owner's decision, 25 Oct 2026, replacing "Babylon offscreen" in workplan 10.5). It projects the model, fills a depth buffer at twice the sketch's resolution, and draws open edges, silhouettes and folds where the depth buffer shows them, as vector lines. The same code runs in Node for `tools/make-sketches` and in a Web Worker for imports (section 5, 3.11). It gives the same SVG for the same model on every machine, so sketches can be tested and committed.
+9. **Speed.** About 0.2 s per sketch on the owner's 4 GB development PC, for small models; models are reduced to the device budget first (section 4). A posable character's 16 sketches must take under 10 s on the reference Chromebook. That is checked in the device run with the first imported character (WP3i).
+
+### How the tool is run
+
+```
+node tools/make-sketches/src/cli.ts <backstage folder> [--dry-run]
+```
+
+It reads `backstage.json`, which must validate, and every model it names. It writes the sketches, each item's `sketches` list and the touch-up list. It is re-run whenever WP3b adds models.
 
 ## 8. Tests
 
@@ -99,4 +138,10 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 2a.7 and mapping: normalising names; each convention maps its fixture with every required joint; the shoulder trap; numbered spines; Rigify's hips; wrist over hand; prop only with the missing joints listed; one bone per joint | `packages/backstage/src/skeleton-map.test.ts` | Unit (Vitest) |
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
 | 3.1–3.3: every shipped item has an allowed licence, a credit and a source | `validateManifest` (`packages/backstage/src/manifest.test.ts`); refusing SA and NC in shipped items comes with WP3c | Unit (Vitest) |
+| 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
+| 7.5: every limb points where its pose says, bone lengths kept; only full humanoids posed | `packages/sketches/src/pose.test.ts` | Unit (Vitest) |
+| 7.1, 7.4, 7.6, 7.7: which sketches each item gets; file names and titles; marks and backdrop sketches; empty, thin and busy flags | `packages/sketches/src/library.test.ts` | Unit (Vitest) |
+| Reading glTF: placed meshes, rigged models in their rest pose, binary glTF | `packages/sketches/src/gltf.test.ts` | Unit (Vitest) |
+| 7.4, 7.7 and the tool: sketches written and recorded in a manifest that still validates; touch-up list; hand-drawn replacements; dry run | `tools/make-sketches/src/make-sketches.test.ts` | Unit (Vitest) |
+| 7.9: 16 sketches in under 10 s on the reference Chromebook | Device run with the first imported character (WP3i) | Device |
 | Every shipped model loads in Babylon.js with its mapped joints (WP3 done-when) | With the first shipped models (WP3b) | Integration, in CI |

@@ -21,11 +21,13 @@ tauri-build  2  Apache-2.0 OR MIT
 serde  1  MIT OR Apache-2.0
 serde_json  1  MIT OR Apache-2.0
 
-== Linked into the app (6) ==
+== Linked into the app (8) ==
 
+@gltf-transform/core  4.5.1  MIT
 @types/dom-mediacapture-transform  0.1.12  MIT
 @types/dom-webcodecs  0.1.13  MIT
 mediabunny  1.62.0  MPL-2.0
+property-graph  4.1.0  MIT
 react  19.3.1  MIT
 react-dom  19.3.1  MIT
 scheduler  0.28.0  MIT
