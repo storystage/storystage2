@@ -7,7 +7,7 @@ StoryStage 1's TR1 script is in `docs/carried-over/test/TR1-manual.md`. Its chec
 | Milestone | Gate (what the owner sees) | Script | Status |
 |---|---|---|---|
 | M0 Foundations | Repo, CI and spec skeleton exist | [M0-foundations.md](M0-foundations.md) | ready |
-| M1 Spikes | Go/no-go per spike on the reference devices | [M1-spikes.md](M1-spikes.md) | ready for the spikes built so far (1.4, 1.5, 1.8); 1.2, 1.3, 1.7 and 1.9 are added as they're built |
+| M1 Spikes | Go/no-go per spike on the reference devices | [M1-spikes.md](M1-spikes.md), with the [device-run checklist](M1-device-checklist.md) | ready for 1.2, 1.3, 1.4, 1.5, 1.7 and 1.8; 1.9 is added when it's built |
 | M2 One scene, coded | In the browser: add models to a scene, code it with blocks, Rehearse it | M2-one-scene.md | with WP7 (S5, S6) |
 | M3 Productions | Several scenes in one `.storystage` file play in order with cuts and fades | M3-productions.md | with WP8 (S4) |
 | M4 Storyboard | A production planned in the Storyboard; frames link to code; cast placed from frames | M4-storyboard.md | with WP10 (S5) |
