@@ -7,7 +7,7 @@ The steps around the device runs: getting the devices ready, the order to run th
 | # | Do | ✓ |
 |---|---|---|
 | 1 | **Choose the reference iPad** (#6): a current non-Pro iPad, ideally the base model schools buy most. Safari 26 is needed for spike 1.8, so it must run iPadOS 26. Note its model and storage size. | |
-| 2 | **Decide the Android tablet for spike 1.9 (AR).** Workplan 1.9 and 21.6 ask for an Android tablet with ARCore, as well as the Chromebook and the iPad. The M1 runs of 1.2–1.8 don't need it. Either choose one, or ask S1 to propose trying AR on the Chromebook instead (a plan change). | |
+| 2 | **No Android tablet needed.** AR is iPad-first (decision 0042): spike 1.9 runs on the reference iPad. Don't buy an Android tablet unless the school IT managers (1.11) show schools have them. | |
 | 3 | Comment on #6 with the Chromebook (Acer Chromebook Spin 314, N100, 4 GB) and the iPad: model, and whether school-managed Chromebooks allow Android apps, if you know. S1 records them in `docs/spikes/devices.md`. | |
 | 4 | Use the devices as **your own**, signed in with a personal account, not enrolled in a school's management. Spike 1.7 needs developer settings that school management usually blocks. | |
 
@@ -77,6 +77,6 @@ Then S1:
 - fills in the M1 rows of `docs/spikes/REPORT.md`, and the go or no-go record for each spike in `docs/decisions/`, once you've decided;
 - writes `docs/spikes/devices.md` and closes #6 (WP1.1);
 - records the actual dates for WP1.1 and WP1 in `tools/plan/schedule.yaml`, and says what moved;
-- starts building spike 1.9 (AR), once the Android tablet question (section 1, row 2) is settled.
+- starts building spike 1.9 (AR) on the reference iPad (decision 0042), then adds its steps to `M1-spikes.md`.
 
 WP1 is done when you've read the report and recorded go or no-go for each spike.
