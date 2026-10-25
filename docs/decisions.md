@@ -50,6 +50,9 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Light theme | A light theme as well as the dark one in the first release; drawn as mock-ups and approved before any light-theme code is built (0032) | 25 Oct 2026 |
 | Narrow windows | Designed for windows 1024 px wide and up; below that, a note asks to turn the iPad sideways or widen the window. No portrait layout in the first release (0033) | 25 Oct 2026 |
 | Teacher Prompter levels | Four levels per class, as on screen 11: Off, Explain only, Plan only, Full. Full allows Show me how and Build it; the story coach is on at every level except Off. Expressed with the existing policy keys (0034) | 25 Oct 2026 |
+| Zoom and text size | The three working tabs show 0033's note below 1024 px (two-dimensional layout, WCAG 1.4.10); Settings, Learn, set-up and dialogs reflow to 320 px; a Text size setting (100–150%) enlarges type (0035) | 25 Oct 2026 |
+| Languages | English (UK) only in the first release; all strings in translation files so Welsh, Scottish Gaelic or Irish can follow (0036) | 25 Oct 2026 |
+| Theme setting | Once light is approved: Dark (default), Light, or Match this device (0037) | 25 Oct 2026 |
 
 ## Still to decide (owner)
 
