@@ -1,9 +1,9 @@
 # Curriculum arc templates (WP16.6, part 1)
 
 - **Workplan:** 16.6, "curriculum arc templates and 6–10 classroom use cases with lesson outlines (C drafts; U reviews with teachers)". The use cases are in [use-cases/](use-cases/README.md).
-- **Decisions:** 0018 (3- and 5-part templates ship regardless; curriculum templates follow the mapping), 0038 (ages 6–13), 0012 (storyboard first), rule 4 (the learner writes every word of the story; the story coach only asks).
+- **Decisions:** 0018 (3- and 5-part templates ship regardless; curriculum templates follow the mapping), 0039 (ages 6–13), 0012 (storyboard first), rule 4 (the learner writes every word of the story; the story coach only asks).
 - **Status:** **the owner chose on 25 October 2026 to ship tale, myth, scene and explain; recount is held** (WP16's done-when). The wording is a draft until the owner has reviewed it with teachers (16.6).
-- **Licence:** CC BY 4.0 (decision 0040).
+- **Licence:** CC BY 4.0 (decision 0041).
 
 ## How a template works
 
@@ -14,7 +14,7 @@ A learner picks an arc template after writing the title, logline and synopsis (W
 
 **Teacher notes** and curriculum links appear in the teacher guide (WP19.2), never on the learner's screen.
 
-**The words on screen** follow the plain-words rules (CLAUDE.md rule 9): short, in the learner's view, readable by a 7-year-old with help. Every label and question goes into the translation files (decision 0036), with Welsh first in release 1.1 (0039).
+**The words on screen** follow the plain-words rules (CLAUDE.md rule 9): short, in the learner's view, readable by a 7-year-old with help. Every label and question goes into the translation files (decision 0036), with Welsh first in release 1.1 (0040).
 
 ## The choice (owner, 25 October 2026)
 
@@ -107,7 +107,7 @@ For a historical event or a way of life. Ages 6–13. **Held** (see the recommen
 
 The production format (WP0.8, `packages/production/src/types.ts`, owned by S4) stores a curriculum template as `{ curriculum: '<id>' }`, its parts in `arc.parts`, and a scene's part in `arcPart`. Here is proposed data for S4 and S5 to put where WP10.2 keeps the built-in templates.
 
-**One suggestion for S4:** the example production stores part names as plain words (`'beginning'`). If `arc.parts` and `arcPart` hold the **part ids** below, and the labels come from the translation files, then a production made in English still opens correctly in Welsh (decision 0039).
+**One suggestion for S4:** the example production stores part names as plain words (`'beginning'`). If `arc.parts` and `arcPart` hold the **part ids** below, and the labels come from the translation files, then a production made in English still opens correctly in Welsh (decision 0040).
 
 ```json
 {
