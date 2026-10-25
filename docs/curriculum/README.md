@@ -12,12 +12,12 @@ Session D keeps this folder. It shows where StoryStage 2 meets each nation's cur
 |---|---|---|
 | [features.md](features.md) | — | The StoryStage features (`F-`), classroom activities (`A-`) and arc templates (`ARC-`) every mapping row points to |
 | [england.md](england.md) | 16.1 | National curriculum in England: computing (KS1–KS3), English, art and design, history and science |
-| `scotland.md` | 16.2 | Curriculum for Excellence: technologies, literacy and English, expressive arts |
-| `wales.md` | 16.3 | Curriculum for Wales: science and technology; languages, literacy and communication; expressive arts; the Digital Competence Framework |
-| `northern-ireland.md` | 16.4 | The Northern Ireland Curriculum: language and literacy, the arts, Using ICT |
-| `mapping.md` | 16.5 | All four together: each statement against feature, activity, arc template and age, with the most-touched statements highlighted |
+| [scotland.md](scotland.md) | 16.2 | Curriculum for Excellence: technologies, literacy and English, expressive arts |
+| [wales.md](wales.md) | 16.3 | Curriculum for Wales: science and technology; languages, literacy and communication; expressive arts; the Digital Competence Framework |
+| [northern-ireland.md](northern-ireland.md) | 16.4 | The Northern Ireland Curriculum: language and literacy, the arts, Using ICT |
+| [mapping.md](mapping.md) | 16.5 | All four together: each statement against feature, activity, arc template and age, with the most-touched statements highlighted |
 
-Files without a link yet arrive in their own pull requests.
+Each page arrives in its own pull request (#64 to #68); merge this one first.
 
 ## Method
 
