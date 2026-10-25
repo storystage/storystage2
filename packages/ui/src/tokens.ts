@@ -1,6 +1,6 @@
 /**
- * Design tokens (WP12.2): Direction A's values for the dark theme, and the light theme drawn for the
- * owner's approval (decision 0032). Tokens are named by role, never by colour, so a theme only
+ * Design tokens (WP12.2): Direction A's values for the dark theme, and the light theme approved by the
+ * owner (decisions 0032, 0038). Tokens are named by role, never by colour, so a theme only
  * swaps values. Where a colour plays more than one role (amber as a fill, as text, as an outline),
  * each role has its own token, because the light theme needs a different value for each.
  */

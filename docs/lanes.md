@@ -35,12 +35,13 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S5 Studio interface
 - Merged:
+  - 25 Oct: the owner approved the light theme as drawn, with the darker ok and stop (decision 0038).
   - 25 Oct (PR open): **WP12b, `packages/ui` with tokens and strings (12.2, 12.4)**: `@storystage/ui`, the new design-system package (07-ux §2.6): role-named colour tokens for both themes, type, spacing, radius and sizes; a contrast test over every text and outline pairing in both themes (it caught three, now fixed: light `ok` and `stop` darkened); the strings helper (`{name}` values, plurals) with `en-GB.json`, and a test that scans every package's strings for rule 9's banned words. **S2, S3, S6:** use `@storystage/ui` tokens and strings; components follow.
   - 25 Oct (#63): **WP12b spec**, `07-ux.md` §2–5; owner decisions 0035 (zoom and text size), 0036 (English (UK) only), 0037 (theme setting).
   - 25 Oct (#62): **WP12a, the light theme drawn (12.1, decision 0032)**: every screen in `sizes/` opens in the light theme with `?theme=light`; PNGs in `screenshots/light/`; the light token values tabled in the handoff README. Text and outlines checked against WCAG AA in both themes.
   - 25 Oct (#58): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, `docs/spec/07-ux.md` §1 (screen sizes), and decisions 0032 (light theme) and 0033 (narrow windows). 12.1 stays unticked until the owner approves it.
 - Blocked on:
-  - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6); approving the light theme before any light-theme code (decision 0032).
+  - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6).
 - Next: WP12b continued: bundled fonts and icons (Fontsource, decision 0031), React Aria Components, and the component library checked against screen 14 (12.3); then axe in Playwright (12.5).
 
 ## S6 Story API spec, Tile editor and Alice import

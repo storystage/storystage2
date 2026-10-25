@@ -43,3 +43,4 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0035](0035-zoom-and-text-size.md) | Zoom and text size | 25 Oct 2026 |
 | [0036](0036-languages.md) | Languages | 25 Oct 2026 |
 | [0037](0037-theme-setting.md) | Theme setting | 25 Oct 2026 |
+| [0038](0038-light-theme-approved.md) | Light theme approved | 25 Oct 2026 |

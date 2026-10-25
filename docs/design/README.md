@@ -16,8 +16,8 @@ The first-release interface design, handed over by the owner on 22 Oct 2026: 20 
 - **Age range:** 6 to 13, provisionally, until the curriculum review (decision 0030).
 - **Fonts:** Bricolage Grotesque, Atkinson Hyperlegible (OFL-1.1) and Material Symbols Rounded, bundled from Fontsource packages, never loaded from Google Fonts (decision 0031).
 - **School key and Prompter use reports (screen 11b):** routing through "the school's service" and "Email me at 80%" both need a server, so they stay open until the decision on how the Prompter reaches a group (WP24.3, due at M1). Until then, build 11b's key and limits on the device only.
-- **Light theme:** yes, drawn as mock-ups and approved before it is built (decision 0032). Drawn on 25 Oct 2026: open `sizes/index.html?theme=light`; PNGs in `screenshots/light/`; the values are tabled in the handoff README ("Colour, light theme"). Waiting for the owner's approval.
+- **Light theme:** yes, drawn as mock-ups and approved before it is built (decision 0032). Drawn on 25 Oct 2026: open `sizes/index.html?theme=light`; PNGs in `screenshots/light/`; the values are tabled in the handoff README ("Colour, light theme"). **Approved by the owner on 25 Oct 2026** (decision 0038).
 - **Narrow windows:** nothing below 1024 px wide; a note asks to turn the iPad or widen the window (decision 0033).
 - **Teacher Prompter levels (screen 11):** Off, Explain only, Plan only and Full, as drawn. Full allows Show me how and Build it; the story coach is on at every level except Off (decision 0034).
 
-**Still open for the owner:** approving the light theme; approving the mock-ups, which 12.1 says comes after the teacher interviews (16.7) and the first use cases (16.6).
+**Still open for the owner:** approving the mock-ups, which 12.1 says comes after the teacher interviews (16.7) and the first use cases (16.6).

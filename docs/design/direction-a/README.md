@@ -10,7 +10,7 @@ This is the owner's handoff of 22 Oct 2026, edited where it disagreed with `CLAU
 | 3 | Stack | Fixed: React and TypeScript ([0006](../../decisions/0006-ui.md)), Babylon.js ([0007](../../decisions/0007-3d.md)) |
 | 4 | School key, school service, "Email me at 80%" (11b) | **Open** until WP24.3 (M1). Build 11b with the key and limits on the device ([0005](../../decisions/0005-api-key.md)) |
 | 5 | Fonts | Bundled from Fontsource, never from Google Fonts ([0031](../../decisions/0031-fonts.md)) |
-| 6 | Theme | Dark as drawn, plus a light theme drawn on 25 Oct 2026 for the owner's approval ([0032](../../decisions/0032-light-theme.md)); see "Colour, light theme" |
+| 6 | Theme | Dark as drawn, plus a light theme drawn on 25 Oct 2026 and approved ([0032](../../decisions/0032-light-theme.md), [0038](../../decisions/0038-light-theme-approved.md)); see "Colour, light theme" |
 | 7 | Tiles look | Alice 3's grammar with our own artwork until Carnegie Mellon replies (WP17.1) |
 | 8 | Alice screenshots (`reference/`) | Not in this repository; the owner holds them |
 | 9 | Sizes | Laptop and iPad sizes added in [`sizes/`](sizes/index.html) (12.1); rules in `docs/spec/07-ux.md` §1; nothing below 1024 px wide ([0033](../../decisions/0033-narrow-windows.md)) |
@@ -92,7 +92,7 @@ Open `design/StoryStage Direction A - Index.dc.html` in a browser. It links to e
 
 ## Design tokens
 
-**Theme:** these are the dark theme's values; dark is the only theme drawn. The first release also has a light theme (decision 0032). Its values are in "Colour, light theme" below, drawn for the owner's approval; until it is approved, WP12b builds the dark theme first. Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
+**Theme:** these are the dark theme's values; dark is the only theme drawn. The first release also has a light theme (decision 0032). Its values are in "Colour, light theme" below, approved by the owner (decision 0038). Name tokens by role (`panel-2`, `chalk`), never by colour, so a second theme only swaps values.
 
 ### Colour (Direction A)
 | Token | Hex | Use |
@@ -132,7 +132,7 @@ Status colours, by status:
 
 **Status is never shown by colour alone.** Every status always shows its icon and its word.
 
-### Colour, light theme (decision 0032; draft for the owner's approval)
+### Colour, light theme (decisions 0032 and 0038; approved 25 Oct 2026)
 The light theme keeps every role and swaps its value. Neutrals turn from a dark stage to warm paper and ink. Fills keep the amber, the Prompter teal and the block colours, so the active tab, primary buttons, the AI badge and blocks look the same in both themes. An accent used as **text or an outline** takes a darker shade, so text reaches 4.5:1 and outlines 3:1 on paper. Mock-ups: open any screen in `sizes/` with `?theme=light`, or `sizes/index.html?theme=light`; PNGs in `screenshots/light/`.
 
 | Token | Dark | Light | Notes |

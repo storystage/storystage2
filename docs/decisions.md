@@ -53,6 +53,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Zoom and text size | The three working tabs show 0033's note below 1024 px (two-dimensional layout, WCAG 1.4.10); Settings, Learn, set-up and dialogs reflow to 320 px; a Text size setting (100–150%) enlarges type (0035) | 25 Oct 2026 |
 | Languages | English (UK) only in the first release; all strings in translation files so Welsh, Scottish Gaelic or Irish can follow (0036) | 25 Oct 2026 |
 | Theme setting | Once light is approved: Dark (default), Light, or Match this device (0037) | 25 Oct 2026 |
+| Light theme approved | The light theme as drawn (#62), with ok `#1C7431` and stop `#B0412A` (#71); light-theme code may be built (0038) | 25 Oct 2026 |
 
 ## Still to decide (owner)
 
