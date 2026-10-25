@@ -54,10 +54,10 @@ Each session keeps its own section current. Newest entries first. One line each.
 ## D Documents
 - Merged:
 - Open for the owner (25 Oct, **WP17a** drafted, every item needs-owner; boxes stay open until the owner acts):
-  - #51 **17.1, 17.7** the CMU and EA email, the correspondence log, and the `docs/legal/` index with the permission-record format the Backstage manifest points to. **Owner: send it.**
-  - #52 **17.5** Anthropic's terms for under-18s: allowed with safeguards; the key holder is Anthropic's customer; nine requirements. **S7, S8:** R1–R9 for specs 04 and 05.
-  - #53 **17.6** trade mark brief: Scholastic's 2010 "Story Stage" CD-ROMs (UK, ages 5–7) are the main question. **Owner: register search, then an attorney, before M6.**
+  - #51 **17.1, 17.7** the CMU and EA email, the correspondence log, and the `docs/legal/` index with the permission-record format the Backstage manifest points to. It now also asks StoryStage 1's never-sent WP15.1 question. **Owner: send it.**
+  - #52 **17.5** Anthropic's terms for under-18s: allowed with safeguards; the key holder is Anthropic's customer; ten requirements. Owner decided: parents may hold the key (Anthropic to confirm); apps in the UK and US stores, so R10 adds a US check (COPPA, store kids rules). **S7, S8:** R1–R10 for specs 04 and 05 and the store builds. **Owner: send the Anthropic question.**
+  - #53 **17.6** trade mark brief: Scholastic's 2010 "Story Stage" CD-ROMs (UK, ages 5–7) are the main question in the UK, and a STORY STAGE application in the US. **Owner: register search, then an attorney, before M6.**
   - #54 **17.8** storybook characters: a rights check for about 30 characters and groups; leaves out Pooh, Peter Rabbit and Peter Pan. **S4:** WP3d waits for the owner's decisions.
-  - #55 **17.9** the commissioning contract template. **Owner: solicitor's review.**
+  - #55 **17.9** the commissioning contract template; the owner signs as Commissioner, trading as StoryStage. **Owner: solicitor's review.**
 - Blocked on: nothing for WP16a.
 - Next: **WP16a**, the curriculum mapping for the four nations (16.1–16.5).
