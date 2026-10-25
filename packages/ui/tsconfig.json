@@ -1,8 +1,11 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // For the tests, which read every package's strings from disk.
+    "jsx": "react-jsx",
+    // Fontsource ships index.d.css.ts beside its stylesheets.
+    "allowArbitraryExtensions": true,
+    // For the tests, which read every package's strings and styles from disk.
     "types": ["node"]
   },
-  "include": ["src"]
+  "include": ["src", "scripts", "vitest.config.ts"]
 }

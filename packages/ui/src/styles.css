@@ -1,0 +1,175 @@
+/*
+  @storystage/ui styles (WP12.3). Tokens only: every colour is a var(--ss-*) set by ThemeRoot, so a
+  theme swaps values and nothing else (07-ux 2.2; styles.test.ts fails on a colour value here).
+  Components use React Aria Components, which mark their state with data attributes:
+  data-focus-visible, data-pressed, data-hovered, data-disabled.
+
+  --ss-surface is the colour under a control. A container sets it, so a focus ring's 2 px gap
+  matches what the control sits on (Direction A's focus ring).
+*/
+
+.ss-root {
+  --ss-surface: var(--ss-stage-0);
+  font-family: var(--ss-font-body);
+  font-size: calc(16px * var(--ss-text-size, 1));
+  line-height: 1.35;
+  color: var(--ss-text);
+  background: var(--ss-stage-0);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ss-root * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Icons: inline SVG in the text colour, unless a component gives them their own. */
+.ss-icon {
+  flex: none;
+  fill: currentColor;
+}
+
+/* Button: 44 px or taller, radius 12, icon and label (Direction A, Components). */
+.ss-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ss-text);
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.ss-button[data-size='key'] {
+  min-height: 52px;
+}
+.ss-button[data-variant='primary'] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+}
+.ss-button[data-variant='strong'] {
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+}
+.ss-button[data-variant='secondary'] {
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+}
+.ss-button[data-variant='stop'] {
+  box-shadow: inset 0 0 0 1.5px var(--ss-stop);
+}
+.ss-button[data-variant='stop'] .ss-icon {
+  fill: var(--ss-stop);
+}
+.ss-button[data-variant='prompter'] {
+  color: var(--ss-on-prompter);
+  background: var(--ss-prompter);
+}
+.ss-button[data-disabled] {
+  color: var(--ss-unavailable-text);
+  background: var(--ss-unavailable-bg);
+  box-shadow: none;
+  cursor: default;
+}
+.ss-button[data-pressed] {
+  translate: 0 1px;
+}
+
+/* Focus: a 2 px gap in the surface's colour, then the ring (Direction A). */
+.ss-button[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.ss-button[data-variant='secondary'][data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-2),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.ss-button[data-variant='stop'][data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 1.5px var(--ss-stop),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+/* On amber and the Prompter's teal, the ring is chalk (dark) or ink (light), after an amber gap. */
+.ss-button[data-variant='primary'][data-focus-visible],
+.ss-button[data-variant='prompter'][data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-amber),
+    0 0 0 4px var(--ss-focus-on-amber);
+}
+
+/* The AI badge: always on the Prompter, never anywhere else. */
+.ss-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ss-on-prompter);
+  background: var(--ss-prompter);
+}
+
+/* Status chip: icon and word, never colour alone. */
+.ss-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ss-status[data-status='planned'] {
+  color: var(--ss-status-planned);
+}
+.ss-status[data-status='staged'] {
+  color: var(--ss-status-staged);
+}
+.ss-status[data-status='coded'] {
+  color: var(--ss-status-coded);
+}
+.ss-status[data-status='rehearsed'] {
+  color: var(--ss-amber-text);
+}
+.ss-status[data-status='checked'] {
+  color: var(--ss-ok);
+}
+.ss-status[data-status='lookAt'] {
+  color: var(--ss-flag);
+}
+
+/* Visually hidden, still read by screen readers. */
+.ss-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (forced-colors: active) {
+  .ss-button {
+    border: 1px solid ButtonText;
+  }
+  .ss-button[data-focus-visible] {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+  .ss-icon {
+    fill: currentColor;
+  }
+}
