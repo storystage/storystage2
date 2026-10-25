@@ -20,3 +20,4 @@ The first-release interface design, handed over by the owner on 22 Oct 2026: 20 
 - **Narrow windows:** nothing below 1024 px wide; a note asks to turn the iPad or widen the window (decision 0033).
 
 **Still open for the owner:** approving the mock-ups, which 12.1 says comes after the teacher interviews (16.7) and the first use cases (16.6).
+- **Teacher Prompter levels (screen 11):** Off, Explain only, Plan only and Full, as drawn. Full allows Show me how and Build it; the story coach is on at every level except Off (decision 0034).

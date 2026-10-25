@@ -49,6 +49,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Fonts | Bricolage Grotesque and Atkinson Hyperlegible under OFL-1.1, Material Symbols Rounded (Apache-2.0). OFL-1.1 is allowed for font packages only; fonts are bundled, never loaded from Google Fonts (0031) | 25 Oct 2026 |
 | Light theme | A light theme as well as the dark one in the first release; drawn as mock-ups and approved before any light-theme code is built (0032) | 25 Oct 2026 |
 | Narrow windows | Designed for windows 1024 px wide and up; below that, a note asks to turn the iPad sideways or widen the window. No portrait layout in the first release (0033) | 25 Oct 2026 |
+| Teacher Prompter levels | Four levels per class, as on screen 11: Off, Explain only, Plan only, Full. Full allows Show me how and Build it; the story coach is on at every level except Off. Expressed with the existing policy keys (0034) | 25 Oct 2026 |
 
 ## Still to decide (owner)
 
