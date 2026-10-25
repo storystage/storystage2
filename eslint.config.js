@@ -14,6 +14,8 @@ export default tseslint.config(
       'playwright-report/**',
       'test-results/**',
       'spikes/**',
+      // Design references (HTML prototypes and their generated runtime), not app code.
+      'docs/design/**',
     ],
   },
   js.configs.recommended,
