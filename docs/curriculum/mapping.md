@@ -132,11 +132,11 @@ Every nation has strong touch points from the start of formal schooling to the e
 - **The youngest learners:** England Year 1 (age 5–6), Scotland First level (from P2), Wales step 1 (about 5), Northern Ireland KS1 (P3, age 6–7).
 - **The oldest:** England KS3, Scotland Third level, Wales step 4 and Northern Ireland KS3, all to age 14, though the KS3 computing fit is weaker.
 
-**Recommendation:** confirm **6 to 13**. Learners aged 6–7 need teacher-led use and reading support (voice input and captions, `F-VOX`). The KS3 computing gap is met by the pathway, not by stretching the age range.
+**Decided (owner, 25 October 2026): 6 to 13 is confirmed**, replacing the provisional range in decision 0030. Learners aged 6–7 need teacher-led use and reading support (voice input and captions, `F-VOX`). The KS3 computing gap is met by the pathway, not by stretching the age range.
 
-## 8. Questions for the owner
+## 8. The owner's answers (25 October 2026), and what is still open
 
-1. **Confirm the age range** (0030), on the evidence in section 7.
-2. **Interface languages.** Welsh is compulsory in Wales, and many Welsh learners are taught through Welsh. Scotland has Gaelic-medium schools, and Northern Ireland has Irish-medium schools (with their own KS3 "Irish with Media Education"). An English-only interface rules StoryStage out of those classrooms. S5 already keeps wording in one place; the question is whether Welsh is in the first release, release 1.1, or later.
-3. **A licence for this folder,** so teachers can reuse and adapt the mapping and the lesson outlines (decision 0025 left documentation and curriculum material to WP17). CC BY 4.0 is the usual choice for teaching material.
-4. **Remapping.** England's draft programmes, Scotland's framework and Northern Ireland's Curriculum 2028 will all land between late 2026 and 2028 (README, "Reform watch"). Session D remaps each one when it is published.
+1. **Age range: 6 to 13, confirmed** (section 7).
+2. **Interface languages.** Welsh is compulsory in Wales, and many Welsh learners are taught through Welsh. Scotland has Gaelic-medium schools, and Northern Ireland has Irish-medium schools (with their own KS3 "Irish with Media Education"). An English-only interface rules StoryStage out of those classrooms. **Decided: English for the first release and the pilot, Welsh in release 1.1**, with Gaelic and Irish later if schools ask. S5 keeps every piece of wording in one place from now, so Welsh is a translation, not a rebuild.
+3. **A licence for this folder,** so teachers can reuse and adapt the mapping and the lesson outlines (decision 0025 left documentation and curriculum material to WP17). **Decided: CC BY 4.0** ([README.md](README.md), last section).
+4. **Still open: remapping.** England's draft programmes, Scotland's framework and Northern Ireland's Curriculum 2028 will all land between late 2026 and 2028 (README, "Reform watch"). Session D remaps each one when it is published.
