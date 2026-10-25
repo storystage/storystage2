@@ -37,3 +37,5 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0029](0029-main-bypass-and-merging.md) | Main branch bypass and merging | 21 Oct 2026 |
 | [0030](0030-age-range.md) | Age range (provisional) | 25 Oct 2026 |
 | [0031](0031-fonts.md) | Fonts | 25 Oct 2026 |
+| [0032](0032-light-theme.md) | Light theme | 25 Oct 2026 |
+| [0033](0033-narrow-windows.md) | Narrow windows | 25 Oct 2026 |

@@ -1,0 +1,35 @@
+/*
+  Direction A at three sizes (docs/spec/07-ux.md, section 1):
+    laptop       1440 px wide and up   (drawn at 1536 x 864)
+    Chromebook   1280-1439 px          (drawn at 1366 x 768, the handoff size)
+    iPad         1024-1279 px          (drawn at 1180 x 820, landscape)
+  The screens are the handoff's markup with inline styles; these rules override them per size.
+*/
+body { margin: 0; background: #13100e; overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+/* Every size */
+[data-r='backstage-rail'] { display: none !important; }
+[data-r='scene-view'] { height: max(248px, calc(248px + (100vh - 768px) / 2)) !important; }
+[data-r='player-col'] { width: auto !important; flex: 1 1 0 !important; min-width: 0; }
+[data-r='running-order'] { flex: none !important; }
+[data-r='rough-cut'] { flex: 0 0 544px !important; }
+
+/* Laptop */
+@media (min-width: 1440px) {
+  [data-r='rough-cut'] { flex-basis: 560px !important; }
+  [data-r='settings-grid'] { grid-template-columns: 400px 1fr 1fr !important; }
+}
+
+/* iPad, landscape */
+@media (max-width: 1279px) {
+  [data-r='wordmark'] { display: none !important; }
+  [data-r='tabs'] > * { padding: 0 12px !important; }
+  [data-r='backstage-panel'] { display: none !important; }
+  [data-r='backstage-rail'] { display: flex !important; }
+  [data-r='blocks-palette'] { width: 280px !important; }
+  [data-r='prompter'] { width: 320px !important; }
+  [data-r='rough-cut'] { flex-basis: 420px !important; }
+  [data-r='settings-nav'] { width: 200px !important; }
+  [data-r='settings-grid'] { grid-template-columns: 300px 1fr 1fr !important; }
+  div:has(> [data-r='settings-grid']) { overflow-y: auto; }
+}
