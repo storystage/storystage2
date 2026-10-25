@@ -1,6 +1,6 @@
 # Anthropic's terms for products used by under-18s (WP17.5)
 
-- **Status:** research done; the owner's decisions are open (section 4).
+- **Status:** research done; the owner decided on 25 October 2026 (section 4). The question to Anthropic is still to be sent.
 - **Workplan:** 17.5 (carried over from StoryStage 1 WP15.3): "Anthropic's terms for products used by under-18s, reflected in the wizard. (C researches; U decides)".
 - **Checked:** 25 October 2026. Anthropic changes these pages; re-check before the pilot (WP19), when the Usage Policy version below takes effect, and whenever the Prompter's data flow changes. Not legal advice.
 
@@ -38,19 +38,25 @@ Each requirement names the session that owns the work. Session D checks them aga
 
 **Handed on:** StoryStage 1's wizard had a "let the Prompter see the scene" option (carried-over spec 02, page 4). StoryStage 2's rule 3 forbids pictures going to the Prompter, so that option doesn't carry over; S8 to note it in spec 05.
 
-## 4. Decisions for the owner
+## 4. The owner's decisions (25 October 2026)
 
-1. **May a parent at home hold the key?** Route A (clubs and home) is the pilot default in 24.3, but the Commercial Terms say the API is "not for consumer use". *Recommended:* allow it, with the adult gate (R1) wording the parent as responsible under their own agreement, and ask Anthropic to confirm (draft below). If Anthropic says no, the wizard drops "family" and home use waits.
-2. **Where are the apps offered?** Anthropic's guidelines name US law (COPPA) as an example; apps in every country's store bring every country's children's law. *Recommended:* the first release and the pilot in the UK app stores only; widen later after a check.
-3. **Ask Anthropic for its child-safety system prompt?** *Recommended:* yes, in the same email.
+1. **A parent at home may hold the key.** Route A (clubs and home) is the pilot default in 24.3, but the Commercial Terms say the API is "not for consumer use". The adult gate (R1) names the parent as Anthropic's customer, responsible under their own agreement, and the owner asks Anthropic to confirm (draft below). If Anthropic says no, the wizard drops "family" and home use waits.
+2. **The apps are offered in the UK and US app stores.** (The recommendation was the UK only; the owner chose the UK and the US.) That brings in US children's law, so R10 below is added.
+3. **Ask Anthropic for its child-safety system prompt:** yes, in the same message as decision 1.
 
-### Draft question to Anthropic (for the owner to send, if decision 1 or 3 is yes)
+| No. | Requirement | Why | Owner |
+|---|---|---|---|
+| R10 | **The US check.** The DPIA (17.3) gets a US section, reviewed by someone who knows US law: whether StoryStage, a school or a parent counts as the "operator" under the Children's Online Privacy Protection Act (COPPA) and its 2025 rule changes, when the Prompter sends a child's text to Anthropic; what parental consent the adult gate (R1) has to give; and US state children's privacy laws. The store listings follow Apple's Kids category rules and Google Play's Families policy (no third-party analytics or ads, a parental gate before links leave the app, accurate privacy labels). | Decision 2 | D (17.3), S8 (store builds, WP15.4–15.6) |
+
+The trade mark brief (17.6) adds a US search for the same reason.
+
+### Draft question to Anthropic (for the owner to send)
 
 Send through Anthropic's support or sales contact form from the Claude account you will use for the pilot.
 
 > **Subject:** Children's education product built on the API: key holders and the child-safety system prompt
 >
-> Hello. I run StoryStage, a free, non-commercial app that helps children aged 6 to 13 in UK schools and clubs make 3D animated films. It has an optional Claude assistant, the Prompter. StoryStage has no server: each school, club or adult enters their own API key, which stays in the device's secure store, and requests go straight from the device to Anthropic. We follow your guidelines for organisations serving minors: AI disclosure, child-safety instructions, text-only requests, a teacher lock, and no grading.
+> Hello. I run StoryStage, a free, non-commercial app that helps children aged 6 to 13 in UK schools and clubs make 3D animated films; the apps will also be offered in the US. It has an optional Claude assistant, the Prompter. StoryStage has no server: each school, club or adult enters their own API key, which stays in the device's secure store, and requests go straight from the device to Anthropic. We follow your guidelines for organisations serving minors: AI disclosure, child-safety instructions, text-only requests, a teacher lock, and no grading.
 >
 > 1. Is it within your terms for a teacher, a club leader or a parent to use their own Console account and key with StoryStage for children in their care, with each of them as your customer?
 > 2. Your guidelines mention a child-safety system prompt. Could you share it, so we can build it into the Prompter?
