@@ -15,7 +15,7 @@ This is the owner's handoff of 22 Oct 2026, edited where it disagreed with `CLAU
 | 8 | Alice screenshots (`reference/`) | Not in this repository; the owner holds them |
 | 9 | Sizes | Laptop and iPad sizes added in [`sizes/`](sizes/index.html) (12.1); rules in `docs/spec/07-ux.md` §1; nothing below 1024 px wide ([0033](../../decisions/0033-narrow-windows.md)) |
 | 10 | Storyboard first | The closed Code editor (10.8) added as screen 02c |
-| 11 | Prompter levels | Mapped to the policy keys and modes (see "The Prompter" below) |
+| 11 | Prompter levels | As drawn, mapped to the modes and policy keys ([0034](../../decisions/0034-prompter-levels.md)) |
 | 12 | Study logs | "Anonymised" changed: the logs are pseudonymous (7.13, 24.6) |
 
 ## Overview
@@ -341,16 +341,16 @@ A calm adult page: the Settings tab is active in amber and the page title reads 
   1. **Pupils and folders:** Add pupil, search, a list of pupil rows (folder icon, name, film count, chevron), "Import class list" and "21 more". The pupil names are invented.
   2. **Default code editor:** Blocks | Tiles, then **Lock for pupils** (toggle on). **The Prompter** (AI badge) radio: Off, Explain only, **Plan only** (selected, focus shown), Full.
   3. **Daily Prompter limit:** a stepper "20 requests a day, per pupil, resets at midnight". **When the limit is reached:** a select, "Switch to Explain only". **Backstage imports:** Off | **Teacher only** | Learners. **Study logs:** "A record of Prompter use and checks, with no pupil names." with the button **Export study logs**. (The handoff said "Anonymised". The logs carry pseudonymous session ids (7.13, 24.6), which is not anonymous, so the screen must not say so. The DPIA (WP17.3) settles the final wording.)
-- **Prompter levels** map onto the policy keys (15.3) and the Prompter's modes (13.5):
+- **Prompter levels** (decision 0034) select from the Prompter's modes (13.5) and map onto the policy keys (15.3):
 
   | Level | Policy | Modes the learner gets |
   |---|---|---|
   | Off | `prompter.enabled` false | none; the neutral note from 12a |
-  | Explain only | `prompter.explainOnly` | Explain only, and the story coach (proposed: neither changes the production; S7 to confirm in `04-prompter.md`) |
-  | Plan only | `prompter.planOnly` | Show me how with plan before change (13.9): the Prompter plans, the learner builds every block |
-  | Full | neither | all four, including Build it |
+  | Explain only | `prompter.explainOnly` | Explain mode and the story coach |
+  | Plan only | `prompter.planOnly` | as Explain only, plus plans: Show me how and Build it write and revise a plan (13.9), but the learner builds every block |
+  | Full | neither | every mode |
 
-  A school or exam lock (decision 0022) can hold the level where the teacher can't change it.
+  If both keys are set, Explain only wins. The daily limit and its action apply on top, and a school or exam lock (decision 0022) can hold the level where the teacher can't change it.
 
 ### 11b Settings, school Prompter key — `11-12`
 > **Open (WP24.3, due at M1).** This screen assumes the school's key sits on a school service that relays Prompter requests, and that StoryStage can send email. Both need a server, which rule 2 and decision 0005 rule out as drawn. Until the owner decides how the Prompter reaches a group, build it like this: the key goes into the secure store of the device it is entered on, and only that device's native layer uses it; the monthly limit and usage are counted on that device; leave out **Email me at 80%** and show the usage bar instead. The words "the school's secure store" become "this device's secure store".
