@@ -155,10 +155,10 @@ The light theme keeps every role and swaps its value. Neutrals turn from a dark 
 | amber-tint | `#2E2519` | `#FCEFD0` | selected card |
 | prompter | `#6FD3C7` | `#6FD3C7` as a fill (AI badge); `#0B6E64` as text; `#0E7C70` as an outline | still reserved for the Prompter |
 | prompter-bg | `#173A36` | `#D3F2EE` | Prompter icon disc |
-| ok | `#7BD88F` | `#1D7A33` | Checked, Matches |
+| ok | `#7BD88F` | `#1C7431` | Checked, Matches |
 | flag | `#FFB59A` | `#B13D14` text, `#C2522B` outline | Look at |
 | flag-bg | `#2A1E19` | `#FDECE5` | |
-| stop | `#E58A6A` | `#B4432A` | |
+| stop | `#E58A6A` | `#B0412A` | |
 | unavailable | `#2B2520` / `#8F8476` | `#ECE6DD` / `#8A7D70` | |
 | Planned, Staged, Coded | `#D8CDBF`, `#8FBBFF`, `#BBA6FF` | `#5A4F44`, `#2357B5`, `#6443C0` | Rehearsed, Checked, Look at as amber, ok and flag |
 | sketch-paper, sketch-ink | `#FFFFFF`, `#161412` | unchanged | sketches are black on white in both themes |

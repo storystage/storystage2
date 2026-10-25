@@ -160,6 +160,8 @@ importers:
 
   packages/tiles: {}
 
+  packages/ui: {}
+
   spikes/1.2-models:
     devDependencies:
       '@babylonjs/core':
