@@ -732,7 +732,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp13 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP13a after WP0; WP13b after WP13a, WP2, WP4a, WP15k; WP13c after WP13b, WP10a, WP7.
 <!-- /schedule:wp13 -->
-- [ ] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
+- [x] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
 - [ ] 13.2 **Transport:** the request body is built in TypeScript without the key. It goes to the native layer through a Tauri command, which **checks it against the policy enforcement point (15.2)**, adds the key and streams events back. Learner text (script, storyboard, captions) goes into the context as clearly delimited data, never as instructions. In the browser version, all Prompter features are switched off. (C)
 - [ ] 13.3 **Context:**
     - a Story API catalog generated from WP4 metadata;
