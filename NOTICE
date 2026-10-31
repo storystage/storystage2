@@ -20,6 +20,7 @@ tauri  2  Apache-2.0 OR MIT
 tauri-build  2  Apache-2.0 OR MIT
 serde  1  MIT OR Apache-2.0
 serde_json  1  MIT OR Apache-2.0
+windows-sys  0.61  MIT OR Apache-2.0
 
 == Linked into the app (22) ==
 
