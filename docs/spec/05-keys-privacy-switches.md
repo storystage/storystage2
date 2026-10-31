@@ -233,7 +233,10 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | File ownership on Windows (3.6) | A file the runner's user owns is untrusted | Rust unit, Windows job |
 | The Windows folder comes from the system, not the variable (3.2) | The path doesn't move when `PROGRAMDATA` is changed | Rust unit, Windows job |
 | `PolicyInForce` agrees on both sides (3.8) | One fixture, read by Rust and by TypeScript | Rust unit and Vitest |
-| Managed configuration (3.2) | The same keys pushed to the emulator with `adb` | Android job; iPad on a device (owner) |
+| Managed configuration reaches the same checks (3.5) | Pairs of strings go through the file's rules | Rust unit |
+| The schema is in the Android app (3.2) | `aapt2` finds it in the built APK | Android job |
+| The iPad code compiles (3.2) | `cargo check` for iPad, with no Apple account | `ios (rust)` job |
+| A real push reaches the app (3.2) | A setting pushed through managed Google Play, and through the iPad's device management | Device (owner). Android's push needs a device policy controller, which CI doesn't have |
 | Which build to move to (4.3) | One unit test per row, with pins, rollout boundaries and rollbacks | Rust unit |
 | The lock holds in the app (WP15 done-when) | With the file set, `prompter_status` reports `prompter_off` | WP15k, then device (owner) |
 | Rollback (4.7) | The drill | CI, then a device (owner) |
