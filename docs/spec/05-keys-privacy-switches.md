@@ -156,9 +156,9 @@ Desktop only (WP15.7). The iPad and Android apps are updated by the stores and t
 
 ### 4.1 What the app does
 
-1. At start-up, and at most once a day, it reads one static file from the update host (4.2). Nothing identifying the device or the learner is sent. The host sees an IP address, as any web host does.
-2. If 4.3 says to move, it downloads the build in the background and checks its signature (4.5).
-3. It installs when the app is next closed, never during a lesson. Learners see no prompt.
+1. At start-up it reads one static file from the update host (4.2): at most once a day, and also at the first start after its version changes, so a device that took a broken build finds the rollback at once. Nothing identifying the device or the learner is sent. The host sees an IP address, as any web host does.
+2. If 4.3 says to move, it downloads the build in the background, to disk rather than memory, for the low-end devices.
+3. It installs when the app is next closed, never during a lesson, after checking the signature (4.5). Learners see no prompt.
 
 It stands down, and never asks for an administrator's password, if the current user can't write to the folder the app is installed in. On a shared school computer installed per machine, the school's deployment tools own updates. `update.channel=off` says the same thing explicitly and also stops the check.
 
@@ -212,10 +212,10 @@ The host interface gives the studio the installed version and the channel in for
 
 WP15's done-when. On the pilot channel:
 
-1. Publish a good build, and let a test install take it.
-2. Publish a build marked broken, and let the test install take it.
-3. Run the rollback workflow, which restores the last good manifest and lists the broken version in `withdrawn`.
-4. Start the test install, and confirm that it returns to the good build by itself.
+1. Publish a good build with the `Release` workflow, and let a test install take it.
+2. Publish a build marked broken the same way, and let the test install take it.
+3. Run the `Channel` workflow with `rollback`, the good version, and the broken version to withdraw.
+4. Start the test install, close it, and confirm that the next start is the good build.
 
 The time from step 3 to step 4 is recorded in `docs/lanes.md`.
 
@@ -238,5 +238,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | The iPad code compiles (3.2) | `cargo check` for iPad, with no Apple account | `ios (rust)` job |
 | A real push reaches the app (3.2) | A setting pushed through managed Google Play, and through the iPad's device management | Device (owner). Android's push needs a device policy controller, which CI doesn't have |
 | Which build to move to (4.3) | One unit test per row, with pins, rollout boundaries and rollbacks | Rust unit |
+| When a device checks (4.1) | Once a day, and after a version change | Rust unit |
+| Manifests, rollouts and rollbacks (4.2 to 4.4) | Building and changing a manifest | `node --test`, in the `policy` job |
 | The lock holds in the app (WP15 done-when) | With the file set, `prompter_status` reports `prompter_off` | WP15k, then device (owner) |
 | Rollback (4.7) | The drill | CI, then a device (owner) |
