@@ -8,12 +8,18 @@
 mod updates;
 
 use storystage_policy::PolicyInForce;
-use tauri::{App, Manager, State};
+use tauri::{App, AppHandle, Manager, State};
 
 /// The policy in force, as read at start-up. Nothing writes the policy from here.
 #[tauri::command]
 fn policy_in_force(policy: State<'_, PolicyInForce>) -> PolicyInForce {
     policy.inner().clone()
+}
+
+/// The installed version, for About (spec 05 section 4.6).
+#[tauri::command]
+fn app_version(app: AppHandle) -> String {
+    app.package_info().version.to_string()
 }
 
 #[cfg(target_os = "android")]
@@ -49,7 +55,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![policy_in_force])
+        .invoke_handler(tauri::generate_handler![policy_in_force, app_version])
         .build(tauri::generate_context!())
         .expect("error while running StoryStage 2")
         .run(|_app, _event| {
