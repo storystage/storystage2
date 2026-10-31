@@ -739,7 +739,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - a Backstage catalogue from `backstage.json`, grouped by section;
     - the project as text with node ids;
     - the storyboard and script as text, including which sketches are on which frame;
-    - an optional scene picture.
+    - the scene as data. No picture is ever sent (`CLAUDE.md` rule 3; the owner confirmed this on 31 Oct 2026).
 
     Token budgets as in StoryStage 1. (C)
 - [ ] 13.4 **Tools:**

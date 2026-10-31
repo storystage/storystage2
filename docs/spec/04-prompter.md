@@ -550,4 +550,4 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | A `plan` field on `Frame` in `packages/production` | S4 | Section 6.7, a contract pull request |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
-| Workplan 13.3 and 17.3 still mention a scene picture. Rule 3 and this spec say no picture is ever sent | Owner | Section 2.1 |
+| Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
