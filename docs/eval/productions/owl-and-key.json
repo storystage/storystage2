@@ -1,0 +1,48 @@
+{
+  "title": "The Owl and the Key",
+  "backdrop": "forest",
+  "objects": [
+    { "name": "owl", "class": "Flyer", "item": "example/Flyer/owl", "position": { "x": -2, "y": 0, "z": 1 } },
+    { "name": "cat", "class": "Quadruped", "item": "example/Quadruped/cat", "position": { "x": 2, "y": 0, "z": 1 } },
+    { "name": "tree", "class": "Prop", "item": "example/Prop/tree", "position": { "x": 0, "y": 0, "z": 3 } }
+  ],
+  "program": [],
+  "storyboard": {
+    "logline": "A shy owl must give a lost key back to the cat who frightened her.",
+    "synopsis": "An owl finds a key under her tree. It belongs to a cat she is scared of. She has to be brave and hand it back, and the two become friends.",
+    "arc": { "template": "threePart", "parts": ["beginning", "middle", "end"] }
+  },
+  "scenes": [
+    { "id": "s1", "heading": "Forest, morning", "cast": ["example/Flyer/owl"], "arcPart": "beginning" },
+    { "id": "s2", "heading": "Under the tree, afternoon", "cast": ["example/Flyer/owl", "example/Quadruped/cat"], "arcPart": "middle" }
+  ],
+  "script": [
+    { "id": "l1", "scene": "s1", "kind": "action", "character": null, "text": "An owl spots something shining under her tree.", "pinnedFrame": null },
+    { "id": "l2", "scene": "s2", "kind": "dialogue", "character": "Owl", "text": "Is anybody there?", "pinnedFrame": "f2-1" },
+    { "id": "l3", "scene": "s2", "kind": "dialogue", "character": "Cat", "text": "Have you seen my key?", "pinnedFrame": null },
+    { "id": "l4", "scene": "s2", "kind": "dialogue", "character": "Owl", "text": "Here is the key.", "pinnedFrame": "f2-3" }
+  ],
+  "frames": [
+    {
+      "id": "f2-1", "scene": "s2", "order": 0, "caption": "The owl peers out from behind the tree.", "shot": "wide", "lengthSeconds": 3,
+      "sketches": [{ "id": "k1", "item": "example/Flyer/owl", "facing": "threeQuarter", "x": 0.3, "y": 0.6 }]
+    },
+    {
+      "id": "f2-2", "scene": "s2", "order": 1, "caption": "The cat comes looking.", "shot": "twoShot", "lengthSeconds": 3,
+      "sketches": [
+        { "id": "k2", "item": "example/Flyer/owl", "facing": "side", "x": 0.75, "y": 0.6 },
+        { "id": "k3", "item": "example/Quadruped/cat", "facing": "side", "x": 0.25, "y": 0.7 }
+      ]
+    },
+    {
+      "id": "f2-3", "scene": "s2", "order": 2, "caption": "The owl walks to the tree and gives the cat the key.", "shot": "medium", "lengthSeconds": 4,
+      "sketches": [
+        { "id": "k4", "item": "example/Flyer/owl", "facing": "side", "x": 0.4, "y": 0.6 },
+        { "id": "k5", "item": "example/Quadruped/cat", "facing": "side", "x": 0.7, "y": 0.7 }
+      ]
+    }
+  ],
+  "checkResults": {
+    "f2-2": ["Owl ends on the left; your sketch has it on the right.", "Cat is on screen."]
+  }
+}
