@@ -11,6 +11,7 @@ export * from './nodes.ts';
 export * from './schema.ts';
 export * from './serialize.ts';
 export * from './session.ts';
+export * from './text.ts';
 export * from './validate.ts';
 export * from './version.ts';
 export * from './walk.ts';
