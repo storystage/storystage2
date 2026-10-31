@@ -14,4 +14,5 @@ export * from './session.ts';
 export * from './text.ts';
 export * from './validate.ts';
 export * from './version.ts';
+export * from './versions.ts';
 export * from './walk.ts';
