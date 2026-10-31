@@ -235,7 +235,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
 | WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 |  |
-| WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 |  |
+| WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | started 31 Oct |
 | WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 8 |  |
 | WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 | 0.3 (21–22 Oct) |
 | WP5a | Stage core: scene, models, camera, picking, offscreen (5.1–5.5) | Stage | WP0, WP1 | 3 | wk 4.5 (20 Nov 2026) | **0 (critical)** |  |
@@ -640,7 +640,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp8 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP8f after WP2; WP8 after WP8f, WP5a, WP6, WP0s.
 <!-- /schedule:wp8 -->
-- [ ] 8.1 Spec `docs/spec/03-production-format.md`:
+- [x] 8.1 Spec `docs/spec/03-production-format.md`:
     - zip layout: `manifest.json`, `program.json`, `scenes/*.json`, `storyboard.json`, `script.fountain`, `frames/*.json` and `audio/`;
     - versioning;
     - what is never stored (keys, Prompter conversations).

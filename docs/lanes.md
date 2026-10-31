@@ -20,10 +20,12 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - Merged:
+  - 31 Oct (PR open, stacked on #97): **WP8f, the production format (8.1)**: spec 03, including how the program and a scene's set-up undo as one step; a stricter `checkReferences`; `sceneMethodCheck`; `manifest.origin`; an example production with code in it. **S4:** `packages/production` is yours once this merges; 8.2 builds the production's own undo (spec section 2.1). **S5, S7, S6:** the format is ready to build the Storyboard, its tools and import on. **S1:** the self-test's undo step can now use real edits on the example production.
   - 31 Oct (#90, #92, #94, #96, #97, open, stacked, wait for the owner's merge in that order): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. **S6, S7, S4:** the API is listed in `packages/ast/README.md`; code against branch `lane/s2-wp2-6-versions` until it lands. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
 - Blocked on:
-  - Owner: merging the WP2 stack (decision 0029).
-- Next: WP8f, the production format spec and data model (8.1), which doesn't wait for the merge. WP6 follows and needs WP4a's metadata (S6).
+  - Owner: merging the WP2 and WP8f stack (decision 0029).
+  - S6: WP4a's Story API metadata, for WP6.
+- Next: WP6, the runtime, once WP4a lands.
 
 ## S3 Stage and Story API procedures
 - Merged:

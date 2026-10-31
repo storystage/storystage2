@@ -199,6 +199,7 @@ items:
     weeks: 1.5
     basis: first plan
     after: [WP2]
+    started: 2026-10-31
   - id: WP5a
     label: 'Stage core: scene, models, camera, picking, offscreen (5.1–5.5)'
     lane: Stage

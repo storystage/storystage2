@@ -8,9 +8,16 @@
  * the Prompter's storyboard tools (S7), Alice import (S6) and the self-test (S1).
  *
  * **Never stored in a production:** API keys, Prompter conversations, camera images, and
- * microphone audio other than lines the learner chose to record (decision 0005, CLAUDE.md rule 3).
+ * microphone audio other than lines the learner chose to record (decision 0005, CLAUDE.md rule 3;
+ * spec section 1.1).
  */
-import type { NodeId, Program } from '@storystage/ast';
+import {
+  indexProgram,
+  type NodeId,
+  type Problem,
+  type Program,
+  type TypeDecl,
+} from '@storystage/ast';
 import type { Facing } from '@storystage/backstage';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
@@ -22,6 +29,9 @@ export type LineId = string & { readonly __lineId: true };
 export const sceneId = (s: string) => s as SceneId;
 export const frameId = (s: string) => s as FrameId;
 export const lineId = (s: string) => s as LineId;
+
+/** Scene and frame ids become file names in the zip, so nothing else may get through. */
+export const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
 /** Where each part lives inside the `.storystage` zip (WP8.1). */
 export const ZIP_LAYOUT = {
@@ -47,7 +57,9 @@ export interface ProductionManifest {
   readonly formatVersion: string;
   readonly createdWith: { readonly app: 'StoryStage'; readonly version: string };
   readonly title: string;
-  /** The order scenes play in, and how each one ends. */
+  /** Where it came from. An imported Alice world can relax the storyboard rule (WP9.3, 10.8). */
+  readonly origin: 'storystage' | 'alice';
+  /** The order scenes play in, and how each one ends. Every scene is in it exactly once. */
   readonly runningOrder: readonly { readonly scene: SceneId; readonly transition: Transition }[];
   /** Learner-recorded audio in `audio/` (narration, lines), by file name. */
   readonly audio: readonly {
@@ -135,10 +147,55 @@ export interface Production {
   readonly frames: readonly Frame[];
 }
 
+/** Each scene's script method, the type holding it and the problems with it (spec section 2). */
+function checkSceneTypes(p: Production, problems: string[]): void {
+  const index = indexProgram(p.program);
+  const owners = new Map<string, SceneId>();
+  for (const scene of p.scenes) {
+    const at = index.get(scene.method);
+    if (!at || at.node.kind !== 'method') {
+      problems.push(`Scene ${scene.id}'s method ${scene.method} doesn't exist.`);
+      continue;
+    }
+    const type = index.get(at.parent!)!.node as TypeDecl;
+    if (type.extends.kind !== 'story' || type.extends.name !== 'Scene') {
+      problems.push(`Scene ${scene.id}'s method isn't in a type extending Scene.`);
+      continue;
+    }
+    const owner = owners.get(type.id);
+    if (owner) problems.push(`Scenes ${owner} and ${scene.id} share a type.`);
+    owners.set(type.id, scene.id);
+    checkObjects(scene, type, problems);
+  }
+}
+
+/** The scene's objects and its fields with no value of their own have to match. */
+function checkObjects(scene: Scene, type: TypeDecl, problems: string[]): void {
+  const fields = new Map(
+    type.fields.filter((f) => f.initial === null && f.name !== 'camera').map((f) => [f.name, f]),
+  );
+  for (const object of scene.setup.objects) {
+    const field = fields.get(object.id);
+    if (!field) {
+      problems.push(`Scene ${scene.id} sets up ${object.id}, which has no field.`);
+      continue;
+    }
+    fields.delete(object.id);
+    if (field.type.kind === 'story' && field.type.name !== object.class)
+      problems.push(
+        `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${field.type.name} in code.`,
+      );
+  }
+  for (const name of fields.keys())
+    problems.push(`Scene ${scene.id} has a field ${name}, but no object in its set-up.`);
+}
+
 /**
  * Checks that every reference inside a production points at something that exists: scenes in
- * the running order, cards, frames, script lines and pins. Part of import hardening (WP8.4).
- * Returns developer-facing problems; an empty list means the references are sound.
+ * the running order, cards, frames, script lines and pins, and between scenes and the program
+ * (spec section 2). Links to blocks aren't checked: a removed block may come back on undo. Part
+ * of import hardening (WP8.4). Returns developer-facing problems; an empty list means the
+ * references are sound.
  */
 export function checkReferences(p: Production): string[] {
   const problems: string[] = [];
@@ -164,14 +221,33 @@ export function checkReferences(p: Production): string[] {
     'script lines',
     p.script.map((l) => l.id),
   );
+  for (const s of scenes)
+    if (!SAFE_ID.test(s)) problems.push(`Scene id ${s} is not safe as a file name.`);
+  for (const f of frames)
+    if (!SAFE_ID.test(f)) problems.push(`Frame id ${f} is not safe as a file name.`);
   for (const { scene } of p.manifest.runningOrder)
     if (!scenes.has(scene))
       problems.push(`The running order lists scene ${scene}, which doesn't exist.`);
+  for (const s of scenes) {
+    const times = p.manifest.runningOrder.filter((r) => r.scene === s).length;
+    if (times === 0) problems.push(`Scene ${s} is not in the running order.`);
+    if (times > 1) problems.push(`Scene ${s} is in the running order twice.`);
+  }
+  checkSceneTypes(p, problems);
   for (const s of scenes) if (!cards.has(s)) problems.push(`Scene ${s} has no storyboard card.`);
   for (const c of cards) if (!scenes.has(c)) problems.push(`Card ${c} has no scene.`);
-  for (const f of p.frames)
+  const places = new Map<string, FrameId>();
+  for (const f of p.frames) {
     if (!scenes.has(f.scene))
       problems.push(`Frame ${f.id} belongs to scene ${f.scene}, which doesn't exist.`);
+    const place = `${f.scene} ${f.order}`;
+    const other = places.get(place);
+    if (other)
+      problems.push(
+        `Frames ${other} and ${f.id} are both at place ${f.order} in scene ${f.scene}.`,
+      );
+    places.set(place, f.id);
+  }
   for (const l of p.script) {
     if (!scenes.has(l.scene))
       problems.push(`Line ${l.id} is under scene ${l.scene}, which doesn't exist.`);
@@ -182,4 +258,22 @@ export function checkReferences(p: Production): string[] {
     if (a.file.includes('/') || a.file.includes('\\') || a.file.startsWith('.'))
       problems.push(`Audio file name ${a.file} must be a plain name inside audio/.`);
   return problems;
+}
+
+/**
+ * The `check` for an `EditSession`: an edit can't remove a scene's script method. Deleting a
+ * scene is the production's own step (WP8.2, spec section 2.1).
+ */
+export function sceneMethodCheck(scenes: readonly Scene[]): (program: Program) => Problem[] {
+  return (program) => {
+    const index = indexProgram(program);
+    return scenes
+      .filter((scene) => !index.has(scene.method))
+      .map((scene) => ({
+        code: 'outside',
+        message: `Scene ${scene.id}'s script method is gone.`,
+        node: scene.method,
+        reason: 'Every scene needs its first method, so this one has to stay.',
+      }));
+  };
 }

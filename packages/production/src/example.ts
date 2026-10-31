@@ -3,7 +3,7 @@
  * trip (WP8), export (WP11), the self-test (WP18.1) and the Prompter's storyboard tools (WP13).
  * It uses stand-ins and made-up Backstage ids, so it needs no model files.
  */
-import { nodeId } from '@storystage/ast';
+import { nodeId, type NodeId, type TypeDecl } from '@storystage/ast';
 import { IDENTITY, backstageId, micros, objectId, type SceneSetup } from '@storystage/story-api';
 import { FORMAT_VERSION, frameId, lineId, sceneId, type Production } from './types.ts';
 
@@ -38,6 +38,71 @@ const s1 = sceneId('s1');
 const s2 = sceneId('s2');
 const s3 = sceneId('s3');
 
+/** The ids of scene `n`'s method and its one block, for scenes and frame links. */
+const methodOf = (n: number): NodeId => nodeId(`scene${n}m`);
+const blockOf = (n: number): NodeId => nodeId(`scene${n}b`);
+
+/** Scene `n` as a type: a camera, the two actors and a script method where one of them speaks. */
+function sceneType(n: number, speaker: 'penguin' | 'fox', line: string): TypeDecl {
+  const id = (part: string) => nodeId(`scene${n}${part}`);
+  const penguinField = id('p');
+  const foxField = id('f');
+  return {
+    id: id('t'),
+    kind: 'type',
+    name: `Scene${n}`,
+    extends: { kind: 'story', name: 'Scene' },
+    fields: [
+      {
+        id: id('c'),
+        kind: 'field',
+        name: 'camera',
+        type: { kind: 'story', name: 'Camera' },
+        initial: null,
+      },
+      {
+        id: penguinField,
+        kind: 'field',
+        name: 'penguin',
+        type: { kind: 'story', name: 'Flyer' },
+        initial: null,
+      },
+      {
+        id: foxField,
+        kind: 'field',
+        name: 'fox',
+        type: { kind: 'story', name: 'Quadruped' },
+        initial: null,
+      },
+    ],
+    methods: [
+      {
+        id: methodOf(n),
+        kind: 'method',
+        name: 'myFirstMethod',
+        returns: null,
+        params: [],
+        body: [
+          {
+            id: blockOf(n),
+            kind: 'call',
+            target: {
+              id: id('r'),
+              kind: 'fieldRef',
+              target: { id: id('s'), kind: 'this' },
+              field: speaker === 'penguin' ? penguinField : foxField,
+            },
+            callee: { kind: 'story', name: 'say' },
+            args: { text: { id: id('x'), kind: 'text', value: line } },
+            details: {},
+          },
+        ],
+      },
+    ],
+    listeners: [],
+  };
+}
+
 export function exampleProduction(): Production {
   return {
     manifest: {
@@ -45,6 +110,7 @@ export function exampleProduction(): Production {
       formatVersion: FORMAT_VERSION,
       createdWith: { app: 'StoryStage', version: '0.0.0' },
       title: 'The Lost Penguin',
+      origin: 'storystage',
       runningOrder: [
         { scene: s1, transition: { kind: 'cut', duration: 0 } },
         { scene: s2, transition: { kind: 'fadeToBlack', duration: micros(1) } },
@@ -52,11 +118,18 @@ export function exampleProduction(): Production {
       ],
       audio: [],
     },
-    program: { schemaVersion: '1.0.0', types: [] },
+    program: {
+      schemaVersion: '1.0.0',
+      types: [
+        sceneType(1, 'penguin', 'Oh no, the ice is moving!'),
+        sceneType(2, 'fox', "Don't be scared. I'm lost too."),
+        sceneType(3, 'penguin', 'Home! Thank you, Fox.'),
+      ],
+    },
     scenes: [
-      { id: s1, setup: setup('ice', 'morning'), method: nodeId('m-s1') },
-      { id: s2, setup: setup('forest', 'night'), method: nodeId('m-s2') },
-      { id: s3, setup: setup('ice', 'evening'), method: nodeId('m-s3') },
+      { id: s1, setup: setup('ice', 'morning'), method: methodOf(1) },
+      { id: s2, setup: setup('forest', 'night'), method: methodOf(2) },
+      { id: s3, setup: setup('ice', 'evening'), method: methodOf(3) },
     ],
     storyboard: {
       logline: 'A penguin lost in a forest finds an unlikely friend who helps her home.',
@@ -124,7 +197,7 @@ export function exampleProduction(): Production {
             layer: 0,
           },
         ],
-        links: [nodeId('m-s1')],
+        links: [blockOf(1)],
       },
       {
         id: frameId('f2'),
@@ -157,7 +230,7 @@ export function exampleProduction(): Production {
             layer: 1,
           },
         ],
-        links: [],
+        links: [blockOf(2)],
       },
       {
         id: frameId('f3'),
@@ -179,7 +252,7 @@ export function exampleProduction(): Production {
             layer: 0,
           },
         ],
-        links: [],
+        links: [blockOf(3)],
       },
     ],
   };
