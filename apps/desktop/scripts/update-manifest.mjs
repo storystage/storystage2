@@ -47,9 +47,10 @@ export function withRollback(goodManifest, badVersions) {
   if (badVersions.includes(goodManifest.version)) {
     throw new Error(`${goodManifest.version} is the build being restored`);
   }
-  const { rollout: _rollout, ...manifest } = goodManifest;
   const withdrawn = [...new Set([...(goodManifest.withdrawn ?? []), ...badVersions])];
-  return { ...manifest, withdrawn };
+  const restored = { ...goodManifest, withdrawn };
+  delete restored.rollout;
+  return restored;
 }
 
 function main([command, ...args]) {
