@@ -97,6 +97,12 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
+  packages/host:
+    dependencies:
+      '@storystage/prompter':
+        specifier: workspace:*
+        version: link:../prompter
+
   packages/production:
     dependencies:
       '@storystage/ast':
