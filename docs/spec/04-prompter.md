@@ -90,6 +90,8 @@ Stream the reply, then look at `stop_reason` before doing anything else:
 | `refusal` | No tools run, and any partial reply is discarded. Section 7. |
 | `pause_turn` or anything unknown | No tools run. Treat it as the Prompter couldn't finish; section 7. |
 
+A reply that ended any way but `end_turn` or `tool_use` is never added to the conversation: a cut-off `tool_use` has no result to go with it, so it can't be sent back. The next request carries on from the turn before, and two user turns in a row are allowed. This trims nothing, because that reply was never in the history.
+
 - **Limit:** 25 tool calls in one learner request, counted across the whole loop. At the limit the loop stops, and the Prompter says what it finished and why it stopped.
 - **Validation.** Parse each input strictly from the accumulated `partial_json`, then validate it against the tool's schema and the rules JSON Schema can't express under strict mode (ranges, lengths). A failure doesn't run the tool: it returns `is_error: true` with `bad_argument`.
 - **Retries.** The same step failing three times ends the loop (section 7).
