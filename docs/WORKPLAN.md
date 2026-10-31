@@ -224,7 +224,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP3b | Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7) | Backstage | WP0, WP3a | 4 | wk 1.5 (29 Oct 2026) | 5 |  |
 | WP0s | Threat model and security spec (0.9) | Foundations | WP0 | 1.5 | wk 1.5 (29 Oct 2026) | 3 |  |
 | WP18a | Test harness, fake stage, self-test skeleton (18.1, 18.4) | Foundations | WP0 | 2 | wk 1.5 (29 Oct 2026) | 21 | 0.1 (21 Oct) |
-| WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 |  |
+| WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 | started 31 Oct |
 | WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 |  |
 | WP13a | Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8) | Prompter and speech | WP0 | 3 | wk 1.5 (29 Oct 2026) | 4.5 |  |
 | WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct |
@@ -430,7 +430,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 <!-- schedule:wp2 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP2 after WP0.
 <!-- /schedule:wp2 -->
-- [ ] 2.1 Spec `docs/spec/01-ast.md`:
+- [x] 2.1 Spec `docs/spec/01-ast.md`:
     - node kinds: types, fields, methods, statements (do in order, do together, count, while, for each, each together, if, local, assign, comment, call), expressions and event listeners;
     - JSON schema;
     - id rules: short stable ids; ids survive edits; copy-paste mints new ids and records `copiedFrom`.
