@@ -191,7 +191,12 @@ mod tests {
 
     #[test]
     fn a_policy_that_exists_but_cannot_be_read_is_unreadable() {
-        let policy = read_with(&std::env::temp_dir(), |_| true);
+        // A folder where the file should be. `temp_dir()` itself won't do: it ends in a
+        // backslash on Windows, which opens as "not found" rather than "is a folder".
+        let folder = std::env::temp_dir().join(format!("storystage-folder-{}", process::id()));
+        fs::create_dir(&folder).unwrap();
+        let policy = read_with(&folder, |_| true);
+        fs::remove_dir(&folder).unwrap();
         assert_eq!(policy.source, Source::Unreadable);
         assert_eq!(policy.prompter.level, PrompterLevel::Off);
     }
