@@ -4,7 +4,7 @@
  * contracts, so it runs today against the fake stage and later, unchanged, against the real
  * stage, runtime and export. Where a part isn't built yet, the step says what it stands in for.
  */
-import type { Program } from '@storystage/ast';
+import type { EditOperation, Program } from '@storystage/ast';
 import { TestHost } from '@storystage/editor-contract/testing';
 import { checkReferences, exampleProduction, type Production } from '@storystage/production';
 import type { Stage } from '@storystage/stage';
@@ -197,7 +197,7 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
       ];
       for (const label of labels)
         check(
-          host.apply([{ kind: 'stand-in', label }], label, 'blocks').ok,
+          host.apply([{ kind: 'stand-in', label } as unknown as EditOperation], label, 'blocks').ok,
           `"${label}" was refused.`,
         );
       const after = JSON.stringify(host.program());
@@ -218,7 +218,7 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
         'Redoing everything did not bring back the changes.',
       );
       return {
-        standIn: "uses stand-in changes until the program's own edit operations (WP2) land.",
+        standIn: 'uses stand-in changes until the example production has code in it (WP8.1).',
       };
     },
   },
