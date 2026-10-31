@@ -18,12 +18,15 @@ pub fn policy_path() -> Option<PathBuf> {
 }
 
 /// The policy on this device. If the file's place can't be found, nobody can show there is no
-/// lock, so the policy is unreadable.
+/// lock, so the policy is unreadable. Android's comes through the app: see `read_policy` there.
 pub fn read_installed() -> PolicyInForce {
-    match policy_path() {
+    #[cfg(target_os = "ios")]
+    return PolicyInForce::from_managed(crate::ios::managed_configuration());
+    #[cfg(not(target_os = "ios"))]
+    return match policy_path() {
         Some(path) => read_policy_file(&path),
         None => PolicyInForce::unreadable("The folder for the policy can't be found."),
-    }
+    };
 }
 
 pub fn read_policy_file(path: &Path) -> PolicyInForce {

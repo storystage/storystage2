@@ -5,6 +5,8 @@
 //! Nothing here turns anything on for a learner. The policy only ever narrows (3.1).
 
 mod file;
+#[cfg(target_os = "ios")]
+mod ios;
 #[cfg(windows)]
 mod windows;
 

@@ -47,12 +47,39 @@ jobs:
       - name: Build a debug APK
         working-directory: apps/desktop
         run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android build --debug --apk --target aarch64 --target x86_64 --ci
+      - name: The school's settings are in the app (spec 05, 3.2)
+        working-directory: apps/desktop/src-tauri/gen/android/app/build/outputs/apk
+        run: |
+          apk=$(find . -name '*.apk' | head -1)
+          aapt2=$(ls -d "$ANDROID_HOME"/build-tools/* | tail -1)/aapt2
+          "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" | grep -q android.content.APP_RESTRICTIONS
+          "$aapt2" dump xmltree --file res/xml/app_restrictions.xml "$apk" | grep -q prompter.enabled
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: storystage2-android
           path: apps/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
           retention-days: 30
+
+  # Compiles the native layer for iPad. This needs no Apple account, so it runs from now on.
+  ios-rust:
+    name: ios (rust)
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+          targets: aarch64-apple-ios
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+      - name: Compile for iPad
+        working-directory: apps/desktop/src-tauri
+        run: |
+          mkdir -p ../../studio/dist
+          cargo check --target aarch64-apple-ios --locked
 
   ios:
     name: ios
