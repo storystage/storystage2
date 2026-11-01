@@ -4,7 +4,7 @@ import { TestHost } from './test-host.ts';
 
 /** A stand-in program and edit until WP2: the program counts the edits applied to it. */
 type Counted = Program & { readonly count: number };
-const start: Counted = { schemaVersion: '1.0.0', count: 0 };
+const start: Counted = { schemaVersion: '1.0.0', types: [], count: 0 };
 const add: EditOperation = { kind: 'insert', label: 'Add cat' };
 const apply = (p: Program, edits: readonly EditOperation[]): Program => {
   if (edits.some((e) => e.kind === 'bad')) throw new Error("That block can't go there.");

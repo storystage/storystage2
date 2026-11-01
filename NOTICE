@@ -47,7 +47,7 @@ scheduler  0.28.0  MIT
 tslib  2.8.1  0BSD
 use-sync-external-store  1.7.0  MIT
 
-== Build and test tools, not shipped (230) ==
+== Build and test tools, not shipped (233) ==
 
 @asamuzakjp/css-color  7.1.7  MIT
 @asamuzakjp/dom-selector  10.0.4  MIT
@@ -134,7 +134,7 @@ use-sync-external-store  1.7.0  MIT
 @vitest/spy  5.0.5  MIT
 acorn  8.19.0  MIT
 acorn-jsx  5.3.2  MIT
-ajv  6.15.0  MIT
+ajv  6.15.0, 8.20.0  MIT
 ansi-regex  5.0.1  MIT
 ansi-styles  5.2.0  MIT
 aria-query  5.3.0  Apache-2.0
@@ -178,9 +178,11 @@ estraverse  5.3.0  BSD-2-Clause
 estree-walker  3.0.3  MIT
 esutils  2.0.3  BSD-2-Clause
 expect-type  1.4.0  Apache-2.0
+fast-check  4.10.2  MIT
 fast-deep-equal  3.1.3  MIT
 fast-json-stable-stringify  2.1.0  MIT
 fast-levenshtein  2.0.6  MIT
+fast-uri  3.1.9  BSD-3-Clause
 fdir  6.5.0  MIT
 file-entry-cache  11.1.5  MIT
 find-up  5.0.0  MIT
@@ -204,7 +206,7 @@ isexe  2.0.0  ISC
 js-tokens  4.0.0  MIT
 jsdom  30.1.3  MIT
 jsesc  3.1.0  MIT
-json-schema-traverse  0.4.1  MIT
+json-schema-traverse  0.4.1, 1.0.0  MIT
 json-stable-stringify-without-jsonify  1.0.1  MIT
 json5  2.2.3  MIT
 keyv  5.6.0  MIT
@@ -237,6 +239,7 @@ prelude-ls  1.2.1  MIT
 prettier  3.9.10  MIT
 pretty-format  27.5.1  MIT
 punycode  2.3.1  MIT
+pure-rand  8.4.2  MIT
 qified  0.10.1  MIT
 react-is  17.0.2  MIT
 require-from-string  2.0.2  MIT

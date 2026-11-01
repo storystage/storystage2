@@ -436,7 +436,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
     - id rules: short stable ids; ids survive edits; copy-paste mints new ids and records `copiedFrom`.
 
     (C)
-- [ ] 2.2 TypeScript types plus a JSON-schema validator. Every load and every edit is validated. (C)
+- [x] 2.2 TypeScript types plus a JSON-schema validator. Every load and every edit is validated. (C)
 - [ ] 2.3 **Edit operations** as the only way to change a program: insert, remove, move, set-argument, declare, rename. Each is invertible, giving undo/redo with grouping, so a whole Prompter request is one undo step. Each edit has a human label ("Add cat", "Make cat say Hello"). (C)
 - [ ] 2.4 Project history: the list of edits with labels, as in StoryStage 1. (C)
 - [ ] 2.5 Text view generator: the AST rendered as read-only Python-like text, with node ids available for highlighting. (C)

@@ -52,7 +52,7 @@ export function exampleProduction(): Production {
       ],
       audio: [],
     },
-    program: { schemaVersion: '1.0.0' },
+    program: { schemaVersion: '1.0.0', types: [] },
     scenes: [
       { id: s1, setup: setup('ice', 'morning'), method: nodeId('m-s1') },
       { id: s2, setup: setup('forest', 'night'), method: nodeId('m-s2') },
