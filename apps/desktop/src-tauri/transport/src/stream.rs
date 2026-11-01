@@ -30,6 +30,8 @@ fn base_url(given: &str) -> &str {
 }
 
 fn client() -> Option<Client> {
+    // `reqwest` is built with no crypto provider of its own. Installing twice is harmless.
+    let _ = rustls::crypto::ring::default_provider().install_default();
     Client::builder().connect_timeout(CONNECT_TIMEOUT).build().ok()
 }
 

@@ -31,6 +31,7 @@ chrono  0.4  MIT OR Apache-2.0
 futures-util  0.3  MIT OR Apache-2.0
 keyring  3  MIT OR Apache-2.0
 reqwest  0.13  MIT OR Apache-2.0
+rustls  0.23  Apache-2.0 OR ISC OR MIT
 tokio  1  MIT
 zeroize  1  Apache-2.0 OR MIT
 

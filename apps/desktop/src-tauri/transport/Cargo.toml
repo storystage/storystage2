@@ -10,7 +10,15 @@ publish = false
 # No Tauri here, so the whole transport can be tested against a local server on any runner.
 [dependencies]
 futures-util = "0.3"
-reqwest = { version = "0.13", features = ["stream"] }
+# The same TLS as the updater: `ring`, with the system's certificates. The default would add a
+# second crypto library, with a C build on every target.
+reqwest = { version = "0.13", default-features = false, features = [
+  "http2",
+  "rustls-no-provider",
+  "stream",
+  "system-proxy",
+] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
 storystage-gate = { path = "../gate" }
 tokio = { version = "1", features = ["macros", "sync", "time"] }
 zeroize = "1"
