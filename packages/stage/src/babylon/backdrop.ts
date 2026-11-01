@@ -7,8 +7,8 @@ import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { HemisphericLight } from '@babylonjs/core/Lights/hemisphericLight.js';
 import { Color3, Color4 } from '@babylonjs/core/Maths/math.color.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
-import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreateGround } from '@babylonjs/core/Meshes/Builders/groundBuilder.js';
+import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import type { Backdrop, Colour, Ground, Lighting } from '../backdrops.ts';
@@ -58,16 +58,23 @@ function addGround(ground: Ground, scene: Scene) {
   floor.material = material;
   floor.isPickable = false;
   if (!room) return;
-  const walls = CreateBox(
-    'walls',
-    { ...ROOM, sideOrientation: Mesh.BACKSIDE, wrap: true, topBaseAt: 1 },
-    scene,
-  );
-  walls.position.y = ROOM.height / 2;
-  walls.material = plainMaterial('walls', room.walls, scene);
-  walls.isPickable = false;
-  const ceiling = CreateGround('ceiling', { width: ROOM.width, height: ROOM.depth }, scene);
-  ceiling.position.y = ROOM.height;
+  const { width, height, depth } = ROOM;
+  const paint = plainMaterial('walls', room.walls, scene);
+  const sides = [
+    [0, depth / 2, 0],
+    [0, -depth / 2, Math.PI],
+    [width / 2, 0, Math.PI / 2],
+    [-width / 2, 0, -Math.PI / 2],
+  ] as const;
+  for (const [x, z, turn] of sides) {
+    const wall = CreatePlane('wall', { width, height, sideOrientation: Mesh.DOUBLESIDE }, scene);
+    wall.position.set(x, height / 2, z);
+    wall.rotation.y = turn;
+    wall.material = paint;
+    wall.isPickable = false;
+  }
+  const ceiling = CreateGround('ceiling', { width, height: depth }, scene);
+  ceiling.position.y = height;
   ceiling.rotation.x = Math.PI;
   ceiling.material = plainMaterial('ceiling', room.ceiling, scene);
   ceiling.isPickable = false;

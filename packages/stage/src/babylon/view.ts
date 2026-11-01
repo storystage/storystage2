@@ -10,6 +10,9 @@ import { paintColour } from '../paint.ts';
 import type { ObjectState } from '../timeline.ts';
 import { color3 } from './materials.ts';
 
+/** Metres between the top of an object and its label. */
+const LABEL_GAP = 0.2;
+
 export function setRotation(node: { rotationQuaternion: Quaternion | null }, q: Quat) {
   (node.rotationQuaternion ??= Quaternion.Identity()).set(q.x, q.y, q.z, q.w);
 }
@@ -23,6 +26,11 @@ export interface ViewParts {
   readonly paintable: readonly StandardMaterial[];
   /** The model's nodes for its joints. */
   readonly joints?: ReadonlyMap<JointName, TransformNode>;
+  /**
+   * A label over the object, `above` metres up at scale 1. It isn't part of the object, so it
+   * stays upright and keeps its shape however the object is turned or resized.
+   */
+  readonly label?: { readonly mesh: AbstractMesh; readonly above: number } | undefined;
 }
 
 /** How one object appears in a scene. The timeline says what it's like; this makes it so. */
@@ -30,16 +38,18 @@ export class ObjectView {
   readonly box: Box;
   readonly meshes: readonly AbstractMesh[];
   private readonly root: TransformNode;
+  private readonly label: ViewParts['label'];
   private readonly surfaces: readonly { material: StandardMaterial; colour: Color3 }[];
   private readonly bones: readonly { joint: JointName; node: TransformNode; rest: Quat }[];
   private posed = false;
   private opacity = 1;
   private paint: string | null = null;
 
-  constructor({ root, meshes, box, paintable, joints }: ViewParts) {
+  constructor({ root, meshes, box, paintable, joints, label }: ViewParts) {
     this.root = root;
     this.meshes = meshes;
     this.box = box;
+    this.label = label;
     this.surfaces = paintable.map((material) => ({ material, colour: material.diffuseColor }));
     this.bones = [...(joints ?? [])].map(([joint, node]) => {
       // A copy: `setRotation` writes to the node's own quaternion.
@@ -53,6 +63,10 @@ export class ObjectView {
     this.root.position.set(position.x, position.y, position.z);
     setRotation(this.root, rotation);
     this.root.scaling.set(scale.x, scale.y, scale.z);
+    if (this.label) {
+      const height = position.y + this.label.above * scale.y + LABEL_GAP;
+      this.label.mesh.position.set(position.x, height, position.z);
+    }
     if (state.joints.size > 0 || this.posed) this.pose(state);
     if (state.opacity !== this.opacity) this.fade(state.opacity);
     if (state.paint !== this.paint) this.repaint(state.paint);
@@ -70,6 +84,7 @@ export class ObjectView {
   private fade(opacity: number): void {
     this.opacity = opacity;
     this.root.setEnabled(opacity > 0);
+    this.label?.mesh.setEnabled(opacity > 0);
     for (const mesh of this.meshes) mesh.visibility = opacity;
   }
 

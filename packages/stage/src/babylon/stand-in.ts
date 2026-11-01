@@ -25,19 +25,19 @@ const BOX: Box = {
 };
 
 /** The label needs a 2D canvas, which a headless stage doesn't have. */
-function addLabel(text: string, root: TransformNode, scene: Scene): AbstractMesh | null {
+function addLabel(text: string, name: string, scene: Scene): AbstractMesh | null {
   if (typeof document === 'undefined') return null;
   const size = { width: 512, height: 96 };
-  const label = CreatePlane(`${root.name} label`, { width: 1, height: 96 / 512 }, scene);
-  label.parent = root;
-  label.position.y = BODY.height + 0.2;
+  const label = CreatePlane(`${name} label`, { width: 1, height: 96 / 512 }, scene);
+  label.isPickable = false;
   label.billboardMode = AbstractMesh.BILLBOARDMODE_Y;
-  const texture = new DynamicTexture(`${root.name} label`, size, scene, false);
+  const texture = new DynamicTexture(`${name} label`, size, scene, false);
   texture.hasAlpha = true;
   texture.drawText(text, null, 68, 'bold 56px sans-serif', '#1f2733', '#ffffffd9', true);
-  const material = plainMaterial(`${root.name} label`, PALE, scene);
+  const material = plainMaterial(`${name} label`, PALE, scene);
   material.diffuseTexture = texture;
   material.useAlphaFromDiffuseTexture = true;
+  material.backFaceCulling = false;
   material.disableLighting = true;
   material.emissiveColor = material.diffuseColor;
   material.fogEnabled = false;
@@ -57,7 +57,12 @@ export function buildStandIn(name: string, label: string, scene: Scene): ObjectV
   nose.parent = root;
   nose.position.set(0, BODY.height * 0.75, BODY.depth / 2 + NOSE / 2);
   nose.material = plainMaterial(`${name} nose`, DARK, scene);
-  const words = addLabel(label, root, scene);
-  const meshes = words ? [body, nose, words] : [body, nose];
-  return new ObjectView({ root, meshes, box: BOX, paintable: [surface] });
+  const words = addLabel(label, name, scene);
+  return new ObjectView({
+    root,
+    meshes: words ? [body, nose, words] : [body, nose],
+    box: BOX,
+    paintable: [surface],
+    label: words ? { mesh: words, above: BODY.height } : undefined,
+  });
 }

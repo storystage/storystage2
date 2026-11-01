@@ -47,7 +47,15 @@ const BLACK = rgb(0, 0, 0);
 const DEFAULT_SKY = rgb(0.5, 0.5, 1);
 const DEFAULT_LIGHTING: Lighting = { above: WHITE, below: BLACK };
 
-const surface = (rrggbb: string, opacity = 1): Ground => ({ colour: hex(rrggbb), opacity });
+/** Under Alice's white lights a surface facing up is this much brighter than its colour. */
+const BRIGHTNESS_FACING_UP = 0.3 + 3 * 0.533 * Math.SQRT1_2;
+
+/** A ground that looks like `rrggbb` under white light, so the table says what you'll see. */
+const surface = (rrggbb: string, opacity = 1): Ground => {
+  const { r, g, b } = hex(rrggbb);
+  const k = 1 / BRIGHTNESS_FACING_UP;
+  return { colour: rgb(r * k, g * k, b * k), opacity };
+};
 
 /** Alice's surface appearances, as flat colours. */
 const GROUND_LIST: Readonly<Record<string, Ground>> = {
@@ -82,7 +90,7 @@ const GROUND_LIST: Readonly<Record<string, Ground>> = {
   rockyRed: surface('8a4632'),
   wood: surface('8c5a32'),
   brick: surface('9c4a36'),
-  room: { ...surface('6e3a24'), room: { walls: rgb(1, 1, 0), ceiling: WHITE } },
+  room: { ...surface('8a5a3c'), room: { walls: rgb(0.95, 0.87, 0.55), ceiling: WHITE } },
 };
 
 type Row = readonly [

@@ -10,7 +10,8 @@
     "./testing": "./src/testing/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "harness": "vite build --config e2e/harness/vite.config.ts && vite preview --config e2e/harness/vite.config.ts"
   },
   "dependencies": {
     "@babylonjs/core": "^9.31.1",
@@ -19,6 +20,7 @@
     "@storystage/story-api": "workspace:*"
   },
   "devDependencies": {
+    "vite": "^8.3.4",
     "vitest": "^5.0.5"
   }
 }

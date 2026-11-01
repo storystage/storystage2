@@ -1,0 +1,109 @@
+{
+  "name": "Grass, with a cast moving together",
+  "seconds": 4,
+  "setup": {
+    "backdrop": {
+      "ground": "storystage/Ground/grass",
+      "sky": "storystage/Sky/grass",
+      "lighting": "storystage/Lighting/grass",
+      "fog": 0
+    },
+    "objects": [
+      {
+        "id": "robot",
+        "model": "test/Biped/robot",
+        "class": "Biped",
+        "transform": {
+          "position": { "x": 2, "y": 0, "z": 2 },
+          "rotation": { "x": 0, "y": 1, "z": 0, "w": 0 },
+          "scale": { "x": 1, "y": 1, "z": 1 }
+        }
+      },
+      {
+        "id": "fox",
+        "model": { "standIn": "fox" },
+        "class": "Quadruped",
+        "transform": {
+          "position": { "x": -2, "y": 0, "z": 1 },
+          "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+          "scale": { "x": 1, "y": 1, "z": 1 }
+        }
+      },
+      {
+        "id": "cart",
+        "model": { "standIn": "cart" },
+        "class": "Transport",
+        "paint": "red",
+        "transform": {
+          "position": { "x": 0, "y": 0, "z": 0 },
+          "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+          "scale": { "x": 2, "y": 0.4, "z": 2 }
+        }
+      },
+      {
+        "id": "rider",
+        "model": { "standIn": "rider" },
+        "class": "Biped",
+        "vehicle": "cart",
+        "transform": {
+          "position": { "x": 0, "y": 0.4, "z": 0 },
+          "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+          "scale": { "x": 1, "y": 1, "z": 1 }
+        }
+      }
+    ],
+    "camera": {
+      "transform": {
+        "position": { "x": 0, "y": 2, "z": -14 },
+        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+        "scale": { "x": 1, "y": 1, "z": 1 }
+      }
+    },
+    "markers": []
+  },
+  "commands": [
+    {
+      "seq": 1,
+      "object": "cart",
+      "start": 0,
+      "duration": 2000000,
+      "style": "beginAndEndGently",
+      "kind": "translate",
+      "by": { "x": 0, "y": 0, "z": 4 },
+      "space": "self"
+    },
+    {
+      "seq": 2,
+      "object": "fox",
+      "start": 500000,
+      "duration": 1500000,
+      "style": "beginAndEndAbruptly",
+      "kind": "rotate",
+      "axis": { "x": 0, "y": 1, "z": 0 },
+      "turns": 1,
+      "space": "self"
+    },
+    {
+      "seq": 3,
+      "object": "robot",
+      "start": 1000000,
+      "duration": 1000000,
+      "style": "beginAndEndGently",
+      "kind": "joint",
+      "joint": "head",
+      "axis": { "x": 0, "y": 0, "z": 1 },
+      "turns": 0.25
+    },
+    {
+      "seq": 4,
+      "object": "cart",
+      "start": 2000000,
+      "duration": 2000000,
+      "style": "beginAndEndGently",
+      "kind": "rotate",
+      "axis": { "x": 0, "y": 1, "z": 0 },
+      "turns": 0.5,
+      "space": "self"
+    }
+  ]
+}
