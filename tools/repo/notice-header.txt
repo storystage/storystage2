@@ -27,3 +27,9 @@ tauri-plugin  2  Apache-2.0 OR MIT
 tauri-plugin-updater  2  Apache-2.0 OR MIT
 hex  0.4  MIT OR Apache-2.0
 sha2  0.10  MIT OR Apache-2.0
+chrono  0.4  MIT OR Apache-2.0
+futures-util  0.3  MIT OR Apache-2.0
+keyring  3  MIT OR Apache-2.0
+reqwest  0.13  MIT OR Apache-2.0
+tokio  1  MIT
+zeroize  1  Apache-2.0 OR MIT
