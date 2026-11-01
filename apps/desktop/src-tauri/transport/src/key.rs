@@ -21,6 +21,12 @@ impl Key {
         &self.0
     }
 
+    /// For the leak scan's helper. Only a test build has this.
+    #[cfg(feature = "test-endpoint")]
+    pub fn for_scanning(&self) -> &str {
+        &self.0
+    }
+
     /// For Android's store, which is in a plugin rather than in this crate.
     #[cfg(target_os = "android")]
     pub fn for_android_store(&self) -> &str {

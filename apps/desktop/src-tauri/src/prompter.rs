@@ -31,10 +31,24 @@ pub struct Prompter {
     running: Mutex<Option<Running>>,
 }
 
+/// The pins built into the app. Only the leak scan's test build can give it others, because the
+/// shipped ones would refuse its request before it ever reached the key.
+fn pins() -> Pins {
+    #[cfg(feature = "test-endpoint")]
+    if let Some(pins) = std::env::var("STORYSTAGE_TEST_PINS")
+        .ok()
+        .and_then(|path| fs::read_to_string(path).ok())
+        .and_then(|text| serde_json::from_str(&text).ok())
+    {
+        return pins;
+    }
+    Pins::shipped()
+}
+
 impl Default for Prompter {
     fn default() -> Self {
         Self {
-            pins: Pins::shipped(),
+            pins: pins(),
             minute: Mutex::new(Minute::default()),
             running: Mutex::new(None),
         }
