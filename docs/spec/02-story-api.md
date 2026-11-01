@@ -228,6 +228,7 @@ Details are Alice's optional keyword arguments, the "add detail" of both editors
 | `bubblePosition` | `BubblePosition` | `automatic` | — | bubble position |
 | `heldKeyPolicy` | `HeldKeyPolicy` | `fireMultiple` | — | when the key is held |
 | `multipleEventPolicy` | `MultipleEventPolicy` | `ignore` | — | if it happens again while running |
+| `setOfVisuals` | `Thing[]` | every object | — | which objects |
 <!-- /catalog:details -->
 
 1. **Each block lists its own** in sections 2 and 3, as Alice does. A test checks them against her detail lists, so `say` has no `animationStyle` and `moveToward` no `pathStyle`, for example.
@@ -254,7 +255,7 @@ An event kind is the `event` of a `listener` in the AST.
 | --- | --- | --- | --- | --- | --- |
 | `sceneStart` | — | — | — | `runtime` | when the scene starts |
 | `clickOnScreen` | — | `x: Number`, `y: Number` | `multipleEventPolicy` | `click` | when the screen is clicked |
-| `clickOnObject` | `objects: Thing[]` | `model: Model`, `x: Number`, `y: Number` | `multipleEventPolicy` | `click` | when {objects} is clicked |
+| `clickOnObject` | — | `model: Model`, `x: Number`, `y: Number` | `setOfVisuals`, `multipleEventPolicy` | `click` | when an object is clicked |
 | `keyPress` | — | `key: Key` | `heldKeyPolicy`, `multipleEventPolicy` | `key` | when a key is pressed |
 | `arrowKeyPress` | — | `moveDirection: MoveDirection`, `turnDirection: TurnDirection` | `heldKeyPolicy`, `multipleEventPolicy` | `key` | when an arrow key is pressed |
 | `numberKeyPress` | — | `number: WholeNumber` | `heldKeyPolicy`, `multipleEventPolicy` | `key` | when a number key is pressed |

@@ -44,12 +44,12 @@ export const EVENTS: readonly EventDef[] = [
   },
   {
     name: 'clickOnObject',
-    args: [arg('objects', 'Thing[]')],
+    args: [],
     gives: [
       { name: 'model', type: 'Model', alice: ['MouseClickOnObjectEvent.getModelAtMouseLocation'] },
       ...position,
     ],
-    details: POLICY,
+    details: ['setOfVisuals', ...POLICY],
     from: 'click',
     alice: ['SScene.addMouseClickOnObjectListener'],
     unreal: 'OnClicked',

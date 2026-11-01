@@ -130,6 +130,20 @@ describe('entries match Alice', () => {
     expect(wrong).toEqual([]);
   });
 
+  it('offers every detail of every event, and no others', () => {
+    const wrong: string[] = [];
+    for (const e of EVENTS) {
+      const keywords = e.alice.flatMap((a) => {
+        const keyword = aliceMember(a).details;
+        return keyword
+          ? Object.keys(palette.keywords[keyword as keyof typeof palette.keywords])
+          : [];
+      });
+      if ([...keywords].sort().join() !== [...e.details].sort().join()) wrong.push(e.name);
+    }
+    expect(wrong).toEqual([]);
+  });
+
   it('keeps the kind of each block', () => {
     const wrong = ENTRIES.flatMap((e) =>
       e.alice.filter((a) => aliceMember(a).kind !== e.kind).map((a) => a),

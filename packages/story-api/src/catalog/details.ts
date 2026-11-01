@@ -22,6 +22,7 @@ export const DETAILS: Readonly<Record<string, DetailDef>> = {
   bubblePosition: { type: 'BubblePosition', default: 'automatic' },
   heldKeyPolicy: { type: 'HeldKeyPolicy', default: 'fireMultiple' },
   multipleEventPolicy: { type: 'MultipleEventPolicy', default: 'ignore' },
+  setOfVisuals: { type: 'Thing[]', default: null, defaultMeans: 'every object' },
 };
 
 /** Alice accepts these but ignores them, so they aren't offered: `member.detail`. */
