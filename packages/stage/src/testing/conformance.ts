@@ -9,12 +9,15 @@ import {
   StageError,
   micros,
   objectId,
+  type ObjectId,
   type SceneSetup,
   type StageCommand,
   type Transform,
+  type Vec3,
 } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import type { Stage } from '../contract.ts';
+import { heading } from '../math.ts';
 
 const cat = objectId('cat');
 const dog = objectId('dog');
@@ -47,9 +50,9 @@ const close = (a: number, b: number) => expect(a).toBeCloseTo(b, 5);
 
 export function describeStageContract(name: string, make: () => Stage | Promise<Stage>) {
   describe(`${name} meets the stage contract`, () => {
-    const loaded = async () => {
+    const loaded = async (setup: SceneSetup = SETUP) => {
       const stage = await make();
-      await stage.load(SETUP);
+      await stage.load(setup);
       return stage;
     };
 
@@ -215,6 +218,173 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       await stage.load(SETUP);
       stage.seek(micros(2));
       expect(stage.stateHash()).toBe(start);
+    });
+
+    it('lets a late command that starts earlier change what later ones work out', async () => {
+      const stage = await loaded();
+      stage.schedule([cmd(1, 1, { object: cat, kind: 'moveTo', target: dog })]);
+      stage.seek(micros(2));
+      close(stage.transform(cat).position.z, 0);
+      stage.schedule([
+        cmd(0, 1, { object: dog, kind: 'translate', by: { x: 0, y: 0, z: 4 }, space: 'scene' }),
+      ]);
+      stage.seek(micros(2));
+      close(stage.transform(cat).position.z, 4);
+    });
+
+    describe('vehicles', () => {
+      const push = (start: number, seconds: number, by: Vec3) =>
+        cmd(start, seconds, { object: dog, kind: 'translate', by, space: 'scene' });
+      const board = (start: number, vehicle: ObjectId | null) =>
+        cmd(start, 0, { object: cat, kind: 'vehicle', vehicle });
+
+      it('carries a rider, and leaves it where it got off', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          board(0, dog),
+          push(0, 1, { x: 0, y: 0, z: 3 }),
+          board(1, null),
+          push(1, 1, { x: 0, y: 0, z: 3 }),
+        ]);
+        stage.seek(micros(0.5));
+        close(stage.transform(cat).position.z, 1.5);
+        close(stage.transform(cat).position.x, -1);
+        stage.seek(micros(2));
+        close(stage.transform(cat).position.z, 3);
+        close(stage.transform(dog).position.z, 6);
+      });
+
+      it('swings a rider round when its vehicle turns', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          board(0, dog),
+          cmd(0, 1, {
+            object: dog,
+            kind: 'rotate',
+            axis: { x: 0, y: 1, z: 0 },
+            turns: 0.25,
+            space: 'scene',
+          }),
+          cmd(1, 1, { object: cat, kind: 'translate', by: { x: 0, y: 0, z: 1 }, space: 'self' }),
+        ]);
+        stage.seek(micros(1));
+        // The cat is 2 m to the dog's -X. A quarter turn about +Y takes -X to +Z.
+        close(stage.transform(cat).position.x, 1);
+        close(stage.transform(cat).position.z, 2);
+        stage.seek(micros(2));
+        // It now faces +X, as the dog does, so forward is +X.
+        close(stage.transform(cat).position.x, 2);
+        close(stage.transform(cat).position.z, 2);
+      });
+
+      it('picks a rider up from the moment it boards a moving vehicle', async () => {
+        const stage = await loaded();
+        stage.schedule([push(0, 2, { x: 0, y: 0, z: 4 }), board(1, dog)]);
+        stage.seek(micros(1));
+        close(stage.transform(cat).position.z, 0);
+        stage.seek(micros(2));
+        close(stage.transform(cat).position.z, 2);
+      });
+
+      it('keeps a move going when the object boards in the middle of it', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 2, { object: cat, kind: 'translate', by: { x: 0, y: 2, z: 0 }, space: 'scene' }),
+          board(1, dog),
+        ]);
+        stage.seek(micros(2));
+        close(stage.transform(cat).position.y, 2);
+        close(stage.transform(cat).position.x, -1);
+      });
+
+      it('starts a rider on its vehicle, where the set-up says it is', async () => {
+        const [first, second] = SETUP.objects;
+        const stage = await loaded({
+          ...SETUP,
+          objects: [{ ...first!, vehicle: dog }, second!],
+        });
+        close(stage.transform(cat).position.x, -1);
+        stage.schedule([push(0, 1, { x: 0, y: 2, z: 0 })]);
+        stage.seek(micros(1));
+        close(stage.transform(cat).position.y, 2);
+      });
+
+      it('refuses a rider on itself, a vehicle that is not there, and a loop', async () => {
+        const stage = await loaded();
+        expect(() => stage.schedule([board(0, cat)])).toThrow(StageError);
+        const [first, second] = SETUP.objects;
+        await expect(
+          (await make()).load({ ...SETUP, objects: [{ ...first!, vehicle: objectId('bus') }] }),
+        ).rejects.toMatchObject({ code: 'bad_argument' });
+        await expect(
+          (await make()).load({
+            ...SETUP,
+            objects: [
+              { ...first!, vehicle: dog },
+              { ...second!, vehicle: cat },
+            ],
+          }),
+        ).rejects.toMatchObject({ code: 'bad_argument' });
+      });
+
+      it('ignores a ride that would loop back to the rider', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          board(0, dog),
+          cmd(1, 0, { object: dog, kind: 'vehicle', vehicle: cat }),
+          push(2, 1, { x: 0, y: 1, z: 0 }),
+        ]);
+        stage.seek(micros(3));
+        close(stage.transform(dog).position.y, 1);
+        close(stage.transform(cat).position.y, 1);
+      });
+    });
+
+    describe('markers', () => {
+      const spot = objectId('spot');
+      const marked: SceneSetup = {
+        ...SETUP,
+        markers: [{ id: 'spot', transform: at(0, 1, 5) }],
+      };
+
+      it('are places to go to and look at, not objects', async () => {
+        const stage = await loaded(marked);
+        expect(stage.objects()).not.toContain(spot);
+        stage.schedule([
+          cmd(0, 1, { object: CAMERA, kind: 'moveTo', target: spot }),
+          cmd(0, 1, { object: cat, kind: 'turnToFace', target: spot }),
+        ]);
+        stage.seek(micros(1));
+        close(stage.transform(CAMERA).position.y, 1);
+        close(stage.transform(CAMERA).position.z, 5);
+        close(heading(stage.transform(cat).rotation), Math.atan2(1, 5) / (2 * Math.PI));
+      });
+
+      it('give their own axes to "as seen by"', async () => {
+        const turned: SceneSetup = {
+          ...SETUP,
+          markers: [
+            {
+              id: 'spot',
+              transform: {
+                ...IDENTITY,
+                rotation: { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 },
+              },
+            },
+          ],
+        };
+        const stage = await loaded(turned);
+        stage.schedule([
+          cmd(0, 1, {
+            object: cat,
+            kind: 'translate',
+            by: { x: 0, y: 0, z: 1 },
+            space: { asSeenBy: spot },
+          }),
+        ]);
+        stage.seek(micros(1));
+        close(stage.transform(cat).position.x, 0);
+      });
     });
 
     it('renders the same image for the same scene', async () => {
