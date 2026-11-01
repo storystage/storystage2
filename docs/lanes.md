@@ -20,8 +20,10 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - Merged:
+  - 31 Oct (#90, #92, #94, #96, #97, open, stacked, wait for the owner's merge in that order): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. **S6, S7, S4:** the API is listed in `packages/ast/README.md`; code against branch `lane/s2-wp2-6-versions` until it lands. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
 - Blocked on:
-- Next:
+  - Owner: merging the WP2 stack (decision 0029).
+- Next: WP8f, the production format spec and data model (8.1), which doesn't wait for the merge. WP6 follows and needs WP4a's metadata (S6).
 
 ## S3 Stage and Story API procedures
 - Merged:
