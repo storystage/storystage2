@@ -439,7 +439,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 - [x] 2.2 TypeScript types plus a JSON-schema validator. Every load and every edit is validated. (C)
 - [x] 2.3 **Edit operations** as the only way to change a program: insert, remove, move, set-argument, declare, rename. Each is invertible, giving undo/redo with grouping, so a whole Prompter request is one undo step. Each edit has a human label ("Add cat", "Make cat say Hello"). (C)
 - [x] 2.4 Project history: the list of edits with labels, as in StoryStage 1. (C)
-- [ ] 2.5 Text view generator: the AST rendered as read-only Python-like text, with node ids available for highlighting. (C)
+- [x] 2.5 Text view generator: the AST rendered as read-only Python-like text, with node ids available for highlighting. (C)
 - [ ] 2.6 Schema version and a migration framework, from version 1. **Versioning promise:** semantic versions for the file format; migrating keeps the original file; an older app opens a newer file read-only, with a plain message; deprecated nodes stay readable for two major versions; a changelog. (C)
 
 **Done when:** property-based tests show that any sequence of edits followed by full undo returns the original program byte-for-byte, and that every valid edit keeps the schema valid.
