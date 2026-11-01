@@ -66,6 +66,25 @@ describe('validatePeople', () => {
   });
 });
 
+describe('clothes', () => {
+  it('refuses a retired outfit and an unknown colour', () => {
+    const r = validatePeople([
+      person({ clothes: ['female_sportsuit01'] }),
+      person({ id: 'p02', clothesColour: 'tartan' as never }),
+    ]);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.join('\n')).toMatch(/retired/);
+    expect(r.errors.join('\n')).toMatch(/clothesColour/);
+  });
+
+  it('shows the colour in the review table', () => {
+    expect(peopleTable([person({ clothesColour: 'teal' })])).toContain(
+      'male_casualsuit01 (teal), shoes01',
+    );
+  });
+});
+
 describe('hairTint', () => {
   it('accepts grey or white on someone with hair, and nothing else', () => {
     expect(validatePeople([person({ hairTint: 'grey' })]).ok).toBe(true);
