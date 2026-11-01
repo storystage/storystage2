@@ -234,7 +234,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |  |
 | WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
-| WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 |  |
+| WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | started 1 Nov |
 | WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | started 31 Oct |
 | WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 8 |  |
 | WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 | 0.3 (21–22 Oct) |
@@ -594,7 +594,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 6.2 **Events:** when the scene starts, mouse click on object or screen, key press, arrow keys, move with arrow keys, timer, proximity, collision and camera view (decision 0051); event handlers with parameters. (C)
 - [ ] 6.3 **Safety:** an infinite-loop guard, a recursion limit and a time-slice budget. The stop button always works. Errors are explained in plain words, with the block highlighted. (C)
 - [ ] 6.4 Rehearse controls: play, pause, restart, speed, fast-forward to a block, disable a block. (C)
-- [ ] 6.5 Deterministic mode for export and tests (seeded random, fixed time step). (C)
+- [x] 6.5 Deterministic mode for export and tests (seeded random, fixed time step). (C)
 
 **Done when:** the semantics test suite passes, including the TR1 evaluation-set programs re-expressed in StoryStage 2 AST.
 

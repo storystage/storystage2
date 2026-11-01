@@ -221,6 +221,7 @@ items:
     weeks: 4
     basis: first plan
     after: [WP2, WP4a, WP1]
+    started: 2026-11-01
   - id: WP3c
     label: Manifest, budgets, lazy loading (3.4, 3.9)
     lane: Backstage
