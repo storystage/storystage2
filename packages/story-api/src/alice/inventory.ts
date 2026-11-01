@@ -5,7 +5,8 @@
  * It also follows Alice's own palette rule (`MemberTabComposite`): a public method counts when
  * its visibility is PRIME_TIME **or it has no `@MethodTemplate` at all**. `ApiCatalog.isPrimeTime`
  * requires the annotation, so it misses `straightenOutJoints`, `isFacing`, every joint getter
- * and Text's `setValue`. `marked` keeps the difference visible.
+ * and Text's `setValue`. `marked` keeps the difference visible. `compiled-alice.json`, from one
+ * CI run over a compiled Alice, checks the result.
  *
  * The result is `palette.json`, the list spec 02 is checked against: names, types and values
  * only, so no Alice code comes into this repository. Regenerate it with `scripts/inventory-cli.ts`.

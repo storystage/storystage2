@@ -7,14 +7,19 @@
 
 ## 0. Decisions this spec relies on
 
-[0007 3D](../decisions/0007-3d.md), [0008 Models](../decisions/0008-models.md), [0009 Blocks](../decisions/0009-blocks.md), [0010 Language](../decisions/0010-language.md), [0013 Backstage](../decisions/0013-backstage.md), [0030 Age range](../decisions/0030-age-range.md), [0036 Languages](../decisions/0036-languages.md). `10-crosswalk.md` is the background to sections 7 and 10; `01-ast.md` fixes how a program refers to everything here; `17-backstage.md`, section 2a, is the joint map (in pull request #57).
+[0007 3D](../decisions/0007-3d.md), [0008 Models](../decisions/0008-models.md), [0009 Blocks](../decisions/0009-blocks.md), [0010 Language](../decisions/0010-language.md), [0013 Backstage](../decisions/0013-backstage.md), [0030 Age range](../decisions/0030-age-range.md), [0036 Languages](../decisions/0036-languages.md). `10-crosswalk.md` is the background to sections 7 and 10; `01-ast.md` fixes how a program refers to everything here; `17-backstage.md`, section 2a, is the joint map.
 
 ### How this spec was made
 
 The workplan asks for this spec to be generated from Alice's `PRIME_TIME` methods, using StoryStage 1's `ApiCatalog` output. It comes from the same place by a different route, and the difference matters:
 
 - **Read from source, not reflection.** `ApiCatalog` needs a compiled Alice. `packages/story-api/scripts/inventory-cli.ts` reads the Java source of `org.lgna.story`, and writes the result to `src/alice/palette.json`: names, types and values only, so no Alice code comes into this repository. StoryStage 1 and upstream Alice give the same list.
-- **Alice's palette rule, not `ApiCatalog`'s.** Alice shows a public method when its visibility is `PRIME_TIME` **or it has no `@MethodTemplate`** (`MemberTabComposite`). `ApiCatalog.isPrimeTime` requires the annotation, so it misses 183 of the 309 members, among them `straightenOutJoints`, `isFacing`, every joint getter and Text's `setValue`. So StoryStage 1's Prompter can't see those blocks. That is worth knowing, but it isn't changed here.
+- **Alice's palette rule, not `ApiCatalog`'s.** Alice shows a public method when its visibility is `PRIME_TIME` **or it has no `@MethodTemplate`** (`MemberTabComposite`). `ApiCatalog.isPrimeTime` requires the annotation, and it walks only the classes a learner meets. So it lists 109 of the 309 members and leaves out 200:
+    - 183 with no annotation: the 136 joint getters, 17 accessors on event objects, and 30 others, among them `straightenOutJoints`, `isFacing` and Text's `setValue`;
+    - 17 on classes outside its roots: the virtual-reality classes and `SJoint`.
+
+    StoryStage 1's catalog is left as it is, by the owner's decision of 1 Nov 2026.
+- **Checked against a compiled Alice.** One CI run compiled StoryStage 1's `core/story-api` with its real `ApiCatalog.java`, and `scripts/AliceCatalogDump.java` wrote `src/alice/compiled-alice.json`. Reflection under the palette rule matches `palette.json` on all 292 members of the `S` classes, details included, and `ApiCatalog` matches the 109 annotated members of the classes it walks. The other 17 members are on event objects, which that run doesn't cover.
 
 **Every one of the 309 is accounted for.** A test fails if a palette member is neither in the catalog nor in section 8. Of them, 136 are joint getters (section 5).
 
@@ -490,6 +495,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Rule | Test | Level |
 |---|---|---|
 | The palette: the rule for what counts, parameters past annotations, details through inherited factories, enum constants | `src/alice/inventory.test.ts` | Unit (Vitest) |
+| `palette.json` matches a compiled Alice: reflection under the palette rule, and the real `ApiCatalog` | `src/alice/inventory.test.ts`, against `compiled-alice.json` from one CI run | Unit |
 | Every palette member, class and value is kept or listed as dropped; nothing is both; nothing named is invented | `src/catalog/catalog.test.ts` | Unit |
 | Kept blocks keep Alice's parameter names, details and kind | `src/catalog/catalog.test.ts` | Unit |
 | Directions follow the right-hand rule | `src/catalog/catalog.test.ts` | Unit |
@@ -504,7 +510,6 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 
 | Needs | From | For |
 |---|---|---|
-| Merge the joint map, #57, so section 5 stands on merged work | Owner or S4 | WP4a's dependency, WP3a |
 | The whole-program check, on `check(program)` in `01-ast.md` section 4.5, once the program types (#92) merge. `checkCall` is ready for it | S6, after S2 | 4.2 |
 | The `contract` pull request for section 9 | S3, S6 | WP4.3 |
 | `{name: 'TextModel'}` as a type, and enum types as in section 3a | S2 | Section 1 rule 3, section 3a |
