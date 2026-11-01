@@ -608,6 +608,7 @@ describe('declare', () => {
         id: nodeId('newlis'),
         kind: 'listener',
         event: 'timer',
+        details: {},
         args: {},
         params: [],
         body: [],

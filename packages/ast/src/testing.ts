@@ -118,7 +118,7 @@ export function sampleProgram(): Program {
                       direction: {
                         id: exprId(),
                         kind: 'enum',
-                        type: 'Direction',
+                        type: 'MoveDirection',
                         value: 'forward',
                       },
                     },
@@ -132,7 +132,12 @@ export function sampleProgram(): Program {
                     callee: { kind: 'story', name: 'turn' },
                     args: {
                       amount: number(0.25),
-                      direction: { id: exprId(), kind: 'enum', type: 'Direction', value: 'left' },
+                      direction: {
+                        id: exprId(),
+                        kind: 'enum',
+                        type: 'TurnDirection',
+                        value: 'left',
+                      },
                     },
                     details: {},
                   },
@@ -280,13 +285,14 @@ export function sampleProgram(): Program {
           {
             id: ids.click,
             kind: 'listener',
-            event: 'mouseClickObject',
-            args: { objects: items() },
+            event: 'clickOnObject',
+            args: {},
+            details: { setOfVisuals: items() },
             params: [
               {
                 id: ids.clicked,
                 kind: 'parameter',
-                name: 'clicked',
+                name: 'model',
                 type: quadruped,
                 default: null,
               },

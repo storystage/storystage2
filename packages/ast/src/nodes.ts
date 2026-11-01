@@ -70,10 +70,12 @@ export interface ParameterDecl extends NodeBase {
 
 export interface ListenerDecl extends NodeBase {
   readonly kind: 'listener';
-  /** An event kind from the Story API (`mouseClickObject`, `timer`). */
+  /** An event kind from the Story API (`clickOnObject`, `timer`). */
   readonly event: string;
-  /** What the event needs: clicked objects, seconds between runs. */
+  /** What the event needs: which objects, how many seconds. */
   readonly args: Args;
+  /** Optional settings: `multipleEventPolicy`, `setOfVisuals`. */
+  readonly details: Args;
   /** The values the event hands its handler. */
   readonly params: readonly ParameterDecl[];
   readonly body: readonly Statement[];

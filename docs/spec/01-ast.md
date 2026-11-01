@@ -37,7 +37,7 @@ A production has one program. Each scene is one `type` extending `Scene`, whose 
 | `field` | `name`, `type`, `initial` | `initial` is an expression, or `null` for a scene object, whose start is in the scene's set-up (`SceneObjectSetup`) |
 | `method` | `name`, `returns`, `params`, `body` | `returns` is a type reference (a function) or `null` (a procedure) |
 | `parameter` | `name`, `type`, `default` | Belongs to a method or a listener. `default` is an expression or `null` |
-| `listener` | `event`, `args`, `params`, `body` | `event` is an event kind from the Story API. `args` holds what the event needs (clicked objects, seconds between runs). `params` are the values the event gives its handler |
+| `listener` | `event`, `args`, `details`, `params`, `body` | `event` is an event kind from the Story API. `args` holds what the event needs (`seconds`, `setA`), `details` its optional settings (`multipleEventPolicy`, `setOfVisuals`). `params` are the values the event gives its handler (`02-story-api.md` section 6) |
 
 A scene object is a `field` with `initial: null`. Its name is the `ObjectId` the stage knows it by, in that scene's set-up, so renaming one also changes the set-up (section 4.6). A new scene has a `camera` field and an empty `myFirstMethod`; `newProgram` and `newSceneType` build these.
 
@@ -68,7 +68,7 @@ A scene object is a `field` with `initial: null`. Its name is the `ObjectId` the
 | `wholeNumber` | `value` | An integer |
 | `boolean` | `value` | |
 | `text` | `value` | |
-| `enum` | `type`, `value` | `Direction`, `forward` |
+| `enum` | `type`, `value` | `MoveDirection`, `forward` (`02-story-api.md` section 3a) |
 | `none` | | |
 | `this` | | The object the method belongs to |
 | `fieldRef` | `target`, `field` | `target` is an expression; `field` the field's id |
@@ -85,7 +85,7 @@ A scene object is a `field` with `initial: null`. Its name is the `ObjectId` the
 
 **Parts that aren't nodes** (no id; they can't be selected or edited on their own):
 
-- **Type reference:** `{kind: 'story', name}` for a Story API or basic type (`Number`, `WholeNumber`, `Text`, `Boolean`, `Biped`, `Direction`); `{kind: 'user', type}` for a `type` in this program, by id; `{kind: 'array', of}` for a list.
+- **Type reference:** `{kind: 'story', name}` for a Story API or basic type (`Number`, `WholeNumber`, `Text`, `Boolean`, `Biped`, `MoveDirection`; a variable holding 3D text is a `TextModel`); `{kind: 'user', type}` for a `type` in this program, by id; `{kind: 'array', of}` for a list.
 - **Callee:** `{kind: 'story', name}` (`move`) or `{kind: 'user', method}`, by id.
 - **Arguments:** `args` and `details` are objects from parameter name to expression. For a Story API callee the key is the parameter's name; for a user callee it's the parameter's id. `details` holds Alice's optional keyword arguments (`duration`, `animationStyle`, `asSeenBy`).
 
@@ -206,12 +206,12 @@ class Scene1(Scene):
     def myFirstMethod(self):
         self.cat.say(text="Hello")
         do_together:
-            self.cat.move(amount=1, direction=Direction.forward, duration=2)
-            # off: self.dog.turn(amount=0.25, direction=Direction.left)
+            self.cat.move(amount=1, direction=MoveDirection.forward, duration=2)
+            # off: self.dog.turn(amount=0.25, direction=TurnDirection.left)
         for _ in range(3):
             self.score = self.score + 1
 
-    when mouseClickObject(objects=[self.cat]):
+    when clickOnObject(setOfVisuals=[self.cat]):
         self.cat.say(text="Ouch")
 ```
 

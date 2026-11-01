@@ -127,6 +127,7 @@ export const PROGRAM_SCHEMA = {
     listener: node('listener', {
       event: NAME,
       args: ref('args'),
+      details: ref('args'),
       params: listOf('parameter'),
       body: STATEMENTS,
     }),

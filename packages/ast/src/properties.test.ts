@@ -160,7 +160,8 @@ function declaration(pick: Picker, mint: () => NodeId, nodes: readonly AstNode[]
         id,
         kind: 'listener',
         event: 'timer',
-        args: { every: value() },
+        args: { seconds: value() },
+        details: {},
         params: [],
         body: [],
       };
