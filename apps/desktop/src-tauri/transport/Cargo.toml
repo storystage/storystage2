@@ -37,3 +37,7 @@ tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-threa
 [[test]]
 name = "stream"
 required-features = ["test-endpoint"]
+
+[[bin]]
+name = "test-key"
+required-features = ["test-endpoint"]
