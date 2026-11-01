@@ -153,10 +153,22 @@ importers:
 
   packages/stage:
     dependencies:
+      '@babylonjs/core':
+        specifier: ^9.31.1
+        version: 9.31.1
+      '@babylonjs/loaders':
+        specifier: ^9.31.3
+        version: 9.31.3(@babylonjs/core@9.31.1)(babylonjs-gltf2interface@9.31.3)
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
     devDependencies:
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
       vitest:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
