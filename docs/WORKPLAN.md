@@ -104,6 +104,7 @@ packages/
   speech/          whisper.cpp WASM input, speech synthesis output, narration queue
   export/          Frame-by-frame render to MP4 (WebCodecs + muxer), captions (WebVTT/SRT), title and credits; AR pack (baker, GLB, USDZ, page, QR)
   ar/              AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording
+  host/            The host interface (decision 0028): what the build hands the studio (policy in force, Prompter transport, files)
   a3p-import/      Alice .a3p reader -> StoryStage 2 AST
   selftest/        Built-in self-test
 tools/
