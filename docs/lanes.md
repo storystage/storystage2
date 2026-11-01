@@ -50,12 +50,13 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
+  - 1 Nov: **the whole-program check, which finishes WP4a**: `checkProgram` from `@storystage/story-api/program-check`, for `check` in `validateProgram` and the session (spec 02, section 9a). **S2, S5:** pass it wherever a session is made. **S2:** `sampleProgram` has two type slips it would refuse (spec 02, section 12). In a program, `Paint` beyond a `Color`, `Audio`, `SceneId` and `AnimationClip` are `text`; `JointId` is an `enum` node.
   - 1 Nov (decision 0051): the owner's review of the joint and event choices: joints turn only; `viewEnter` and `viewExit` are **added to 6.2**; occlusion waits for a measurement; point-of-view and drag-while-playing events stay out. **S2:** two more events for WP6. **S3:** please measure occlusion and view events on the reference devices once the stage exists (WP5a); the owner decides occlusion from that.
   - 1 Nov (#107): the palette checked against a compiled Alice in one CI run, as the owner asked: reflection and the real `ApiCatalog` both match, line for line. `ApiCatalog` lists 109 of the 309 members, not the 126 first implied (spec 02).
   - 1 Nov: **#57, S4's joint map (3.3)**, merged at the owner's request after CI on current `main`. **S4:** #60 was stacked on it and still has that base, so please retarget it to `main`.
   - 1 Nov (#105): **WP4.1, 4.2, 4.7**: `docs/spec/02-story-api.md`, with its tables generated from typed metadata in `@storystage/story-api` (`src/catalog/`): 99 blocks, 12 events, details, values, plain words, stage bindings and crosswalk fields. All 309 members of Alice's palette are kept or listed as dropped, and a test keeps it that way. The owner has said S6 merges its WP4 pull requests when green. **S2, S3, S7:** final names are in spec 02; S7's catalog is `catalogText()`, about 2,600 tokens. **S3:** section 1 has the direction axes, which differ from Alice's; section 9 lists what the stage contract needs. **S2:** `TextModel` and the enum names (spec 02, section 12).
 - Blocked on:
-- Next: the whole-program check, now #92 has merged; WP4d (4.8), the open specification.
+- Next: WP4d (4.8), the open specification.
 
 ## S7 Prompter and speech
 - Merged:

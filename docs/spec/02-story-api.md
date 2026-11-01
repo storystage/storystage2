@@ -206,6 +206,7 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 
 - **Names** are Alice's constants in camel case, as `ANIMATION_STYLES` already are: `IN_FRONT_OF` is `inFrontOf`. **S2:** in the AST an `enum` node is `{type: 'MoveDirection', value: 'forward'}`. There's no type called `Direction`, because Alice has three, and they differ.
 - **`Paint`** is a `Color`, a `#rrggbb` colour (as the contract's `SceneObjectSetup.paint` allows) or a Backstage surface.
+- **In a program,** a `Color` is an `enum` node. `Paint` beyond that, `Audio`, `SceneId` and `AnimationClip` are `text`, because `01-ast.md` keeps `enum` values to plain names, which a colour or a Backstage id isn't. `JointId` is the one reference that's an `enum` node (section 5).
 - **`Color` keeps Alice's spelling in its ids.** The words on screen are British: `darkGray` shows as "dark grey".
 - **`Key`** keeps the letters, digits, arrows and common keys.
 
@@ -376,6 +377,19 @@ Changes to commands the contract already has:
 - `resize` carries `isVolumePreserved`
 <!-- /catalog:stage -->
 
+## 9a. The program check
+
+`checkProgram` is the Story API's `check` for `validateProgram` and the edit session (`01-ast.md`, section 4.5), from `@storystage/story-api/program-check`. It runs after S2's rules, so structure is settled and it looks only at meaning:
+
+1. **Blocks.** A block exists on its target's class or a parent. A procedure stands as a statement and a function gives a value. A learner's own procedure is called on an object that has it.
+2. **Values.** Every parameter is given, nothing extra is, and each value and detail fits its type, for story blocks, learners' own procedures and what an event needs.
+3. **Statements and sums.** Conditions are true or false, `count` takes a whole number, loops take a list of the right things, and assignments, locals, returns, defaults, list members, sums and logic fit. A sum of whole numbers is whole, except a division. `equal` and `notEqual` compare anything, and `join` joins anything.
+4. **Names.** Types, event kinds and `enum` values exist. A learner's class extends a concrete class, written `TextModel` for 3D text.
+5. **Handlers.** A listener's `params` are values the event gives, by name. A handler may narrow a type, because `setOfVisuals` can promise only bipeds.
+6. **Joints.** The program doesn't say which model a field holds, so the caller passes `jointExists`, which asks the scene and the manifest (section 5, rule 3). Without it, joints aren't checked.
+
+**A wrong refusal stops a learner working,** so anything whose type can't be known passes. An empty slot (`none`) never refuses. Whether a text reference exists is for the production's check, and limits (section 2, rule 4) are for the runtime, because a number can come from a sum. Every problem is `outside`, with a `reason` from `check.*` in the strings file.
+
 ## 10. Crosswalk (WP4.7)
 
 Each entry's equivalent in BML 1.0, where there is one, and its Unreal Engine concept. The text view and teacher notes can show these as "under the hood" names. They come from `10-crosswalk.md`, section 3; as that section says, the Unreal names are from general knowledge and aren't checked line by line.
@@ -510,6 +524,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Kept blocks keep Alice's parameter names, details and kind | `src/catalog/catalog.test.ts` | Unit |
 | Directions follow the right-hand rule | `src/catalog/catalog.test.ts` | Unit |
 | Types, limits, class inheritance, `checkCall` | `src/catalog/catalog.test.ts` | Unit |
+| Each rule of section 9a, against programs that have passed `validateProgram` | `src/catalog/program-check.test.ts` | Unit |
 | Every entry, parameter, detail and value has words, with a place for each parameter; rule 9's banned words appear nowhere | `src/catalog/catalog.test.ts` | Unit |
 | Every `needs:` is explained; every entry has a crosswalk field (4.7) | `src/catalog/catalog.test.ts` | Unit |
 | The catalog text stays under the Prompter's budget (spec 04, section 3) | `src/catalog/catalog.test.ts` | Unit |
@@ -520,12 +535,13 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 
 | Needs | From | For |
 |---|---|---|
-| The whole-program check, on `check(program)` in `01-ast.md` section 4.5. #92 has merged, and `checkCall` is ready for it | S6 | 4.2 |
 | The `contract` pull request for section 9 | S3, S6 | WP4.3 |
 | `{name: 'TextModel'}` as a type | S2 | Section 1 rule 3 |
 | Measure occlusion on the reference devices once the stage exists, so the owner can decide | S3 | Decision 0051 |
 | Measure `viewEnter` and `viewExit` on the reference devices | S3 | Rule 6, section 6 rule 5 |
 | The warning before exporting a program that asks the learner something | S2 | Section 3 rule 1 |
 | Backstage entries for the built-in shapes | S4 | Section 1 rule 5 |
-| The manifest lookup for section 5 rule 3 | S4, S6 | The whole-program check |
+| `jointExists`, from the scene's set-up and the manifest, wherever the session is made | S2, S4 | Section 9a rule 6 |
+| Pass `checkProgram` as `check` wherever a session is made | S2, S5 | Section 9a |
+| `sampleProgram` has two type slips: `double` returns text, and `eachTogether` loops over a non-list | S2 | Harmless today; `checkProgram` would refuse them |
 | Whether the converter (3.2) leaves Alice's models facing +Z, as the contract says | S4 | Section 1, Directions |
