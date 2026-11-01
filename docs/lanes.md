@@ -20,10 +20,10 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - Merged:
-  - 31 Oct (#90, #92, #94, #96, #97, open, stacked, wait for the owner's merge in that order): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. **S6, S7, S4:** the API is listed in `packages/ast/README.md`; code against branch `lane/s2-wp2-6-versions` until it lands. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
-- Blocked on:
-  - Owner: merging the WP2 stack (decision 0029).
-- Next: WP8f, the production format spec and data model (8.1), which doesn't wait for the merge. WP6 follows and needs WP4a's metadata (S6).
+  - 1 Nov (#101): **WP8f, the production format (8.1)**: spec 03, including how the program and a scene's set-up undo as one step (section 2.1); a stricter `checkReferences`; `sceneMethodCheck`; `manifest.origin`; an example production with code in it. Class-imported models travel in the file (decision 0049, section 1.3): `manifest.models`, `models/<folder>/`. **S4:** `packages/production` is yours now; 8.2 builds the production's own undo, and 8.4 the saving, including packing models. **S5, S7, S6:** the format is ready to build the Storyboard, its tools and import on. **S1:** the self-test's undo step can now use real edits on the example production.
+  - 1 Nov (#90, #92, #94, #96, #97): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. S2 merged these under decision 0050; S1, the small changes to your `editor-contract` test and `selftest` are in #92 and #94 if you want to look. **S6, S7, S4:** the API is listed in `packages/ast/README.md`. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
+- Blocked on: nothing.
+- Next: WP6, the runtime: WP4a's metadata has landed (#105).
 
 ## S3 Stage and Story API procedures
 - Merged:

@@ -41,8 +41,8 @@ describe('programText', () => {
     def myFirstMethod(self):
         self.cat.say(text="Hello")
         do_together:
-            self.cat.move(amount=1, direction=Direction.forward, duration=2)
-            # off: self.cat.turn(amount=0.25, direction=Direction.left)
+            self.cat.move(amount=1, direction=MoveDirection.forward, duration=2)
+            # off: self.cat.turn(amount=0.25, direction=TurnDirection.left)
         for _ in range(3):
             self.score = self.score + 1
         x: Number = self.cat.getDistanceTo(other=None)
@@ -64,8 +64,8 @@ describe('programText', () => {
     def double(self) -> WholeNumber:
         return "a" + len([])
 
-    when mouseClickObject(objects=[self.cat]) with (clicked: Quadruped):
-        clicked.say(text=[][0])
+    when clickOnObject(setOfVisuals=[self.cat]) with (model: Quadruped):
+        model.say(text=[][0])
 `);
   });
 
@@ -225,7 +225,7 @@ describe('programText', () => {
     it('cover a whole block', () => {
       const span = spanOf(sampleProgram(), ids.together);
       expect(span?.startsWith('do_together:')).toBe(true);
-      expect(span?.endsWith('direction=Direction.left)')).toBe(true);
+      expect(span?.endsWith('direction=TurnDirection.left)')).toBe(true);
     });
 
     it('find declarations', () => {
@@ -233,7 +233,7 @@ describe('programText', () => {
       expect(spanOf(sampleProgram(), ids.height)).toBe('height: Number = 1');
       expect(spanOf(sampleProgram(), ids.hop)?.startsWith('def hop(')).toBe(true);
       expect(spanOf(sampleProgram(), ids.item)).toBe('item');
-      expect(spanOf(sampleProgram(), ids.click)?.startsWith('when mouseClickObject(')).toBe(true);
+      expect(spanOf(sampleProgram(), ids.click)?.startsWith('when clickOnObject(')).toBe(true);
     });
 
     it('exist for every node, and nest', () => {

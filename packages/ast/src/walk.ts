@@ -24,7 +24,7 @@ export const SHAPES: Readonly<Record<NodeKind, Shape>> = {
   field: { singles: ['initial'] },
   method: { lists: ['params', 'body'] },
   parameter: { singles: ['default'] },
-  listener: { lists: ['params', 'body'], maps: ['args'] },
+  listener: { lists: ['params', 'body'], maps: ['args', 'details'] },
   loopItem: {},
 
   doInOrder: BODY,

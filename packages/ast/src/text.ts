@@ -372,7 +372,10 @@ class Writer {
     this.lineSpan(l, () => {
       this.startLine();
       this.write(`when ${l.event}(`);
-      this.arguments([{ args: l.args, user: false }]);
+      this.arguments([
+        { args: l.args, user: false },
+        { args: l.details, user: false },
+      ]);
       this.write(')');
       if (l.params.length > 0) {
         this.write(' with (');

@@ -29,8 +29,11 @@ interface Schema {
 
 const MAX_TEXT = 10_000;
 const MAX_NAME = 60;
-/** Levels of JSON. The walkers recurse, so a hostile file mustn't be able to exhaust the stack. */
-export const MAX_DEPTH = 200;
+/**
+ * Levels of JSON, as in `docs/spec/15-security.md` section 3.1. The walkers recurse, so a hostile
+ * file mustn't be able to exhaust the stack.
+ */
+export const MAX_DEPTH = 256;
 
 const ref = (name: string): Schema => ({ $ref: `#/$defs/${name}` });
 const orNull = (name: string): Schema => ({ oneOf: [{ type: 'null' }, ref(name)] });
@@ -124,6 +127,7 @@ export const PROGRAM_SCHEMA = {
     listener: node('listener', {
       event: NAME,
       args: ref('args'),
+      details: ref('args'),
       params: listOf('parameter'),
       body: STATEMENTS,
     }),

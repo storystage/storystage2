@@ -261,6 +261,7 @@ function checkRules(program: Program): Problem[] {
     }
     for (const listener of type.listeners) {
       args(listener.args);
+      args(listener.details);
       callable(listener, listener.params, null);
     }
   }

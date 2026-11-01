@@ -150,7 +150,7 @@ describe('insert', () => {
 
   it('refuses nesting past the limit', () => {
     let node: Statement = comment('deepa0');
-    for (let i = 1; i < 100; i++)
+    for (let i = 1; i < 150; i++)
       node = {
         id: nodeId(`deep${i.toString(36).padStart(2, '0')}`),
         kind: 'doInOrder',
@@ -608,6 +608,7 @@ describe('declare', () => {
         id: nodeId('newlis'),
         kind: 'listener',
         event: 'timer',
+        details: {},
         args: {},
         params: [],
         body: [],
