@@ -752,7 +752,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 13.5 **Modes:** Explain only, Show me how, Build it, and the **story coach**. The coach asks questions about logline, synopsis and scenes, and never writes the learner's story or script lines. (C)
 - [ ] 13.6 Set-up wizard (from StoryStage 1 spec 02): what is sent, cost, the adult-account rule, Console steps, paste and check key, options. A usage meter. Remove key. (C)
 - [ ] 13.7 Fake Claude server and recordings, with the evaluation set re-expressed for StoryStage 2. Add new categories: storyboard, "doesn't write the story", and prompt injection (a script line or a shared production that tells the Prompter to break its rules). Run the set on each model used by the mode routing (24.3). (C)
-- [ ] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
+- [x] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
 - [ ] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
     - **What the learner sees:** before anything changes, the Prompter shows a short numbered plan in plain words, made from the frame's sketch, its script lines and its shot type. For example, for frame 2.3: "1. The owl walks to the tree. 2. The owl turns to face the cat. 3. The owl says 'Here is the key.' 4. The cat jumps. 5. Hold for 1 second."
     - **What the learner can do with it:** reorder steps by drag or keyboard, delete a step, change a value (who, where, how long, which line) with the same dropdowns the blocks use, add a step from a short menu, or ask "why this step?". Nothing in the program changes until the learner presses **Build these steps**.
