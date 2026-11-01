@@ -1,10 +1,17 @@
-# Everyday people from MakeHuman: first set, for review
+# Everyday people from MakeHuman: first set
 
 - **Workplan:** WP3.5. **Spec:** `docs/spec/17-backstage.md`, section 3 (pipelines).
-- **Status:** draft for the owner's review of respectful, varied representation (WP3 done-when), 25 Oct 2026. Nothing has been made yet.
+- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). Nothing has been made yet. The owner still reviews the first set's renders before they are merged (WP3 done-when).
 - **Source of truth:** `people.json` in this folder. The table below is generated from it by `node tools/makehuman-export/src/people-cli.ts`, which also checks every asset against MakeHuman's CC0 system pack.
 
 Thirty people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2 in Blender, run headless in the assets repository's CI (owner, 25 Oct 2026). Each one is rigged to the game-engine skeleton, so it walks, gestures and poses with the same blocks as every other character (joint map, spec 17 section 2a). Their credit line is "<Name>, made with MakeHuman (CC0)".
+
+## The owner's decisions (1 Nov 2026)
+
+- **The list:** approved as drafted, for the first build.
+- **What learners see:** first names, as listed.
+- **The gaps** (headwear, glasses, hearing aids, wheelchairs): look for community CC0 assets first, each checked through the licence audit before it is added. Anything that can't be found that way comes back to the owner.
+- **Grey hair:** tint it in the pipeline. Margaret, Lin, Ravi and Eileen are tinted (`hairTint` in `people.json`). Winston and Tunde are bald.
 
 ## How the list was chosen
 
@@ -27,10 +34,10 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 
 | Missing | Effect | Possible remedy |
 |---|---|---|
-| Headscarves (hijab), turbans, kippahs | No one can be shown wearing them | Commission CC0 or ours-licensed headwear (with WP3.6), or find community CC0 assets and add them through the audit |
-| Glasses, hearing aids | None shown | As above; small props attached to the head |
-| Wheelchairs, walking aids | No disabled people shown using them | Model a wheelchair as a Prop a character can sit in (Story API "sit on") |
-| Grey or white hair | Older people keep their hair's built-in colour | Tint the hair in the pipeline (MPFB2 hair material), or bald (Tunde, Winston) |
+| Headscarves (hijab), turbans, kippahs | No one can be shown wearing them | Community CC0 assets through the audit first (owner, 1 Nov 2026) |
+| Glasses, hearing aids | None shown | As above |
+| Wheelchairs, walking aids | No disabled people shown using them | As above; a wheelchair would be a Prop a character can sit in (Story API "sit on") |
+| Grey or white hair | The pack's hair has fixed colours, none of them grey | Tinted in the pipeline (owner, 1 Nov 2026) |
 | Children's clothes | Children wear adult outfits refitted to their bodies | Check the first build; commission if they look wrong |
 | Only 10 hairstyles | Some repetition | Community CC0 hair through the audit |
 
@@ -65,16 +72,16 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 | 23 | Fatima | 30 | average | Asian 50%, Caucasian 30%, African 20% | young_asian_female | braid01 | brown | female_casualsuit01, shoes02 |
 | 24 | Morgan | 26 | average | Caucasian 60%, African 40% | young_caucasian_male | short04 | brownlight | male_casualsuit06, shoes01 |
 | 25 | Siân | 55 | average | Caucasian 100% | middleage_caucasian_female | bob02 | blue | female_elegantsuit01, shoes05 |
-| 26 | Margaret | 72 | average | Caucasian 100% | old_caucasian_female | bob02 | grey | female_casualsuit02, shoes06 |
+| 26 | Margaret | 72 | average | Caucasian 100% | old_caucasian_female | bob02, tinted grey | grey | female_casualsuit02, shoes06 |
 | 27 | Winston | 78 | average | African 100% | old_african_male | none | brown | male_elegantsuit01, shoes03, fedora01 |
-| 28 | Lin | 68 | shorter | Asian 100% | old_asian_female | bob01 | brown | female_casualsuit01, shoes02 |
-| 29 | Ravi | 70 | average | Asian 50%, Caucasian 30%, African 20% | old_asian_male | short02 | brown | male_casualsuit03, shoes04 |
-| 30 | Eileen | 85 | shorter, slight | Caucasian 100% | old_caucasian_female | bob02 | blue | female_elegantsuit01, shoes06 |
+| 28 | Lin | 68 | shorter | Asian 100% | old_asian_female | bob01, tinted grey | brown | female_casualsuit01, shoes02 |
+| 29 | Ravi | 70 | average | Asian 50%, Caucasian 30%, African 20% | old_asian_male | short02, tinted grey | brown | male_casualsuit03, shoes04 |
+| 30 | Eileen | 85 | shorter, slight | Caucasian 100% | old_caucasian_female | bob02, tinted white | blue | female_elegantsuit01, shoes06 |
 
 <!-- /people -->
 
 ## What happens next
 
-1. The owner reviews this list (names, ages, bodies, ancestry mixes, clothes) and the gaps above.
-2. S4 builds the pipeline in the assets repository: Blender, MPFB2 and the CC0 system pack, run headless in CI. It makes each person from `people.json`, exports glTF and adds them to Backstage with their sketches.
-3. The owner reviews the first set's sketches and renders in the assets pull request, as for the CC0 sources.
+1. S4 builds the pipeline in the assets repository: Blender, MPFB2 and the CC0 system pack, run headless in CI. It makes each person from `people.json`, exports glTF and adds them to Backstage with their sketches.
+2. The owner reviews the first set's sketches and renders in the assets pull request, as for the CC0 sources.
+3. S4 looks for community CC0 headwear, glasses, hearing aids and a wheelchair, and takes each through the licence audit.

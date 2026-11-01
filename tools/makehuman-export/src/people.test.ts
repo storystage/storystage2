@@ -66,6 +66,29 @@ describe('validatePeople', () => {
   });
 });
 
+describe('hairTint', () => {
+  it('accepts grey or white on someone with hair, and nothing else', () => {
+    expect(validatePeople([person({ hairTint: 'grey' })]).ok).toBe(true);
+    expect(validatePeople([person({ hairTint: 'white' })]).ok).toBe(true);
+    expect(validatePeople([person({ hairTint: 'green' as never })]).ok).toBe(false);
+    expect(validatePeople([person({ hair: null, hairTint: 'grey' })]).ok).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    expect(peopleTable([person({ hairTint: 'grey' })])).toContain('| short02, tinted grey |');
+  });
+
+  it('is on every older person with hair in people.json, and only them', () => {
+    const file = fileURLToPath(new URL('../people.json', import.meta.url));
+    const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+    const tinted = people.filter((p) => p.hairTint).map((p) => p.name);
+    expect(tinted).toEqual(
+      people.filter((p) => p.ageYears >= 65 && p.hair !== null).map((p) => p.name),
+    );
+    expect(tinted).toEqual(['Margaret', 'Lin', 'Ravi', 'Eileen']);
+  });
+});
+
 describe('peopleTable', () => {
   it('describes each person in plain words for review', () => {
     const table = peopleTable([
