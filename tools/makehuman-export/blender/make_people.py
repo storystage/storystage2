@@ -23,6 +23,7 @@ import bpy
 import numpy as np
 
 MAX_TEXTURE = 1024
+SEE_THROUGH = {"hair", "eyebrows", "eyelashes"}
 
 
 def mpfb(module, name):
@@ -51,34 +52,87 @@ def mhclo_uuid(path):
     raise ValueError(f"No uuid in {path}")
 
 
-def tint_hair(hair, colour):
-    """The pack's hair has fixed colours, none grey, and a shader tint would not survive glTF, so
-    the texture's own pixels change: each strand keeps its light and shade, in grey or white."""
-    base, span = (0.32, 0.42) if colour == "grey" else (0.6, 0.36)
+def base_colour_images(material):
+    """The image nodes feeding a material's base colour, and only those: a normal map is no colour."""
+    principled = next((n for n in material.node_tree.nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if principled is None:
+        return []
+    found, seen, todo = [], set(), [principled.inputs["Base Color"]]
+    while todo:
+        for link in todo.pop().links:
+            node = link.from_node
+            if node.name not in seen:
+                seen.add(node.name)
+                if node.type == "TEX_IMAGE" and node.image:
+                    found.append(node)
+                todo.extend(node.inputs)
+    return found
+
+
+def repaint(obj, paint):
+    """Changes a texture's own pixels. A shader tint would not survive the export to glTF."""
     done = {}
-    for slot in hair.material_slots:
-        for node in slot.material.node_tree.nodes if slot.material else []:
-            if node.type != "TEX_IMAGE" or not node.image:
-                continue
+    for slot in obj.material_slots:
+        for node in base_colour_images(slot.material) if slot.material else []:
             source = node.image
             if source.name not in done:
                 width, height = source.size
                 pixels = np.empty(width * height * 4, dtype=np.float32)
                 source.pixels.foreach_get(pixels)
                 rgba = pixels.reshape(-1, 4)
-                light = rgba[:, :3].dot([0.2126, 0.7152, 0.0722])
-                opaque = rgba[:, 3] > 0.1
-                top = np.percentile(light[opaque], 95) if opaque.any() else 1.0
-                value = base + span * np.clip(light / max(top, 1e-3), 0, 1)
-                rgba[:, 0] = rgba[:, 1] = rgba[:, 2] = value
-                tinted = bpy.data.images.new(f"{source.name}-{colour}", width, height, alpha=True)
-                tinted.pixels.foreach_set(rgba.ravel())
-                tinted.update()
-                tinted.pack()
-                done[source.name] = tinted
+                paint(rgba)
+                image = bpy.data.images.new(f"{source.name}-{obj.name}", width, height, alpha=True)
+                image.pixels.foreach_set(rgba.ravel())
+                image.update()
+                image.pack()
+                done[source.name] = image
             node.image = done[source.name]
     if not done:
-        raise RuntimeError(f"No hair texture to tint on {hair.name}")
+        raise RuntimeError(f"No colour texture to change on {obj.name}")
+
+
+def tinted_hair(colour):
+    """Grey or white; each strand keeps its light and shade."""
+    base, span = (0.32, 0.42) if colour == "grey" else (0.6, 0.36)
+
+    def paint(rgba):
+        light = rgba[:, :3].dot([0.2126, 0.7152, 0.0722])
+        opaque = rgba[:, 3] > 0.1
+        top = np.percentile(light[opaque], 95) if opaque.any() else 1.0
+        rgba[:, :3] = (base + span * np.clip(light / max(top, 1e-3), 0, 1))[:, None]
+
+    return paint
+
+
+def recoloured_outfit(colour):
+    """Everything but denim takes the colour and keeps its folds. An outfit's shirt and jeans share
+    one texture, so the jeans are told apart by being blue."""
+    target = np.array(colour, dtype=np.float32)
+
+    def paint(rgba):
+        r, g, b = rgba[:, 0], rgba[:, 1], rgba[:, 2]
+        cloth = ~((b > r + 0.04) & (b >= g))
+        light = rgba[:, :3].max(axis=1)
+        top = np.percentile(light[cloth], 90) if cloth.any() else 1.0
+        shade = np.clip(light[cloth] / max(top, 1e-3), 0, 1)
+        rgba[cloth, :3] = shade[:, None] * target
+
+    return paint
+
+
+def make_solid(obj):
+    """MPFB2's game material marks everything see-through. Only hair, eyebrows and eyelashes are:
+    a see-through body would draw wrongly on the stage, and read as a card in the sketches."""
+    for slot in obj.material_slots:
+        material = slot.material
+        for node in material.node_tree.nodes if material else []:
+            if node.type == "BSDF_PRINCIPLED":
+                alpha = node.inputs["Alpha"]
+                for link in list(alpha.links):
+                    material.node_tree.links.remove(link)
+                alpha.default_value = 1.0
+        if material:
+            material.blend_method = "OPAQUE"
 
 
 def shrink_textures():
@@ -119,14 +173,25 @@ def make_person(info, models):
         hair = ObjectService.find_object_of_type_amongst_nearest_relatives(basemesh, "Hair")
         if hair is None:
             raise RuntimeError("No hair to tint")
-        tint_hair(hair, extra["hairTint"])
+        repaint(hair, tinted_hair(extra["hairTint"]))
+
+    parts = ObjectService.get_list_of_children(rig)
+    if extra["clothesColour"]:
+        outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
+        if outfit is None:
+            raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
+        repaint(outfit, recoloured_outfit(extra["clothesColour"]))
+
+    for part in parts:
+        if ObjectService.get_object_type(part).lower() not in SEE_THROUGH:
+            make_solid(part)
 
     shrink_textures()
 
     ObjectService.deselect_and_deactivate_all()
     rig.select_set(True)
-    for child in ObjectService.get_list_of_children(rig):
-        child.select_set(True)
+    for part in parts:
+        part.select_set(True)
     bpy.context.view_layer.objects.active = rig
 
     path = os.path.join(models, f"{info['name']}.glb")
@@ -149,17 +214,13 @@ def render_preview(glb, png):
     bpy.ops.import_scene.gltf(filepath=glb)
     scene = bpy.context.scene
 
-    # Where the vertices end up once skinned, which is not where the mesh data alone puts them.
-    depsgraph = bpy.context.evaluated_depsgraph_get()
-    corners = [
-        obj.matrix_world @ v.co
-        for obj in scene.objects
-        if obj.type == "MESH"
-        for v in obj.evaluated_get(depsgraph).to_mesh().vertices
-    ]
-    if not corners:
-        raise RuntimeError("The exported file has no meshes")
-    xs, zs = [c.x for c in corners], [c.z for c in corners]
+    # Framed from the skeleton: the feet are on the ground, and the head's bone ends near its top.
+    rig = next((o for o in scene.objects if o.type == "ARMATURE"), None)
+    if rig is None:
+        raise RuntimeError("The exported file has no skeleton")
+    ends = [rig.matrix_world @ e for b in rig.data.bones for e in (b.head_local, b.tail_local)]
+    xs = [e.x for e in ends]
+    zs = [0, max(e.z for e in ends) * 1.1]
     triangles = sum(
         len(p.vertices) - 2
         for obj in scene.objects

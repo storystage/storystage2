@@ -6,7 +6,7 @@
  * - `sourceList`: the people as a Backstage source list (`sources/makehuman.json`), so they get
  *   the same manifest items, joint mapping, provenance and sketches as every other model.
  */
-import { ageToMacro, skinFor, type Person } from './people.ts';
+import { ageToMacro, CLOTHES_COLOURS, skinFor, type Person } from './people.ts';
 
 /** The skeleton in MPFB2 that matches the joint map's `unreal` convention (spec 17, 2a). */
 const RIG = 'game_engine';
@@ -51,6 +51,9 @@ export interface HumanInfo {
     readonly displayName: string;
     readonly eyes: string;
     readonly hairTint: 'grey' | 'white' | null;
+    /** The outfit to recolour, and its colour: red, green and blue from 0 to 1. */
+    readonly outfit: string;
+    readonly clothesColour: readonly [number, number, number] | null;
   };
 }
 
@@ -85,7 +88,13 @@ export function humanInfo(p: Person): HumanInfo {
     clothes_material_type: MATERIAL,
     skin_material_settings: {},
     eyes_material_settings: {},
-    storystage: { displayName: p.name, eyes: p.eyes, hairTint: p.hairTint ?? null },
+    storystage: {
+      displayName: p.name,
+      eyes: p.eyes,
+      hairTint: p.hairTint ?? null,
+      outfit: p.clothes[0]!,
+      clothesColour: p.clothesColour ? CLOTHES_COLOURS[p.clothesColour] : null,
+    },
   };
 }
 

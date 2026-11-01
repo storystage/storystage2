@@ -52,6 +52,14 @@ describe('humanInfo', () => {
     expect(humanInfo(person)).toMatchObject({ storystage: { eyes: 'grey', hairTint: 'grey' } });
   });
 
+  it('gives the script the outfit to recolour and the colour as numbers', () => {
+    expect(humanInfo({ ...person, clothesColour: 'teal' }).storystage).toMatchObject({
+      outfit: 'female_casualsuit02',
+      clothesColour: [0.16, 0.56, 0.58],
+    });
+    expect(humanInfo(person).storystage.clothesColour).toBeNull();
+  });
+
   it('leaves hair empty for someone with none, and adds a hat to the clothes', () => {
     const winston = humanInfo({ ...person, hair: null, hairTint: undefined, hat: 'fedora01' });
     expect(winston.hair).toBe('');
