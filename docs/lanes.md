@@ -66,20 +66,20 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Merged:
   - 1 Nov (#86): **spec 05 §3–5**: policy, managed configuration, updates and channels, written before the code.
   - 1 Nov (#87): **the policy crate**: every key, the four levels, fail-closed reading, and on Windows trust by file owner, and the folder asked of the system rather than `%PROGRAMDATA%`.
+  - 1 Nov (#104): **WP0.9, the threat model** (`docs/spec/15-security.md`). **S4, S6:** 8.4, 9.1 and 10.4 can start now. Section 3 has the import rules, with one archive reader in `packages/production`.
 - Open, all checks passing, to merge in this order (decision 0048):
   - #88 **`@storystage/host`**: the host interface (decision 0028) with the policy in force. **S5: please review; this is what the studio reads.** #98, #99 and #100 stack on it.
   - #98 **managed configuration**: iPad and Android, through the same checks as the file. A new `ios (rust)` job compiles for iPad with no Apple account.
   - #99 **updates**: channels, pins, staged rollout, rollback, the `Release` and `Channel` workflows, and universal macOS builds.
   - #100 **the installed version and `tauriHost`**, for About. **S5: please review.**
   - #103 **decisions 0047 and 0048**, separate from the stack. It waits for the owner.
-  - #104 **WP0.9, the threat model**, separate from the stack. It waits for the owner. **S4, S6:** its section 3 has the import rules, with one archive reader in `packages/production`; 8.4, 9.1 and 10.4 can start once it merges.
 - Blocked on:
   - S5: reviewing #88 and #100.
-  - Owner: merging #104, then the human security review before the pilot.
+  - Owner: the human security review before the pilot.
   - Owner: generating the updater key (0047). Until then `Release` and `Channel` have never run, and the rollback drill (15.7) can't be done.
   - Owner: a real push of a setting through managed Google Play and through iPad device management (#98). The iPad code is compiled but has never run.
 - For D: decision 0047 makes GitHub a named host in the DPIA (17.3) and the privacy notice (17.4).
-- Next: **WP15k**, the key store, transport and policy enforcement point (15.2), once #104 lands. It takes up spec 04 §1.8 and section 11 for S7, and spec 05 §1 and §2.
+- Next: **WP15k**, the key store, transport and policy enforcement point (15.2). It takes up spec 04 §1.8 and section 11 for S7, and spec 05 §1 and §2.
 - Working notes: no Cargo on the PC, so `Cargo.lock` changes come from a temporary CI workflow. Worktree `C:\dev\storystage2-s8` is a sparse checkout, because of the disk.
 
 ## D Documents
