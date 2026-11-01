@@ -54,6 +54,34 @@ export const SYSTEM_ASSETS = {
   hats: ['fedora01', 'fedora_cocked'],
 } as const;
 
+/**
+ * Outfits in the pack that nobody wears (owner, 1 Nov 2026): the crop top and the short denim
+ * shorts don't suit a tool for 6 to 13-year-olds, and the rest carry MakeHuman's logo.
+ */
+export const RETIRED_CLOTHES = [
+  'female_sportsuit01',
+  'female_casualsuit01',
+  'female_casualsuit02',
+  'male_casualsuit02',
+  'male_casualsuit04',
+] as const;
+
+/**
+ * Colours for an outfit, red, green and blue from 0 to 1, so 30 people don't look like a team in
+ * uniform. The pipeline leaves denim alone and recolours the rest of the outfit.
+ */
+export const CLOTHES_COLOURS = {
+  coral: [0.91, 0.45, 0.36],
+  green: [0.3, 0.6, 0.35],
+  lilac: [0.66, 0.55, 0.82],
+  mustard: [0.85, 0.66, 0.2],
+  plum: [0.52, 0.27, 0.5],
+  rose: [0.85, 0.5, 0.6],
+  rust: [0.7, 0.36, 0.2],
+  teal: [0.16, 0.56, 0.58],
+} as const;
+export type ClothesColour = keyof typeof CLOTHES_COLOURS;
+
 export interface Person {
   /** `p01` to `p30`; the Backstage id is `makehuman/Biped/<id>`. */
   readonly id: string;
@@ -85,6 +113,8 @@ export interface Person {
   readonly hairTint?: 'grey' | 'white';
   readonly eyebrows: string;
   readonly clothes: readonly string[];
+  /** The outfit's colour; left out, it keeps the pack's. */
+  readonly clothesColour?: ClothesColour;
   readonly shoes: string;
   readonly hat?: string;
 }
@@ -141,6 +171,9 @@ export function validatePeople(people: readonly Person[]): Result {
     else
       for (const c of p.clothes)
         if (!has(SYSTEM_ASSETS.clothes, c)) e(`clothes: "${c}" is not in the system pack.`);
+        else if (has(RETIRED_CLOTHES, c)) e(`clothes: "${c}" is retired.`);
+    if (p.clothesColour !== undefined && !(p.clothesColour in CLOTHES_COLOURS))
+      e(`clothesColour must be one of ${Object.keys(CLOTHES_COLOURS).join(', ')}.`);
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
@@ -174,6 +207,13 @@ const ancestryWords = (a: Person['ancestry']) =>
 const hairWords = (p: Person) =>
   p.hair === null ? 'none' : p.hairTint ? `${p.hair}, tinted ${p.hairTint}` : p.hair;
 
+const clothesWords = (p: Person) =>
+  [
+    ...p.clothes.map((c) => (p.clothesColour ? `${c} (${p.clothesColour})` : c)),
+    p.shoes,
+    ...(p.hat ? [p.hat] : []),
+  ].join(', ');
+
 /** The review table: one row per person, in plain words. */
 export function peopleTable(people: readonly Person[]): string {
   return [
@@ -181,7 +221,7 @@ export function peopleTable(people: readonly Person[]): string {
     '|---|---|---|---|---|---|---|---|---|',
     ...people.map(
       (p, i) =>
-        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${[...p.clothes, p.shoes, ...(p.hat ? [p.hat] : [])].join(', ')} |`,
+        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${clothesWords(p)} |`,
     ),
   ].join('\n');
 }

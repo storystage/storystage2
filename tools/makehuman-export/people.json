@@ -40,7 +40,8 @@
     "eyes": "brown",
     "hair": "afro01",
     "eyebrows": "eyebrow002",
-    "clothes": ["female_casualsuit01"],
+    "clothes": ["male_casualsuit06"],
+    "clothesColour": "mustard",
     "shoes": "shoes02"
   },
   {
@@ -62,7 +63,8 @@
     "eyes": "brown",
     "hair": "short03",
     "eyebrows": "eyebrow003",
-    "clothes": ["male_casualsuit02"],
+    "clothes": ["male_casualsuit06"],
+    "clothesColour": "teal",
     "shoes": "shoes03"
   },
   {
@@ -84,7 +86,8 @@
     "eyes": "brown",
     "hair": "braid01",
     "eyebrows": "eyebrow004",
-    "clothes": ["female_casualsuit02"],
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "plum",
     "shoes": "shoes01"
   },
   {
@@ -128,7 +131,8 @@
     "eyes": "green",
     "hair": "ponytail01",
     "eyebrows": "eyebrow006",
-    "clothes": ["female_sportsuit01"],
+    "clothes": ["male_casualsuit06"],
+    "clothesColour": "green",
     "shoes": "shoes05"
   },
   {
@@ -150,7 +154,8 @@
     "eyes": "brown",
     "hair": "short04",
     "eyebrows": "eyebrow007",
-    "clothes": ["male_casualsuit04"],
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "teal",
     "shoes": "shoes02"
   },
   {
@@ -172,7 +177,8 @@
     "eyes": "brown",
     "hair": "bob01",
     "eyebrows": "eyebrow008",
-    "clothes": ["female_casualsuit01"],
+    "clothes": ["male_casualsuit06"],
+    "clothesColour": "coral",
     "shoes": "shoes06"
   },
   {
@@ -216,7 +222,8 @@
     "eyes": "blue",
     "hair": "long01",
     "eyebrows": "eyebrow010",
-    "clothes": ["female_casualsuit02"],
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "green",
     "shoes": "shoes04"
   },
   {
@@ -260,7 +267,8 @@
     "eyes": "brown",
     "hair": "long01",
     "eyebrows": "eyebrow012",
-    "clothes": ["female_casualsuit01"],
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "plum",
     "shoes": "shoes02"
   },
   {
@@ -280,7 +288,7 @@
       "caucasian": 1
     },
     "eyes": "lightblue",
-    "hair": "bob02",
+    "hair": "short04",
     "eyebrows": "eyebrow001",
     "clothes": ["male_casualsuit01"],
     "shoes": "shoes05"
@@ -304,7 +312,8 @@
     "eyes": "brown",
     "hair": "ponytail01",
     "eyebrows": "eyebrow002",
-    "clothes": ["female_sportsuit01"],
+    "clothes": ["male_casualsuit06"],
+    "clothesColour": "rust",
     "shoes": "shoes06"
   },
   {
@@ -326,7 +335,8 @@
     "eyes": "brown",
     "hair": "short02",
     "eyebrows": "eyebrow003",
-    "clothes": ["male_casualsuit02"],
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "rust",
     "shoes": "shoes03"
   },
   {
@@ -349,6 +359,7 @@
     "hair": "short04",
     "eyebrows": "eyebrow004",
     "clothes": ["male_casualsuit03"],
+    "clothesColour": "mustard",
     "shoes": "shoes04"
   },
   {
@@ -436,7 +447,8 @@
     "eyes": "green",
     "hair": "bob01",
     "eyebrows": "eyebrow008",
-    "clothes": ["female_casualsuit02"],
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "teal",
     "shoes": "shoes06"
   },
   {
@@ -458,7 +470,8 @@
     "eyes": "brown",
     "hair": "short03",
     "eyebrows": "eyebrow009",
-    "clothes": ["male_casualsuit04"],
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "green",
     "shoes": "shoes05"
   },
   {
@@ -502,7 +515,8 @@
     "eyes": "brown",
     "hair": "braid01",
     "eyebrows": "eyebrow011",
-    "clothes": ["female_casualsuit01"],
+    "clothes": ["female_elegantsuit01"],
+    "clothesColour": "plum",
     "shoes": "shoes02"
   },
   {
@@ -569,7 +583,8 @@
     "hair": "bob02",
     "hairTint": "grey",
     "eyebrows": "eyebrow002",
-    "clothes": ["female_casualsuit02"],
+    "clothes": ["female_elegantsuit01"],
+    "clothesColour": "rose",
     "shoes": "shoes06"
   },
   {
@@ -615,7 +630,8 @@
     "hair": "bob01",
     "hairTint": "grey",
     "eyebrows": "eyebrow004",
-    "clothes": ["female_casualsuit01"],
+    "clothes": ["female_elegantsuit01"],
+    "clothesColour": "teal",
     "shoes": "shoes02"
   },
   {
@@ -639,6 +655,7 @@
     "hairTint": "grey",
     "eyebrows": "eyebrow005",
     "clothes": ["male_casualsuit03"],
+    "clothesColour": "rust",
     "shoes": "shoes04"
   },
   {
@@ -662,6 +679,7 @@
     "hairTint": "white",
     "eyebrows": "eyebrow006",
     "clothes": ["female_elegantsuit01"],
+    "clothesColour": "lilac",
     "shoes": "shoes06"
   }
 ]
