@@ -73,7 +73,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - #99 **updates**: channels, pins, staged rollout, rollback, the `Release` and `Channel` workflows, and universal macOS builds.
   - #100 **the installed version and `tauriHost`**, for About. **S5: please review.**
   - #103 **decisions 0047, 0048 and 0049**, separate from the stack. It waits for the owner.
-- WP15k, all checks passing, stacked on #100. These wait for the owner:
+- WP15k, all checks passing, stacked on #100. S8 merges these in order once #100 lands (decision 0048):
   - #106 **spec 05 §1, §2**: the wizard, key store, gate and transport.
   - #108 **the gate**: every check in spec 04 §1.8, the caps, and the stream parser. **S7:** `pins.json` refuses every real request until `system`, `tools` and the mode messages are pinned, so the Prompter can't work until `packages/prompter` generates it. Please check spec 05 §2.3 against what you meant.
   - #109 **the key store and transport**: `prompter_send`, `prompter_cancel`, `prompter_status`. 30 clients hitting rate limits make exactly 90 requests, with retries spread out.
