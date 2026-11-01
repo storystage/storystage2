@@ -1,4 +1,4 @@
-/** Small vector and quaternion helpers for the fake stage. The real stage uses Babylon.js's. */
+/** Small vector and quaternion helpers for the timeline, which has no graphics library. */
 import type { Quat, Vec3 } from '@storystage/story-api';
 
 export const v = (x: number, y: number, z: number): Vec3 => ({ x, y, z });
@@ -26,6 +26,9 @@ export function mul(a: Quat, b: Quat): Quat {
     z: a.w * b.z + a.x * b.y - a.y * b.x + a.z * b.w,
   };
 }
+
+/** The opposite rotation of a unit quaternion. */
+export const conjugate = (q: Quat): Quat => ({ x: -q.x, y: -q.y, z: -q.z, w: q.w });
 
 /** Rotates a vector by a unit quaternion. */
 export function rotate(q: Quat, p: Vec3): Vec3 {
