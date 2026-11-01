@@ -3,13 +3,17 @@
  * the `Stage` type, and pages that never open a scene, don't load Babylon.js.
  */
 import { Engine } from '@babylonjs/core/Engines/engine.js';
+import type { ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
 
 export { BabylonStage };
+export { modelsFromManifest, type ModelFile, type ModelSource } from './models.ts';
 
 export interface BabylonStageOptions {
   /** Where to draw. For export, a canvas that's never on the page. */
   readonly canvas: HTMLCanvasElement | OffscreenCanvas;
+  /** Where to find models. Without it, a scene can only use stand-ins. */
+  readonly models?: ModelSource;
   /** True for export: keeps each frame so it can be read back. It costs speed on iPads. */
   readonly offscreen?: boolean;
 }
@@ -19,5 +23,5 @@ export function createBabylonStage(options: BabylonStageOptions): BabylonStage {
     preserveDrawingBuffer: options.offscreen ?? false,
     stencil: false,
   });
-  return new BabylonStage(engine);
+  return new BabylonStage(engine, { models: options.models });
 }
