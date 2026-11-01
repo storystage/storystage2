@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { test } from 'vitest';
 import { buildManifest, withRollback, withRollout } from './update-manifest.mjs';
 
 const names = [

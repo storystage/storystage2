@@ -230,7 +230,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | The four levels, and the more restrictive winning (3.4) | All eight combinations of the three keys | Rust unit |
 | A policy can only narrow (3.1, 3.6) | Each widening key, with an untrusted file | Rust unit |
 | UTF-16 and byte order marks (3.5) | The same policy in each encoding | Rust unit |
-| File ownership on Windows (3.6) | A file the runner's user owns is untrusted | Rust unit, Windows job |
+| File ownership on Windows (3.6) | A file owned by TrustedInstaller is untrusted, and one given to Administrators with `takeown /a` is trusted | Rust unit, Windows job |
 | The Windows folder comes from the system, not the variable (3.2) | The path doesn't move when `PROGRAMDATA` is changed | Rust unit, Windows job |
 | `PolicyInForce` agrees on both sides (3.8) | One fixture, read by Rust and by TypeScript | Rust unit and Vitest |
 | Managed configuration reaches the same checks (3.5) | Pairs of strings go through the file's rules | Rust unit |
@@ -239,6 +239,6 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | A real push reaches the app (3.2) | A setting pushed through managed Google Play, and through the iPad's device management | Device (owner). Android's push needs a device policy controller, which CI doesn't have |
 | Which build to move to (4.3) | One unit test per row, with pins, rollout boundaries and rollbacks | Rust unit |
 | When a device checks (4.1) | Once a day, and after a version change | Rust unit |
-| Manifests, rollouts and rollbacks (4.2 to 4.4) | Building and changing a manifest | `node --test`, in the `policy` job |
+| Manifests, rollouts and rollbacks (4.2 to 4.4) | Building and changing a manifest | Vitest |
 | The lock holds in the app (WP15 done-when) | With the file set, `prompter_status` reports `prompter_off` | WP15k, then device (owner) |
 | Rollback (4.7) | The drill | CI, then a device (owner) |

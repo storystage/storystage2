@@ -73,8 +73,6 @@ jobs:
       - name: Test the policy
         working-directory: apps/desktop/src-tauri
         run: cargo test -p storystage-policy --locked
-      - name: Test the update manifests
-        run: node --test apps/desktop/scripts/update-manifest.test.mjs
 
   build:
     name: desktop (${{ matrix.name }})
