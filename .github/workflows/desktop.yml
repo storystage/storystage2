@@ -48,7 +48,8 @@ jobs:
           command: check advisories
           manifest-path: apps/desktop/src-tauri/Cargo.toml
 
-  # The school lock (WP15.3). No Tauri in this crate, so it is quick, and it has per-platform code.
+  # The school lock (WP15.3) and the gate (WP15.2). No Tauri in these crates, so this is quick,
+  # and the policy has per-platform code.
   policy:
     name: policy (${{ matrix.name }})
     if: github.event_name != 'schedule'
@@ -70,9 +71,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: apps/desktop/src-tauri -> target
-      - name: Test the policy
+      - name: Test the policy and the gate
         working-directory: apps/desktop/src-tauri
-        run: cargo test -p storystage-policy --locked
+        run: cargo test -p storystage-policy -p storystage-gate --locked
 
   build:
     name: desktop (${{ matrix.name }})

@@ -1,0 +1,13 @@
+{
+  "modes": {
+    "explain": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
+    "storyCoach": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
+    "scriptCheck": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
+    "showMeHow": { "models": ["claude-opus-5-5"], "maxTokens": 32000 },
+    "buildIt": { "models": ["claude-opus-5-5"], "maxTokens": 32000 }
+  },
+  "betas": ["server-side-fallback-2026-07-01"],
+  "system": null,
+  "tools": null,
+  "modeMessages": []
+}
