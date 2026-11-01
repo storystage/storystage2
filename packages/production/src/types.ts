@@ -18,7 +18,7 @@ import {
   type Program,
   type TypeDecl,
 } from '@storystage/ast';
-import type { Facing } from '@storystage/backstage';
+import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
 export const FORMAT_VERSION = '1.0.0';
@@ -30,8 +30,17 @@ export const sceneId = (s: string) => s as SceneId;
 export const frameId = (s: string) => s as FrameId;
 export const lineId = (s: string) => s as LineId;
 
-/** Scene and frame ids become file names in the zip, so nothing else may get through. */
+/** Scene, frame and model folder ids become file names in the zip, so nothing else may get through. */
 export const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,31}$/;
+
+/**
+ * A path a manifest may name inside its folder: plain parts, no way out. The archive reader
+ * refuses the rest of what could go wrong in a name (`docs/spec/15-security.md`, section 3.2).
+ */
+const isPlainPath = (path: string) =>
+  path !== '' &&
+  !path.includes('\\') &&
+  path.split('/').every((part) => part !== '' && !part.startsWith('.'));
 
 /** Where each part lives inside the `.storystage` zip (WP8.1). */
 export const ZIP_LAYOUT = {
@@ -42,7 +51,16 @@ export const ZIP_LAYOUT = {
   script: 'script.fountain',
   frame: (id: FrameId) => `frames/${id}.json`,
   audio: 'audio/',
+  model: (folder: string, file: string) => `models/${folder}/${file}`,
 } as const;
+
+/** A class-imported model carried in the file (decision 0049, spec section 1.3). */
+export interface PackedModel {
+  /** Its folder under `models/`. A Backstage id has slashes in it, so it can't be the name. */
+  readonly folder: string;
+  /** Its Backstage record, whose file paths are relative to the folder. */
+  readonly item: BackstageItem;
+}
 
 /** How one scene gives way to the next (WP8.3). */
 export interface Transition {
@@ -67,6 +85,8 @@ export interface ProductionManifest {
     readonly scene: SceneId | null;
     readonly label: string;
   }[];
+  /** Every class-imported model the production uses. Shipped models are never here. */
+  readonly models: readonly PackedModel[];
 }
 
 /** Arc templates (WP10.2): free, 3-part, 5-part, or a curriculum template by id (WP16). */
@@ -257,7 +277,27 @@ export function checkReferences(p: Production): string[] {
   for (const a of p.manifest.audio)
     if (a.file.includes('/') || a.file.includes('\\') || a.file.startsWith('.'))
       problems.push(`Audio file name ${a.file} must be a plain name inside audio/.`);
+  checkModels(p.manifest.models, problems);
   return problems;
+}
+
+/** Packed models: safe folders, one of each, imported only, files inside their folder. */
+function checkModels(models: readonly PackedModel[], problems: string[]): void {
+  const folders = new Set<string>();
+  const items = new Set<string>();
+  for (const { folder, item } of models) {
+    if (!SAFE_ID.test(folder)) problems.push(`Model folder ${folder} is not safe as a file name.`);
+    if (folders.has(folder)) problems.push(`Two models use the folder ${folder}.`);
+    folders.add(folder);
+    if (items.has(item.id)) problems.push(`Model ${item.id} is in the file twice.`);
+    items.add(item.id);
+    if (item.origin !== 'imported')
+      problems.push(`Model ${item.id} is shipped with StoryStage, so it shouldn't be in the file.`);
+    const files = [item.files.model, item.files.thumbnail, ...item.sketches.map((s) => s.file)];
+    for (const file of files)
+      if (!isPlainPath(file))
+        problems.push(`Model ${item.id} names a file outside its folder: ${file}.`);
+  }
 }
 
 /**

@@ -26,12 +26,13 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 | `script.fountain` | The script, in Fountain (section 5) | `ScriptLine[]` |
 | `frames/<id>.json` | One storyboard frame and its links | `Frame` |
 | `audio/` | Lines and narration the learner chose to record | Files named in the manifest |
+| `models/<folder>/` | Each class-imported model the production uses (section 1.3) | `PackedModel`, named in the manifest |
 
 **The same production gives the same bytes.** JSON is written with sorted keys (`serializeProgram` for the program, the same rule for the rest), entries go in the order above and then by name, and each entry has a fixed date. So a save with no changes is identical, and the round-trip test (WP8) can compare bytes.
 
-**File names from ids.** A scene or frame id becomes part of a path, so it must match `SAFE_ID` (lowercase letters, digits and hyphens, 1 to 32 characters, starting with a letter or digit). An audio file is a plain name in `audio/`. `checkReferences` refuses anything else. The other limits, on path handling and on the size of files and entries, are import hardening (WP8.4), from the threat model (`15-security.md`).
+**File names from ids.** A scene or frame id, or a model's folder, becomes part of a path, so it must match `SAFE_ID` (lowercase letters, digits and hyphens, 1 to 32 characters, starting with a letter or digit). An audio file is a plain name in `audio/`. `checkReferences` refuses anything else.
 
-**Models aren't in the file.** A production names Backstage models by id. Opened where a model isn't in Backstage, the object shows as a labelled outline, as a `StandIn` does (WP10.9), so the code still runs and nothing is lost.
+**Reading a file** follows `15-security.md` section 3: one archive reader, in this package, with its limits on sizes and names, and the whole file checked before anything loads (WP8.4).
 
 ### 1.1 What is never stored
 
@@ -54,6 +55,19 @@ A production gets shared between pupils and schools, so anything in it should be
 - **A changelog,** in `packages/production/CHANGELOG.md`.
 
 A reader takes the older-is-migrated, newer-is-read-only decision on `formatVersion` first, then opens the program with `openProgram`. If either is newer, the whole production is read-only.
+
+### 1.3 Models
+
+Decision [0049](../decisions/0049-models-in-the-production-file.md): a film looks right wherever it's opened.
+
+- **Shipped models stay out.** A production names them by Backstage id, and every copy of StoryStage has them.
+- **Every class-imported model the production uses is in the file:** in a set-up, on a scene card, or in a frame's sketches. `manifest.models` lists each as a `PackedModel`, whose `item` is its full Backstage record, so its licence, credit line, source, joints and budget all travel with it. `models/<folder>/` holds the files that record names: the model, its thumbnail and its sketches. Saving adds a model the production starts using, and drops one it stops using.
+- **Opening doesn't add to Backstage.** A packed model belongs to that production. A teacher can promote it to the class, as with any import (WP3.11).
+- **A packed model is an import.** It's checked as any import is (`15-security.md` section 3.4, F8, F9), in the import worker, before it reaches the stage.
+- **The licence goes where the model goes.** Film credits still work (WP11.4), and non-commercial and "not sure" models still block the pathway exports and Export for distribution (WP3.12), on any device, because their record is in the file. A `.storystage` file can be passed on like any other file, so the app can't stop that; the credit and licence are what it can guarantee.
+- **If a model can't be found,** because a shipped model is in a later catalogue than this copy, the object shows as a labelled outline, as a `StandIn` does (WP10.9). The code still runs and nothing is lost.
+
+Models are the largest thing in the file. They're already reduced to the device budget on import (WP3.9), and the limits in `15-security.md` section 3.1 apply to the whole file. If a file is too big to save, WP8.4 says so in plain words.
 
 ## 2. Scenes
 
@@ -135,7 +149,8 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | Rule | Test | Level |
 |---|---|---|
 | The example production is complete and valid, including its program | `types.test.ts` | Unit |
-| Each rule `checkReferences` enforces (sections 1, 2, 3, 6, 7) | `types.test.ts`, one broken production per rule | Unit |
+| Each rule `checkReferences` enforces (sections 1, 1.3, 2, 3, 6, 7) | `types.test.ts`, one broken production per rule | Unit |
+| Saving packs exactly the imported models in use, and a packed model is checked as an import (section 1.3) | With WP8.4 | Unit |
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
 | Fountain reads and writes as section 5 says | With WP10.4 | Unit |
 | A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |

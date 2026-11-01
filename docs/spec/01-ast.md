@@ -110,7 +110,7 @@ The schema is `PROGRAM_SCHEMA` in `packages/ast/src/schema.ts` (JSON Schema 2020
 
 **Why not Ajv in the app.** Ajv compiles a schema by generating code, which a strict content security policy forbids, and `ast` has no dependencies. `validateSchema` is a small interpreter of the keywords `PROGRAM_SCHEMA` uses. The tests run Ajv over the same schema and generated programs, so the schema stays a real one and the two agree.
 
-**Limits,** as import hardening (WP8.4), so that a hostile file can't exhaust the stack: nesting depth at most 200 levels of JSON; text at most 10,000 characters; names at most 60.
+**Limits,** as import hardening (WP8.4), so that a hostile file can't exhaust the stack: nesting depth at most 256 levels of JSON (`15-security.md` section 3.1); text at most 10,000 characters; names at most 60.
 
 **A real function may have no `return` yet.** A learner mid-edit has a valid program. The runtime reports a function that finishes without returning (`bad_value`).
 

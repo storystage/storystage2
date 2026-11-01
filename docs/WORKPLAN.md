@@ -641,7 +641,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Schedule items** (`tools/plan/schedule.yaml`): WP8f after WP2; WP8 after WP8f, WP5a, WP6, WP0s.
 <!-- /schedule:wp8 -->
 - [x] 8.1 Spec `docs/spec/03-production-format.md`:
-    - zip layout: `manifest.json`, `program.json`, `scenes/*.json`, `storyboard.json`, `script.fountain`, `frames/*.json` and `audio/`;
+    - zip layout: `manifest.json`, `program.json`, `scenes/*.json`, `storyboard.json`, `script.fountain`, `frames/*.json`, `audio/` and `models/` (class-imported models, decision 0049);
     - versioning;
     - what is never stored (keys, Prompter conversations).
 

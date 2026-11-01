@@ -55,6 +55,8 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Theme setting | Once light is approved: Dark (default), Light, or Match this device (0037) | 25 Oct 2026 |
 | Light theme approved | The light theme as drawn (#62), with ok `#1C7431` and stop `#B0412A` (#71); light-theme code may be built (0038) | 25 Oct 2026 |
 | AR is iPad-first | Spike 1.9 and AR design mode (WP21) are built and measured on the reference iPad (native ARKit in the Tauri iOS app). Android tablet AR works where supported, untested; no reference Android tablet unless the school IT managers (1.11) show schools have them. Revisit after M1 (0042) | 25 Oct 2026 |
+| Imported models in the file | A `.storystage` file holds a copy of every class-imported model the production uses, with its Backstage record. Shipped models stay out (0049) | 1 Nov 2026 |
+| S2 merging | S2 squash-merges #90, #92, #94, #96, #97 and #101 in stack order once checks pass; the owner reviews afterwards. These six only (0050) | 1 Nov 2026 |
 
 ## Still to decide (owner)
 

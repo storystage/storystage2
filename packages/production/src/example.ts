@@ -117,6 +117,7 @@ export function exampleProduction(): Production {
         { scene: s3, transition: { kind: 'crossfade', duration: micros(0.5) } },
       ],
       audio: [],
+      models: [],
     },
     program: {
       schemaVersion: '1.0.0',

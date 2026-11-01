@@ -6,7 +6,8 @@ import {
   type Program,
   type TypeDecl,
 } from '@storystage/ast';
-import { objectId } from '@storystage/story-api';
+import type { BackstageItem } from '@storystage/backstage';
+import { backstageId, objectId } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { exampleProduction } from './example.ts';
 import {
@@ -16,6 +17,7 @@ import {
   frameId,
   sceneId,
   sceneMethodCheck,
+  type PackedModel,
   type Production,
 } from './types.ts';
 
@@ -215,6 +217,80 @@ describe('checkReferences', () => {
       frames: [{ ...p.frames[0]!, links: [nodeId('nosuch')] }, ...p.frames.slice(1)],
     }));
     expect(problems).toEqual([]);
+  });
+
+  describe('packed models', () => {
+    const item: BackstageItem = {
+      id: backstageId('class/Quadruped/robot-dog'),
+      section: 'cast',
+      class: 'Quadruped',
+      displayName: 'Robot dog',
+      themes: [],
+      files: { model: 'model.glb', thumbnail: 'thumbnail.png' },
+      joints: 'prop-only',
+      defaultSize: { height: 1 },
+      licence: 'CC-BY-4.0',
+      credit: 'Robot dog by A. Maker (CC BY 4.0)',
+      source: { url: 'https://example.org/robot-dog' },
+      origin: 'imported',
+      sketches: [{ facing: 'front', file: 'sketches/front.svg' }],
+    };
+    const withModels = (models: readonly PackedModel[]) =>
+      broken((p) => ({ ...p, manifest: { ...p.manifest, models } }));
+
+    it('accepts an imported model with its files in its folder', () => {
+      expect(withModels([{ folder: 'robot-dog', item }])).toEqual([]);
+    });
+
+    it('puts its files under models/', () => {
+      expect(ZIP_LAYOUT.model('robot-dog', item.files.model)).toBe('models/robot-dog/model.glb');
+    });
+
+    it('refuses a shipped model: every copy of StoryStage has those', () => {
+      const shipped = { ...item, origin: 'shipped' } as const;
+      expect(withModels([{ folder: 'robot-dog', item: shipped }])).toEqual([
+        `Model ${item.id} is shipped with StoryStage, so it shouldn't be in the file.`,
+      ]);
+    });
+
+    it('refuses a folder that is not safe as a file name', () => {
+      expect(withModels([{ folder: '../evil', item }])).toEqual([
+        'Model folder ../evil is not safe as a file name.',
+      ]);
+    });
+
+    it('refuses the same folder or model twice', () => {
+      const other = { ...item, id: backstageId('class/Prop/box') };
+      expect(
+        withModels([
+          { folder: 'one', item },
+          { folder: 'one', item: other },
+        ]),
+      ).toEqual(['Two models use the folder one.']);
+      expect(
+        withModels([
+          { folder: 'one', item },
+          { folder: 'two', item },
+        ]),
+      ).toEqual([`Model ${item.id} is in the file twice.`]);
+    });
+
+    it.each(['../model.glb', 'a/../../b.glb', '/etc/passwd', 'a\\b.glb', '.hidden', 'a//b', ''])(
+      'refuses a model file called %j',
+      (model) => {
+        const bad = { ...item, files: { ...item.files, model } };
+        expect(withModels([{ folder: 'one', item: bad }])).toEqual([
+          `Model ${item.id} names a file outside its folder: ${model}.`,
+        ]);
+      },
+    );
+
+    it('checks sketches and thumbnails too', () => {
+      const thumbnail = { ...item, files: { ...item.files, thumbnail: '../t.png' } };
+      const sketch = { ...item, sketches: [{ facing: 'front', file: '../s.svg' }] } as const;
+      expect(withModels([{ folder: 'one', item: thumbnail }])).toHaveLength(1);
+      expect(withModels([{ folder: 'one', item: sketch }])).toHaveLength(1);
+    });
   });
 });
 
