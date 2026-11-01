@@ -41,7 +41,7 @@ pub async fn ask(_app: &tauri::AppHandle) -> Option<String> {
 
 #[cfg(target_os = "macos")]
 mod macos {
-    use objc2::MainThreadMarker;
+    use objc2::{MainThreadMarker, MainThreadOnly};
     use objc2_app_kit::{NSAlert, NSAlertFirstButtonReturn, NSSecureTextField};
     use objc2_foundation::{ns_string, NSPoint, NSRect, NSSize};
 
