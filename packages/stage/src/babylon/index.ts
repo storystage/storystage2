@@ -3,6 +3,7 @@
  * the `Stage` type, and pages that never open a scene, don't load Babylon.js.
  */
 import { Engine } from '@babylonjs/core/Engines/engine.js';
+import { keyName } from '../keys.ts';
 import type { ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
 
@@ -18,10 +19,29 @@ export interface BabylonStageOptions {
   readonly offscreen?: boolean;
 }
 
-export function createBabylonStage(options: BabylonStageOptions): BabylonStage {
-  const engine = new Engine(options.canvas, true, {
-    preserveDrawingBuffer: options.offscreen ?? false,
-    stencil: false,
+/** Keys that would scroll the page while a learner is using them in a scene. */
+const SCROLLING_KEYS: readonly string[] = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' '];
+
+/** Clicks and keys on the picture. Tab still moves on, so the keyboard can leave the canvas. */
+function listenTo(canvas: HTMLCanvasElement, stage: BabylonStage) {
+  if (canvas.tabIndex < 0) canvas.tabIndex = 0;
+  canvas.addEventListener('click', (e) => {
+    const across = canvas.width / (canvas.clientWidth || canvas.width);
+    const down = canvas.height / (canvas.clientHeight || canvas.height);
+    stage.click(e.offsetX * across, e.offsetY * down);
   });
-  return new BabylonStage(engine, { models: options.models });
+  canvas.addEventListener('keydown', (e) => {
+    const name = keyName(e.key);
+    if (name) stage.key(name);
+    if (SCROLLING_KEYS.includes(e.key)) e.preventDefault();
+  });
+}
+
+export function createBabylonStage(options: BabylonStageOptions): BabylonStage {
+  const { canvas, models, offscreen = false } = options;
+  const engine = new Engine(canvas, true, { preserveDrawingBuffer: offscreen, stencil: false });
+  const stage = new BabylonStage(engine, { models });
+  if (!offscreen && 'addEventListener' in canvas && 'clientWidth' in canvas)
+    listenTo(canvas, stage);
+  return stage;
 }
