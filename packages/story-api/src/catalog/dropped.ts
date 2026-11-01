@@ -101,19 +101,18 @@ export const DROPPED: readonly DroppedGroup[] = [
     ],
   },
   {
-    why: 'Dragging objects while a film plays. Not in WP6.2, and it would change a film between takes.',
+    why: 'Dragging objects while a film plays. It would share the screen with the scene view’s drag handles (7.1) and the Rehearse controls, and it’s pointer-only (decision 0051).',
     members: ['SScene.addDefaultModelManipulation'],
   },
   {
-    why: 'Not in WP6.2. View and occlusion tests run on every frame and haven’t been measured on the reference devices, so they stay out until a class needs them and they are.',
+    why: 'It fires on every frame while an object moves, which is hard for a young programmer to reason about. Proximity, collision, timers and the `follow` shot cover most uses (decision 0051).',
+    members: ['SScene.addPointOfViewChangeListener', 'PointOfViewEvent.getEntity'],
+  },
+  {
+    why: 'Waiting for a measurement. Each pair of objects is tested from the camera on every frame. S3 measures that on the reference devices, then the owner decides (decision 0051).',
     members: [
-      'SScene.addPointOfViewChangeListener',
-      'SScene.addViewEnterListener',
-      'SScene.addViewExitListener',
       'SScene.addOcclusionStartListener',
       'SScene.addOcclusionEndListener',
-      'PointOfViewEvent.getEntity',
-      'ViewEvent.getModel',
       'OcclusionEvent.getBackgroundModel',
       'OcclusionEvent.getForegroundModel',
     ],

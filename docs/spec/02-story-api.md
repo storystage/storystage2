@@ -7,7 +7,7 @@
 
 ## 0. Decisions this spec relies on
 
-[0007 3D](../decisions/0007-3d.md), [0008 Models](../decisions/0008-models.md), [0009 Blocks](../decisions/0009-blocks.md), [0010 Language](../decisions/0010-language.md), [0013 Backstage](../decisions/0013-backstage.md), [0030 Age range](../decisions/0030-age-range.md), [0036 Languages](../decisions/0036-languages.md). `10-crosswalk.md` is the background to sections 7 and 10; `01-ast.md` fixes how a program refers to everything here; `17-backstage.md`, section 2a, is the joint map.
+[0007 3D](../decisions/0007-3d.md), [0008 Models](../decisions/0008-models.md), [0009 Blocks](../decisions/0009-blocks.md), [0010 Language](../decisions/0010-language.md), [0013 Backstage](../decisions/0013-backstage.md), [0030 Age range](../decisions/0030-age-range.md), [0036 Languages](../decisions/0036-languages.md), [0051 Joint moves and optional events](../decisions/0051-joints-and-optional-events.md). `10-crosswalk.md` is the background to sections 7 and 10; `01-ast.md` fixes how a program refers to everything here; `17-backstage.md`, section 2a, is the joint map.
 
 ### How this spec was made
 
@@ -52,7 +52,7 @@ The workplan asks for this spec to be generated from Alice's `PRIME_TIME` method
 1. **Names** are Alice's without the `S`, as in WP0.8's `STORY_CLASSES`. `MovableTurnable` and the others keep their Java names here. They never reach the screen: the words are in the last column.
 2. **Abstract classes** hold what several classes share. Nothing is made from them directly.
 3. **`Text` the class isn't `Text` the type.** `Text` is the type of words (`01-ast.md`), so a variable holding a piece of 3D text has the type `TextModel`. The class keeps its name in `STORY_CLASSES`, in Backstage and in `on`. **S2:** a type reference to one is `{kind: 'story', name: 'TextModel'}`.
-4. **A joint turns but doesn't move.** Alice's `SJoint` is movable, but moving a joint stretches the model. Here `Joint` extends `Turnable`, so `turn`, `roll` and `pointAt` work and `move` doesn't. It also has `getWidth`, `getHeight` and `getDepth`.
+4. **A joint turns but doesn't move** (decision 0051). Alice's `SJoint` is movable, and her scene editor can save a moved joint. Here `Joint` extends `Turnable`, so `turn`, `roll` and `pointAt` work and `move` doesn't, because the shared animations, gestures and the stage's `joint` command all work by rotation. Adding `move` later breaks nothing; removing it after the open specification (4.8) would. The `.a3p` import reports a moved joint, including one in a world's set-up. A joint also has `getWidth`, `getHeight` and `getDepth`.
 5. **Shapes are Props.** Alice's box, sphere, cone, cylinder, disc, torus and axes become built-in Props in Backstage, so they can appear on a storyboard (rule 5). **S4:** they need Backstage entries (WP3.4).
 6. **Markers** are the camera and object markers of `SceneSetup`. A program can move to them and turn to face them. All of Alice's marker classes and her `STarget` are one `Marker`.
 7. **Props and transports** extend `JointedModel` as they do in Alice. They have no joint set of their own, but their moving parts (a propeller, an axle) are the model's own joints (`17-backstage.md`, 2a rule 6).
@@ -270,12 +270,15 @@ An event kind is the `event` of a `listener` in the AST.
 | `collisionEnd` | `setA: Thing[]`, `setB: Thing[]` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `needs:collisionEnd` | when {setA} stops touching {setB} |
 | `proximityEnter` | `setA: Thing[]`, `setB: Thing[]`, `distance: Number` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `proximityEnter` | when {setA} gets within {distance} of {setB} |
 | `proximityExit` | `setA: Thing[]`, `setB: Thing[]`, `distance: Number` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `needs:proximityExit` | when {setA} gets further than {distance} from {setB} |
+| `viewEnter` | `set: Model[]` | `model: Model` | `multipleEventPolicy` | `needs:viewEnter` | when {set} comes into shot |
+| `viewExit` | `set: Model[]` | `model: Model` | `multipleEventPolicy` | `needs:viewExit` | when {set} leaves shot |
 <!-- /catalog:events -->
 
 1. **Named values, not an event object.** Alice's handler receives an `event` and calls accessors on it (`event.getModelAtMouseLocation()`). Here the handler receives what it needs by name (`model`), which is the listener's `params` in the AST. It reads better on a tile and needs no event class. The accessors are mapped one for one, and the `.a3p` import uses that mapping.
 2. **Needs** is the listener's `args`. A `listener` must have values for these in the AST before it can run.
 3. **`timer` always has a number of seconds.** Alice's "as often as possible" can't work with the time-slice budget (WP6.3).
 4. **`multipleEventPolicy`** says what happens if the event fires again while its handler is running. The default, as in Alice, is to ignore it.
+5. **`viewEnter` and `viewExit`** fire when a model comes into or leaves the camera's view. They're additions to workplan 6.2 (decision 0051). Like `isVisible`, they use the stage's view test, and their cost isn't measured yet, so rule 6 applies.
 
 ## 7. New StoryStage blocks
 
@@ -324,14 +327,17 @@ Everything in Alice's palette that StoryStage 2 doesn't keep. The `.a3p` import 
 | `SGround.setVehicle`, `SSun.setVehicle` | The ground and the sky stay where they are. |
 | `SJoint.isPivotVisible`, `SJoint.setPivotVisible`, `SMarker.getColorId`, `SMarker.setColorId`, `SThing.getVantagePoint` | Aids for Alice’s own scene editor, not story blocks. |
 | `STextModel.append`, `STextModel.charAt`, `STextModel.delete`, `STextModel.deleteCharAt`, `STextModel.getLength`, `STextModel.indexOf`, `STextModel.insert`, `STextModel.lastIndexOf`, `STextModel.replace`, `STextModel.setCharAt` | Java’s string editing, left over on Alice’s text model. `getValue` and `setValue` stay. |
-| `SScene.addDefaultModelManipulation` | Dragging objects while a film plays. Not in WP6.2, and it would change a film between takes. |
-| `SScene.addPointOfViewChangeListener`, `SScene.addViewEnterListener`, `SScene.addViewExitListener`, `SScene.addOcclusionStartListener`, `SScene.addOcclusionEndListener`, `PointOfViewEvent.getEntity`, `ViewEvent.getModel`, `OcclusionEvent.getBackgroundModel`, `OcclusionEvent.getForegroundModel` | Not in WP6.2. View and occlusion tests run on every frame and haven’t been measured on the reference devices, so they stay out until a class needs them and they are. |
+| `SScene.addDefaultModelManipulation` | Dragging objects while a film plays. It would share the screen with the scene view’s drag handles (7.1) and the Rehearse controls, and it’s pointer-only (decision 0051). |
+| `SScene.addPointOfViewChangeListener`, `PointOfViewEvent.getEntity` | It fires on every frame while an object moves, which is hard for a young programmer to reason about. Proximity, collision, timers and the `follow` shot cover most uses (decision 0051). |
+| `SScene.addOcclusionStartListener`, `SScene.addOcclusionEndListener`, `OcclusionEvent.getBackgroundModel`, `OcclusionEvent.getForegroundModel` | Waiting for a measurement. Each pair of objects is tested from the camera on every frame. S3 measures that on the reference devices, then the owner decides (decision 0051). |
 | `AbstractKeyEvent.isKey`, `KeyEvent.isDigit`, `KeyEvent.isLetter` | A handler gets the key itself, so it can compare it. `numberKeyPress` covers digits. |
 | `SMovableTurnable.moveToward.asSeenBy`, `SMovableTurnable.moveAwayFrom.asSeenBy` | Alice’s source accepts these details and then ignores them. |
 | `Key` beyond the list in section 3a, `TimerFrequency.ASAP`, `Scale.IDENTITY`, `VantagePoint.IDENTITY` | Function keys, keypads and input-method keys, which many school keyboards and iPads lack; “as often as possible”, which can’t work with the time-slice budget (6.3); and two constants no kept block uses. |
 <!-- /catalog:dropped -->
 
 Workplan 6.2 doesn't list `collisionEnd` or `proximityExit`, but they're kept: they're the natural pair of what it does list, and Alice has them.
+
+The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Occlusion is the one still open: it stays out until it's measured.
 
 ## 9. What the stage contract needs
 
@@ -358,6 +364,8 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 | `animation` | Clips, gestures, expressions and head turning (WP5b) | `playAnimation`, `gesture`, `showExpression`, `lookAt` |
 | `collisionEnd` | The stage event for two objects no longer touching | `collisionEnd` |
 | `proximityExit` | The stage event for two objects moving apart | `proximityExit` |
+| `viewEnter` | The stage event for a model coming into the camera’s view | `viewEnter` |
+| `viewExit` | The stage event for a model leaving the camera’s view | `viewExit` |
 
 Changes to commands the contract already has:
 
@@ -486,6 +494,8 @@ Each entry's equivalent in BML 1.0, where there is one, and its Unreal Engine co
 | `collisionEnd` | — | Actor overlap and hit events |
 | `proximityEnter` | — | Actor overlap and hit events |
 | `proximityExit` | — | Actor overlap and hit events |
+| `viewEnter` | — | A test against the camera’s view |
+| `viewExit` | — | A test against the camera’s view |
 <!-- /catalog:crosswalk -->
 
 ## 11. Tests
@@ -510,9 +520,11 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 
 | Needs | From | For |
 |---|---|---|
-| The whole-program check, on `check(program)` in `01-ast.md` section 4.5, once the program types (#92) merge. `checkCall` is ready for it | S6, after S2 | 4.2 |
+| The whole-program check, on `check(program)` in `01-ast.md` section 4.5. #92 has merged, and `checkCall` is ready for it | S6 | 4.2 |
 | The `contract` pull request for section 9 | S3, S6 | WP4.3 |
-| `{name: 'TextModel'}` as a type, and enum types as in section 3a | S2 | Section 1 rule 3, section 3a |
+| `{name: 'TextModel'}` as a type | S2 | Section 1 rule 3 |
+| Measure occlusion on the reference devices once the stage exists, so the owner can decide | S3 | Decision 0051 |
+| Measure `viewEnter` and `viewExit` on the reference devices | S3 | Rule 6, section 6 rule 5 |
 | The warning before exporting a program that asks the learner something | S2 | Section 3 rule 1 |
 | Backstage entries for the built-in shapes | S4 | Section 1 rule 5 |
 | The manifest lookup for section 5 rule 3 | S4, S6 | The whole-program check |
