@@ -71,9 +71,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: apps/desktop/src-tauri -> target
-      - name: Test the policy and the gate
+      - name: Test the policy, the gate and the transport
         working-directory: apps/desktop/src-tauri
-        run: cargo test -p storystage-policy -p storystage-gate --locked
+        run: cargo test -p storystage-policy -p storystage-gate -p storystage-transport --features storystage-transport/test-endpoint --locked
 
   build:
     name: desktop (${{ matrix.name }})

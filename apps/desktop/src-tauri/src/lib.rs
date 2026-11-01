@@ -1,14 +1,15 @@
 //! StoryStage 2 native shell.
 //!
-//! Opens the studio in a window, reads the school lock (WP15.3, spec 05 section 3) and keeps a
-//! desktop install up to date (WP15.7, section 4). The key store, the Claude transport and its
-//! policy enforcement point (WP15.2) arrive with WP15k. No API key ever crosses into the webview.
+//! Opens the studio in a window, reads the school lock (WP15.3, spec 05 section 3), carries the
+//! Prompter's requests (WP15.2, section 2) and keeps a desktop install up to date (WP15.7,
+//! section 4). No API key ever crosses into the webview.
 
+mod prompter;
 #[cfg(desktop)]
 mod updates;
 
 use storystage_policy::PolicyInForce;
-use tauri::{App, AppHandle, Manager, State};
+use tauri::{AppHandle, Manager, State};
 
 /// The policy in force, as read at start-up. Nothing writes the policy from here.
 #[tauri::command]
@@ -23,7 +24,7 @@ fn app_version(app: AppHandle) -> String {
 }
 
 #[cfg(target_os = "android")]
-fn read_policy(app: &App) -> PolicyInForce {
+fn read_policy(app: &AppHandle) -> PolicyInForce {
     use tauri_plugin_managed_config::ManagedConfig;
 
     match app.state::<ManagedConfig<tauri::Wry>>().read() {
@@ -33,7 +34,7 @@ fn read_policy(app: &App) -> PolicyInForce {
 }
 
 #[cfg(not(target_os = "android"))]
-fn read_policy(_app: &App) -> PolicyInForce {
+fn read_policy(_app: &AppHandle) -> PolicyInForce {
     storystage_policy::read_installed()
 }
 
@@ -46,8 +47,9 @@ pub fn run() {
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     builder
         .setup(|app| {
-            let policy = read_policy(app);
+            let policy = read_policy(app.handle());
             app.manage(policy);
+            app.manage(prompter::Prompter::default());
             #[cfg(desktop)]
             {
                 app.manage(updates::Pending::default());
@@ -55,7 +57,15 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![policy_in_force, app_version])
+        .invoke_handler(tauri::generate_handler![
+            policy_in_force,
+            app_version,
+            prompter::prompter_send,
+            prompter::prompter_cancel,
+            prompter::prompter_status,
+            prompter::key_status,
+            prompter::key_remove,
+        ])
         .build(tauri::generate_context!())
         .expect("error while running StoryStage 2")
         .run(|_app, _event| {
