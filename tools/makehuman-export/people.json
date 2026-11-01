@@ -567,6 +567,7 @@
     },
     "eyes": "grey",
     "hair": "bob02",
+    "hairTint": "grey",
     "eyebrows": "eyebrow002",
     "clothes": ["female_casualsuit02"],
     "shoes": "shoes06"
@@ -612,6 +613,7 @@
     },
     "eyes": "brown",
     "hair": "bob01",
+    "hairTint": "grey",
     "eyebrows": "eyebrow004",
     "clothes": ["female_casualsuit01"],
     "shoes": "shoes02"
@@ -634,6 +636,7 @@
     },
     "eyes": "brown",
     "hair": "short02",
+    "hairTint": "grey",
     "eyebrows": "eyebrow005",
     "clothes": ["male_casualsuit03"],
     "shoes": "shoes04"
@@ -656,6 +659,7 @@
     },
     "eyes": "blue",
     "hair": "bob02",
+    "hairTint": "white",
     "eyebrows": "eyebrow006",
     "clothes": ["female_elegantsuit01"],
     "shoes": "shoes06"

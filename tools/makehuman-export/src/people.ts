@@ -78,6 +78,11 @@ export interface Person {
   readonly eyes: string;
   /** null for no hair. */
   readonly hair: string | null;
+  /**
+   * The pack's hair comes in fixed colours, none of them grey, so older people's hair is tinted
+   * in the pipeline (owner, 1 Nov 2026).
+   */
+  readonly hairTint?: 'grey' | 'white';
   readonly eyebrows: string;
   readonly clothes: readonly string[];
   readonly shoes: string;
@@ -129,6 +134,8 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`eyes must be one of ${SYSTEM_ASSETS.eyes.join(', ')}.`);
     if (p.hair !== null && !has(SYSTEM_ASSETS.hair, p.hair))
       e(`hair must be null or one of ${SYSTEM_ASSETS.hair.join(', ')}.`);
+    if (p.hairTint !== undefined && (p.hair === null || !['grey', 'white'].includes(p.hairTint)))
+      e('hairTint must be grey or white, on someone with hair.');
     if (!has(SYSTEM_ASSETS.eyebrows, p.eyebrows)) e('eyebrows must be eyebrow001 to eyebrow012.');
     if (!Array.isArray(p.clothes) || p.clothes.length === 0) e('needs clothes.');
     else
@@ -164,6 +171,9 @@ const ancestryWords = (a: Person['ancestry']) =>
     .map(([k, v]) => `${k} ${Math.round(v * 100)}%`)
     .join(', ');
 
+const hairWords = (p: Person) =>
+  p.hair === null ? 'none' : p.hairTint ? `${p.hair}, tinted ${p.hairTint}` : p.hair;
+
 /** The review table: one row per person, in plain words. */
 export function peopleTable(people: readonly Person[]): string {
   return [
@@ -171,7 +181,7 @@ export function peopleTable(people: readonly Person[]): string {
     '|---|---|---|---|---|---|---|---|---|',
     ...people.map(
       (p, i) =>
-        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${p.hair ?? 'none'} | ${p.eyes} | ${[...p.clothes, p.shoes, ...(p.hat ? [p.hat] : [])].join(', ')} |`,
+        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${[...p.clothes, p.shoes, ...(p.hat ? [p.hat] : [])].join(', ')} |`,
     ),
   ].join('\n');
 }
