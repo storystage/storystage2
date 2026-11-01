@@ -15,6 +15,7 @@ The StoryStage 2 Story API: classes, procedures, functions, details and joints, 
 | `src/catalog/` | The metadata: every block, detail, event and value, with display words in `src/strings/en-GB.json` |
 | `src/alice/palette.json` | What Alice's palette offers, the list the catalog is checked against. Tests only; it never ships |
 | `src/alice/inventory.ts` | Reads that list from Alice's Java source |
+| `src/alice/compiled-alice.json` | The same list from a compiled Alice, from one CI run, which a test compares. Tests only |
 | `scripts/` | Node tools, outside this package's `tsconfig` because the package runs in a worker |
 
 ## Commands

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { buildInventory, type AliceClass } from './inventory.ts';
+import { buildInventory, type AliceClass, type AliceMember } from './inventory.ts';
+import compiled from './compiled-alice.json';
 import palette from './palette.json';
 
 const JAVA = {
@@ -215,5 +216,41 @@ describe('the committed inventory, palette.json', () => {
     expect(has('SBiped', 'walkTo')).toBe(false);
     expect(has('SBiped', 'touch')).toBe(false);
     expect(has('SJointedModel', 'strikePose')).toBe(false);
+  });
+});
+
+/** One line per method, in the form `scripts/AliceCatalogDump.java` writes. */
+function lines(keep: (member: AliceMember, cls: string) => boolean): string[] {
+  const keywords: Record<string, Record<string, string>> = palette.keywords;
+  return palette.classes
+    .filter((c) => /^S[A-Z]/.test(c.name))
+    .flatMap((c) =>
+      (c.members as AliceMember[])
+        .filter((m) => keep(m, c.name))
+        .map((m) => {
+          const details = Object.keys(keywords[m.details ?? ''] ?? {}).sort();
+          return `${c.name}.${m.name}/${m.params.length}:${details.join(',')}`;
+        }),
+    );
+}
+
+const sorted = (list: readonly string[]) => [...new Set(list)].sort();
+
+describe('palette.json against a compiled Alice (compiled-alice.json)', () => {
+  /** The classes `ApiCatalog` walks. The others aren't among its roots. */
+  const reached = new Set(compiled.apiCatalog.map((l) => l.split('.')[0]));
+
+  it('has something to compare', () => {
+    expect(compiled.palette).toHaveLength(292);
+    expect(compiled.apiCatalog).toHaveLength(109);
+  });
+
+  it('matches reflection under the same palette rule', () => {
+    expect(sorted(lines(() => true))).toEqual(sorted(compiled.palette));
+  });
+
+  it('matches the real ApiCatalog on the methods with an annotation', () => {
+    const marked = lines((m, cls) => m.marked && reached.has(cls));
+    expect(sorted(marked)).toEqual(sorted(compiled.apiCatalog));
   });
 });

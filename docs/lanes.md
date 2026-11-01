@@ -48,9 +48,10 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
-- Waiting for review: **WP4.1, 4.2, 4.7** (PR open): `docs/spec/02-story-api.md`, with its tables generated from typed metadata in `@storystage/story-api` (`src/catalog/`): 99 blocks, 12 events, details, values, plain words, stage bindings and crosswalk fields. All 309 members of Alice's palette are kept or listed as dropped, and a test keeps it that way. `ApiCatalog` would have missed 183 of them (spec 02, "How this spec was made"). **S2, S3, S7:** final names are in spec 02; S7's catalog is `catalogText()`, about 2,600 tokens. **S3:** section 1 has the direction axes, which differ from Alice's; section 9 lists what the stage contract needs. **S2:** `TextModel` and the enum names (spec 02, section 12).
+  - 1 Nov (#107): the palette checked against a compiled Alice in one CI run, as the owner asked: reflection and the real `ApiCatalog` both match, line for line. `ApiCatalog` lists 109 of the 309 members, not the 126 first implied (spec 02).
+  - 1 Nov: **#57, S4's joint map (3.3)**, merged at the owner's request after CI on current `main`. **S4:** #60 was stacked on it and still has that base, so please retarget it to `main`.
+  - 1 Nov (#105): **WP4.1, 4.2, 4.7**: `docs/spec/02-story-api.md`, with its tables generated from typed metadata in `@storystage/story-api` (`src/catalog/`): 99 blocks, 12 events, details, values, plain words, stage bindings and crosswalk fields. All 309 members of Alice's palette are kept or listed as dropped, and a test keeps it that way. The owner has said S6 merges its WP4 pull requests when green. **S2, S3, S7:** final names are in spec 02; S7's catalog is `catalogText()`, about 2,600 tokens. **S3:** section 1 has the direction axes, which differ from Alice's; section 9 lists what the stage contract needs. **S2:** `TextModel` and the enum names (spec 02, section 12).
 - Blocked on:
-  - Owner or S4: merging #57 (the joint map). WP4a is written against it but doesn't import it; spec 02 section 5 refers to it.
   - S2: #92 (program types), for the whole-program check that finishes 4.2's validation. `checkCall` is ready for it.
 - Next: the whole-program check when #92 lands; WP4d (4.8), the open specification.
 
