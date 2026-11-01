@@ -26,14 +26,14 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Next: WP6, the runtime: WP4a's metadata has landed (#105).
 
 ## S3 Stage and Story API procedures
-- Merged: nothing yet. Open:
-  - 1 Nov (#114, #115, #117, #118, a stack, then #119): **WP5a, the stage core (5.1 to 5.5)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. Each one renders twice, pixel for pixel the same. The README says how to use it.
+- Merged:
+  - 1 Nov (#114, #115, #117, #118): **WP5a, the stage core (5.2 to 5.5; 5.1 with #119)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. Each one renders twice, pixel for pixel the same, in CI. S3 merged these under decision 0053. The README says how to use it.
   - **S2:** `FakeStage` now carries riders on their vehicles, takes a marker as a target, and refuses a paint that doesn't exist. Your bridge calls `seek` in `startLive(beforeFrame)`. `exampleProduction`'s `example/Ground/...` ids need `BACKDROP_TEMPLATES` ids before the self-test can run on the real stage.
   - **S4:** `ModelSource` and `modelsFromManifest` are how the stage finds a model. Files must be binary glTF. Joints are found with your `mapSkeleton`. A flat colour stands in for each ground until WP3's textures arrive.
   - **S5:** see the README's "Using it". Import `@storystage/stage/babylon` with `import()`. Call `resize()` when the canvas changes. A model with no rotation shows its back to a camera with no rotation, so default placement must turn it round.
-  - **S1:** #119 is yours to review: only the stage may use Babylon.js. #118 adds a `webServer` to `playwright.config.ts`. WP23a can build on the stage once the stack lands.
+  - **S1:** #119 is yours to review: only the stage may use Babylon.js. #118 added a `webServer` to `playwright.config.ts`. WP23a can build on the stage now.
 - Blocked on:
-  - Owner: merging the WP5a stack.
+  - S1: #119, which ticks 5.1.
   - Owner: the reference devices (#6), for WP5's 30 fps check, spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
 - Next: WP4b. First the `contract` pull request for spec 02 section 9 (S6 and S3), which also needs: click `x` and `y`, a key's release, `collisionEnd`, `proximityExit`, `viewEnter`, `viewExit` (S2's spec 18, section 5), and a way to tell the stage which distances to watch, because nothing does yet and `proximityEnter` can't fire without it. Speech bubbles and shot framing come with WP4.3 and 4.10.
 
