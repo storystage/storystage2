@@ -18,6 +18,7 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
+import org.json.JSONObject
 
 private const val KEYSTORE = "AndroidKeyStore"
 private const val ALIAS = "StoryStage2.anthropic-api-key"
@@ -59,7 +60,7 @@ class SecureKeyPlugin(private val activity: Activity) : Plugin(activity) {
 
     private fun reply(invoke: Invoke, text: String?) {
         val answer = JSObject()
-        answer.put("text", text ?: JSObject.NULL)
+        answer.put("text", text ?: JSONObject.NULL)
         invoke.resolve(answer)
     }
 
