@@ -65,7 +65,7 @@ Listeners are those of the scene's type (`02-story-api.md` section 6). Their `ar
 |---|---|
 | A click's `x` and `y` | Handlers get 0 |
 | A key's release, for `heldKeyPolicy` | Each `key` event fires, as `fireMultiple` does |
-| `collisionEnd`, `proximityExit` | Nothing fires them |
+| `collisionEnd`, `proximityExit`, `viewEnter`, `viewExit` (decision 0051) | Nothing fires them |
 
 ## 6. What spike 1.4 left open
 
