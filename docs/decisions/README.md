@@ -35,7 +35,7 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0027](0027-threat-model-owner.md) | Threat model owner | 21 Oct 2026 |
 | [0028](0028-host-interface.md) | Host interface | 21 Oct 2026 |
 | [0029](0029-main-bypass-and-merging.md) | Main branch bypass and merging | 21 Oct 2026 |
-| [0030](0030-age-range.md) | Age range (provisional) | 25 Oct 2026 |
+| [0030](0030-age-range.md) | Age range (provisional; superseded by 0039) | 25 Oct 2026 |
 | [0031](0031-fonts.md) | Fonts | 25 Oct 2026 |
 | [0032](0032-light-theme.md) | Light theme | 25 Oct 2026 |
 | [0033](0033-narrow-windows.md) | Narrow windows | 25 Oct 2026 |
@@ -45,3 +45,10 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0037](0037-theme-setting.md) | Theme setting | 25 Oct 2026 |
 | [0038](0038-light-theme-approved.md) | Light theme approved | 25 Oct 2026 |
 | [0042](0042-ar-ipad-first.md) | AR is iPad-first | 25 Oct 2026 |
+| [0039](0039-age-range-confirmed.md) | Age range (confirmed) | 25 Oct 2026 |
+| [0040](0040-welsh-first.md) | Welsh first, in release 1.1 | 25 Oct 2026 |
+| [0041](0041-curriculum-licence.md) | Licence for the curriculum material | 25 Oct 2026 |
+| [0043](0043-app-store-regions.md) | App store regions | 25 Oct 2026 |
+| [0044](0044-mock-ups-approved.md) | Mock-ups approved | 25 Oct 2026 |
+| [0045](0045-website-licence.md) | Licence for the website and teacher guide | 25 Oct 2026 |
+| [0046](0046-website-and-browser-version-hosting.md) | Website and browser version: domain and hosting | 25 Oct 2026 |

@@ -805,7 +805,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     (C)
 - [ ] 15.4 Code signing: Windows (certificate), macOS (notarisation). (C sets up CI; U buys certificate)
 - [ ] 15.5 Apple developer account and App Store listing; Google Play listing with managed Play for schools. (U; C prepares listings and privacy labels)
-- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files on `storystage.org.uk`, with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
+- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files at `app.storystage.org` (decision 0046), with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
 - [ ] 15.7 **Updates and rollback:** a pilot channel and a stable channel, chosen by policy (`update.channel`), with version pinning (`update.pin`) so a school can hold a version through a term; staged rollout; desktop auto-update only within the chosen channel; version shown in About. A rollback drill: push a broken build to the pilot channel and roll it back. (C)
 
 **Done when:** signed builds install on each target, the key survives restart, with the policy lock set the Prompter can't be switched on, a request with an unlisted model or system prompt is refused, 30 simulated clients hitting rate limits back off without a retry storm, and the rollback drill passes.
@@ -869,7 +869,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp19 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP19a after WP12a; WP19 after RC, WP16b, WP17b, WP19a.
 <!-- /schedule:wp19 -->
-- [ ] 19.1 Website pages on `storystage.org.uk`: download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
+- [ ] 19.1 Website pages on `storystage.org` (the WordPress site, decision 0046): download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
 - [ ] 19.2 Teacher guide: the three tabs, the storyboard rule, the Prompter modes, the curriculum use cases. (C)
 - [ ] 19.3 Recruit 2–3 schools across at least two UK nations, plus at least one after-school club. Ask each whether it would fund a Prompter key, and which Prompter route (24.3) suits it. (U)
 - [ ] 19.4 Feedback form, issue templates, and triage into the next release. (C)
