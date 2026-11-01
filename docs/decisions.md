@@ -57,6 +57,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | AR is iPad-first | Spike 1.9 and AR design mode (WP21) are built and measured on the reference iPad (native ARKit in the Tauri iOS app). Android tablet AR works where supported, untested; no reference Android tablet unless the school IT managers (1.11) show schools have them. Revisit after M1 (0042) | 25 Oct 2026 |
 | Update hosting and the updater key | Updates are static files on GitHub Releases, named in the DPIA. The owner generates the updater key and keeps an offline copy (0047) | 1 Nov 2026 |
 | S8 merges its own pull requests | As S1 does under 0029, for #86, #87, #88, #98, #99 and #100; `contract` pull requests wait for S5's review (0048) | 1 Nov 2026 |
+| Key entry | The Claude key is typed into a system dialog, never into the studio. Screen 10c's field becomes an Add key button. The iPad's dialog waits for the Apple developer account (0049) | 1 Nov 2026 |
 
 ## Still to decide (owner)
 

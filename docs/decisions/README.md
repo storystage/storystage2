@@ -47,3 +47,4 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0042](0042-ar-ipad-first.md) | AR is iPad-first | 25 Oct 2026 |
 | [0047](0047-update-hosting-and-key.md) | Update hosting and the updater key | 1 Nov 2026 |
 | [0048](0048-s8-merging.md) | S8 merges its own pull requests | 1 Nov 2026 |
+| [0049](0049-key-entry.md) | Key entry | 1 Nov 2026 |
