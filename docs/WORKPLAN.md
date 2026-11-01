@@ -591,7 +591,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Schedule items** (`tools/plan/schedule.yaml`): WP6 after WP2, WP4a, WP1.
 <!-- /schedule:wp6 -->
 - [ ] 6.1 Interpreter in a Web Worker over the AST. A cooperative scheduler covers do in order, do together, each in together, count, while, for each and if, plus locals, parameters and return values. (C)
-- [ ] 6.2 **Events:** when the scene starts, mouse click on object or screen, key press, arrow keys, move with arrow keys, timer, proximity and collision; event handlers with parameters. (C)
+- [ ] 6.2 **Events:** when the scene starts, mouse click on object or screen, key press, arrow keys, move with arrow keys, timer, proximity, collision and camera view (decision 0051); event handlers with parameters. (C)
 - [ ] 6.3 **Safety:** an infinite-loop guard, a recursion limit and a time-slice budget. The stop button always works. Errors are explained in plain words, with the block highlighted. (C)
 - [ ] 6.4 Rehearse controls: play, pause, restart, speed, fast-forward to a block, disable a block. (C)
 - [ ] 6.5 Deterministic mode for export and tests (seeded random, fixed time step). (C)

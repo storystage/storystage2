@@ -497,6 +497,8 @@ export const STAGE_NEEDS: Readonly<Record<string, string>> = {
   animation: 'Clips, gestures, expressions and head turning (WP5b)',
   collisionEnd: 'The stage event for two objects no longer touching',
   proximityExit: 'The stage event for two objects moving apart',
+  viewEnter: 'The stage event for a model coming into the camera’s view',
+  viewExit: 'The stage event for a model leaving the camera’s view',
 };
 
 /** Changes to commands the contract already has. */

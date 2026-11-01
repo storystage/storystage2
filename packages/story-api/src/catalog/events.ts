@@ -20,8 +20,11 @@ const pair = [
   { name: 'b', type: 'Thing', alice: ['AbstractBinarySThingEvent.getSThingFromSetB'] },
 ] as const;
 
+const inView = [{ name: 'model', type: 'Model', alice: ['ViewEvent.getModel'] }] as const;
+
 const sets = [arg('setA', 'Thing[]'), arg('setB', 'Thing[]')];
 const OVERLAP = 'Actor overlap and hit events';
+const VIEW = 'A test against the camera’s view';
 
 export const EVENTS: readonly EventDef[] = [
   {
@@ -137,5 +140,23 @@ export const EVENTS: readonly EventDef[] = [
     from: 'needs:proximityExit',
     alice: ['SScene.addProximityExitListener'],
     unreal: OVERLAP,
+  },
+  {
+    name: 'viewEnter',
+    args: [arg('set', 'Model[]')],
+    gives: inView,
+    details: POLICY,
+    from: 'needs:viewEnter',
+    alice: ['SScene.addViewEnterListener'],
+    unreal: VIEW,
+  },
+  {
+    name: 'viewExit',
+    args: [arg('set', 'Model[]')],
+    gives: inView,
+    details: POLICY,
+    from: 'needs:viewExit',
+    alice: ['SScene.addViewExitListener'],
+    unreal: VIEW,
   },
 ];
