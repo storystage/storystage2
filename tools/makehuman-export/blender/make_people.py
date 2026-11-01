@@ -22,6 +22,8 @@ import traceback
 import bpy
 import numpy as np
 
+MAX_TEXTURE = 1024
+
 
 def mpfb(module, name):
     """MPFB2's own quirk: extensions land at an unknown place in the module tree."""
@@ -79,6 +81,17 @@ def tint_hair(hair, colour):
         raise RuntimeError(f"No hair texture to tint on {hair.name}")
 
 
+def shrink_textures():
+    """The pack's textures run to 4096 pixels, far past any device budget, and 30 people would
+    put more than half a gigabyte in the assets repository. WP3c sets the final sizes."""
+    for image in bpy.data.images:
+        width, height = image.size
+        if max(width, height) > MAX_TEXTURE:
+            scale = MAX_TEXTURE / max(width, height)
+            image.scale(int(width * scale), int(height * scale))
+            image.pack()
+
+
 def make_person(info, models):
     HumanService = mpfb("mpfb.services.humanservice", "HumanService")
     AssetService = mpfb("mpfb.services.assetservice", "AssetService")
@@ -108,6 +121,8 @@ def make_person(info, models):
             raise RuntimeError("No hair to tint")
         tint_hair(hair, extra["hairTint"])
 
+    shrink_textures()
+
     ObjectService.deselect_and_deactivate_all()
     rig.select_set(True)
     for child in ObjectService.get_list_of_children(rig):
@@ -134,11 +149,13 @@ def render_preview(glb, png):
     bpy.ops.import_scene.gltf(filepath=glb)
     scene = bpy.context.scene
 
+    # Where the vertices end up once skinned, which is not where the mesh data alone puts them.
+    depsgraph = bpy.context.evaluated_depsgraph_get()
     corners = [
         obj.matrix_world @ v.co
         for obj in scene.objects
         if obj.type == "MESH"
-        for v in obj.data.vertices
+        for v in obj.evaluated_get(depsgraph).to_mesh().vertices
     ]
     if not corners:
         raise RuntimeError("The exported file has no meshes")
