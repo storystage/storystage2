@@ -105,6 +105,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP0]
+    started: 2026-10-31
   - id: WP4a
     label: Story API spec, types, crosswalk fields (4.1, 4.2, 4.7)
     lane: Language
