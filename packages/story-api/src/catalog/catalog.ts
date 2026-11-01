@@ -5,7 +5,7 @@
 import { DETAILS } from './details.ts';
 import { ENTRIES } from './entries.ts';
 import { EVENTS } from './events.ts';
-import { CLASS_PARENTS, ENUMS } from './types.ts';
+import { BASIC_TYPES, CLASS_PARENTS, ENUMS, REFERENCE_TYPES, TEXT_REFERENCES } from './types.ts';
 import type {
   ApiClass,
   ApiEntry,
@@ -54,11 +54,23 @@ export function enumValues(name: EnumName): readonly string[] {
   return ENUMS[name];
 }
 
-const classOfType = (type: string): ApiClass | null => {
+/** The class a type names, or `null`: `TextModel` is the `Text` class, and `Text` is words. */
+export const classOfType = (type: string): ApiClass | null => {
   if (type === 'TextModel') return 'Text';
   if (type === 'Text') return null;
   return type in CLASS_PARENTS ? (type as ApiClass) : null;
 };
+
+/** Whether a name is a type at all, as the AST's `{kind: 'story', name}` holds it. */
+export function isStoryType(name: string): boolean {
+  const one = name.endsWith('[]') ? name.slice(0, -2) : name;
+  return (
+    (BASIC_TYPES as readonly string[]).includes(one) ||
+    (REFERENCE_TYPES as readonly string[]).includes(one) ||
+    isEnumName(one) ||
+    classOfType(one) !== null
+  );
+}
 
 const isList = (type: TypeName) => type.endsWith('[]');
 const itemOf = (type: TypeName) => type.slice(0, -2) as TypeName;
@@ -71,6 +83,7 @@ export function fits(value: TypeName, wanted: TypeName): boolean {
   }
   if (value === 'WholeNumber' && wanted === 'Number') return true;
   if (value === 'Color' && wanted === 'Paint') return true;
+  if (value === 'Text' && TEXT_REFERENCES.includes(wanted)) return true;
   const valueClass = classOfType(value);
   const wantedClass = classOfType(wanted);
   return valueClass !== null && wantedClass !== null && isKindOf(valueClass, wantedClass);
@@ -106,29 +119,38 @@ export interface CallToCheck {
 }
 
 /**
- * Checks one call against the metadata. The check on a whole program (spec 01, section 4.5)
- * walks the program and calls this; S2's `check` hook is where it plugs in.
+ * Checks one call against the metadata. `checkProgram` does this for a whole program.
  */
 export function checkCall(call: CallToCheck): readonly CallProblem[] {
   const entry = findEntry(call.on, call.name);
   if (!entry) return [{ code: 'unknown_block' }];
+  return checkValues(entry.params, entry.details, call.args, call.details ?? {});
+}
+
+/** What's given against what's wanted, for a block or for what an event needs. */
+export function checkValues(
+  params: readonly ParamDef[],
+  details: readonly string[],
+  args: Readonly<Record<string, TypeName | null>>,
+  givenDetails: Readonly<Record<string, TypeName | null>>,
+): readonly CallProblem[] {
   const problems: CallProblem[] = [];
 
   const fit = (name: string, given: TypeName | null, wanted: TypeName) => {
     if (given !== null && !fits(given, wanted)) problems.push({ code: 'wrong_type', name });
   };
-  for (const { name, type } of entry.params) {
-    const given = call.args[name];
+  for (const { name, type } of params) {
+    const given = args[name];
     if (given === undefined) problems.push({ code: 'missing_value', name });
     else fit(name, given, type);
   }
-  const params = new Set(entry.params.map((p) => p.name));
-  for (const name of Object.keys(call.args)) {
-    if (!params.has(name)) problems.push({ code: 'unknown_value', name });
+  const names = new Set(params.map((p) => p.name));
+  for (const name of Object.keys(args)) {
+    if (!names.has(name)) problems.push({ code: 'unknown_value', name });
   }
-  for (const [name, given] of Object.entries(call.details ?? {})) {
+  for (const [name, given] of Object.entries(givenDetails)) {
     const detail = DETAILS[name];
-    if (!detail || !entry.details.includes(name)) problems.push({ code: 'unknown_value', name });
+    if (!detail || !details.includes(name)) problems.push({ code: 'unknown_value', name });
     else fit(name, given, detail.type);
   }
   return problems;

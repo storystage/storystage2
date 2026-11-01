@@ -226,7 +226,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP0s | Threat model and security spec (0.9) | Foundations | WP0 | 1.5 | wk 1.5 (29 Oct 2026) | 3 |  |
 | WP18a | Test harness, fake stage, self-test skeleton (18.1, 18.4) | Foundations | WP0 | 2 | wk 1.5 (29 Oct 2026) | 21 | 0.1 (21 Oct) |
 | WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 | 0.3 (31 Oct–1 Nov) |
-| WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 |  |
+| WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 | 1 (1–7 Nov) |
 | WP13a | Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8) | Prompter and speech | WP0 | 3 | wk 1.5 (29 Oct 2026) | 4.5 |  |
 | WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct |
 | WP19a | Website and teacher guide drafts (19.1, 19.2) | Curriculum and legal | WP12a | 3 | wk 2 (2 Nov 2026) | 13.5 |  |
