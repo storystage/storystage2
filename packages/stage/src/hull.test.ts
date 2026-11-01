@@ -43,4 +43,29 @@ describe('hulls', () => {
     const big: Transform = { ...at(0), scale: { x: 3, y: 1, z: 1 } };
     expect(within(hull(big), hull(at(1.9)))).toBe(true);
   });
+
+  describe('of something flat, like a billboard', () => {
+    const flat: Box = { min: { x: -0.5, y: 0, z: 0 }, max: { x: 0.5, y: 2, z: 0 } };
+
+    it('reach along its width', () => {
+      expect(within(hull(at(0), flat), hull(at(0.9), flat))).toBe(true);
+      expect(within(hull(at(0), flat), hull(at(1.1), flat))).toBe(false);
+    });
+
+    it('reach along its width when it is turned', () => {
+      const rotation = axisTurns({ x: 0, y: 1, z: 0 }, 1 / 8);
+      const along = (d: number): Transform => ({
+        ...IDENTITY,
+        rotation,
+        position: { x: d * Math.SQRT1_2, y: 0, z: -d * Math.SQRT1_2 },
+      });
+      expect(within(hull(along(0), flat), hull(along(0.9), flat))).toBe(true);
+      expect(within(hull(along(0), flat), hull(along(1.1), flat))).toBe(false);
+    });
+
+    it('do not reach out of the sides', () => {
+      const front: Transform = { ...IDENTITY, position: { x: 0, y: 0, z: 0.4 } };
+      expect(within(hull(at(0), flat), hull(front, flat))).toBe(false);
+    });
+  });
 });

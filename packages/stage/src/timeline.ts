@@ -40,6 +40,7 @@ import {
   sub,
   v,
 } from './math.ts';
+import { paintColour } from './paint.ts';
 
 export interface ObjectState {
   /** Relative to `vehicle`, or to the scene if it has none. */
@@ -83,6 +84,8 @@ interface Pose {
 
 const unknown = (id: ObjectId) =>
   new StageError('unknown_object', `There is nothing called ${id} in this scene.`);
+const badPaint = (paint: string) =>
+  new StageError('bad_argument', `There is no paint called ${paint}.`);
 
 /** Where an object is in the scene: its own pose, carried by its vehicles. */
 function scenePose(state: SceneState, id: ObjectId): Pose {
@@ -361,6 +364,8 @@ export class Timeline {
         c.targets.forEach(exists);
         break;
       case 'paint':
+        if (!paintColour(c.paint)) throw badPaint(c.paint);
+        break;
       case 'say':
         break;
     }
@@ -375,6 +380,7 @@ function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
   const out = new Map<ObjectId, ObjectState>();
   const place = (id: ObjectId, o?: SceneObjectSetup) => {
     const t = places.get(id)!;
+    if (o?.paint && !paintColour(o.paint)) throw badPaint(o.paint);
     const vehicle = o?.vehicle ?? null;
     if (vehicle !== null) {
       if (!places.has(vehicle))

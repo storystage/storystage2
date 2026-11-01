@@ -4,7 +4,7 @@ Babylon.js scene, model loading, joints, cameras and markers, picking, transform
 
 - **Owner:** S3
 - **Workplan:** WP5
-- **Status:** WP5a in progress
+- **Status:** WP5a built (5.1 to 5.5). The frame rate on the reference devices waits for #6.
 
 ## Entries
 
@@ -13,6 +13,29 @@ Babylon.js scene, model loading, joints, cameras and markers, picking, transform
 | `@storystage/stage` | The `Stage` contract, the backdrop list | No |
 | `@storystage/stage/babylon` | `createBabylonStage`, for the studio and export | Yes |
 | `@storystage/stage/testing` | `FakeStage` and the contract's test suite | No |
+
+## Using it
+
+Code against the `Stage` type. Only what makes the stage needs `@storystage/stage/babylon`, and that's best imported with `import()`, so that a page with no scene doesn't load Babylon.js.
+
+```ts
+// Rehearse: draw every frame, and seek to the clock first.
+const stage = createBabylonStage({ canvas, models: modelsFromManifest(manifest, folder) });
+await stage.load(setup);
+stage.schedule(commands);
+stage.startLive(() => stage.seek(clock.now()));
+
+// Export: a fixed time step, on a canvas that's never on the page.
+const stage = createBabylonStage({ canvas, models, offscreen: true });
+await stage.load(setup);
+stage.schedule(commands);
+for (let f = 0; f < frames; f++) {
+  stage.seek(micros(f / fps));
+  const frame = await stage.renderFrame(); // RGBA, top row first
+}
+```
+
+Call `resize()` when the canvas changes size. Clicks and keys on the canvas reach `onEvent` by themselves. Without a `models` source, a scene can use only stand-ins.
 
 ## How it fits together
 
@@ -25,4 +48,10 @@ Babylon.js scene, model loading, joints, cameras and markers, picking, transform
 - **Targets.** `moveTo`, `turnToFace` and `asSeenBy` may name a marker as well as an object. Markers aren't in `objects()`.
 - **Touching.** Alice's rule, in `hull.ts`: each object has a footprint and a height from its box in the scene. Proximity is the same test with a margin, so it measures the gap between two things, not between their centres.
 - **Backdrops.** `backdrops.ts` holds Alice's 20 starting templates, with her numbers. Her fog value is cubed to give the density. Ground surfaces are flat colours until WP3's textures arrive.
+- **Facing the camera.** A camera with no rotation and a model with no rotation both face +Z, so the camera sees the model's back. To face the camera, a model needs half a turn.
+- **Events.** `collisionStart` fires once, when a pair starts to touch, and not for a pair already touching at the start. Rewinding fires nothing. `proximityEnter` isn't fired yet: nothing tells the stage which distances to watch (WP4b's contract pull request).
 - **Budgets.** Spike 1.2 is waiting for its device runs, so nothing here is held to a budget yet.
+
+## Tests
+
+`pnpm test` runs the contract suite on `NullEngine`, which can't draw. `packages/stage/e2e` runs the real stage in a browser, for pixels, and `tests/scenes/` holds the reference scenes. Look at the pictures too: a room with a yellow floor once passed every test here.

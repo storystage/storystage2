@@ -138,7 +138,7 @@ describe('the backdrop', () => {
   it('builds a ground, and a room with walls and a ceiling', () => {
     const names = (id: string) => backdropScene(id).meshes.map((m) => m.name);
     expect(names('grass')).toEqual(['ground']);
-    expect(names('room')).toEqual(['ground', 'walls', 'ceiling']);
+    expect(names('room')).toEqual(['ground', 'wall', 'wall', 'wall', 'wall', 'ceiling']);
   });
 
   it('builds every template', () => {

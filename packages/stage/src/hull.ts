@@ -68,6 +68,8 @@ export function hullOf(box: Box, t: Transform): Hull {
   };
 }
 
+const TINY = 1e-9;
+
 /** How far a footprint reaches from its centre along a direction. */
 function reach(hull: Hull, x: number, z: number): number {
   const size = Math.hypot(x, z);
@@ -79,9 +81,15 @@ function reach(hull: Hull, x: number, z: number): number {
     const b = outline[(i + 1) % outline.length]!;
     const edge = { x: b.x - a.x, z: b.z - a.z };
     const facing = d.x * edge.z - d.z * edge.x;
-    if (facing === 0) return;
+    const beside = a.x * d.z - a.z * d.x;
+    if (Math.abs(facing) < TINY) {
+      // A flat thing's footprint is a line, and the direction can run along it.
+      if (Math.abs(beside) < TINY)
+        far = Math.max(far, a.x * d.x + a.z * d.z, b.x * d.x + b.z * d.z);
+      return;
+    }
     const along = (a.x * edge.z - a.z * edge.x) / facing;
-    const on = (a.x * d.z - a.z * d.x) / facing;
+    const on = beside / facing;
     if (along > 0 && on >= 0 && on <= 1) far = Math.max(far, along);
   });
   return far;
