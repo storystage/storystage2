@@ -57,6 +57,8 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | AR is iPad-first | Spike 1.9 and AR design mode (WP21) are built and measured on the reference iPad (native ARKit in the Tauri iOS app). Android tablet AR works where supported, untested; no reference Android tablet unless the school IT managers (1.11) show schools have them. Revisit after M1 (0042) | 25 Oct 2026 |
 | Imported models in the file | A `.storystage` file holds a copy of every class-imported model the production uses, with its Backstage record. Shipped models stay out (0049) | 1 Nov 2026 |
 | S2 merging | S2 squash-merges #90, #92, #94, #96, #97 and #101 in stack order once checks pass; the owner reviews afterwards. These six only (0050) | 1 Nov 2026 |
+| Joints and optional events | Joints turn only. `viewEnter` and `viewExit` are added to 6.2. Occlusion waits for S3's measurement. Point-of-view and drag-while-playing events are left out (0051) | 1 Nov 2026 |
+| S6 merging | S6 squash-merges its WP4 pull requests once checks pass; those changing the contract files wait for the other owner (0052) | 1 Nov 2026 |
 
 ## Still to decide (owner)
 
