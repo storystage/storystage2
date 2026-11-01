@@ -37,3 +37,11 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0029](0029-main-bypass-and-merging.md) | Main branch bypass and merging | 21 Oct 2026 |
 | [0030](0030-age-range.md) | Age range (provisional) | 25 Oct 2026 |
 | [0031](0031-fonts.md) | Fonts | 25 Oct 2026 |
+| [0032](0032-light-theme.md) | Light theme | 25 Oct 2026 |
+| [0033](0033-narrow-windows.md) | Narrow windows | 25 Oct 2026 |
+| [0034](0034-prompter-levels.md) | Teacher Prompter levels | 25 Oct 2026 |
+| [0035](0035-zoom-and-text-size.md) | Zoom and text size | 25 Oct 2026 |
+| [0036](0036-languages.md) | Languages | 25 Oct 2026 |
+| [0037](0037-theme-setting.md) | Theme setting | 25 Oct 2026 |
+| [0038](0038-light-theme-approved.md) | Light theme approved | 25 Oct 2026 |
+| [0042](0042-ar-ipad-first.md) | AR is iPad-first | 25 Oct 2026 |

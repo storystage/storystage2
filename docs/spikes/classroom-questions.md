@@ -32,7 +32,7 @@ Where people get stuck:
 ## B. Talking to a school IT manager
 
 Devices:
-1. Which devices do pupils use (models, how old, how much memory), and how many per class?
+1. Which devices do pupils use (models, how old, how much memory), and how many per class? Any **Android tablets**, and how many? (Decides whether AR is tested on Android, decision 0042.)
 2. Are devices shared between classes or year groups? Is a device wiped or reset between users?
 3. Chromebooks only: are they managed (Google Admin)? Are Android apps allowed through managed Google Play? Who approves a new app, and how long does that take?
 4. iPads only: are they managed (which MDM)? Can you push an app and its settings (managed app configuration)?

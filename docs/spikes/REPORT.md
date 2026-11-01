@@ -11,7 +11,7 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | **go**, 21 Oct 2026 ([record](../decisions/spike-1.6-key-path.md)) |
 | **1.7 Tauri Android on a Chromebook** | **built and passing in CI** (Android 14 emulator, 4 GB); Chromebook run pending (#6) | The APK (ARM and x86_64) installs and starts; Babylon.js scene with WebGL2 at 20.9 fps in software; Blockly draws all its blocks; 33 MB of JS memory | decide after the Chromebook run and the school-policy question | pending |
 | **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | **go for video**; audio after the Chromebook check, 21 Oct 2026 ([record](../decisions/spike-1.8-mp4.md)) |
-| 1.9 AR | not started (needs devices) | | | |
+| 1.9 AR | not started; **iPad-first** (decision 0042), needs the reference iPad (#6) | | | |
 
 ## 1.4 Interpreter and scheduler
 

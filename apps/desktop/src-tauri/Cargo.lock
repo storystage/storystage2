@@ -2876,8 +2876,18 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "storystage-policy",
  "tauri",
  "tauri-build",
+]
+
+[[package]]
+name = "storystage-policy"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

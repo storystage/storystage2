@@ -47,6 +47,14 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Main branch bypass and merging | The owner, as organisation admin, may bypass the `main` ruleset in an emergency; nobody else can, and sessions acting through the owner's account never use it. S1 squash-merges its own WP0 contract and WP1 spike pull requests once the required checks pass, in stack order, and the owner reviews afterwards; other pull requests wait for the owner unless they say otherwise. | 21 Oct 2026 |
 | Age range | Learners aged 6 to 13, **provisional**: tested against the full curriculum review (WP16a) and the teacher interviews (16.7), then confirmed or changed (0030) | 25 Oct 2026 |
 | Fonts | Bricolage Grotesque and Atkinson Hyperlegible under OFL-1.1, Material Symbols Rounded (Apache-2.0). OFL-1.1 is allowed for font packages only; fonts are bundled, never loaded from Google Fonts (0031) | 25 Oct 2026 |
+| Light theme | A light theme as well as the dark one in the first release; drawn as mock-ups and approved before any light-theme code is built (0032) | 25 Oct 2026 |
+| Narrow windows | Designed for windows 1024 px wide and up; below that, a note asks to turn the iPad sideways or widen the window. No portrait layout in the first release (0033) | 25 Oct 2026 |
+| Teacher Prompter levels | Four levels per class, as on screen 11: Off, Explain only, Plan only, Full. Full allows Show me how and Build it; the story coach is on at every level except Off. Expressed with the existing policy keys (0034) | 25 Oct 2026 |
+| Zoom and text size | The three working tabs show 0033's note below 1024 px (two-dimensional layout, WCAG 1.4.10); Settings, Learn, set-up and dialogs reflow to 320 px; a Text size setting (100–150%) enlarges type (0035) | 25 Oct 2026 |
+| Languages | English (UK) only in the first release; all strings in translation files so Welsh, Scottish Gaelic or Irish can follow (0036) | 25 Oct 2026 |
+| Theme setting | Once light is approved: Dark (default), Light, or Match this device (0037) | 25 Oct 2026 |
+| Light theme approved | The light theme as drawn (#62), with ok `#1C7431` and stop `#B0412A` (#71); light-theme code may be built (0038) | 25 Oct 2026 |
+| AR is iPad-first | Spike 1.9 and AR design mode (WP21) are built and measured on the reference iPad (native ARKit in the Tauri iOS app). Android tablet AR works where supported, untested; no reference Android tablet unless the school IT managers (1.11) show schools have them. Revisit after M1 (0042) | 25 Oct 2026 |
 
 ## Still to decide (owner)
 

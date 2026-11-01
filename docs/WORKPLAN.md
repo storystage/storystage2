@@ -398,7 +398,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
     Each gets a note on what changes in StoryStage 2. (C)
 - [x] 0.8 **Interface contracts**, so lanes can work in parallel (section 5a): TypeScript interfaces and stub packages for the stage (with a fake stage that records calls), runtime messages between worker and main thread, production and storyboard data types, the Backstage manifest schema, the Prompter transport, and the **editor contract** that both code editors implement (WP7, WP7c). Changes to a contract go in their own small pull request, reviewed before the code that uses them. (C)
 
-- [ ] 0.9 **Threat model** (`docs/spec/15-security.md`): a STRIDE pass over every trust boundary: the webview and the native layer, imported files (`.storystage`, `.a3p`, glTF, Fountain), learner text sent to the Prompter, sidecars, the browser version, and (if chosen) the classroom relay. Each threat gets a control and a test. Import code (8.4, 9.1, 10.4) and the transport (15.2) start only after it. (C; a human security review is recommended before the pilot)
+- [x] 0.9 **Threat model** (`docs/spec/15-security.md`): a STRIDE pass over every trust boundary: the webview and the native layer, imported files (`.storystage`, `.a3p`, glTF, Fountain), learner text sent to the Prompter, sidecars, the browser version, and (if chosen) the classroom relay. Each threat gets a control and a test. Import code (8.4, 9.1, 10.4) and the transport (15.2) start only after it. (C; a human security review is recommended before the pilot)
 - [x] 0.10 **One schedule file:** `tools/plan/schedule.yaml` holds every item, its dependencies, its duration, the basis for the estimate and the actual duration. Section 5a's tables and charts are generated from it, section 6's "Depends on" lines cite its item ids, and CI fails when they disagree. Recalibrate at every milestone. (C)
 
 **Done when:** a pull request with a failing test is blocked by CI, and a passing one merges. Both desktop builds produce an empty Tauri window as a workflow artifact. The contract packages (0.8) build, and the fake stage passes its own tests.
@@ -417,7 +417,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 - [x] 1.6 **Tauri key path:** on Windows, store a key in Credential Manager and send a streamed Messages API request from Rust to the fake Claude server. Stream the events to the web UI, and prove the key never appears in the webview: no JS API returns it, and it doesn't appear in devtools. (C)
 - [ ] 1.7 **Tauri Android on a Chromebook:** a Babylon.js scene and a Blockly workspace run in the Android build on the reference Chromebook. Record whether the school's device policy allows installing it. (C builds; U installs)
 - [x] 1.8 **MP4 export:** WebCodecs plus Mediabunny (MPL-2.0) encode a 10-second, 30 fps, 1280×720 clip from offscreen Babylon.js frames. Test in Chrome, Safari 26 and each Tauri webview. Record where it fails and the fallback (for example, an FFmpeg sidecar on desktop). (C)
-- [ ] 1.9 **AR:** place and anchor a glTF set on a real table with Babylon.js WebXR on an Android tablet. Prototype a native ARKit plugin for the Tauri iOS app on the reference iPad. Record whether school device policies allow camera use. (C; U runs on devices)
+- [ ] 1.9 **AR:** prototype a native ARKit plugin for the Tauri iOS app on the reference iPad: place and anchor a glTF set on a real table. **iPad-first** (decision 0042): Babylon.js WebXR on an Android tablet only if the school IT managers (1.11) show schools have them. Record whether school device policies allow camera use. (C; U runs on devices)
 - [ ] 1.10 **Spike report** `docs/spikes/REPORT.md`: one table of pass/fail with measured numbers, and plan changes proposed. Record go/no-go **for each spike as it finishes**, so the work that depends on it starts without waiting for the others (for example WP6 on 1.4, WP5 on 1.2, WP14 on 1.3). (C; U decides)
 - [ ] 1.11 **Classroom ground truth:** watch two or three TR1 lessons (lesson length, how many lessons a production takes, how pupils find and save work) and talk to two school IT managers (which devices, whether they are shared between classes, whether Android apps are allowed on managed Chromebooks, whether Wi-Fi lets devices see each other). Feeds 24.2, 24.3 and 8.4. (U; C prepares the questions)
 - [ ] 1.12 **Capacity probe:** in the first two weeks, record actual durations and owner review hours for WP0 and the first spike lanes; recalibrate `schedule.yaml` and section 5a at M1. (C; U records review time)
@@ -529,7 +529,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp4 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP4a after WP0, WP3a; WP4d after WP4a; WP4b after WP4a, WP5a; WP4c after WP4b, WP5b, WP3c.
 <!-- /schedule:wp4 -->
-- [ ] 4.1 Spec `docs/spec/02-story-api.md`, generated from Alice's `PRIME_TIME` methods (StoryStage 1's `ApiCatalog` output). It covers:
+- [x] 4.1 Spec `docs/spec/02-story-api.md`, generated from Alice's `PRIME_TIME` methods (StoryStage 1's `ApiCatalog` output). It covers:
     - classes (Scene, Camera, Biped, Quadruped, Flyer, Swimmer, Slitherer, Prop, Transport, Ground, Billboard, Text);
     - procedures (move, turn, roll, resize, say, think, moveTo, moveToward, turnToFace, pointAt, orientTo, moveAndOrientTo, setOpacity, setPaint, play audio…);
     - functions (getDistanceTo, isCollidingWith, getWidth…);
@@ -537,7 +537,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - joints; event kinds.
 
     Anything dropped or added is listed. (C)
-- [ ] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
+- [x] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
 - [ ] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
 - [ ] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). (C)
 - [ ] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
@@ -555,7 +555,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - **retargeting**: every animation is authored once against the VRM humanoid bones and plays on any humanoid (MakeHuman, Kenney, commissioned), as Unity's Mecanim Humanoid does.
 
     (C)
-- [ ] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
+- [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
 - [ ] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)
 - [ ] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
@@ -732,14 +732,14 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp13 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP13a after WP0; WP13b after WP13a, WP2, WP4a, WP15k; WP13c after WP13b, WP10a, WP7.
 <!-- /schedule:wp13 -->
-- [ ] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
+- [x] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
 - [ ] 13.2 **Transport:** the request body is built in TypeScript without the key. It goes to the native layer through a Tauri command, which **checks it against the policy enforcement point (15.2)**, adds the key and streams events back. Learner text (script, storyboard, captions) goes into the context as clearly delimited data, never as instructions. In the browser version, all Prompter features are switched off. (C)
 - [ ] 13.3 **Context:**
     - a Story API catalog generated from WP4 metadata;
     - a Backstage catalogue from `backstage.json`, grouped by section;
     - the project as text with node ids;
     - the storyboard and script as text, including which sketches are on which frame;
-    - an optional scene picture.
+    - the scene as data. No picture is ever sent (`CLAUDE.md` rule 3; the owner confirmed this on 31 Oct 2026).
 
     Token budgets as in StoryStage 1. (C)
 - [ ] 13.4 **Tools:**
@@ -752,7 +752,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 13.5 **Modes:** Explain only, Show me how, Build it, and the **story coach**. The coach asks questions about logline, synopsis and scenes, and never writes the learner's story or script lines. (C)
 - [ ] 13.6 Set-up wizard (from StoryStage 1 spec 02): what is sent, cost, the adult-account rule, Console steps, paste and check key, options. A usage meter. Remove key. (C)
 - [ ] 13.7 Fake Claude server and recordings, with the evaluation set re-expressed for StoryStage 2. Add new categories: storyboard, "doesn't write the story", and prompt injection (a script line or a shared production that tells the Prompter to break its rules). Run the set on each model used by the mode routing (24.3). (C)
-- [ ] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
+- [x] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
 - [ ] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
     - **What the learner sees:** before anything changes, the Prompter shows a short numbered plan in plain words, made from the frame's sketch, its script lines and its shot type. For example, for frame 2.3: "1. The owl walks to the tree. 2. The owl turns to face the cat. 3. The owl says 'Here is the key.' 4. The cat jumps. 5. Hold for 1 second."
     - **What the learner can do with it:** reorder steps by drag or keyboard, delete a step, change a value (who, where, how long, which line) with the same dropdowns the blocks use, add a step from a short menu, or ask "why this step?". Nothing in the program changes until the learner presses **Build these steps**.
@@ -918,9 +918,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - a policy key `ar.enabled` lets a school turn AR off.
 
     Covered in the DPIA (WP17.3). (C; U approves)
-- [ ] 21.6 Performance on the reference Android tablet and iPad: 30 fps with a three-character set. (C; U runs on devices)
+- [ ] 21.6 Performance on the reference iPad (and a reference Android tablet, if decision 0042 adds one): 30 fps with a three-character set. (C; U runs on devices)
 
-**Done when:** on an Android tablet and an iPad, a learner can place a scene on a table, walk round it and rehearse it, with the safeguards on and the DPIA updated.
+**Done when:** on the reference iPad (and an Android tablet, if decision 0042 adds one), a learner can place a scene on a table, walk round it and rehearse it, with the safeguards on and the DPIA updated.
 
 ### WP22: AR for audiences and distribution
 **Objective:** let audiences watch a finished production in AR, as a play on a table or life-size, inside StoryStage or with no StoryStage at all, and let learners share it as an AR pack or a mixed-reality film.

@@ -1,0 +1,17 @@
+{
+  "source": "file",
+  "trusted": true,
+  "diagnostic": null,
+  "set": ["prompter.planOnly", "prompter.dailyCap", "editor.locked"],
+  "prompter": {
+    "level": "planOnly",
+    "voiceInput": true,
+    "dailyCap": 20,
+    "capAction": "explainOnly"
+  },
+  "storyboard": { "allowImportedWithoutStoryboard": false },
+  "editor": { "default": "blocks", "locked": true },
+  "study": { "enabled": false },
+  "backstage": { "import": "teacher", "search": false },
+  "update": { "channel": "stable", "pin": null }
+}
