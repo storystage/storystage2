@@ -20,6 +20,12 @@ impl Key {
     pub(crate) fn expose(&self) -> &str {
         &self.0
     }
+
+    /// For Android's store, which is in a plugin rather than in this crate.
+    #[cfg(target_os = "android")]
+    pub fn for_android_store(&self) -> &str {
+        &self.0
+    }
 }
 
 impl fmt::Debug for Key {

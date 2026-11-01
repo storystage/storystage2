@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use serde_json::{json, Value};
 use storystage_gate::{PrompterEvent, PrompterRequest};
-use storystage_transport::{check_key, send, Key, KeyCheck};
+use storystage_transport::{add_key, check_key, send, Key, KeyCheck, Outcome};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 use tokio::sync::watch;
@@ -291,6 +291,62 @@ async fn a_new_key_is_checked_without_using_tokens() {
         let seen = server.seen.lock().unwrap();
         assert!(seen[0].head.starts_with("GET /v1/models"), "{}", seen[0].head);
     }
+}
+
+#[tokio::test]
+async fn a_key_is_stored_only_if_the_check_passes() {
+    for (line, outcome, stored) in [
+        ("200 OK", Outcome::Saved, true),
+        ("401 Unauthorized", Outcome::NotAccepted, false),
+        ("403 Forbidden", Outcome::NoClaudeAccess, false),
+        ("500 Internal Server Error", Outcome::Unreachable, false),
+    ] {
+        let server = serve(move |_| status(line)).await;
+        let saved = Mutex::new(false);
+        let result = add_key(&server.url, Some("test-value".to_string()), |_| {
+            *saved.lock().unwrap() = true;
+            true
+        })
+        .await;
+        assert_eq!(result, outcome, "{line}");
+        assert_eq!(*saved.lock().unwrap(), stored, "{line}");
+    }
+}
+
+#[tokio::test]
+async fn closing_the_dialog_or_adding_nothing_contacts_nobody() {
+    let server = serve(|_| status("200 OK")).await;
+    for typed in [None, Some(String::new()), Some("   \r\n".to_string())] {
+        let result = add_key(&server.url, typed, |_| panic!("nothing to store")).await;
+        assert_eq!(result, Outcome::Cancelled);
+    }
+    assert_eq!(server.hits(), 0);
+}
+
+#[tokio::test]
+async fn a_store_that_refuses_says_so() {
+    let server = serve(|_| status("200 OK")).await;
+    let result = add_key(&server.url, Some("test-value".to_string()), |_| false).await;
+    assert_eq!(result, Outcome::StoreUnavailable);
+}
+
+#[test]
+fn outcomes_have_the_words_the_spec_gives() {
+    let names: Vec<&str> = [
+        Outcome::Saved,
+        Outcome::Cancelled,
+        Outcome::NotAccepted,
+        Outcome::NoClaudeAccess,
+        Outcome::Unreachable,
+        Outcome::StoreUnavailable,
+    ]
+    .iter()
+    .map(|outcome| outcome.name())
+    .collect();
+    assert_eq!(
+        names,
+        ["saved", "cancelled", "notAccepted", "noClaudeAccess", "unreachable", "storeUnavailable"]
+    );
 }
 
 #[tokio::test]
