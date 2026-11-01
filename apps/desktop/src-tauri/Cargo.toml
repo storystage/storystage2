@@ -8,7 +8,7 @@ rust-version = "1.80"
 publish = false
 
 [workspace]
-members = ["policy", "plugins/managed-config"]
+members = ["gate", "policy", "plugins/managed-config"]
 
 [lib]
 # The mobile targets load the app as a library.
