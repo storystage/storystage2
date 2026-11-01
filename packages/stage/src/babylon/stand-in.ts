@@ -12,7 +12,7 @@ import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { Box } from '../hull.ts';
 import { plainMaterial } from './materials.ts';
-import type { ObjectView } from './view.ts';
+import { ObjectView } from './view.ts';
 
 const BODY = { width: 0.5, height: 1, depth: 0.5 } as const;
 const NOSE = 0.15;
@@ -51,11 +51,13 @@ export function buildStandIn(name: string, label: string, scene: Scene): ObjectV
   const body = CreateBox(`${name} body`, BODY, scene);
   body.parent = root;
   body.position.y = BODY.height / 2;
-  body.material = plainMaterial(`${name} body`, PALE, scene);
+  const surface = plainMaterial(`${name} body`, PALE, scene);
+  body.material = surface;
   const nose = CreateBox(`${name} nose`, { size: NOSE }, scene);
   nose.parent = root;
   nose.position.set(0, BODY.height * 0.75, BODY.depth / 2 + NOSE / 2);
   nose.material = plainMaterial(`${name} nose`, DARK, scene);
   const words = addLabel(label, root, scene);
-  return { root, meshes: words ? [body, nose, words] : [body, nose], box: BOX };
+  const meshes = words ? [body, nose, words] : [body, nose];
+  return new ObjectView({ root, meshes, box: BOX, paintable: [surface] });
 }

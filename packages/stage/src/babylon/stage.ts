@@ -10,8 +10,9 @@
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera.js';
 import '@babylonjs/core/Culling/ray.js';
 import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine.js';
-import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import { Scene } from '@babylonjs/core/scene.js';
+import { jointsOf, skeletonOf } from '@storystage/backstage';
 import {
   CAMERA,
   StageError,
@@ -19,6 +20,7 @@ import {
   type Micros,
   type ObjectId,
   type Quat,
+  type SceneObjectSetup,
   type SceneSetup,
   type StageCommand,
   type StageEvent,
@@ -32,8 +34,9 @@ import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
 import { Timeline, type Touching } from '../timeline.ts';
 import { buildBackdrop } from './backdrop.ts';
+import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
 import { buildStandIn } from './stand-in.ts';
-import type { ObjectView } from './view.ts';
+import { setRotation, type ObjectView } from './view.ts';
 
 /** A camera with no rotation looks along +Z. */
 const CAMERA_TURN: Quat = { x: 0, y: 1, z: 0, w: 0 };
@@ -44,8 +47,11 @@ const FAR = 256;
 
 const radians = (degrees: number) => (degrees * Math.PI) / 180;
 
-function place(node: { rotationQuaternion: Quaternion | null }, q: Quat) {
-  (node.rotationQuaternion ??= Quaternion.Identity()).set(q.x, q.y, q.z, q.w);
+/** With no models to find, a scene can still use stand-ins. */
+const NO_MODELS: ModelSource = { find: () => null };
+
+export interface BabylonStageParts {
+  readonly models?: ModelSource;
 }
 
 /** WebGL's rows start at the bottom; a `FrameImage`'s start at the top. */
@@ -59,20 +65,24 @@ function topRowFirst(bottomUp: Uint8Array, width: number, height: number): Uint8
 
 export class BabylonStage implements Stage {
   private readonly engine: AbstractEngine;
+  private readonly models: ModelSource;
   private readonly timeline = new Timeline();
   private readonly listeners = new Set<(e: StageEvent) => void>();
   private scene: Scene | null = null;
+  private library: ModelLibrary | null = null;
   private camera: FreeCamera | null = null;
   private views = new Map<ObjectId, ObjectView>();
 
-  constructor(engine: AbstractEngine) {
+  constructor(engine: AbstractEngine, { models = NO_MODELS }: BabylonStageParts = {}) {
     this.engine = engine;
+    this.models = models;
   }
 
   async load(setup: SceneSetup): Promise<void> {
     const backdrop = resolveBackdrop(setup.backdrop);
     const scene = new Scene(this.engine);
     scene.useRightHandedSystem = true;
+    const library = new ModelLibrary(scene, this.models);
     try {
       buildBackdrop(scene, backdrop);
       const camera = new FreeCamera('camera', Vector3.Zero(), scene);
@@ -80,16 +90,17 @@ export class BabylonStage implements Stage {
       camera.fov = fieldOfView === undefined ? FIELD_OF_VIEW : radians(fieldOfView);
       camera.minZ = NEAR;
       camera.maxZ = FAR;
-      const views = new Map<ObjectId, ObjectView>();
-      for (const o of setup.objects)
-        if (typeof o.model !== 'string')
-          views.set(o.id, buildStandIn(o.id, o.model.standIn, scene));
-      this.timeline.load(setup, () => []);
+      const placed = await Promise.all(setup.objects.map((o) => place(o, library, scene)));
+      const objects = new Map(setup.objects.map((o, i) => [o.id, placed[i]!]));
+      this.timeline.load(setup, (o) => objects.get(o.id)!.joints);
+      this.library?.dispose();
       this.scene?.dispose();
       this.scene = scene;
+      this.library = library;
       this.camera = camera;
-      this.views = views;
+      this.views = new Map([...objects].map(([id, { view }]) => [id, view]));
     } catch (e) {
+      library.dispose();
       scene.dispose();
       throw e;
     }
@@ -158,6 +169,7 @@ export class BabylonStage implements Stage {
 
   dispose(): void {
     this.listeners.clear();
+    this.library?.dispose();
     this.scene?.dispose();
     this.scene = null;
     this.engine.dispose();
@@ -176,16 +188,26 @@ export class BabylonStage implements Stage {
 
   /** Copies the timeline's state onto the scene. */
   private show(): void {
-    for (const [id, view] of this.views) {
-      const { position, rotation, scale } = this.timeline.transform(id);
-      view.root.position.set(position.x, position.y, position.z);
-      place(view.root, rotation);
-      view.root.scaling.set(scale.x, scale.y, scale.z);
-    }
+    const state = this.timeline.current();
+    for (const [id, view] of this.views) view.show(state.get(id)!, this.timeline.transform(id));
     if (this.camera) {
       const { position, rotation } = this.timeline.transform(CAMERA);
       this.camera.position.set(position.x, position.y, position.z);
-      place(this.camera, mul(rotation, CAMERA_TURN));
+      setRotation(this.camera, mul(rotation, CAMERA_TURN));
     }
   }
+}
+
+/** A stand-in has its class's joints, so code written for the real model still runs. */
+function place(
+  object: SceneObjectSetup,
+  library: ModelLibrary,
+  scene: Scene,
+): PlacedModel | Promise<PlacedModel> {
+  if (typeof object.model === 'string') return library.place(object.id, object.model, object.class);
+  const skeleton = skeletonOf(object.class);
+  return {
+    view: buildStandIn(object.id, object.model.standIn, scene),
+    joints: skeleton ? jointsOf(skeleton).map((d) => d.id) : [],
+  };
 }

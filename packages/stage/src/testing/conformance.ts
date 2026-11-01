@@ -203,6 +203,17 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       expect(stage.time()).toBe(0);
     });
 
+    it('refuses a paint that does not exist, in a command or a set-up', async () => {
+      const stage = await loaded();
+      expect(() =>
+        stage.schedule([cmd(0, 0, { object: cat, kind: 'paint', paint: 'rainbow' })]),
+      ).toThrow(StageError);
+      const [first, second] = SETUP.objects;
+      await expect(
+        (await make()).load({ ...SETUP, objects: [{ ...first!, paint: 'rainbow' }, second!] }),
+      ).rejects.toMatchObject({ code: 'bad_argument' });
+    });
+
     it('forgets every command on reset, and on load', async () => {
       const stage = await loaded();
       const start = stage.stateHash();
