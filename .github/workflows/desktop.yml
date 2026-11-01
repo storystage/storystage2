@@ -48,6 +48,32 @@ jobs:
           command: check advisories
           manifest-path: apps/desktop/src-tauri/Cargo.toml
 
+  # The school lock (WP15.3). No Tauri in this crate, so it is quick, and it has per-platform code.
+  policy:
+    name: policy (${{ matrix.name }})
+    if: github.event_name != 'schedule'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+          - name: macos
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+      - name: Test the policy
+        working-directory: apps/desktop/src-tauri
+        run: cargo test -p storystage-policy --locked
+
   build:
     name: desktop (${{ matrix.name }})
     if: github.event_name != 'schedule'
