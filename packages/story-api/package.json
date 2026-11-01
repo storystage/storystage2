@@ -5,10 +5,14 @@
   "description": "The StoryStage 2 Story API: classes, procedures, functions, details and joints, using Alice's vocabulary.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./program-check": "./src/catalog/program-check.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
     "spec": "node scripts/spec-cli.ts"
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*"
   }
 }
