@@ -7,6 +7,7 @@ fn main() {
         "prompter_send",
         "prompter_cancel",
         "prompter_status",
+        "key_add",
         "key_status",
         "key_remove",
     ]);

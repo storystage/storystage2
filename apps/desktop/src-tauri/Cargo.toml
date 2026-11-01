@@ -8,7 +8,7 @@ rust-version = "1.80"
 publish = false
 
 [workspace]
-members = ["gate", "policy", "plugins/managed-config", "transport"]
+members = ["gate", "policy", "plugins/managed-config", "plugins/secure-key", "transport"]
 
 [lib]
 # The mobile targets load the app as a library.
@@ -34,6 +34,22 @@ tokio = { version = "1", features = ["sync"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-managed-config = { path = "plugins/managed-config" }
+tauri-plugin-secure-key = { path = "plugins/secure-key" }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-app-kit = "0.3"
+objc2-foundation = "0.3"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61", features = [
+  "Win32_Foundation",
+  "Win32_Graphics_Gdi",
+  "Win32_System_LibraryLoader",
+  "Win32_UI_Input_KeyboardAndMouse",
+  "Win32_UI_WindowsAndMessaging",
+] }
+zeroize = "1"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

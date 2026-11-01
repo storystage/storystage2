@@ -27,14 +27,14 @@ Finishing the wizard is the only way to switch the Prompter on (0022).
 
 ### 1.2 The system dialog
 
-One small dialog from the platform's own controls, in the native layer. It has a masked field, Show, Paste, Cancel and Add. It has no microphone, as on screen 10c.
+One small dialog from the platform's own controls, in the native layer. It has a masked field, Cancel and Add, and pasting works as it does anywhere on that platform. There's no Show: a key is pasted, not typed, and a wrong paste is pasted again. It has no microphone, as on screen 10c.
 
 | Platform | Controls |
 |---|---|
-| Windows | A dialog with a password-style Win32 edit control |
+| Windows | A small window of Win32 controls, with a password edit control |
 | macOS | `NSAlert` with an `NSSecureTextField` |
-| iPad | `UIAlertController` with a secure text field |
-| Android and Chromebook | `AlertDialog` with a password `EditText` |
+| Android and Chromebook | `AlertDialog` with a password `EditText`, in the `secure-key` plugin |
+| iPad | Not yet: `UIAlertController` with a secure text field. It waits for the Apple developer account (WP15.5), because it can't be built or run before that. Until then the iPad has no way to add a key, so its Prompter stays off |
 
 When the adult presses Add, the native layer trims the text and checks the key against `GET /v1/models`, which uses no tokens. It stores the key only if that succeeds. Then it clears the text.
 
@@ -56,8 +56,7 @@ Three commands, and none of them takes or returns the key.
 | `noClaudeAccess` | 403 or 404 | "That key works but can't use Claude models." |
 | `unreachable` | No connection | "Couldn't reach Anthropic: check the internet connection or school proxy." |
 | `storeUnavailable` | The secure store refused | "This device can't keep the key safely, so the Prompter stays off." |
-
-`key_add` is refused with no dialog while the level is Off, so a pupil can't add a key on a locked device.
+| `refusedByPolicy` | The level is Off, so a pupil can't add a key on a locked device. No dialog opens | "Turned off by your school" |
 
 ## 2. Key store, gate and transport
 
@@ -357,7 +356,9 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | No retry storm (2.5) | 30 simulated clients (2.7) | Rust integration |
 | The key's type hides it (2.2) | Its `Debug` output | Rust unit |
 | The store round trip (2.1) | Store, read, replace and delete under a test-only entry | Windows and macOS jobs |
+| What happens after the dialog (1.2, 1.3) | Stored only if the check passes, and nothing contacted if it's closed | Rust integration |
 | The system dialogs (1.2) | By hand on each platform | Device (owner) |
+| The webview can't reach the Android plugin (2.1) | `plugin:secure-key` is refused, because no capability grants it | Android job, with the human review |
 | Parsing, values, defaults (3.3, 3.5) | One unit test per key and per way of being malformed | Rust unit, `storystage-policy` |
 | Fail closed, with every "When unreadable" value (3.5) | A table of broken files, all giving the same result | Rust unit |
 | The four levels, and the more restrictive winning (3.4) | All eight combinations of the three keys | Rust unit |
