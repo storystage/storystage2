@@ -1,7 +1,7 @@
 # Everyday people from MakeHuman: first set
 
 - **Workplan:** WP3.5. **Spec:** `docs/spec/17-backstage.md`, section 3 (pipelines).
-- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). Nothing has been made yet. The owner still reviews the first set's renders before they are merged (WP3 done-when).
+- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). All 30 are built. The owner still reviews their renders before they are merged (WP3 done-when).
 - **Source of truth:** `people.json` in this folder. The table below is generated from it by `node tools/makehuman-export/src/people-cli.ts`, which also checks every asset against MakeHuman's CC0 system pack.
 
 Thirty people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2 in Blender, run headless in the assets repository's CI (owner, 25 Oct 2026). Each one is rigged to the game-engine skeleton, so it walks, gestures and poses with the same blocks as every other character (joint map, spec 17 section 2a). Their credit line is "<Name>, made with MakeHuman (CC0)".
@@ -87,6 +87,6 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 
 ## What happens next
 
-1. S4 builds the pipeline in the assets repository: Blender, MPFB2 and the CC0 system pack, run headless in CI. It makes each person from `people.json`, exports glTF and adds them to Backstage with their sketches.
-2. The owner reviews the first set's sketches and renders in the assets pull request, as for the CC0 sources.
-3. S4 looks for community CC0 headwear, glasses, hearing aids and a wheelchair, and takes each through the licence audit.
+1. The owner reviews the first set's sketches and renders in the assets pull request, as for the CC0 sources.
+2. S4 looks for community CC0 headwear, glasses, hearing aids and a wheelchair, and takes each through the licence audit.
+3. WP3c reduces the people to the device budget (they are 33,000 to 47,000 triangles now).
