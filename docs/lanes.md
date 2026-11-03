@@ -72,8 +72,31 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 1 Nov (#86): **spec 05 §3–5**: policy, managed configuration, updates and channels, written before the code.
+  - 1 Nov (#87): **the policy crate**: every key, the four levels, fail-closed reading, and on Windows trust by file owner, and the folder asked of the system rather than `%PROGRAMDATA%`.
+  - 1 Nov (#104): **WP0.9, the threat model** (`docs/spec/15-security.md`). **S4, S6:** 8.4, 9.1 and 10.4 can start now. Section 3 has the import rules, with one archive reader in `packages/production`.
+- Open, all checks passing, to merge in this order (decision 0048):
+  - #88 **`@storystage/host`**: the host interface (decision 0028) with the policy in force. **S5: please review; this is what the studio reads.** #98, #99 and #100 stack on it.
+  - #98 **managed configuration**: iPad and Android, through the same checks as the file. A new `ios (rust)` job compiles for iPad with no Apple account.
+  - #99 **updates**: channels, pins, staged rollout, rollback, the `Release` and `Channel` workflows, and universal macOS builds.
+  - #100 **the installed version and `tauriHost`**, for About. **S5: please review.**
+  - #103 **decisions 0047, 0048 and 0049**, separate from the stack. It waits for the owner.
+- WP15k, all checks passing, stacked on #100. S8 merges these in order once #100 lands (decision 0048):
+  - #106 **spec 05 §1, §2**: the wizard, key store, gate and transport.
+  - #108 **the gate**: every check in spec 04 §1.8, the caps, and the stream parser. **S7:** `pins.json` refuses every real request until `system`, `tools` and the mode messages are pinned, so the Prompter can't work until `packages/prompter` generates it. Please check spec 05 §2.3 against what you meant.
+  - #109 **the key store and transport**: `prompter_send`, `prompter_cancel`, `prompter_status`. 30 clients hitting rate limits make exactly 90 requests, with retries spread out.
+  - #110 **the key dialog and Android's store**: `key_add`. **S5:** screen 10c's field becomes an Add key button (decision 0049).
+  - #111 **the leak scan on the real app**: a random key in the real store, a real request, and no trace in the page or a heap snapshot.
 - Blocked on:
-- Next:
+  - S5: reviewing #88 and #100, and screen 10c.
+  - S7: generating `pins.json`, in WP13b.
+  - Owner: the human security review before the pilot. Start with `SecureKeyPlugin.load` (#110) and W10.
+  - Owner: trying the key dialogs on Windows, a Mac and a Chromebook (#110). None has ever been opened. The iPad's needs the Apple account.
+  - Owner: generating the updater key (0047). Until then `Release` and `Channel` have never run, and the rollback drill (15.7) can't be done.
+  - Owner: a real push of a setting through managed Google Play and through iPad device management (#98). The iPad code is compiled but has never run.
+- For D: decision 0047 makes GitHub a named host in the DPIA (17.3) and the privacy notice (17.4).
+- Next: **WP24a**, which needs the owner's classroom ground truth (WP1g) and WP8f. Until then, WP15k's review comments.
+- Working notes: no Cargo on the PC, so `Cargo.lock` changes come from a temporary CI workflow. Worktree `C:\dev\storystage2-s8` is a sparse checkout, because of the disk.
 
 ## D Documents
 - Merged:
