@@ -3,7 +3,7 @@
 - **Covers:** Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches
 - **Work package:** WP3
 - **Owner:** S4
-- **Status:** section 2a (the joint map, WP3.3) written 25 Oct 2026. The other sections are written before the code they govern: 3 with the licence audit (3.1), 1 and 4 with WP3c, 5 to 7 with WP3i.
+- **Status:** sections 2a (the joint map, WP3.3) and 3 (sources and licences, WP3.1) written 25 Oct 2026. The other sections are written before the code they govern: 1 and 4 with WP3c, 2 with 3.10, 5 to 7 with WP3i.
 
 ## 0. Decisions this spec relies on
 
@@ -60,7 +60,18 @@ The bone-name fixtures in the tests are written from each tool's documented nami
 
 ## 3. Sources and licences
 
-_To be written._
+The licence audit, `docs/legal/licence-audit.md` (workplan 3.1), lists every candidate source with its licence as checked, the credit line, and a verdict: ship, ship per item, not yet, or don't ship. Its appendix A lists every model in Alice's gallery. In short:
+
+1. **Shipped licences:** CC0, CC BY 3.0 or 4.0, or `permission` with a written record in `docs/legal/` (Alice's models if CMU agrees; the commissioned cast). Never CC BY-SA, NC or ND, and never "not sure", in the shipped catalogue. Learners' imports may use any licence on the short list (section 6), with the limits in `mayDistribute`.
+2. **A credit line for every item, CC0 included,** so the About screen and film credits name every maker (WP11.4).
+3. **A source URL for every item,** pointing at the item's own page, with the date retrieved. The licence is checked item by item, never per pack.
+4. **Not shipped:**
+    - Alice's models, until CMU confirms (WP17.1). They may still be converted for testing.
+    - Anything drawn from The Sims 2's art (WP17.7). That includes 95 of the 435 models in Alice's own gallery and two Bamboo variants; Alice's jars mark them `SIMS2`.
+    - Quaternius, whose licence forbids redistribution as an asset pack, unless Quaternius gives written permission (the owner is asking).
+    - Mixamo and general Sketchfab.
+
+A change to a source's verdict changes the audit first, then the manifest.
 
 ## 4. Budgets
 
@@ -86,4 +97,6 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 |---|---|---|
 | 2a.1–2a.6: unique ids and words; parents in the same set; every VRM bone and only those flagged VRM; VRM's required set; an H-Anim joint for each humanoid joint; every joint Alice defines per class has a place; wrist and hand, ankle and foot folding; ring finger; shared face joints; extras and the model's own joints | `packages/backstage/src/joints.test.ts` | Unit (Vitest) |
 | 2a.7 and mapping: normalising names; each convention maps its fixture with every required joint; the shoulder trap; numbered spines; Rigify's hips; wrist over hand; prop only with the missing joints listed; one bone per joint | `packages/backstage/src/skeleton-map.test.ts` | Unit (Vitest) |
+| 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
+| 3.1–3.3: every shipped item has an allowed licence, a credit and a source | `validateManifest` (`packages/backstage/src/manifest.test.ts`); refusing SA and NC in shipped items comes with WP3c | Unit (Vitest) |
 | Every shipped model loads in Babylon.js with its mapped joints (WP3 done-when) | With the first shipped models (WP3b) | Integration, in CI |
