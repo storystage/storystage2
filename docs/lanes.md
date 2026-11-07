@@ -55,7 +55,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 25 Oct (#58): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, `docs/spec/07-ux.md` §1 (screen sizes), and decisions 0032 (light theme) and 0033 (narrow windows). 12.1 stays unticked until the owner approves it.
 - Blocked on:
   - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6).
-- Next: tick 12.2–12.5 once the owner agrees WP12b is done; then WP10a, the Storyboard: WP8f is in (#101), and it waits for WP10s, the sketch tool (S4, next in its lane). The host interface (#88, S8) is needed before the Prompter's place in the shell.
+- Next: WP10a, the Storyboard: WP8f is in (#101), and it waits for WP10s, the sketch tool (S4, next in its lane). The host interface is in (#88), so the Prompter's place in the shell can follow. 12.2–12.4 are ticked (the owner, 7 Nov); 12.5 is ticked once the three tabs are built and checked.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
