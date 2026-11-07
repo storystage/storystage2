@@ -41,11 +41,11 @@ describe('FrameStrip', () => {
   it('lists every frame, named by its number and status', () => {
     render(<Strip />);
     expect(screen.getByRole('listbox', { name: 'Frames' })).toBeTruthy();
-    expect(screen.getAllByRole('option').map((o) => o.getAttribute('aria-label'))).toEqual([
-      'Frame 1.1, Checked',
-      'Frame 1.2, Rehearsed',
-      'Frame 2.1, Coded',
-      'Frame 2.2, Planned',
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual([
+      'Frame 1.1 Checked',
+      'Frame 1.2 Rehearsed',
+      'Frame 2.1 Coded',
+      'Frame 2.2 Planned',
     ]);
   });
 
@@ -56,7 +56,7 @@ describe('FrameStrip', () => {
 
   it('marks the current frame', () => {
     render(<Strip />);
-    const current = screen.getByRole('option', { name: 'Frame 2.1, Coded' });
+    const current = screen.getByRole('option', { name: 'Frame 2.1 Coded' });
     expect(current.getAttribute('aria-selected')).toBe('true');
   });
 
@@ -64,7 +64,7 @@ describe('FrameStrip', () => {
     const user = userEvent.setup();
     const onFrameChange = vi.fn();
     render(<Strip onFrameChange={onFrameChange} />);
-    await user.click(screen.getByRole('option', { name: 'Frame 1.2, Rehearsed' }));
+    await user.click(screen.getByRole('option', { name: 'Frame 1.2 Rehearsed' }));
     expect(onFrameChange).toHaveBeenCalledWith('f12');
   });
 
@@ -72,8 +72,8 @@ describe('FrameStrip', () => {
     const user = userEvent.setup();
     render(<Strip />);
     await user.tab();
-    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Frame 2.1, Coded' }));
+    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Frame 2.1 Coded' }));
     await user.keyboard('{ArrowRight}');
-    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Frame 2.2, Planned' }));
+    expect(document.activeElement).toBe(screen.getByRole('option', { name: 'Frame 2.2 Planned' }));
   });
 });
