@@ -51,6 +51,29 @@ for (const size of SIZES) {
   });
 }
 
+// The studio itself: the shell at each size, with Settings open, and the note in a narrow window.
+for (const size of SIZES) {
+  test(`axe finds no serious issues in the studio at ${size.name} size`, async ({ page }) => {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await page.goto('/');
+    await expect(page.getByRole('tab', { name: 'Storyboard' })).toBeVisible();
+    expect(await seriousIssues(page)).toEqual([]);
+    await page.getByRole('button', { name: 'Settings' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    expect(await seriousIssues(page)).toEqual([]);
+  });
+}
+
+test('below 1024 px the studio asks for more room (decision 0033)', async ({ page }) => {
+  await page.setViewportSize({ width: 1000, height: 768 });
+  await page.goto('/');
+  await expect(page.getByRole('note')).toHaveText(
+    'Turn your iPad sideways, or make the window wider.',
+  );
+  await expect(page.getByRole('tab', { name: 'Storyboard' })).toBeHidden();
+  expect(await seriousIssues(page)).toEqual([]);
+});
+
 // 07-ux §1.3 and §4: every control is at least 44 × 44 px, more than the 24 px axe checks for.
 test('every control is at least 44 × 44 px', async ({ page }) => {
   await openComponents(page);

@@ -720,9 +720,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Schedule items** (`tools/plan/schedule.yaml`): WP12a needs nothing first; WP12b after WP0, WP12a.
 <!-- /schedule:wp12 -->
 - [ ] 12.1 Mock-ups of the three tabs, the Prompter panel, the set-up wizard and the teacher's class set-up, at laptop, Chromebook (1366×768) and iPad sizes. Reviewed against the teacher interviews (16.7) and the first use cases (16.6) before approval. (C drafts; U approves)
-- [ ] 12.2 Design tokens (colour, type, spacing, sizes for touch and young users), light and dark themes, and an icon set. (C)
-- [ ] 12.3 Component library on an accessible base (for example React Aria), with each component checked for keyboard access and contrast. (C)
-- [ ] 12.4 Theatre vocabulary in the UI strings: Backstage (Cast, Props, Set, Backdrops), Rehearse, Storyboard, Production stage, Code editor (Blocks or Tiles), Screening room, Export for distribution, Projection stage. Wording follows StoryStage 1 spec 04 §5. All strings live in translation files. (C)
+- [x] 12.2 Design tokens (colour, type, spacing, sizes for touch and young users), light and dark themes, and an icon set. (C)
+- [x] 12.3 Component library on an accessible base (for example React Aria), with each component checked for keyboard access and contrast. (C)
+- [x] 12.4 Theatre vocabulary in the UI strings: Backstage (Cast, Props, Set, Backdrops), Rehearse, Storyboard, Production stage, Code editor (Blocks or Tiles), Screening room, Export for distribution, Projection stage. Wording follows StoryStage 1 spec 04 §5. All strings live in translation files. (C)
 - [ ] 12.5 Automated accessibility checks (axe) in Playwright. (C)
 
 **Done when:** the owner approves the mock-ups, and axe reports no serious issues on any screen.
