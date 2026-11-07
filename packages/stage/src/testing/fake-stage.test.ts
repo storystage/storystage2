@@ -22,9 +22,9 @@ describe('FakeStage', () => {
     await stage.load(SETUP);
     const heard: string[] = [];
     const stop = stage.onEvent((e) => heard.push(e.kind));
-    stage.emit({ kind: 'click', object: cat, at: 0 });
+    stage.emit({ kind: 'click', object: cat, x: 0.5, y: 0.5, at: 0 });
     stop();
-    stage.emit({ kind: 'click', object: dog, at: 0 });
+    stage.emit({ kind: 'click', object: dog, x: 0.5, y: 0.5, at: 0 });
     expect(heard).toEqual(['click']);
   });
 

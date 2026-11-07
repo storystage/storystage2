@@ -37,13 +37,13 @@ describe('clicks', () => {
     const { stage, heard } = await listening(inShot);
     stage.seek(micros(1));
     stage.click(320, 180);
-    expect(heard).toEqual([{ kind: 'click', object: cat, at: micros(1) }]);
+    expect(heard).toEqual([{ kind: 'click', object: cat, x: 0.5, y: 0.5, at: micros(1) }]);
   });
 
   it('say so when they miss', async () => {
     const { stage, heard } = await listening(inShot);
     stage.click(20, 20);
-    expect(heard).toEqual([{ kind: 'click', object: null, at: 0 }]);
+    expect(heard).toEqual([{ kind: 'click', object: null, x: 20 / 640, y: 1 - 20 / 360, at: 0 }]);
   });
 
   it('find an object where it is now, not where it started', async () => {

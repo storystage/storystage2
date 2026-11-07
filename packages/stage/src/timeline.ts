@@ -23,6 +23,7 @@ import {
   type StageCommand,
   type StageQuery,
   type StageQueryResult,
+  type Target,
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
@@ -86,6 +87,20 @@ const unknown = (id: ObjectId) =>
   new StageError('unknown_object', `There is nothing called ${id} in this scene.`);
 const badPaint = (paint: string) =>
   new StageError('bad_argument', `There is no paint called ${paint}.`);
+/** For what the contract has and this stage doesn't do yet (WP4b, spec 02 section 9). */
+const notYet = (what: string) => new StageError('bad_argument', `The stage can't do ${what} yet.`);
+
+/** An object or marker target. Joints as targets come in WP4b. */
+function objectOnly(target: Target): ObjectId {
+  if (typeof target !== 'string') throw notYet('a joint as a target');
+  return target;
+}
+
+/** A point, as opposed to a joint target. */
+function point(target: Exclude<Target, ObjectId> | Vec3): Vec3 {
+  if ('joint' in target) throw notYet('a joint as a target');
+  return target;
+}
 
 /** Where an object is in the scene: its own pose, carried by its vehicles. */
 function scenePose(state: SceneState, id: ObjectId): Pose {
@@ -186,10 +201,11 @@ export class Timeline {
     });
     switch (query.kind) {
       case 'transform':
-        return { kind: 'transform', value: place(query.object).transform };
+        return { kind: 'transform', value: place(objectOnly(query.object)).transform };
       case 'distance': {
-        const from = place(query.from).transform.position;
-        return { kind: 'distance', value: length(sub(from, place(query.to).transform.position)) };
+        const from = place(objectOnly(query.from)).transform.position;
+        const to = place(objectOnly(query.to)).transform.position;
+        return { kind: 'distance', value: length(sub(from, to)) };
       }
       case 'isColliding':
         return { kind: 'isColliding', value: touching(place(query.a), place(query.b)) };
@@ -198,6 +214,8 @@ export class Timeline {
           kind: 'isVisible',
           value: state.get(this.require(state, query.object))!.opacity > 0,
         };
+      default:
+        throw notYet(`the question ${query.kind}`);
     }
   }
 
@@ -262,7 +280,7 @@ export class Timeline {
           return { kind: 'translate', delta: carried(rotate(axes(c.space), c.by)) };
         case 'moveTo': {
           const target =
-            typeof c.target === 'string' ? this.target(before, c.target).position : c.target;
+            typeof c.target === 'string' ? this.target(before, c.target).position : point(c.target);
           return { kind: 'translate', delta: carried(sub(target, here.position)) };
         }
         case 'rotate':
@@ -272,7 +290,7 @@ export class Timeline {
             turns: c.turns,
           };
         case 'turnToFace': {
-          const d = sub(this.target(before, c.target).position, here.position);
+          const d = sub(this.target(before, objectOnly(c.target)).position, here.position);
           const want = Math.atan2(d.x, d.z) / (2 * Math.PI);
           let turns = want - heading(here.rotation);
           turns -= Math.round(turns); // the short way round
@@ -291,7 +309,10 @@ export class Timeline {
         case 'vehicle':
           return boarding(before, c.object, c.vehicle, carrier);
         case 'shot':
-          return { kind: 'shot', shot: `${c.shot}:${c.targets.join(',')}` };
+          return { kind: 'shot', shot: `${c.shot}:${c.targets.map(objectOnly).join(',')}` };
+        default:
+          // `validate` refuses these until the stage can do them.
+          throw notYet(c.kind);
       }
     };
     const r = resolved();
@@ -334,12 +355,16 @@ export class Timeline {
         if (length(c.axis) === 0) throw new StageError('bad_argument', 'A turn needs an axis.');
         inSpace(c.space);
         break;
-      case 'moveTo':
-        if (typeof c.target === 'string') targetable(c.target);
-        else finite(c.target.x, c.target.y, c.target.z);
+      case 'moveTo': {
+        if (c.pathStyle === 'smooth') throw notYet('a smooth path');
+        const target = c.target;
+        if (typeof target === 'string') targetable(target);
+        else if ('joint' in target) throw notYet('a joint as a target');
+        else finite(target.x, target.y, target.z);
         break;
+      }
       case 'turnToFace':
-        targetable(c.target);
+        targetable(objectOnly(c.target));
         break;
       case 'resize':
         finite(c.factor.x, c.factor.y, c.factor.z);
@@ -361,13 +386,15 @@ export class Timeline {
         }
         break;
       case 'shot':
-        c.targets.forEach(exists);
+        for (const target of c.targets) exists(objectOnly(target));
         break;
       case 'paint':
         if (!paintColour(c.paint)) throw badPaint(c.paint);
         break;
       case 'say':
         break;
+      default:
+        throw notYet(c.kind);
     }
   }
 }
