@@ -569,7 +569,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp5 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP5a after WP0, WP1; WP5b after WP5a.
 <!-- /schedule:wp5 -->
-- [ ] 5.1 Stage interface (`packages/stage`), so the runtime and story API never touch Babylon.js directly. (C)
+- [x] 5.1 Stage interface (`packages/stage`), so the runtime and story API never touch Babylon.js directly. (C)
 - [x] 5.2 Scene with backdrops (ground types, sky, lighting, fog) matching Alice's starting templates; these are Backstage's **Backdrops** section. (C)
 - [x] 5.3 Model placement, transforms, joints, opacity and paint; vehicles (parenting). (C)
 - [x] 5.4 Camera, camera markers and camera moves; picking for mouse-click events. (C)
