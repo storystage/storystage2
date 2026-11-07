@@ -53,6 +53,9 @@ importers:
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../../packages/story-api
       '@storystage/ui':
         specifier: workspace:*
         version: link:../../packages/ui
