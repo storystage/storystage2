@@ -5,9 +5,18 @@
   "description": "2D sketch library (generated) and the frame canvas model.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@storystage/backstage": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.5"
   }
 }
