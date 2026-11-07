@@ -43,5 +43,12 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
+    {
+      // The component page (apps/studio/components.html), for the axe checks. Dev server only.
+      command: 'pnpm --filter @storystage/studio components',
+      url: 'http://localhost:4182/components.html',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
   ],
 });

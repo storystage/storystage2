@@ -13,7 +13,7 @@
   "backstage.set": "Set",
   "backstage.backdrops": "Backdrops",
   "frames.label": "Frames",
-  "frames.frame": "Frame {number}, {status}",
+  "frames.frame": "Frame",
   "status.planned": "Planned",
   "status.staged": "Staged",
   "status.coded": "Coded",

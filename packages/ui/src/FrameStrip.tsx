@@ -63,16 +63,17 @@ export function FrameStrip({ scenes, currentFrame, onFrameChange }: FrameStripPr
               id={frame.id}
               className="ss-frame-card"
               textValue={frame.number}
-              aria-label={messages.t('frames.frame', {
-                number: frame.number,
-                status: messages.t(`status.${frame.status}`),
-              })}
             >
+              {/* Named by its own text ("Frame 2.3 Planned"), so the name always contains what
+                  is shown (WCAG 2.5.3); "Frame" is for screen readers only. */}
               <span className="ss-frame-thumb" aria-hidden="true">
                 {frame.thumbnail}
               </span>
               <span className="ss-frame-meta">
-                <span className="ss-frame-number">{frame.number}</span>
+                <span className="ss-frame-number">
+                  <span className="ss-visually-hidden">{messages.t('frames.frame')} </span>
+                  {frame.number}
+                </span>{' '}
                 <StatusChip status={frame.status} />
               </span>
             </ListBoxItem>
