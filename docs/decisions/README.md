@@ -49,4 +49,5 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0050](0050-s2-merging.md) | S2 merges its WP2 and WP8.1 pull requests | 1 Nov 2026 |
 | [0051](0051-joints-and-optional-events.md) | Joint moves and Alice's optional events | 1 Nov 2026 |
 | [0052](0052-s6-merging.md) | S6 merges its WP4 pull requests | 1 Nov 2026 |
+| [0053](0053-s3-merging.md) | S3 merges the WP5a stack | 1 Nov 2026 |
 | [0054](0054-storyboard-print.md) | Storyboard print | 7 Nov 2026 |
