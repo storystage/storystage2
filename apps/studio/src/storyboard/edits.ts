@@ -4,11 +4,14 @@
  * `@storystage/production`'s `scenes.ts`.
  */
 import { newProgram } from '@storystage/ast';
+import { micros } from '@storystage/story-api';
 import {
   FORMAT_VERSION,
+  type Frame,
   type Production,
   type SceneId,
   type Storyboard,
+  type Transition,
 } from '@storystage/production';
 import { sameTemplate, type ArcTemplateDef } from './arc.ts';
 
@@ -106,3 +109,50 @@ export function planLength(p: Production): { scenes: number; seconds: number } {
     seconds: Math.round(p.frames.reduce((sum, f) => sum + f.lengthSeconds, 0)),
   };
 }
+
+/** A scene's heading: place and time, "Forest, night" (`07-ux.md` section 6.4). */
+export function setCardHeading(p: Production, scene: SceneId, heading: string): Production {
+  const text = clamp(heading, LIMITS.heading);
+  return withStoryboard(p, {
+    cards: p.storyboard.cards.map((c) => (c.id === scene ? { ...c, heading: text } : c)),
+  });
+}
+
+/** How long each kind of transition takes (WP8.3); a cut takes none. */
+export const TRANSITION_SECONDS: Readonly<Record<Transition['kind'], number>> = {
+  cut: 0,
+  fadeToBlack: 1,
+  crossfade: 0.5,
+};
+
+/** How a scene ends: a cut, a fade to black or a crossfade into the next one. */
+export function setTransition(p: Production, scene: SceneId, kind: Transition['kind']): Production {
+  return {
+    ...p,
+    manifest: {
+      ...p.manifest,
+      runningOrder: p.manifest.runningOrder.map((r) =>
+        r.scene === scene
+          ? { ...r, transition: { kind, duration: micros(TRANSITION_SECONDS[kind]) } }
+          : r,
+      ),
+    },
+  };
+}
+
+/** A scene's number: its place in the running order, from 1. */
+export const sceneNumber = (p: Production, scene: SceneId): number =>
+  p.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
+
+/** A scene's frames in order, numbered "2.1", "2.2" from the scene's number. */
+export function framesOf(p: Production, scene: SceneId): { frame: Frame; number: string }[] {
+  const n = sceneNumber(p, scene);
+  return p.frames
+    .filter((f) => f.scene === scene)
+    .sort((a, b) => a.order - b.order)
+    .map((frame, i) => ({ frame, number: `${n}.${i + 1}` }));
+}
+
+/** A scene's planned length: its frames' lengths added up, in whole seconds. */
+export const sceneSeconds = (p: Production, scene: SceneId): number =>
+  Math.round(p.frames.filter((f) => f.scene === scene).reduce((s, f) => s + f.lengthSeconds, 0));

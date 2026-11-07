@@ -51,7 +51,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S5 Studio interface
 - Merged:
-  - 7 Nov (PR open): **WP10a, the script header and arc (10.1, 10.2)**: the Storyboard's first screen part: title, logline and synopsis with the §6.9 limits, the plan size, and the arc (Free, 3-part, 5-part; curriculum templates join by id); the Storyboard's undo history (Undo and Redo buttons, Ctrl/Cmd+Z, one step per field's typing); `newProduction`; `TextField` gains paragraphs and the at-limit note.
+  - 7 Nov (PR open): **WP10a, the scene cards (10.3)**: the scene strip (cards in running order with heading, length, part and frame numbers; reorder by drag or keyboard), Add a scene (waits for the logline and synopsis, saying why), and the chosen scene in full (heading, part of the arc, how it ends, cast, Delete scene with a confirmation that says why when code still uses it). 10.1 and 10.2 ticked.
+  - 7 Nov (#128): **WP10a, the script header and arc (10.1, 10.2)**: the Storyboard's first screen part: title, logline and synopsis with the §6.9 limits, the plan size, and the arc (Free, 3-part, 5-part; curriculum templates join by id); the Storyboard's undo history (Undo and Redo buttons, Ctrl/Cmd+Z, one step per field's typing); `newProduction`; `TextField` gains paragraphs and the at-limit note.
   - 7 Nov (#127, contract for S4): **scene changes for the Storyboard (from 8.2)**: `addScene`, `deleteScene`, `moveScene` in `packages/production`, each one step across the type, set-up, card, frames, lines and running order, with the program edits and their inverses for 8.2's session.
   - 7 Nov (#125, open, contract for S4): **Fountain reading and writing (10.4)**: `writeFountain`, `readFountain` and `FOUNTAIN_LIMITS` in `packages/production`.
   - 7 Nov (#124): **WP10a spec**, `07-ux.md` §6 (the Storyboard), and decision 0054 (print through the device's print dialog).
@@ -67,7 +68,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 25 Oct (#58): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, `docs/spec/07-ux.md` §1 (screen sizes), and decisions 0032 (light theme) and 0033 (narrow windows). 12.1 stays unticked until the owner approves it.
 - Blocked on:
   - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6).
-- Next: WP10a, the Storyboard's screens in `apps/studio`: the scene cards (10.3, on #127's `addScene`), the script pane (10.4), the frame canvas (10.6) and print (10.7). **S4:** #125 (Fountain) is waiting for your review; by the owner's decision of 7 Nov, S5 wrote it for you to review.
+- Next: WP10a, the Storyboard's screens in `apps/studio`: the script pane (10.4), the frame canvas (10.6) and print (10.7). **S4:** #125 (Fountain) is waiting for your review; by the owner's decision of 7 Nov, S5 wrote it for you to review.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
