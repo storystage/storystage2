@@ -52,6 +52,18 @@ describe('checkBoundaries', () => {
     ]);
   });
 
+  it('keeps Babylon.js inside the stage', () => {
+    const uses = (name: string): WorkspacePackage => ({
+      ...pkg(name),
+      dependencies: { '@babylonjs/core': '^9.31.1' },
+    });
+    expect(checkBoundaries([uses('stage')])).toEqual([]);
+    expect(checkBoundaries([uses('runtime'), uses('story-api')])).toEqual([
+      '@storystage/runtime depends on @babylonjs/core; only the stage may use Babylon.js.',
+      '@storystage/story-api depends on @babylonjs/core; only the stage may use Babylon.js.',
+    ]);
+  });
+
   it('ignores third-party dependencies', () => {
     const ast: WorkspacePackage = { ...pkg('ast'), dependencies: { zod: '^4.0.0' } };
     expect(checkBoundaries([ast])).toEqual([]);
