@@ -1,15 +1,15 @@
-/** Placeholder shell from WP0.2. S5 replaces it with the three tabs (WP12). */
+import { ThemeRoot } from '@storystage/ui';
+import { Shell } from './shell/Shell.tsx';
+
+/**
+ * The studio. The shell and the three tabs' words are in (WP12); the tabs' working areas come with
+ * WP10a (Storyboard), WP7 (Production stage) and WP11b (Screening room). The theme setting (decision
+ * 0037) arrives with Settings; until then the studio is dark, the default.
+ */
 export function App() {
   return (
-    <main>
-      <h1>StoryStage 2</h1>
-      <nav aria-label="Tabs">
-        <ul>
-          <li>Storyboard</li>
-          <li>Production stage</li>
-          <li>Screening room</li>
-        </ul>
-      </nav>
-    </main>
+    <ThemeRoot>
+      <Shell panels={{ storyboard: null, production: null, screening: null }} />
+    </ThemeRoot>
   );
 }

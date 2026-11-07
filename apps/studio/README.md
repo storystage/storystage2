@@ -4,7 +4,11 @@ The StoryStage 2 app: the three tabs, the Prompter panel and settings. Runs in t
 
 - **Owner:** S5 (class set-up screens with S8; editor switch with S6)
 - **Workplan:** WP7, WP10, WP12
-- **Status:** placeholder shell (WP0.2); the component page is in (WP12.3)
+- **Status:** the shell and the three tabs' words (WP12); the tabs' working areas come with WP10a, WP7 and WP11b
+
+## Words
+
+Every word the studio shows is in `src/strings/en-GB.json` (WP12.4; decision 0036, English (UK) only), read through `words` in `src/strings.ts`. The design system's own words (mode names, statuses, the Prompter's labels) are in `@storystage/ui`. Never write a word into a component.
 
 ## The component page
 
