@@ -42,6 +42,7 @@ export function meshFromDocument(doc: Document): SketchMesh {
 
   const positions: number[] = [];
   const indices: number[] = [];
+  const cards: number[] = [];
   const infNodes: number[] = [];
   const infWeights: number[] = [];
   const jointSet = new Set<number>();
@@ -106,14 +107,20 @@ export function meshFromDocument(doc: Document): SketchMesh {
       }
       const idx = prim.getIndices();
       const count = idx ? idx.getCount() : pos.getCount();
-      for (let i = 0; i + 2 < count; i += 3)
+      const seeThrough = (prim.getMaterial()?.getAlphaMode() ?? 'OPAQUE') !== 'OPAQUE';
+      for (let i = 0; i + 2 < count; i += 3) {
         for (let k = 0; k < 3; k++) indices.push(base + (idx ? idx.getScalar(i + k) : i + k));
+        cards.push(seeThrough ? 1 : 0);
+      }
     }
   });
 
+  // Some models mark everything see-through. Then nothing is a card: their edges are the drawing.
+  const someCards = cards.includes(1) && cards.filter(Boolean).length * 2 < cards.length;
   const mesh: SketchMesh = {
     positions: new Float32Array(positions),
     indices: new Uint32Array(indices),
+    ...(someCards ? { cards: new Uint8Array(cards) } : {}),
   };
   if (jointSet.size === 0) return mesh;
   return {

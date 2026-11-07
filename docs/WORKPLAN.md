@@ -496,7 +496,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - credits generated from it for the About screen and exported films (WP11.4).
 
     (C)
-- [ ] 3.5 **Everyday people from MakeHuman:** a pipeline (`tools/makehuman-export`) that generates a set of diverse, rigged people from MakeHuman's CC0 assets, exports them to glTF, maps them to the biped joints, and simplifies them to the device budget (3.9). First set: about 30 people (children, teenagers, adults, older people; a range of body types, skin tones and clothes), checked by the owner for respectful, varied representation. (C; U reviews)
+- [x] 3.5 **Everyday people from MakeHuman:** a pipeline (`tools/makehuman-export`) that generates a set of diverse, rigged people from MakeHuman's CC0 assets, exports them to glTF, maps them to the biped joints, and simplifies them to the device budget (3.9). First set: about 30 people (children, teenagers, adults, older people; a range of body types, skin tones and clothes), checked by the owner for respectful, varied representation. (C; U reviews)
 - [ ] 3.6 **Storybook cast (commissioned):**
     - a shortlist of 12–20 public-domain characters chosen with the curriculum mapping (WP16). Candidates: Alice, the Mad Hatter and the White Rabbit (Carroll and Tenniel); Sherlock Holmes and Dr Watson; Robin Hood; King Arthur and Merlin; characters from Shakespeare; Greek myths; Anansi; Beowulf;
     - a design brief: original 3D designs based only on the public-domain text and illustrations, in one style; rigged to the biped or quadruped joints, with a mouth joint for lip sync;

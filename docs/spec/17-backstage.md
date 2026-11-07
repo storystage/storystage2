@@ -82,6 +82,19 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - It names meshes uniquely, because the exporter finds each mesh's skin by name.
     - A finishing step turns each model to face +Z (Alice's models face -Z), maps its joints with the Alice convention, and reports triangles and texture sizes.
     - The output is for testing until the audit clears a model; it is not committed to a public repository.
+- **CC0 sources** (3.7, `tools/backstage-sources`):
+    - Each source has a list in the assets repository (`sources/*.json`). Every item gives its name, class, section, licence, credit line and own page, and is pinned: a GitHub commit, a SHA-256, or an Arweave address, which names fixed content. Only the licences the audit allows to ship are accepted.
+    - The build fetches each item. It packs a `.gltf` into a `.glb`, keeps `.glb` and `.vrm` files byte for byte (a VRM's expressions and look-at serve later blocks), and maps the skeleton (a VRM by its own bone table).
+    - It writes the manifest items, `provenance.json` (every file fetched, with its SHA-256) and the sketches.
+    - **VRM 0.x avatars face -Z.** The sketches turn them; the stage's loader must too (S3).
+    - Before a build is merged, a person looks at each new item's sketches for respectful, age-appropriate representation.
+- **Everyday people** (3.5, `tools/makehuman-export`):
+    - `people.json` lists them, checked against MakeHuman's CC0 system pack. The owner reviews the list and then the renders.
+    - A workflow in the assets repository runs Blender with MPFB2, headless. These are GPL build tools, never linked into the app; the people they make from CC0 assets are CC0.
+    - Each person is rigged to the `game_engine` skeleton, which the joint map reads by its `unreal` convention.
+    - **Colours change the texture's pixels,** because a shader tint would not survive glTF. An outfit's shirt and jeans share one texture, so denim is told apart by being blue and left alone.
+    - **Only hair, eyebrows and eyelashes are see-through.** MPFB2's game material marks everything see-through; the script makes the rest solid.
+    - Textures are shrunk to 1024 pixels here. Triangles (33,000 to 47,000 each) are reduced in WP3c.
 - **Where Backstage's files live** (owner's decision, 25 Oct 2026): the public repository `storystage/backstage-assets`. It holds the shipped glTF files, `backstage.json`, the sketches and each item's provenance. A GitHub Actions job there downloads the CC0 sources, converts them and commits the results, so nothing large is fetched to a developer's PC. The MakeHuman people are made there too, headless, with MPFB2 in Blender (owner's decision, 25 Oct 2026). Both tools are GPL and are build tools only (CLAUDE.md, rule 8).
 
 ## 4. Budgets
@@ -112,7 +125,9 @@ The Storyboard's frames use sketches only (decision 0014). Every sketch is gener
     - outer and silhouette lines 3 units wide; inner folds 1.5 units wide;
     - an inner fold is drawn where faces meet at more than 45°;
     - hidden lines are never drawn;
-    - the white shape covers the model's whole outline, holes left open, so a sketch in front hides one behind on a frame.
+    - the white shape covers the model's whole outline, holes left open, so a sketch in front hides one behind on a frame;
+    - see-through cards (hair, eyebrows, eyelashes) are drawn as one shape with one line around it, not edge by edge;
+    - inner lines shorter than 4 units are left out, because on dense models they read as dirt.
 
     The longer side is 320 units, with a margin of 4 units.
 4. **Each sketch carries its model's Backstage id** (`data-backstage-id` in the SVG), its facing and pose (`data-facing`, `data-pose`), and a title for screen readers in plain words ("Robot, side, walking"). Files sit at `sketches/<id>/<facing>[-<pose>].svg` in the Backstage folder. A backdrop's sketch is at `sketches/<id>/backdrop.svg`. Each item's `sketches` list in `backstage.json` records them.
@@ -147,10 +162,15 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 |---|---|---|
 | 2a.1–2a.6: unique ids and words; parents in the same set; every VRM bone and only those flagged VRM; VRM's required set; an H-Anim joint for each humanoid joint; every joint Alice defines per class has a place; wrist and hand, ankle and foot folding; ring finger; shared face joints; extras and the model's own joints | `packages/backstage/src/joints.test.ts` | Unit (Vitest) |
 | 2a.7 and mapping: normalising names; each convention maps its fixture with every required joint; the shoulder trap; numbered spines; Rigify's hips; wrist over hand; prop only with the missing joints listed; one bone per joint | `packages/backstage/src/skeleton-map.test.ts` | Unit (Vitest) |
+| 3, pipelines: source lists refuse unshippable licences and unpinned sources; GitHub, .gltf packing, SHA-256 and Arweave fetching; models, a valid manifest, provenance and sketches built; other items kept | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
+| 3, pipelines: VRM bone tables read and VRM 0.x turned to face +Z | `packages/sketches/src/vrm.test.ts` | Unit (Vitest) |
+| 3, pipelines: the people list checks assets, retired outfits and colours; MPFB2's dict and the source list | `tools/makehuman-export/src/people.test.ts`, `human-info.test.ts` | Unit (Vitest) |
+| 3, pipelines: the Blender script | Run in the assets repository's CI; every person's render reviewed by eye, then by the owner | CI, manual |
 | 3, pipelines: Alice's output turned to face +Z once, however often the step runs; class, section, triangles, textures and skeleton reported; prop only with the missing joints | `tools/convert-alice-models/src/finish.test.ts` | Unit (Vitest) |
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
 | 3.1–3.3: every shipped item has an allowed licence, a credit and a source | `validateManifest` (`packages/backstage/src/manifest.test.ts`); refusing SA and NC in shipped items comes with WP3c | Unit (Vitest) |
 | 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
+| 7.3: see-through cards drawn as one shape; short inner lines left out; cards read from glTF, unless the whole model is see-through | `packages/sketches/src/render.test.ts`, `gltf.test.ts` | Unit (Vitest) |
 | 7.5: every limb points where its pose says, bone lengths kept; only full humanoids posed | `packages/sketches/src/pose.test.ts` | Unit (Vitest) |
 | 7.1, 7.4, 7.6, 7.7: which sketches each item gets; file names and titles; marks and backdrop sketches; empty, thin and busy flags | `packages/sketches/src/library.test.ts` | Unit (Vitest) |
 | Reading glTF: placed meshes, rigged models in their rest pose, binary glTF | `packages/sketches/src/gltf.test.ts` | Unit (Vitest) |

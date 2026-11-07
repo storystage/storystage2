@@ -15,6 +15,8 @@ export type { Sketch, SketchMetrics, SketchOptions, View } from './render.ts';
 export { POSES, POSE_TARGETS, canPose, poseMesh } from './pose.ts';
 export type { Pose } from './pose.ts';
 export { meshFromDocument, meshFromGlb } from './gltf.ts';
+export { meshFromModel, readModel } from './vrm.ts';
+export type { Model } from './vrm.ts';
 export { checkSketch } from './readability.ts';
 export type { SketchFlag, SketchIssue } from './readability.ts';
 export { BACKDROP_SKETCHES, MARKS, backdropSketchFor } from './marks.ts';
