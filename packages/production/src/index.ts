@@ -8,3 +8,4 @@
  */
 export * from './types.ts';
 export { exampleProduction } from './example.ts';
+export * from './fountain.ts';

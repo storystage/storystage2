@@ -131,8 +131,12 @@ Oh no, the ice is moving! [[line:l2]]
 - **`line:`** is the `LineId`, **`frame:`** the frame it's pinned to, if any.
 - **The title page** is written for other tools. The title, logline and synopsis read back from `manifest.json` and `storyboard.json`, and these lines are ignored on reading.
 - **On reading,** only a note at the very end of a line, starting `scene:` or `line:`, is read as ids. Any other `[[...]]` is the learner's text. A line with no id (written in another tool) gets a new one.
+- **Text that could be misread** is forced, so it reads back as it was written: an action line that another tool could take for a heading, a speaker, a transition or a note starts with `!` (forced action), and a speaker whose name could be misread starts with `@` (forced character). Speakers are written, and read back, in capitals.
+- **A line with several lines in it** keeps its line breaks but not blank lines, which would end it in Fountain.
+- **Scripts from other tools** are read too: `INT.` and `EXT.` headings, speakers in capitals with their brackets kept in the line, centred text and lyrics as action. Sections, synopses, transitions, the boneyard (when `/*` starts a line) and page breaks are left out. Lines before the first heading go under a scene with no heading yet. Every scene and line gets a new id unless its note gives a safe one (`SAFE_ID`) not used already; a pin is kept only if its frame id is safe, and the caller drops pins to frames its production doesn't have.
+- **Limits** (`FOUNTAIN_LIMITS`, matching `07-ux.md` section 6.9): 512 KiB, 50 scenes, 2,000 lines, 500 characters a line, 80 a heading and 40 a speaker's name. A script over any of them isn't read at all, and `readFountain` says which limit it met.
 
-Reading and writing this, with size limits, are WP10.4.
+`writeFountain` and `readFountain` are in `fountain.ts` (WP10.4).
 
 ## 6. Frames
 
@@ -152,7 +156,7 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | Each rule `checkReferences` enforces (sections 1, 1.3, 2, 3, 6, 7) | `types.test.ts`, one broken production per rule | Unit |
 | Saving packs exactly the imported models in use, and a packed model is checked as an import (section 1.3) | With WP8.4 | Unit |
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
-| Fountain reads and writes as section 5 says | With WP10.4 | Unit |
+| Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
 | A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |
 | A newer file opens read-only and is never written (section 1.2) | With WP8.4 | Unit |
 | Nothing in section 1.1 reaches a file | With WP8.4 | Unit |
