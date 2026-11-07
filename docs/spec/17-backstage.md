@@ -3,7 +3,7 @@
 - **Covers:** Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches
 - **Work package:** WP3
 - **Owner:** S4
-- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1; pipelines, WP3b, growing with each source) and 7 (sketches, WP10.5) written 25 Oct 2026. The other sections are written before the code they govern: 1 and 4 with WP3c, 2 with 3.10, 5 and 6 with WP3i.
+- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1; pipelines, WP3b, growing with each source) and 7 (sketches, WP10.5) written 25 Oct 2026; section 1 (the manifest, WP3c) written 7 Nov 2026. The other sections are written before the code they govern: 4 with WP3c, 2 with 3.10, 5 and 6 with WP3i.
 
 ## 0. Decisions this spec relies on
 
@@ -11,7 +11,31 @@
 
 ## 1. Manifest
 
-_To be written._
+`backstage.json` lists every model in a Backstage folder: the shipped catalogue (built in [storystage/backstage-assets](https://github.com/storystage/backstage-assets)) or a class's imports (3.11). The code is the source of truth: `packages/backstage/src/manifest.ts`, a WP0.8 contract. A change to it is a `contract` pull request, reviewed by S3 (the stage), S5 (the Storyboard), S7 (the Prompter's catalogue) and the export's owner (film credits).
+
+### Each item
+
+| Field | What it holds |
+|---|---|
+| `id` | The Alice gallery path where there is one (`Quadruped/Cat/AbyssinianCat`), else `source/Class/name` (`kaykit/Biped/knight`). Unique, and never reused for another model |
+| `section`, `class` | Its one home section (section 2) and its Story API class |
+| `displayName`, `themes` | The name learners see, and words to browse by |
+| `files.model` | Binary glTF (`.glb`), or VRM (`.vrm`, kept byte for byte) |
+| `files.thumbnail` | A colour picture of its front (WebP), or its front sketch until one is made |
+| `vrm` | For a VRM file, its version: `"0"` or `"1"` |
+| `joints` | Its mapped joints in map order (section 2a), or `prop-only` |
+| `defaultSize.height` | Metres at scale 1 |
+| `budget` | What it costs as shipped or imported, after any reduction (section 4): `triangles`, and `textureMaxPx`, the longer side of its largest texture (0 if none) |
+| `licence`, `credit`, `source`, `permission` | Section 3 |
+| `origin` | `shipped` or `imported` |
+| `sketches` | Its storyboard sketches (section 7) |
+
+### Rules
+
+1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` has a source URL; a `permission` licence names its record in `docs/legal/`.
+2. **Shipped items carry only CC0, CC BY 3.0 or 4.0, or `permission`** (`SHIPPED_LICENCES`; licence audit, section 2, rule 1). A class may import share-alike, non-commercial, own-work or "not sure" models (3.12); `mayDistribute` then keeps films that use them in school.
+3. **Every model faces +Z.** The pipelines turn models that don't (Alice's, section 3), except VRM files, which are kept byte for byte: **a VRM 0.x avatar faces -Z, and whatever shows it (the stage, sketches, the AR baker) turns it half a turn.** `vrm` says which files need it.
+4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule.
 
 ## 2. Sections
 
@@ -168,7 +192,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 3, pipelines: the Blender script | Run in the assets repository's CI; every person's render reviewed by eye, then by the owner | CI, manual |
 | 3, pipelines: Alice's output turned to face +Z once, however often the step runs; class, section, triangles, textures and skeleton reported; prop only with the missing joints | `tools/convert-alice-models/src/finish.test.ts` | Unit (Vitest) |
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
-| 3.1–3.3: every shipped item has an allowed licence, a credit and a source | `validateManifest` (`packages/backstage/src/manifest.test.ts`); refusing SA and NC in shipped items comes with WP3c | Unit (Vitest) |
+| 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
+| 1: the shipped catalogue's builder writes each item's budget and VRM version | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
 | 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
 | 7.3: see-through cards drawn as one shape; short inner lines left out; cards read from glTF, unless the whole model is see-through | `packages/sketches/src/render.test.ts`, `gltf.test.ts` | Unit (Vitest) |
 | 7.5: every limb points where its pose says, bone lengths kept; only full humanoids posed | `packages/sketches/src/pose.test.ts` | Unit (Vitest) |
