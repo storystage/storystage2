@@ -16,7 +16,9 @@ export type ShippableLicence = (typeof SHIPPABLE_LICENCES)[number];
 export type FetchSpec =
   | { readonly github: string; readonly commit: string; readonly path: string }
   /** `sha256` may be left out only for an Arweave address, which names fixed content. */
-  | { readonly url: string; readonly sha256?: string; readonly ext: 'glb' | 'vrm' };
+  | { readonly url: string; readonly sha256?: string; readonly ext: 'glb' | 'vrm' }
+  /** A model made in the build itself: a path under the Backstage folder's `generated/`. */
+  | { readonly generated: string };
 
 export interface SourceItem {
   /** `source/Class/name`, as the manifest's ids (WP3.4). */
@@ -92,8 +94,12 @@ export function validateSources(json: unknown): Result {
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
     const f = item.fetch;
-    if (!isObject(f)) e('needs a fetch: { github, commit, path } or { url, sha256, ext }.');
-    else if ('github' in f) {
+    if (!isObject(f))
+      e('needs a fetch: { github, commit, path }, { url, sha256, ext } or { generated }.');
+    else if ('generated' in f) {
+      if (typeof f.generated !== 'string' || !/^[\w-]+(\/[\w-]+)*\.glb$/.test(f.generated))
+        e('fetch.generated must be a .glb path under generated/.');
+    } else if ('github' in f) {
       if (!isText(f.github) || !/^[\w.-]+\/[\w.-]+$/.test(f.github))
         e('fetch.github must be owner/repository.');
       if (typeof f.commit !== 'string' || !/^[0-9a-f]{40}$/.test(f.commit))

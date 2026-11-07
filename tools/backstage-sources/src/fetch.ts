@@ -4,6 +4,8 @@
  * .glb and .vrm files are kept byte for byte.
  */
 import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import { WebIO } from '@gltf-transform/core';
 import type { SourceItem } from './sources.ts';
 
@@ -23,8 +25,20 @@ export interface Fetched {
 
 const sha256 = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 
-export async function fetchModel(item: SourceItem, fetcher: Fetcher): Promise<Fetched> {
+export async function fetchModel(
+  item: SourceItem,
+  fetcher: Fetcher,
+  folder = '.',
+): Promise<Fetched> {
   const f = item.fetch;
+  if ('generated' in f) {
+    const bytes = new Uint8Array(await readFile(join(folder, 'generated', f.generated)));
+    return {
+      bytes,
+      ext: 'glb',
+      fetched: [{ url: `generated:${f.generated}`, sha256: sha256(bytes) }],
+    };
+  }
   if ('url' in f) {
     const bytes = await fetcher(f.url);
     const got = sha256(bytes);
