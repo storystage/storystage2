@@ -430,6 +430,13 @@
   box-shadow: inset 0 0 0 1px var(--ss-line-2);
   outline: none;
 }
+.ss-textarea {
+  height: auto;
+  min-height: 72px;
+  padding: 10px 14px;
+  line-height: 1.4;
+  resize: vertical;
+}
 .ss-input::placeholder {
   color: var(--ss-placeholder);
 }

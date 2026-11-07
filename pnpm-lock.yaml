@@ -47,6 +47,12 @@ importers:
 
   apps/studio:
     dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../../packages/ast
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../../packages/production
       '@storystage/ui':
         specifier: workspace:*
         version: link:../../packages/ui
