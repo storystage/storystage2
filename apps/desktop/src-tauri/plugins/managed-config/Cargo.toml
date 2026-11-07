@@ -1,0 +1,16 @@
+[package]
+name = "tauri-plugin-managed-config"
+version = "0.1.0"
+description = "Reads managed configuration on Android, for the school lock"
+license = "Apache-2.0"
+edition = "2021"
+rust-version = "1.80"
+publish = false
+links = "tauri-plugin-managed-config"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+tauri = { version = "2", features = [] }

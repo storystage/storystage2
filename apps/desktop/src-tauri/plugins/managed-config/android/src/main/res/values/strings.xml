@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The school's IT manager reads these in their device management console. -->
+<resources>
+    <string name="policy_prompter_enabled">Allow the Prompter</string>
+    <string name="policy_prompter_explain_only">The Prompter explains only</string>
+    <string name="policy_prompter_plan_only">The Prompter plans only</string>
+    <string name="policy_prompter_voice_input">Allow speaking to the Prompter</string>
+    <string name="policy_prompter_daily_cap">Prompter requests per pupil per day</string>
+    <string name="policy_prompter_cap_action">When the daily limit is reached</string>
+    <string name="policy_storyboard_allow_imported">Allow imported worlds without a storyboard</string>
+    <string name="policy_editor_default">Default code editor</string>
+    <string name="policy_editor_locked">Lock the code editor for pupils</string>
+    <string name="policy_study_enabled">Turn on study mode</string>
+    <string name="policy_backstage_import">Who can import models</string>
+    <string name="policy_backstage_search">Allow searching for CC0 models online</string>
+    <string name="policy_cap_explain_only">Switch to Explain only</string>
+    <string name="policy_cap_off">Turn the Prompter off</string>
+    <string name="policy_editor_blocks">Blocks</string>
+    <string name="policy_editor_tiles">Tiles</string>
+    <string name="policy_import_off">Nobody</string>
+    <string name="policy_import_teacher">Teachers only</string>
+    <string name="policy_import_learners">Teachers and learners</string>
+    <string-array name="policy_cap_action_names">
+        <item>@string/policy_cap_explain_only</item>
+        <item>@string/policy_cap_off</item>
+    </string-array>
+    <string-array name="policy_cap_action_values" translatable="false">
+        <item>explainOnly</item>
+        <item>off</item>
+    </string-array>
+    <string-array name="policy_editor_names">
+        <item>@string/policy_editor_blocks</item>
+        <item>@string/policy_editor_tiles</item>
+    </string-array>
+    <string-array name="policy_editor_values" translatable="false">
+        <item>blocks</item>
+        <item>tiles</item>
+    </string-array>
+    <string-array name="policy_import_names">
+        <item>@string/policy_import_off</item>
+        <item>@string/policy_import_teacher</item>
+        <item>@string/policy_import_learners</item>
+    </string-array>
+    <string-array name="policy_import_values" translatable="false">
+        <item>off</item>
+        <item>teacher</item>
+        <item>learners</item>
+    </string-array>
+</resources>
