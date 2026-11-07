@@ -1,0 +1,3954 @@
+{
+  "source": {
+    "repository": "https://github.com/storystage/storystage",
+    "commit": "616904c3b3851e9bb1f98f623a7767cb7ba5d990",
+    "path": "core/story-api/src/main/java/org/lgna/story",
+    "rule": "Public, non-static methods with visibility PRIME_TIME or no @MethodTemplate"
+  },
+  "classes": [
+    {
+      "name": "AbstractBinarySThingEvent",
+      "extends": "AbstractEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getSThingFromSetA",
+          "kind": "function",
+          "returns": "SThing",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSThingFromSetB",
+          "kind": "function",
+          "returns": "SThing",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "AbstractKeyEvent",
+      "extends": "AbstractEvent",
+      "abstract": true,
+      "members": [
+        {
+          "name": "getKey",
+          "kind": "function",
+          "returns": "Key",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "isKey",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "key",
+              "type": "Key"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "MouseClickEvent",
+      "extends": "AbstractEvent",
+      "abstract": true,
+      "members": [
+        {
+          "name": "getScreenDistanceFromBottom",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getScreenDistanceFromLeft",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "OcclusionEvent",
+      "extends": "AbstractEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getBackgroundModel",
+          "kind": "function",
+          "returns": "SModel",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getForegroundModel",
+          "kind": "function",
+          "returns": "SModel",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "PointOfViewEvent",
+      "extends": "AbstractEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getEntity",
+          "kind": "function",
+          "returns": "SThing",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SCameraMarker",
+      "extends": "PerspectiveCameraMarker",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SThing",
+      "extends": null,
+      "abstract": true,
+      "members": [
+        {
+          "name": "delay",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "duration",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getBooleanFromUser",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "message",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getDoubleFromUser",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "message",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getIntegerFromUser",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [
+            {
+              "name": "message",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getStringFromUser",
+          "kind": "function",
+          "returns": "String",
+          "params": [
+            {
+              "name": "message",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getVantagePoint",
+          "kind": "function",
+          "returns": "VantagePoint",
+          "params": [
+            {
+              "name": "entity",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getVehicle",
+          "kind": "function",
+          "returns": "SThing",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "isCollidingWith",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "playAudio",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "audioSource",
+              "type": "AudioSource"
+            }
+          ],
+          "details": null,
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "TimeEvent",
+      "extends": "AbstractEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getTimeSinceLastFire",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "ViewEvent",
+      "extends": "AbstractEvent",
+      "abstract": true,
+      "members": [
+        {
+          "name": "getModel",
+          "kind": "function",
+          "returns": "SModel",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "ArrowKeyEvent",
+      "extends": "AbstractKeyEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getMoveDirection",
+          "kind": "function",
+          "returns": "MoveDirection",
+          "params": [
+            {
+              "name": "plane",
+              "type": "MoveDirectionPlane"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTurnDirection",
+          "kind": "function",
+          "returns": "TurnDirection",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "KeyEvent",
+      "extends": "AbstractKeyEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "isDigit",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "isLetter",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "MouseClickOnObjectEvent",
+      "extends": "MouseClickEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getModelAtMouseLocation",
+          "kind": "function",
+          "returns": "SModel",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "NumberKeyEvent",
+      "extends": "AbstractKeyEvent",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getNumber",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SGround",
+      "extends": "SThing",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getOpacity",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getPaint",
+          "kind": "function",
+          "returns": "Paint",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setOpacity",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "opacity",
+              "type": "Number"
+            }
+          ],
+          "details": "SetOpacity",
+          "marked": true
+        },
+        {
+          "name": "setPaint",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "paint",
+              "type": "Paint"
+            }
+          ],
+          "details": "SetPaint",
+          "marked": true
+        },
+        {
+          "name": "setVehicle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "vehicle",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SScene",
+      "extends": "SThing",
+      "abstract": true,
+      "members": [
+        {
+          "name": "addArrowKeyPressListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "ArrowKeyPressListener"
+            }
+          ],
+          "details": "AddKeyPressListener",
+          "marked": true
+        },
+        {
+          "name": "addCollisionEndListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "CollisionEndListener"
+            },
+            {
+              "name": "setA",
+              "type": "SThing[]"
+            },
+            {
+              "name": "setB",
+              "type": "SThing[]"
+            }
+          ],
+          "details": "AddCollisionEndListener",
+          "marked": true
+        },
+        {
+          "name": "addCollisionStartListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "CollisionStartListener"
+            },
+            {
+              "name": "setA",
+              "type": "SThing[]"
+            },
+            {
+              "name": "setB",
+              "type": "SThing[]"
+            }
+          ],
+          "details": "AddCollisionStartListener",
+          "marked": true
+        },
+        {
+          "name": "addDefaultModelManipulation",
+          "kind": "event",
+          "returns": "void",
+          "params": [],
+          "details": "AddDefaultModelManipulation",
+          "marked": true
+        },
+        {
+          "name": "addKeyPressListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "KeyPressListener"
+            }
+          ],
+          "details": "AddKeyPressListener",
+          "marked": true
+        },
+        {
+          "name": "addMouseClickOnObjectListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "MouseClickOnObjectListener"
+            }
+          ],
+          "details": "AddMouseClickOnObjectListener",
+          "marked": true
+        },
+        {
+          "name": "addMouseClickOnScreenListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "MouseClickOnScreenListener"
+            }
+          ],
+          "details": "AddMouseClickOnScreenListener",
+          "marked": true
+        },
+        {
+          "name": "addNumberKeyPressListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "NumberKeyPressListener"
+            }
+          ],
+          "details": "AddKeyPressListener",
+          "marked": true
+        },
+        {
+          "name": "addObjectMoverFor",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "thing",
+              "type": "SMovableTurnable"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "addOcclusionEndListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "OcclusionEndListener"
+            },
+            {
+              "name": "setA",
+              "type": "SModel[]"
+            },
+            {
+              "name": "setB",
+              "type": "SModel[]"
+            }
+          ],
+          "details": "AddOcclusionEndListener",
+          "marked": true
+        },
+        {
+          "name": "addOcclusionStartListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "OcclusionStartListener"
+            },
+            {
+              "name": "setA",
+              "type": "SModel[]"
+            },
+            {
+              "name": "setB",
+              "type": "SModel[]"
+            }
+          ],
+          "details": "AddOcclusionStartListener",
+          "marked": true
+        },
+        {
+          "name": "addPointOfViewChangeListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "PointOfViewChangeListener"
+            },
+            {
+              "name": "set",
+              "type": "SThing[]"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "addProximityEnterListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "ProximityEnterListener"
+            },
+            {
+              "name": "setA",
+              "type": "SThing[]"
+            },
+            {
+              "name": "setB",
+              "type": "SThing[]"
+            },
+            {
+              "name": "distance",
+              "type": "Number"
+            }
+          ],
+          "details": "AddProximityEnterListener",
+          "marked": true
+        },
+        {
+          "name": "addProximityExitListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "ProximityExitListener"
+            },
+            {
+              "name": "setA",
+              "type": "SThing[]"
+            },
+            {
+              "name": "setB",
+              "type": "SThing[]"
+            },
+            {
+              "name": "distance",
+              "type": "Number"
+            }
+          ],
+          "details": "AddProximityExitListener",
+          "marked": true
+        },
+        {
+          "name": "addSceneActivationListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "SceneActivationListener"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "addTimeListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "TimeListener"
+            },
+            {
+              "name": "frequency",
+              "type": "Number"
+            }
+          ],
+          "details": "AddTimeListener",
+          "marked": true
+        },
+        {
+          "name": "addViewEnterListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "ViewEnterListener"
+            },
+            {
+              "name": "set",
+              "type": "SModel[]"
+            }
+          ],
+          "details": "AddViewEnterListener",
+          "marked": true
+        },
+        {
+          "name": "addViewExitListener",
+          "kind": "event",
+          "returns": "void",
+          "params": [
+            {
+              "name": "listener",
+              "type": "ViewExitListener"
+            },
+            {
+              "name": "set",
+              "type": "SModel[]"
+            }
+          ],
+          "details": "AddViewExitListener",
+          "marked": true
+        },
+        {
+          "name": "getAtmosphereColor",
+          "kind": "function",
+          "returns": "Color",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getFogDensity",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getFromAboveLightColor",
+          "kind": "function",
+          "returns": "Color",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getFromBelowLightColor",
+          "kind": "function",
+          "returns": "Color",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "handleActiveChanged",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "isActive",
+              "type": "Boolean"
+            },
+            {
+              "name": "activationCount",
+              "type": "Integer"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setAtmosphereColor",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "color",
+              "type": "Color"
+            }
+          ],
+          "details": "SetAtmosphereColor",
+          "marked": true
+        },
+        {
+          "name": "setFogDensity",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "density",
+              "type": "Number"
+            }
+          ],
+          "details": "SetFogDensity",
+          "marked": true
+        },
+        {
+          "name": "setFromAboveLightColor",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "color",
+              "type": "Color"
+            }
+          ],
+          "details": "SetFromAboveLightColor",
+          "marked": true
+        },
+        {
+          "name": "setFromBelowLightColor",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "color",
+              "type": "Color"
+            }
+          ],
+          "details": "SetFromBelowLightColor",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "STurnable",
+      "extends": "SThing",
+      "abstract": true,
+      "members": [
+        {
+          "name": "getDistanceAbove",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceAbove",
+          "marked": true
+        },
+        {
+          "name": "getDistanceBehind",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceBehind",
+          "marked": true
+        },
+        {
+          "name": "getDistanceBelow",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceBelow",
+          "marked": true
+        },
+        {
+          "name": "getDistanceInFrontOf",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceInFrontOf",
+          "marked": true
+        },
+        {
+          "name": "getDistanceTo",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceTo",
+          "marked": true
+        },
+        {
+          "name": "getDistanceToTheLeftOf",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceToTheLeftOf",
+          "marked": true
+        },
+        {
+          "name": "getDistanceToTheRightOf",
+          "kind": "function",
+          "returns": "Double",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "GetDistanceToTheRightOf",
+          "marked": true
+        },
+        {
+          "name": "isAbove",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "IsAbove",
+          "marked": true
+        },
+        {
+          "name": "isBehind",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "IsBehind",
+          "marked": true
+        },
+        {
+          "name": "isBelow",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "IsBelow",
+          "marked": true
+        },
+        {
+          "name": "isFacing",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "isInFrontOf",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "IsInFrontOf",
+          "marked": true
+        },
+        {
+          "name": "isToTheLeftOf",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "IsToTheLeftOf",
+          "marked": true
+        },
+        {
+          "name": "isToTheRightOf",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [
+            {
+              "name": "other",
+              "type": "SThing"
+            }
+          ],
+          "details": "IsToTheRightOf",
+          "marked": true
+        },
+        {
+          "name": "orientTo",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            }
+          ],
+          "details": "OrientTo",
+          "marked": true
+        },
+        {
+          "name": "orientToUpright",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [],
+          "details": "OrientToUpright",
+          "marked": true
+        },
+        {
+          "name": "pointAt",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            }
+          ],
+          "details": "PointAt",
+          "marked": true
+        },
+        {
+          "name": "roll",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "direction",
+              "type": "RollDirection"
+            },
+            {
+              "name": "amount",
+              "type": "Number"
+            }
+          ],
+          "details": "Roll",
+          "marked": true
+        },
+        {
+          "name": "turn",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "direction",
+              "type": "TurnDirection"
+            },
+            {
+              "name": "amount",
+              "type": "Number"
+            }
+          ],
+          "details": "Turn",
+          "marked": true
+        },
+        {
+          "name": "turnToFace",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            }
+          ],
+          "details": "TurnToFace",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SVRHand",
+      "extends": "SThing",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SVRHeadset",
+      "extends": "SThing",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getFarClippingPlaneDistance",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getHorizontalViewingAngle",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getNearClippingPlaneDistance",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getVerticalViewingAngle",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setFarClippingPlaneDistance",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "distance",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setHorizontalViewingAngle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "angle",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setNearClippingPlaneDistance",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "distance",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setVerticalViewingAngle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "angle",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SMovableTurnable",
+      "extends": "STurnable",
+      "abstract": true,
+      "members": [
+        {
+          "name": "move",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "direction",
+              "type": "MoveDirection"
+            },
+            {
+              "name": "amount",
+              "type": "Number"
+            }
+          ],
+          "details": "Move",
+          "marked": true
+        },
+        {
+          "name": "moveAndOrientTo",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            }
+          ],
+          "details": "MoveAndOrientTo",
+          "marked": true
+        },
+        {
+          "name": "moveAwayFrom",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            },
+            {
+              "name": "amount",
+              "type": "Number"
+            }
+          ],
+          "details": "MoveAwayFrom",
+          "marked": true
+        },
+        {
+          "name": "moveTo",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            }
+          ],
+          "details": "MoveTo",
+          "marked": true
+        },
+        {
+          "name": "moveToward",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "target",
+              "type": "SThing"
+            },
+            {
+              "name": "amount",
+              "type": "Number"
+            }
+          ],
+          "details": "MoveToward",
+          "marked": true
+        },
+        {
+          "name": "place",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "spatialRelation",
+              "type": "SpatialRelation"
+            },
+            {
+              "name": "target",
+              "type": "SThing"
+            }
+          ],
+          "details": "Place",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SSun",
+      "extends": "STurnable",
+      "abstract": false,
+      "members": [
+        {
+          "name": "setVehicle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "vehicle",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SCamera",
+      "extends": "SMovableTurnable",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getFarClippingPlaneDistance",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getHorizontalViewingAngle",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getLeftHand",
+          "kind": "function",
+          "returns": "SVRHand",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getNearClippingPlaneDistance",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getRightHand",
+          "kind": "function",
+          "returns": "SVRHand",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getVerticalViewingAngle",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "moveAndOrientToAGoodVantagePointOf",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "entity",
+              "type": "SThing"
+            }
+          ],
+          "details": "MoveAndOrientToAGoodVantagePointOf",
+          "marked": true
+        },
+        {
+          "name": "setFarClippingPlaneDistance",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "distance",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setHorizontalViewingAngle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "angle",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setNearClippingPlaneDistance",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "distance",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setVehicle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "vehicle",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setVerticalViewingAngle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "angle",
+              "type": "Number"
+            }
+          ],
+          "details": null,
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SJoint",
+      "extends": "SMovableTurnable",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getDepth",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getHeight",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getWidth",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "isPivotVisible",
+          "kind": "function",
+          "returns": "Boolean",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setPivotVisible",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "isPivotVisible",
+              "type": "Boolean"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SMarker",
+      "extends": "SMovableTurnable",
+      "abstract": true,
+      "members": [
+        {
+          "name": "getColorId",
+          "kind": "function",
+          "returns": "Color",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setColorId",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "color",
+              "type": "Color"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setVehicle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "vehicle",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SModel",
+      "extends": "SMovableTurnable",
+      "abstract": true,
+      "members": [
+        {
+          "name": "getDepth",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getHeight",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getOpacity",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getPaint",
+          "kind": "function",
+          "returns": "Paint",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getWidth",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "resize",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "factor",
+              "type": "Number"
+            }
+          ],
+          "details": "Resize",
+          "marked": true
+        },
+        {
+          "name": "resizeDepth",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "factor",
+              "type": "Number"
+            }
+          ],
+          "details": "ResizeDepth",
+          "marked": true
+        },
+        {
+          "name": "resizeHeight",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "factor",
+              "type": "Number"
+            }
+          ],
+          "details": "ResizeHeight",
+          "marked": true
+        },
+        {
+          "name": "resizeWidth",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "factor",
+              "type": "Number"
+            }
+          ],
+          "details": "ResizeWidth",
+          "marked": true
+        },
+        {
+          "name": "say",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "details": "Say",
+          "marked": true
+        },
+        {
+          "name": "setDepth",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "depth",
+              "type": "Number"
+            }
+          ],
+          "details": "SetDepth",
+          "marked": true
+        },
+        {
+          "name": "setHeight",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "height",
+              "type": "Number"
+            }
+          ],
+          "details": "SetHeight",
+          "marked": true
+        },
+        {
+          "name": "setOpacity",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "opacity",
+              "type": "Number"
+            }
+          ],
+          "details": "SetOpacity",
+          "marked": true
+        },
+        {
+          "name": "setPaint",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "paint",
+              "type": "Paint"
+            }
+          ],
+          "details": "SetPaint",
+          "marked": true
+        },
+        {
+          "name": "setVehicle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "vehicle",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setWidth",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "width",
+              "type": "Number"
+            }
+          ],
+          "details": "SetWidth",
+          "marked": true
+        },
+        {
+          "name": "think",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "details": "Think",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "STarget",
+      "extends": "SMovableTurnable",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SVRUser",
+      "extends": "SMovableTurnable",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getHeadset",
+          "kind": "function",
+          "returns": "SVRHeadset",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getLeftHand",
+          "kind": "function",
+          "returns": "SVRHand",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getRightHand",
+          "kind": "function",
+          "returns": "SVRHand",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getScale",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "moveAndOrientToAGoodVantagePointOf",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "entity",
+              "type": "SThing"
+            }
+          ],
+          "details": "MoveAndOrientToAGoodVantagePointOf",
+          "marked": true
+        },
+        {
+          "name": "setScale",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "scale",
+              "type": "Number"
+            }
+          ],
+          "details": "SetScale",
+          "marked": true
+        },
+        {
+          "name": "setVehicle",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "vehicle",
+              "type": "SThing"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SBillboard",
+      "extends": "SModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getBackPaint",
+          "kind": "function",
+          "returns": "Paint",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setBackPaint",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "paint",
+              "type": "Paint"
+            }
+          ],
+          "details": "SetBackPaint",
+          "marked": true
+        },
+        {
+          "name": "setPaint",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "paint",
+              "type": "Paint"
+            }
+          ],
+          "details": "SetPaint",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SJointedModel",
+      "extends": "SModel",
+      "abstract": true,
+      "members": [
+        {
+          "name": "straightenOutJoints",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [],
+          "details": "StraightenOutJoints",
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SShape",
+      "extends": "SModel",
+      "abstract": true,
+      "members": []
+    },
+    {
+      "name": "STextModel",
+      "extends": "SModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "append",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "value",
+              "type": "Object"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "charAt",
+          "kind": "function",
+          "returns": "Character",
+          "params": [
+            {
+              "name": "index",
+              "type": "Integer"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "delete",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "start",
+              "type": "Integer"
+            },
+            {
+              "name": "end",
+              "type": "Integer"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "deleteCharAt",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "index",
+              "type": "Integer"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLength",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getValue",
+          "kind": "function",
+          "returns": "String",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "indexOf",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [
+            {
+              "name": "s",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "indexOf",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [
+            {
+              "name": "s",
+              "type": "String"
+            },
+            {
+              "name": "fromIndex",
+              "type": "Integer"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "insert",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "offset",
+              "type": "Integer"
+            },
+            {
+              "name": "value",
+              "type": "Object"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "lastIndexOf",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [
+            {
+              "name": "s",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "lastIndexOf",
+          "kind": "function",
+          "returns": "Integer",
+          "params": [
+            {
+              "name": "s",
+              "type": "String"
+            },
+            {
+              "name": "fromIndex",
+              "type": "Integer"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "replace",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "start",
+              "type": "Integer"
+            },
+            {
+              "name": "end",
+              "type": "Integer"
+            },
+            {
+              "name": "s",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setCharAt",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "index",
+              "type": "Integer"
+            },
+            {
+              "name": "c",
+              "type": "Character"
+            }
+          ],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "setValue",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "text",
+              "type": "String"
+            }
+          ],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SThingMarker",
+      "extends": "SMarker",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SAxes",
+      "extends": "SShape",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SBiped",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getHead",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftClavicle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftElbow",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftHand",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftHip",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftIndexFinger",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftIndexFingerKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftMiddleFinger",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftMiddleFingerKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftPinkyFinger",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftPinkyFingerKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftShoulder",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftThumb",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftThumbKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftWrist",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getMouth",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getNeck",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getPelvis",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightClavicle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightElbow",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightHand",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightHip",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightIndexFinger",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightIndexFingerKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightMiddleFinger",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightMiddleFingerKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightPinkyFinger",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightPinkyFingerKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightShoulder",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightThumb",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightThumbKnuckle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightWrist",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineBase",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineMiddle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineUpper",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SBox",
+      "extends": "SShape",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SCone",
+      "extends": "SShape",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getBaseRadius",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getLength",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setBaseRadius",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "baseRadius",
+              "type": "Number"
+            }
+          ],
+          "details": "SetBaseRadius",
+          "marked": true
+        },
+        {
+          "name": "setLength",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "length",
+              "type": "Number"
+            }
+          ],
+          "details": "SetLength",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SCylinder",
+      "extends": "SShape",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getLength",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getRadius",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setLength",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "length",
+              "type": "Number"
+            }
+          ],
+          "details": "SetLength",
+          "marked": true
+        },
+        {
+          "name": "setRadius",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "radius",
+              "type": "Number"
+            }
+          ],
+          "details": "SetRadius",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SDisc",
+      "extends": "SShape",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getRadius",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setRadius",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "baseRadius",
+              "type": "Number"
+            }
+          ],
+          "details": "SetRadius",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SFlyer",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "foldWings",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [],
+          "details": "StrikePose",
+          "marked": false
+        },
+        {
+          "name": "getHead",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftHip",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftWingElbow",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftWingShoulder",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftWingWrist",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getMouth",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getNeck",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getNeckArray",
+          "kind": "function",
+          "returns": "SJoint[]",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getPelvisLowerBody",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightHip",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightWingElbow",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightWingShoulder",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightWingWrist",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineBase",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineMiddle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineUpper",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTail",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTailArray",
+          "kind": "function",
+          "returns": "SJoint[]",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "spreadWings",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [],
+          "details": "StrikePose",
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SProp",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": []
+    },
+    {
+      "name": "SQuadruped",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getBackLeftAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackLeftFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackLeftHip",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackLeftHock",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackLeftKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackLeftToe",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackRightAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackRightFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackRightHip",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackRightHock",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackRightKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getBackRightToe",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontLeftAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontLeftClavicle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontLeftFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontLeftKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontLeftShoulder",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontLeftToe",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightAnkle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightClavicle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightFoot",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightKnee",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightShoulder",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightToe",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getHead",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEar",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getMouth",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getNeck",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getPelvisLowerBody",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEar",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineBase",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineMiddle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineUpper",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTail",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTailArray",
+          "kind": "function",
+          "returns": "SJoint[]",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SSlitherer",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getHead",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getMouth",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getNeck",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineBase",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineMiddle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineUpper",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTail",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTailArray",
+          "kind": "function",
+          "returns": "SJoint[]",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "SSphere",
+      "extends": "SShape",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getRadius",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setRadius",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "radius",
+              "type": "Number"
+            }
+          ],
+          "details": "SetRadius",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "SSwimmer",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getFrontLeftFin",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getFrontRightFin",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getHead",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getLeftEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getMouth",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getNeck",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEye",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getRightEyelid",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineBase",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getSpineMiddle",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        },
+        {
+          "name": "getTail",
+          "kind": "function",
+          "returns": "SJoint",
+          "params": [],
+          "details": null,
+          "marked": false
+        }
+      ]
+    },
+    {
+      "name": "STorus",
+      "extends": "SShape",
+      "abstract": false,
+      "members": [
+        {
+          "name": "getInnerRadius",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "getOuterRadius",
+          "kind": "function",
+          "returns": "Double",
+          "params": [],
+          "details": null,
+          "marked": true
+        },
+        {
+          "name": "setInnerRadius",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "innerRadius",
+              "type": "Number"
+            }
+          ],
+          "details": "SetInnerRadius",
+          "marked": true
+        },
+        {
+          "name": "setOuterRadius",
+          "kind": "procedure",
+          "returns": "void",
+          "params": [
+            {
+              "name": "outerRadius",
+              "type": "Number"
+            }
+          ],
+          "details": "SetOuterRadius",
+          "marked": true
+        }
+      ]
+    },
+    {
+      "name": "STransport",
+      "extends": "SJointedModel",
+      "abstract": false,
+      "members": []
+    }
+  ],
+  "keywords": {
+    "AddCollisionEndListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddCollisionStartListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddDefaultModelManipulation": {
+      "setOfVisuals": "Visual[]"
+    },
+    "AddKeyPressListener": {
+      "heldKeyPolicy": "HeldKeyPolicy",
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddMouseClickOnObjectListener": {
+      "multipleEventPolicy": "MultipleEventPolicy",
+      "setOfVisuals": "Visual[]"
+    },
+    "AddMouseClickOnScreenListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddOcclusionEndListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddOcclusionStartListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddProximityEnterListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddProximityExitListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddTimeListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddViewEnterListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "AddViewExitListener": {
+      "multipleEventPolicy": "MultipleEventPolicy"
+    },
+    "GetDistanceAbove": {
+      "asSeenBy": "SThing"
+    },
+    "GetDistanceBehind": {
+      "asSeenBy": "SThing"
+    },
+    "GetDistanceBelow": {
+      "asSeenBy": "SThing"
+    },
+    "GetDistanceInFrontOf": {
+      "asSeenBy": "SThing"
+    },
+    "GetDistanceTo": {},
+    "GetDistanceToTheLeftOf": {
+      "asSeenBy": "SThing"
+    },
+    "GetDistanceToTheRightOf": {
+      "asSeenBy": "SThing"
+    },
+    "IsAbove": {
+      "asSeenBy": "SThing"
+    },
+    "IsBehind": {
+      "asSeenBy": "SThing"
+    },
+    "IsBelow": {
+      "asSeenBy": "SThing"
+    },
+    "IsInFrontOf": {
+      "asSeenBy": "SThing"
+    },
+    "IsToTheLeftOf": {
+      "asSeenBy": "SThing"
+    },
+    "IsToTheRightOf": {
+      "asSeenBy": "SThing"
+    },
+    "Move": {
+      "animationStyle": "AnimationStyle",
+      "asSeenBy": "SThing",
+      "duration": "Number"
+    },
+    "MoveAndOrientTo": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "pathStyle": "PathStyle"
+    },
+    "MoveAndOrientToAGoodVantagePointOf": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "MoveAwayFrom": {
+      "animationStyle": "AnimationStyle",
+      "asSeenBy": "SThing",
+      "duration": "Number"
+    },
+    "MoveTo": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "pathStyle": "PathStyle"
+    },
+    "MoveToward": {
+      "animationStyle": "AnimationStyle",
+      "asSeenBy": "SThing",
+      "duration": "Number"
+    },
+    "OrientTo": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "OrientToUpright": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "upAsSeenBy": "SThing"
+    },
+    "Place": {
+      "alongAxisOffset": "Number",
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "pathStyle": "PathStyle"
+    },
+    "PointAt": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "upAsSeenBy": "SThing"
+    },
+    "Resize": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "ResizeDepth": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "isVolumePreserved": "Boolean"
+    },
+    "ResizeHeight": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "isVolumePreserved": "Boolean"
+    },
+    "ResizeWidth": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "isVolumePreserved": "Boolean"
+    },
+    "Roll": {
+      "animationStyle": "AnimationStyle",
+      "asSeenBy": "SThing",
+      "duration": "Number"
+    },
+    "Say": {
+      "bubbleFillColor": "Color",
+      "bubbleOutlineColor": "Color",
+      "bubblePosition": "BubblePosition",
+      "duration": "Number",
+      "fontColor": "Color",
+      "fontType": "TextFont",
+      "textScale": "Number",
+      "textStyle": "TextStyle"
+    },
+    "SetAtmosphereColor": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetBackPaint": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetBaseRadius": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetDepth": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "policy": "SetDimensionPolicy"
+    },
+    "SetFogDensity": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetFromAboveLightColor": {},
+    "SetFromBelowLightColor": {},
+    "SetHeight": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "policy": "SetDimensionPolicy"
+    },
+    "SetInnerRadius": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetLength": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetOpacity": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetOuterRadius": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetPaint": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetRadius": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetScale": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "SetWidth": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number",
+      "policy": "SetDimensionPolicy"
+    },
+    "StraightenOutJoints": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "StrikePose": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    },
+    "Think": {
+      "bubbleFillColor": "Color",
+      "bubbleOutlineColor": "Color",
+      "bubblePosition": "BubblePosition",
+      "duration": "Number",
+      "fontColor": "Color",
+      "fontType": "TextFont",
+      "textScale": "Number",
+      "textStyle": "TextStyle"
+    },
+    "Turn": {
+      "animationStyle": "AnimationStyle",
+      "asSeenBy": "SThing",
+      "duration": "Number"
+    },
+    "TurnToFace": {
+      "animationStyle": "AnimationStyle",
+      "duration": "Number"
+    }
+  },
+  "values": {
+    "AnimationStyle": [
+      "BEGIN_AND_END_ABRUPTLY",
+      "BEGIN_GENTLY_AND_END_ABRUPTLY",
+      "BEGIN_ABRUPTLY_AND_END_GENTLY",
+      "BEGIN_AND_END_GENTLY"
+    ],
+    "BubblePosition": ["AUTOMATIC", "LEFT", "CENTER", "RIGHT"],
+    "Color": [
+      "BLACK",
+      "BLUE",
+      "CYAN",
+      "DARK_GRAY",
+      "GRAY",
+      "GREEN",
+      "LIGHT_GRAY",
+      "MAGENTA",
+      "ORANGE",
+      "PINK",
+      "RED",
+      "WHITE",
+      "YELLOW",
+      "LIGHT_BLUE",
+      "DARK_BLUE",
+      "PURPLE",
+      "BROWN"
+    ],
+    "HeldKeyPolicy": ["FIRE_MULTIPLE", "FIRE_ONCE_ON_PRESS", "FIRE_ONCE_ON_RELEASE"],
+    "Key": [
+      "ENTER",
+      "BACK_SPACE",
+      "TAB",
+      "CANCEL",
+      "CLEAR",
+      "SHIFT",
+      "CONTROL",
+      "ALT",
+      "PAUSE",
+      "CAPS_LOCK",
+      "ESCAPE",
+      "SPACE",
+      "PAGE_UP",
+      "PAGE_DOWN",
+      "END",
+      "HOME",
+      "LEFT",
+      "UP",
+      "RIGHT",
+      "DOWN",
+      "COMMA",
+      "MINUS",
+      "PERIOD",
+      "SLASH",
+      "DIGIT_0",
+      "DIGIT_1",
+      "DIGIT_2",
+      "DIGIT_3",
+      "DIGIT_4",
+      "DIGIT_5",
+      "DIGIT_6",
+      "DIGIT_7",
+      "DIGIT_8",
+      "DIGIT_9",
+      "SEMICOLON",
+      "EQUALS",
+      "A",
+      "B",
+      "C",
+      "D",
+      "E",
+      "F",
+      "G",
+      "H",
+      "I",
+      "J",
+      "K",
+      "L",
+      "M",
+      "N",
+      "O",
+      "P",
+      "Q",
+      "R",
+      "S",
+      "T",
+      "U",
+      "V",
+      "W",
+      "X",
+      "Y",
+      "Z",
+      "OPEN_BRACKET",
+      "BACK_SLASH",
+      "CLOSE_BRACKET",
+      "NUMPAD0",
+      "NUMPAD1",
+      "NUMPAD2",
+      "NUMPAD3",
+      "NUMPAD4",
+      "NUMPAD5",
+      "NUMPAD6",
+      "NUMPAD7",
+      "NUMPAD8",
+      "NUMPAD9",
+      "MULTIPLY",
+      "ADD",
+      "SEPARATER",
+      "SEPARATOR",
+      "SUBTRACT",
+      "DECIMAL",
+      "DIVIDE",
+      "DELETE",
+      "NUM_LOCK",
+      "SCROLL_LOCK",
+      "F1",
+      "F2",
+      "F3",
+      "F4",
+      "F5",
+      "F6",
+      "F7",
+      "F8",
+      "F9",
+      "F10",
+      "F11",
+      "F12",
+      "F13",
+      "F14",
+      "F15",
+      "F16",
+      "F17",
+      "F18",
+      "F19",
+      "F20",
+      "F21",
+      "F22",
+      "F23",
+      "F24",
+      "PRINTSCREEN",
+      "INSERT",
+      "HELP",
+      "META",
+      "BACK_QUOTE",
+      "QUOTE",
+      "KP_UP",
+      "KP_DOWN",
+      "KP_LEFT",
+      "KP_RIGHT",
+      "DEAD_GRAVE",
+      "DEAD_ACUTE",
+      "DEAD_CIRCUMFLEX",
+      "DEAD_TILDE",
+      "DEAD_MACRON",
+      "DEAD_BREVE",
+      "DEAD_ABOVEDOT",
+      "DEAD_DIAERESIS",
+      "DEAD_ABOVERING",
+      "DEAD_DOUBLEACUTE",
+      "DEAD_CARON",
+      "DEAD_CEDILLA",
+      "DEAD_OGONEK",
+      "DEAD_IOTA",
+      "DEAD_VOICED_SOUND",
+      "DEAD_SEMIVOICED_SOUND",
+      "AMPERSAND",
+      "ASTERISK",
+      "QUOTEDBL",
+      "LESS",
+      "GREATER",
+      "BRACELEFT",
+      "BRACERIGHT",
+      "AT",
+      "COLON",
+      "CIRCUMFLEX",
+      "DOLLAR",
+      "EURO_SIGN",
+      "EXCLAMATION_MARK",
+      "INVERTED_EXCLAMATION_MARK",
+      "LEFT_PARENTHESIS",
+      "NUMBER_SIGN",
+      "PLUS",
+      "RIGHT_PARENTHESIS",
+      "UNDERSCORE",
+      "WINDOWS",
+      "CONTEXT_MENU",
+      "FINAL",
+      "CONVERT",
+      "NONCONVERT",
+      "ACCEPT",
+      "MODECHANGE",
+      "KANA",
+      "KANJI",
+      "ALPHANUMERIC",
+      "KATAKANA",
+      "HIRAGANA",
+      "FULL_WIDTH",
+      "HALF_WIDTH",
+      "ROMAN_CHARACTERS",
+      "ALL_CANDIDATES",
+      "PREVIOUS_CANDIDATE",
+      "CODE_INPUT",
+      "JAPANESE_KATAKANA",
+      "JAPANESE_HIRAGANA",
+      "JAPANESE_ROMAN",
+      "KANA_LOCK",
+      "INPUT_METHOD_ON_OFF",
+      "CUT",
+      "COPY",
+      "PASTE",
+      "UNDO",
+      "AGAIN",
+      "FIND",
+      "PROPS",
+      "STOP",
+      "COMPOSE",
+      "ALT_GRAPH",
+      "BEGIN",
+      "UNDEFINED"
+    ],
+    "MoveDirection": ["LEFT", "RIGHT", "UP", "DOWN", "FORWARD", "BACKWARD"],
+    "MultipleEventPolicy": ["ENQUEUE", "IGNORE", "COMBINE"],
+    "PathStyle": ["BEE_LINE", "SMOOTH"],
+    "RollDirection": ["LEFT", "RIGHT"],
+    "Scale": ["IDENTITY"],
+    "SetDimensionPolicy": ["PRESERVE_VOLUME", "PRESERVE_ASPECT_RATIO", "PRESERVE_NOTHING"],
+    "SpatialRelation": ["LEFT_OF", "RIGHT_OF", "ABOVE", "BELOW", "IN_FRONT_OF", "BEHIND"],
+    "TextFont": ["DEFAULT", "SERIF", "SANS_SERIF", "MONOSPACED"],
+    "TextStyle": ["PLAIN", "BOLD", "ITALIC"],
+    "TimerFrequency": ["ASAP"],
+    "TurnDirection": ["LEFT", "RIGHT", "FORWARD", "BACKWARD"],
+    "VantagePoint": ["IDENTITY"]
+  }
+}

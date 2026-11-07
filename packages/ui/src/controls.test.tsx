@@ -179,3 +179,30 @@ describe('NeutralNote', () => {
     expect(screen.queryByRole('alert')).toBeNull();
   });
 });
+
+describe('TextField limits and paragraphs', () => {
+  it('says so when typing reaches the limit', () => {
+    const { rerender } = render(<TextField label="Logline" maxLength={10} value="Short" />);
+    expect(screen.queryByText('10 characters at most')).toBeNull();
+    rerender(<TextField label="Logline" maxLength={10} value="Ten chars!" />);
+    expect(screen.getByText('10 characters at most')).toBeTruthy();
+  });
+
+  it('stops typing at the limit', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TextField label="Title" maxLength={5} onChange={onChange} />);
+    await user.type(screen.getByRole('textbox', { name: 'Title' }), 'Too long');
+    expect(onChange).toHaveBeenLastCalledWith('Too l');
+  });
+
+  it('takes a paragraph, line breaks and all', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(<TextField label="Synopsis" multiline onChange={onChange} />);
+    const box = screen.getByRole('textbox', { name: 'Synopsis' });
+    expect(box.tagName).toBe('TEXTAREA');
+    await user.type(box, 'One.{Enter}Two.');
+    expect(onChange).toHaveBeenLastCalledWith('One.\nTwo.');
+  });
+});
