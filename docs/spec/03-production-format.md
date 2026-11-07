@@ -93,6 +93,8 @@ So the production has its own session around `EditSession`, built in WP8.2:
 - A step that only moves things on the stage has no program edits, and appears in the history like any other.
 - **Renaming a scene object** is one step: a `rename` edit, and the set-up with that object's `id` changed, along with any `vehicle` pointing at it.
 
+**Adding, deleting and moving a scene** are `addScene`, `deleteScene` and `moveScene` (`scenes.ts`, written by S5 for the Storyboard). Each is one step across the type, the set-up, the card, the frames and lines, and the running order, and returns the program edits it made with their inverses, for the session to hold. A new scene is a type from `newSceneType` (`SceneN`, the first free name), an empty set-up and a card, with a scene id `sN`, the first free one; it waits for the logline and synopsis (WP10.1), and a production holds at most 50 scenes. Deleting unpins lines elsewhere that were pinned to its frames and keeps the learner's recordings, no longer tied to the scene; it is refused, in the AST's plain words, while other code still uses the scene's type. Moving changes only the running order.
+
 A scene's script method can't be removed by an edit: `sceneMethodCheck` is the `check` for `EditSession` that refuses it, in plain words (`01-ast.md` section 4.5). Deleting a scene takes its whole `type`, in the production's own step (WP8.2).
 
 ## 3. Running order
@@ -156,4 +158,5 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |
 | A newer file opens read-only and is never written (section 1.2) | With WP8.4 | Unit |
 | Nothing in section 1.1 reaches a file | With WP8.4 | Unit |
+| Adding, deleting and moving a scene keep the production sound, and their inverses restore the program (section 2.1) | `scenes.test.ts` | Unit |
 | One undo step covers the program and the set-up (section 2.1) | With WP8.2 | Unit |
