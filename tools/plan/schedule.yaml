@@ -105,6 +105,8 @@ items:
     weeks: 3
     basis: first plan
     after: [WP0]
+    started: 2026-10-31
+    finished: 2026-11-01
   - id: WP4a
     label: Story API spec, types, crosswalk fields (4.1, 4.2, 4.7)
     lane: Language
@@ -198,6 +200,8 @@ items:
     weeks: 1.5
     basis: first plan
     after: [WP2]
+    started: 2026-10-31
+    finished: 2026-11-01
   - id: WP5a
     label: 'Stage core: scene, models, camera, picking, offscreen (5.1–5.5)'
     lane: Stage
@@ -219,6 +223,7 @@ items:
     weeks: 4
     basis: first plan
     after: [WP2, WP4a, WP1]
+    started: 2026-11-01
   - id: WP3c
     label: Manifest, budgets, lazy loading (3.4, 3.9)
     lane: Backstage

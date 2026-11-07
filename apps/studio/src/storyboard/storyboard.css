@@ -1,0 +1,93 @@
+/*
+  The Storyboard (docs/spec/07-ux.md section 6; Direction A screen 01). Tokens only: every colour is
+  a var(--ss-*) from ThemeRoot (shell.test.ts checks).
+*/
+
+.sb {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.sb-main {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+.sb-toolbar {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* The script header card: title, plan size, logline, synopsis and arc. */
+.sb-header {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px 16px;
+  border-radius: 14px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.sb-header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sb-title {
+  flex: 1;
+  min-width: 0;
+}
+.sb-title .ss-input {
+  font-family: var(--ss-font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.sb-pill {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ss-text-2);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  white-space: nowrap;
+}
+
+/* Logline and synopsis: a 78 px label column, the text, then the mic (Direction A). */
+.sb-row .ss-field {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  column-gap: 12px;
+  align-items: start;
+}
+.sb-row .ss-field-label {
+  padding-top: 12px;
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-row .ss-field-description {
+  grid-column: 2;
+}
+
+.sb-arc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.sb-arc-label {
+  width: 78px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.sb-arc-parts {
+  color: var(--ss-muted);
+}
