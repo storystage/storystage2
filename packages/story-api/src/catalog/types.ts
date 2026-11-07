@@ -62,6 +62,13 @@ export type BasicType = (typeof BASIC_TYPES)[number];
 export const REFERENCE_TYPES = ['Paint', 'Audio', 'JointId', 'SceneId', 'AnimationClip'] as const;
 export type ReferenceType = (typeof REFERENCE_TYPES)[number];
 
+/**
+ * References written as text in a program, because a colour or a Backstage id isn't a name the
+ * AST's `enum` node allows. Whether one exists is for the production's check. `JointId` is an
+ * `enum` node (spec 02, section 5).
+ */
+export const TEXT_REFERENCES: readonly TypeName[] = ['Paint', 'Audio', 'SceneId', 'AnimationClip'];
+
 /** Enumerations, with Alice's constants in camel case. Added ones are in `ADDED_ENUMS`. */
 export const ENUMS = {
   AnimationStyle: ANIMATION_STYLES,

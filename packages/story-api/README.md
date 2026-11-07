@@ -13,6 +13,7 @@ The StoryStage 2 Story API: classes, procedures, functions, details and joints, 
 |---|---|
 | `src/vocabulary.ts`, `src/stage-commands.ts` | The WP0.8 contracts: time, space, names, and what a program asks of the stage |
 | `src/catalog/` | The metadata: every block, detail, event and value, with display words in `src/strings/en-GB.json` |
+| `src/catalog/program-check.ts` | The check on a whole program, from `@storystage/story-api/program-check`, so only what needs it depends on `ast` |
 | `src/alice/palette.json` | What Alice's palette offers, the list the catalog is checked against. Tests only; it never ships |
 | `src/alice/inventory.ts` | Reads that list from Alice's Java source |
 | `src/alice/compiled-alice.json` | The same list from a compiled Alice, from one CI run, which a test compares. Tests only |

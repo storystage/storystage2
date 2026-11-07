@@ -114,6 +114,8 @@ items:
     weeks: 2
     basis: first plan
     after: [WP0, WP3a]
+    started: 2026-11-01
+    finished: 2026-11-07
   - id: WP3b
     label: 'Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7)'
     lane: Backstage
