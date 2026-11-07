@@ -3,7 +3,8 @@
  * - `ast` depends on nothing;
  * - `runtime` depends only on `ast` and `story-api`;
  * - `studio` may depend on everything, and nothing depends on `studio` (or on the `desktop` shell);
- * - workspace packages depend on each other through `workspace:*` only, with no cycles.
+ * - workspace packages depend on each other through `workspace:*` only, with no cycles;
+ * - only `stage` touches Babylon.js: everything else goes through the stage interface (WP5.1).
  */
 
 export interface WorkspacePackage {
@@ -21,6 +22,9 @@ export const ALLOWED: Readonly<Record<string, readonly string[]>> = {
 /** Workspace packages that no other package may depend on. */
 export const LEAVES: readonly string[] = ['@storystage/studio', '@storystage/desktop'];
 
+/** Packages that may depend on Babylon.js. Spikes aren't checked: they aren't shipped. */
+export const BABYLON_USERS: readonly string[] = ['@storystage/stage'];
+
 export function checkBoundaries(packages: readonly WorkspacePackage[]): string[] {
   const names = new Set(packages.map((p) => p.name));
   const errors: string[] = [];
@@ -29,6 +33,13 @@ export function checkBoundaries(packages: readonly WorkspacePackage[]): string[]
   for (const pkg of packages) {
     const internal = Object.keys(pkg.dependencies).filter((d) => names.has(d));
     graph.set(pkg.name, internal);
+    if (!BABYLON_USERS.includes(pkg.name)) {
+      for (const dep of Object.keys(pkg.dependencies)) {
+        if (dep.startsWith('@babylonjs/')) {
+          errors.push(`${pkg.name} depends on ${dep}; only the stage may use Babylon.js.`);
+        }
+      }
+    }
     const allowed = ALLOWED[pkg.name];
     for (const dep of internal) {
       const range = pkg.dependencies[dep];
