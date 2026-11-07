@@ -7,6 +7,7 @@
 mod file;
 #[cfg(target_os = "ios")]
 mod ios;
+pub mod update;
 #[cfg(windows)]
 mod windows;
 
