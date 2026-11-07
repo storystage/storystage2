@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The policy keys schools can push (spec 05 section 3.3). The same names as the policy file.
+  The update keys are left out: Android apps are updated by the store (section 4).
+  The default values only tell the console what to show: the app applies its own.
+-->
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+    <restriction
+        android:key="prompter.enabled"
+        android:title="@string/policy_prompter_enabled"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+    <restriction
+        android:key="prompter.explainOnly"
+        android:title="@string/policy_prompter_explain_only"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+    <restriction
+        android:key="prompter.planOnly"
+        android:title="@string/policy_prompter_plan_only"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+    <restriction
+        android:key="prompter.voiceInput"
+        android:title="@string/policy_prompter_voice_input"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+    <restriction
+        android:key="prompter.dailyCap"
+        android:title="@string/policy_prompter_daily_cap"
+        android:restrictionType="integer" />
+    <restriction
+        android:key="prompter.capAction"
+        android:title="@string/policy_prompter_cap_action"
+        android:restrictionType="choice"
+        android:entries="@array/policy_cap_action_names"
+        android:entryValues="@array/policy_cap_action_values"
+        android:defaultValue="explainOnly" />
+    <restriction
+        android:key="storyboard.allowImportedWithoutStoryboard"
+        android:title="@string/policy_storyboard_allow_imported"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+    <restriction
+        android:key="editor.default"
+        android:title="@string/policy_editor_default"
+        android:restrictionType="choice"
+        android:entries="@array/policy_editor_names"
+        android:entryValues="@array/policy_editor_values"
+        android:defaultValue="blocks" />
+    <restriction
+        android:key="editor.locked"
+        android:title="@string/policy_editor_locked"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+    <restriction
+        android:key="study.enabled"
+        android:title="@string/policy_study_enabled"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+    <restriction
+        android:key="backstage.import"
+        android:title="@string/policy_backstage_import"
+        android:restrictionType="choice"
+        android:entries="@array/policy_import_names"
+        android:entryValues="@array/policy_import_values"
+        android:defaultValue="teacher" />
+    <restriction
+        android:key="backstage.search"
+        android:title="@string/policy_backstage_search"
+        android:restrictionType="bool"
+        android:defaultValue="false" />
+</restrictions>
