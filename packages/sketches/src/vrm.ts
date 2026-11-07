@@ -11,6 +11,7 @@
  *   right way. The stage's loader must do the same (spec 17, section 3).
  */
 import { WebIO, type Document } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { meshFromDocument } from './gltf.ts';
 import type { SketchMesh } from './mesh.ts';
 
@@ -32,7 +33,8 @@ interface VrmJson {
 }
 
 export async function readModel(bytes: Uint8Array): Promise<Model> {
-  const io = new WebIO();
+  // Every standard extension, so a reduced model's WebP textures and the like are read too.
+  const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const { json } = await io.binaryToJSON(bytes);
   const ext = (json as VrmJson).extensions;
   const bones = new Map<number, string>();

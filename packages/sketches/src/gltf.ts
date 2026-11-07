@@ -7,11 +7,12 @@
  * a head bone follows the head when the model is posed.
  */
 import { Primitive, WebIO, type Accessor, type Document, type Node } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { IDENTITY, multiply, transformPoint, type Mat4, type Vec3 } from './math.ts';
 import type { SketchMesh, SketchNode } from './mesh.ts';
 
 export async function meshFromGlb(bytes: Uint8Array): Promise<SketchMesh> {
-  return meshFromDocument(await new WebIO().readBinary(bytes));
+  return meshFromDocument(await new WebIO().registerExtensions(ALL_EXTENSIONS).readBinary(bytes));
 }
 
 export function meshFromDocument(doc: Document): SketchMesh {

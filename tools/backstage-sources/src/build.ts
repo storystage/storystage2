@@ -7,25 +7,39 @@
  * Then draw every item's sketches (`@storystage/make-sketches`, WP10.5), and write
  * `provenance.json` (what was fetched, with SHA-256s) and `sources-report.md` for the reviewer.
  *
- * Items in `backstage.json` that no source list names are left alone. Models are not simplified
- * here: that is WP3c (3.9).
+ * Every glTF model is reduced to its section's device budget on the way in (WP3.9,
+ * `@storystage/backstage/optimize`), its textures shrunk to WebP with sharp. VRM files are kept
+ * byte for byte, so they are measured but not reduced; the report flags any over budget.
+ *
+ * Items in `backstage.json` that no source list names are left alone.
  */
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import {
   MANIFEST_VERSION,
+  budgetFor,
   mapSkeleton,
   skeletonOf,
   validateManifest,
   type BackstageItem,
   type BackstageManifest,
+  type Budget,
 } from '@storystage/backstage';
+import {
+  countTriangles,
+  largestTexture,
+  reduceModel,
+  type TextureEncoder,
+} from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
 import { meshFromModel, readModel } from '@storystage/sketches';
 import { backstageId, type JointName } from '@storystage/story-api';
 import { fetchModel, httpFetch, type Fetcher } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
+import { sharpEncoder } from './sharp-encoder.ts';
 import { excludesFor, validateSources, type SourceItem } from './sources.ts';
 
 export interface Provenance {
@@ -34,8 +48,13 @@ export interface Provenance {
   readonly retrieved: string;
   /** VRM version for VRM files: 0.x avatars face -Z and must be turned on the stage. */
   readonly vrm: '0' | '1' | null;
+  /** As shipped, after any reduction. */
   readonly triangles: number;
   readonly textureMaxPx: number;
+  /** As fetched, before any reduction. */
+  readonly fetchedSize: Budget;
+  /** Whether it fits its section's budget (a VRM file may not: it isn't reduced). */
+  readonly fitsBudget: boolean;
   readonly skeleton: 'mapped' | 'prop-only' | 'none';
   readonly missingJoints: readonly string[];
   /** What the list's `exclude` removed. */
@@ -50,9 +69,16 @@ export interface BuildReport {
 
 export async function buildSources(
   dir: string,
-  options: { readonly fetcher?: Fetcher; readonly today?: string; readonly only?: string } = {},
+  options: {
+    readonly fetcher?: Fetcher;
+    readonly today?: string;
+    readonly only?: string;
+    readonly encodeTexture?: TextureEncoder;
+  } = {},
 ): Promise<BuildReport> {
   const fetcher = options.fetcher ?? httpFetch;
+  const encodeTexture = options.encodeTexture ?? sharpEncoder;
+  const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const lists = (await readdir(join(dir, 'sources'))).filter((f) => f.endsWith('.json')).sort();
   const items: { item: SourceItem; source: string; exclude: Exclude }[] = [];
@@ -82,7 +108,18 @@ export async function buildSources(
       ext === 'glb'
         ? await applyExcludes(got.bytes, exclude)
         : { bytes: got.bytes, removed: { nodes: [], animations: [] } };
-    const bytes = trimmed.bytes;
+    const budget = budgetFor(item);
+    let bytes = trimmed.bytes;
+    let fetchedSize: Budget;
+    if (ext === 'glb') {
+      const doc = await io.readBinary(bytes);
+      const reduced = await reduceModel(doc, budget, { encodeTexture });
+      fetchedSize = reduced.before;
+      bytes = await io.writeBinary(doc);
+    } else {
+      const { doc } = await readModel(bytes);
+      fetchedSize = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
+    }
     const model = `models/${item.id}.${ext}`;
     await mkdir(dirname(join(dir, model)), { recursive: true });
     await writeFile(join(dir, model), bytes);
@@ -92,20 +129,9 @@ export async function buildSources(
     const skeleton = skeletonOf(item.class);
     const boneNames = (mesh.joints ?? []).map((i) => mesh.nodes![i]!.name);
     const mapping = skeleton && boneNames.length ? mapSkeleton(boneNames, skeleton) : null;
-    let triangles = 0;
-    for (const m of doc.getRoot().listMeshes())
-      for (const p of m.listPrimitives())
-        if (p.getMode() === 4)
-          triangles += Math.floor(
-            (p.getIndices()?.getCount() ?? p.getAttribute('POSITION')?.getCount() ?? 0) / 3,
-          );
-    const textureMaxPx = Math.max(
-      0,
-      ...doc
-        .getRoot()
-        .listTextures()
-        .map((t) => Math.max(...(t.getSize() ?? [0, 0]))),
-    );
+    const triangles = countTriangles(doc);
+    const textureMaxPx = largestTexture(doc);
+    const fitsBudget = triangles <= budget.triangles && textureMaxPx <= budget.textureMaxPx;
 
     built.set(item.id, {
       id: backstageId(item.id),
@@ -132,6 +158,8 @@ export async function buildSources(
       vrm,
       triangles,
       textureMaxPx,
+      fetchedSize,
+      fitsBudget,
       skeleton: mapping ? mapping.status : 'none',
       missingJoints: mapping ? mapping.missingRequired : [],
       excluded: trimmed.removed,
@@ -165,6 +193,10 @@ const removedText = (p: Provenance) =>
     .filter(Boolean)
     .join(', ') || '—';
 
+/** "47216 → 19998" when the build changed it, else the one number; "" for nothing. */
+const sizeText = (fetched: number, shipped: number) =>
+  fetched === shipped ? (shipped ? `${shipped}` : '') : `${fetched} → ${shipped}`;
+
 /** Height in metres at scale 1: the model's extent along Y. */
 function height(positions: Float32Array): number {
   let lo = Infinity;
@@ -185,18 +217,18 @@ function report(
     .filter((i) => built.has(i.id))
     .map((i) => {
       const p = provenance[i.id]!;
-      return `| \`${i.id}\` | ${i.displayName} | ${i.licence} | ${i.section} | ${p.triangles} | ${p.textureMaxPx || '—'} | ${p.skeleton}${p.missingJoints.length ? ` (missing ${p.missingJoints.join(', ')})` : ''} | ${i.defaultSize.height} m | ${p.vrm ? `VRM ${p.vrm}` : 'glTF'} | ${removedText(p)} | ${i.sketches.length} |`;
+      return `| \`${i.id}\` | ${i.displayName} | ${i.licence} | ${i.section} | ${sizeText(p.fetchedSize.triangles, p.triangles)} | ${sizeText(p.fetchedSize.textureMaxPx, p.textureMaxPx) || '—'} | ${p.fitsBudget ? 'yes' : '**no**'} | ${p.skeleton}${p.missingJoints.length ? ` (missing ${p.missingJoints.join(', ')})` : ''} | ${i.defaultSize.height} m | ${p.vrm ? `VRM ${p.vrm}` : 'glTF'} | ${removedText(p)} | ${i.sketches.length} |`;
     });
   return [
     '# Backstage sources: build report',
     '',
     "Written by `tools/backstage-sources` (WP3.7). Before merging, look at each item's sketches (`sketches/<id>/`) for respectful, age-appropriate representation (licence audit, section 1), and at `sketches/touch-up.md`.",
     '',
-    '| Item | Name | Licence | Section | Triangles | Largest texture | Skeleton | Height | Format | Removed | Sketches |',
-    '|---|---|---|---|---|---|---|---|---|---|---|',
+    '| Item | Name | Licence | Section | Triangles | Largest texture | Fits budget | Skeleton | Height | Format | Removed | Sketches |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...rows,
     '',
-    "Triangles and textures are as fetched; WP3c reduces them to the device budget. VRM 0.x avatars face -Z and must be turned by the stage's loader.",
+    "Triangles and textures show fetched → shipped where the build reduced them to the section's budget (`ITEM_BUDGETS`, provisional until the reference devices have run). VRM files are kept byte for byte, so they aren't reduced. VRM 0.x avatars face -Z and must be turned by the stage's loader.",
     '',
   ].join('\n');
 }
