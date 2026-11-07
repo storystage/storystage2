@@ -114,9 +114,11 @@ export async function buildSources(
       displayName: item.displayName,
       themes: item.themes,
       files: { model, thumbnail: `sketches/${item.id}/front.svg` },
+      ...(vrm ? { vrm } : {}),
       joints:
         mapping && mapping.status === 'mapped' ? (mapping.joints as JointName[]) : 'prop-only',
       defaultSize: { height: height(mesh.positions) },
+      budget: { triangles, textureMaxPx },
       licence: item.licence,
       credit: item.credit,
       source: { url: item.page, retrieved: today },

@@ -204,6 +204,8 @@ describe('buildSources', () => {
       retrieved: '2026-10-25',
     });
     expect(knight.defaultSize.height).toBeCloseTo(1.78, 1);
+    expect(knight.budget).toEqual({ triangles: 180, textureMaxPx: 0 });
+    expect(knight.vrm).toBeUndefined();
     expect(knight.sketches).toHaveLength(16);
     expect(byId['kaykit/Prop/crate'].joints).toBe('prop-only');
     expect(byId['kaykit/Prop/crate'].sketches).toHaveLength(4);
@@ -212,6 +214,8 @@ describe('buildSources', () => {
       Buffer.from(files.get('https://arweave.net/robert')!),
     );
     expect(byId['osa/Biped/robert'].joints).toContain('hips');
+    // A VRM 0.x avatar faces -Z: the manifest says so, for the stage.
+    expect(byId['osa/Biped/robert'].vrm).toBe('0');
     expect(byId['osa/Biped/robert'].sketches).toHaveLength(16);
 
     const provenance = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'));

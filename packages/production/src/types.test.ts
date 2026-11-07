@@ -229,6 +229,7 @@ describe('checkReferences', () => {
       files: { model: 'model.glb', thumbnail: 'thumbnail.png' },
       joints: 'prop-only',
       defaultSize: { height: 1 },
+      budget: { triangles: 12, textureMaxPx: 0 },
       licence: 'CC-BY-4.0',
       credit: 'Robot dog by A. Maker (CC BY 4.0)',
       source: { url: 'https://example.org/robot-dog' },

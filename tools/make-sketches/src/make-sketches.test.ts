@@ -16,6 +16,7 @@ const item = (id: string, section: string, cls: string, displayName: string, mod
   files: { model, thumbnail: `thumbs/${id}.webp` },
   joints: 'prop-only',
   defaultSize: { height: 1 },
+  budget: { triangles: 12, textureMaxPx: 0 },
   licence: 'CC0-1.0',
   credit: `${displayName} by a tester (CC0)`,
   source: { url: 'https://example.org/model' },
