@@ -40,6 +40,7 @@
   "note.tooNarrow": "Turn your iPad sideways, or make the window wider.",
   "saving.saved": "All changes saved",
   "field.speak": "Say it: {label}",
+  "field.atLimit": "{n} characters at most",
   "dialog.close": "Close",
   "count.frames.one": "{count} frame",
   "count.frames.other": "{count} frames",
