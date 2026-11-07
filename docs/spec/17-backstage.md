@@ -3,7 +3,7 @@
 - **Covers:** Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches
 - **Work package:** WP3
 - **Owner:** S4
-- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1; pipelines, WP3b, growing with each source) and 7 (sketches, WP10.5) written 25 Oct 2026; section 1 (the manifest, WP3c) written 7 Nov 2026. The other sections are written before the code they govern: 4 with WP3c, 2 with 3.10, 5 and 6 with WP3i.
+- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1; pipelines, WP3b, growing with each source) and 7 (sketches, WP10.5) written 25 Oct 2026; sections 1 (the manifest) and 4 (budgets) written with WP3c, 7 Nov 2026. The other sections are written before the code they govern: 2 with 3.10, 5 and 6 with WP3i.
 
 ## 0. Decisions this spec relies on
 
@@ -123,7 +123,33 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
 
 ## 4. Budgets
 
-_To be written._
+Every model is reduced to a budget, and every scene is checked against one, so a production runs smoothly on the reference 4 GB Chromebook (CLAUDE.md, rule 6). The code is `packages/backstage/src/budget.ts` (the figures and the scene check) and `optimize.ts` (the reduction, `@storystage/backstage/optimize`).
+
+### The figures
+
+**Provisional** (owner, 7 Nov 2026): spike 1.2's working assumption, used until the spike has been measured on the reference devices (#6). They live in `budget.ts` and nowhere else, and `BUDGETS_ARE_PROVISIONAL` is true until then.
+
+| Per model, by section | Triangles | Largest texture |
+|---|---|---|
+| Cast | 20,000 | 1,024 px |
+| Props | 8,000 | 1,024 px |
+| Set | 20,000 | 1,024 px |
+| Backdrops | 4,000 | 2,048 px |
+
+**Per scene:** 100,000 triangles, and about 64 MB of pictures. The picture memory is an estimate: each model's largest texture, uncompressed at 4 bytes a pixel, plus a third for its smaller copies (mipmaps). Every object on the stage counts, so two cats cost twice one cat.
+
+### Rules
+
+1. **Every glTF model is reduced to its section's budget** when it enters Backstage: by `tools/backstage-sources` for the shipped catalogue, and in a Web Worker for imports (section 5). It's the same code in both. The manifest's `budget` records the result (section 1).
+2. **The reduction, in order:**
+    - drop what nothing uses;
+    - replace a texture of one solid colour with a plain colour on its material;
+    - join duplicate corners;
+    - only if the model is over its triangle budget, simplify its meshes with meshoptimizer. Simplifying starts gently (the surface moves at most 0.5% of the model's size) and allows more (up to 10%) only as far as the budget needs. It keeps a subset of the original corners, so a character's joints and weights carry over unchanged.
+3. **Textures are shrunk to the budget and made WebP** (owner, 7 Nov 2026), and the file then requires `EXT_texture_webp`. Babylon.js and every target browser read it.
+4. **The encoder is passed in.** The build tools use sharp, as a devDependency only, because sharp bundles libvips under the LGPL (CLAUDE.md, rule 8). A pnpm override keeps sharp out of the app's dependencies (`pnpm-workspace.yaml`). The import worker will use the browser's own canvas (WP3i). Without an encoder, textures are left as they are and the model is reported as not fitting.
+5. **VRM files are measured, not reduced,** because they are kept byte for byte (section 1). The build report flags any over budget.
+6. **A scene over budget gets a plain-words warning** for the learner (`checkScene`): "This scene may be slow on a school Chromebook: it has a lot of detail. Try fewer models, or simpler ones." Nothing is refused.
 
 ## 5. The import pipeline
 
@@ -194,6 +220,11 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
 | 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
 | 1: the shipped catalogue's builder writes each item's budget and VRM version | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
+| 4: the figures in one place and provisional; the scene check, counting every copy, estimating picture memory, warning in plain words | `packages/backstage/src/budget.test.ts` | Unit (Vitest) |
+| 4.2–4.4: reduction to the budget keeping shape; skinned characters keep joints and weights; within budget left alone; textures shrunk to WebP with the encoder given, reported as not fitting without one; unused data dropped | `packages/backstage/src/optimize.test.ts` | Unit (Vitest) |
+| 4.1–4.5: the build reduces a 40,000-triangle, 2,048 px model to a prop's budget with real sharp, records before and after, and reports it; a solid-colour texture becomes a plain colour; sharp's WebP shrinks to fit without enlarging, keeping see-through parts | `tools/backstage-sources/src/reduce.test.ts`, `sharp-encoder.test.ts` | Unit (Vitest) |
+| 4.4: sharp is not among the app's dependencies | `pnpm licences` (CI): sharp's libvips is LGPL, so it would fail as linked | CI |
+| 4: models within budget run at 30 fps on the reference Chromebook | Device run of spike 1.2 (#6), which also replaces the provisional figures | Device |
 | 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
 | 7.3: see-through cards drawn as one shape; short inner lines left out; cards read from glTF, unless the whole model is see-through | `packages/sketches/src/render.test.ts`, `gltf.test.ts` | Unit (Vitest) |
 | 7.5: every limb points where its pose says, bone lengths kept; only full humanoids posed | `packages/sketches/src/pose.test.ts` | Unit (Vitest) |

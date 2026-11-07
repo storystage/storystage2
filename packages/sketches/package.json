@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
     "@storystage/backstage": "workspace:*",
     "@storystage/story-api": "workspace:*"
   },
