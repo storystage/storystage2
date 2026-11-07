@@ -50,7 +50,7 @@ export interface BuildReport {
 
 export async function buildSources(
   dir: string,
-  options: { readonly fetcher?: Fetcher; readonly today?: string } = {},
+  options: { readonly fetcher?: Fetcher; readonly today?: string; readonly only?: string } = {},
 ): Promise<BuildReport> {
   const fetcher = options.fetcher ?? httpFetch;
   const today = options.today ?? new Date().toISOString().slice(0, 10);
@@ -59,6 +59,7 @@ export async function buildSources(
   for (const file of lists) {
     const checked = validateSources(JSON.parse(await readFile(join(dir, 'sources', file), 'utf8')));
     if (!checked.ok) throw new Error(`sources/${file} is not valid:\n${checked.errors.join('\n')}`);
+    if (options.only && checked.list.source !== options.only) continue;
     for (const item of checked.list.items)
       items.push({ item, source: checked.list.source, exclude: excludesFor(checked.list, item) });
   }
@@ -74,7 +75,7 @@ export async function buildSources(
   const built = new Map<string, BackstageItem>();
 
   for (const { item, source, exclude } of items) {
-    const got = await fetchModel(item, fetcher);
+    const got = await fetchModel(item, fetcher, dir);
     const { ext, fetched } = got;
     // VRM files are kept byte for byte; excludes apply to glTF models only.
     const trimmed =

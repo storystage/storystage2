@@ -58,6 +58,32 @@ describe('meshFromDocument', () => {
     expect(mesh.influences!.weights[v * 4 + 1]).toBeCloseTo(0.3);
   });
 
+  it('marks see-through primitives as cards, unless the whole model is see-through', () => {
+    expect(meshFromDocument(documentFromMesh(figure())).cards).toBeUndefined();
+
+    const all = documentFromMesh(figure());
+    const prim = all.getRoot().listMeshes()[0]!.listPrimitives()[0]!;
+    prim.setMaterial(all.createMaterial('all').setAlphaMode('MASK'));
+    expect(meshFromDocument(all).cards).toBeUndefined();
+
+    const mixed = documentFromMesh(figure());
+    const hair = mixed
+      .createPrimitive()
+      .setAttribute(
+        'POSITION',
+        mixed
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 1.8, 0, 0.1, 1.8, 0, 0, 1.9, 0]))
+          .setBuffer(mixed.getRoot().listBuffers()[0]!),
+      )
+      .setMaterial(mixed.createMaterial('hair').setAlphaMode('BLEND'));
+    mixed.getRoot().listMeshes()[0]!.addPrimitive(hair);
+    const mesh = meshFromDocument(mixed);
+    expect(mesh.cards![0]).toBe(0);
+    expect(mesh.cards![mesh.cards!.length - 1]).toBe(1);
+  });
+
   it('skips points and lines, and copes with an empty document', () => {
     const doc = documentFromMesh(box([0, 0, 0], [1, 1, 1]));
     doc.getRoot().listMeshes()[0]!.listPrimitives()[0]!.setMode(1);

@@ -17,6 +17,11 @@ export interface SketchMesh {
   readonly positions: Float32Array;
   /** Three vertex indices per triangle. */
   readonly indices: Uint32Array;
+  /**
+   * One flag per triangle: 1 for a see-through card (hair, eyelashes), a flat shape with a
+   * picture of strands on it. A sketch draws the cards' shape as a whole, not their every edge.
+   */
+  readonly cards?: Uint8Array;
   /** The model's nodes, parents before children. Absent for a model that can't be posed. */
   readonly nodes?: readonly SketchNode[];
   /** Nodes that are joints of a skin, by index into `nodes`: the bones a pose may move. */

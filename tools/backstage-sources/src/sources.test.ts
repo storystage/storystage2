@@ -129,6 +129,32 @@ describe('fetchModel', () => {
   });
 });
 
+describe('generated models', () => {
+  it('accepts a path under generated/, and nothing outside it', () => {
+    const list = (generated: string) =>
+      validateSources({ source: 'm', items: [item({ fetch: { generated } })] }).ok;
+    expect(list('makehuman/p01.glb')).toBe(true);
+    expect(list('../secrets/p01.glb')).toBe(false);
+    expect(list('/etc/p01.glb')).toBe(false);
+    expect(list('makehuman/p01.vrm')).toBe(false);
+  });
+
+  it('reads a generated model, and records where it came from', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-generated-'));
+    await mkdir(join(dir, 'generated/makehuman'), { recursive: true });
+    const glb = await glbFromMesh(figure());
+    await writeFile(join(dir, 'generated/makehuman/p01.glb'), glb);
+    const got = await fetchModel(
+      item({ fetch: { generated: 'makehuman/p01.glb' } }) as never,
+      fetcher,
+      dir,
+    );
+    expect(got.ext).toBe('glb');
+    expect(got.fetched).toEqual([{ url: 'generated:makehuman/p01.glb', sha256: sha(glb) }]);
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
 describe('buildSources', () => {
   let dir: string;
   beforeAll(async () => {
@@ -195,6 +221,30 @@ describe('buildSources', () => {
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
     expect(md).toContain('| `osa/Biped/robert` | Robert | CC0-1.0 |');
     expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);
+  });
+
+  it('builds one list on its own with only, leaving the others alone', async () => {
+    await writeFile(
+      join(dir, 'sources/other.json'),
+      JSON.stringify({
+        source: 'other',
+        items: [
+          item({
+            id: 'other/Prop/widget',
+            class: 'Prop',
+            section: 'props',
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/crate.gltf' },
+          }),
+        ],
+      }),
+    );
+    const report = await buildSources(dir, { fetcher, today: '2026-11-01', only: 'other' });
+    expect(report.items).toBe(1);
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const ids = manifest.items.map((i: { id: string }) => i.id);
+    expect(ids).toContain('kaykit/Biped/knight');
+    expect(ids).toContain('other/Prop/widget');
+    await rm(join(dir, 'sources/other.json'));
   });
 
   it('keeps items it did not build, and replaces those it rebuilt', async () => {

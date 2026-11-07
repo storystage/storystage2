@@ -83,6 +83,12 @@ const DETAIL_WIDTH = 1.5;
 /** Hidden gaps in a line up to this long (SVG units) are closed; visible bits shorter than SPECK go. */
 const GAP = 3;
 const SPECK = 1.5;
+/** Inner lines shorter than this (SVG units) are left out. */
+const MIN_DETAIL = 4;
+/** See-through card shapes smaller than this (square units) are left out; */
+const MIN_CARD_AREA = 6;
+/** from this size up they are hair, with a heavy line; below it, a light one. */
+const HAIR_AREA = 400;
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -141,6 +147,8 @@ export function renderSketch(
   const W = width * RS;
   const H = height * RS;
   const depth = new Float64Array(W * H).fill(Infinity);
+  // Which pixels show a see-through card, so the cards can be outlined as one shape.
+  const onCard = new Uint8Array(W * H);
   const tris = mesh.indices;
   for (let t = 0; t < tris.length; t += 3) {
     const [a, b, c] = [tris[t]!, tris[t + 1]!, tris[t + 2]!];
@@ -152,6 +160,7 @@ export function renderSketch(
       number,
       number,
     ];
+    const card = mesh.cards?.[t / 3] ? 1 : 0;
     const area = (x1 - x0) * (y2 - y0) - (x2 - x0) * (y1 - y0);
     if (Math.abs(area) < 1e-12) continue;
     const minX = Math.max(0, Math.floor(Math.min(x0, x1, x2)));
@@ -173,7 +182,10 @@ export function renderSketch(
         const w2 = 1 - w0 - w1;
         if (w0 < -1e-9 || w1 < -1e-9 || w2 < -1e-9) continue;
         const z = w0 * da + w1 * db + w2 * dc;
-        if (z < depth[k]!) depth[k] = z;
+        if (z < depth[k]!) {
+          depth[k] = z;
+          onCard[k] = card;
+        }
       }
     }
   }
@@ -185,7 +197,7 @@ export function renderSketch(
   const edges = new Map<string, { a: number; b: number; faces: number[] }>();
   for (let t = 0; t < welded.length; t += 3) {
     const [a, b, c] = [welded[t]!, welded[t + 1]!, welded[t + 2]!];
-    if (a === b || b === c || a === c) continue;
+    if (a === b || b === c || a === c || mesh.cards?.[t / 3]) continue;
     const p = (i: number): Vec3 => [pos[i * 3]!, pos[i * 3 + 1]!, pos[i * 3 + 2]!];
     const n = cross(sub(p(b), p(a)), sub(p(c), p(a)));
     if (length(n) < 1e-20) continue;
@@ -266,14 +278,25 @@ export function renderSketch(
     )
     .filter((loop) => loop.length >= 4);
 
-  const outlineLines = chain(outline);
-  const detailLines = chain(detail);
-  const lineLength = (segs: Segment[]) =>
-    segs.reduce((sum, [x0, y0, x1, y1]) => sum + Math.hypot(x1 - x0, y1 - y0), 0);
+  // Cards: one line around each shape, heavy for hair, light for an eyebrow; specks go.
+  const cardLoops = contours(onCard, W, H)
+    .map((loop) =>
+      simplify(
+        loop.map(([x, y]) => [x / RS, y / RS] as Point),
+        0.5,
+      ),
+    )
+    .map((loop) => ({ loop, area: loopArea(loop) }))
+    .filter(({ area }) => area >= MIN_CARD_AREA);
+  const heavy = cardLoops.filter(({ area }) => area >= HAIR_AREA).map(({ loop }) => loop);
+  const light = cardLoops.filter(({ area }) => area < HAIR_AREA).map(({ loop }) => loop);
+  const outlineLines = [...chain(outline), ...heavy];
+  // Dense models fold in tiny places: short inner lines read as dirt, not shape.
+  const detailLines = [...chain(detail).filter((l) => lineLength(l) >= MIN_DETAIL), ...light];
   const metrics: SketchMetrics = {
     fillRatio: covered === 0 ? 0 : Math.round((covered / (W * H)) * 1000) / 1000,
-    outlineLength: Math.round(lineLength(outline)),
-    detailLength: Math.round(lineLength(detail)),
+    outlineLength: Math.round(outlineLines.reduce((sum, l) => sum + lineLength(l), 0)),
+    detailLength: Math.round(detailLines.reduce((sum, l) => sum + lineLength(l), 0)),
     lines: outlineLines.length + detailLines.length,
   };
 
@@ -299,6 +322,21 @@ export function renderSketch(
     '</svg>';
   return { svg, width, height, metrics };
 }
+
+const lineLength = (line: readonly Point[]) =>
+  line.reduce((sum, [x, y], i) => {
+    const prev = line[i - 1];
+    return prev ? sum + Math.hypot(x - prev[0], y - prev[1]) : sum;
+  }, 0);
+
+/** The area inside a closed loop (the shoelace formula). */
+const loopArea = (loop: readonly Point[]) =>
+  Math.abs(
+    loop.reduce((sum, [x, y], i) => {
+      const [nx, ny] = loop[(i + 1) % loop.length]!;
+      return sum + x * ny - nx * y;
+    }, 0),
+  ) / 2;
 
 /**
  * In a row of visible (1) and hidden (0) samples, fills hidden runs up to `gap` long that have
