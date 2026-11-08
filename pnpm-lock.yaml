@@ -54,6 +54,12 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../../packages/ast
+      '@storystage/blocks':
+        specifier: workspace:*
+        version: link:../../packages/blocks
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../../packages/editor-contract
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production

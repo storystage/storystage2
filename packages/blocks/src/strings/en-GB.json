@@ -36,5 +36,8 @@
   "block.op.greater": ">",
   "block.op.greaterOrEqual": "≥",
   "block.op.and": "and",
-  "block.op.or": "or"
+  "block.op.or": "or",
+  "editor.name": "Blocks",
+  "editor.looseBlock": "Blocks go inside a method.",
+  "editor.workspace": "{method}: blocks"
 }

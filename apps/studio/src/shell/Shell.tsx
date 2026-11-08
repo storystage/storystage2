@@ -27,6 +27,9 @@ export interface ShellProps {
   learn?: ReactNode;
   settings?: ReactNode;
   initialMode?: Mode;
+  /** The mode, when the App needs to change it ("Go to the Storyboard"); the shell keeps it otherwise. */
+  mode?: Mode;
+  onModeChange?: (mode: Mode) => void;
 }
 
 /**
@@ -41,13 +44,17 @@ export function Shell({
   learn,
   settings,
   initialMode = 'storyboard',
+  mode: controlled,
+  onModeChange,
 }: ShellProps) {
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const [own, setOwn] = useState<Mode>(initialMode);
+  const mode = controlled ?? own;
   const [overlay, setOverlay] = useState<Overlay | null>(null);
   const modeName = messages.t(`mode.${mode}`);
   const toggle = (which: Overlay) => (on: boolean) => setOverlay(on ? which : null);
   const changeMode = (next: Mode) => {
-    setMode(next);
+    setOwn(next);
+    onModeChange?.(next);
     setOverlay(null);
   };
 
