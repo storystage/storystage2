@@ -39,6 +39,7 @@ import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, standInShape, type Touching } from '../timeline.ts';
+import { humanoidsFor } from '../humanoid/library.ts';
 import { buildBackdrop, type ShowSky } from './backdrop.ts';
 import { buildFade } from './fade.ts';
 import type { Quality, Renderer } from './quality.ts';
@@ -142,6 +143,8 @@ export class BabylonStage implements Stage {
       const placed = await Promise.all(setup.objects.map((o) => place(o, library, scene)));
       const objects = new Map(setup.objects.map((o, i) => [o.id, placed[i]!]));
       this.timeline.load(setup, (o) => objects.get(o.id)!.shape);
+      const humanoids = await humanoidsFor(setup);
+      this.timeline.useHumanoids(humanoids.library, humanoids.navigation);
       this.library?.dispose();
       this.scene?.dispose();
       this.scene = scene;
@@ -418,7 +421,16 @@ export class BabylonStage implements Stage {
   /** Copies the timeline's state onto the scene. */
   private show(): void {
     const state = this.timeline.current();
-    for (const [id, view] of this.views) view.show(state.get(id)!, this.timeline.transform(id));
+    for (const [id, view] of this.views) {
+      const shown = this.timeline.shown(id);
+      view.show(state.get(id)!, this.timeline.transform(id), {
+        ...(shown.human ? { human: shown.human } : {}),
+        clips: shown.own,
+        face: shown.face,
+        fading: shown.fading,
+        blink: shown.blink,
+      });
+    }
     this.showSky?.(this.timeline.sky());
     this.showFade?.(this.timeline.fade());
     if (this.camera) {

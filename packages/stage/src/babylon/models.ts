@@ -33,6 +33,7 @@ import {
 import type { Box } from '../hull.ts';
 import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
+import { faceTargets, facesOf } from './faces.ts';
 import { ObjectView } from './view.ts';
 
 registerBuiltInLoaders();
@@ -136,8 +137,20 @@ export class ModelLibrary {
         paintable,
         joints,
         animations: copy.animationGroups,
+        faces: faceTargets(facesOf(json), root.getChildMeshes()),
       }),
-      shape: { joints: file.joints === 'prop-only' ? [] : file.joints, box, jointPlaces },
+      shape: {
+        joints: file.joints === 'prop-only' ? [] : file.joints,
+        box,
+        jointPlaces,
+        // Its own clips, which the play animation block can name, and how long each is.
+        clips: new Map(
+          copy.animationGroups.map((g) => {
+            const fps = g.targetedAnimations[0]?.animation.framePerSecond ?? 60;
+            return [g.name, (g.to - g.from) / fps] as const;
+          }),
+        ),
+      },
     };
   }
 
