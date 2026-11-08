@@ -132,12 +132,16 @@ Oh no, the ice is moving! [[line:l2]]
 ```
 
 - **Scenes** are in running order, each under a forced heading (`.` then the card's heading), so a heading needn't start with INT or EXT. A scene with no lines still has its heading.
-- **Action** is a paragraph. **Dialogue** is the character's name in capitals, then the line.
+- **Action** is a paragraph. **Dialogue** is the character's name, then the line: in capitals, or forced with `@` to keep its case (`@Pip`), so a name reopens exactly as it was typed.
 - **`line:`** is the `LineId`, **`frame:`** the frame it's pinned to, if any.
-- **The title page** is written for other tools. The title, logline and synopsis read back from `manifest.json` and `storyboard.json`, and these lines are ignored on reading.
+- **The title page** is written for other tools. The title, logline and synopsis read back from `manifest.json` and `storyboard.json`, and these lines are ignored on reading. A script's first lines are a title page only when the first key is one Fountain defines (Title, Credit, Author, Authors, Source, Draft date, Date, Contact, Copyright, Notes, Revision) or one this writes (Logline, Synopsis), so "Morning: the sun rises." stays action.
 - **On reading,** only a note at the very end of a line, starting `scene:` or `line:`, is read as ids. Any other `[[...]]` is the learner's text. A line with no id (written in another tool) gets a new one.
+- **Text that could be misread** is forced, so it reads back as it was written: an action line that another tool could take for a heading, a speaker, a transition or a note starts with `!` (forced action), and a speaker whose name could be misread, or isn't in capitals, starts with `@` (forced character).
+- **A line with several lines in it** keeps its line breaks but not blank lines, which would end it in Fountain. The Storyboard and the Prompter store a line's text through `scriptLineText` (no blank lines, no spaces at the ends), so what is saved reopens exactly (section 1).
+- **Scripts from other tools** are read too: `INT.` and `EXT.` headings, speakers in capitals with their brackets kept in the line, centred text and lyrics as action. Sections, synopses, transitions, the boneyard (when `/*` starts a block, the first line after a blank one; one that never closes is kept as text, so nothing after it is lost) and page breaks are left out. Lines before the first heading go under a scene with no heading yet. Every scene and line gets a new id unless its note gives a safe one (`SAFE_ID`) not used already; a pin is kept only if its frame id is safe, and the caller drops pins to frames its production doesn't have.
+- **Limits** (`FOUNTAIN_LIMITS`, matching `07-ux.md` section 6.9): 512 KiB, 50 scenes, 2,000 lines, 500 characters a line, 80 a heading and 40 a speaker's name. A script over any of them isn't read at all, and `readFountain` says which limit it met.
 
-Reading and writing this, with size limits, are WP10.4.
+`writeFountain`, `readFountain` and `scriptLineText` are in `fountain.ts` (WP10.4).
 
 ## 6. Frames
 
@@ -160,7 +164,7 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
 | One undo step for program edits, scene steps and stage changes, alone or grouped; cancel; renaming or removing an object's field in code keeps its set-up in step; read-only; listeners; load (section 2.1) | `session.test.ts` | Unit |
 | Renaming and duplicating a scene: the copy's type, set-up, card, place, new ids, links and pins (section 2.1) | `session.test.ts` | Unit |
-| Fountain reads and writes as section 5 says | With WP10.4 | Unit |
+| Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
 | A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |
 | A newer file opens read-only and is never written (section 1.2) | With WP8.4 | Unit |
 | Nothing in section 1.1 reaches a file | With WP8.4 | Unit |

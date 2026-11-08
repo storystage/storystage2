@@ -32,7 +32,7 @@ A value is a number, text, true or false, nothing (`none`), an object, an enum v
 
 - **A parameter left out** gets its default, worked out in the called method.
 - **Arguments** are worked out in sorted order, so the order doesn't depend on how the program was built.
-- **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. WP4.3 supplies it (S3). The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
+- **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. WP4.3 supplies it (S3): `STORY_LIBRARY` in `@storystage/story-api`, which fits the runtime's type as it is. A block refuses a value it can't use by throwing `StoryFault`, and the runtime reports that as a `bad_value` fault at the block, with the block's own words in `detail`, whether it refuses straight away or after waiting. The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
 - **Random numbers** come from the run's seed, so deterministic runs repeat (WP6.5).
 
 ### 3.1 Ending a scene (WP8.3)
@@ -95,6 +95,7 @@ It's sent even when it's empty, so the main thread can always hand it on. A dist
 |---|---|---|
 | Time, order, asking, faults, stop | `scheduler.test.ts` | Unit |
 | Every statement and expression kind, values, calls, limits, determinism, highlighting | `interpreter.test.ts`: small programs, each run and checked | Unit (the semantics suite) |
+| `STORY_LIBRARY` fits, runs, and its refusals are bad values at the block (section 3) | `story-faults.test.ts` | Unit |
 | The worker's protocol, both modes, pause, speed, every event kind, `heldKeyPolicy` and the `watch` message (section 5) | `serve.test.ts`, over `inMemoryPorts` | Unit |
 | Ending a scene: the message, stopping every strand, defaults, faults, and loading the next scene into the same worker (section 3.1) | `serve.test.ts`, "ending a scene" | Unit |
 | The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when) | With WP4.3, once the blocks they use run | Unit |

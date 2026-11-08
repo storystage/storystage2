@@ -19,9 +19,15 @@ import {
   type Statement,
   type TypeRef,
 } from '@storystage/ast';
-import type { StageCommand } from '@storystage/story-api';
+import { StoryFault, type StageCommand } from '@storystage/story-api';
 import { RuntimeFault, type Scheduler, type Task, type Thread } from './scheduler.ts';
-import { RUNTIME_LIBRARY, sceneLibrary, type StoryContext, type StoryLibrary } from './story.ts';
+import {
+  RUNTIME_LIBRARY,
+  sceneLibrary,
+  type StoryCall,
+  type StoryContext,
+  type StoryLibrary,
+} from './story.ts';
 import { isObjectValue, sameValue, valueText, type ObjectValue, type Value } from './values.ts';
 
 /** What a program may do before StoryStage stops it (WP6.3, threat F7). */
@@ -183,7 +189,7 @@ export class Interpreter {
     if (target === null) throw bad(node, 'The call is on nothing.');
     if (!Object.hasOwn(this.library, name))
       throw new RuntimeFault('internal', node, `Nothing runs ${name} yet.`);
-    yield* this.library[name]!({ node, target, name, args, details }, this.context());
+    yield* this.story({ node, target, name, args, details });
   }
 
   /** The scene object of this name, as the stage's events call it. */
@@ -395,10 +401,17 @@ export class Interpreter {
       throw new RuntimeFault('internal', node.id, `Nothing runs ${name} yet.`);
     const args = yield* this.values(node.args, frame);
     const details = yield* this.values(node.details, frame);
-    return yield* this.library[name]!(
-      { node: node.id, target, name, args, details },
-      this.context(),
-    );
+    return yield* this.story({ node: node.id, target, name, args, details });
+  }
+
+  /** A Story API block. Its own refusals (`StoryFault`) are bad values at the block (WP6.3). */
+  private *story(call: StoryCall): Task<Value> {
+    try {
+      return yield* this.library[call.name]!(call, this.context());
+    } catch (e) {
+      if (e instanceof StoryFault) throw new RuntimeFault('bad_value', call.node, e.message);
+      throw e;
+    }
   }
 
   private *callMethod(
