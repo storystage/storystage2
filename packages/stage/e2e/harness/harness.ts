@@ -52,7 +52,8 @@ function offscreenStage() {
   const canvas = document.createElement('canvas'); // never attached to the page
   canvas.width = W;
   canvas.height = H;
-  return createBabylonStage({ canvas, models, offscreen: true });
+  // WebGL2 everywhere, so the pixels checked here are the same on every machine.
+  return createBabylonStage({ canvas, models, offscreen: true, renderer: 'webgl2' });
 }
 
 function fnv(bytes: Uint8ClampedArray) {
@@ -65,7 +66,7 @@ function fnv(bytes: Uint8ClampedArray) {
 }
 
 async function run(scene: ReferenceScene) {
-  const stage = offscreenStage();
+  const stage = await offscreenStage();
   await stage.load(scene.setup);
   stage.schedule(scene.commands);
   const at = (f: number) => micros((f / (FRAMES - 1)) * scene.seconds);
@@ -116,7 +117,7 @@ const redCat: SceneSetup = {
 
 /** Where a red object at +X lands in the picture, with the camera looking along +Z. */
 async function direction() {
-  const stage = offscreenStage();
+  const stage = await offscreenStage();
   await stage.load(redCat);
   const frame = await stage.renderFrame();
   stage.dispose();
@@ -140,7 +141,7 @@ async function skies() {
   const out = [];
   for (const template of BACKDROP_TEMPLATES) {
     if (template.id === 'room') continue;
-    const stage = offscreenStage();
+    const stage = await offscreenStage();
     await stage.load({
       backdrop: template.backdrop,
       objects: [],
@@ -172,7 +173,7 @@ async function frameOf(name: string, seconds: number) {
       markers: [],
     },
   };
-  const stage = offscreenStage();
+  const stage = await offscreenStage();
   await stage.load(scene.setup);
   stage.schedule(scene.commands);
   stage.seek(micros(seconds));
@@ -224,10 +225,38 @@ async function picture(name: string, seconds: number) {
   return canvas.toDataURL('image/png');
 }
 
+/**
+ * A stage made as the studio makes one, with the renderer chosen for the device: which it got,
+ * how big it draws, and whether anything was drawn.
+ */
+async function rendering(renderer: 'auto' | 'webgl2', quality: 'low' | 'standard') {
+  // On the page, as the studio's is: Babylon.js sizes its drawing from the canvas's size there.
+  const canvas = document.createElement('canvas');
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+  document.body.append(canvas);
+  const stage = await createBabylonStage({ canvas, models, renderer, quality });
+  await stage.load(redCat);
+  const frame = await stage.renderFrame();
+  let lit = 0;
+  for (let p = 0; p < frame.data.length; p += 4)
+    if (frame.data[p]! + frame.data[p + 1]! > 60) lit++;
+  const result = {
+    renderer: stage.renderer,
+    gpu: 'gpu' in navigator,
+    width: frame.width,
+    height: frame.height,
+    lit: lit / (frame.width * frame.height),
+  };
+  stage.dispose();
+  canvas.remove();
+  return result;
+}
+
 /** Live on the page's canvas: the real input path, and frames drawn against the clock. */
 async function goLive() {
   const canvas = document.getElementById('stage') as HTMLCanvasElement;
-  const stage = createBabylonStage({ canvas, models });
+  const stage = await createBabylonStage({ canvas, models, renderer: 'webgl2' });
   const setup = { ...redCat, objects: [{ ...redCat.objects[0]!, transform: IDENTITY }] };
   await stage.load(setup);
   const heard: StageEvent[] = [];
@@ -333,6 +362,7 @@ Object.assign(window, {
     sample,
     darkPixels,
     subjectShare,
+    rendering,
     eventCost,
     picture,
     goLive,

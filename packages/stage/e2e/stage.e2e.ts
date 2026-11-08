@@ -122,6 +122,37 @@ test('fills more of the picture with its subject, the closer the shot', async ({
   expect(closeUp).toBeGreaterThan(medium);
 });
 
+interface Rendering {
+  renderer: string;
+  gpu: boolean;
+  width: number;
+  height: number;
+  lit: number;
+}
+
+test('draws with WebGPU where the browser has it, and WebGL2 otherwise', async ({ page }) => {
+  const problems = await open(page);
+  const r = await call<Rendering>(page, 'rendering', 'auto', 'standard');
+  console.log(JSON.stringify(r));
+  // Which one this browser gives is its own business; what matters is a picture either way.
+  expect(r.renderer).toBe(r.gpu ? r.renderer : 'webgl2');
+  expect(['webgpu', 'webgl2']).toContain(r.renderer);
+  expect(r.width).toBe(640);
+  expect(r.lit).toBeGreaterThan(0.5);
+  expect(problems).toEqual([]);
+});
+
+test('draws at two thirds of the size at low quality, for the reference devices', async ({
+  page,
+}) => {
+  await open(page);
+  const low = await call<Rendering>(page, 'rendering', 'webgl2', 'low');
+  // Whole pixels, rounded down.
+  expect(low.width).toBe(Math.floor(640 / 1.5));
+  expect(low.height).toBe(Math.floor(360 / 1.5));
+  expect(low.lit).toBeGreaterThan(0.5);
+});
+
 test('measures what view and occlusion events would cost (decision 0051)', async ({ page }) => {
   await open(page);
   const r = await call<{ objects: number; pairs: number; view: number; occlusion: number }>(

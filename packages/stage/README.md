@@ -20,13 +20,14 @@ Code against the `Stage` type. Only what makes the stage needs `@storystage/stag
 
 ```ts
 // Rehearse: draw every frame, and seek to the clock first.
-const stage = createBabylonStage({ canvas, models: modelsFromManifest(manifest, folder) });
+const models = modelsFromManifest(manifest, folder);
+const stage = await createBabylonStage({ canvas, models, quality: 'low' });
 await stage.load(setup);
 stage.schedule(commands);
 stage.startLive(() => stage.seek(clock.now()));
 
 // Export: a fixed time step, on a canvas that's never on the page.
-const stage = createBabylonStage({ canvas, models, offscreen: true });
+const stage = await createBabylonStage({ canvas, models, offscreen: true });
 await stage.load(setup);
 stage.schedule(commands);
 for (let f = 0; f < frames; f++) {
@@ -36,6 +37,10 @@ for (let f = 0; f < frames; f++) {
 ```
 
 Call `resize()` when the canvas changes size. Clicks and keys on the canvas reach `onEvent` by themselves. Without a `models` source, a scene can use only stand-ins.
+
+**Renderer and quality (5.6).** `createBabylonStage` is async: it uses WebGPU where the device has it and WebGL2 otherwise (`renderer: 'auto'`), and `stage.renderer` says which. Pass `renderer: 'webgl2'` for the same pixels on every machine. `quality: 'low'` draws at two thirds of the canvas's size without smoothing edges, for the reference devices; `standard`, the default, draws full size. An export always draws full size. Both are fixed when the stage is made.
+
+**Budget.** `stage.measure()` counts the triangles the loaded scene draws, against Backstage's scene budget (`SCENE_BUDGET`, WP3.9). The budget is provisional until the reference devices have been measured (#6).
 
 ## How it fits together
 
