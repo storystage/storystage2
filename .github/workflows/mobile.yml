@@ -40,6 +40,8 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
       - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
       - name: Generate the Android project
         working-directory: apps/desktop
         # The runner image ships the Android SDK and NDK.
@@ -75,6 +77,8 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: apps/desktop/src-tauri -> target
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
       - name: Compile for iPad
         working-directory: apps/desktop/src-tauri
         run: |
@@ -98,6 +102,8 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
       - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
       - name: Generate the Xcode project
         working-directory: apps/desktop
         run: pnpm tauri ios init --ci

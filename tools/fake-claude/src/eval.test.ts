@@ -144,6 +144,16 @@ describe('checkEvalSet', () => {
     ['an unknown line', { checks: [{ type: 'says_line', line: 'l9' }] }, /no line l9/],
     ['a missing marker', { checks: [{ type: 'ignores_injection', marker: 'X-1' }] }, /X-1/],
     ['an unknown frame', { request: 'Code frame f9-9.' }, /no frame f9-9/],
+    [
+      "StoryStage 1's name for a control block",
+      { checks: [{ type: 'control', kind: 'do_together' }] },
+      /no control block do_together/,
+    ],
+    [
+      "StoryStage 1's name for an event",
+      { checks: [{ type: 'event_listener', kind: 'key_press' }] },
+      /no event key_press/,
+    ],
   ])('finds %s', (_name, row, message) => {
     expect(problems(row).join()).toMatch(message);
   });

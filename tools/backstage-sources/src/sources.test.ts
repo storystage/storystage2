@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { validateManifest } from '@storystage/backstage';
 import {
   box,
@@ -20,6 +21,21 @@ import { validateSources } from './sources.ts';
 const COMMIT = 'a'.repeat(40);
 const RAW = `https://raw.githubusercontent.com/kaykit/pack/${COMMIT}/`;
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
+
+/** A box whose texture is WebP, so the file requires `EXT_texture_webp`, as reduced models do. */
+function webpModel() {
+  const doc = documentFromMesh(box([0, 0, 0], [1, 1, 1]));
+  doc.createExtension(EXTTextureWebP).setRequired(true);
+  const texture = doc
+    .createTexture('paint')
+    .setImage(new Uint8Array([0x52, 0x49, 0x46, 0x46]))
+    .setMimeType('image/webp')
+    .setURI('paint.webp');
+  const material = doc.createMaterial('paint').setBaseColorTexture(texture);
+  for (const mesh of doc.getRoot().listMeshes())
+    for (const prim of mesh.listPrimitives()) prim.setMaterial(material);
+  return doc;
+}
 
 const item = (over: Record<string, unknown>) => ({
   id: 'kaykit/Biped/knight',
@@ -118,6 +134,21 @@ describe('fetchModel', () => {
     expect(new TextDecoder().decode(got.bytes.slice(0, 4))).toBe('glTF');
   });
 
+  it('packs a .gltf that needs a glTF extension, keeping it', async () => {
+    const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+    const { json, resources } = await io.writeJSON(webpModel());
+    files.set(`${RAW}props/painted.gltf`, new TextEncoder().encode(JSON.stringify(json)));
+    for (const [name, bytes] of Object.entries(resources)) files.set(`${RAW}props/${name}`, bytes);
+    const got = await fetchModel(
+      item({
+        fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/painted.gltf' },
+      }) as never,
+      fetcher,
+    );
+    const packed = await io.binaryToJSON(got.bytes);
+    expect(packed.json.extensionsRequired).toEqual(['EXT_texture_webp']);
+  });
+
   it('checks a downloaded file against its sha256', async () => {
     const vrm = files.get('https://arweave.net/robert')!;
     const ok = item({ fetch: { url: 'https://arweave.net/robert', sha256: sha(vrm), ext: 'vrm' } });
@@ -126,6 +157,56 @@ describe('fetchModel', () => {
       fetch: { url: 'https://arweave.net/robert', sha256: 'b'.repeat(64), ext: 'vrm' },
     });
     await expect(fetchModel(bad as never, fetcher)).rejects.toThrow(/sha256/);
+  });
+});
+
+describe('CC BY credits', () => {
+  it('say "changed for StoryStage" on a glTF model, which the build changes, not on a VRM', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-ccby-'));
+    await mkdir(join(dir, 'sources'));
+    const vrm = files.get('https://arweave.net/robert')!;
+    await writeFile(
+      join(dir, 'sources/ccby.json'),
+      JSON.stringify({
+        source: 'ccby',
+        items: [
+          item({ licence: 'CC-BY-4.0', credit: 'Knight by Kay, CC BY 4.0' }),
+          item({
+            id: 'osa/Biped/robert',
+            licence: 'CC-BY-4.0',
+            credit: 'Robert by Polygonal Mind, CC BY 4.0',
+            fetch: { url: 'https://arweave.net/robert', sha256: sha(vrm), ext: 'vrm' },
+          }),
+        ],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-11-08' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const credit = (id: string) =>
+      manifest.items.find((i: { id: string }) => i.id === id).credit as string;
+    expect(credit('kaykit/Biped/knight')).toBe('Knight by Kay, CC BY 4.0, changed for StoryStage');
+    expect(credit('osa/Biped/robert')).toBe('Robert by Polygonal Mind, CC BY 4.0');
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('descriptions', () => {
+  const list = (description: unknown) =>
+    validateSources({ source: 'm', items: [item({ description })] });
+
+  it('takes a plain line about what it looks like', () => {
+    expect(list('a knight in silver armour').ok).toBe(true);
+    expect(validateSources({ source: 'm', items: [item({})] }).ok).toBe(true);
+  });
+
+  it('refuses skin colour or ancestry, and long or empty lines', () => {
+    expect(list('an Asian woman with a bob')).toMatchObject({
+      ok: false,
+      errors: [expect.stringMatching(/never by skin colour or ancestry/)],
+    });
+    expect(list('x'.repeat(121)).ok).toBe(false);
+    expect(list('').ok).toBe(false);
+    expect(list(7).ok).toBe(false);
   });
 });
 
@@ -212,7 +293,7 @@ describe('buildSources', () => {
       JSON.stringify({
         source: 'test',
         items: [
-          item({}),
+          item({ description: 'a knight in silver armour with a blue tunic' }),
           item({
             id: 'kaykit/Prop/crate',
             displayName: 'Crate',
@@ -244,6 +325,12 @@ describe('buildSources', () => {
     const byId = Object.fromEntries(manifest.items.map((i: { id: string }) => [i.id, i]));
     const knight = byId['kaykit/Biped/knight'];
     expect(knight.files.model).toBe('models/kaykit/Biped/knight.glb');
+    // Its colour thumbnail, as WebP.
+    expect(knight.files.thumbnail).toBe('thumbnails/kaykit/Biped/knight.webp');
+    const webp = await readFile(join(dir, knight.files.thumbnail));
+    expect(webp.subarray(0, 4).toString('latin1')).toBe('RIFF');
+    expect(webp.subarray(8, 12).toString('latin1')).toBe('WEBP');
+    expect(existsSync(join(dir, 'thumbnails/osa/Biped/robert.webp'))).toBe(true);
     expect(knight.joints).toContain('leftUpperArm');
     expect(knight.source).toEqual({
       url: 'https://github.com/kaykit/pack',
@@ -271,6 +358,22 @@ describe('buildSources', () => {
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
     expect(md).toContain('| `osa/Biped/robert` | Robert | CC0-1.0 |');
     expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);
+  });
+
+  it("writes each description, and the Prompter's catalogue with its size", async () => {
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const knight = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Biped/knight');
+    expect(knight.description).toBe('a knight in silver armour with a blue tunic');
+    expect(
+      manifest.items.find((i: { id: string }) => i.id === 'osa/Biped/robert'),
+    ).not.toHaveProperty('description');
+    const catalogue = await readFile(join(dir, 'prompter-catalogue.txt'), 'utf8');
+    expect(catalogue).toContain(
+      'kaykit/Biped/knight: Knight, a knight in silver armour with a blue tunic [fantasy]',
+    );
+    expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
+    const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
+    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 12,000 tokens/);
   });
 
   it('builds one list on its own with only, leaving the others alone', async () => {

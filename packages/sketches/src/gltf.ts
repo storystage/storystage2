@@ -6,10 +6,27 @@
  * to their joints; other vertices are weighted wholly to the node that holds them, so a hat on
  * a head bone follows the head when the model is posed.
  */
-import { Primitive, WebIO, type Accessor, type Document, type Node } from '@gltf-transform/core';
+import {
+  Primitive,
+  WebIO,
+  type Accessor,
+  type Document,
+  type Material,
+  type Node,
+  type Texture,
+} from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { IDENTITY, multiply, transformPoint, type Mat4, type Vec3 } from './math.ts';
-import type { SketchMesh, SketchNode } from './mesh.ts';
+import type { SketchMaterial, SketchMesh, SketchNode, SketchSurface } from './mesh.ts';
+
+/** A primitive with no material is drawn in glTF's default: white, opaque, lit. */
+const DEFAULT_MATERIAL: SketchMaterial = {
+  colour: [1, 1, 1, 1],
+  image: -1,
+  alpha: 'OPAQUE',
+  cutoff: 0.5,
+  unlit: false,
+};
 
 export async function meshFromGlb(bytes: Uint8Array): Promise<SketchMesh> {
   return meshFromDocument(await new WebIO().registerExtensions(ALL_EXTENSIONS).readBinary(bytes));
@@ -48,6 +65,39 @@ export function meshFromDocument(doc: Document): SketchMesh {
   const infWeights: number[] = [];
   const jointSet = new Set<number>();
   const el: number[] = [];
+  // Surfaces, for colour thumbnails.
+  const uvs: number[] = [];
+  const colours: number[] = [];
+  const triangleMaterial: number[] = [];
+  const materials: SketchMaterial[] = [DEFAULT_MATERIAL];
+  const materialIndex = new Map<Material, number>();
+  const images: { bytes: Uint8Array; mimeType: string }[] = [];
+  const imageIndex = new Map<Texture, number>();
+  const materialOf = (m: Material | null): number => {
+    if (!m) return 0;
+    const known = materialIndex.get(m);
+    if (known !== undefined) return known;
+    const texture = m.getBaseColorTexture();
+    const bytes = texture?.getImage();
+    let image = -1;
+    if (texture && bytes) {
+      image = imageIndex.get(texture) ?? images.length;
+      if (image === images.length) {
+        images.push({ bytes, mimeType: texture.getMimeType() });
+        imageIndex.set(texture, image);
+      }
+    }
+    const [r, g, b, a] = m.getBaseColorFactor();
+    materials.push({
+      colour: [r, g, b, a],
+      image,
+      alpha: m.getAlphaMode(),
+      cutoff: m.getAlphaCutoff(),
+      unlit: m.getExtension('KHR_materials_unlit') !== null,
+    });
+    materialIndex.set(m, materials.length - 1);
+    return materials.length - 1;
+  };
 
   order.forEach((node, ni) => {
     const mesh = node.getMesh();
@@ -72,7 +122,15 @@ export function meshFromDocument(doc: Document): SketchMesh {
             .filter((s): s is [Accessor, Accessor] => s[0] !== null && s[1] !== null)
         : [];
       const base = positions.length / 3;
+      const material = prim.getMaterial();
+      const uvSet = material?.getBaseColorTextureInfo()?.getTexCoord() ?? 0;
+      const uv = prim.getAttribute(`TEXCOORD_${uvSet}`);
+      const colour = prim.getAttribute('COLOR_0');
       for (let v = 0; v < pos.getCount(); v++) {
+        const t = uv ? uv.getElement(v, []) : [0, 0];
+        uvs.push(t[0] ?? 0, t[1] ?? 0);
+        const c = colour ? colour.getElement(v, []) : [1, 1, 1, 1];
+        colours.push(c[0] ?? 1, c[1] ?? 1, c[2] ?? 1, c[3] ?? 1);
         const p = pos.getElement(v, el).slice(0, 3) as unknown as Vec3;
         if (sets.length) {
           const pairs: { k: number; w: number }[] = [];
@@ -108,20 +166,30 @@ export function meshFromDocument(doc: Document): SketchMesh {
       }
       const idx = prim.getIndices();
       const count = idx ? idx.getCount() : pos.getCount();
-      const seeThrough = (prim.getMaterial()?.getAlphaMode() ?? 'OPAQUE') !== 'OPAQUE';
+      const seeThrough = (material?.getAlphaMode() ?? 'OPAQUE') !== 'OPAQUE';
+      const m = materialOf(material);
       for (let i = 0; i + 2 < count; i += 3) {
         for (let k = 0; k < 3; k++) indices.push(base + (idx ? idx.getScalar(i + k) : i + k));
         cards.push(seeThrough ? 1 : 0);
+        triangleMaterial.push(m);
       }
     }
   });
 
   // Some models mark everything see-through. Then nothing is a card: their edges are the drawing.
   const someCards = cards.includes(1) && cards.filter(Boolean).length * 2 < cards.length;
+  const surface: SketchSurface = {
+    uvs: new Float32Array(uvs),
+    colours: new Float32Array(colours),
+    triangleMaterial: new Uint16Array(triangleMaterial),
+    materials,
+    images,
+  };
   const mesh: SketchMesh = {
     positions: new Float32Array(positions),
     indices: new Uint32Array(indices),
     ...(someCards ? { cards: new Uint8Array(cards) } : {}),
+    surface,
   };
   if (jointSet.size === 0) return mesh;
   return {

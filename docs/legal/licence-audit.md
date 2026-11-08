@@ -38,7 +38,7 @@ Verdicts:
 These apply to every row WP3b adds to `backstage.json`. They extend what `validateManifest` checks today (a licence, a credit and a source for every item; no "not sure" in a shipped item).
 
 1. **Allowed licences for shipped items:** `CC0-1.0`, `CC-BY-3.0`, `CC-BY-4.0`, or `permission` with its record in `docs/legal/`. Never `CC-BY-SA-4.0`, `CC-BY-NC-4.0`, `not-sure`, or anything not on the list. (`own-work` is for learners' imports.) A follow-up contract change in WP3c makes `validateManifest` refuse SA and NC in shipped items too.
-2. **A credit line for every item, CC0 included,** in the forms in section 1, so the About screen and film credits (WP11.4) name every maker.
+2. **A credit line for every item, CC0 included,** in the forms in section 1, so the About screen and film credits (WP11.4) name every maker. The build adds ", changed for StoryStage" to a CC BY glTF model's credit, because it changes every one it ships (owner, 8 Nov 2026; spec 17, section 3a).
 3. **A source URL for every item,** pointing at the item's own page, not the source's home page, with the date it was retrieved.
 4. **One record per item,** never per pack. A pack's licence is checked against each item's own licence file or page as it is added.
 5. **Nothing from a "Don't ship" or "Not yet" row,** until the condition in section 1 is met and this audit is updated.

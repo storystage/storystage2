@@ -6,6 +6,7 @@
  * The pipeline that makes them (MPFB2 in Blender, headless, in the assets repository's CI) reads
  * the same file.
  */
+import { descriptionProblem } from '@storystage/backstage';
 
 /**
  * Asset names in `makehuman_system_assets_cc0.zip` (CC0), as its page lists them:
@@ -64,7 +65,16 @@ export const RETIRED_CLOTHES = [
   'female_casualsuit02',
   'male_casualsuit02',
   'male_casualsuit04',
+  // Its T-shirt carries MakeHuman's logo too, faint once recoloured (found in the renders, 8 Nov).
+  'male_casualsuit06',
 ] as const;
+
+/**
+ * Outfits worn only in their own colours: recolouring the plain shirt and grey jeans
+ * (`male_casualsuit01`) leaves the shirt navy and stains the belt and the jeans' knees instead
+ * (found in the renders, 8 Nov 2026).
+ */
+export const NOT_RECOLOURED = ['male_casualsuit01'] as const;
 
 /**
  * Colours for an outfit, red, green and blue from 0 to 1, so 30 people don't look like a team in
@@ -87,6 +97,12 @@ export interface Person {
   readonly id: string;
   /** The name learners see in Backstage. */
   readonly name: string;
+  /**
+   * What they look like, for the Prompter's catalogue, search and screen readers: age, hair,
+   * clothes, never skin colour or ancestry (owner, 8 Nov 2026; spec 17, section 1, rule 5).
+   * Written from their render, so it changes when the render does.
+   */
+  readonly description: string;
   readonly ageYears: number;
   /** MakeHuman's gender slider: 0 a female body, 1 a male body, 0.5 in between. */
   readonly gender: number;
@@ -151,6 +167,11 @@ export function validatePeople(people: readonly Person[]): Result {
     else if (seen.has(p.id)) e('has the same id as an earlier person.');
     else seen.add(p.id);
     if (typeof p.name !== 'string' || !p.name.trim()) e('needs a name.');
+    const problem =
+      typeof p.description === 'string'
+        ? descriptionProblem(p.description)
+        : 'needs a description.';
+    if (problem) e(problem);
     if (!(p.ageYears >= 1 && p.ageYears <= 90)) e('age must be 1 to 90 years.');
     if (!in01(p.gender)) e('gender must be 0 to 1.');
     for (const k of ['weight', 'muscle', 'height', 'proportions'] as const)
@@ -174,6 +195,8 @@ export function validatePeople(people: readonly Person[]): Result {
         else if (has(RETIRED_CLOTHES, c)) e(`clothes: "${c}" is retired.`);
     if (p.clothesColour !== undefined && !(p.clothesColour in CLOTHES_COLOURS))
       e(`clothesColour must be one of ${Object.keys(CLOTHES_COLOURS).join(', ')}.`);
+    else if (p.clothesColour !== undefined && p.clothes?.some((c) => has(NOT_RECOLOURED, c)))
+      e(`clothes: "${p.clothes.find((c) => has(NOT_RECOLOURED, c))}" can't be recoloured.`);
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
@@ -217,11 +240,11 @@ const clothesWords = (p: Person) =>
 /** The review table: one row per person, in plain words. */
 export function peopleTable(people: readonly Person[]): string {
   return [
-    '| # | Name | Age | Build | MakeHuman ancestry | Skin | Hair | Eyes | Clothes |',
-    '|---|---|---|---|---|---|---|---|---|',
+    '| # | Name | Age | Build | MakeHuman ancestry | Skin | Hair | Eyes | Clothes | Description (for the Prompter) |',
+    '|---|---|---|---|---|---|---|---|---|---|',
     ...people.map(
       (p, i) =>
-        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${clothesWords(p)} |`,
+        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${clothesWords(p)} | ${p.description} |`,
     ),
   ].join('\n');
 }
