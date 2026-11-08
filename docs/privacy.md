@@ -86,7 +86,7 @@ The Windows and Mac apps check for updates at most once a day, by reading a file
 
 ### Problem reports
 
-**Report a problem** (in Settings) makes a file on the device with information that helps fix problems: versions, the settings in force, and a check of the app. The Claude key and personal details are removed. Nothing is sent automatically; a teacher can attach the file to our feedback form. **[Link: the feedback form (WP19.4); how long reports are kept.]**
+**Report a problem** (in Settings) makes a file on the device with information that helps fix problems: versions, the settings in force, and a check of the app. The Claude key and personal details are removed. Nothing is sent automatically; a teacher can attach the file to an email to **[feedback address]** ([how](https://storystage.org/feedback)). We copy what helps into our public list of issues on GitHub without anyone's name or school, and keep the email until the issue is closed, plus 12 months.
 
 ### Optional features a school can switch on
 
@@ -210,7 +210,7 @@ On a school device where the school manages the Prompter, 10b and 10c are replac
 | "Based on Alice 3" | Written from scratch; no Alice code |
 | An optional small picture of the scene could go to the Prompter | **No pictures ever go to the Prompter** (rule 3) |
 | Linux Secret Service key store | No Linux in the first release; iPad and Android stores added |
-| Problem reports opened a GitHub issue | A local file for the feedback form; nothing sent automatically |
+| Problem reports opened a GitHub issue | A local file a teacher may email to us; we file it anonymised; nothing sent automatically |
 | No updates, study, browser version or Drive | Update checks (GitHub), the editor study, the browser version, optional Drive and OneDrive |
 | Speech model downloaded from Hugging Face; voice input only for the Prompter | The default model is in the app (0057); a larger one downloads from GitHub (the update host) only on request; voice input in every text box (0060) |
 | Policy file keys: 3 | 14 keys, and managed configuration on iPad and Android (spec 05 §3) |
