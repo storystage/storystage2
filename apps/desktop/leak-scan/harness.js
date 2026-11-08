@@ -102,6 +102,11 @@ async function main() {
   };
   await invoke('classes_remove', { path: ['pupils', 'pupil-scan'] });
 
+  // The day's usage (24.5): only the one request that reached the network counts, against the
+  // device, as no pupil's folder is open; an id that isn't a safe part is ignored.
+  await invoke('prompter_pupil', { pupil: '../escape' });
+  report.usage = await invoke('prompter_usage');
+
   // The file dialog is opened from Rust only: the page can't reach the plugin itself.
   report.pickerKind = await invoke('picker_kind');
   report.dialogPlugin = await failure(invoke('plugin:dialog|open', { options: {} }));

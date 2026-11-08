@@ -126,7 +126,69 @@ export interface PupilFolder {
   remove(key: ProductionKey): Promise<void>;
 }
 
-/** The class on this device: its pupils, their folders and the bin. */
+/** Who a class Backstage item belongs to: the class, or the one pupil who imported it. */
+export type BackstageOwner = 'class' | PupilId;
+
+/** One of an item's files, at a relative path the import chose (`models/<folder>/model.glb`). */
+export interface BackstageFile {
+  readonly path: string;
+  readonly bytes: Uint8Array;
+}
+
+/** An item in the class Backstage (decision 0066, spec 17 section 5). */
+export interface StoredModel {
+  /** The import's id, such as `class/<Class>/<name>`. Never reused in the class. */
+  readonly id: string;
+  readonly owner: BackstageOwner;
+  /** The item's Backstage record, kept exactly as given. The host never reads models. */
+  readonly record: unknown;
+  readonly addedAt: string;
+  readonly files: readonly { readonly path: string; readonly bytes: number }[];
+}
+
+export interface BinnedStoredModel extends StoredModel {
+  readonly binnedAt: string;
+}
+
+/** The most a class Backstage keeps on a device, all its items' files together. */
+export const CLASS_BACKSTAGE_LIMIT = 2 * 1024 * 1024 * 1024;
+
+/** The longest record, as JSON. */
+export const BACKSTAGE_RECORD_LIMIT = 1024 * 1024;
+
+/**
+ * The class Backstage on this device (decision 0066): imported models, beside the pupil folders,
+ * as records and bytes. Who may import, promote or restore is the studio's to check (policy
+ * `backstage.import`); a pupil sees the class's items and their own.
+ */
+export interface ClassBackstage {
+  list(): Promise<readonly StoredModel[]>;
+  /**
+   * Adds an item, all its files or none. An id already used in the class (live, in the bin, or
+   * emptied from it), a path that isn't plain relative, or a path twice is `invalid`; a file
+   * over `FILE_LIMIT` or a record over `BACKSTAGE_RECORD_LIMIT` is `too_big`; going over
+   * `CLASS_BACKSTAGE_LIMIT` is `full`. An owner who isn't in the class list is `not_found`.
+   */
+  add(
+    owner: BackstageOwner,
+    id: string,
+    record: unknown,
+    files: readonly BackstageFile[],
+  ): Promise<StoredModel>;
+  /** One of an item's files. `not_found` for an id or path it doesn't have. */
+  read(id: string, path: string): Promise<Uint8Array>;
+  /** A pupil's item becomes the class's. For the teacher. */
+  promote(id: string): Promise<void>;
+  /** To the bin, as a production goes (decision 0065). */
+  remove(id: string): Promise<void>;
+  /** For the teacher only. */
+  bin(): Promise<readonly BinnedStoredModel[]>;
+  /** Back from the bin. If its pupil has since left the class, it comes back as the class's. */
+  restore(id: string): Promise<void>;
+  emptyBin(): Promise<void>;
+}
+
+/** The class on this device: its pupils, their folders, the bin and the class Backstage. */
 export interface ClassFolders {
   pupils(): Promise<readonly Pupil[]>;
   addPupil(name: string, picture?: string | null): Promise<Pupil>;
@@ -148,6 +210,11 @@ export interface ClassFolders {
   bin(): Promise<readonly BinnedProduction[]>;
   restore(pupil: PupilId, key: ProductionKey): Promise<void>;
   emptyBin(): Promise<void>;
+  /**
+   * The class Backstage on this device (decision 0066). Removing a pupil sends their own items
+   * to its bin, with their productions.
+   */
+  backstage(): ClassBackstage;
 }
 
 /** A file for Collect or Hand back: `folder/file` inside the folder the teacher chose. */

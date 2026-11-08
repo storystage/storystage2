@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { EditSession, programText, type Program } from '@storystage/ast';
-import { exampleProduction, sceneId, type Production } from '@storystage/production';
+import { programText, type Program } from '@storystage/ast';
+import {
+  ProductionSession,
+  checkReferences,
+  exampleProduction,
+  sceneId,
+  type Production,
+} from '@storystage/production';
 import { checkProgram } from '@storystage/story-api/program-check';
 import type { PlanStep } from './plans.ts';
 import { PrompterRunner } from './runner.ts';
@@ -23,18 +29,13 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   ...s,
 });
 
-function setUp(scene = 's2') {
-  let production: Production = exampleProduction();
-  const session = new EditSession<string>(production.program, { check: (p) => checkProgram(p) });
-  session.subscribe((change) => {
-    production = { ...production, program: change.program };
-  });
+function setUp(scene = 's2', production: Production = exampleProduction()) {
+  const session = new ProductionSession<string>(production, { check: (p) => checkProgram(p) });
   const runner = new PrompterRunner({
     session,
     source: 'prompter',
-    production: () => production,
     scene: () => sceneId(scene),
-    isBackstageItem: (id) => id === 'example/Quadruped/owl',
+    backstageClass: (id) => (id === 'example/Quadruped/owl' ? 'Quadruped' : null),
     checkResult: (frame) => (frame === 'f1' ? { flags: ['Pip ends on the left.'] } : null),
   });
   const run = (name: ToolName, input: unknown): ToolOutcome =>
@@ -243,22 +244,166 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(scene.listeners.map((l) => l.event)).toEqual(['clickOnObject']);
     expect(scene.listeners[0]!.params.map((p) => p.name)).toEqual(['model', 'x', 'y']);
   });
+});
 
-  it('leaves tools that change the scene set-up for WP8.2, changing nothing', () => {
-    const { runner, run, now, original } = setUp();
+describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
+  const owl = (extra: JsonObject = {}) => ({
+    backstage_item: 'example/Quadruped/owl',
+    name: 'owl',
+    position: { x: 1, y: 0, z: 2 },
+    narration: 'An owl appears.',
+    plan_step: 1,
+    ...extra,
+  });
+  const addOwl = step({ kind: 'add', actor: 'owl', action: 'example/Quadruped/owl' });
+  const change = (actor: string, action: string, value = '') =>
+    step({ kind: 'change', actor, action, details: value ? [{ name: 'value', value }] : [] });
+  const scene2 = (session: ProductionSession<string>) =>
+    session.production().scenes.find((s) => s.id === 's2')!.setup;
+
+  it('adds a model as a field and an object in one step, which Undo takes back', () => {
+    const { runner, run, session } = setUp();
+    const before = session.production();
+    runner.begin('add an owl', agreed([addOwl]));
+    expect(run('add_model', owl({ turn_degrees: 90, scale: 2 }))).toMatchObject({
+      ok: true,
+      ids: { name: 'owl' },
+    });
+    runner.end();
+    const type = session.program().types.find((t) => t.name === 'Scene2')!;
+    expect(type.fields.at(-1)).toMatchObject({
+      kind: 'field',
+      name: 'owl',
+      type: { kind: 'story', name: 'Quadruped' },
+      initial: null,
+    });
+    const object = scene2(session).objects.at(-1)!;
+    expect(object).toMatchObject({ id: 'owl', model: 'example/Quadruped/owl', class: 'Quadruped' });
+    expect(object.transform.position).toEqual({ x: 1, y: 0, z: 2 });
+    expect(object.transform.scale).toEqual({ x: 2, y: 2, z: 2 });
+    expect(object.transform.rotation.y).toBeCloseTo(Math.SQRT1_2);
+    // Spec 03, section 2: every object has its field, and every field its object.
+    expect(checkReferences(session.production())).toEqual([]);
+    expect(session.history()).toHaveLength(1);
+    session.undo();
+    expect(session.production()).toEqual(before);
+  });
+
+  it('makes the name one the program accepts, and unique in the scene', () => {
+    const { runner, run, session } = setUp();
     runner.begin(
-      'go',
-      agreed([step({ kind: 'add', actor: 'owl', action: 'example/Quadruped/owl' })]),
+      'add',
+      agreed([step({ ...addOwl, actor: 'fox' }), step({ ...addOwl, actor: 'Barn owl' })]),
     );
-    expect(
-      run('add_model', {
-        backstage_item: 'example/Quadruped/owl',
-        name: 'owl',
-        position: { x: 0, y: 0, z: 0 },
-        narration: 'An owl appears.',
-        plan_step: 1,
-      }),
-    ).toMatchObject({ ok: false, error: 'not_allowed_here' });
+    expect(run('add_model', owl({ name: 'fox' }))).toMatchObject({ ids: { name: 'fox2' } });
+    expect(run('add_model', owl({ name: 'Barn owl', plan_step: 2 }))).toMatchObject({
+      ids: { name: 'barnOwl' },
+    });
+    runner.end();
+    expect(session.history()).toHaveLength(1);
+    expect(checkReferences(session.production())).toEqual([]);
+  });
+
+  it("refuses a model that isn't in Backstage, and a bad scale, changing nothing", () => {
+    const { runner, run, session } = setUp();
+    const before = session.production();
+    runner.begin('add', agreed([step({ ...addOwl, action: 'example/Quadruped/dragon' }), addOwl]));
+    expect(run('add_model', owl({ backstage_item: 'example/Quadruped/dragon' }))).toMatchObject({
+      ok: false,
+      error: 'unknown_object',
+    });
+    expect(run('add_model', owl({ plan_step: 2, scale: 50 }))).toMatchObject({
+      ok: false,
+      error: 'bad_argument',
+    });
+    runner.end();
+    expect(session.production()).toEqual(before);
+  });
+
+  it("adds one of the production's imported models", () => {
+    const p = exampleProduction();
+    const item = {
+      id: 'class/Biped/robot',
+      section: 'cast',
+      class: 'Biped',
+      displayName: 'Robot',
+      themes: [],
+      files: { model: 'robot.glb', thumbnail: 'robot.webp' },
+    };
+    const withImport = {
+      ...p,
+      manifest: { ...p.manifest, models: [{ folder: 'robot', item }] },
+    } as unknown as Production;
+    const { runner, run, session } = setUp('s2', withImport);
+    runner.begin('add', agreed([step({ kind: 'add', actor: 'robot', action: item.id })]));
+    expect(run('add_model', owl({ backstage_item: item.id, name: 'robot' }))).toMatchObject({
+      ok: true,
+    });
+    runner.end();
+    expect(scene2(session).objects.at(-1)).toMatchObject({ id: 'robot', class: 'Biped' });
+  });
+
+  it('changes how an object starts, checking each value', () => {
+    const { runner, run, session } = setUp();
+    runner.begin(
+      'set',
+      agreed([
+        change('fox', 'position', '2, 0, -1'),
+        change('fox', 'paint', 'red'),
+        change('fox', 'opacity'),
+        change('camera', 'turn_degrees'),
+        change('fox', 'vehicle', 'penguin'),
+      ]),
+    );
+    const set = (object: string, property: string, value: string, n: number) =>
+      run('set_property', { object, property, value, narration: 'x', plan_step: n });
+    expect(set('fox', 'position', '2, 0, -1', 1)).toMatchObject({ ok: true });
+    expect(set('fox', 'paint', 'red', 2)).toMatchObject({ ok: true });
+    expect(set('fox', 'opacity', '0.5', 3)).toMatchObject({ ok: true });
+    expect(set('camera', 'turn_degrees', '180', 4)).toMatchObject({ ok: true });
+    expect(set('fox', 'vehicle', 'penguin', 5)).toMatchObject({ ok: true });
+    runner.end();
+    const setup = scene2(session);
+    const fox = setup.objects.find((o) => o.id === 'fox')!;
+    expect(fox.transform.position).toEqual({ x: 2, y: 0, z: -1 });
+    expect(fox).toMatchObject({ paint: 'red', opacity: 0.5, vehicle: 'penguin' });
+    expect(setup.camera.transform.rotation.y).toBeCloseTo(1);
+    expect(session.history()).toHaveLength(1);
+    // Only the set-up changed.
+    expect(session.program()).toEqual(exampleProduction().program);
+  });
+
+  it('refuses what an object or the camera cannot have, and a vehicle that carries itself', () => {
+    const { runner, run } = setUp();
+    runner.begin(
+      'set',
+      agreed([
+        change('owl', 'scale'),
+        change('camera', 'paint'),
+        change('fox', 'paint'),
+        change('fox', 'opacity'),
+        change('penguin', 'vehicle'),
+        change('fox', 'vehicle'),
+      ]),
+    );
+    const set = (object: string, property: string, value: string, n: number) =>
+      run('set_property', { object, property, value, narration: 'x', plan_step: n });
+    expect(set('owl', 'scale', '2', 1)).toMatchObject({ error: 'unknown_object' });
+    expect(set('camera', 'paint', 'red', 2)).toMatchObject({ error: 'bad_argument' });
+    expect(set('fox', 'paint', 'tartan', 3)).toMatchObject({ error: 'bad_argument' });
+    expect(set('fox', 'opacity', '2', 4)).toMatchObject({ error: 'bad_argument' });
+    expect(set('penguin', 'vehicle', 'fox', 5)).toMatchObject({ ok: true });
+    expect(set('fox', 'vehicle', 'penguin', 6)).toMatchObject({ error: 'bad_argument' });
+    runner.end();
+  });
+
+  it('leaves stage_scene for Set the stage from the storyboard (10.10)', () => {
+    const { runner, run, now, original } = setUp();
+    runner.begin('stage', agreed([step({ kind: 'stage', action: 's2' })]));
+    expect(run('stage_scene', { scene: 's2', narration: 'x', plan_step: 1 })).toMatchObject({
+      ok: false,
+      error: 'not_allowed_here',
+    });
     runner.end();
     expect(now()).toEqual(original);
   });

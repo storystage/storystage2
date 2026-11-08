@@ -100,6 +100,12 @@ const checks = [
   ['a path out of the pupil folders is refused', report.classes?.escape === 'internal'],
   ['a file that isn’t there reads as not found', report.classes?.missing === 'not_found'],
   ['the desktop app has the native file picker', report.pickerKind === 'native'],
+  [
+    'only the request that reached the network counts, against the device',
+    report.usage?.entries?.length === 1 &&
+      report.usage.entries[0].pupil === null &&
+      report.usage.entries[0].used === 1,
+  ],
   ['the page can’t open the file dialog itself', /not allowed/i.test(report.dialogPlugin)],
   ['only one request reached the network', requests.length === 1],
   ['the fake server received the stored key', requests.every((line) => line.keyMatched)],

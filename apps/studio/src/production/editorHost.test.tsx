@@ -2,19 +2,17 @@ import type { EditOperation, NodeId } from '@storystage/ast';
 import type { EditorHost, ProgramChange } from '@storystage/editor-contract';
 import { exampleProduction, type Production } from '@storystage/production';
 import { act, renderHook } from '@testing-library/react';
-import { useReducer } from 'react';
+import { useState } from 'react';
 import { describe, expect, it } from 'vitest';
-import { historyReducer, startHistory, type History } from '../storyboard/history.ts';
+import { useStudio } from '../studio.ts';
 import { useEditorHost } from './editorHost.ts';
 
-function useStudio(start: Production, said: string[] = []) {
-  const [history, dispatch] = useReducer(
-    historyReducer<Production>,
-    start,
-    startHistory as (p: Production) => History<Production>,
-  );
-  const host = useEditorHost(history, dispatch, (t) => said.push(t));
-  return { history, host, said };
+/** The studio's session and its editors' host, with announcements going to `said`. */
+function useHost(start: Production, said: string[] = []) {
+  const studio = useStudio(start);
+  const [say] = useState(() => (text: string) => said.push(text));
+  const host = useEditorHost(studio.session, say);
+  return { studio, host };
 }
 
 const p = exampleProduction();
@@ -29,9 +27,9 @@ const switchOff: EditOperation = {
   label: 'Switch off',
 };
 
-describe('the code editors’ host on the studio’s history (14-editors 1)', () => {
+describe('the code editors’ host on the production’s session (14-editors 1)', () => {
   it('applies an editor’s edits as one step, and tells listeners where it came from', () => {
-    const { result } = renderHook(() => useStudio(p));
+    const { result } = renderHook(() => useHost(p));
     const changes: ProgramChange[] = [];
     act(() => {
       result.current.host.subscribe((c) => changes.push(c));
@@ -42,12 +40,12 @@ describe('the code editors’ host on the studio’s history (14-editors 1)', ()
     });
     expect(outcome).toEqual({ ok: true });
     expect(result.current.host.undoLabel()).toBe('Switch off');
-    expect(result.current.host.program()).toBe(result.current.history.present.program);
+    expect(result.current.host.program()).toBe(result.current.studio.production.program);
     expect(changes.map((c) => [c.source, c.label])).toEqual([['blocks', 'Switch off']]);
   });
 
   it('refuses a step the program would refuse, in plain words, and changes nothing', () => {
-    const { result } = renderHook(() => useStudio(p));
+    const { result } = renderHook(() => useHost(p));
     const before = result.current.host.program();
     let outcome: ReturnType<EditorHost['apply']> | undefined;
     act(() => {
@@ -64,14 +62,15 @@ describe('the code editors’ host on the studio’s history (14-editors 1)', ()
   });
 
   it('undoes and redoes through the same history, and says so to listeners', () => {
-    const { result } = renderHook(() => useStudio(p));
+    const { result } = renderHook(() => useHost(p));
     const changes: ProgramChange[] = [];
     act(() => {
       result.current.host.subscribe((c) => changes.push(c));
       result.current.host.apply([switchOff], 'Switch off', 'blocks');
     });
     act(() => result.current.host.undo());
-    expect(result.current.host.program()).toBe(p.program);
+    // Undo runs the inverse edits: the same program, not the same object.
+    expect(result.current.host.program()).toEqual(p.program);
     expect(result.current.host.redoLabel()).toBe('Switch off');
     act(() => result.current.host.redo());
     expect(changes.map((c) => c.source)).toEqual(['blocks', 'undo', 'redo']);
@@ -79,7 +78,7 @@ describe('the code editors’ host on the studio’s history (14-editors 1)', ()
 
   it('passes announcements to the studio’s live region', () => {
     const said: string[] = [];
-    const { result } = renderHook(() => useStudio(p, said));
+    const { result } = renderHook(() => useHost(p, said));
     act(() => result.current.host.announce('Blocks go inside a method.'));
     expect(said).toEqual(['Blocks go inside a method.']);
   });

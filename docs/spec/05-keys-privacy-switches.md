@@ -106,11 +106,15 @@ A request refused by any check above doesn't count towards the caps.
 | Cap | Value | Counted | Reached |
 |---|---|---|---|
 | Per minute | 10 requests, on one device | In memory | `rate_limited`, with the seconds until a slot frees |
-| Per day | `prompter.dailyCap` (3.3), or no limit | On the device, by local date, in the app's data folder | `prompter.capAction` |
+| Per day | `prompter.dailyCap` (3.3), or no limit | Per pupil on the device: whoever's folder is open, or the device when nobody's is. By local date, in the app's data folder | `prompter.capAction` |
 
 When the day's cap is reached and `capAction` is `explainOnly`, the level drops to Explain only for the rest of the day, and requests in other modes get `cap_reached`. With `off`, every request gets `cap_reached`. A further 50% of the cap in Explain only is allowed, and then every request gets `cap_reached`: the graduated limit in 24.5.
 
-Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7). Class-wide counts follow in WP24b.
+Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7).
+
+**Whom a request counts against.** When a pupil's folder opens (`ClassFolders.open`), the host tells the native layer with `prompter_pupil`, and `null` when it closes. `folder(id)`, for Collect and Hand back, doesn't change it. If the native layer can't be told, the folder still opens and requests count against the device, which the teacher's screen shows as "this device" (S5's review of #224). The day's file holds the date, then one `<who> <count>` line per pupil and one for `device`. Choosing another pupil's name would count against them instead, which the name picker's trust model already accepts (PS1), and the spending limit still holds (L7).
+
+**Usage for the teacher (24.5).** `prompter_usage` gives the date, the policy's level, `dailyCap`, `capAction`, and for each pupil with a request today their count and their level now. Ids only: the studio has the names. It reaches the studio as `HostInterface.prompterUsage`. Class-wide totals across devices wait for the route chosen in 24.3 (owner, 8 Nov): the classroom relay would give them live, and an adult's own key is usually on one device.
 
 ### 2.5 Transport
 
@@ -482,6 +486,24 @@ In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the 
 
 Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. On iPad and Android, `picker_kind` is `browser` and the webview's own pickers are used, until the native dialogs there have been tried on devices.
 
+### 6.6 The class Backstage
+
+Decision 0066, spec 17 section 5. Imported models live beside the pupil folders, in the same store, through `ClassFolders.backstage()` (`ClassBackstage` in `files.ts`). The host keeps records and bytes and never reads a model: `packages/backstage-import` checks every file before it's added (spec 17).
+
+```
+backstage/items/<key>/item.json    { id, owner, record, addedAt, files: [{ path, bytes, file }] }
+backstage/items/<key>/f-<time>-<n>  each file, under a name made here
+backstage/bin/<key>/...            the same, with "binnedAt"
+backstage/retired.json             ids emptied from the bin
+```
+
+- **Who it belongs to:** `'class'` or a pupil in the class list. The teacher promotes a pupil's item to the class; the studio checks who may (`backstage.import`). Removing a pupil sends their own items to the bin with their productions, and one restored after its pupil has left comes back as the class's.
+- **All or nothing:** an add writes its files first and `item.json` last, so an item is listed only once it's whole. An add that never finished is swept away at a later add, once its files are a minute old.
+- **Ids are never reused,** live, binned or emptied from the bin, because productions carry imported models by id (decision 0049). The ids emptied are written to `retired.json` before the bin is emptied.
+- **Paths** are the import's own, plain and relative: `/` between parts, none empty, `.` or `..`, no backslash, at most 255 characters. On disk each file has a name made here, so a path never reaches the file system.
+- **Limits:** `FILE_LIMIT` for each file (`too_big`), `BACKSTAGE_RECORD_LIMIT` (1 MiB) for a record (`too_big`), and `CLASS_BACKSTAGE_LIMIT` (2 GiB) for every item's files together, the bin's included (`full`). Records don't count towards it.
+- Changes run through the pupil folders' queue, one at a time.
+
 ## 7. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
@@ -526,6 +548,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Every rule of the folders, on every store (6.1 to 6.3) | `describeClassFoldersContract` over the memory store, the browser store (with a stand-in for its handles) and the native store's commands (over a stand-in for the native side) | Vitest |
 | Safe path parts only (6.1, 6.4) | One fixture of safe and unsafe parts (`classes/fixtures/parts.json`), tested in TypeScript and in Rust, so the two rules stay the same | Vitest, Rust unit |
 | A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
+| The class Backstage (6.6) | `describeClassFoldersContract` on every store: records kept exactly, owners and promotion, ids never reused, plain paths only, the bin and a removed pupil's items; and the limits, an add that fails part-way and the sweep | Vitest |
 | The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
 | The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |
 | The page can't reach the dialog itself (6.5) | `plugin:dialog|open` refused on the real Windows app | The leak scan |

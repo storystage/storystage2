@@ -5,6 +5,7 @@
  */
 export * from './browser-picker.ts';
 export * from './browser-store.ts';
+export * from './class-backstage.ts';
 export * from './class-folders.ts';
 export * from './files.ts';
 export * from './host.ts';
@@ -13,3 +14,4 @@ export * from './speech.ts';
 export * from './store.ts';
 export * from './tauri-picker.ts';
 export * from './tauri-store.ts';
+export * from './usage.ts';
