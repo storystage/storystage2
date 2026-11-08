@@ -144,7 +144,8 @@ class DictationError extends Error {
 - `createDictation` returns `null` when `speech` is `null`, so a field with no `onSpeak` has no mic.
 - `start` takes nothing about the field: the studio knows which field it is for. One `Dictation` serves the whole studio, one take at a time.
 - `state` can be read and subscribed to, so the button shows "Listening…" and the meter without polling. `level` runs from 0 to 1.
-- `options` holds the microphone, the recogniser (whisper in its worker), the learner's model choice, a clock, and what tells it the window lost focus. Until the browser's microphone and worker are built (WP14.1's next part), the studio passes them in; after that they have defaults.
+- `options` holds the microphone, the recogniser (whisper in its worker), the learner's model choice, a clock, and what tells it the window lost focus, so tests pass fakes.
+- **In the app, the studio calls `createBrowserDictation(host.speech, { whisperScript, model })`**, which gives the browser's microphone (an `AudioWorklet`, `mic-worklet.js`), the whisper worker and the page's focus. `whisperScript` is the address of `whisper.js`, which the app serves itself: it is built from pinned sources by `scripts/build-whisper.sh`, with section 1.2's memory settings, and kept with its SHA-256 by the `speech` workflow for the apps to bundle (S8, section 7). It returns `null` where there is no speech or no microphone.
 - **A take can stop listening by itself:** at 30 seconds, or when the window loses focus or the page is hidden. `state` then goes from `listening` to `working`, and the studio calls `stop` to collect the words, as after a tap. A new `start` drops words nobody collected.
 
 The words come back from `stop`, and the studio inserts them (section 1.7).
@@ -243,6 +244,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | The bundled model in the app's resources, the optional download, the check on every load, and their rows in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
 | Running the `Speech models` workflow once, before the first build that offers the optional model (decision 0061) | Owner | Section 1.4 |
 | The mic button beside every field (`TextField`'s `onSpeak`), inserting the words as one undo step, and the Talk to type and model Settings | S5 (WP12) | Sections 1.5, 1.7, 1.11 |
+| Bundling `whisper.js` (the `speech` workflow's `whisper-wasm` artifact, with its SHA-256) in the Tauri apps, served from the app itself so the content security policy needs nothing new | S8 (WP15) | Section 1.11 |
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |
 | Speech in the DPIA: on-device only, the one download | D (WP17.3) | Sections 1.4, 1.6 |

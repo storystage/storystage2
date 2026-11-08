@@ -239,6 +239,10 @@ importers:
       '@storystage/host':
         specifier: workspace:*
         version: link:../host
+    devDependencies:
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   packages/stage:
     dependencies:
