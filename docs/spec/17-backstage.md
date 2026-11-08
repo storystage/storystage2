@@ -210,7 +210,7 @@ Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is
 
 - **One `.glb` or `.vrm` file.**
 - **A `.gltf` file with its `.bin` and pictures,** picked together. Each `uri` must be embedded data or one of the picked files, by plain name (F9): no paths, no addresses.
-- **An `.obj` file with its `.mtl` and pictures,** read by our own reader (decision 0066): geometry, normals, texture coordinates, basic materials (colour, picture, see-through) and their pictures. Groups and objects become nodes, and polygons become triangles. Anything else in the file is left out, and the report says so.
+- **An `.obj` file with its `.mtl` and pictures,** read by our own reader (decision 0066): geometry, normals, texture coordinates, basic materials (colour, picture, see-through) and their pictures. Groups and objects become nodes, and polygons become triangles, as a fan from the first corner. Anything else in the file is left out, and the report says so (`readObj`'s `leftOut`). A picture is found among the picked files by the last part of the name the `.mtl` gives, since exporters often write a path there (`texturesskin.png`); so still nothing but a picked file is read. The reader stops as soon as the file passes the triangle or node ceiling.
 - **Not FBX.** The teacher guide shows how to convert it with Blender. Anything else is refused in plain words.
 
 ### Steps
