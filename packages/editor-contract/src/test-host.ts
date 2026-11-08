@@ -1,8 +1,8 @@
 /**
  * An `EditorHost` for editor tests (both options, and the parity tests' unit level). It keeps
- * an undo history of labelled steps and tells subscribers about every change. Until WP2 lands,
- * edits are applied by the `apply` function given to it (by default they leave the program as
- * it is); S2's edit operations plug in here.
+ * an undo history of labelled steps and tells subscribers about every change. Edits are applied
+ * by the `apply` function given to it, normally `applyEdits` from `@storystage/ast` (by default
+ * they leave the program as it is).
  */
 import type { EditOperation, Program } from '@storystage/ast';
 import type { ChangeSource, EditResult, EditorHost, EditorId, ProgramChange } from './contract.ts';

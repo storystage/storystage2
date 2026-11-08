@@ -1,0 +1,1385 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://storystage.org/spec/program/1/program.schema.json",
+  "title": "StoryStage program",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "types"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "types": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/type"
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]{5,11}$"
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^\\p{L}[\\p{L}\\p{N}_]*$",
+      "maxLength": 60
+    },
+    "textValue": {
+      "type": "string",
+      "maxLength": 10000
+    },
+    "typeRef": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/storyType"
+        },
+        {
+          "$ref": "#/$defs/userType"
+        },
+        {
+          "$ref": "#/$defs/arrayType"
+        }
+      ]
+    },
+    "storyType": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "story"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "userType": {
+      "type": "object",
+      "required": [
+        "kind",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "user"
+        },
+        "type": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "arrayType": {
+      "type": "object",
+      "required": [
+        "kind",
+        "of"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array"
+        },
+        "of": {
+          "$ref": "#/$defs/typeRef"
+        }
+      }
+    },
+    "orNoType": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/typeRef"
+        }
+      ]
+    },
+    "callee": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/storyCallee"
+        },
+        {
+          "$ref": "#/$defs/userCallee"
+        }
+      ]
+    },
+    "storyCallee": {
+      "type": "object",
+      "required": [
+        "kind",
+        "name"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "story"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "userCallee": {
+      "type": "object",
+      "required": [
+        "kind",
+        "method"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "user"
+        },
+        "method": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "args": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/name"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/expression"
+      }
+    },
+    "type": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "extends",
+        "fields",
+        "methods",
+        "listeners"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "type"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "extends": {
+          "$ref": "#/$defs/typeRef"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "methods": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/method"
+          }
+        },
+        "listeners": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/listener"
+          }
+        }
+      }
+    },
+    "field": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "type",
+        "initial"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "field"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "type": {
+          "$ref": "#/$defs/typeRef"
+        },
+        "initial": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/expression"
+            }
+          ]
+        }
+      }
+    },
+    "method": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "returns",
+        "params",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "method"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "returns": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/typeRef"
+            }
+          ]
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "parameter": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "type",
+        "default"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "parameter"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "type": {
+          "$ref": "#/$defs/typeRef"
+        },
+        "default": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/expression"
+            }
+          ]
+        }
+      }
+    },
+    "listener": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "event",
+        "args",
+        "details",
+        "params",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "listener"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "event": {
+          "$ref": "#/$defs/name"
+        },
+        "args": {
+          "$ref": "#/$defs/args"
+        },
+        "details": {
+          "$ref": "#/$defs/args"
+        },
+        "params": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/parameter"
+          }
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "loopItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "type"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "loopItem"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "type": {
+          "$ref": "#/$defs/typeRef"
+        }
+      }
+    },
+    "statement": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/doInOrder"
+        },
+        {
+          "$ref": "#/$defs/doTogether"
+        },
+        {
+          "$ref": "#/$defs/count"
+        },
+        {
+          "$ref": "#/$defs/while"
+        },
+        {
+          "$ref": "#/$defs/forEach"
+        },
+        {
+          "$ref": "#/$defs/eachTogether"
+        },
+        {
+          "$ref": "#/$defs/if"
+        },
+        {
+          "$ref": "#/$defs/local"
+        },
+        {
+          "$ref": "#/$defs/assign"
+        },
+        {
+          "$ref": "#/$defs/comment"
+        },
+        {
+          "$ref": "#/$defs/call"
+        },
+        {
+          "$ref": "#/$defs/return"
+        }
+      ]
+    },
+    "doInOrder": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "doInOrder"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "doTogether": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "doTogether"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "count": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "times",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "count"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "times": {
+          "$ref": "#/$defs/expression"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "while": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "condition",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "while"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "condition": {
+          "$ref": "#/$defs/expression"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "forEach": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "item",
+        "items",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "forEach"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "item": {
+          "$ref": "#/$defs/loopItem"
+        },
+        "items": {
+          "$ref": "#/$defs/expression"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "eachTogether": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "item",
+        "items",
+        "body"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "eachTogether"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "item": {
+          "$ref": "#/$defs/loopItem"
+        },
+        "items": {
+          "$ref": "#/$defs/expression"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "if": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "condition",
+        "then",
+        "else"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "if"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "condition": {
+          "$ref": "#/$defs/expression"
+        },
+        "then": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        },
+        "else": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/statement"
+          }
+        }
+      }
+    },
+    "local": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "name",
+        "type",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "local"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "name": {
+          "$ref": "#/$defs/name"
+        },
+        "type": {
+          "$ref": "#/$defs/typeRef"
+        },
+        "value": {
+          "$ref": "#/$defs/expression"
+        },
+        "constant": {
+          "const": true
+        }
+      }
+    },
+    "assign": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "target",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "assign"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "target": {
+          "$ref": "#/$defs/expression"
+        },
+        "value": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "comment": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "text"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "comment"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "text": {
+          "$ref": "#/$defs/textValue"
+        }
+      }
+    },
+    "call": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "target",
+        "callee",
+        "args",
+        "details"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "call"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "target": {
+          "$ref": "#/$defs/expression"
+        },
+        "callee": {
+          "$ref": "#/$defs/callee"
+        },
+        "args": {
+          "$ref": "#/$defs/args"
+        },
+        "details": {
+          "$ref": "#/$defs/args"
+        }
+      }
+    },
+    "return": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "return"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "enabled": {
+          "const": false
+        },
+        "value": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/expression"
+            }
+          ]
+        }
+      }
+    },
+    "expression": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/number"
+        },
+        {
+          "$ref": "#/$defs/wholeNumber"
+        },
+        {
+          "$ref": "#/$defs/boolean"
+        },
+        {
+          "$ref": "#/$defs/text"
+        },
+        {
+          "$ref": "#/$defs/enum"
+        },
+        {
+          "$ref": "#/$defs/none"
+        },
+        {
+          "$ref": "#/$defs/this"
+        },
+        {
+          "$ref": "#/$defs/fieldRef"
+        },
+        {
+          "$ref": "#/$defs/variableRef"
+        },
+        {
+          "$ref": "#/$defs/functionCall"
+        },
+        {
+          "$ref": "#/$defs/arithmetic"
+        },
+        {
+          "$ref": "#/$defs/compare"
+        },
+        {
+          "$ref": "#/$defs/logic"
+        },
+        {
+          "$ref": "#/$defs/not"
+        },
+        {
+          "$ref": "#/$defs/join"
+        },
+        {
+          "$ref": "#/$defs/arrayOf"
+        },
+        {
+          "$ref": "#/$defs/arrayItem"
+        },
+        {
+          "$ref": "#/$defs/arrayLength"
+        }
+      ]
+    },
+    "number": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "number"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "type": "number"
+        }
+      }
+    },
+    "wholeNumber": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "wholeNumber"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "type": "integer"
+        }
+      }
+    },
+    "boolean": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "boolean"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "type": "boolean"
+        }
+      }
+    },
+    "text": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "text"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "$ref": "#/$defs/textValue"
+        }
+      }
+    },
+    "enum": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "type",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "enum"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "type": {
+          "$ref": "#/$defs/name"
+        },
+        "value": {
+          "$ref": "#/$defs/name"
+        }
+      }
+    },
+    "none": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "none"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "this": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "this"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "fieldRef": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "target",
+        "field"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "fieldRef"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "target": {
+          "$ref": "#/$defs/expression"
+        },
+        "field": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "variableRef": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "variable"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "variableRef"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "variable": {
+          "$ref": "#/$defs/id"
+        }
+      }
+    },
+    "functionCall": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "target",
+        "callee",
+        "args",
+        "details"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "functionCall"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "target": {
+          "$ref": "#/$defs/expression"
+        },
+        "callee": {
+          "$ref": "#/$defs/callee"
+        },
+        "args": {
+          "$ref": "#/$defs/args"
+        },
+        "details": {
+          "$ref": "#/$defs/args"
+        }
+      }
+    },
+    "arithmetic": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "arithmetic"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "op": {
+          "enum": [
+            "add",
+            "subtract",
+            "multiply",
+            "divide",
+            "remainder"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/expression"
+        },
+        "right": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "compare": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "compare"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "op": {
+          "enum": [
+            "equal",
+            "notEqual",
+            "less",
+            "lessOrEqual",
+            "greater",
+            "greaterOrEqual"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/expression"
+        },
+        "right": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "logic": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "op",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "logic"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "op": {
+          "enum": [
+            "and",
+            "or"
+          ]
+        },
+        "left": {
+          "$ref": "#/$defs/expression"
+        },
+        "right": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "not": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "value"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "not"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "value": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "join": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "left",
+        "right"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "join"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "left": {
+          "$ref": "#/$defs/expression"
+        },
+        "right": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "arrayOf": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "of",
+        "items"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "arrayOf"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "of": {
+          "$ref": "#/$defs/typeRef"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/expression"
+          }
+        }
+      }
+    },
+    "arrayItem": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "array",
+        "index"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "arrayItem"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "array": {
+          "$ref": "#/$defs/expression"
+        },
+        "index": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    },
+    "arrayLength": {
+      "type": "object",
+      "required": [
+        "id",
+        "kind",
+        "array"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/id"
+        },
+        "kind": {
+          "const": "arrayLength"
+        },
+        "copiedFrom": {
+          "$ref": "#/$defs/id"
+        },
+        "array": {
+          "$ref": "#/$defs/expression"
+        }
+      }
+    }
+  }
+}
