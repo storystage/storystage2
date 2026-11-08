@@ -70,6 +70,13 @@ export const RETIRED_CLOTHES = [
 ] as const;
 
 /**
+ * Outfits worn only in their own colours: recolouring the plain shirt and grey jeans
+ * (`male_casualsuit01`) leaves the shirt navy and stains the belt and the jeans' knees instead
+ * (found in the renders, 8 Nov 2026).
+ */
+export const NOT_RECOLOURED = ['male_casualsuit01'] as const;
+
+/**
  * Colours for an outfit, red, green and blue from 0 to 1, so 30 people don't look like a team in
  * uniform. The pipeline leaves denim alone and recolours the rest of the outfit.
  */
@@ -188,6 +195,8 @@ export function validatePeople(people: readonly Person[]): Result {
         else if (has(RETIRED_CLOTHES, c)) e(`clothes: "${c}" is retired.`);
     if (p.clothesColour !== undefined && !(p.clothesColour in CLOTHES_COLOURS))
       e(`clothesColour must be one of ${Object.keys(CLOTHES_COLOURS).join(', ')}.`);
+    else if (p.clothesColour !== undefined && p.clothes?.some((c) => has(NOT_RECOLOURED, c)))
+      e(`clothes: "${p.clothes.find((c) => has(NOT_RECOLOURED, c))}" can't be recoloured.`);
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
