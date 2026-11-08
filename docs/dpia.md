@@ -26,10 +26,10 @@ StoryStage is designed to process almost everything **on the device**. There are
 | No. | Flow | Data | Where it goes | When | Status |
 |---|---|---|---|---|---|
 | F1 | **Productions** | The learner's own words (title, logline, synopsis, script, captions, names they type, credits), the program, frame layouts, any imported models with their licence and source | A `.storystage` file on the device, or where the learner or teacher saves it (8.4; and, if switched on, the school's Google Drive or OneDrive, 8.5) | Always | Specified (spec 03); building |
-| F2 | **The Prompter** | The learner's request as text; the production, storyboard and program as text (spec 04 §2); the conversation so far | **Leaves the device:** to Anthropic's API (`api.anthropic.com`), under the Claude account of the adult who added the key | Only in the apps, only after an adult completes set-up, only at a level the teacher allows, only when the learner asks | Specified (specs 04, 05); **to verify** (WP13b) |
-| F3 | **The Claude key** | The adult's API key | The device's secure store; sent only to Anthropic with each request | When the Prompter is set up | Specified (spec 05 §2); building |
-| F4 | **Voice input** | Microphone audio while the learner holds the button | Turned into text on the device by whisper.cpp, then discarded. The text goes where the learner typed it | Only in the apps, when the learner uses a microphone button | **To verify** (WP14a; spec 06 not yet written) |
-| F5 | **The speech model** | None about the learner. The download request reveals the device's IP address to the host | **Leaves the device:** one download of about 75 MB, after the learner or adult agrees | Once per device | **Open:** the host (8, Q9) |
+| F2 | **The Prompter** | The learner's request as text; the production, storyboard and program as text (spec 04 §2); the conversation so far | **Leaves the device:** to Anthropic's API (`api.anthropic.com`), under the Claude account of the adult who added the key | Only in the apps, only after an adult completes set-up, only at a level the teacher allows, only when the learner asks | The gate, key store and transport are built (#108, #109, #110, the leak scan #111), and building a request (#133); **to verify:** the Prompter panel and modes (WP13b) |
+| F3 | **The Claude key** | The adult's API key, typed into the system's own dialog, never the studio (decision 0056) | The device's secure store; sent only to Anthropic with each request | When the Prompter is set up | Built (#109, #110), with the leak scan in CI (#111) |
+| F4 | **Voice input** | Microphone audio while the learner holds a microphone button, at most 30 seconds | Turned into text on the device by whisper.cpp, in memory only, then zeroed and discarded. The text goes into the field for the learner to check (spec 06 §1.5–1.7) | In the apps, beside every text field except the key, with or without the Prompter (decision 0059); a school can turn it off. The browser version: only if S8 and S7 allow it (0059) | Specified (spec 06); **to verify** in the build |
+| F5 | **The speech model** | None | Built into the app (decision 0058): **no download, so speech makes no network traffic at all** | — | Decided |
 | F6 | **Speech output** | Text to be read aloud | The device's own voices only (voices marked `localService`) | When text is read aloud | Specified (14.2) |
 | F7 | **Recorded lines** | The learner's recorded voice, for lines they choose to record | Inside the production file (spec 03 §1) | Release 1.2 (14.4), not the first release | Later |
 | F8 | **Study logs** | A random id per session; which editor, switches, time per study task, errors, undos, help requests, and answers to two short questions per task. No names, program content, camera or voice | On the device until the teacher exports them as a file, then to the study team | Pilot schools only, when a school switches the study on (`study.enabled`) | Specified (7.13); spec 14 §5 not yet written |
@@ -89,9 +89,9 @@ StoryStage is designed to process almost everything **on the device**. There are
 | **The adult who holds the Claude key** (a teacher, club leader or, if Anthropic confirms, a parent) | Anthropic's customer; for a school's key, acting for the school | The Prompter requests sent under their key (F2) |
 | **Anthropic** | Processor for the key holder's organisation, under Anthropic's Commercial Terms and data processing addendum | F2 |
 | **A parent** using StoryStage at home | Likely within the household exemption | Their own family's use |
-| **The StoryStage project** (today the owner, trading as StoryStage; who runs it after the pilot is open) | Controller | The website (F13), update checks (F11), the speech model download if it hosts it (F5), the feedback form (F9), and the editor study's data once received (F8) |
+| **The StoryStage project** (today the owner, trading as StoryStage; who runs it after the pilot is open) | Controller | The website (F13), update checks (F11), the feedback form (F9), and the editor study's data once received (F8) |
 | **The StoryStage project** | Designer and provider | The design of everything else. It receives none of that data, but it decides what the app does with it, so it carries the duty to build privacy in: this DPIA |
-| **Bluehost (Newfold Digital), GitHub (Microsoft), and the speech model's host** | Processors or independent controllers of their own logs, per their terms | F5, F11, F13 |
+| **Bluehost (Newfold Digital), GitHub (Microsoft)** | Processors or independent controllers of their own logs, per their terms | F11, F13 |
 | **Apple, Google** | Independent controllers | F12 |
 | **Google, Microsoft** (Drive, OneDrive) | The school's processors, under the school's existing agreements | F1, if switched on |
 
@@ -160,12 +160,12 @@ Because StoryStage holds nothing centrally, most rights are exercised **on the d
 ### 4.6 Transfers outside the UK
 
 - **Anthropic** (US): a restricted transfer, made by the key holder's organisation. It relies on Anthropic's terms and data processing addendum. **To check** (Q7): the transfer mechanism (the UK Extension to the EU–US Data Privacy Framework, or the IDTA or UK Addendum in Anthropic's DPA), and say which in the privacy notice.
-- **GitHub** (US) for update checks, and the speech model host: IP addresses only.
+- **GitHub** (US) for update checks: IP addresses only.
 - **Bluehost:** **to check** where it hosts `storystage.org` (Q8).
 
 ### 4.7 Processors and suppliers
 
-Each must be named in the privacy notice: Anthropic (F2), Bluehost (F13), GitHub (F11), the speech model host (F5), Poly Pizza only if search is switched on (F14), and Google or Microsoft only if a school switches on Drive or OneDrive (F1).
+Each must be named in the privacy notice: Anthropic (F2), Bluehost (F13), GitHub (F11), Poly Pizza only if search is switched on (F14), and Google or Microsoft only if a school switches on Drive or OneDrive (F1).
 
 ## 5. Risks
 
@@ -206,7 +206,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | R8 | Camera images never leave the device and never go to the Prompter (21.5); recording off by default, teacher setting (`ar.recording`); a reminder about filming people before recording (22.8); no location data stored (22.9); `ar.enabled` lets a school turn AR off. **To revisit** when WP21–22 are specified | S2, S3, owner | Low (to revisit) |
 | R9 | Anthropic's Commercial Terms: no training on customer content; the DPA; the key holder is the customer and can delete their workspace; the privacy notice names Anthropic and links its terms | Owner (Q7) | Low |
 | R10 | An adult must complete set-up; the "AI" badge always shown, and its colour used for nothing else; "a computer program, not a person" (10b); privacy information written for children (6.2); the teacher guide; Learn's guided films | S5, S8, D | Low |
-| R11 | The microphone is used only while the button is held; audio stays in memory and is discarded after transcription; `prompter.voiceInput` lets a school turn voice input off; no microphone on the key field | S7, S8 | Low (**to verify**, WP14a) |
+| R11 | The microphone is used only while the button is held, for at most 30 seconds, and its tracks stop on release, on blur and when the page is hidden, so the system's microphone light goes off; audio stays in memory, is never written, logged or sent, and is zeroed after transcription; the text goes into the field for the learner to check, and nothing is sent to the Prompter until they press Send; the system's own microphone permission is asked the first time; the model is in the app, so nothing is downloaded (0058); a school can turn voice input off; no microphone on the key field (spec 06; decisions 0058, 0059) | S7, S8 | Low (**to verify**, WP14a) |
 | R12 | `website/README.md`'s pre-publish check (no statistics plugins, no Google Fonts or Font Awesome from a CDN, no visitor cookies, nothing from third parties); the browser version on its own origin with no third-party requests (B2); the update check holds nothing about the device (U6); `update.channel=off` | Owner, S8 | Low once the check is done |
 | R13 | Off by default; Google Drive's narrowest scope (`drive.file`), and the equivalent for OneDrive; through the school's own Google or Microsoft accounts, under its agreements (8.5) | S4, owner | Low |
 | R14 | **Decided (0055):** search is for teachers only, never learners, so no child's search words leave the device; models about guns are screened out by whole-word and compound match; every import still shows its report before reaching a class (3.11); a school can switch search off. The owner chose "on for teachers by default" over the recommended "off by default". The screen is a keyword filter, not moderation | S4, S8 | Low |
@@ -254,7 +254,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | Q6 | How the Prompter reaches a group (24.3): what changes for the DPIA under option B (the classroom relay) or C (keys on devices)? |
 | Q7 | Anthropic: how long it keeps API inputs and outputs under the current Commercial Terms, and which UK transfer mechanism its DPA uses. |
 | Q8 | Bluehost and GitHub: where the logs are held, for how long, and under which terms. |
-| Q9 | The speech model download: host it on the update host (GitHub, already in the notice) rather than Hugging Face, so no new third party is added? (Recommended.) |
+| Q9 | *Answered:* the speech model ships inside the app (decision 0058), so there is no download and no host. |
 | Q10 | With R1 at medium after measures, is prior consultation with the ICO needed? |
 | Q11 | The Data (Use and Access) Act 2025's changes for services likely to be used by children: has anything commenced that changes this assessment? |
 | Q12 | The US: Annex B. |
@@ -269,7 +269,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | 4 | **Transparency:** clear, prominent, age-appropriate privacy information, with "bite-sized" explanations at the point of use | Section 6.2; the learner version of the notice; the AI label | S5 to place the point-of-use explanations; test with children in the pilot |
 | 5 | **Detrimental use of data:** no uses shown to be harmful to children's wellbeing | No profiling, ads, rankings or streaks; the Prompter doesn't grade (R9 in the Anthropic note) | None |
 | 6 | **Policies and community standards:** uphold your own published terms | The privacy notice describes only what the app does; tests check the claims (for example that the browser build makes no third-party request, B2) | Publish terms of use with the release (owner) |
-| 7 | **Default settings:** high privacy by default | Prompter off; voice input only on use; study off; search for teachers only (0055); Drive and OneDrive off; AR recording off; first-name credits | None |
+| 7 | **Default settings:** high privacy by default | Prompter off; voice input only while a button is held, on the device, with nothing downloaded or sent; study off; search for teachers only (0055); Drive and OneDrive off; AR recording off; first-name credits | None |
 | 8 | **Data minimisation** | Section 4.2 | None |
 | 9 | **Data sharing:** don't disclose children's data unless there's a compelling reason | Only to Anthropic, only when the learner asks the Prompter, only at a level the teacher allows, under the adult's agreement | None |
 | 10 | **Geolocation:** off by default, obvious when on | No location is collected, including in AR (22.9) | None |
@@ -297,4 +297,5 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 - **No scene pictures** go to the Prompter (StoryStage 1 had an opt-in picture).
 - **No Linux,** so no Secret Service key store; no DPAPI fallback file (spec 05 §2.1).
 - **New flows:** update checks (GitHub), the browser version on its own origin, study logs, Drive and OneDrive, Backstage import and search, and later AR.
+- **Speech:** StoryStage 1 downloaded its model from Hugging Face; StoryStage 2 ships it in the app, so speech makes no network traffic (0058). Voice input now works in every text field, not only for the Prompter (0059).
 - **Problem reports:** StoryStage 1 opened a GitHub issue in the browser; StoryStage 2 builds a local bundle for a feedback form (18.5).
