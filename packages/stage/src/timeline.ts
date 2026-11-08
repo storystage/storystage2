@@ -1264,6 +1264,7 @@ function bodyHash(b: BodyState, n: (x: number) => string): string {
     b.holding.map((h) => h.object).join(','),
     b.look ? `look:${targetName(b.look.target)}:${n(b.look.weight)}` : '',
     b.face ? `face:${b.face.expression}:${n(b.face.amount)}` : '',
+    b.fading ? `fading:${b.fading.expression}:${n(b.fading.amount)}` : '',
     n(b.blink),
   ].join('/');
 }

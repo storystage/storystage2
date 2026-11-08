@@ -78,6 +78,8 @@ export interface Motion {
   readonly human?: HumanPose;
   /** An expression, `amount` of the way there (0 to 1), and how far the eyes are shut. */
   readonly face?: { readonly expression: string; readonly amount: number } | null;
+  /** The face before, part way gone, while a new one comes in. */
+  readonly fading?: { readonly expression: string; readonly amount: number } | null;
   readonly blink?: number;
   readonly clips?: readonly ClipPose[];
   readonly reach?: readonly ReachPose[];
@@ -245,7 +247,7 @@ export class ObjectView {
     );
     if (state.joints.size > 0 || moving || this.posed) this.pose(state, motion, moving);
     if (state.opacity !== this.opacity) this.fade(state.opacity);
-    this.showFace(motion.face ?? null, motion.blink ?? 0);
+    this.showFace(motion.face ?? null, motion.fading ?? null, motion.blink ?? 0);
     const blend = state.paintBlend;
     const painted = `${state.paint}|${blend ? `${blend.from}|${blend.amount}` : ''}`;
     if (painted !== this.painted) {
@@ -375,9 +377,9 @@ export class ObjectView {
   }
 
   /** Sets the morph targets of the expression shown and the blink; the rest go back to none. */
-  private showFace(face: Motion['face'], blink: number): void {
+  private showFace(face: Motion['face'], fading: Motion['fading'], blink: number): void {
     if (this.faces.size === 0) return;
-    const key = `${face?.expression ?? ''}|${face?.amount ?? 0}|${blink}`;
+    const key = `${face?.expression ?? ''}|${face?.amount ?? 0}|${fading?.expression ?? ''}|${fading?.amount ?? 0}|${blink}`;
     if (key === this.faceShown) return;
     this.faceShown = key;
     for (const list of this.faces.values()) for (const { target } of list) target.influence = 0;
@@ -385,6 +387,7 @@ export class ObjectView {
       for (const { target, weight } of this.faces.get(expression) ?? [])
         target.influence = Math.min(1, target.influence + weight * amount);
     };
+    if (fading) set(fading.expression, fading.amount);
     if (face) set(face.expression, face.amount);
     if (blink > 0) set('blink', blink);
   }
