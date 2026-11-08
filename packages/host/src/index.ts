@@ -3,6 +3,7 @@
  *
  * Owners: S8 and S5. Workplan: WP15.3, and WP15 for WP14.1. Decision 0028.
  */
+export * from './browser-picker.ts';
 export * from './browser-store.ts';
 export * from './class-folders.ts';
 export * from './files.ts';
