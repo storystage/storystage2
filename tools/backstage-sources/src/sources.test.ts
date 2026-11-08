@@ -264,6 +264,12 @@ describe('buildSources', () => {
     const byId = Object.fromEntries(manifest.items.map((i: { id: string }) => [i.id, i]));
     const knight = byId['kaykit/Biped/knight'];
     expect(knight.files.model).toBe('models/kaykit/Biped/knight.glb');
+    // Its colour thumbnail, as WebP.
+    expect(knight.files.thumbnail).toBe('thumbnails/kaykit/Biped/knight.webp');
+    const webp = await readFile(join(dir, knight.files.thumbnail));
+    expect(webp.subarray(0, 4).toString('latin1')).toBe('RIFF');
+    expect(webp.subarray(8, 12).toString('latin1')).toBe('WEBP');
+    expect(existsSync(join(dir, 'thumbnails/osa/Biped/robert.webp'))).toBe(true);
     expect(knight.joints).toContain('leftUpperArm');
     expect(knight.source).toEqual({
       url: 'https://github.com/kaykit/pack',

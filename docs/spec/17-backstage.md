@@ -230,6 +230,19 @@ node tools/make-sketches/src/cli.ts <backstage folder> [--dry-run]
 
 It reads `backstage.json`, which must validate, and every model it names. It writes the sketches, each item's `sketches` list and the touch-up list. It is re-run whenever WP3b adds models.
 
+## 7a. Colour thumbnails
+
+Each model's colour picture for Backstage's browse views (`files.thumbnail`, section 1). The code is `renderThumbnail` in `packages/sketches/src/thumbnail.ts`. Like the sketches, it is drawn on the CPU in TypeScript (owner, 25 Oct 2026), so the same code runs in the build and, for imports, in a Web Worker (section 5).
+
+### Rules
+
+1. **Front view, standing,** as the manifest says: a model that can be posed stands in the sketches' standing pose, arms down; anything else as modelled. Looked at square on, fitted to a 320-pixel square (a sketch's default size) with a small margin, on a clear background.
+2. **Its own colours,** softly lit from the front, above and to the left, never darker than half its colour, so it reads on light and dark themes alike. The material's base colour, picture and vertex colours are used; unlit materials (`KHR_materials_unlit`, many VRM avatars) are drawn as they are. Masked parts are cut out, and see-through parts are drawn last, back to front.
+3. **Smooth edges:** each pixel is the average of nine samples.
+4. **The caller decodes pictures:** sharp in the build tools, as a devDependency only (section 4, rule 4), and the browser's own decoder in the app. A picture that can't be decoded is left out, and its material's plain colour stands in.
+5. **The same model always gives the same picture.**
+6. **The build writes it** as `thumbnails/<id>.webp` (`tools/backstage-sources`), about 5 to 7 KB each, and points `files.thumbnail` at it. Items not yet rebuilt keep their front sketch until they are.
+
 ## 8. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
@@ -252,6 +265,9 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 4.4: sharp is not among the app's dependencies | `pnpm licences` (CI): sharp's libvips is LGPL, so it would fail as linked | CI |
 | 4a.1–4a.4: shipped models only, by section and class with exact ids; joint sets listed once; every section named; the same text whatever the order; three characters a token; 200 described people fit | `packages/backstage/src/catalogue.test.ts` | Unit (Vitest) |
 | 1.5, 4a.5: descriptions are one line, at most 120 characters, with no skin colour or ancestry words, in source lists and `people.json`; the build writes them, `prompter-catalogue.txt` and its size | `packages/backstage/src/catalogue.test.ts`, `tools/backstage-sources/src/sources.test.ts`, `tools/makehuman-export/src/people.test.ts` | Unit (Vitest) |
+| 7a.1–7a.5: square, centred, clear background; unlit colours exact in sRGB; soft light; pictures multiplied in, left out without a decoder or when they can't be decoded; masked parts cut out, see-through parts blended once; characters standing and fitted; the same picture every time; the reader's materials, pictures, UVs and vertex colours | `packages/sketches/src/thumbnail.test.ts` | Unit (Vitest) |
+| 7a.4, 7a.6: sharp decodes pictures and writes WebP with alpha; the build writes `thumbnails/<id>.webp` and points `files.thumbnail` at it | `tools/backstage-sources/src/sharp-encoder.test.ts`, `sources.test.ts` | Unit (Vitest) |
+| 7a: thumbnails of the shipped models look right | The owner's review of the assets pull request that adds them | Manual |
 | 4: models within budget run at 30 fps on the reference Chromebook | Device run of spike 1.2 (#6), which also replaces the provisional figures | Device |
 | 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
 | 7.3: see-through cards drawn as one shape; short inner lines left out; cards read from glTF, unless the whole model is see-through | `packages/sketches/src/render.test.ts`, `gltf.test.ts` | Unit (Vitest) |

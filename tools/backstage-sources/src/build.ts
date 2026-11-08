@@ -1,7 +1,8 @@
 /**
  * WP3.7: builds a Backstage folder from its source lists (`sources/*.json`).
  *
- * For each item: fetch it, pinned (`fetch.ts`); write it to `models/<id>.<glb|vrm>`; measure it;
+ * For each item: fetch it, pinned (`fetch.ts`); write it to `models/<id>.<glb|vrm>`, and its
+ * colour thumbnail to `thumbnails/<id>.webp` (`renderThumbnail`, WP3c); measure it;
  * map its skeleton onto the joint map (WP3.3), using a VRM's own bone table where it has one;
  * and write its `backstage.json` item with the licence, credit line and source from the list.
  * Then draw every item's sketches (`@storystage/make-sketches`, WP10.5), and write
@@ -39,11 +40,11 @@ import {
   type TextureEncoder,
 } from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
-import { meshFromModel, readModel } from '@storystage/sketches';
+import { meshFromModel, readModel, renderThumbnail, type ImageDecoder } from '@storystage/sketches';
 import { backstageId, type JointName } from '@storystage/story-api';
 import { fetchModel, httpFetch, type Fetcher } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
-import { sharpEncoder } from './sharp-encoder.ts';
+import { sharpDecoder, sharpEncoder, thumbnailWebp } from './sharp-encoder.ts';
 import { excludesFor, validateSources, type SourceItem } from './sources.ts';
 
 export interface Provenance {
@@ -80,10 +81,12 @@ export async function buildSources(
     readonly today?: string;
     readonly only?: string;
     readonly encodeTexture?: TextureEncoder;
+    readonly decodeImage?: ImageDecoder;
   } = {},
 ): Promise<BuildReport> {
   const fetcher = options.fetcher ?? httpFetch;
   const encodeTexture = options.encodeTexture ?? sharpEncoder;
+  const decodeImage = options.decodeImage ?? sharpDecoder;
   const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const lists = (await readdir(join(dir, 'sources'))).filter((f) => f.endsWith('.json')).sort();
@@ -142,6 +145,11 @@ export async function buildSources(
     // and how big it was then all stay as the first build recorded them.
     const first = fetched[0]?.url.startsWith('kept:') ? provenance[item.id] : undefined;
     const retrieved = first?.retrieved ?? today;
+    // Its colour picture for Backstage's browse views (spec 17, section 7a).
+    const thumbnail = `thumbnails/${item.id}.webp`;
+    await mkdir(dirname(join(dir, thumbnail)), { recursive: true });
+    const picture = await renderThumbnail(mesh, { decodeImage });
+    await writeFile(join(dir, thumbnail), await thumbnailWebp(picture));
 
     built.set(item.id, {
       id: backstageId(item.id),
@@ -150,7 +158,7 @@ export async function buildSources(
       displayName: item.displayName,
       themes: item.themes,
       ...(item.description ? { description: item.description } : {}),
-      files: { model, thumbnail: `sketches/${item.id}/front.svg` },
+      files: { model, thumbnail },
       ...(vrm ? { vrm } : {}),
       joints:
         mapping && mapping.status === 'mapped' ? (mapping.joints as JointName[]) : 'prop-only',
