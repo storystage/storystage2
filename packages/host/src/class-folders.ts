@@ -5,6 +5,7 @@
  */
 import {
   BACKUPS_KEPT,
+  DEVICE_PUPIL,
   FILE_LIMIT,
   FileError,
   type BackupInfo,
@@ -248,7 +249,8 @@ export function storedClassFolders(
     ): Promise<ProductionInfo> => {
       const title = checkName(name);
       if (bytes.length > limit) throw new FileError('too_big');
-      await pupilById(pupil.id);
+      // The device's folder is outside the class list, so it can't have been removed from it.
+      if (pupil.id !== DEVICE_PUPIL.id) await pupilById(pupil.id);
       const made = key ?? `production-${random()}`;
       const folder = home('pupils', pupil.id, made);
       const previous = key === null ? null : await readMeta(folder);
@@ -396,6 +398,15 @@ export function storedClassFolders(
       return current;
     },
 
+    async openDevice() {
+      // Only on a device with no class list, so a pupil can't keep work where Collect never
+      // reaches it, or use the Prompter outside their own count (S4's review of #248).
+      if ((await readClass()).length > 0) throw new FileError('invalid');
+      await queue(() => sweep(DEVICE_PUPIL.id)).catch(() => undefined);
+      current = folderFor(DEVICE_PUPIL);
+      return current;
+    },
+
     folder,
 
     current: () => current,
@@ -415,7 +426,7 @@ export function storedClassFolders(
 
     restore(pupil, key) {
       return queue(async () => {
-        await pupilById(pupil);
+        if (pupil !== DEVICE_PUPIL.id) await pupilById(pupil);
         const binned = home('bin', pupil, key);
         const meta = await readMeta(binned);
         const kept: Meta = {
