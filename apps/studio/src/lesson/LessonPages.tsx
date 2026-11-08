@@ -31,11 +31,14 @@ export function NamePage({
   pupils,
   problem = null,
   onChoose,
+  onSettings,
 }: {
   pupils: readonly Pupil[];
   /** Why the last name chosen couldn't be opened. */
   problem?: string | null;
   onChoose: (pupil: PupilId) => void;
+  /** The teacher's way to Settings, in the page's corner (the owner's choice, 8 Nov). */
+  onSettings?: () => void;
 }) {
   const [search, setSearch] = useState('');
   const sorted = [...pupils].sort((a, b) => a.name.localeCompare(b.name, 'en-GB'));
@@ -45,6 +48,13 @@ export function NamePage({
     : sorted;
   return (
     <main className="ls-page" aria-labelledby="ls-title">
+      {onSettings && (
+        <div className="ls-corner">
+          <Button variant="quiet" icon="settings" onPress={onSettings}>
+            {words.t('lesson.settings')}
+          </Button>
+        </div>
+      )}
       <h1 id="ls-title" className="ls-title">
         {words.t('lesson.whoToday')}
       </h1>

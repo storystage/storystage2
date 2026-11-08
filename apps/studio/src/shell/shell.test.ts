@@ -9,6 +9,7 @@ const STYLESHEETS = [
   '../storyboard/storyboard.css',
   '../production/production.css',
   '../lesson/lesson.css',
+  '../settings/settings.css',
 ];
 
 const read = (path: string) =>

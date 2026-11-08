@@ -113,19 +113,24 @@ export function Shell({
                 </ModePanel>
               ))}
             </div>
-            {overlay && (
-              <section className="studio-overlay" aria-labelledby="studio-overlay-title">
-                <h1 id="studio-overlay-title" className="studio-overlay-title">
-                  {words.t(overlay === 'learn' ? 'shell.learn.title' : 'shell.settings.title')}
-                </h1>
-                <Button variant="quiet" icon="chevron_left" onPress={() => setOverlay(null)}>
-                  {words.t('shell.back', { mode: modeName })}
-                </Button>
-                {overlay === 'learn' ? learn : settings}
-              </section>
-            )}
           </main>
         </ModeTabs>
+        {/*
+          Learn and Settings lie over the working area, outside the mode tabs: React Aria's Tabs
+          renders everything inside it while building its collection, except tab panels, and a
+          list or grid in there would find no state.
+        */}
+        {overlay && (
+          <section className="studio-overlay" aria-labelledby="studio-overlay-title">
+            <h1 id="studio-overlay-title" className="studio-overlay-title">
+              {words.t(overlay === 'learn' ? 'shell.learn.title' : 'shell.settings.title')}
+            </h1>
+            <Button variant="quiet" icon="chevron_left" onPress={() => setOverlay(null)}>
+              {words.t('shell.back', { mode: modeName })}
+            </Button>
+            {overlay === 'learn' ? learn : settings}
+          </section>
+        )}
       </div>
       <div className="studio-too-narrow">
         <LogoMark />

@@ -30,7 +30,14 @@ export function FilmMenu({
   ];
   return (
     <MenuTrigger>
-      <AriaButton className="ls-film-button" aria-label={words.t('film.menu', { title })}>
+      <AriaButton
+        className="ls-film-button"
+        aria-label={
+          pupilName
+            ? words.t('film.menuOf', { title, name: pupilName })
+            : words.t('film.menu', { title })
+        }
+      >
         <span className="ls-film-title">{title}</span>
         {pupilName && <span className="ls-film-pupil"> · {pupilName}</span>}
         <Icon name="arrow_drop_down" size={20} />
