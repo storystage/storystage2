@@ -35,7 +35,12 @@ let snapshot = '';
 socket.onmessage = ({ data }) => {
   const message = JSON.parse(data);
   if (message.method === 'HeapProfiler.addHeapSnapshotChunk') snapshot += message.params.chunk;
-  waiting.get(message.id)?.(message.result);
+  // Only answers to requests this script sent: the id is checked before anything is called.
+  if (Number.isInteger(message.id) && waiting.has(message.id)) {
+    const resolve = waiting.get(message.id);
+    waiting.delete(message.id);
+    resolve(message.result);
+  }
 };
 const send = (method, params = {}) =>
   new Promise((resolve) => {

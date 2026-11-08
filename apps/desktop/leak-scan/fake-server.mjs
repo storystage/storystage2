@@ -1,14 +1,19 @@
-// A small Claude for the leak scan. It compares the key by hash, so the key is never printed, and
-// logs one line per request. `tools/fake-claude` is for the Prompter's own tests.
+// A small Claude for the leak scan. It compares the key by a PBKDF2 value that `test-key set`
+// writes, so the server never holds the key and never prints it, and logs one line per request.
+// `tools/fake-claude` is for the Prompter's own tests.
 //
-//   node fake-server.mjs <file with the key's SHA-256> <log file> <port>
+//   node fake-server.mjs <file with the key's PBKDF2 value> <log file> <port>
 
-import { createHash } from 'node:crypto';
+import { pbkdf2Sync, timingSafeEqual } from 'node:crypto';
 import { appendFileSync, readFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 
 const [hashFile, logFile, port] = process.argv.slice(2);
-const expected = readFileSync(hashFile, 'utf8').trim();
+const expected = Buffer.from(readFileSync(hashFile, 'utf8').trim(), 'hex');
+
+// The same as `test-key`: PBKDF2-HMAC-SHA256, this salt, this many rounds, 32 bytes.
+const derive = (key) => pbkdf2Sync(key, 'storystage-leak-scan', 100_000, 32, 'sha256');
+const matches = (key) => typeof key === 'string' && timingSafeEqual(derive(key), expected);
 
 const delta = (text) => ({
   type: 'content_block_delta',
@@ -25,8 +30,7 @@ const events = [
 ];
 
 createServer((request, response) => {
-  const sent = createHash('sha256').update(String(request.headers['x-api-key'])).digest('hex');
-  const line = { url: request.url, keyMatched: sent === expected };
+  const line = { url: request.url, keyMatched: matches(request.headers['x-api-key']) };
   appendFileSync(logFile, `${JSON.stringify(line)}\n`);
   request.resume();
   if (!line.keyMatched) {

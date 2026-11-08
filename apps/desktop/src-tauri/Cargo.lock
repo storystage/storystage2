@@ -3298,6 +3298,7 @@ dependencies = [
  "futures-util",
  "keyring",
  "reqwest",
+ "ring",
  "rustls",
  "serde_json",
  "storystage-gate",

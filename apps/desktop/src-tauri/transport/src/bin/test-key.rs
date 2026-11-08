@@ -1,6 +1,7 @@
 //! The leak scan's helper (`apps/desktop/leak-scan`). Never prints the key.
 //!
-//!   test-key set <hash-file>   store a new random test key, and write its SHA-256 to <hash-file>
+//!   test-key set <hash-file>   store a new random test key, and write a PBKDF2 value of it to
+//!                              <hash-file>, for the fake server to compare against
 //!   test-key scan <file>...    exit 1 if any file holds the key, saying which but not what
 //!   test-key selftest          prove `scan` would find a planted key
 //!   test-key delete            remove the test key
@@ -10,9 +11,20 @@
 
 use std::collections::hash_map::RandomState;
 use std::hash::{BuildHasher, Hasher};
+use std::num::NonZeroU32;
 
+use ring::pbkdf2;
 use storystage_transport::key;
 use storystage_transport::Key;
+
+/// The same as `fake-server.mjs`: PBKDF2-HMAC-SHA256, this salt, this many rounds, 32 bytes.
+fn derive(text: &str) -> String {
+    let rounds = NonZeroU32::new(100_000).expect("not zero");
+    let mut out = [0u8; 32];
+    let salt = b"storystage-leak-scan";
+    pbkdf2::derive(pbkdf2::PBKDF2_HMAC_SHA256, rounds, salt, text.as_bytes(), &mut out);
+    out.iter().map(|byte| format!("{byte:02x}")).collect()
+}
 
 fn new_test_key() -> String {
     let part = || RandomState::new().build_hasher().finish();
@@ -33,10 +45,10 @@ fn main() {
     match args.first().map(String::as_str) {
         Some("set") => {
             let text = new_test_key();
-            let hash = storystage_gate::hash_text(&text);
+            let derived = derive(&text);
             key::save(&Key::new(text).expect("the test key isn't empty")).expect("store refused");
-            std::fs::write(&args[1], hash).expect("could not write the hash");
-            println!("Stored a test key. Its SHA-256 is in {}.", args[1]);
+            std::fs::write(&args[1], derived).expect("could not write the derived value");
+            println!("Stored a test key. A PBKDF2 value of it is in {}.", args[1]);
         }
         Some("scan") => {
             let text = stored();
