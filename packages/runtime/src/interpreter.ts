@@ -22,6 +22,7 @@ import {
 import { StoryFault, type StageCommand } from '@storystage/story-api';
 import { RuntimeFault, type Scheduler, type Task, type Thread } from './scheduler.ts';
 import {
+  JOINT_LIBRARY,
   RUNTIME_LIBRARY,
   sceneLibrary,
   type StoryCall,
@@ -148,6 +149,7 @@ export class Interpreter {
     this.library = {
       ...RUNTIME_LIBRARY,
       ...options.library,
+      ...JOINT_LIBRARY,
       ...sceneLibrary(options.scenes ?? []),
     };
     this.emitCommand = options.emit;
