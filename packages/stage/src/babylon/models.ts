@@ -31,6 +31,7 @@ import {
   type StoryClass,
 } from '@storystage/story-api';
 import type { Box } from '../hull.ts';
+import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
 import { ObjectView } from './view.ts';
 
@@ -104,15 +105,19 @@ export class ModelLibrary {
     for (const node of copy.rootNodes) node.parent = root;
     const meshes = root.getChildMeshes().filter((m) => m.getTotalVertices() > 0);
     const paintable = plainSurfaces(object, meshes, this.scene);
-    return {
-      view: new ObjectView({
-        root,
-        meshes,
-        box: boxOf(root),
-        paintable,
-        joints: jointNodes(root, cls, file.joints),
+    const box = boxOf(root);
+    const joints = jointNodes(root, cls, file.joints);
+    // The root is still at the origin, unturned, so a joint's place in the scene is its rest.
+    const jointPlaces = new Map(
+      [...joints].map(([joint, node]) => {
+        node.computeWorldMatrix(true);
+        const { x, y, z } = node.getAbsolutePosition();
+        return [joint, { x, y, z }] as const;
       }),
-      joints: file.joints === 'prop-only' ? [] : file.joints,
+    );
+    return {
+      view: new ObjectView({ root, meshes, box, paintable, joints }),
+      shape: { joints: file.joints === 'prop-only' ? [] : file.joints, box, jointPlaces },
     };
   }
 
@@ -132,7 +137,7 @@ interface LoadedModel {
 
 export interface PlacedModel {
   readonly view: ObjectView;
-  readonly joints: readonly JointName[];
+  readonly shape: Shape;
 }
 
 /** Gives each mesh a plain surface in place of the glTF one, sharing its texture. */

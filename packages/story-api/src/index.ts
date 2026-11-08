@@ -6,7 +6,9 @@
  * WP0.8: the shared vocabulary that the runtime, the stage, Backstage and the production
  * format all use. It lives here because the runtime may depend only on `ast` and `story-api`.
  * WP4.2: the metadata (`catalog/`), which `docs/spec/02-story-api.md`'s tables come from.
+ * WP4.3: the procedures and functions (`procedures/`), `STORY_LIBRARY`, which the runtime runs.
  */
 export * from './vocabulary.ts';
 export * from './stage-commands.ts';
 export * from './catalog/index.ts';
+export * from './procedures/index.ts';

@@ -3,9 +3,9 @@
  * (WP0.8). It works the scene out with the same `Timeline` as the real stage, records every call
  * made to it, and lets a test fire stage events.
  *
- * Approximations, listed so tests don't rely on them: collisions are "closer than 0.5 m"; the
- * camera's shot is recorded, not framed; the rendered frame is a few bytes derived from the state
- * hash.
+ * Approximations, listed so tests don't rely on them: collisions are "closer than 0.5 m"; every
+ * object has a stand-in's size; the camera's shot is recorded, not framed; the rendered frame is a
+ * few bytes derived from the state hash.
  */
 import {
   StageError,
@@ -25,7 +25,7 @@ import {
 } from '@storystage/story-api';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
 import { length, sub } from '../math.ts';
-import { Timeline, hashState, type Touching } from '../timeline.ts';
+import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
 
 export { hashState };
 
@@ -72,7 +72,8 @@ export class FakeStage implements Stage {
         throw new StageError('unknown_model', `There is no model called ${o.model}.`);
     }
     const jointsFor = this.options.jointsFor ?? defaultJoints;
-    this.timeline.load(setup, (o) => jointsFor(o.class, o.model));
+    // Every object is the size of a stand-in, so the fake and the real stage agree on them.
+    this.timeline.load(setup, (o) => standInShape(jointsFor(o.class, o.model)));
   }
 
   objects(): readonly ObjectId[] {

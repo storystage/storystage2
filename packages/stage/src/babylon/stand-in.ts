@@ -10,19 +10,19 @@ import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder.js';
 import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
 import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
 import type { Scene } from '@babylonjs/core/scene.js';
-import type { Box } from '../hull.ts';
+import { STAND_IN_BOX as BOX } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
 import { ObjectView } from './view.ts';
 
-const BODY = { width: 0.5, height: 1, depth: 0.5 } as const;
+/** The block drawn is the box the timeline measures: `STAND_IN_BOX`. */
+const BODY = {
+  width: BOX.max.x - BOX.min.x,
+  height: BOX.max.y - BOX.min.y,
+  depth: BOX.max.z - BOX.min.z,
+} as const;
 const NOSE = 0.15;
 const PALE = { r: 0.82, g: 0.84, b: 0.88 };
 const DARK = { r: 0.32, g: 0.36, b: 0.44 };
-
-const BOX: Box = {
-  min: { x: -BODY.width / 2, y: 0, z: -BODY.depth / 2 },
-  max: { x: BODY.width / 2, y: BODY.height, z: BODY.depth / 2 },
-};
 
 /** The label needs a 2D canvas, which a headless stage doesn't have. */
 function addLabel(text: string, name: string, scene: Scene): AbstractMesh | null {
