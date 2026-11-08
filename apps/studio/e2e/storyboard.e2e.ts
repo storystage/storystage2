@@ -140,3 +140,69 @@ test('axe finds no serious issues with the sketch library and sketches on the fr
   await page.keyboard.press('Enter');
   expect(await seriousIssues(page)).toEqual([]);
 });
+
+const scriptLines = (page: Page) =>
+  page
+    .getByRole('grid', { name: /^Lines in scene/ })
+    .getByRole('row')
+    .evaluateAll((rows) => rows.map((r) => (r as HTMLElement).innerText.replace(/\s+/g, ' ')));
+
+test('lines are written, pinned and reordered with the keyboard alone', async ({ page }) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  const script = page.getByRole('complementary', { name: 'Script' });
+  const newLine = script.getByRole('textbox', { name: 'New line' });
+  await newLine.fill('Night. The owl lands on a low branch.');
+  await newLine.press('Enter');
+  const who = script.getByRole('combobox', { name: 'Who says it' });
+  await who.fill('Owl');
+  await who.press('Tab');
+  await newLine.fill('Here is the key.');
+  await newLine.press('Enter');
+  await expect.poll(() => scriptLines(page)).toHaveLength(2);
+  expect((await scriptLines(page))[1]).toContain('Here is the key.');
+  // Pin line 2 to the current frame from the keyboard.
+  await script.getByRole('button', { name: 'Pin line 2' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitem', { name: 'Pin to frame 3.1, this frame' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('list', { name: 'Lines pinned to frame 3.1' })).toContainText(
+    'Owl: Here is the key.',
+  );
+  // Move line 2 above line 1.
+  await script.getByRole('button', { name: 'Move line 2' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.sb-line[data-dragging]')).toHaveCount(1);
+  for (let i = 0; i < 2; i++) {
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(150);
+  }
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await scriptLines(page))[0]).toContain('Here is the key.');
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Move line 2');
+  await page.screenshot({ path: 'test-results/script-pane.png' });
+});
+
+test('axe finds no serious issues with the script pane, a line open and a menu open', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  const script = page.getByRole('complementary', { name: 'Script' });
+  for (const text of ['The gate is locked.', 'Who has the key?']) {
+    await script.getByRole('textbox', { name: 'New line' }).fill(text);
+    await script.getByRole('textbox', { name: 'New line' }).press('Enter');
+  }
+  await expect.poll(() => scriptLines(page)).toHaveLength(2);
+  expect(await seriousIssues(page)).toEqual([]);
+  await page
+    .getByRole('grid', { name: /^Lines in scene/ })
+    .getByRole('row')
+    .first()
+    .click();
+  await expect(script.getByRole('textbox', { name: 'Line 1' })).toBeVisible();
+  expect(await seriousIssues(page)).toEqual([]);
+  await script.getByRole('button', { name: 'Pin line 2' }).click();
+  await expect(page.getByRole('menu')).toBeVisible();
+  expect(await seriousIssues(page)).toEqual([]);
+});

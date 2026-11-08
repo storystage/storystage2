@@ -12,7 +12,7 @@ import {
   resizeSketch,
   scaleSketch,
 } from '@storystage/sketches';
-import { Button, type IconName } from '@storystage/ui';
+import { Button, Icon, type IconName } from '@storystage/ui';
 import {
   useEffect,
   useRef,
@@ -24,6 +24,7 @@ import {
 import { DropZone, type DropZoneProps } from 'react-aria-components';
 import { words, type WordKey } from '../strings.ts';
 import { updateFrame } from './frames.ts';
+import { pinnedLines } from './lines.ts';
 import { SketchArt, sketchAspect, sketchName, type SketchItem } from './SketchArt.tsx';
 import { SKETCH_DRAG_TYPE } from './SketchLibrary.tsx';
 
@@ -95,6 +96,7 @@ export function FrameCanvas({
   const current = ordered.find((s) => s.id === chosen) ?? null;
   const focusTarget = current ?? ordered.at(-1) ?? null;
   const full = frame.sketches.length >= SKETCH_LIMIT;
+  const pinned = pinnedLines(p, frame.id);
 
   // Keyboard choice moves focus with it, while focus is in the list.
   useEffect(() => {
@@ -381,6 +383,22 @@ export function FrameCanvas({
             )}
           </div>
         </DropZone>
+        {pinned.length > 0 && (
+          <ul
+            className="sb-canvas-lines"
+            aria-label={words.t('storyboard.canvas.pinned', { number })}
+          >
+            {pinned.map((l) => (
+              <li key={l.id} className="sb-canvas-line">
+                <Icon name="keep" size={18} filled />
+                <span>
+                  {l.character && <strong className="sb-canvas-speaker">{l.character}: </strong>}
+                  {l.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </figure>
       <p id="sb-canvas-how" className="ss-visually-hidden">
         {words.t('storyboard.canvas.howTo')}
