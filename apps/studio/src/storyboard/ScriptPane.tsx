@@ -29,6 +29,7 @@ import {
   pinLine,
   sceneLines,
   setLineText,
+  tidyLine,
   setSpeaker,
   speakerOf,
   speakers,
@@ -213,7 +214,17 @@ export function ScriptPane({
                     `line:${open.id}`,
                   )
                 }
-                onBlur={onLeave}
+                onBlur={() => {
+                  // Tidied as the script file keeps it, in the same step as the typing.
+                  const tidy = tidyLine(p, open.id);
+                  if (tidy !== p)
+                    onChange(
+                      words.t('step.writeLine', { number: lineNumber(p, open.id) }),
+                      tidy,
+                      `line:${open.id}`,
+                    );
+                  onLeave();
+                }}
               />
               <WhoSaysIt
                 // A fresh field when the line or who says it changes elsewhere (undo).
