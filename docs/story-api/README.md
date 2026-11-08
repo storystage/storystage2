@@ -1,7 +1,7 @@
 # The StoryStage Story API
 
 <!-- reference:version -->
-**Version 0.9.0, a draft for comment.** 99 blocks, 14 events, 18 details and 19 value types.
+**Version 0.10.0, a draft for comment.** 99 blocks, 14 events, 18 details and 19 value types.
 <!-- /reference:version -->
 
 The Story API is the vocabulary young people use to make 3D animated films in code: the characters and things in a scene, what they can do ("move forward 1", "say Hello", "walk to the tree"), what can be asked about them, and the events a film can react to. It keeps the vocabulary of [Alice 3](https://www.alice.org/), made at Carnegie Mellon University, and adds what film-making needs. StoryStage 2 implements it; anyone may implement it too.
@@ -104,7 +104,7 @@ Alice's shapes (box, sphere, cone and the others) are Props here. A joint can tu
 | `Key` | `a`, `b`, `c`, `d`, `e`, `f`, `g`, `h`, `i`, `j`, `k`, `l`, `m`, `n`, `o`, `p`, `q`, `r`, `s`, `t`, `u`, `v`, `w`, `x`, `y`, `z`, `digit0`, `digit1`, `digit2`, `digit3`, `digit4`, `digit5`, `digit6`, `digit7`, `digit8`, `digit9`, `left`, `right`, `up`, `down`, `space`, `enter`, `tab`, `backSpace`, `escape`, `shift`, `control`, `alt`, `comma`, `period`, `minus`, `equals`, `slash`, `semicolon`, `quote` | alice |
 | `ShotType` | `wide`, `medium`, `closeUp`, `overTheShoulder`, `follow`, `twoShot` | storystage |
 | `Gesture` | `wave`, `nod`, `shrug`, `clap`, `point` | storystage |
-| `Expression` | `happy`, `sad`, `angry`, `surprised`, `relaxed`, `blink` | storystage |
+| `Expression` | `neutral`, `happy`, `sad`, `angry`, `surprised`, `relaxed`, `blink` | storystage |
 | `SceneEdge` | `left`, `right`, `back`, `front` | storystage |
 | `JointChain` | `neck`, `tail` | storystage |
 <!-- /reference:types -->
