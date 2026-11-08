@@ -32,6 +32,13 @@ describe('whom the Prompter counts against (spec 05 section 2.4)', () => {
     expect(told).toEqual([ava.id, ben.id, null]);
   });
 
+  it('is nobody when the device’s own folder is open', async () => {
+    const { told, invoke } = native();
+    const classes = countingFor(memoryClassFolders(), invoke);
+    await classes.openDevice();
+    expect(told).toEqual([null]);
+  });
+
   it('isn’t changed by Collect and Hand back reaching another folder', async () => {
     const { told, invoke } = native();
     const classes = countingFor(memoryClassFolders(), invoke);

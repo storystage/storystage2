@@ -28,6 +28,10 @@ export interface Studio {
   commit(label: string, next: Production, key?: string): void;
   /** A scene step (`addScene`, `deleteScene`, `moveScene`…): the program and the rest together. */
   step(step: SceneStep): { ok: true } | { ok: false; reason: string };
+  /** Opens another film: a new session and history, read-only with the reason when it is. */
+  open(production: Production, readOnly?: string | null): void;
+  /** Why the open film can't be changed, or `null`. */
+  readonly readOnly: string | null;
   /** Ends a run of keyed changes: the learner has left the field. */
   seal(): void;
   undo(): void;
@@ -38,13 +42,21 @@ export interface Studio {
 
 const restOf = ({ program: _, ...rest }: Production): ProductionRest => rest;
 
+/** A session for one film, with the Story API's rules on every program edit. */
+function sessionFor(production: Production, readOnly: string | null) {
+  return new ProductionSession<StudioSource>(production, {
+    check: (p) => checkProgram(p),
+    ...(readOnly ? { readOnly } : {}),
+  });
+}
+
 export function useStudio(start: Production): Studio {
-  const session = useMemo(
-    () => new ProductionSession<StudioSource>(start, { check: (p) => checkProgram(p) }),
-    // The session lives as long as the studio; opening a file loads into it (`session.load`).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
-  );
+  // A session for each film: opening one starts a new history, read-only if the film is.
+  const [film, setFilm] = useState(() => ({
+    session: sessionFor(start, null),
+    readOnly: null as string | null,
+  }));
+  const { session } = film;
   const [production, setProduction] = useState(() => session.production());
   // The key of the group open now, if any.
   const open = useRef<string | null>(null);
@@ -88,8 +100,16 @@ export function useStudio(start: Production): Studio {
         close();
         session.redo();
       },
+      open(next, readOnly = null) {
+        open.current = null;
+        setOpenLabel(null);
+        const fresh = sessionFor(next, readOnly);
+        setFilm({ session: fresh, readOnly });
+        setProduction(fresh.production());
+      },
+      readOnly: film.readOnly,
       undoLabel: openLabel ?? session.undoLabel(),
       redoLabel: session.redoLabel(),
     };
-  }, [session, production, openLabel]);
+  }, [session, production, openLabel, film.readOnly]);
 }

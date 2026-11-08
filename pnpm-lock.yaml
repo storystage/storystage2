@@ -60,6 +60,9 @@ importers:
       '@storystage/editor-contract':
         specifier: workspace:*
         version: link:../../packages/editor-contract
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../../packages/host
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
