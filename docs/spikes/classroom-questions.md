@@ -39,7 +39,7 @@ Devices:
 5. Windows only: how is software installed (Intune, Group Policy, by hand)? Can you deploy a policy file to `C:\ProgramData`?
 
 Network:
-6. Does the Wi-Fi let devices in one room see each other? (Client isolation decides whether a classroom relay, option B in 24.3, can work.)
+6. Does the Wi-Fi let devices in one room see each other? (Client isolation decides whether a classroom relay, option B in 24.3, can work.) If you can, run `relay-probe` on two laptops there (`docs/spikes/24.3-classroom-relay.md`, section 5), and ask who would have to allow it through the firewall.
 7. Is there a web filter or proxy? Would it allow `api.anthropic.com`, and model downloads (whisper, about 75 MB, once per device)?
 8. Is bandwidth limited when a whole class downloads at once?
 

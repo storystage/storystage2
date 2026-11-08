@@ -5,6 +5,7 @@
  * the StoryStage program, comes with WP9b. It reads untrusted files, so it runs in the import
  * worker (spec 15, section 3): it uses no DOM and fetches nothing.
  */
+export * from './decode.ts';
 export * from './read.ts';
 export { decodeText, encodingOf, type TextEncoding } from './text.ts';
 export {

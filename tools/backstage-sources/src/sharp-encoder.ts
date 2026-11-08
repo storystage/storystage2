@@ -8,13 +8,19 @@ import sharp from 'sharp';
 import type { TextureEncoder } from '@storystage/backstage/optimize';
 import type { ImageDecoder, Picture } from '@storystage/sketches';
 
-export const sharpEncoder: TextureEncoder = async (image, _mimeType, maxPx) =>
+/** Always WebP, so it gives the bytes alone. */
+export const sharpEncoder = (async (
+  image: Uint8Array,
+  _mimeType: string,
+  maxPx: number,
+  _size?: readonly [number, number],
+) =>
   new Uint8Array(
     await sharp(image)
       .resize({ width: maxPx, height: maxPx, fit: 'inside', withoutEnlargement: true })
       .webp({ quality: 85, alphaQuality: 90 })
       .toBuffer(),
-  );
+  )) satisfies TextureEncoder;
 
 /** Decodes a model's picture for its colour thumbnail (`renderThumbnail`). */
 export const sharpDecoder: ImageDecoder = async (bytes) => {

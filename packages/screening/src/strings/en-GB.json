@@ -1,0 +1,21 @@
+{
+  "roughCut.title": "Rough cut",
+  "roughCut.player": "The film",
+  "roughCut.label.frame": "Scene {scene} · Frame {frame}",
+  "roughCut.label.scene": "Scene {scene}",
+  "roughCut.play": "Play",
+  "roughCut.pause": "Pause",
+  "roughCut.fullScreen": "Full screen",
+  "roughCut.bar": "Where the film is",
+  "roughCut.segment": "{n}. {heading}",
+  "roughCut.noHeading": "No heading yet",
+  "roughCut.waits": "waits for a click",
+  "roughCut.order": "Running order",
+  "roughCut.card.move": "Move scene {n}",
+  "roughCut.card.length": "{time}",
+  "roughCut.card.lengthWaits": "{time}+",
+  "roughCut.fix": "Fix on the Production stage",
+  "roughCut.measuring": "Getting the film ready…",
+  "roughCut.cap": "This film is longer than 10 minutes, so the rough cut stops there.",
+  "roughCut.step.move": "Move scene {n}"
+}

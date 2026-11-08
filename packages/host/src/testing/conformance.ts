@@ -167,6 +167,30 @@ export function describeClassFoldersContract(
       await failsWith('not_found', () => folders.restore(pupil.id, key));
     });
 
+    it('can undo removing a pupil, from the bin, with the same id', async () => {
+      const { folders, folder, pupil } = await withPupil();
+      const { key } = await folder.write(null, 'Film', bytes('x'));
+      await folders.addPupil('Ben');
+      await folders.removePupil(pupil.id);
+      await failsWith('not_found', () => folders.restore(pupil.id, key));
+      expect((await folders.binnedPupils()).map((entry) => entry.pupil)).toEqual([pupil]);
+
+      expect(await folders.restorePupil(pupil.id)).toEqual(pupil);
+      expect((await folders.pupils()).map((each) => each.id)).toContain(pupil.id);
+      expect(await folders.binnedPupils()).toEqual([]);
+      await folders.restore(pupil.id, key);
+      expect(text(await (await folders.open(pupil.id)).read(key))).toBe('x');
+      await failsWith('not_found', () => folders.restorePupil(pupil.id));
+    });
+
+    it('forgets removed pupils when the bin is emptied', async () => {
+      const { folders, pupil } = await withPupil();
+      await folders.removePupil(pupil.id);
+      await folders.emptyBin();
+      expect(await folders.binnedPupils()).toEqual([]);
+      await failsWith('not_found', () => folders.restorePupil(pupil.id));
+    });
+
     it('sends a removed pupil’s work to the bin, not away', async () => {
       const { folders, folder, pupil } = await withPupil();
       await folder.write(null, 'Film', bytes('x'));
@@ -229,6 +253,28 @@ export function describeClassFoldersContract(
       await (await folders.openDevice()).write(null, 'At home', bytes('x'));
       const ava = await folders.addPupil('Ava');
       expect(await (await folders.open(ava.id)).list()).toEqual([]);
+    });
+
+    it('moves the device’s films into a pupil’s folder once there’s a class list', async () => {
+      const folders = await make();
+      const device = await folders.openDevice();
+      const { key } = await device.write(null, 'At home', bytes('one'));
+      await device.write(key, 'At home', bytes('two'));
+      await device.write(null, 'Another', bytes('x'));
+      await folders.close();
+      const ava = await folders.addPupil('Ava');
+      expect((await folders.deviceFilms()).map((info) => info.name).sort()).toEqual([
+        'Another',
+        'At home',
+      ]);
+      await failsWith('not_found', () => folders.moveDeviceFilms('nobody'));
+      await failsWith('not_found', () => folders.moveDeviceFilms('device'));
+      expect(await folders.moveDeviceFilms(ava.id)).toBe(2);
+      expect(await folders.deviceFilms()).toEqual([]);
+      const moved = await folders.open(ava.id);
+      expect(text(await moved.read(key))).toBe('two');
+      expect((await moved.backups(key)).length).toBe(1);
+      expect(await folders.moveDeviceFilms(ava.id)).toBe(0);
     });
 
     it('won’t open the device’s folder once there’s a class list', async () => {

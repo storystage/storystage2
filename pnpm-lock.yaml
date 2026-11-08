@@ -154,12 +154,27 @@ importers:
 
   packages/backstage-import:
     dependencies:
+      '@gltf-transform/core':
+        specifier: ^4.5.1
+        version: 4.5.1
+      '@gltf-transform/extensions':
+        specifier: ^4.5.1
+        version: 4.5.1
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/sketches':
+        specifier: workspace:*
+        version: link:../sketches
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
+      meshoptimizer:
+        specifier: ^1.3.0
+        version: 1.3.0
     devDependencies:
       '@storystage/host':
         specifier: workspace:*
@@ -201,6 +216,15 @@ importers:
 
   packages/export:
     dependencies:
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
       mediabunny:
         specifier: ^1.62.0
         version: 1.62.0
@@ -277,6 +301,55 @@ importers:
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
+
+  packages/screening:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/export':
+        specifier: workspace:*
+        version: link:../export
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../playback
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      '@storystage/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-aria-components:
+        specifier: ^1.22.1
+        version: 1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+    devDependencies:
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@testing-library/user-event':
+        specifier: ^14.6.8
+        version: 14.6.8(@testing-library/dom@10.4.2)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      happy-dom:
+        specifier: ^21.0.4
+        version: 21.0.4
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
 
   packages/selftest:
     dependencies:

@@ -10,6 +10,7 @@ import {
   FileError,
   type BackupInfo,
   type BinnedProduction,
+  type BinnedPupil,
   type ClassFolders,
   type ProductionInfo,
   type ProductionKey,
@@ -22,6 +23,8 @@ import { checkPath, isSafePart, type FileStore, type StorePath } from './store.t
 
 const NAME_LIMIT = 80;
 const CLASS_FILE: StorePath = ['class.json'];
+/** Removed pupils, beside the bin rather than in it: a store lists the bin's folders, not files. */
+const BINNED_PUPILS: StorePath = ['binned-pupils.json'];
 const META = 'meta.json';
 const ORIGINAL = 'original.storystage';
 /** How old a first save's file must be before a folder with no meta.json is swept away. */
@@ -145,6 +148,20 @@ export function storedClassFolders(
 
   const writeClass = (pupils: readonly Pupil[]) =>
     store.write(CLASS_FILE, toJson({ version: 1, pupils } satisfies ClassFile));
+
+  const readBinnedPupils = async (): Promise<readonly BinnedPupil[]> => {
+    const value = await readJson(BINNED_PUPILS);
+    if (value === null) return [];
+    if (
+      !Array.isArray(value) ||
+      !value.every(
+        (entry) => isObject(entry) && isPupil(entry.pupil) && typeof entry.binnedAt === 'string',
+      )
+    ) {
+      throw new FileError('unreadable');
+    }
+    return value as BinnedPupil[];
+  };
 
   const pupilById = async (id: PupilId) => {
     const pupil = (await readClass()).find((each) => each.id === id);
@@ -387,6 +404,15 @@ export function storedClassFolders(
           await store.move(folder, home('bin', id, key));
         }
         await backstage.binOwnedBy(id);
+        // Kept before the class list changes, so the pupil can always be put back.
+        const removed = pupils.find((each) => each.id === id);
+        const binned = (await readBinnedPupils()).filter((entry) => entry.pupil.id !== id);
+        if (removed) {
+          await store.write(
+            BINNED_PUPILS,
+            toJson([{ pupil: removed, binnedAt: now() }, ...binned]),
+          );
+        }
         await writeClass(pupils.filter((each) => each.id !== id));
         await store.remove(checkPath(['pupils', id]));
         if (current?.pupil.id === id) current = null;
@@ -396,6 +422,24 @@ export function storedClassFolders(
     async open(id) {
       current = await folder(id);
       return current;
+    },
+
+    async deviceFilms() {
+      return (await productions('pupils', DEVICE_PUPIL.id)).map(({ key, meta }) => info(key, meta));
+    },
+
+    moveDeviceFilms(to) {
+      return queue(async () => {
+        if (to === DEVICE_PUPIL.id) throw new FileError('not_found');
+        await pupilById(to);
+        let moved = 0;
+        for (const { key } of await productions('pupils', DEVICE_PUPIL.id)) {
+          // Keys are random, so a pupil's folder never already has one.
+          await store.move(home('pupils', DEVICE_PUPIL.id, key), home('pupils', to, key));
+          moved += 1;
+        }
+        return moved;
+      });
     },
 
     async openDevice() {
@@ -440,8 +484,25 @@ export function storedClassFolders(
       });
     },
 
+    binnedPupils: readBinnedPupils,
+
+    restorePupil(id) {
+      return queue(async () => {
+        const binned = await readBinnedPupils();
+        const entry = binned.find((each) => each.pupil.id === id);
+        if (!entry) throw new FileError('not_found');
+        const pupils = await readClass();
+        if (!pupils.some((each) => each.id === id)) await writeClass([...pupils, entry.pupil]);
+        await store.write(BINNED_PUPILS, toJson(binned.filter((each) => each.pupil.id !== id)));
+        return entry.pupil;
+      });
+    },
+
     emptyBin() {
-      return queue(() => store.remove(['bin']));
+      return queue(async () => {
+        await store.remove(['bin']);
+        await store.remove(BINNED_PUPILS);
+      });
     },
 
     backstage: () => backstage,

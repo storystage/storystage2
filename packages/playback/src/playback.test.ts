@@ -19,6 +19,7 @@ import { STORY_LIBRARY, micros, objectId, type StageCommand } from '@storystage/
 import { describe, expect, it } from 'vitest';
 import { LiveClock } from './clock.ts';
 import { fastForward } from './fast-forward.ts';
+import { FILM_CAP, measure } from './measure.ts';
 import { Playback, type PlaybackEvent } from './playback.ts';
 import { errorWords } from './words.ts';
 
@@ -170,6 +171,38 @@ describe('playing a production', () => {
       return events.filter((e) => e.kind !== 'running');
     };
     expect(await once()).toEqual(await once());
+  });
+
+  it("asks the stage to draw a crossfade, over the new scene's time", async () => {
+    const p = exampleProduction();
+    const order = p.manifest.runningOrder.map((e, i) =>
+      i === 1 ? { ...e, transition: { kind: 'crossfade' as const, duration: micros(0.5) } } : e,
+    );
+    const { events, stage } = await play({
+      ...p,
+      manifest: { ...p.manifest, runningOrder: order },
+    });
+    expect(scenes(events)).toEqual(['s1 start', 's2 cut', 's3 crossfade']);
+    const loads = stage.calls.filter((c) => c.method === 'load');
+    expect(loads.map((c) => c.args[1])).toEqual([undefined, undefined, { crossfade: micros(0.5) }]);
+    expect(events.filter((e) => e.kind === 'crossfade')).toEqual([
+      { kind: 'crossfade', from: 's2', to: 's3', duration: micros(0.5) },
+    ]);
+  });
+
+  it('hands the stage the next scene to get ready, in a production only', async () => {
+    const preloads = (stage: FakeStage) =>
+      stage.calls
+        .filter((c) => c.method === 'preload')
+        .map((c) => (c.args[0] as { readonly objects: readonly unknown[] }).objects.length);
+    const p = exampleProduction();
+    const { stage } = await play(p);
+    // After loading s1, s2 is likely; after s2, s3; after s3, nothing.
+    expect(preloads(stage)).toHaveLength(2);
+    const order = stage.calls.map((c) => c.method).filter((m) => m === 'load' || m === 'preload');
+    expect(order).toEqual(['load', 'preload', 'load', 'preload', 'load']);
+    const { stage: rehearsal } = await play(p, { mode: 'rehearse' });
+    expect(preloads(rehearsal)).toEqual([]);
   });
 
   it('starts from a given scene', async () => {
@@ -458,5 +491,117 @@ describe('errorWords', () => {
       expect(words).toMatch(/\.$/);
       expect(words).not.toMatch(/\b(ast|node|field|invocation|edit|token|schema|api|sorry)\b/i);
     }
+  });
+});
+
+describe('measure', () => {
+  const measured = async (production: Production, limit?: number) => {
+    await settle();
+    return measure({
+      production,
+      stage: new FakeStage(),
+      port: runtime(),
+      seed: 1,
+      ...(limit === undefined ? {} : { limit: micros(limit) }),
+    });
+  };
+
+  it('gives each scene its start and length, end to end, and the whole length', async () => {
+    const timeline = await measured(exampleProduction());
+    expect(timeline.end).toEqual({ kind: 'ended' });
+    expect(timeline.scenes.map((s) => [s.scene, s.transition?.kind ?? null])).toEqual([
+      ['s1', null],
+      ['s2', 'cut'],
+      ['s3', 'fadeToBlack'],
+    ]);
+    expect(timeline.scenes[0]!.start).toBe(0);
+    for (const [i, s] of timeline.scenes.entries()) {
+      expect(s.length).toBeGreaterThan(0);
+      const next = timeline.scenes[i + 1];
+      expect(s.start + s.length).toBe(next ? next.start : timeline.length);
+    }
+    expect(timeline.scenes.every((s) => !s.waits)).toBe(true);
+  });
+
+  it('gives every line, on the film clock, for captions', async () => {
+    const timeline = await measured(exampleProduction());
+    expect(timeline.lines.map((l) => [l.scene, l.object, l.kind, l.text])).toEqual([
+      ['s1', 'penguin', 'say', 'Oh no, the ice is moving!'],
+      ['s2', 'fox', 'say', "Don't be scared. I'm lost too."],
+      ['s3', 'penguin', 'say', 'Home! Thank you, Fox.'],
+    ]);
+    for (const line of timeline.lines) {
+      const scene = timeline.scenes.find((s) => s.scene === line.scene)!;
+      expect(line.start).toBeGreaterThanOrEqual(scene.start);
+      expect(line.start + line.duration).toBeLessThanOrEqual(scene.start + scene.length);
+    }
+  });
+
+  it('says when each block started running', async () => {
+    const first = say('First.');
+    const second = say('Second.');
+    const timeline = await measured(withSceneOne([first, second]));
+    const at = (node: NodeId) => timeline.blocks.filter((b) => b.node === node);
+    expect(at(first.id)).toEqual([{ scene: 's1', node: first.id, at: 0 }]);
+    expect(at(second.id)).toHaveLength(1);
+    expect(at(second.id)[0]!.at).toBeGreaterThan(0);
+  });
+
+  it('gives the same timeline every time', async () => {
+    expect(await measured(exampleProduction())).toEqual(await measured(exampleProduction()));
+  });
+
+  it('marks a scene that waits on the viewer, and ends it after its last command', async () => {
+    const timeline = await measured(
+      withSceneOne([say('Click me.')], [listener('clickOnObject', [say('Ow.')])]),
+    );
+    expect(timeline.end).toEqual({ kind: 'ended' });
+    expect(timeline.scenes[0]).toMatchObject({ scene: 's1', waits: true });
+    expect(timeline.scenes.map((s) => s.scene)).toEqual(['s1', 's2', 's3']);
+  });
+
+  it('ends at an error, with the error in plain words', async () => {
+    const bad: Statement = {
+      id: id(),
+      kind: 'call',
+      target: the(PENGUIN),
+      callee: { kind: 'story', name: 'say' },
+      args: { text: { id: id(), kind: 'number', value: 3 } },
+      details: {},
+    };
+    const timeline = await measured(withSceneOne([say('Before.'), bad]));
+    expect(timeline.end).toMatchObject({
+      kind: 'error',
+      scene: 's1',
+      error: { code: 'bad_value', node: bad.id },
+    });
+    expect(timeline.scenes.map((s) => s.scene)).toEqual(['s1']);
+    expect(timeline.lines.map((l) => l.text)).toEqual(['Before.']);
+  });
+
+  it('stops when cancelled, ending the worker, and says so', async () => {
+    await settle();
+    const controller = new AbortController();
+    let ended = 0;
+    const running = measure({
+      production: exampleProduction(),
+      stage: new FakeStage(),
+      port: runtime(),
+      seed: 1,
+      terminate: () => ended++,
+      signal: controller.signal,
+    });
+    controller.abort();
+    await expect(running).rejects.toMatchObject({ name: 'AbortError' });
+    expect(ended).toBe(1);
+  });
+
+  it('stops at the length cap', async () => {
+    const timeline = await measured(exampleProduction(), 1.5);
+    expect(timeline.end).toEqual({ kind: 'cap' });
+    expect(timeline.length).toBe(micros(1.5));
+    const last = timeline.scenes.at(-1)!;
+    expect(last.start + last.length).toBe(micros(1.5));
+    expect(FILM_CAP).toBe(micros(600));
   });
 });

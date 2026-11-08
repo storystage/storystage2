@@ -61,7 +61,9 @@ export type ImportProblemCode =
   | 'tooManyTriangles'
   | 'tooManyJoints'
   | 'tooManyNodes'
-  | 'tooManyPictures';
+  | 'tooManyPictures'
+  /** The import ran past its time limit (`IMPORT_TIME_LIMIT_MS`). */
+  | 'tooSlow';
 
 export interface ImportProblem {
   readonly code: ImportProblemCode;
@@ -298,6 +300,24 @@ const isObject = (v: unknown): v is Json =>
 const list = (v: unknown): unknown[] => (Array.isArray(v) ? v : []);
 const count = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : 0);
 
+const COMPONENTS: Readonly<Record<string, number>> = {
+  SCALAR: 1,
+  VEC2: 2,
+  VEC3: 3,
+  VEC4: 4,
+  MAT2: 4,
+  MAT3: 9,
+  MAT4: 16,
+};
+const COMPONENT_BYTES: Readonly<Record<number, number>> = {
+  5120: 1,
+  5121: 1,
+  5122: 2,
+  5123: 2,
+  5125: 4,
+  5126: 4,
+};
+
 /** A `uri` that names one of the picked files: a plain name, perhaps percent-encoded. */
 function plainName(uri: string): string | null {
   let name: string;
@@ -376,8 +396,32 @@ export function checkGltfJson(json: unknown, others: readonly string[] = []): Im
       );
   }
 
-  // Ceilings. Triangles are counted from what each primitive claims; the reader checks the claims.
+  // Sizes (F8): each accessor inside its buffer view, and each view inside its buffer, so a count
+  // the JSON claims falsely can't read past its own data.
   const accessors = list(json.accessors);
+  const views = list(json.bufferViews);
+  const buffers = list(json.buffers);
+  for (const v of views) {
+    if (!isObject(v)) return [DAMAGED];
+    const buffer = typeof v.buffer === 'number' ? buffers[v.buffer] : undefined;
+    if (!isObject(buffer)) return [DAMAGED];
+    if (count(v.byteOffset) + count(v.byteLength) > count(buffer.byteLength)) return [DAMAGED];
+  }
+  for (const a of accessors) {
+    if (!isObject(a)) return [DAMAGED];
+    if (a.bufferView === undefined) continue;
+    const view = typeof a.bufferView === 'number' ? views[a.bufferView] : undefined;
+    const components = COMPONENTS[a.type as string];
+    const size = COMPONENT_BYTES[a.componentType as number];
+    if (!isObject(view) || !components || !size) return [DAMAGED];
+    const element = components * size;
+    const stride = count(view.byteStride) || element;
+    const n = count(a.count);
+    if (n > 0 && count(a.byteOffset) + (n - 1) * stride + element > count(view.byteLength))
+      return [DAMAGED];
+  }
+
+  // Ceilings. Triangles are counted from what each primitive claims, now known to fit.
   const accessorCount = (i: unknown) =>
     typeof i === 'number' && isObject(accessors[i]) ? count(accessors[i]!.count) : 0;
   let triangles = 0;

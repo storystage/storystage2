@@ -5,14 +5,20 @@
   "description": "Importing a model into the class Backstage: checks, OBJ, reduction, sketches, licence and credit (WP3i).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./worker": "./src/import-worker.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
     "@storystage/backstage": "workspace:*",
-    "@storystage/story-api": "workspace:*"
+    "@storystage/production": "workspace:*",
+    "@storystage/sketches": "workspace:*",
+    "@storystage/story-api": "workspace:*",
+    "meshoptimizer": "^1.3.0"
   },
   "devDependencies": {
     "@storystage/host": "workspace:*",

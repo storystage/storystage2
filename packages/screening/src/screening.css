@@ -1,0 +1,170 @@
+/*
+  The Screening room (docs/spec/08-export.md sections 2 to 4; Direction A screen 03). Tokens only:
+  every colour is a var(--ss-*) from ThemeRoot.
+*/
+
+.sr-rough-cut {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+/* The player fills the column at 16:9. */
+.sr-player {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  background: var(--ss-stage-0);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.sr-player > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.sr-player-label {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+}
+
+/* Captions: centred near the bottom, on a dark panel (decision 0031). */
+.sr-captions {
+  position: absolute;
+  right: 0;
+  bottom: 6%;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.sr-caption {
+  margin: 0;
+  max-width: 80%;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-family: 'Atkinson Hyperlegible', sans-serif;
+  font-size: clamp(14px, 3.6cqh, 28px);
+  color: var(--ss-text);
+  background: var(--ss-panel-1);
+  text-align: center;
+}
+
+.sr-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sr-time {
+  flex: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ss-text-2);
+}
+
+/* The bar: the whole film, a segment per scene. */
+.sr-bar {
+  position: relative;
+  display: flex;
+  gap: 2px;
+  min-height: 44px;
+  cursor: pointer;
+  border-radius: 10px;
+}
+.sr-bar:focus-visible {
+  outline: 3px solid var(--ss-focus);
+  outline-offset: 2px;
+}
+.sr-segment {
+  display: flex;
+  flex-basis: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--ss-text-2);
+  background: var(--ss-panel-3);
+  white-space: nowrap;
+}
+.sr-segment[data-current] {
+  color: var(--ss-text);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sr-segment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sr-waits {
+  flex: none;
+  font-size: 12px;
+  color: var(--ss-muted);
+}
+.sr-bar-now {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--ss-amber);
+  pointer-events: none;
+}
+
+/* The running order strip. */
+.sr-order {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+}
+.sr-card {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 12px 6px 4px;
+  border-radius: 12px;
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: pointer;
+}
+.sr-card[data-current] {
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sr-card[data-focus-visible] {
+  outline: 3px solid var(--ss-focus);
+  outline-offset: 2px;
+}
+.sr-card-handle {
+  display: flex;
+  min-width: 32px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ss-muted);
+  background: transparent;
+  cursor: grab;
+}
+.sr-card-length {
+  font-variant-numeric: tabular-nums;
+  color: var(--ss-text-2);
+}

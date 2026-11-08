@@ -526,7 +526,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 3.8 **Optional Blender Studio characters:** test whether two or three CC-BY characters can be simplified to the device budget with acceptable quality. Add them only if they pass, with credit lines. (C)
 - [ ] 3.9 Lazy loading, caching and simplification (target triangle and texture budgets per model, set from WP1.2 measurements); memory budget per scene on the reference devices. Simplification uses **glTF Transform** (MIT) with meshoptimizer: `simplify` for meshes (gentler for skinned characters, keeping joint weights), `resize` and WebP or KTX2 for textures, and `prune`, `dedup` and `weld`. The same code runs in the build pipeline and, in a Web Worker, in the app for imports (3.11). (C)
 - [ ] 3.11 **Import into Backstage** (in the app, on the device, no server):
-    - **Formats:** glTF, GLB and VRM directly; OBJ through obj2gltf (Apache). FBX is not converted in the app (the open converter, FBX2glTF, is archived); the teacher guide shows how to convert it first with Blender.
+    - **Formats:** glTF, GLB and VRM directly; OBJ through our own reader (decision 0066: obj2gltf runs only in Node). FBX is not converted in the app (the open converter, FBX2glTF, is archived); the teacher guide shows how to convert it first with Blender.
     - **Steps,** run in a Web Worker: validate the file; reduce it to the device budget (3.9); for a character, map its skeleton onto the joint map (3.3) automatically where bone names allow, otherwise mark it **prop only** (it can move but not walk or gesture); make its sketches (10.5); add it to the manifest with its section, licence and source.
     - **The report,** in plain words before saving: "Reduced from 180,000 to 12,000 triangles; textures from 4K to 1K; skeleton mapped (20 of 22 joints); credit: 'Robot by A. Maker, CC BY 4.0'". The learner or teacher can cancel.
     - **Where it goes:** the class's Backstage (or the learner's own, as decided in 24.2), never the shipped catalogue. A teacher can promote an item to the whole class.
@@ -1109,6 +1109,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | 13-projection.md | Projection stage, surface rules, virtual projectors, bake renderer, classroom output, Export for projection and to Pixera, flash check | WP23 |
 | 14-editors.md | The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data | WP7, WP7c |
 | 17-backstage.md | Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches | WP3 |
+| 19-alice-import.md | Reading Alice 3 worlds and turning them into one-scene productions: classes, objects and set-up, code, events, the report | WP9 |
 | 15-security.md | Threat model (STRIDE) for every trust boundary, with a control and a test for each threat | WP0.9 |
 | 16-scene-exchange.md | Versioned JSON Schema for scenes, keyframed transforms, cameras, audio cues and timing (metres, glTF Y-up), produced by the baker and consumed by the Unreal, Unity and Godot exports and Export for projection | WP22.2, WP20, WP23 |
 | 12-ar-distribution.md | AR for audiences: experiences, the player's AR mode, the baker, AR pack (GLB, USDZ, page, QR), mixed-reality film, budgets, hosting, safeguards | WP22 |

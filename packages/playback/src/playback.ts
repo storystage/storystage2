@@ -48,11 +48,17 @@ export type PlaybackEvent =
       readonly scene: SceneId;
       readonly commands: readonly StageCommand[];
     }
+  /** With `trace`: blocks that started, on the film's clock, for measuring. */
+  | {
+      readonly kind: 'ran';
+      readonly scene: SceneId;
+      readonly blocks: readonly { readonly node: NodeId; readonly at: Micros }[];
+    }
   /** The blocks running now, for highlighting (WP7.9). */
   | { readonly kind: 'running'; readonly nodes: readonly NodeId[]; readonly at: Micros }
   /** The scene's script method has finished; listeners may still run. */
   | { readonly kind: 'finished'; readonly scene: SceneId; readonly at: Micros }
-  /** The old scene fades out over the new one: the stage's to draw. */
+  /** The old scene fades out over the new one. The stage draws it (`LoadOptions.crossfade`). */
   | {
       readonly kind: 'crossfade';
       readonly from: SceneId;
@@ -90,6 +96,14 @@ export interface PlaybackOptions {
   readonly disabled?: readonly NodeId[];
   /** How far the runtime runs ahead of the picture. Default 100 ms (spike 1.4). */
   readonly lookahead?: Micros;
+  /**
+   * For a run with no viewer (the export, measuring): a scene that waits on the viewer ends this
+   * long after its last stage command (`PlayerOptions.viewerWait`, spec 03 rule 11). Unset, it
+   * waits.
+   */
+  readonly viewerWait?: Micros;
+  /** Asks the runtime when each block starts (`ran` events), for measuring. */
+  readonly trace?: boolean;
 }
 
 /** What `advance` is waiting for. */
@@ -128,6 +142,7 @@ export class Playback {
       mode: options.mode,
       seed: options.seed,
       ...(options.from === undefined ? {} : { from: options.from }),
+      ...(options.viewerWait === undefined ? {} : { viewerWait: options.viewerWait }),
     });
     this.stopListening.push(
       options.port.listen((message) => this.handle(message)),
@@ -258,6 +273,13 @@ export class Playback {
       case 'watch':
         this.options.stage.watch(message.watches);
         break;
+      case 'ran':
+        this.emit({
+          kind: 'ran',
+          scene,
+          blocks: message.blocks.map((b) => ({ node: b.node, at: this.sceneStart + b.at })),
+        });
+        break;
       case 'highlight':
         this.emit({ kind: 'running', nodes: message.running, at: this.sceneStart + message.at });
         break;
@@ -306,8 +328,10 @@ export class Playback {
         case 'load':
           await this.load(action);
           break;
-        default:
-          // `preload` (S4's #225) waits for the stage's `preload` (S3); until then, nothing to do.
+        case 'preload':
+          // Only a hint, so not waited for. The stage never rejects one; if it did, the `load`
+          // that follows reports a model it can't have.
+          this.options.stage.preload(action.setup).catch(() => undefined);
           break;
         case 'stageCommands':
           this.options.stage.schedule(action.commands);
@@ -344,7 +368,8 @@ export class Playback {
   private async load(action: PlayerAction & { kind: 'load' }): Promise<void> {
     const { stage, port, production } = this.options;
     this.awaitingLoaded = true;
-    await stage.load(action.setup);
+    const fade = action.transition?.kind === 'crossfade' ? action.transition.duration : null;
+    await stage.load(action.setup, fade === null ? undefined : { crossfade: fade });
     stage.schedule(action.commands);
     this.scene = action.scene;
     this.sceneStart = this.film;
@@ -358,7 +383,10 @@ export class Playback {
       disabled: this.options.disabled ?? [],
       scenes: action.scenes,
     });
-    port.post({ type: 'start', mode: { kind: 'fixed' } });
+    port.post({
+      type: 'start',
+      mode: this.options.trace ? { kind: 'fixed', trace: true } : { kind: 'fixed' },
+    });
     this.running = true;
     this.emit({ kind: 'scene', scene: action.scene, transition: action.transition, at: this.film });
   }

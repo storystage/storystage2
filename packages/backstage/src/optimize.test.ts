@@ -198,6 +198,29 @@ describe('reduceModel', () => {
     expect(again.calls).toEqual([]);
   });
 
+  it('takes PNG from an encoder that cannot make WebP, as Safari makes (spec 17, section 5)', async () => {
+    const doc = sphere(10, 20);
+    const big = withTexture(doc, png(4096, 2048));
+    const encode: TextureEncoder = async (_image, _mimeType, maxPx) => ({
+      bytes: png(maxPx, maxPx / 2),
+      mimeType: 'image/png',
+    });
+    const report = await reduceModel(
+      doc,
+      { triangles: 20_000, textureMaxPx: 1024 },
+      { encodeTexture: encode },
+    );
+    expect(big.getMimeType()).toBe('image/png');
+    expect(big.getSize()).toEqual([1024, 512]);
+    expect(report.fits).toBe(true);
+    expect(
+      doc
+        .getRoot()
+        .listExtensionsUsed()
+        .map((e) => e.extensionName),
+    ).not.toContain('EXT_texture_webp');
+  });
+
   it('says so when it cannot shrink textures without an encoder', async () => {
     const doc = sphere(10, 20);
     withTexture(doc, png(4096, 4096));

@@ -89,12 +89,16 @@ export function countingFor(classes: ClassFolders, invoke: Invoke): ClassFolders
     bin: () => classes.bin(),
     restore: (pupil, key) => classes.restore(pupil, key),
     emptyBin: () => classes.emptyBin(),
+    binnedPupils: () => classes.binnedPupils(),
+    restorePupil: (id) => classes.restorePupil(id),
     backstage: () => classes.backstage(),
     async open(id) {
       const opened = await classes.open(id);
       await tell(opened.pupil.id);
       return opened;
     },
+    deviceFilms: () => classes.deviceFilms(),
+    moveDeviceFilms: (to) => classes.moveDeviceFilms(to),
     async openDevice() {
       const opened = await classes.openDevice();
       // The device's own folder: requests count against the device, as with none open.
