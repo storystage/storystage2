@@ -135,6 +135,11 @@ export interface ClassFolders {
   removePupil(id: PupilId): Promise<void>;
   /** Opens a pupil's folder, and makes it the current one, where autosave writes. */
   open(id: PupilId): Promise<PupilFolder>;
+  /**
+   * A pupil's folder, leaving `current()` as it is: for the teacher's Collect and Hand back,
+   * which reach every pupil's folder in turn. `not_found` for a pupil who isn't in the class.
+   */
+  folder(id: PupilId): Promise<PupilFolder>;
   /** The folder in use, if a pupil has chosen their name. */
   current(): PupilFolder | null;
   /** At the end of a lesson: waits for writes in progress, then nobody's folder is open. */
