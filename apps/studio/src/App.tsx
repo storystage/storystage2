@@ -203,7 +203,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const onFilmAction = async (action: FilmAction) => {
     if (!folder) return;
     if (action === 'saveCopy') {
-      const copied = await saveCopy(host.picker, p, film?.files ?? NO_FILES);
+      // A copy carries the film's class models too, so it opens on any device.
+      const copy = await saving.packed();
+      const copied = await saveCopy(host.picker, copy.production, copy.files);
       if (!copied.ok && copied.problem.code !== 'cancelled') setNote(copied.problem.message);
       return;
     }
@@ -304,6 +306,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
         ? words.t('save.saved')
         : null;
   const failed = saving.status.kind === 'failed' ? saving.status.problem.message : null;
+  const missing = saving.status.kind === 'saved' ? saving.status.missing : 0;
   return (
     <ThemeRoot>
       <Shell
@@ -330,8 +333,11 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
                 {words.t('save.tryAgain')}
               </Button>
             </NeutralNote>
-          ) : note ? (
-            <NeutralNote>{note}</NeutralNote>
+          ) : note || missing > 0 ? (
+            <>
+              {missing > 0 && <NeutralNote>{words.plural('save.missing', missing)}</NeutralNote>}
+              {note && <NeutralNote>{note}</NeutralNote>}
+            </>
           ) : undefined
         }
         mode={mode}

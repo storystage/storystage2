@@ -244,6 +244,8 @@ body,
 .studio-notice {
   display: flex;
   flex: none;
+  flex-direction: column;
+  gap: 8px;
   padding: 8px 14px 0;
 }
 .studio-notice > * {
