@@ -1,0 +1,19 @@
+{
+  "name": "@storystage/screening",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The Screening room: the rough cut, compare with the storyboard, retake notes and the export dialog.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/playback": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  }
+}

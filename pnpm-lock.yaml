@@ -278,6 +278,21 @@ importers:
         specifier: workspace:*
         version: link:../story-api
 
+  packages/screening:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../playback
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+
   packages/selftest:
     dependencies:
       '@storystage/ast':
