@@ -1,4 +1,4 @@
-import type { FrameId, LineId, Production, SceneId } from '@storystage/production';
+import type { FrameId, LineId, Production } from '@storystage/production';
 import { addSketch } from '@storystage/sketches';
 import { Button, useThemeStyle } from '@storystage/ui';
 import { useEffect, useState, type Dispatch } from 'react';
@@ -8,6 +8,7 @@ import { nextRedo, nextUndo, type History, type HistoryAction } from './history.
 import { FramePanel } from './FramePanel.tsx';
 import { sceneNumber } from './edits.ts';
 import { sceneFrames, updateFrame } from './frames.ts';
+import { NOWHERE, currentPlace, type Place } from './place.ts';
 import { sketchName, type SketchItem } from './SketchArt.tsx';
 import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
@@ -19,6 +20,9 @@ import { ScriptPane } from './ScriptPane.tsx';
 export interface StoryboardProps {
   history: History<Production>;
   dispatch: Dispatch<HistoryAction<Production>>;
+  /** What the learner chose, shared with the other tabs. */
+  place: Place;
+  onPlaceChange: (place: Place) => void;
 }
 
 /** A CSS string, for the page foot's `content`. */
@@ -35,22 +39,15 @@ const isTextEntry = (target: EventTarget | null) =>
  * the scene cards (10.3), the sketch library and the frames with their sketches (10.6), with the
  * Storyboard's undo history (6.8), and the script pane (10.4).
  */
-export function Storyboard({ history, dispatch }: StoryboardProps) {
+export function Storyboard({ history, dispatch, place, onPlaceChange }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
   // Each press of Print storyboard, until the print dialog closes; 0 when not printing.
   const [printing, setPrinting] = useState(0);
   const themeStyle = useThemeStyle();
-  const [chosen, setChosen] = useState<SceneId | null>(null);
   const p = history.present;
-  // The chosen scene, or the first one if it has gone (deleted, or undone).
-  const order = p.manifest.runningOrder.map((r) => r.scene);
-  const current = chosen !== null && order.includes(chosen) ? chosen : (order[0] ?? null);
-  const [chosenFrame, setChosenFrame] = useState<FrameId | null>(null);
-  // The chosen frame if it's in the current scene, or the scene's first frame.
+  // Where the learner is, shared with the other tabs (the App keeps it).
+  const { scene: current, frame: currentFrame } = currentPlace(p, place);
   const frames = current ? sceneFrames(p, current) : [];
-  const currentFrame = frames.some((f) => f.id === chosenFrame)
-    ? chosenFrame
-    : (frames[0]?.id ?? null);
   const frameNumber =
     current && currentFrame
       ? `${sceneNumber(p, current)}.${frames.findIndex((f) => f.id === currentFrame) + 1}`
@@ -147,7 +144,7 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
         <SceneStrip
           production={p}
           current={current}
-          onCurrentChange={setChosen}
+          onCurrentChange={(scene) => onPlaceChange({ scene, frame: null })}
           onChange={commit}
         />
         {current && (
@@ -156,7 +153,7 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             scene={current}
             onChange={commit}
             onLeave={() => dispatch({ type: 'seal' })}
-            onDeleted={() => setChosen(null)}
+            onDeleted={() => onPlaceChange(NOWHERE)}
           />
         )}
         {current && (
@@ -164,7 +161,7 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             production={p}
             scene={current}
             current={currentFrame}
-            onCurrentChange={setChosenFrame}
+            onCurrentChange={(frame) => onPlaceChange({ scene: current, frame })}
             onChange={commit}
             onLeave={() => dispatch({ type: 'seal' })}
             sketch={sketch}

@@ -1,0 +1,141 @@
+/*
+  The Production stage (docs/spec/07-ux.md section 7; Direction A screen 02). Tokens only: every
+  colour is a var(--ss-*) from ThemeRoot (shell.test.ts checks).
+*/
+
+.pr {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+
+/* The Code editor, closed until the scene is storyboarded (section 1.4). */
+.pr-closed {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 560px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-closed p {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-closed-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 22px;
+}
+.pr-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pr-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ss-muted);
+}
+.pr-check[data-done] {
+  color: var(--ss-text);
+}
+.pr-check[data-done] .ss-icon {
+  color: var(--ss-ok);
+}
+.pr-check-state {
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 14px;
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+}
+
+/* The Code editor: one tab per method, then the method's blocks. */
+.pr-code {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.pr-tabs {
+  display: flex;
+  gap: 4px;
+}
+.pr-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px 12px 0 0;
+  font-weight: 700;
+  color: var(--ss-muted);
+  background: var(--ss-tab);
+  cursor: pointer;
+  outline: none;
+}
+.pr-tab[data-selected] {
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+}
+.pr-tab[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+.pr-tab-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  outline: none;
+}
+.pr-tab-panel[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+.pr-workspace-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 420px;
+  border-radius: 0 12px 12px 12px;
+  overflow: hidden;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-workspace {
+  flex: 1;
+  min-height: 420px;
+}
+.pr-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--ss-muted);
+}
+
+/* Highlights on blocks, through the editor contract (14-editors 3i.10). */
+.ss-highlight-rehearse > .blocklyPath {
+  stroke: var(--ss-amber);
+  stroke-width: 4px;
+}
+.ss-highlight-error > .blocklyPath {
+  stroke: var(--ss-stop);
+  stroke-width: 4px;
+}
+.ss-highlight-prompter > .blocklyPath {
+  stroke: var(--ss-prompter);
+  stroke-width: 4px;
+}

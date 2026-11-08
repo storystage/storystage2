@@ -19,3 +19,4 @@ export * from './file.ts';
 export * from './playback.ts';
 export * from './saving.ts';
 export * from './collect.ts';
+export * from './player.ts';

@@ -102,6 +102,10 @@ async function main() {
   };
   await invoke('classes_remove', { path: ['pupils', 'pupil-scan'] });
 
+  // The file dialog is opened from Rust only: the page can't reach the plugin itself.
+  report.pickerKind = await invoke('picker_kind');
+  report.dialogPlugin = await failure(invoke('plugin:dialog|open', { options: {} }));
+
   report.visible = {
     replies,
     html: document.documentElement.outerHTML,
