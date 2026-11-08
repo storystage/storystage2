@@ -17,3 +17,4 @@ export * from './fountain.ts';
 export * from './validate.ts';
 export * from './file.ts';
 export * from './saving.ts';
+export * from './collect.ts';
