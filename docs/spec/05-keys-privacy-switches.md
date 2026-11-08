@@ -1,14 +1,14 @@
 # 05 Keys privacy switches
 
-- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels, speech models (from StoryStage 1 spec 02)
-- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4); WP15 for WP14.1 (section 5)
+- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels, speech models, pupil folders on the device (from StoryStage 1 spec 02)
+- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4); WP15 for WP14.1 (section 5); WP24.4 (section 6)
 - **Owner:** S8
-- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026, section 5 on 8 Nov 2026.
+- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026, sections 5 and 6 on 8 Nov 2026.
 - **Carried over from:** StoryStage 1 spec 02 (keys, privacy, switches); see `docs/carried-over/` and its note on what changes.
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [0061 The optional speech model's host](../decisions/0061-speech-model-host.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [0061 The optional speech model's host](../decisions/0061-speech-model-host.md), [0065 Where a pupil's work lives between lessons](../decisions/0065-pupil-work-between-lessons.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10), 2.9 (M1 to M6) and 2.10 (PS1 to PS6).
 
 ## 1. Wizard
 
@@ -106,11 +106,15 @@ A request refused by any check above doesn't count towards the caps.
 | Cap | Value | Counted | Reached |
 |---|---|---|---|
 | Per minute | 10 requests, on one device | In memory | `rate_limited`, with the seconds until a slot frees |
-| Per day | `prompter.dailyCap` (3.3), or no limit | On the device, by local date, in the app's data folder | `prompter.capAction` |
+| Per day | `prompter.dailyCap` (3.3), or no limit | Per pupil on the device: whoever's folder is open, or the device when nobody's is. By local date, in the app's data folder | `prompter.capAction` |
 
 When the day's cap is reached and `capAction` is `explainOnly`, the level drops to Explain only for the rest of the day, and requests in other modes get `cap_reached`. With `off`, every request gets `cap_reached`. A further 50% of the cap in Explain only is allowed, and then every request gets `cap_reached`: the graduated limit in 24.5.
 
-Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7). Class-wide counts follow in WP24b.
+Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7).
+
+**Whom a request counts against.** When a pupil's folder opens (`ClassFolders.open`), the host tells the native layer with `prompter_pupil`, and `null` when it closes. `folder(id)`, for Collect and Hand back, doesn't change it. If the native layer can't be told, the folder still opens and requests count against the device, which the teacher's screen shows as "this device" (S5's review of #224). The day's file holds the date, then one `<who> <count>` line per pupil and one for `device`. Choosing another pupil's name would count against them instead, which the name picker's trust model already accepts (PS1), and the spending limit still holds (L7).
+
+**Usage for the teacher (24.5).** `prompter_usage` gives the date, the policy's level, `dailyCap`, `capAction`, and for each pupil with a request today their count and their level now. Ids only: the studio has the names. It reaches the studio as `HostInterface.prompterUsage`. Class-wide totals across devices wait for the route chosen in 24.3 (owner, 8 Nov): the classroom relay would give them live, and an adult's own key is usually on one device.
 
 ### 2.5 Transport
 
@@ -406,7 +410,101 @@ A name that isn't pinned is refused. So is any command, apart from `speech_model
 
 whisper's threads need `crossOriginIsolated` (spec 06 section 1.1). The Tauri apps send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on every response (`app.security.headers` in `tauri.conf.json`). Everything the studio loads is its own, so nothing breaks under `require-corp`.
 
-## 6. Tests
+## 6. Pupil folders on the device
+
+Decision 0065. The contract is `ClassFolders` and `PupilFolder` in `packages/host/src/files.ts`, reached through the host interface as `HostInterface.classes`. Every implementation passes `describeClassFoldersContract`.
+
+### 6.1 One set of rules, over a small store
+
+The rules are written once, in `storedClassFolders` in `packages/host`: backups, the original, the bin and keys. They run over a **file store** that each host provides:
+
+| Host | Store | Where |
+|---|---|---|
+| Tauri apps | The native layer, through a few commands confined to one folder (6.4) | `<local app data>/classes/`, inside the device user's own data |
+| Browser version | The Origin Private File System | The site's own storage, on `app.storystage.org` only (0046) |
+| Tests | Memory | |
+
+A store does five things, on paths made of **safe parts**: `read`, an atomic `write`, `remove` (a file or a folder), `list` and `move`. A safe part is 1 to 64 characters from `a-z`, `0-9`, `.`, `_` and `-`, starting with a letter or digit. It never ends in a dot, which Windows drops, and is never one of Windows' device names (`con`, `prn`, `aux`, `nul`, `com1` to `com9`, `lpt1` to `lpt9`, with or without an extension). Every path is checked against that before a store touches anything, so no path can leave the store's folder (threat F1).
+
+The Tauri apps use the native store, not the browser's. WebKit deletes script-written storage in Safari after a period without use (the board review's OPS4), and whether that ever reaches an app's own webview on iPad isn't something pupils' work should depend on. The rule for safe parts is the same on both sides: `apps/desktop/src-tauri/classes/fixtures/parts.json` is tested from each.
+
+### 6.2 What's on disk
+
+```
+class.json                                    the class list: { "version": 1, "pupils": [...] }
+pupils/<pupil id>/<key>/meta.json             { "name", "current", "backups": [...], "original" }
+pupils/<pupil id>/<key>/v-<time>-<random>.storystage  the current version, and each backup
+pupils/<pupil id>/<key>/original.storystage    the untouched original of a migrated production
+bin/<pupil id>/<key>/...                       the same, with "binnedAt" in meta.json
+```
+
+`current` and each backup are `{ "file", "savedAt", "bytes" }`. Pupil ids and keys are random (`pupil-` or `production-`, then 12 letters and digits), so two windows never pick the same one. Names are only ever in `class.json` and `meta.json`, never in a path. A name can't be unsafe on disk, and the class list stays on the device (threat PS3).
+
+### 6.3 A save is atomic
+
+1. The new version is written to a new `v-<time>-<random>.storystage`, where `<time>` is when, in milliseconds in base 36.
+2. `meta.json` is replaced, atomically, to point at it. With `backup` (the default), the version it replaces is listed first among the backups and only `BACKUPS_KEPT` stay. Without it, the replaced version is dropped.
+3. Files the new `meta.json` doesn't list are deleted.
+
+A crash before step 2 leaves the last whole version and a stray file, which the next save deletes. A first save that crashes there leaves a folder with no `meta.json`. It isn't listed, and opening the pupil's folder removes it once its files are a minute old, so a save still going on in another window is left alone. Reads wait for saves in progress, so a read never finds a file a save has just tidied away. A crash after step 2 leaves the new version. So a production is never half-written (threat PS4). A store's `write` is itself atomic: a temporary file then a rename on the native side, and `createWritable`, which commits on close, in the browser.
+
+### 6.4 The native store's commands
+
+`classes_read`, `classes_write`, `classes_remove`, `classes_list` and `classes_move` each take paths of safe parts, under `<local app data>/classes/` only, and each has its own permission. The rules are in the `storystage-classes` crate, which has no Tauri in it. Local app data is used rather than roaming, so a roaming profile doesn't carry every film at each sign-in.
+
+Writes carry raw bytes, not JSON, with the path in an `x-storystage-path` header as its parts joined by `/`, which no safe part contains. They're refused over `FILE_LIMIT` before anything is written. A write goes to a temporary file in the same folder, whose name starts with a dot so it's never listed, is flushed to disk, then renamed over the old file. Reads come back as raw bytes too, and nothing there is `not_found`, which the studio reads as no file. Symbolic links, and junctions on Windows, are never followed: one on the way is `unreadable`, one in a folder isn't listed, and removing a folder removes the links in it, never what they point at. Errors are `FileError` codes: `full` when the disk is full, `locked` when another program holds the file, and `unreadable` otherwise.
+
+The webview can reach every pupil's folder through these commands, as it can in the browser. Pupils are kept apart by the app (threat PS1), and the operating system adds to it where a school has per-pupil sign-in (PS2).
+
+### 6.5 The file picker
+
+`HostInterface.picker` is `FilePicker` in `files.ts`: Save a copy, Open, Collect and Hand back, through the system's own picker, so a file can go to the device, a school drive, OneDrive or Google Drive without StoryStage signing in to anything (0065). StoryStage gets only what the person picks, never a path, and everything read is untrusted until `packages/production`'s import rules have checked it (PS5).
+
+In the browser version (`browserPicker`):
+
+| | Chrome, Edge, Chromebooks | Safari, Firefox |
+|---|---|---|
+| Save a copy | The system's save picker | A download |
+| Open | The system's open picker | A file input |
+| Collect | The teacher picks a folder; one folder per pupil is written in it | Each file downloads on its own, named `<pupil> - <production>.storystage` |
+| Hand back | The teacher picks a folder; every `.storystage` one level down is read | A folder input, with the same rule |
+
+Collect refuses a clash or a name `safeFileName` wouldn't give, and anything over `FILE_LIMIT`, before writing anything. Open and Hand back refuse a file over `FILE_LIMIT` before reading it, and Hand back reads nothing if any is. Closing a picker, or refusing it permission, is `cancelled`.
+
+In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the native layer, with `tauri-plugin-dialog` used from Rust only: no window is given the plugin's permissions. The webview sends bytes and names and gets bytes back, and never holds a path:
+
+| Command | Takes | Gives |
+|---|---|---|
+| `picker_kind` | | `native` on desktop, `browser` on iPad and Android |
+| `picker_save` | The copy as a raw body; its suggested name in `x-storystage-name` | Nothing, or `cancelled` |
+| `picker_open` | | One raw reply: the name's length in four bytes (big-endian), the name, then the file |
+| `picker_collect_start` | | A session, once the teacher has picked a folder |
+| `picker_collect_write` | A file as a raw body; `folder/file` in `x-storystage-name`, the session in `x-storystage-session` | Nothing |
+| `picker_hand_back_start` | | A session, and `{ folder, file }` for each production one level down |
+| `picker_hand_back_read` | A session and an index | The file, as a raw reply |
+| `picker_end` | A session | Forgets the picked folder |
+
+Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. On iPad and Android, `picker_kind` is `browser` and the webview's own pickers are used, until the native dialogs there have been tried on devices.
+
+### 6.6 The class Backstage
+
+Decision 0066, spec 17 section 5. Imported models live beside the pupil folders, in the same store, through `ClassFolders.backstage()` (`ClassBackstage` in `files.ts`). The host keeps records and bytes and never reads a model: `packages/backstage-import` checks every file before it's added (spec 17).
+
+```
+backstage/items/<key>/item.json    { id, owner, record, addedAt, files: [{ path, bytes, file }] }
+backstage/items/<key>/f-<time>-<n>  each file, under a name made here
+backstage/bin/<key>/...            the same, with "binnedAt"
+backstage/retired.json             ids emptied from the bin
+```
+
+- **Who it belongs to:** `'class'` or a pupil in the class list. The teacher promotes a pupil's item to the class; the studio checks who may (`backstage.import`). Removing a pupil sends their own items to the bin with their productions, and one restored after its pupil has left comes back as the class's.
+- **All or nothing:** an add writes its files first and `item.json` last, so an item is listed only once it's whole. An add that never finished is swept away at a later add, once its files are a minute old.
+- **Ids are never reused,** live, binned or emptied from the bin, because productions carry imported models by id (decision 0049). The ids emptied are written to `retired.json` before the bin is emptied.
+- **Paths** are the import's own, plain and relative: `/` between parts, none empty, `.` or `..`, no backslash, at most 255 characters. On disk each file has a name made here, so a path never reaches the file system.
+- **Limits:** `FILE_LIMIT` for each file (`too_big`), `BACKSTAGE_RECORD_LIMIT` (1 MiB) for a record (`too_big`), and `CLASS_BACKSTAGE_LIMIT` (2 GiB) for every item's files together, the bin's included (`full`). Records don't count towards it.
+- Changes run through the pupil folders' queue, one at a time.
+
+## 7. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
 
@@ -447,4 +545,14 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Only pinned names (5.5) | A path, an unknown name, an empty name | Rust unit |
 | Refused when dictation is off (5.5) | Each command with `speech.dictation=false`, and still allowed at Prompter level Off | Rust unit |
 | Cross-origin isolation (5.6) | The shipped config has both headers | Rust unit, on `tauri.conf.json` |
+| Every rule of the folders, on every store (6.1 to 6.3) | `describeClassFoldersContract` over the memory store, the browser store (with a stand-in for its handles) and the native store's commands (over a stand-in for the native side) | Vitest |
+| Safe path parts only (6.1, 6.4) | One fixture of safe and unsafe parts (`classes/fixtures/parts.json`), tested in TypeScript and in Rust, so the two rules stay the same | Vitest, Rust unit |
+| A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
+| The class Backstage (6.6) | `describeClassFoldersContract` on every store: records kept exactly, owners and promotion, ids never reused, plain paths only, the bin and a removed pupil's items; and the limits, an add that fails part-way and the sweep | Vitest |
+| The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
+| The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |
+| The page can't reach the dialog itself (6.5) | `plugin:dialog|open` refused on the real Windows app | The leak scan |
+| The native dialogs (6.5) | By hand on Windows and a Mac: each of the four, and closing each | Device (owner) |
+| The browser's own pickers and inputs (6.5) | By hand in Chrome on a Chromebook, and in Safari on an iPad | Device (owner) |
+| The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |

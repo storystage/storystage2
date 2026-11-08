@@ -11,33 +11,28 @@
  * Reached by `@storystage/story-api/program-check`, so that only what needs it depends on `ast`.
  */
 import { walk } from '@storystage/ast';
+import { BOOLEAN, NUMBER, programTypes, storyType as story, WHOLE } from './program-types.ts';
 import type {
   Args,
   AstNode,
   Call,
   Expression,
-  FieldDecl,
   FunctionCall,
   ListenerDecl,
-  MethodDecl,
   NodeId,
   Problem,
   Program,
-  TypeDecl,
   TypeRef,
 } from '@storystage/ast';
 import {
   checkValues,
-  classOfType,
   enumValues,
   findEntry,
   findEvent,
-  fits,
   isEnumName,
   isStoryType,
 } from './catalog.ts';
 import type { CallProblem } from './catalog.ts';
-import type { ApiClass, TypeName } from './types.ts';
 import { STORY_CLASSES } from '../vocabulary.ts';
 import words from '../strings/en-GB.json' with { type: 'json' };
 
@@ -47,16 +42,12 @@ export interface ProgramCheckOptions {
    * program doesn't say which model that is, so the caller asks the scene and the manifest.
    */
   readonly jointExists?: (field: NodeId, joint: string) => boolean;
+  /**
+   * Whether the production has a scene with this id (WP8.3). A scene id in a program is text, so
+   * one can outlive its scene: deleting a scene is refused only while code uses its type.
+   */
+  readonly sceneExists?: (scene: string) => boolean;
 }
-
-/** `null` is a type that can't be known, which always fits. */
-type Known = TypeRef | null;
-
-const story = (name: string): TypeRef => ({ kind: 'story', name });
-const NUMBER = story('Number');
-const WHOLE = story('WholeNumber');
-const BOOLEAN = story('Boolean');
-const TEXT = story('Text');
 
 /** Classes a learner's class can extend. The `Text` class is `TextModel` as a type. */
 const EXTENDABLE: ReadonlySet<string> = new Set([
@@ -90,102 +81,7 @@ export function checkProgram(
       ...(name === undefined ? {} : { name }),
     });
 
-  const types = new Map<NodeId, TypeDecl>(program.types.map((t) => [t.id, t]));
-  const fields = new Map<NodeId, FieldDecl>();
-  const methods = new Map<NodeId, { method: MethodDecl; owner: TypeDecl }>();
-  const variables = new Map<NodeId, TypeRef>();
-  for (const type of program.types) {
-    for (const field of type.fields) fields.set(field.id, field);
-    for (const method of type.methods) methods.set(method.id, { method, owner: type });
-    walk(type, (node) => {
-      if (node.kind === 'local' || node.kind === 'parameter' || node.kind === 'loopItem')
-        variables.set(node.id, node.type);
-    });
-  }
-
-  /** A user type's chain of parents, itself first. */
-  const parentsOf = (id: NodeId): readonly TypeDecl[] => {
-    const chain: TypeDecl[] = [];
-    for (let at = types.get(id); at && !chain.includes(at);) {
-      chain.push(at);
-      at = at.extends.kind === 'user' ? types.get(at.extends.type) : undefined;
-    }
-    return chain;
-  };
-
-  /** The Story API's name for a type: a learner's class is the story class it builds on. */
-  const storyName = (type: TypeRef): TypeName | null => {
-    if (type.kind === 'story') return isStoryType(type.name) ? (type.name as TypeName) : null;
-    if (type.kind === 'array') {
-      const item = storyName(type.of);
-      return item === null ? null : (`${item}[]` as TypeName);
-    }
-    const root = parentsOf(type.type).at(-1)?.extends;
-    return root?.kind === 'story' ? storyName(root) : null;
-  };
-
-  const classOf = (type: Known): ApiClass | null => {
-    const name = type === null ? null : storyName(type);
-    return name === null ? null : classOfType(name);
-  };
-
-  function typeFits(value: Known, wanted: TypeRef): boolean {
-    if (value === null) return true;
-    if (wanted.kind === 'array')
-      return value.kind === 'array' ? typeFits(value.of, wanted.of) : false;
-    if (wanted.kind === 'user')
-      return value.kind === 'user' && parentsOf(value.type).some((t) => t.id === wanted.type);
-    const given = storyName(value);
-    return given === null || !isStoryType(wanted.name) || fits(given, wanted.name as TypeName);
-  }
-
-  function typeOf(e: Expression, self: TypeRef): Known {
-    switch (e.kind) {
-      case 'number':
-        return NUMBER;
-      case 'wholeNumber':
-        return WHOLE;
-      case 'boolean':
-      case 'compare':
-      case 'logic':
-      case 'not':
-        return BOOLEAN;
-      case 'text':
-      case 'join':
-        return TEXT;
-      case 'enum':
-        return story(e.type);
-      case 'none':
-        return null;
-      case 'this':
-        return self;
-      case 'fieldRef':
-        return fields.get(e.field)?.type ?? null;
-      case 'variableRef':
-        return variables.get(e.variable) ?? null;
-      case 'arrayOf':
-        return { kind: 'array', of: e.of };
-      case 'arrayLength':
-        return WHOLE;
-      case 'arrayItem': {
-        const array = typeOf(e.array, self);
-        return array?.kind === 'array' ? array.of : null;
-      }
-      case 'arithmetic': {
-        const left = typeOf(e.left, self);
-        const right = typeOf(e.right, self);
-        if (left === null || right === null) return null;
-        const whole = storyName(left) === 'WholeNumber' && storyName(right) === 'WholeNumber';
-        return whole && e.op !== 'divide' ? WHOLE : NUMBER;
-      }
-      case 'functionCall': {
-        if (e.callee.kind === 'user') return methods.get(e.callee.method)?.method.returns ?? null;
-        const cls = classOf(typeOf(e.target, self));
-        const entry = cls && findEntry(cls, e.callee.name);
-        return entry?.kind === 'function' ? story(entry.returns) : null;
-      }
-    }
-  }
+  const { methods, storyName, classOf, typeFits, typeOf } = programTypes(program);
 
   const named = (args: Args, self: TypeRef) =>
     Object.fromEntries(
@@ -237,6 +133,15 @@ export function checkProgram(
       options.jointExists?.(node.target.field, joint.value) === false
     )
       add(node.id, 'noSuchJoint', `There is no joint ${joint.value}.`, joint.value, '');
+    for (const p of entry.params) {
+      const scene = node.args[p.name];
+      if (
+        p.type === 'SceneId' &&
+        scene?.kind === 'text' &&
+        options.sceneExists?.(scene.value) === false
+      )
+        add(node.id, 'noSuchScene', `There is no scene ${scene.value}.`, p.name, scene.value);
+    }
   };
 
   const userCall = (node: Call | FunctionCall, method: NodeId, self: TypeRef) => {

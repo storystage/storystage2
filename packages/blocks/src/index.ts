@@ -10,6 +10,7 @@
  */
 export { ALL_TYPES, inputCheck, outputCheck, targetCheck } from './checks.ts';
 export { blockTypes, defineBlocks, shapeOf } from './definitions.ts';
+export { createBlocksEditor } from './editor.ts';
 export { editsFor, type GestureEdits } from './gestures.ts';
 export {
   BlocksMismatch,

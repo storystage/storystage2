@@ -117,6 +117,7 @@ export interface PupilFolder {
   ): Promise<ProductionInfo>;
   /** Newest first. */
   backups(key: ProductionKey): Promise<readonly BackupInfo[]>;
+  /** `index` is as of the last `backups()`: a save since then moves every backup along by one. */
   readBackup(key: ProductionKey, index: number): Promise<Uint8Array>;
   /** Keeps the untouched original of a migrated production (spec 03 1.2). The first one stays. */
   keepOriginal(key: ProductionKey, bytes: Uint8Array): Promise<void>;
@@ -125,7 +126,69 @@ export interface PupilFolder {
   remove(key: ProductionKey): Promise<void>;
 }
 
-/** The class on this device: its pupils, their folders and the bin. */
+/** Who a class Backstage item belongs to: the class, or the one pupil who imported it. */
+export type BackstageOwner = 'class' | PupilId;
+
+/** One of an item's files, at a relative path the import chose (`models/<folder>/model.glb`). */
+export interface BackstageFile {
+  readonly path: string;
+  readonly bytes: Uint8Array;
+}
+
+/** An item in the class Backstage (decision 0066, spec 17 section 5). */
+export interface StoredModel {
+  /** The import's id, such as `class/<Class>/<name>`. Never reused in the class. */
+  readonly id: string;
+  readonly owner: BackstageOwner;
+  /** The item's Backstage record, kept exactly as given. The host never reads models. */
+  readonly record: unknown;
+  readonly addedAt: string;
+  readonly files: readonly { readonly path: string; readonly bytes: number }[];
+}
+
+export interface BinnedStoredModel extends StoredModel {
+  readonly binnedAt: string;
+}
+
+/** The most a class Backstage keeps on a device, all its items' files together. */
+export const CLASS_BACKSTAGE_LIMIT = 2 * 1024 * 1024 * 1024;
+
+/** The longest record, as JSON. */
+export const BACKSTAGE_RECORD_LIMIT = 1024 * 1024;
+
+/**
+ * The class Backstage on this device (decision 0066): imported models, beside the pupil folders,
+ * as records and bytes. Who may import, promote or restore is the studio's to check (policy
+ * `backstage.import`); a pupil sees the class's items and their own.
+ */
+export interface ClassBackstage {
+  list(): Promise<readonly StoredModel[]>;
+  /**
+   * Adds an item, all its files or none. An id already used in the class (live, in the bin, or
+   * emptied from it), a path that isn't plain relative, or a path twice is `invalid`; a file
+   * over `FILE_LIMIT` or a record over `BACKSTAGE_RECORD_LIMIT` is `too_big`; going over
+   * `CLASS_BACKSTAGE_LIMIT` is `full`. An owner who isn't in the class list is `not_found`.
+   */
+  add(
+    owner: BackstageOwner,
+    id: string,
+    record: unknown,
+    files: readonly BackstageFile[],
+  ): Promise<StoredModel>;
+  /** One of an item's files. `not_found` for an id or path it doesn't have. */
+  read(id: string, path: string): Promise<Uint8Array>;
+  /** A pupil's item becomes the class's. For the teacher. */
+  promote(id: string): Promise<void>;
+  /** To the bin, as a production goes (decision 0065). */
+  remove(id: string): Promise<void>;
+  /** For the teacher only. */
+  bin(): Promise<readonly BinnedStoredModel[]>;
+  /** Back from the bin. If its pupil has since left the class, it comes back as the class's. */
+  restore(id: string): Promise<void>;
+  emptyBin(): Promise<void>;
+}
+
+/** The class on this device: its pupils, their folders, the bin and the class Backstage. */
 export interface ClassFolders {
   pupils(): Promise<readonly Pupil[]>;
   addPupil(name: string, picture?: string | null): Promise<Pupil>;
@@ -134,6 +197,11 @@ export interface ClassFolders {
   removePupil(id: PupilId): Promise<void>;
   /** Opens a pupil's folder, and makes it the current one, where autosave writes. */
   open(id: PupilId): Promise<PupilFolder>;
+  /**
+   * A pupil's folder, leaving `current()` as it is: for the teacher's Collect and Hand back,
+   * which reach every pupil's folder in turn. `not_found` for a pupil who isn't in the class.
+   */
+  folder(id: PupilId): Promise<PupilFolder>;
   /** The folder in use, if a pupil has chosen their name. */
   current(): PupilFolder | null;
   /** At the end of a lesson: waits for writes in progress, then nobody's folder is open. */
@@ -142,6 +210,11 @@ export interface ClassFolders {
   bin(): Promise<readonly BinnedProduction[]>;
   restore(pupil: PupilId, key: ProductionKey): Promise<void>;
   emptyBin(): Promise<void>;
+  /**
+   * The class Backstage on this device (decision 0066). Removing a pupil sends their own items
+   * to its bin, with their productions.
+   */
+  backstage(): ClassBackstage;
 }
 
 /** A file for Collect or Hand back: `folder/file` inside the folder the teacher chose. */
@@ -165,8 +238,8 @@ export interface FilePicker {
   open(): Promise<{ readonly name: string; readonly bytes: Uint8Array }>;
   /**
    * Collect: the teacher picks a folder, and every file is written into it. Gives the count. The
-   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file` are
-   * `invalid`, and nothing is written.
+   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file`, ignoring
+   * case as Windows and macOS do (`collectedPath`), are `invalid`, and nothing is written.
    */
   collect(files: readonly CollectedFile[]): Promise<number>;
   /**
@@ -174,6 +247,14 @@ export interface FilePicker {
    * over `FILE_LIMIT` is `too_big`, and nothing is read.
    */
   handBack(): Promise<readonly CollectedFile[]>;
+}
+
+/**
+ * Where a collected file lands, as a folder on Windows or macOS sees it: case and Unicode form
+ * don't count, so "Sam/Pip" and "sam/pip" are the same file (S4's review of #211).
+ */
+export function collectedPath(file: Pick<CollectedFile, 'folder' | 'file'>): string {
+  return `${file.folder}/${file.file}`.normalize('NFC').toLowerCase();
 }
 
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
@@ -204,5 +285,11 @@ export function safeFileName(text: string): string {
     .slice(0, NAME_LIMIT)
     .replace(/[. ]+$/, '');
   if (cleaned === '') return 'file';
-  return RESERVED.test(cleaned.split('.')[0] ?? '') ? `${cleaned}_` : cleaned;
+  const stem = cleaned.split('.')[0] ?? '';
+  if (!RESERVED.test(stem.trimEnd())) return cleaned;
+  // Windows takes any name whose stem is a device as the device, whatever follows the dot, so
+  // the mark goes after the stem: "con.txt" becomes "con_.txt" (S4's review of #218).
+  return `${stem.trimEnd()}_${cleaned.slice(stem.length)}`
+    .slice(0, NAME_LIMIT)
+    .replace(/[. ]+$/, '');
 }

@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",
+    "@storystage/blocks": "workspace:*",
+    "@storystage/editor-contract": "workspace:*",
     "@storystage/production": "workspace:*",
     "@storystage/sketches": "workspace:*",
     "@storystage/story-api": "workspace:*",

@@ -2,6 +2,12 @@
 
 Part of [the StoryStage Story API](README.md). CC BY 4.0. Newest first.
 
+## 0.10.0
+
+8 November 2026. A value added, so a minor version.
+
+- `Expression` gains `neutral` ("plain"), which takes a face back to plain: every expression off. Without it, a face stayed until the next one and no block could take it away.
+
 ## 0.9.0
 
 8 November 2026. **The first publication, a draft for comment.**

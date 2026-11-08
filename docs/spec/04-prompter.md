@@ -112,6 +112,18 @@ For S8. Each item is something this spec makes checkable.
 - No top-level `thinking`, `tool_choice` or sampling field, no image content, and no key (`containsSecret`). Thinking blocks in the history are expected.
 - The per-minute and per-day caps (24.5), retried at most twice with backoff and jitter.
 
+### 1.9 Pins
+
+The native layer pins `system`, `tools` and the mode messages (section 1.8; spec 05, section 2.3). `packages/prompter/src/pins.ts` makes them:
+
+- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the shipped Backstage catalogue. That catalogue is kept in `src/shipped-catalogue.ts`, an exact copy of `prompter-catalogue.txt` at the commit `backstage.lock.json` pins; a test fails if its SHA-256 differs from the lock's.
+- `tools` is `TOOLS`, and the mode messages are `pinnedSystemMessages()`.
+- **The studio sends `releaseSystem()` and `releaseTools()` as they are.** It never rebuilds a catalogue at run time, not even from the fetched `.backstage/`, so what it sends can't drift from what is pinned by a byte.
+- **A class's imported models never go in `system`** (section 2.1). They travel in `<production_data>` as `imported` (section 2.6), so a teacher importing a model (`backstage.import`) never changes the pin, and the gate never refuses that class's requests for it.
+- `system` and `tools` are hashed as JSON with keys sorted and no spaces (`canonicalJson`); mode messages as their text. A test hashes S8's `gate/fixtures/hash.json` the same way and gets its `sha256`.
+
+`pnpm prompter:pins` writes `apps/desktop/src-tauri/gate/pins.json`, and `gate/fixtures/release-request.json`: a real Build it request made by `buildRequest` with the release's `system` and `tools` and a mode message, which the gate's own test passes through the shipped pins. With `--fetch` it first fetches the catalogue for the locked commit and checks it. A test fails when either file is out of date, so a change to the prompt, a tool, a mode's model or the Backstage lock shows up in CI with the command that fixes it.
+
 ## 2. Context
 
 ### 2.1 What goes where
@@ -169,6 +181,25 @@ Each piece goes in its own block, as JSON, inside a named tag:
 8. **Words:** rule 9's words, and narration.
 9. The Story API catalog and the Backstage catalogue.
 
+### 2.6 The data blocks, exactly
+
+`packages/prompter/src/context.ts` makes both blocks from the open production. `read_project` returns the same two blocks. Numbers are rounded to two decimal places. A rotation that is the identity and a scale of 1 are left out.
+
+`<production_data>`:
+
+| Field | What |
+|---|---|
+| `scene` | The scene the learner is in |
+| `scenes` | Every scene in running order: `id` and `method`, the id of its script method |
+| `setup` | The current scene's set-up: `backdrop`; `objects`, each with `id`, `model` (a Backstage id or `{"standIn": …}`), `class`, `position` `[x, y, z]` in metres, and `rotation` `[x, y, z, w]` and `scale` `[x, y, z]` where they aren't the default; `camera`; `markers` |
+| `imported` | This production's class-imported models: `id`, `name`, `section`, `class`, and `description` where there is one |
+| `program` | The program as text (section 2.2) |
+| `open` | The method open in the editor, if any |
+
+**Ids in the program text.** Each line that starts a type, field, method, listener or statement ends with `  # [id]`, the id of the innermost of those that starts on the line. Tools name blocks by these ids. Above 20,000 tokens, each method other than the open one and the current scene's keeps its first line and loses its body to one line: `... N lines not shown`. `read_project` with the method open shows it.
+
+`<storyboard_data>`: `logline`, `synopsis`, `arc` and `cards` as stored; `script`, each line with `id`, `scene`, `kind`, `character` for dialogue, `text` and `frame` if pinned; and `frames`, each with `id`, `scene`, `order`, `caption`, `shot`, `seconds`, `links` and `sketches`, each sketch with `id`, `item`, `facing`, `x`, `y`, and `pose`, `scale`, `flipped` and `layer` where they aren't the default (`null`, 1, `false`, 0). Above 8,000 tokens, scenes other than the current one lose their script lines and their frames' sketches, keeping cards and captions.
+
 ## 3. Tools
 
 The definitions are in `packages/prompter/src/tools.ts`, and the tables below describe them. All inputs are JSON objects with `additionalProperties: false`, and every field listed is required unless marked optional. An optional field is left out of `required`, not made nullable: strict mode limits how many optional fields and union types a request's tools may have, so there are no unions at all, and at most 20 optional fields across every tool.
@@ -205,16 +236,35 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
 
+One step, joined to the rest of the request's (section 1.7): a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
+
+- The model must be in the shipped catalogue or the production's imported models, or the answer is `unknown_object`.
+- The name is made into a name the program accepts ("Abyssinian cat" becomes `abyssinianCat`), and given a number if the scene's type already uses it (`cat2`). The result says the final name.
+- `turn_degrees` turns it about the vertical axis. A `scale` outside 0.05 to 20, or a position that isn't three numbers, is `bad_argument`.
+
 #### `set_property`
 
 Changes how an object starts in the scene.
 
 | Field | Type | Notes |
 |---|---|---|
-| `object` | string | A name in the scene (`cat`, `camera`, `ground`) |
+| `object` | string | A name in the scene (`cat`), or `camera` |
 | `property` | enum `position`, `turn_degrees`, `scale`, `paint`, `opacity`, `vehicle` | |
 | `value` | string | A position as `"x, y, z"`, a number, a paint name or `#rrggbb`, opacity 0 to 1, or the object it rides on; checked per property |
 | `narration`, `plan_step` | | |
+
+It changes only the scene's set-up, never the program, as one step joined to the rest of the request's.
+
+| Property | Value | Objects |
+|---|---|---|
+| `position` | `"x, y, z"` in metres | Any object, and `camera` |
+| `turn_degrees` | Degrees about the vertical axis, replacing any other turn | Any object, and `camera` |
+| `scale` | 0.05 to 20, the same in every direction | Objects |
+| `paint` | A `Color` from the catalog, or `#rrggbb` | Objects |
+| `opacity` | 0 (invisible) to 1 | Objects |
+| `vehicle` | Another object's name, or `scene` to ride on nothing. A vehicle can't end up carrying itself | Objects |
+
+An object that isn't in the scene is `unknown_object`; a value that doesn't fit, or a property the object can't have, is `bad_argument`.
 
 #### `insert_statement`
 
@@ -281,7 +331,7 @@ Changes nothing.
 
 #### `read_project`
 
-Changes nothing. Returns the latest production and storyboard data (sections 2.2, 2.3) when the Prompter needs them after several changes. Takes no fields.
+Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` blocks, exactly as a turn sends them (section 2.6), when the Prompter needs them after several changes. Takes no fields.
 
 ### 3.2 Storyboard tools
 
@@ -377,7 +427,7 @@ The levels pick from the modes (decision 0034); `prompter.enabled`, `prompter.ex
 | **Plan only** | Those, plus `showMeHow` and `buildIt`, which write and revise plans | None. The learner builds every block and ticks steps off |
 | **Full** | All | After an agreed plan |
 
-If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a class to Explain only, the level changes as it would for a teacher, and the next turn carries the new mode message.
+If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
 
 ## 5. Story coach
 
@@ -475,7 +525,7 @@ Errors say what happened and what to do next, with no apologies (rule 9). The na
 | 429, after the native layer's two retries | `rate_limited` | "The Prompter is busy. Carry on and try again shortly." With `retryAfterSeconds`: "Try again in N seconds." | **Try again** |
 | 5xx or 529 | `overloaded` | "Claude is having trouble right now. Try again in a minute." | **Try again** |
 | No network | `offline` | "You're offline, so the Prompter can't help right now. Everything else in StoryStage still works." | |
-| A daily or class limit | `cap_reached` | "Your class has used the Prompter's time for today. You can carry on without it." | |
+| The day's limit, counted for each pupil (spec 05, section 3.3) | `cap_reached` | "You've used the Prompter's time for today. You can carry on without it." | |
 | The school lock stopped it | `refused_by_policy` | "Your school has turned this off." | |
 | The native layer refused the request | `refused_by_allowlist` | "The Prompter can't do that here. Restart StoryStage, and tell your teacher if this happens again." | |
 | Stop pressed | `cancelled` | "Stopped." | **Undo this request**, if anything landed |
@@ -550,7 +600,7 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Needs | From | For |
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
-| The production's undo session, holding program edits and scene set-ups in one step. Until it exists, `add_model`, `set_property` and `stage_scene` answer `not_allowed_here` | S4, S2 (WP8.2, spec 03 section 2.1) | Section 3.1, 3.2 |
+| Set the stage from the storyboard (10.10), for `stage_scene` to reuse. Until it exists, `stage_scene` answers `not_allowed_here`. The production's undo session it needed is done (`ProductionSession`, #186), and `add_model` and `set_property` use it | S5 (WP10c) | Section 3.2 |
 | Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |

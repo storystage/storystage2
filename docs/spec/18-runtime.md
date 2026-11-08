@@ -98,5 +98,5 @@ It's sent even when it's empty, so the main thread can always hand it on. A dist
 | `STORY_LIBRARY` fits, runs, and its refusals are bad values at the block (section 3) | `story-faults.test.ts` | Unit |
 | The worker's protocol, both modes, pause, speed, every event kind, `heldKeyPolicy` and the `watch` message (section 5) | `serve.test.ts`, over `inMemoryPorts` | Unit |
 | Ending a scene: the message, stopping every strand, defaults, faults, and loading the next scene into the same worker (section 3.1) | `serve.test.ts`, "ending a scene" | Unit |
-| The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when) | With WP4.3, once the blocks they use run | Unit |
+| The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when): the 21 rows of `docs/eval/requests.jsonl` that build code, and the `penguin-animated` start. Each passes its row's code checks, is valid, and runs on `STORY_LIBRARY` sending the commands it should. Turning a joint (`anim-06`'s head) waits for joint values in the runtime and joint targets in the blocks | `tr1.test.ts` | Unit |
 | Fast-forward to a block (WP6.4) | With WP7.4, which drives it through fixed-step `advance` | Unit |

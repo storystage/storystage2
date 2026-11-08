@@ -18,6 +18,10 @@
 
 week0: 2026-10-19
 
+# The date the actual dates below were last brought up to date. The forecast in workplan 5a
+# starts from it (WP1.12).
+as_of: 2026-11-08
+
 # Lanes for strands that start only after the release candidate; their slack is measured to the
 # end of the whole plan rather than the end of the pilot.
 later_lanes: [Beyond, AR, Projection]
@@ -62,6 +66,8 @@ items:
     weeks: 1.5
     basis: first plan
     after: []
+    started: 2026-10-25
+    finished: 2026-11-06
   - id: WP12a
     label: Interface mock-ups (12.1)
     lane: Interface
@@ -69,6 +75,7 @@ items:
     weeks: 2
     basis: first plan
     after: []
+    started: 2026-10-23
   - id: WP16a
     label: Curriculum mapping, four nations (16.1–16.5)
     lane: Curriculum and legal
@@ -76,6 +83,8 @@ items:
     weeks: 5
     basis: first plan
     after: []
+    started: 2026-10-25
+    finished: 2026-11-08
   - id: WP17a
     label: CMU/EA letters, rights checks, contract (17.1, 17.5–17.9)
     lane: Curriculum and legal
@@ -83,6 +92,8 @@ items:
     weeks: 3
     basis: first plan
     after: []
+    started: 2026-10-25
+    finished: 2026-11-08
   - id: WP1
     label: Spikes 1.2–1.9, go/no-go per spike (1.10)
     lane: Spikes
@@ -98,6 +109,8 @@ items:
     weeks: 1.5
     basis: first plan
     after: [WP0]
+    started: 2026-11-01
+    finished: 2026-11-01
   - id: WP2
     label: AST and edit operations
     lane: Language
@@ -123,6 +136,7 @@ items:
     weeks: 4
     basis: first plan
     after: [WP0, WP3a]
+    started: 2026-10-25
   - id: WP10s
     label: Sketch library tool (10.5)
     lane: Backstage
@@ -130,6 +144,8 @@ items:
     weeks: 2
     basis: first plan
     after: [WP0, WP3a]
+    started: 2026-10-25
+    finished: 2026-11-07
   - id: WP9a
     label: '.a3p reader (9.1)'
     lane: Productions
@@ -144,6 +160,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP0, WP12a]
+    started: 2026-10-25
   - id: WP13a
     label: Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8)
     lane: Prompter and speech
@@ -151,6 +168,8 @@ items:
     weeks: 3
     basis: first plan
     after: [WP0]
+    started: 2026-10-31
+    finished: 2026-11-08
   - id: WP15a
     label: Tauri targets, policy, release channels (15.1, 15.3, 15.7)
     lane: Apps
@@ -158,6 +177,8 @@ items:
     weeks: 2
     basis: first plan
     after: [WP0]
+    started: 2026-10-31
+    finished: 2026-11-07
   - id: WP18a
     label: Test harness, fake stage, self-test skeleton (18.1, 18.4)
     lane: Foundations
@@ -174,6 +195,8 @@ items:
     weeks: 3
     basis: first plan
     after: [WP12a]
+    started: 2026-10-25
+    finished: 2026-11-08
   - id: WP16b
     label: Curriculum templates and use cases (16.6)
     lane: Curriculum and legal
@@ -181,6 +204,8 @@ items:
     weeks: 3
     basis: first plan
     after: [WP16a]
+    started: 2026-10-25
+    finished: 2026-11-08
   - id: WP3d
     label: Storybook cast commissioned and delivered (3.6)
     lane: Backstage
@@ -213,6 +238,8 @@ items:
     weeks: 3
     basis: first plan
     after: [WP0, WP1]
+    started: 2026-11-01
+    finished: 2026-11-07
   - id: WP5b
     label: 'Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8)'
     lane: Stage
@@ -220,6 +247,7 @@ items:
     weeks: 2
     basis: first plan
     after: [WP5a]
+    started: 2026-11-08
   - id: WP6
     label: Runtime interpreter
     lane: Language
@@ -228,6 +256,7 @@ items:
     basis: first plan
     after: [WP2, WP4a, WP1]
     started: 2026-11-01
+    finished: 2026-11-08
   - id: WP3c
     label: Manifest, budgets, lazy loading (3.4, 3.9)
     lane: Backstage
@@ -235,6 +264,8 @@ items:
     weeks: 2
     basis: first plan
     after: [WP1, WP3b]
+    started: 2026-11-07
+    finished: 2026-11-08
   - id: WP3i
     label: Import into Backstage, in-app sketches, licence capture (3.11, 3.12)
     lane: Backstage
@@ -258,6 +289,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP1]
+    started: 2026-11-08
   - id: WP15k
     label: Key store, transport and policy enforcement point (15.2)
     lane: Apps
@@ -265,6 +297,8 @@ items:
     weeks: 3
     basis: first plan
     after: [WP15a, WP1, WP0s]
+    started: 2026-11-01
+    finished: 2026-11-08
   - id: WP15b
     label: Signing, stores, browser hosting (15.4–15.6)
     lane: Apps
@@ -286,6 +320,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP4a, WP5a]
+    started: 2026-11-07
   - id: WP8
     label: Scenes, running order, save and open (8.2–8.5)
     lane: Productions
@@ -293,6 +328,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP8f, WP5a, WP6, WP0s]
+    started: 2026-11-08
   - id: WP10a
     label: 'Storyboard: script, arcs, cards, frame canvas, PDF'
     lane: Interface
@@ -300,6 +336,7 @@ items:
     weeks: 4
     basis: first plan
     after: [WP8f, WP12b, WP10s]
+    started: 2026-11-07
   - id: WP13b
     label: 'Prompter core: transport, context, AST tools, modes, plan before change, wizard'
     lane: Prompter and speech
@@ -307,6 +344,7 @@ items:
     weeks: 4.5
     basis: first plan
     after: [WP13a, WP2, WP4a, WP15k]
+    started: 2026-11-08
   - id: WP4c
     label: Character actions, animation, faces (4.5, 4.6)
     lane: Stage
@@ -314,6 +352,7 @@ items:
     weeks: 4
     basis: first plan
     after: [WP4b, WP5b, WP3c]
+    started: 2026-11-08
   - id: WP7c
     label: Alice-style tile editor, full (option C)
     lane: Tile editor
@@ -321,6 +360,7 @@ items:
     weeks: 7
     basis: first plan
     after: [WP2, WP4a, WP12b]
+    started: 2026-11-08
   - id: WP7t
     label: Editor switch, parity tests, study build (7.11–7.13)
     lane: Tile editor
@@ -335,6 +375,7 @@ items:
     weeks: 4
     basis: first plan
     after: [WP5a, WP6, WP12b, WP4b]
+    started: 2026-11-08
   - id: WP11b
     label: 'Screening room: rough cut, compare, titles, credits, captions'
     lane: Screening room
@@ -342,6 +383,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP8, WP11a, WP12b]
+    started: 2026-11-08
   - id: WP11c
     label: Automatic check against the storyboard (11.6)
     lane: Screening room
@@ -391,6 +433,7 @@ items:
     weeks: 2
     basis: first plan
     after: [WP1g, WP15a, WP8f]
+    started: 2026-11-08
   - id: WP24b
     label: 'Class set-up: pupil folders, class caps, log export (24.4–24.7)'
     lane: Apps
@@ -398,6 +441,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP24a, WP8, WP15k, WP13b]
+    started: 2026-11-08
   - id: WP18b
     label: Milestone gate tests and device runs (18.2, 18.3)
     lane: Foundations
@@ -461,6 +505,7 @@ items:
     weeks: 2
     basis: first plan
     after: [WP5a, WP6]
+    started: 2026-11-08
   - id: WP23b
     label: 'Projection stage: surfaces, virtual projectors, preview (23.3, 23.4)'
     lane: Projection

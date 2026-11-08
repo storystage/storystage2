@@ -3,21 +3,19 @@
  * out each tool call through the program's edit operations, holds every change to the agreed
  * plan, and keeps the words characters say to the script or the learner's own request.
  *
- * A whole learner request is one undo step: the first change opens a group on the program's
- * `EditSession`, and the end of the request commits it.
+ * A whole learner request is one undo step: the first change opens a group on the production's
+ * `ProductionSession` (spec 03, section 2.1), which holds program edits and scene set-ups
+ * together, and the end of the request commits it.
  *
- * Tools that change a scene's set-up as well as the program (`add_model`, `set_property`,
- * `stage_scene`) wait for the production's own undo session (WP8.2, spec 03 section 2.1), which
- * holds both in one step. Until then they answer `not_allowed_here`.
+ * `stage_scene` waits for Set the stage from the storyboard (10.10), whose code it must reuse.
+ * Until then it answers `not_allowed_here`.
  */
 import {
   defaultLabel,
   idMinter,
   indexProgram,
-  programText,
   type Args,
   type EditOperation,
-  type EditSession,
   type Expression,
   type FieldDecl,
   type ListenerDecl,
@@ -29,16 +27,22 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
-import type { FrameId, Production, SceneId } from '@storystage/production';
+import type { FrameId, ProductionRest, ProductionSession, SceneId } from '@storystage/production';
 import {
   DETAILS,
   classOfType,
+  enumValues,
   findEntry,
   findEvent,
   isStoryType,
   type ApiClass,
+  type SceneObjectSetup,
+  type SceneSetup,
+  type StoryClass,
+  type Transform,
   type TypeName,
 } from '@storystage/story-api';
+import { productionData, storyboardData } from './context.ts';
 import { dataBlock } from './data.ts';
 import { checkPlan, mismatch, type NameValue, type PlanStep, type PlanWorld } from './plans.ts';
 import { scriptFacts } from './script-check.ts';
@@ -50,15 +54,16 @@ import { objectRef, toValue, type SceneObjects } from './values.ts';
 
 /** What the runner works on. The studio supplies these for the open production. */
 export interface RunnerSetup {
-  /** The program, with its undo history. */
-  readonly session: EditSession<string>;
+  /** The open production, with its undo history: program and set-ups together. */
+  readonly session: ProductionSession<string>;
   /** The history's name for Prompter changes. */
   readonly source: string;
-  /** The production as it stands, for its scenes, script and frames. */
-  readonly production: () => Production;
   /** The scene the learner is in. */
   readonly scene: () => SceneId;
-  readonly isBackstageItem: (id: string) => boolean;
+  /** The method open in the editor, kept whole when the program is over its budget. */
+  readonly openMethod?: () => NodeId | null;
+  /** A shipped Backstage model's class, or null if there is no such model. */
+  readonly backstageClass: (id: string) => StoryClass | null;
   /** The automatic check's latest result for a frame (11.6), or null if it hasn't run. */
   readonly checkResult?: (frame: FrameId) => Json | null;
 }
@@ -80,7 +85,12 @@ const CONTAINERS = new Set([
   'eachTogether',
 ]);
 const LATER =
-  "The Prompter can't add or change objects in the scene yet. Ask the learner to do it from Backstage, then carry on.";
+  "The Prompter can't set a scene's stage from its storyboard yet. Add each model with add_model in a plan of its own, or ask the learner to place them from Backstage.";
+/** The AST's rule for a name (`packages/ast`, schema `name`). */
+const NAME = /^\p{L}[\p{L}\p{N}_]*$/u;
+const MAX_NAME = 60;
+const SCALE = { min: 0.05, max: 20 };
+const PAINTS: ReadonlySet<string> = new Set(enumValues('Color'));
 
 type Input = Readonly<Record<string, unknown>>;
 type Result = ToolOutcome;
@@ -95,6 +105,54 @@ const text = (v: unknown) => (typeof v === 'string' ? v : '');
 const pairs = (v: unknown): NameValue[] => (Array.isArray(v) ? (v as NameValue[]) : []);
 const story = (name: string): TypeRef => ({ kind: 'story', name });
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** A turn about the vertical axis, as a unit quaternion. */
+function yaw(degrees: number): Transform['rotation'] {
+  const half = (degrees * Math.PI) / 360;
+  return { x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) };
+}
+
+const capital = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
+
+/** A name the program accepts: "Abyssinian cat" becomes `abyssinianCat`. */
+function asName(wanted: string, item: string): string {
+  const source = wanted.trim() || item.split('/').at(-1) || 'model';
+  const words = source.match(/[\p{L}\p{N}]+/gu) ?? [];
+  const joined = words
+    .map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : capital(w)))
+    .join('')
+    .slice(0, MAX_NAME - 3);
+  return NAME.test(joined) ? joined : `model${capital(joined)}`.slice(0, MAX_NAME - 3);
+}
+
+/** The name, or the name with the first number that makes it unique in the scene's type. */
+function freeName(type: TypeDecl, name: string): string {
+  const taken = new Set([
+    'this',
+    'camera',
+    ...type.fields.map((f) => f.name),
+    ...type.methods.map((m) => m.name),
+  ]);
+  if (!taken.has(name)) return name;
+  for (let n = 2; ; n++) if (!taken.has(`${name}${n}`)) return `${name}${n}`;
+}
+
+/** True if `carrier` rides, directly or not, on `rider`: then `rider` can't ride on it. */
+function carries(objects: readonly SceneObjectSetup[], rider: string, carrier: string): boolean {
+  const vehicles = new Map(objects.map((o) => [String(o.id), o.vehicle ?? null]));
+  const seen = new Set<string>();
+  for (
+    let at: string | null = carrier;
+    at !== null && !seen.has(at);
+    at = vehicles.get(at) ?? null
+  ) {
+    if (at === rider) return true;
+    seen.add(at);
+  }
+  return false;
+}
 
 function asPlan(value: Json | undefined): Plan | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
@@ -141,7 +199,7 @@ export class PrompterRunner implements ToolRunner {
       case 'explain':
         return ok('Shown to the learner.');
       case 'read_project':
-        return ok(dataBlock('production_data', this.#projectData()));
+        return ok(this.#projectData());
       case 'check_frame':
         return this.#checkFrame(text(input.frame));
       case 'script_check':
@@ -158,6 +216,7 @@ export class PrompterRunner implements ToolRunner {
         return this.#change(name, input);
       case 'add_model':
       case 'set_property':
+        return this.#change(name, input);
       case 'stage_scene':
         return fail('not_allowed_here', LATER);
     }
@@ -166,7 +225,7 @@ export class PrompterRunner implements ToolRunner {
   // ---- Reading ----------------------------------------------------------------------------------
 
   #sceneType(program: Program = this.#setup.session.program()): TypeDecl | null {
-    const scene = this.#setup.production().scenes.find((s) => s.id === this.#setup.scene());
+    const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
     if (!scene) return null;
     const where = indexProgram(program).get(scene.method);
     const type = where?.parent ? indexProgram(program).get(where.parent)?.node : undefined;
@@ -186,32 +245,14 @@ export class PrompterRunner implements ToolRunner {
     return { type, classOf: (field: FieldDecl) => classOf(field.type) };
   }
 
-  /** The program as text, and each block in the scene with its id, for tools to name. */
-  #projectData(): Json {
-    const program = this.#setup.session.program();
-    const type = this.#sceneType(program);
-    const view = programText(program);
-    const index = indexProgram(program);
-    const blocks: Json[] = [];
-    if (type)
-      for (const span of view.spans) {
-        const node = index.get(span.node)?.node;
-        const shown =
-          node && (CONTAINERS.has(node.kind) || ['if', 'call', 'comment'].includes(node.kind));
-        if (!shown) continue;
-        if (!this.#inside(index, span.node, type.id)) continue;
-        blocks.push({
-          id: span.node,
-          text: view.text.slice(span.start, span.end).split('\n')[0]!.trim(),
-        });
-      }
-    return {
-      scene: this.#setup.scene(),
-      objects: type ? type.fields.map((f) => f.name) : [],
-      methods: type ? type.methods.map((m) => m.name) : [],
-      program: view.text,
-      blocks,
-    };
+  /** The production and the storyboard as a turn sends them (spec 04, section 2.6). */
+  #projectData(): string {
+    const production = this.#setup.session.production();
+    const place = { scene: this.#setup.scene(), open: this.#setup.openMethod?.() ?? null };
+    return [
+      dataBlock('production_data', productionData(production, place)),
+      dataBlock('storyboard_data', storyboardData(production, place)),
+    ].join('\n');
   }
 
   #inside(index: ReturnType<typeof indexProgram>, node: NodeId, ancestor: NodeId): boolean {
@@ -224,7 +265,7 @@ export class PrompterRunner implements ToolRunner {
   }
 
   #checkFrame(frame: string): Result {
-    const found = this.#setup.production().frames.find((f) => f.id === frame);
+    const found = this.#setup.session.production().frames.find((f) => f.id === frame);
     if (!found) return fail('unknown_frame', `There is no frame ${frame}.`);
     const result = this.#setup.checkResult?.(found.id) ?? null;
     return result === null
@@ -233,7 +274,7 @@ export class PrompterRunner implements ToolRunner {
   }
 
   #scriptCheck(scene: string): Result {
-    const production = this.#setup.production();
+    const production = this.#setup.session.production();
     if (scene !== '' && !production.scenes.some((s) => s.id === scene))
       return fail('unknown_object', `There is no scene ${scene}.`);
     const facts = scriptFacts(production, scene === '' ? undefined : (scene as SceneId));
@@ -243,7 +284,7 @@ export class PrompterRunner implements ToolRunner {
   // ---- Plans -------------------------------------------------------------------------------------
 
   #world(frame: string | null): PlanWorld {
-    const production = this.#setup.production();
+    const production = this.#setup.session.production();
     const program = this.#setup.session.program();
     const type = this.#sceneType(program);
     const objects = new Map<string, ApiClass>([['this', 'Scene']]);
@@ -260,7 +301,7 @@ export class PrompterRunner implements ToolRunner {
       lines: new Map(production.script.map((l) => [String(l.id), l.text])),
       sketches: new Set(onFrame ? onFrame.sketches.map((s) => s.id) : []),
       scenes: new Set(production.scenes.map((s) => String(s.id))),
-      isBackstageItem: this.#setup.isBackstageItem,
+      isBackstageItem: (id) => this.#modelClass(id) !== null,
     };
   }
 
@@ -274,7 +315,7 @@ export class PrompterRunner implements ToolRunner {
       ({ frame } = shown);
       id = shown.plan;
     }
-    if (frame !== null && !this.#setup.production().frames.some((f) => f.id === frame))
+    if (frame !== null && !this.#setup.session.production().frames.some((f) => f.id === frame))
       return fail('unknown_frame', `There is no frame ${frame}.`);
     const problems = checkPlan(steps, this.#world(frame));
     if (problems.length > 0)
@@ -287,12 +328,12 @@ export class PrompterRunner implements ToolRunner {
   }
 
   #codeFrame(frame: string): Result {
-    if (!this.#setup.production().frames.some((f) => f.id === frame))
+    if (!this.#setup.session.production().frames.some((f) => f.id === frame))
       return fail('unknown_frame', `There is no frame ${frame}.`);
     if (this.#agreed?.frame !== frame)
       return fail('no_agreed_plan', `The learner hasn't agreed a plan for frame ${frame}.`);
     const type = this.#sceneType();
-    const scene = this.#setup.production().scenes.find((s) => s.id === this.#setup.scene());
+    const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
     const method = type?.methods.find((m) => m.id === scene?.method);
     if (!method) return fail('unknown_method', "This scene's method can't be found.");
     return ok(`Build frame ${frame} in ${method.name}.`, { method: method.name });
@@ -323,9 +364,20 @@ export class PrompterRunner implements ToolRunner {
         );
       case 'declare_procedure':
         return this.#declareProcedure(input, program, type, mint);
+      case 'add_model':
+        return this.#addModel(input, type, mint);
+      case 'set_property':
+        return this.#setProperty(input);
       default:
         return this.#listen(input, type, scene, mint);
     }
+  }
+
+  /** Opens the request's undo group, named after its first change. */
+  #group(label: string): void {
+    if (this.#open) return;
+    this.#setup.session.begin(label, this.#setup.source);
+    this.#open = true;
   }
 
   /** Applies edits, labelled in plain words, opening the request's undo group with the first. */
@@ -334,10 +386,7 @@ export class PrompterRunner implements ToolRunner {
     const program = session.program();
     const edits = unlabelled.map((e) => (e.label ? e : { ...e, label: defaultLabel(program, e) }));
     const label = edits.at(-1)!.label;
-    if (!this.#open) {
-      session.begin(label, source);
-      this.#open = true;
-    }
+    this.#group(label);
     const result = session.apply(edits, label, source);
     return result.ok ? null : fail('would_break_program', result.reason);
   }
@@ -470,7 +519,7 @@ export class PrompterRunner implements ToolRunner {
     const words = args.text?.kind === 'text' ? args.text.value : '';
     const lineId = text(input.line);
     if (lineId) {
-      const line = this.#setup.production().script.find((l) => l.id === lineId);
+      const line = this.#setup.session.production().script.find((l) => l.id === lineId);
       if (!line) return fail('unknown_line', `There is no script line ${lineId}.`);
       return line.text === words
         ? null
@@ -560,6 +609,152 @@ export class PrompterRunner implements ToolRunner {
       args: args.values,
       details: {},
     };
+  }
+
+  // ---- The scene's set-up (spec 04, section 3.1) -----------------------------------------------
+
+  /** A model's class: a shipped one, or one of this production's imported models. */
+  #modelClass(id: string): StoryClass | null {
+    const imported = this.#setup.session.production().manifest.models.find((m) => m.item.id === id);
+    return imported ? imported.item.class : this.#setup.backstageClass(id);
+  }
+
+  /** Changes the current scene's set-up, as part of the request's undo step. */
+  #changeSetup(label: string, update: (setup: SceneSetup) => SceneSetup): void {
+    const { session, source } = this.#setup;
+    const scene = this.#setup.scene();
+    this.#group(label);
+    session.change(label, source, ({ program: _program, ...rest }): ProductionRest => ({
+      ...rest,
+      scenes: rest.scenes.map((s) => (s.id === scene ? { ...s, setup: update(s.setup) } : s)),
+    }));
+  }
+
+  #addModel(input: Input, type: TypeDecl, mint: () => NodeId): Result {
+    const item = text(input.backstage_item);
+    const cls = this.#modelClass(item);
+    if (!cls)
+      return fail(
+        'unknown_object',
+        `${item} isn't in the Backstage catalogue or this production's imported models.`,
+      );
+    const at = input.position as { x?: unknown; y?: unknown; z?: unknown } | undefined;
+    const position = [at?.x, at?.y, at?.z];
+    if (!position.every(finite))
+      return fail('bad_argument', 'position needs x, y and z, each a number of metres.');
+    const scale = input.scale === undefined ? 1 : input.scale;
+    if (!finite(scale) || scale < SCALE.min || scale > SCALE.max)
+      return fail('bad_argument', `scale must be from ${SCALE.min} to ${SCALE.max}.`);
+    const turn = input.turn_degrees === undefined ? 0 : input.turn_degrees;
+    if (!finite(turn)) return fail('bad_argument', 'turn_degrees must be a number.');
+
+    const name = freeName(type, asName(text(input.name), item));
+    const field: FieldDecl = {
+      id: mint(),
+      kind: 'field',
+      name,
+      type: { kind: 'story', name: cls },
+      initial: null,
+    };
+    const label = `Add ${name}`;
+    const refused = this.#apply([
+      { kind: 'declare', label, parent: type.id, index: type.fields.length, node: field },
+    ]);
+    if (refused) return refused;
+    const [x, y, z] = position as number[];
+    const object = {
+      id: name,
+      model: item,
+      class: cls,
+      transform: {
+        position: { x: x!, y: y!, z: z! },
+        rotation: yaw(turn),
+        scale: { x: scale, y: scale, z: scale },
+      },
+    } as unknown as SceneObjectSetup;
+    this.#changeSetup(label, (setup) => ({ ...setup, objects: [...setup.objects, object] }));
+    return ok(`Added ${name}.`, { name });
+  }
+
+  #setProperty(input: Input): Result {
+    const name = text(input.object);
+    const property = text(input.property);
+    const value = text(input.value).trim();
+    const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
+    if (!scene) return fail('unknown_method', "This scene can't be found.");
+    const objects = scene.setup.objects;
+    const object = objects.find((o) => o.id === name);
+    const camera = name === 'camera';
+    if (!object && !camera) return fail('unknown_object', `There is no ${name} in this scene.`);
+    if (camera && property !== 'position' && property !== 'turn_degrees')
+      return fail('bad_argument', `The camera has no ${property}. Only its position and turn.`);
+
+    const number = value === '' ? NaN : Number(value);
+    const bad = (why: string) => fail('bad_argument', `${property} for ${name}: ${why}`);
+    let change: (o: SceneObjectSetup) => SceneObjectSetup;
+    let words: string;
+    switch (property) {
+      case 'position': {
+        const parts = value.split(',').map((p) => (p.trim() === '' ? NaN : Number(p)));
+        if (parts.length !== 3 || !parts.every(finite))
+          return bad('give "x, y, z", three numbers of metres.');
+        const [x, y, z] = parts as [number, number, number];
+        change = (o) => ({ ...o, transform: { ...o.transform, position: { x, y, z } } });
+        words = `Move ${name}`;
+        break;
+      }
+      case 'turn_degrees':
+        if (!finite(number)) return bad('give a number of degrees.');
+        change = (o) => ({ ...o, transform: { ...o.transform, rotation: yaw(number) } });
+        words = `Turn ${name}`;
+        break;
+      case 'scale':
+        if (!finite(number) || number < SCALE.min || number > SCALE.max)
+          return bad(`give a number from ${SCALE.min} to ${SCALE.max}.`);
+        change = (o) => ({
+          ...o,
+          transform: { ...o.transform, scale: { x: number, y: number, z: number } },
+        });
+        words = `Resize ${name}`;
+        break;
+      case 'paint':
+        if (!PAINTS.has(value) && !/^#[0-9a-fA-F]{6}$/.test(value))
+          return bad('give a colour from the catalog, or #rrggbb.');
+        change = (o) => ({ ...o, paint: value });
+        words = `Paint ${name}`;
+        break;
+      case 'opacity':
+        if (!finite(number) || number < 0 || number > 1) return bad('give a number from 0 to 1.');
+        change = (o) => ({ ...o, opacity: number });
+        words = `Change how see-through ${name} is`;
+        break;
+      case 'vehicle': {
+        const rider = value === 'scene' ? null : value;
+        if (rider !== null && !objects.some((o) => o.id === rider))
+          return bad(`there is no ${rider} in this scene. Give an object's name, or "scene".`);
+        if (rider !== null && carries(objects, name, rider))
+          return bad(`${rider} already rides on ${name}, so ${name} can't ride on it.`);
+        change = (o) => ({ ...o, vehicle: rider as SceneObjectSetup['vehicle'] });
+        words = rider === null ? `Let ${name} ride on nothing` : `Put ${name} on ${rider}`;
+        break;
+      }
+      default:
+        return fail('bad_argument', `There's no property ${property}.`);
+    }
+
+    this.#changeSetup(words, (setup) =>
+      camera
+        ? {
+            ...setup,
+            camera: {
+              ...setup.camera,
+              transform: change({ transform: setup.camera.transform } as SceneObjectSetup)
+                .transform,
+            },
+          }
+        : { ...setup, objects: setup.objects.map((o) => (o.id === name ? change(o) : o)) },
+    );
+    return ok(`${words}: done.`);
   }
 
   #declareProcedure(

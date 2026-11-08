@@ -2,10 +2,12 @@
 //!
 //! Opens the studio in a window, reads the school lock (WP15.3, spec 05 section 3), carries the
 //! Prompter's requests (WP15.2, section 2), keeps a desktop install up to date (WP15.7,
-//! section 4) and hands speech input its checked model (section 5). No API key ever crosses
-//! into the webview.
+//! section 4), hands speech input its checked model (section 5) and keeps pupils' folders
+//! (section 6). No API key ever crosses into the webview.
 
+mod classes;
 mod key_dialog;
+mod picker;
 mod prompter;
 mod speech;
 #[cfg(desktop)]
@@ -51,13 +53,18 @@ pub fn run() {
         // For the bundled speech model inside the APK, from Rust only (spec 05 section 5.2).
         .plugin(tauri_plugin_fs::init());
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // The file dialog, from Rust only: no window is given its permissions (spec 05 section 6.5).
+        .plugin(tauri_plugin_dialog::init());
     builder
         .setup(|app| {
             let policy = read_policy(app.handle());
             app.manage(policy);
             app.manage(prompter::Prompter::default());
             app.manage(speech::Speech::default());
+            app.manage(classes::Classes::new(app.handle()));
+            app.manage(picker::Picker::default());
             #[cfg(desktop)]
             {
                 app.manage(updates::Pending::default());
@@ -71,6 +78,8 @@ pub fn run() {
             prompter::prompter_send,
             prompter::prompter_cancel,
             prompter::prompter_status,
+            prompter::prompter_pupil,
+            prompter::prompter_usage,
             prompter::key_add,
             prompter::key_status,
             prompter::key_remove,
@@ -79,6 +88,19 @@ pub fn run() {
             speech::speech_model_download,
             speech::speech_model_cancel,
             speech::speech_model_remove,
+            classes::classes_read,
+            classes::classes_write,
+            classes::classes_remove,
+            classes::classes_list,
+            classes::classes_move,
+            picker::picker_kind,
+            picker::picker_save,
+            picker::picker_open,
+            picker::picker_collect_start,
+            picker::picker_collect_write,
+            picker::picker_hand_back_start,
+            picker::picker_hand_back_read,
+            picker::picker_end,
         ])
         .build(tauri::generate_context!())
         .expect("error while running StoryStage 2")

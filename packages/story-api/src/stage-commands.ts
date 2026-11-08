@@ -59,6 +59,18 @@ export type Orientation =
   /** The same way round as the target. */
   | { readonly lineUpWith: Target };
 
+/**
+ * Where a character walks to (WP4.5): a thing, or out of the picture past one of its edges, as
+ * the camera sees it when the walk starts.
+ */
+export type Destination = Target | { readonly edge: EnumOf<'SceneEdge'> };
+
+/** How a character goes: walking or running. */
+export type Gait = 'walk' | 'run';
+
+/** The ways a character's whole body can rest (WP4.5). */
+export type Posture = 'sit' | 'stand' | 'lie' | 'fall';
+
 interface Timed {
   /** Unique and increasing per run; ties at the same start time are applied in this order. */
   readonly seq: number;
@@ -172,9 +184,67 @@ export type StageCommand =
    * Loading a scene clears it. Going to another scene, and crossfading to one, are the
    * production's (WP8.3), not the stage's.
    */
-  | (Timed & { readonly kind: 'fade'; readonly to: number });
+  | (Timed & { readonly kind: 'fade'; readonly to: number })
+  /*
+   * Character actions (WP4.5) and faces (WP4.6). Each takes its own time: the Story API asks
+   * `naturalDuration` and sends that. Another duration stretches or squeezes the action. On a
+   * model without a humanoid skeleton the body moves, but no limb does.
+   */
+  /**
+   * Walks or runs the shortest way round what's in the way when it starts. To a thing, it
+   * stops in front of it, facing it; onto a marker, it stops on it. Past an edge, it ends out of
+   * the picture.
+   */
+  | (Timed & { readonly kind: 'walk'; readonly to: Destination; readonly gait: Gait })
+  /** Starts out of the picture past an edge, and walks or runs in to where it is now. */
+  | (Timed & {
+      readonly kind: 'enter';
+      readonly from: EnumOf<'SceneEdge'>;
+      readonly gait: Gait;
+    })
+  /**
+   * Sits (on `on`, which it moves onto, or on the ground), stands up, lies down, or falls over
+   * and lies where it falls. Standing up from sitting on something leaves it in front of it.
+   */
+  | (Timed & { readonly kind: 'posture'; readonly posture: Posture; readonly on?: Target })
+  /**
+   * The nearer hand reaches the nearest point of the target, or as near as it gets. `touch`
+   * brings the hand back; `stay` leaves it there until the next posture, reach or `pose`.
+   */
+  | (Timed & { readonly kind: 'reach'; readonly target: Target; readonly then: 'touch' | 'stay' })
+  /**
+   * Reaches the target and holds it: from then on it moves with the hand, until `putDown`.
+   * Its `transform` is still relative to the scene.
+   */
+  | (Timed & { readonly kind: 'pickUp'; readonly target: ObjectId })
+  /** Puts a held thing down on the ground in front. Putting down what isn't held does nothing. */
+  | (Timed & { readonly kind: 'putDown'; readonly target: ObjectId })
+  /**
+   * Plays a clip once: one of the model's own, by its name, or else one from the stage's shared
+   * library, which plays on any humanoid.
+   */
+  | (Timed & { readonly kind: 'clip'; readonly clip: string })
+  /** A gesture from the shared library: wave, nod, shrug, clap or point. */
+  | (Timed & { readonly kind: 'gesture'; readonly gesture: EnumOf<'Gesture'> })
+  /**
+   * Changes the face to an expression, which stays until the next one. `blink` closes the eyes
+   * and opens them again. A model without that face shows no change.
+   */
+  | (Timed & { readonly kind: 'expression'; readonly expression: EnumOf<'Expression'> })
+  /**
+   * Turns the head, and the eyes where the model has them, to follow the target as far as a
+   * neck turns, whatever the body is doing, until the next `lookAt`. `null` stops looking.
+   */
+  | (Timed & { readonly kind: 'lookAt'; readonly target: Target | null });
 
 export type StageCommandKind = StageCommand['kind'];
+
+/** A command without its timing: what `naturalDuration` asks about. */
+export type StageAction = StageCommand extends infer C
+  ? C extends StageCommand
+    ? Omit<C, 'seq' | 'start' | 'duration' | 'style'>
+    : never
+  : never;
 
 /** Questions a running program can ask (the Story API's functions). Answered on the main thread. */
 export type StageQuery =
@@ -198,7 +268,22 @@ export type StageQuery =
   | { readonly kind: 'vehicle'; readonly object: ObjectId; readonly at: Micros }
   | { readonly kind: 'sceneLook'; readonly at: Micros }
   /** The camera's vertical viewing angle, in turns. */
-  | { readonly kind: 'lens'; readonly at: Micros };
+  | { readonly kind: 'lens'; readonly at: Micros }
+  /**
+   * How long an action takes at its own pace if it starts at `at`: a walk by the length of its
+   * way, a clip or gesture by its length on that model. Any other command is instant, 0.
+   */
+  | { readonly kind: 'naturalDuration'; readonly action: StageAction; readonly at: Micros }
+  /**
+   * An object's joints in a chain (`getJointChain`), from the root out: `neck` is its neck,
+   * `tail` its tail joints and then the tip. Empty if its model has none.
+   */
+  | {
+      readonly kind: 'jointChain';
+      readonly object: ObjectId;
+      readonly chain: EnumOf<'JointChain'>;
+      readonly at: Micros;
+    };
 
 /** How a model looks. A paint the model was made with, not one set since, is `null`. */
 export interface Look {
@@ -221,6 +306,8 @@ export interface SceneLook {
 export type StageQueryResult =
   | { readonly kind: 'transform'; readonly value: Transform }
   | { readonly kind: 'distance' | 'lens'; readonly value: number }
+  | { readonly kind: 'naturalDuration'; readonly value: Micros }
+  | { readonly kind: 'jointChain'; readonly value: readonly JointName[] }
   | { readonly kind: 'isColliding' | 'isVisible'; readonly value: boolean }
   | { readonly kind: 'size'; readonly value: Vec3 }
   | { readonly kind: 'look'; readonly value: Look }

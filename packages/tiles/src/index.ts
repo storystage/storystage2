@@ -1,8 +1,8 @@
 /**
- * @storystage/tiles: Option C: Alice-style tile editor in React (rows, drop targets, cascading menus, add detail).
+ * @storystage/tiles: option C, the Alice-style tile editor in React (spec 14, section 3).
  *
- * Owner: S6. Workplan: WP7c.
- * Stub created by WP0.2. Other sessions use this package only through its
- * WP0.8 contract; changes to the contract go in their own pull request.
+ * Owner: S6. Workplan: WP7c. Other sessions use it only through the WP0.8 editor contract:
+ * the studio mounts a `TileEditor` as it mounts option B.
  */
-export {};
+export { TileEditor } from './editor.tsx';
+export { TILE_COLOURS } from './tokens.ts';
