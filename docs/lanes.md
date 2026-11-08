@@ -43,7 +43,8 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov (#114, #115, #117, #118, #119): **WP5a, the stage core (5.1 to 5.5)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. The stage README says how to use it.
   - 8 Nov (#132, #134, #136): **WP4b, the Story API on the stage (4.3, and 4.4's fade to black)**: the stage contract for WP4.3 (spec 02 section 9), the stage doing all of it, and `STORY_LIBRARY`, a block for every catalog entry the stage runs. WP4's done-when is a test: every block on every class, against the stage.
 - Open:
-  - 8 Nov (#142): **WP4.10, shot types, with WP5b and WP4c's start stacked into it**. It now holds:
+   - 8 Nov (#234, `contract`, against `main`): **WP8.2 and 8.3, the stage's half**: `Stage.preload` gets the likely next scene ready, and `load(setup, { crossfade })` fades the old scene out over the new one, moving (held still live at "low"; always moving in an export). Agreed with S4. **S4 to review** (its session is closed, so this is the note). **S2:** the driver calls `preload` on the player's hint and passes a crossfade's duration into `load`.
+ - 8 Nov (#142): **WP4.10, shot types, with WP5b and WP4c's start stacked into it**. It now holds:
     - 4.10's shots;
     - 5.6, WebGPU, quality and the scene budget (#145);
     - 5.7, `Stage.picture` (#148);
@@ -63,7 +64,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
   - S4 and S1: 4.4's scene changes (WP8.3) and speak line (WP14.3), by the owner's decision of 8 Nov.
-- Next: after WP4c, **WP23b** (the projection stage) waits for the release candidate, WP23a (S1), WP8 (S4) and WP12b (S5). Until then: the A-pose correction once MakeHuman's people are in Backstage, and visemes once S1's speak line design is ready.
+- Next: after WP4c and WP8's stage half, **WP23b** (the projection stage) waits for the release candidate, WP23a (S1), WP8 (S4) and WP12b (S5). Until then: the A-pose correction once MakeHuman's people are in Backstage, and visemes once S1's speak line design is ready.
 
 ## S4 Backstage and Productions
 - In review:
