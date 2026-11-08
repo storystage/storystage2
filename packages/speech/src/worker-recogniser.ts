@@ -59,7 +59,9 @@ export function whisperRecogniser(
       worker.onerror = (event) =>
         fail(/memory|oom|alloc/i.test(event.message ?? '') ? 'out_of_memory' : 'internal');
       worker.onmessage = ({ data }) => {
-        if (data.type === 'log') {
+        if (typeof data !== 'object' || data === null || !('type' in data)) {
+          options.onLog?.(`unexpected message: ${JSON.stringify(data).slice(0, 200)}`);
+        } else if (data.type === 'log') {
           options.onLog?.(data.line);
         } else if (data.type === 'ready') {
           loaded = true;

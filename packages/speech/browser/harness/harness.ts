@@ -76,6 +76,11 @@ async function microphone() {
   return { blocks, rate, afterClose: blocks - after };
 }
 
+window.addEventListener('error', (e) =>
+  stage(`error: ${e.message} at ${e.filename}:${e.lineno}:${e.colno}`),
+);
+window.addEventListener('unhandledrejection', (e) => stage(`unhandled: ${String(e.reason)}`));
+
 const run = new URLSearchParams(location.search).get('run');
 (run === 'microphone' ? microphone() : clip()).then(finish, (error: unknown) =>
   finish({ error: String((error as { code?: string }).code ?? error) }),

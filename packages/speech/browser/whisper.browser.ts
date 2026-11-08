@@ -36,7 +36,7 @@ async function resultOf(page: Page, run: string) {
   page.on('worker', (worker) =>
     worker.on('console', (m) => console.log(`worker ${m.type()}: ${m.text()}`)),
   );
-  page.on('pageerror', (error) => console.log('page error:', error.message));
+  page.on('pageerror', (error) => console.log('page error:', error.stack ?? error.message));
   await page.goto(`/?run=${run}`);
   try {
     const handle = await page.waitForFunction(

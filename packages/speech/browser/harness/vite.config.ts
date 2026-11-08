@@ -15,6 +15,9 @@ export default defineConfig({
   preview: { port: 4190, strictPort: true, headers: isolation },
   build: {
     target: 'es2022',
+    // Readable stacks when the browser test fails.
+    minify: false,
+    sourcemap: true,
     outDir: fileURLToPath(new URL('../../dist-harness', import.meta.url)),
     emptyOutDir: true,
   },
