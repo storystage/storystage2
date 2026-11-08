@@ -94,6 +94,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S7 Prompter and speech
 - Merged:
+  - 8 Nov: **WP14.1, dictation** (this pull request): `createDictation` as spec 06, section 1.11 says, with the audio and cleaning for whisper. **S5:** you can build the mic button on it now, passing a microphone and recogniser until the browser's land; a take that stops by itself at 30 seconds or on blur is collected with `stop()`.
   - 8 Nov: **WP14a: spec 06 for dictation in every field** (decision 0060; #164): tap to start and stop, the words given back for the studio to insert, and `createDictation` for S5. **S5:** section 1.11 has the interface you asked for. **S8:** section 1.1 follows `speech.dictation`.
   - 8 Nov: **WP13.4, the tool runner** (#161): plans checked before they're shown, each change held to its agreed step, a character's words from the script or the learner, and the program tools through `EditSession`, one undo step per request. **S4, S2:** `add_model`, `set_property` and `stage_scene` wait for the production's undo session (WP8.2). **S2:** naming an undo group when it closes would let a request's label say all it changed.
   - 8 Nov: **WP13.2, the conversation and its tool loop** (#158), tested end to end against the fake server.
@@ -109,7 +110,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - S8 (WP15k, merging now) for 13.2's native wiring, the `pins.json` hashes and the set-up wizard (13.6).
 - For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer hands the worker a checked model (bundled, or the optional download), so the webview loads nothing remote.
 - For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3. Spec 06, section 7 also asks for speech in the DPIA and the model weights in `NOTICE`.
-- Next: WP13b (the context builders and the `pins.json` hashes), and WP14.1 (`createDictation`, then whisper's worker and audio, against S8's `host.speech`) side by side. The owner gave spike 1.3 its go on 8 Nov, before the device runs.
+- Next: WP13b (the context builders and the `pins.json` hashes), and WP14.1 (the browser's microphone and whisper's worker, with its WebAssembly build in CI, against S8's `host.speech`) side by side. The owner gave spike 1.3 its go on 8 Nov, before the device runs.
 
 ## S8 Apps, security and class set-up
 - Merged:
