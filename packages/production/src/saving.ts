@@ -224,10 +224,12 @@ export function plainName(text: string, fallback: string): string {
     .slice(0, 80);
   while (name.endsWith('.') || name.endsWith(' ')) name = name.slice(0, -1);
   if (name === '') return fallback;
-  // Windows reads any name whose part before the first dot is a device ("con.txt") as the
-  // device, so the "_" goes straight after that part: "con_.txt", not "con.txt_".
+  // Windows reads any name whose part before the first dot is a device ("con.txt", "con .txt")
+  // as the device, so the "_" goes straight after that part, spaces dropped: "con_.txt".
   const stem = name.split('.')[0] ?? '';
-  if (RESERVED.test(stem)) name = `${stem}_${name.slice(stem.length)}`.slice(0, 80);
+  if (!RESERVED.test(stem.trimEnd())) return name;
+  name = `${stem.trimEnd()}_${name.slice(stem.length)}`.slice(0, 80);
+  while (name.endsWith('.') || name.endsWith(' ')) name = name.slice(0, -1);
   return name;
 }
 

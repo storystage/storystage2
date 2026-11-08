@@ -203,6 +203,7 @@ describe('plainName', () => {
     expect(plainName('Con. notes', 'x')).toBe('Con_. notes');
     expect(plainName('nul.storystage', 'x')).toBe('nul_.storystage');
     expect(plainName('CON', 'x')).toBe('CON_');
+    expect(plainName('Con .txt', 'x')).toBe('Con_.txt');
     expect(plainName('console', 'x')).toBe('console');
     expect(plainName('x'.repeat(100), 'x')).toHaveLength(80);
     expect(plainName('tab\there', 'x')).toBe('tab here');

@@ -117,7 +117,10 @@ export class ProductionPlayer {
     return this.load(first, null, []);
   }
 
-  /** A message from the runtime worker. */
+  /**
+   * A message from the runtime worker, for the current scene only: after a `load`, the driver
+   * drops whatever the old run still had in flight until that `load`'s `loaded` comes back (S2).
+   */
   runtime(message: FromRuntime): PlayerAction[] {
     if (this.phase.kind !== 'playing') return [];
     switch (message.type) {
