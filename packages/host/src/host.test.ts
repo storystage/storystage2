@@ -46,8 +46,45 @@ describe('the Tauri host', () => {
   );
 });
 
+describe('speech models in the Tauri host', () => {
+  const Channel = class {
+    onmessage = () => {};
+  };
+  const withPolicy =
+    (changes: Record<string, unknown>) =>
+    async (command: string): Promise<unknown> =>
+      command === POLICY_COMMAND
+        ? { ...fixture, prompter: { ...fixture.prompter, ...changes } }
+        : '1.4.2';
+
+  it('are there when voice input is allowed', async () => {
+    const host = await tauriHost(answering('1.4.2'), native, Channel);
+    expect(host.speech).not.toBeNull();
+  });
+
+  it.each([
+    ['the level is Off', { level: 'off' }],
+    ['voice input is off', { voiceInput: false }],
+  ])('are absent when %s', async (_name, changes) => {
+    expect((await tauriHost(withPolicy(changes), native, Channel)).speech).toBeNull();
+  });
+
+  it('are absent when the policy is unreadable', async () => {
+    const host = await tauriHost(() => Promise.reject(new Error('no answer')), native, Channel);
+    expect(host.speech).toBeNull();
+  });
+
+  it('are absent without Tauri’s Channel', async () => {
+    expect((await tauriHost(answering('1.4.2'), native)).speech).toBeNull();
+  });
+});
+
 describe('the browser host', () => {
   it('has no installed version', () => {
     expect(browserHost.version).toBeNull();
+  });
+
+  it('has no speech models', () => {
+    expect(browserHost.speech).toBeNull();
   });
 });

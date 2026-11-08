@@ -1,3 +1,4 @@
+import { PROMPTER_LEVELS as PROMPTERS_LEVELS } from '@storystage/prompter';
 import { describe, expect, it } from 'vitest';
 import fixture from '../../../apps/desktop/src-tauri/policy/fixtures/policy-in-force.json';
 import { browserHost } from './host.ts';
@@ -5,9 +6,15 @@ import {
   BROWSER_POLICY,
   isPolicyInForce,
   POLICY_COMMAND,
+  PROMPTER_LEVELS,
   readPolicy,
   unreadablePolicy,
 } from './policy.ts';
+
+// `@storystage/prompter` keeps its own copy, because it can't import this package.
+it('has the same four levels, in the same order, as the Prompter', () => {
+  expect(PROMPTER_LEVELS).toEqual(PROMPTERS_LEVELS);
+});
 
 describe('the policy in force', () => {
   // The other half of this test is in Rust: `the_shared_fixture_matches`.
