@@ -148,7 +148,8 @@ pub fn canonical_hash(value: &Value) -> String {
     hash_text(&text)
 }
 
-fn hash_text(text: &str) -> String {
+/// SHA-256 of some text, in hex.
+pub fn hash_text(text: &str) -> String {
     hex::encode(Sha256::digest(text.as_bytes()))
 }
 

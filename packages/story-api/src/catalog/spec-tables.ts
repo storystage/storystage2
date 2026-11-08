@@ -137,6 +137,7 @@ const stage = () => {
       return [code(name), what, codes([...new Set(users)])];
     }),
   );
+  if (STAGE_CHANGES.length === 0) return needs;
   return `${needs}\n\nChanges to commands the contract already has:\n\n${STAGE_CHANGES.map(
     (c) => `- ${c}`,
   ).join('\n')}`;

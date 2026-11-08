@@ -20,6 +20,7 @@ import {
   type StageQueryResult,
   type StoryClass,
   type Transform,
+  type Watch,
   jointName,
 } from '@storystage/story-api';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
@@ -117,6 +118,11 @@ export class FakeStage implements Stage {
   onEvent(listener: (event: StageEvent) => void): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
+  }
+
+  /** Recorded only: a test fires proximity and view events itself, with `emit`. */
+  watch(watches: readonly Watch[]): void {
+    this.record('watch', [watches]);
   }
 
   /** Test helper: fire a stage event, as a click or a collision would. */

@@ -1,6 +1,6 @@
 # 0030 Age range
 
-- **Status:** provisional
+- **Status:** superseded by [0039](0039-age-range-confirmed.md) (confirmed, 25 Oct 2026)
 - **Decided:** 25 Oct 2026, by the owner
 - **Source:** the owner's answers in the S1 session, on the Direction A design handoff (#49)
 

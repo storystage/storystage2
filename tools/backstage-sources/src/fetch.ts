@@ -9,6 +9,7 @@ import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import type { SourceItem } from './sources.ts';
 
 export type Fetcher = (url: string) => Promise<Uint8Array>;
@@ -84,7 +85,8 @@ export async function fetchModel(
     resources[uri] = file.slice();
     fetched.push({ url: fileUrl, sha256: sha256(file) });
   }
-  const io = new WebIO();
+  // Every standard extension, so a pack that uses one (WebP textures, say) keeps it when packed.
+  const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const doc = await io.readJSON({ json: json as never, resources });
   return { bytes: await io.writeBinary(doc), ext: 'glb', fetched };
 }

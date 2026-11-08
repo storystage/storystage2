@@ -28,6 +28,7 @@ import {
   type StageQuery,
   type StageQueryResult,
   type Transform,
+  type Watch,
 } from '@storystage/story-api';
 import { resolveBackdrop } from '../backdrops.ts';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
@@ -172,8 +173,13 @@ export class BabylonStage implements Stage {
     for (const mesh of this.owners.keys()) mesh.computeWorldMatrix(true);
     const hit = scene.pick(x, y, (m) => m.isEnabled() && this.owners.has(m));
     const object = hit.pickedMesh ? this.owners.get(hit.pickedMesh)! : null;
-    this.fire({ kind: 'click', object, at: this.time() });
+    const across = x / this.engine.getRenderWidth();
+    const up = 1 - y / this.engine.getRenderHeight();
+    this.fire({ kind: 'click', object, x: across, y: up, at: this.time() });
   }
+
+  /** Proximity and view events come with WP4b's stage work; until then nothing is watched. */
+  watch(_watches: readonly Watch[]): void {}
 
   /** A key press, by its Story API name. */
   key(key: string): void {

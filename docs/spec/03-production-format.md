@@ -32,7 +32,7 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 
 **File names from ids.** A scene or frame id, or a model's folder, becomes part of a path, so it must match `SAFE_ID` (lowercase letters, digits and hyphens, 1 to 32 characters, starting with a letter or digit). An audio file is a plain name in `audio/`. `checkReferences` refuses anything else.
 
-**Reading a file** follows `15-security.md` section 3: one archive reader, in this package, with its limits on sizes and names, and the whole file checked before anything loads (WP8.4).
+**Reading a file** follows `15-security.md` section 3: one archive reader, in this package (`archive.ts`: `readArchive`, `writeArchive`, `readJson`), with its limits on sizes and names, and the whole file checked before anything loads (WP8.4). The reader parses the zip itself, so it refuses links and devices, encrypted, split and ZIP64 archives, and unknown packing methods; it unpacks only the entries the format names, counting bytes as they come; and it refuses the whole file on any problem, in plain words that never quote the file. `.a3p` files and model packs use the same reader. The writer gives the same bytes for the same entries: deflated at level 6 (or stored, when that is smaller), names in UTF-8, every entry dated 1 January 1980.
 
 ### 1.1 What is never stored
 
@@ -86,14 +86,17 @@ A scene is two things, kept in step:
 
 Spec 01 leaves this here. Adding an object changes the program (a field) and the set-up. So do renaming one and deleting a scene. These must be one undo step, and moving an object on the stage has to be undoable too (WP7.3).
 
-So the production has its own session around `EditSession`, built in WP8.2:
+So the production has its own session, `ProductionSession` (`session.ts`, WP8.2), and every change goes through it, from code, the stage, the Storyboard or the Prompter:
 
-- A **step** holds program edits and, for each scene it touched, that scene's `SceneSetup` before and after. Set-ups are immutable, so holding two is cheap.
-- **Undo** runs the program's inverses and restores the "before" set-ups; redo the reverse.
-- A step that only moves things on the stage has no program edits, and appears in the history like any other.
-- **Renaming a scene object** is one step: a `rename` edit, and the set-up with that object's `id` changed, along with any `vehicle` pointing at it.
+- A **step** holds its program edits with the edits that undo them, and **the rest of the production before and after**: set-ups, cards, frames, lines and the running order. They are immutable, so holding two copies is cheap; they share everything that didn't change.
+- **Undo** runs the program's inverses and restores the "before"; redo the reverse.
+- **`apply`, `begin`, `commit`, `cancel`, `undo`, `redo`, `history` and `goTo` behave as `EditSession`'s do,** so the code editors' host uses the production session in its place. `step` takes a step from the scene functions below, and `change` takes a change to anything but the program, such as moving an object on the stage, which then appears in the history like any other. A group (`begin` to `commit`) can mix all three: a whole Prompter request is one undo step.
+- **Renaming a scene object** is one step: a `rename` edit, and the set-up with that object's `id` changed, along with any `vehicle` pointing at it. A rename typed in the code editor does the same: the session renames the object in its scene's set-up in the same step. **Removing** the field takes the object out of the set-up, and whatever rode on it rides on the scene.
+- **A scene's script method can't be removed** (`sceneMethodCheck`), and a production opened read-only refuses every change, with the reason.
 
 **Adding, deleting and moving a scene** are `addScene`, `deleteScene` and `moveScene` (`scenes.ts`, written by S5 for the Storyboard). Each is one step across the type, the set-up, the card, the frames and lines, and the running order, and returns the program edits it made with their inverses, for the session to hold. A new scene is a type from `newSceneType` (`SceneN`, the first free name), an empty set-up and a card, with a scene id `sN`, the first free one; it waits for the logline and synopsis (WP10.1), and a production holds at most 50 scenes. Deleting unpins lines elsewhere that were pinned to its frames and keeps the learner's recordings, no longer tied to the scene; it is refused, in the AST's plain words, while other code still uses the scene's type. Moving changes only the running order.
+
+**Renaming a scene** (`renameScene`) changes its card's heading, which the Storyboard, the script and the running order show; its type keeps its name. **Duplicating a scene** (`duplicateScene`) places a copy straight after it in the running order, with the same transition: a copy of its type (fields, methods and listeners with new ids, named `SceneN`), its set-up, its card with a new heading, and its frames and lines with new ids (`fN`, `lN`, the first free). The copied frames' links follow the copied blocks, and the copied lines stay pinned to the copied frames. Recordings aren't copied.
 
 A scene's script method can't be removed by an edit: `sceneMethodCheck` is the `check` for `EditSession` that refuses it, in plain words (`01-ast.md` section 4.5). Deleting a scene takes its whole `type`, in the production's own step (WP8.2).
 
@@ -152,8 +155,11 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 |---|---|---|
 | The example production is complete and valid, including its program | `types.test.ts` | Unit |
 | Each rule `checkReferences` enforces (sections 1, 1.3, 2, 3, 6, 7) | `types.test.ts`, one broken production per rule | Unit |
+| The archive reader refuses each case in `15-security.md` sections 3.1 and 3.2, counts bytes while unpacking whatever the zip declares, reads zips from other tools, and the writer gives the same bytes every time (section 1) | `archive.test.ts` | Unit |
 | Saving packs exactly the imported models in use, and a packed model is checked as an import (section 1.3) | With WP8.4 | Unit |
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
+| One undo step for program edits, scene steps and stage changes, alone or grouped; cancel; renaming or removing an object's field in code keeps its set-up in step; read-only; listeners; load (section 2.1) | `session.test.ts` | Unit |
+| Renaming and duplicating a scene: the copy's type, set-up, card, place, new ids, links and pins (section 2.1) | `session.test.ts` | Unit |
 | Fountain reads and writes as section 5 says | With WP10.4 | Unit |
 | A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |
 | A newer file opens read-only and is never written (section 1.2) | With WP8.4 | Unit |

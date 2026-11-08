@@ -7,6 +7,7 @@ import {
   CAMERA,
   IDENTITY,
   StageError,
+  jointName,
   micros,
   objectId,
   type ObjectId,
@@ -212,6 +213,30 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       await expect(
         (await make()).load({ ...SETUP, objects: [{ ...first!, paint: 'rainbow' }, second!] }),
       ).rejects.toMatchObject({ code: 'bad_argument' });
+    });
+
+    // Until WP4b's stage work: the contract has these, and no stage does them yet.
+    it('refuses what it cannot do yet, and adds none of the batch', async () => {
+      const stage = await loaded();
+      const before = stage.stateHash();
+      const move = cmd(0, 1, {
+        object: cat,
+        kind: 'translate',
+        by: { x: 1, y: 0, z: 0 },
+        space: 'scene',
+      });
+      for (const later of [
+        cmd(0, 1, { object: cat, kind: 'moveToward', target: dog, amount: 1 }),
+        cmd(0, 1, {
+          object: cat,
+          kind: 'moveTo',
+          target: { object: dog, joint: jointName('head') },
+        }),
+      ])
+        expect(() => stage.schedule([move, later])).toThrow(/can't do .* yet/);
+      stage.seek(micros(1));
+      expect(stage.stateHash()).toBe(before);
+      expect(() => stage.answer({ kind: 'vehicle', object: cat, at: 0 })).toThrow(StageError);
     });
 
     it('forgets every command on reset, and on load', async () => {

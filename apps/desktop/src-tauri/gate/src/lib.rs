@@ -9,7 +9,7 @@ mod check;
 pub mod retry;
 pub mod sse;
 
-pub use check::{check, contains_secret, canonical_hash, Pins, PrompterRequest};
+pub use check::{canonical_hash, check, contains_secret, hash_text, Pins, PrompterRequest};
 
 use serde::Serialize;
 use serde_json::Value;
