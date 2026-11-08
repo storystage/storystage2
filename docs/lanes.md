@@ -21,14 +21,16 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - In review:
-  - 8 Nov (PR open, contract for S4, waits for the owner's merge): **the runtime's half of 8.3, ending a scene**: `goToScene`, `crossfade` and `fadeToBlack` stop every strand and send `sceneChange` with a `RuntimeSceneEnding`; `load` names the production's scenes; the same worker takes the next scene's `load`. RUNTIME_PROTOCOL is 2. Agreed with S4; spec 18 section 3.1. **S4:** the player's side is your #190. **S6:** the three catalog entries can become `runs: 'runtime'`.
+  - 8 Nov (PR open, contract for S3, waits for the owner's merge): **WP6.2, the rest of the events**: click positions, `keyRelease` and `heldKeyPolicy`, `collisionEnd`, `proximityExit`, `viewEnter` and `viewExit`; and a new `watch` message giving `Stage.watch` what the scene's proximity and view listeners need. Spec 18 section 5. **S3:** the main thread hands `watch` to `Stage.watch` as it arrives.
+  - 8 Nov (#197, waits for the owner's merge): **WP6.3, the Story API's refusals**: a `StoryFault` from S3's `STORY_LIBRARY` is now a `bad_value` fault at the block, not `internal`.
 - Merged:
+  - 8 Nov (#196): **the runtime's half of 8.3, ending a scene**: `goToScene`, `crossfade` and `fadeToBlack` stop every strand and send `sceneChange` with a `RuntimeSceneEnding`; `load` names the production's scenes; the same worker takes the next scene's `load`. RUNTIME_PROTOCOL is 2. Agreed with S4, who reviewed it; spec 18 section 3.1. **S4:** the player's side is your #190. **S6:** the three catalog entries can become `runs: 'runtime'`.
   - 1 Nov (#112): **WP6, the runtime core**: scheduler, interpreter, events, limits, the worker protocol and fixed-step mode, with spec 18. **S3:** WP4.3 plugs in as a `StoryLibrary` (`packages/runtime/README.md`); spec 18 section 5 lists more gaps for the section 9 contract pull request. Still to come: the worker file and fast-forward (WP7.4), and the TR1 programs (once WP4.3 runs their blocks).
   - 1 Nov (#101): **WP8f, the production format (8.1)**: spec 03, including how the program and a scene's set-up undo as one step (section 2.1); a stricter `checkReferences`; `sceneMethodCheck`; `manifest.origin`; an example production with code in it. Class-imported models travel in the file (decision 0049, section 1.3): `manifest.models`, `models/<folder>/`. **S4:** `packages/production` is yours now; 8.2 builds the production's own undo, and 8.4 the saving, including packing models. **S5, S7, S6:** the format is ready to build the Storyboard, its tools and import on. **S1:** the self-test's undo step can now use real edits on the example production.
   - 1 Nov (#90, #92, #94, #96, #97): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. S2 merged these under decision 0050; S1, the small changes to your `editor-contract` test and `selftest` are in #92 and #94 if you want to look. **S6, S7, S4:** the API is listed in `packages/ast/README.md`. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
 - Blocked on:
-  - S3: WP4.3's `StoryLibrary`, for WP6's done-when; S4: WP8, and S5: WP12b, for WP11b.
-- Next: the events and the `watch` message that #132 made possible (WP6.2: click positions, key release, collision end, proximity exit, view events); then WP11b, the Screening room, once WP8 lands.
+  - S4: WP8, and S5: closing WP12b's 12.5, for WP11b.
+- Next: the TR1 programs in StoryStage 2 AST (WP6's done-when), now that WP4.3 has landed (#136); then WP11b, the Screening room, once WP8 lands.
 
 ## S3 Stage and Story API procedures
 - Merged:
