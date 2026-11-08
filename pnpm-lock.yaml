@@ -140,6 +140,9 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../editor-contract
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api

@@ -5,11 +5,12 @@
  * and the shared editing model (`@storystage/story-api/editing`, S6).
  *
  * So far: a block type for every Story API entry and node kind, with typed connections (3i.1,
- * 3i.3), and the mapping between a method and its blocks (3i.8). The editor itself, the renderer,
- * the palette and the cascade follow.
+ * 3i.3), the mapping between a method and its blocks, and a gesture on the blocks as edit
+ * operations (3i.8). The editor itself, the renderer, the palette and the cascade follow.
  */
 export { ALL_TYPES, inputCheck, outputCheck, targetCheck } from './checks.ts';
 export { blockTypes, defineBlocks, shapeOf } from './definitions.ts';
+export { editsFor, type GestureEdits } from './gestures.ts';
 export {
   BlocksMismatch,
   SWITCHED_OFF,

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",
+    "@storystage/editor-contract": "workspace:*",
     "@storystage/story-api": "workspace:*",
     "@storystage/ui": "workspace:*",
     "blockly": "^13.4.0"
