@@ -13,3 +13,4 @@ export { exampleProduction } from './example.ts';
 export * from './scenes.ts';
 export * from './archive.ts';
 export * from './session.ts';
+export * from './fountain.ts';
