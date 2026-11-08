@@ -297,6 +297,8 @@ export function importSetUp(program: AliceNode, options: WorldOptions = {}): Wor
     const call =
       statement.type === 'ExpressionStatement' ? nodeProp(statement, 'expression') : null;
     const method = call?.type === 'MethodInvocation' ? nodeProp(call, 'method') : null;
+    // Alice's own "DO NOT EDIT" note on its generated method isn't the learner's.
+    if (statement.type === 'Comment') continue;
     if (!call || method?.java?.kind !== 'method') {
       asCode.push(statement);
       continue;

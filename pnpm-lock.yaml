@@ -112,6 +112,12 @@ importers:
 
   packages/a3p-import:
     dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
