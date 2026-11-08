@@ -111,3 +111,16 @@ export class WhisperCore {
     }
   }
 }
+
+/** whisper's script, from the app's own origin and nowhere else (spec 06, section 7). */
+export function ownScript(
+  script: string,
+  location: { href: string; origin: string },
+): string | null {
+  try {
+    const url = new URL(script, location.href);
+    return url.origin === location.origin && url.pathname.endsWith('.js') ? url.href : null;
+  } catch {
+    return null;
+  }
+}

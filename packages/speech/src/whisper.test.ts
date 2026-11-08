@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { DictationError } from './dictation.ts';
 import { WHISPER_RATE } from './resample.ts';
-import { WhisperCore, WhisperError, type WhisperModule } from './whisper-core.ts';
+import { ownScript, WhisperCore, WhisperError, type WhisperModule } from './whisper-core.ts';
 import type { FromWhisper, ToWhisper } from './whisper-protocol.ts';
 import { whisperRecogniser, type WorkerLike } from './worker-recogniser.ts';
 
@@ -164,5 +164,18 @@ describe('whisperRecogniser (spec 06, sections 1.2, 1.8)', () => {
     recogniser.end();
     await flush();
     expect(terminated()).toBe(1);
+  });
+});
+
+describe('ownScript (spec 06, section 7)', () => {
+  const location = { href: 'https://app.local/studio/index.html', origin: 'https://app.local' };
+  it("loads whisper's script from the app's own origin", () => {
+    expect(ownScript('/whisper/whisper.js', location)).toBe('https://app.local/whisper/whisper.js');
+    expect(ownScript('whisper.js', location)).toBe('https://app.local/studio/whisper.js');
+  });
+  it('refuses a script from anywhere else, or not a script', () => {
+    expect(ownScript('https://elsewhere.example/whisper.js', location)).toBeNull();
+    expect(ownScript('data:text/javascript,1', location)).toBeNull();
+    expect(ownScript('/whisper/model.bin', location)).toBeNull();
   });
 });

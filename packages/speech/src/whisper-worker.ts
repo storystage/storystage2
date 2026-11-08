@@ -4,10 +4,11 @@
  * Its own threads are told where the script is (`mainScriptUrlOrBlob`), since `self.location`
  * is this worker, not whisper.
  */
-import { WhisperCore, WhisperError, type WhisperModule } from './whisper-core.ts';
+import { ownScript, WhisperCore, WhisperError, type WhisperModule } from './whisper-core.ts';
 import type { FromWhisper, ToWhisper } from './whisper-protocol.ts';
 
 interface WorkerScope {
+  location: { href: string; origin: string };
   Module?: Record<string, unknown>;
   importScripts(...urls: string[]): void;
   postMessage(message: FromWhisper): void;
@@ -39,8 +40,14 @@ function watchThreads(): void {
   };
 }
 
-function loadModule(script: string): Promise<WhisperModule> {
+function loadModule(requested: string): Promise<WhisperModule> {
   return new Promise((resolve, reject) => {
+    const script = ownScript(requested, scope.location);
+    if (script === null) {
+      log('script refused: not from this origin');
+      reject(new WhisperError('model_failed'));
+      return;
+    }
     const Module: Record<string, unknown> = {
       print: (line: string) => {
         log(line);

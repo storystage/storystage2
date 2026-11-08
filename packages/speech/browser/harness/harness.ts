@@ -123,7 +123,8 @@ window.addEventListener('error', (e) =>
 );
 window.addEventListener('unhandledrejection', (e) => stage(`unhandled: ${String(e.reason)}`));
 
-const runs: Record<string, () => Promise<unknown>> = { clip, page, microphone };
-(runs[params.get('run') ?? 'clip'] ?? clip)().then(finish, (error: unknown) =>
+const which = params.get('run');
+const run = which === 'page' ? page : which === 'microphone' ? microphone : clip;
+run().then(finish, (error: unknown) =>
   finish({ error: String((error as { code?: string }).code ?? error) }),
 );
