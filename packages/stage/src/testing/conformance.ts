@@ -221,7 +221,7 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       ).rejects.toMatchObject({ code: 'bad_argument' });
     });
 
-    // Still to come: smooth paths, wings, the size of a joint, and the character actions (WP4c).
+    // Still to come: smooth paths, wings and the size of a joint.
     it('refuses what it cannot do yet, and adds none of the batch', async () => {
       const stage = await loaded();
       const before = stage.stateHash();
@@ -234,18 +234,12 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       for (const later of [
         cmd(0, 1, { object: cat, kind: 'moveTo', target: dog, pathStyle: 'smooth' }),
         cmd(0, 1, { object: cat, kind: 'pose', pose: 'wingsFolded' }),
-        cmd(0, 1, { object: cat, kind: 'walk', to: dog, gait: 'walk' }),
-        cmd(0, 1, { object: cat, kind: 'gesture', gesture: 'wave' }),
       ])
         expect(() => stage.schedule([move, later])).toThrow(/can't do .* yet/);
       stage.seek(micros(1));
       expect(stage.stateHash()).toBe(before);
       const joint = { object: cat, joint: head };
       expect(() => stage.answer({ kind: 'size', object: joint, at: 0 })).toThrow(/yet/);
-      const walk = { object: cat, kind: 'walk', to: dog, gait: 'run' } as const;
-      expect(() => stage.answer({ kind: 'naturalDuration', action: walk, at: 0 })).toThrow(/yet/);
-      const turn = { object: cat, kind: 'turnToFace', target: dog } as const;
-      expect(stage.answer({ kind: 'naturalDuration', action: turn, at: 0 }).value).toBe(0);
     });
 
     describe('character actions (WP4c)', () => {
