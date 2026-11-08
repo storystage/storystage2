@@ -23,10 +23,11 @@ import {
   type Watch,
   jointName,
 } from '@storystage/story-api';
-import type { FrameImage, Speech, Stage } from '../contract.ts';
+import type { FrameImage, Speech, Stage, LoadOptions } from '../contract.ts';
 import { length, sub } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
+import { humanoidsFor } from '../humanoid/library.ts';
 
 export { hashState };
 
@@ -65,8 +66,14 @@ export class FakeStage implements Stage {
     this.calls.push({ method, args: structuredClone(args) });
   }
 
-  async load(setup: SceneSetup): Promise<void> {
-    this.record('load', [setup]);
+  /** Records preloading; there's nothing to get ready. */
+  async preload(setup: SceneSetup): Promise<void> {
+    this.record('preload', [setup]);
+  }
+
+  /** A crossfade is recorded; the fake stage draws nothing, so the old scene simply goes. */
+  async load(setup: SceneSetup, options?: LoadOptions): Promise<void> {
+    this.record('load', options ? [setup, options] : [setup]);
     const known = this.options.knownModels;
     for (const o of setup.objects) {
       if (known && typeof o.model === 'string' && !known.includes(o.model))
@@ -75,6 +82,8 @@ export class FakeStage implements Stage {
     const jointsFor = this.options.jointsFor ?? defaultJoints;
     // Every object is the size of a stand-in, so the fake and the real stage agree on them.
     this.timeline.load(setup, (o) => standInShape(jointsFor(o.class, o.model)));
+    const { library, navigation } = await humanoidsFor(setup);
+    this.timeline.useHumanoids(library, navigation);
   }
 
   objects(): readonly ObjectId[] {

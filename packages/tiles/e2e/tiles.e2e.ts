@@ -67,9 +67,11 @@ test('highlights through the contract show on the row', async ({ page }) => {
   await open(page);
   await page.evaluate(() => {
     const { editor } = (
-      window as unknown as { tiles: { editor: { highlight(n: string[], k: string): void } } }
+      window as unknown as {
+        tiles: { editor: { highlight(n: { node: string }[], k: string): void } };
+      }
     ).tiles;
-    editor.highlight(['countt'], 'rehearse');
+    editor.highlight([{ node: 'countt' }], 'rehearse');
   });
   await expect(page.locator('li.tl-box', { has: item(page, 'count up to 2') })).toHaveClass(
     /tl-hl-rehearse/,
@@ -80,8 +82,13 @@ const highlight = (page: Page, nodes: string[], kind: string) =>
   page.evaluate(
     ([n, k]) =>
       (
-        window as unknown as { tiles: { editor: { highlight(n: string[], k: string): void } } }
-      ).tiles.editor.highlight(n as string[], k as string),
+        window as unknown as {
+          tiles: { editor: { highlight(n: { node: string }[], k: string): void } };
+        }
+      ).tiles.editor.highlight(
+        (n as string[]).map((node) => ({ node })),
+        k as string,
+      ),
     [nodes, kind] as const,
   );
 
@@ -89,6 +96,17 @@ test('the Prompter’s highlight wears the AI badge, and axe finds nothing', asy
   await open(page);
   await highlight(page, ['saystm'], 'prompter');
   await expect(item(page, 'cat say Hello add detail AI')).toHaveClass(/tl-hl-prompter/);
+  // An error's words beside a blue action tile, checked by axe in the same pass.
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        tiles: {
+          editor: { highlight(m: { node: string; message?: string }[], k: string): void };
+        };
+      }
+    ).tiles.editor.highlight([{ node: 'movest', message: 'That isn’t finished yet' }], 'error'),
+  );
+  await expect(page.locator('.tl-error-words')).toHaveText('That isn’t finished yet');
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
   expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 });
@@ -129,6 +147,36 @@ test('dragging a statement by its grip shows the drop line, then moves it there'
   await expect(page.locator('.tl-drop-line')).toContainText('Drops here');
   await page.mouse.up();
   expect(await together(page)).toEqual(['movest', 'saystm', 'turnst']);
+});
+
+/** The keys of the method's own statements, in order. */
+const top = (page: Page) =>
+  page
+    .locator('[data-statement][aria-level="1"]')
+    .evaluateAll((rows) => rows.map((e) => e.getAttribute('data-key')));
+
+/** Drags `say` by its grip to a point, then lets go. */
+async function dragSay(page: Page, x: number, y: number) {
+  const grip = (await page.locator('[data-key="saystm"] [data-grip]').boundingBox())!;
+  await page.mouse.move(grip.x + 6, grip.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 60, grip.y + 60, { steps: 5 });
+  await page.mouse.move(x, y, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+}
+
+test('a statement dragged down its own list lands where the line showed', async ({ page }) => {
+  // S5's review of #167: a place counts the list as drawn, with the statement still in it.
+  await open(page);
+  expect(await top(page)).toEqual(['saystm', 'togeth', 'countt', 'ifstmt', 'notest']);
+  const branch = (await page.locator('[data-key="ifstmt"]').boundingBox())!;
+  await dragSay(page, branch.x + 200, branch.y + 6);
+  expect(await top(page)).toEqual(['togeth', 'countt', 'saystm', 'ifstmt', 'notest']);
+  // And to the very end, below the last statement, which was once refused.
+  const note = (await page.locator('[data-key="notest"]').boundingBox())!;
+  await dragSay(page, note.x + 200, note.y + note.height - 4);
+  expect(await top(page)).toEqual(['togeth', 'countt', 'ifstmt', 'notest', 'saystm']);
 });
 
 test('a drag let go somewhere nothing can go changes nothing', async ({ page }) => {

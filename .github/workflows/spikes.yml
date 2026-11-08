@@ -114,6 +114,28 @@ jobs:
             spikes/1.5-editors/test-results/
           retention-days: 30
 
+  spike-23-1:
+    name: spike 23.1 (projection bake)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: spikes/23.1-projection
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm exec vitest run
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Bake the box and the building front, and check the illusion (software rendering)
+        run: pnpm exec playwright test
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-23.1-results
+          path: spikes/23.1-projection/test-results/
+          retention-days: 30
+
   spike-1-8:
     name: spike 1.8 (MP4 export, browsers)
     runs-on: ubuntu-latest

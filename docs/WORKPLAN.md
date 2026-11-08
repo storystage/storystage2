@@ -102,6 +102,8 @@ packages/
   production/      .storystage format, scenes, running order, transitions, storyboard data, links, Fountain import/export
   prompter/        Tool schemas, context builders, conversation loop, modes; transport-agnostic (talks to the native layer)
   speech/          whisper.cpp WASM input, speech synthesis output, narration queue
+  playback/        Plays a production on the page: the runtime worker, the stage and the production's player; used by Rehearse, the Screening room and export (decision 0067)
+  screening/       The Screening room's screen: rough cut, compare, retake notes, export (decision 0067)
   export/          Frame-by-frame render to MP4 (WebCodecs + muxer), captions (WebVTT/SRT), title and credits; AR pack (baker, GLB, USDZ, page, QR)
   ar/              AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording
   host/            The host interface (decision 0028): what the build hands the studio (policy in force, Prompter transport, files)
@@ -186,7 +188,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 17 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 19 more started:
 
 - **Release candidate:** week 13.5 (21 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 19.5 (4 Mar 2027). The plan says week 24.5 (9 Apr 2027).
@@ -268,11 +270,11 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | started 8 Nov; ends about 10 Dec |
 | WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 23 Nov |
 | WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | started 8 Nov; ends about 30 Nov |
-| WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | forecast: 9 Nov to 23 Nov |
+| WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | started 8 Nov; ends about 23 Nov |
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | started 8 Nov; ends about 7 Dec |
 | WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | forecast: 30 Nov to 21 Dec |
-| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | forecast: 30 Nov to 21 Dec |
+| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
 | WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 1 Jan |
 | WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP13b, WP4b | 1 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 18 Dec |
@@ -558,7 +560,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
 - [x] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
 - [ ] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). (C)
-- [ ] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
+- [x] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
     - walk to and run to, round obstacles, using a navigation mesh (Babylon.js navigation plugin, Recast/Detour);
     - sit on, stand up, lie down, fall;
     - touch, reach for, pick up and put down (attach to the hand), with IK (BoneIKController);
@@ -1017,7 +1019,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 3. **Export for projection**: open the package in Pixera Creator (free, watermarked) to plan the show, or in MapMap (GPL-3, free, Windows and macOS) for simple jobs. Splash (GPL, Linux and macOS) handles multi-projector 3D surfaces.
 4. **Real show**: a school media department, college, venue or events company with licensed Pixera runs and calibrates it; the learners make the content and plan the show.
 
-- [ ] 23.1 **Spike: surface bake renderer.** For each frame, render the scene from the audience's sweet-spot camera, project that image onto the surface model, and unroll it into the surface's UV layout, giving one UV-space frame per surface. Prove it on a box and on a simple building front, and check the illusion from the sweet spot in a projector preview. (C)
+- [x] 23.1 **Spike: surface bake renderer.** For each frame, render the scene from the audience's sweet-spot camera, project that image onto the surface model, and unroll it into the surface's UV layout, giving one UV-space frame per surface. Prove it on a box and on a simple building front, and check the illusion from the sweet spot in a projector preview. (C)
 - [ ] 23.2 **Spike: Pixera build script.** A small script that talks to Pixera's API over TCP: add the exported media, create layers, create clips at the right times, create cues, save the project. Record which steps the API can't do. Test with Pixera Creator on a Windows PC with an NVIDIA graphics card. (C; U provides the PC or a partner)
 - [ ] 23.3 **Projection stage: surfaces.** Surface templates (box, wall, three-sided set, simple building front, dome later), or a surface built from Backstage's Set models. Checks before export: triangles only, even vertices, one material per projectable surface, UVs in 0–1 and proportional, metres. Plain-words explanations when a check fails. (C)
 - [ ] 23.4 **Virtual projectors and preview:** projector position, aim, throw ratio and resolution, a small projector list, and a live preview of the projected production on the surface (Babylon.js projection textures on spotlights), including shadows where objects block the beam. A "sweet spot" marker for the audience. (C)

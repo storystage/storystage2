@@ -128,7 +128,8 @@ export const ENUMS = {
   // Not from Alice.
   ShotType: SHOT_TYPES,
   Gesture: ['wave', 'nod', 'shrug', 'clap', 'point'],
-  Expression: ['happy', 'sad', 'angry', 'surprised', 'relaxed', 'blink'],
+  // `neutral` takes a face back to plain: every expression off (S3, #188).
+  Expression: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'relaxed', 'blink'],
   SceneEdge: ['left', 'right', 'back', 'front'],
   JointChain: ['neck', 'tail'],
 } as const satisfies Readonly<Record<string, readonly string[]>>;

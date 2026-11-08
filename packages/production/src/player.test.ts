@@ -59,7 +59,7 @@ describe('ProductionPlayer', () => {
     pl.runtime(finished(1));
     expect(pl.now(micros(3.9))).toEqual([]);
     const actions = pl.now(micros(4));
-    expect(kinds(actions)).toEqual(['stop', 'load']);
+    expect(kinds(actions)).toEqual(['stop', 'load', 'preload']);
     expect(loads(actions)[0]).toMatchObject({
       scene: 's2',
       seed: 102,
@@ -206,6 +206,17 @@ describe('ProductionPlayer', () => {
     stopped.start();
     expect(stopped.stop()).toEqual([{ kind: 'stop' }, { kind: 'end', fadeOut: null }]);
     expect(stopped.stop()).toEqual([]);
+  });
+
+  it("hints at the running order's next scene after each load, so the stage can fetch it", () => {
+    const pl = player();
+    const started = pl.start();
+    expect(kinds(started)).toEqual(['load', 'preload']);
+    expect(started[1]).toEqual({ kind: 'preload', scene: 's2', setup: p.scenes[1]!.setup });
+    // From the last scene there's nothing to preload; nor in Rehearse, which plays one scene.
+    pl.runtime(goTo('s3', 0));
+    expect(kinds(pl.now(0))).toEqual(['load']);
+    expect(kinds(player(p, 'rehearse', 's1').start())).toEqual(['load']);
   });
 
   it('gives the same seeds on a rerun', () => {

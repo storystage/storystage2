@@ -408,7 +408,7 @@ The levels pick from the modes (decision 0034); `prompter.enabled`, `prompter.ex
 | **Plan only** | Those, plus `showMeHow` and `buildIt`, which write and revise plans | None. The learner builds every block and ticks steps off |
 | **Full** | All | After an agreed plan |
 
-If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a class to Explain only, the level changes as it would for a teacher, and the next turn carries the new mode message.
+If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
 
 ## 5. Story coach
 
@@ -506,7 +506,7 @@ Errors say what happened and what to do next, with no apologies (rule 9). The na
 | 429, after the native layer's two retries | `rate_limited` | "The Prompter is busy. Carry on and try again shortly." With `retryAfterSeconds`: "Try again in N seconds." | **Try again** |
 | 5xx or 529 | `overloaded` | "Claude is having trouble right now. Try again in a minute." | **Try again** |
 | No network | `offline` | "You're offline, so the Prompter can't help right now. Everything else in StoryStage still works." | |
-| A daily or class limit | `cap_reached` | "Your class has used the Prompter's time for today. You can carry on without it." | |
+| The day's limit, counted for each pupil (spec 05, section 3.3) | `cap_reached` | "You've used the Prompter's time for today. You can carry on without it." | |
 | The school lock stopped it | `refused_by_policy` | "Your school has turned this off." | |
 | The native layer refused the request | `refused_by_allowlist` | "The Prompter can't do that here. Restart StoryStage, and tell your teacher if this happens again." | |
 | Stop pressed | `cancelled` | "Stopped." | **Undo this request**, if anything landed |

@@ -11,6 +11,7 @@ import { localAfter, lookTurn, reachTurns } from '../ik.ts';
 import { conjugate, mul, rotate, v } from '../math.ts';
 import { paintColour } from '../paint.ts';
 import type { Blend, ObjectState } from '../timeline.ts';
+import type { FaceTarget } from './faces.ts';
 import { HumanoidRig } from './humanoid-rig.ts';
 import { color3 } from './materials.ts';
 
@@ -37,6 +38,8 @@ export interface ViewParts {
   readonly label?: { readonly mesh: AbstractMesh; readonly above: number } | undefined;
   /** The model's own clips. The stage plays them itself (`Motion`); the scene never does. */
   readonly animations?: readonly AnimationGroup[];
+  /** A VRM's expressions, and the morph targets that make each (`faces.ts`). */
+  readonly faces?: ReadonlyMap<string, readonly FaceTarget[]>;
 }
 
 /** One of a model's clips, `time` seconds in, counting for `weight` of the pose. */
@@ -73,6 +76,11 @@ export interface LookPose {
 export interface Motion {
   /** A humanoid pose, from the shared clips (WP4.6), on top of the model's own clips. */
   readonly human?: HumanPose;
+  /** An expression, `amount` of the way there (0 to 1), and how far the eyes are shut. */
+  readonly face?: { readonly expression: string; readonly amount: number } | null;
+  /** The face before, part way gone, while a new one comes in. */
+  readonly fading?: { readonly expression: string; readonly amount: number } | null;
+  readonly blink?: number;
   readonly clips?: readonly ClipPose[];
   readonly reach?: readonly ReachPose[];
   readonly look?: readonly LookPose[];
@@ -151,12 +159,26 @@ export class ObjectView {
   /** Its humanoid bones, if it has them. */
   private readonly rig: HumanoidRig | null;
   private humanPosed = false;
+  private readonly faces: ReadonlyMap<string, readonly FaceTarget[]>;
+  /** The face last shown, so an unchanged one costs nothing. */
+  private faceShown = '';
+  /** The model's own clips moved its nodes last time. */
+  private clipsPosed = false;
   private posed = false;
   private opacity = 1;
   /** The paint and blend last shown, so an unchanged paint costs nothing. */
   private painted = '';
 
-  constructor({ root, meshes, box, paintable, joints, label, animations = [] }: ViewParts) {
+  constructor({
+    root,
+    meshes,
+    box,
+    paintable,
+    joints,
+    label,
+    animations = [],
+    faces = new Map(),
+  }: ViewParts) {
     this.root = root;
     this.meshes = meshes;
     this.box = box;
@@ -200,6 +222,7 @@ export class ObjectView {
     this.rests = rests;
     this.clipsByName = clips;
     this.rig = joints?.has('hips' as JointName) ? new HumanoidRig(root, joints) : null;
+    this.faces = faces;
   }
 
   /** The names of the model's clips. */
@@ -224,6 +247,7 @@ export class ObjectView {
     );
     if (state.joints.size > 0 || moving || this.posed) this.pose(state, motion, moving);
     if (state.opacity !== this.opacity) this.fade(state.opacity);
+    this.showFace(motion.face ?? null, motion.fading ?? null, motion.blink ?? 0);
     const blend = state.paintBlend;
     const painted = `${state.paint}|${blend ? `${blend.from}|${blend.amount}` : ''}`;
     if (painted !== this.painted) {
@@ -237,11 +261,16 @@ export class ObjectView {
    * clips, a joint's turn is on top of the pose it has in the model.
    */
   private pose(state: ObjectState, motion: Motion, moving: boolean): void {
+    // Each frame starts from rest: the model's own clips leave their nodes, and the humanoid pose
+    // its bones, wherever they last put them.
+    if (this.clipsPosed) this.restore();
     if (this.humanPosed && !motion.human) this.rig!.rest();
-    const animated = this.blend(motion.clips ?? []);
+    const animated = new Map<TransformNode, Quat>();
     this.humanPosed = !!(motion.human && this.rig);
     if (motion.human && this.rig)
       for (const [node, turn] of this.rig.apply(motion.human)) animated.set(node, turn);
+    // The model's own clips over that, by their weights.
+    for (const [node, turn] of this.blend(motion.clips ?? [])) animated.set(node, turn);
     for (const { joint, node, rest } of this.bones) {
       const base = animated.get(node) ?? rest;
       const turn = state.joints.get(joint);
@@ -252,10 +281,20 @@ export class ObjectView {
     this.posed = state.joints.size > 0 || moving;
   }
 
+  /** Puts every node a clip moves back where it rests. */
+  private restore(): void {
+    for (const [node, rest] of this.rests) {
+      node.position.copyFrom(rest.position);
+      node.scaling.copyFrom(rest.scaling);
+      setRotation(node, quat(rest.rotation));
+    }
+    this.clipsPosed = false;
+  }
+
   /**
    * Sets every node a clip moves to the clips' blend, and gives the turns it set. Each clip counts
-   * for its weight. If the weights come to less than 1 the model's rest pose makes up the rest,
-   * and if to more, they're scaled down to 1.
+   * for its weight. If the weights come to less than 1, the node as it is (at rest, or as the
+   * humanoid pose put it) makes up the rest; if to more, they're scaled down to 1.
    */
   private blend(poses: readonly ClipPose[]): Map<TransformNode, Quat> {
     const turns = new Map<TransformNode, Quat>();
@@ -264,6 +303,8 @@ export class ObjectView {
       const clip = this.clipsByName.get(pose.name);
       return clip && pose.weight > 0 ? [{ clip, pose }] : [];
     });
+    if (playing.length === 0) return turns;
+    this.clipsPosed = true;
     const total = Math.max(
       1,
       playing.reduce((sum, p) => sum + p.pose.weight, 0),
@@ -293,11 +334,13 @@ export class ObjectView {
         } else sum[track.property].addInPlace((value as Vector3).scale(w));
       }
     }
-    for (const [node, rest] of this.rests) {
+    for (const node of this.rests.keys()) {
       const { position, rotation, scaling, weights } = sums.get(node)!;
-      node.position.copyFrom(position.addInPlace(rest.position.scale(1 - weights.position)));
-      node.scaling.copyFrom(scaling.addInPlace(rest.scaling.scale(1 - weights.scaling)));
-      rotation.addInPlace(rest.rotation.scale(1 - weights.rotationQuaternion)).normalize();
+      const now = node.rotationQuaternion ?? Quaternion.FromEulerVector(node.rotation);
+      node.position.copyFrom(position.addInPlace(node.position.scale(1 - weights.position)));
+      node.scaling.copyFrom(scaling.addInPlace(node.scaling.scale(1 - weights.scaling)));
+      const k = Quaternion.Dot(now, rotation) < 0 ? -1 : 1;
+      rotation.addInPlace(now.scale(k * (1 - weights.rotationQuaternion))).normalize();
       setRotation(node, quat(rotation));
       turns.set(node, quat(rotation));
     }
@@ -331,6 +374,22 @@ export class ObjectView {
     const world = worldTurn(node);
     const turn = lookTurn(vec(node.getAbsolutePosition()), rotate(world, facing), target, limit);
     setRotation(node, localAfter(turn, world, parentTurn(node)));
+  }
+
+  /** Sets the morph targets of the expression shown and the blink; the rest go back to none. */
+  private showFace(face: Motion['face'], fading: Motion['fading'], blink: number): void {
+    if (this.faces.size === 0) return;
+    const key = `${face?.expression ?? ''}|${face?.amount ?? 0}|${fading?.expression ?? ''}|${fading?.amount ?? 0}|${blink}`;
+    if (key === this.faceShown) return;
+    this.faceShown = key;
+    for (const list of this.faces.values()) for (const { target } of list) target.influence = 0;
+    const set = (expression: string, amount: number) => {
+      for (const { target, weight } of this.faces.get(expression) ?? [])
+        target.influence = Math.min(1, target.influence + weight * amount);
+    };
+    if (fading) set(fading.expression, fading.amount);
+    if (face) set(face.expression, face.amount);
+    if (blink > 0) set('blink', blink);
   }
 
   private fade(opacity: number): void {

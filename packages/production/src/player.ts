@@ -9,7 +9,8 @@
  *   every frame live and at each `advance` when fixed (`now()`), which is behind the worker's
  *   own time by its lookahead; and the learner's Stop (`stop()`).
  * - **Out:** actions, in the order to do them: `load` a scene into the runtime and the stage,
- *   `stageCommands` for a fade, `crossfade`, `stop` the worker, `next` (Rehearse), `fault`, `end`.
+ *   `stageCommands` for a fade, `crossfade`, `preload` the likely next scene, `stop` the worker,
+ *   `next` (Rehearse), `fault`, `end`.
  *
  * It decides everything in section 3.1: when a scene ends on its own (its script method has
  * finished and its last command has ended on screen, unless it waits on the viewer), what each
@@ -50,6 +51,12 @@ export type PlayerAction =
       readonly to: SceneId;
       readonly duration: Micros;
     }
+  /**
+   * A hint, after each `load` in a production: the running order's next scene is the likely one,
+   * so the stage can fetch its models now (`Stage.preload`, S3). Only a guess: a goToScene can go
+   * elsewhere, and the `load` that follows reuses whatever was fetched. A failed preload is silent.
+   */
+  | { readonly kind: 'preload'; readonly scene: SceneId; readonly setup: SceneSetup }
   /** Stop the worker: a scene that ended on its own may still have listeners running. */
   | { readonly kind: 'stop' }
   /** Rehearse: the scene went on to another; show "Next: <heading>" there instead of jumping. */
@@ -279,7 +286,19 @@ export class ProductionPlayer {
         transition,
         commands,
       },
+      ...this.preload(scene),
     ];
+  }
+
+  /** The running order's next scene after `scene`, to preload, in a production only. */
+  private preload(scene: SceneId): PlayerAction[] {
+    if (this.options.mode !== 'production') return [];
+    const order = this.production.manifest.runningOrder;
+    const following = order[order.findIndex((r) => r.scene === scene) + 1];
+    const next = following && this.production.scenes.find((x) => x.id === following.scene);
+    return next && next.id !== scene
+      ? [{ kind: 'preload', scene: next.id, setup: next.setup }]
+      : [];
   }
 
   private fade(start: Micros, duration: Micros, to: number): StageCommand {

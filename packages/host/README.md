@@ -9,6 +9,8 @@ The host interface (decision 0028): what the build hands the studio at start-up,
 
 `PolicyInForce` has a twin in Rust (`apps/desktop/src-tauri/policy`). One fixture, `policy/fixtures/policy-in-force.json`, is tested from both sides, so they can't drift apart.
 
+**The class Backstage** (`class-backstage.ts`, decision 0066): `ClassFolders.backstage()` keeps imported models beside the pupil folders, as records and bytes: each item belongs to the class or one pupil, can be promoted, and goes to the bin. Adds are all or nothing, ids are never reused, and the class keeps at most `CLASS_BACKSTAGE_LIMIT`.
+
 **Pupil folders and files** (`files.ts`, decision 0065): `ClassFolders`, `PupilFolder` and `FilePicker`, all bytes in and out, for S4's save and open (8.4). Every implementation passes `describeClassFoldersContract` from `@storystage/host/testing`, which also has `memoryClassFolders` and `memoryFilePicker` for tests.
 
 The folders' rules are written once, in `storedClassFolders`, over a small `FileStore` (spec 05 section 6): `browserStore` over the Origin Private File System, `tauriStore` over the native layer's `classes_*` commands in the Tauri apps (the `storystage-classes` crate), and `memoryStore` for tests. Safe path parts are one rule on both sides, kept the same by `apps/desktop/src-tauri/classes/fixtures/parts.json`.

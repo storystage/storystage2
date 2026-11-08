@@ -256,6 +256,20 @@
   }
 }
 
+/*
+ * An error's words beside its statement (spec 14, 3g): a chip in the program's own colour, so the
+ * stop colour reads at 4.5:1 on any tile, blue, green or grey.
+ */
+.tl-error-words {
+  display: inline-flex;
+  padding: 1px 6px;
+  border: 2px solid var(--tl-error);
+  border-radius: 6px;
+  font-weight: 700;
+  color: var(--tl-error);
+  background: var(--tl-program);
+}
+
 .tl-ai-badge {
   display: inline-flex;
   align-items: center;

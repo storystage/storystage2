@@ -192,8 +192,8 @@ describe('the contract (spec 14, 1)', () => {
 
   it('shows highlights of each kind, and clears them', () => {
     const { editor: e } = mountEditor();
-    act(() => e.highlight([IDS.say], 'rehearse'));
-    act(() => e.highlight([IDS.say], 'prompter'));
+    act(() => e.highlight([{ node: IDS.say }], 'rehearse'));
+    act(() => e.highlight([{ node: IDS.say }], 'prompter'));
     // The Prompter's highlight wears the AI badge, which is part of the row's name.
     const row = screen.getByRole('treeitem', { name: 'cat say Hello add detail AI' });
     expect(row.className).toContain('tl-hl-rehearse');
@@ -206,8 +206,18 @@ describe('the contract (spec 14, 1)', () => {
 
   it('highlights a container’s whole box', () => {
     const { editor: e } = mountEditor();
-    act(() => e.highlight([IDS.count], 'error'));
+    act(() => e.highlight([{ node: IDS.count }], 'error'));
     expect(item('count up to 2').closest('li')?.className).toContain('tl-hl-error');
+  });
+
+  it('shows an error’s words beside its statement, in its name too', () => {
+    const { editor: e } = mountEditor();
+    const words = 'There’s no scene called Beach';
+    act(() => e.highlight([{ node: IDS.say, message: words }], 'error'));
+    const row = screen.getByRole('treeitem', { name: `cat say Hello add detail ${words}` });
+    expect(row.className).toContain('tl-hl-error');
+    act(() => e.highlight([], 'error'));
+    expect(item('cat say Hello').textContent).not.toContain(words);
   });
 
   it('is called Tiles', () => {

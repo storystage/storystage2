@@ -238,3 +238,15 @@ test('keeps pictures of the scenes for people to look at', async ({ page }, info
     });
   }
 });
+
+test('crossfades from one scene to the next (8.3)', async ({ page }) => {
+  await open(page);
+  const [before, start, middle, end] = await call<number[][]>(page, 'crossfadeSky');
+  // At the start, the old sky; half way, half of each; at the end, the new sky alone.
+  for (let i = 0; i < 3; i++) {
+    expect(Math.abs(start![i]! - before![i]!)).toBeLessThan(6);
+    expect(Math.abs(middle![i]! - (before![i]! + end![i]!) / 2)).toBeLessThan(12);
+  }
+  expect(end![2]!).toBeLessThan(80);
+  expect(before![2]!).toBeGreaterThan(200);
+});
