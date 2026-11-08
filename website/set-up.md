@@ -95,4 +95,4 @@ If the policy can't be read, the Prompter stays off. **[Open: the file's locatio
 
 ## Something wrong?
 
-**Report a problem** (in Settings) makes a bundle you can attach to the feedback form: the versions, the self-test result and the settings in force, with the key and personal details removed. Nothing is sent automatically. If the Prompter ever says something worrying, stop, keep a note of it, and follow your school's safeguarding procedure. **[Open: the feedback form and contact address (WP19.4).]**
+**Report a problem** (in Settings) makes a file you can attach to an email to us: the versions, the self-test result and the settings in force, with the key and personal details removed. Nothing is sent automatically. If the Prompter ever says something worrying, stop, keep a note of it, and follow your school's safeguarding procedure. How to send it, and what to leave out: [Feedback and problems](feedback.md).

@@ -48,5 +48,5 @@ The site isn't connected to WPVibe yet; connecting it is a one-click authorisati
 
 ## Still to decide (owner)
 
-- The contact address for the site (privacy questions, problem reports, schools).
+- The contact address for the site (privacy questions, problem reports, schools): the feedback email of decision 0063, once the owner sets it up.
 - Connecting `storystage.org` to WPVibe, and setting up the `app.storystage.org` subdomain on Bluehost, when the first pages and builds are ready.
