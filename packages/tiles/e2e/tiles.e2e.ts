@@ -67,9 +67,11 @@ test('highlights through the contract show on the row', async ({ page }) => {
   await open(page);
   await page.evaluate(() => {
     const { editor } = (
-      window as unknown as { tiles: { editor: { highlight(n: string[], k: string): void } } }
+      window as unknown as {
+        tiles: { editor: { highlight(n: { node: string }[], k: string): void } };
+      }
     ).tiles;
-    editor.highlight(['countt'], 'rehearse');
+    editor.highlight([{ node: 'countt' }], 'rehearse');
   });
   await expect(page.locator('li.tl-box', { has: item(page, 'count up to 2') })).toHaveClass(
     /tl-hl-rehearse/,
@@ -80,8 +82,13 @@ const highlight = (page: Page, nodes: string[], kind: string) =>
   page.evaluate(
     ([n, k]) =>
       (
-        window as unknown as { tiles: { editor: { highlight(n: string[], k: string): void } } }
-      ).tiles.editor.highlight(n as string[], k as string),
+        window as unknown as {
+          tiles: { editor: { highlight(n: { node: string }[], k: string): void } };
+        }
+      ).tiles.editor.highlight(
+        (n as string[]).map((node) => ({ node })),
+        k as string,
+      ),
     [nodes, kind] as const,
   );
 
@@ -89,6 +96,17 @@ test('the Prompter’s highlight wears the AI badge, and axe finds nothing', asy
   await open(page);
   await highlight(page, ['saystm'], 'prompter');
   await expect(item(page, 'cat say Hello add detail AI')).toHaveClass(/tl-hl-prompter/);
+  // An error's words beside a blue action tile, checked by axe in the same pass.
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        tiles: {
+          editor: { highlight(m: { node: string; message?: string }[], k: string): void };
+        };
+      }
+    ).tiles.editor.highlight([{ node: 'movest', message: 'That isn’t finished yet' }], 'error'),
+  );
+  await expect(page.locator('.tl-error-words')).toHaveText('That isn’t finished yet');
   const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
   expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
 });

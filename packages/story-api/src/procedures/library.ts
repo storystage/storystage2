@@ -592,8 +592,8 @@ export const STORY_LIBRARY: StoryLibrary = {
     density: portion(call.args.density, 'density'),
     ...timing(call),
   })),
-  // 4.4. Going to another scene, and crossfading to one, are the production's playback (WP8.3).
-  fadeToBlack: procedure((call) => ({ object: SCENE, kind: 'fade', to: 1, ...timing(call) })),
+  // 4.4. Scene changes (goToScene, crossfade, fadeToBlack) end the scene in the runtime, and the
+  // production's player makes the transition (spec 02, section 9, rule 8): none is the stage's.
   *getAtmosphereColor(_call, context) {
     return colourValue((yield* skyOf(context)).atmosphere);
   },

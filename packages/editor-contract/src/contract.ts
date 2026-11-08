@@ -65,6 +65,15 @@ export const EMPTY_VIEW: ViewState = { method: null, selection: [], focus: null 
 /** Highlights from Rehearse (running blocks), errors, and the Prompter pointing at blocks (WP7.9). */
 export type HighlightKind = 'rehearse' | 'error' | 'prompter';
 
+/**
+ * One highlighted block. For an error, `message` is the words shown beside it ("There's no scene
+ * called Beach"); a mark of another kind may carry words later. Each message stays with its node.
+ */
+export interface HighlightMark {
+  readonly node: NodeId;
+  readonly message?: string;
+}
+
 /** Commands the studio's keyboard shortcuts and menus send to the editor showing. */
 export const EDITOR_COMMANDS = [
   'delete',
@@ -89,7 +98,7 @@ export interface CodeEditor {
   unmount(): ViewState;
   openMethod(method: NodeId): void;
   /** Replaces the highlights of this kind. An empty list clears them. */
-  highlight(nodes: readonly NodeId[], kind: HighlightKind): void;
+  highlight(marks: readonly HighlightMark[], kind: HighlightKind): void;
   /** Moves keyboard focus to a block, or into the editor. */
   focus(node?: NodeId): void;
   selection(): readonly NodeId[];

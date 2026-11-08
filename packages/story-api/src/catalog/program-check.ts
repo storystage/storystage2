@@ -42,6 +42,11 @@ export interface ProgramCheckOptions {
    * program doesn't say which model that is, so the caller asks the scene and the manifest.
    */
   readonly jointExists?: (field: NodeId, joint: string) => boolean;
+  /**
+   * Whether the production has a scene with this id (WP8.3). A scene id in a program is text, so
+   * one can outlive its scene: deleting a scene is refused only while code uses its type.
+   */
+  readonly sceneExists?: (scene: string) => boolean;
 }
 
 /** Classes a learner's class can extend. The `Text` class is `TextModel` as a type. */
@@ -128,6 +133,15 @@ export function checkProgram(
       options.jointExists?.(node.target.field, joint.value) === false
     )
       add(node.id, 'noSuchJoint', `There is no joint ${joint.value}.`, joint.value, '');
+    for (const p of entry.params) {
+      const scene = node.args[p.name];
+      if (
+        p.type === 'SceneId' &&
+        scene?.kind === 'text' &&
+        options.sceneExists?.(scene.value) === false
+      )
+        add(node.id, 'noSuchScene', `There is no scene ${scene.value}.`, p.name, scene.value);
+    }
   };
 
   const userCall = (node: Call | FunctionCall, method: NodeId, self: TypeRef) => {

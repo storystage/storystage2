@@ -192,6 +192,7 @@
   "check.unknownEvent": "StoryStage doesn't have that event. Choose another one.",
   "check.wrongHandler": "This event doesn't give that value. Choose one it does give.",
   "check.noSuchJoint": "This model doesn't have that joint. Choose another one.",
+  "check.noSuchScene": "There's no scene called {word}. Choose another one.",
   "check.cantExtend": "A new class has to start from something in Backstage. Choose another one.",
   "tab.actions": "Actions",
   "tab.questions": "Questions",
