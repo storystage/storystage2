@@ -8,3 +8,5 @@ The host interface (decision 0028): what the build hands the studio at start-up,
 - **Status:** contract, policy and transport
 
 `PolicyInForce` has a twin in Rust (`apps/desktop/src-tauri/policy`). One fixture, `policy/fixtures/policy-in-force.json`, is tested from both sides, so they can't drift apart.
+
+**Pupil folders and files** (`files.ts`, decision 0065): `ClassFolders`, `PupilFolder` and `FilePicker`, all bytes in and out, for S4's save and open (8.4). Every implementation passes `describeClassFoldersContract` from `@storystage/host/testing`, which also has `memoryClassFolders` and `memoryFilePicker` for tests.
