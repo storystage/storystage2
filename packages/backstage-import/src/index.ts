@@ -4,3 +4,4 @@
  */
 export * from './licence.ts';
 export * from './checks.ts';
+export * from './obj.ts';
