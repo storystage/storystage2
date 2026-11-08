@@ -17,8 +17,12 @@ async function seriousIssues(page: Page): Promise<string[]> {
 
 async function startWithClass(page: Page, names: string[]) {
   await page.setViewportSize({ width: 1366, height: 768 });
-  await page.goto('/');
+  // The class list is written on `?example`, which skips the start of a lesson. On `/` with no
+  // class list yet, the studio would open the device's own folder, start a film there and show
+  // the browser's one note, all while the list is being written.
+  await page.goto('/?example');
   await page.evaluate(async (pupils) => {
+    window.localStorage.clear();
     const root = await navigator.storage.getDirectory();
     for await (const name of (root as unknown as { keys(): AsyncIterable<string> }).keys())
       await root.removeEntry(name, { recursive: true });
@@ -33,7 +37,7 @@ async function startWithClass(page: Page, names: string[]) {
     );
     await writable.close();
   }, names);
-  await page.reload();
+  await page.goto('/');
 }
 
 test('a pupil finds their name, makes a film, and finds it again after a reload', async ({
@@ -68,4 +72,18 @@ test('Ctrl+S saves at once, and the Film menu leads back to the names', async ({
   await page.getByRole('button', { name: 'Film: Moon Garden' }).click();
   await page.getByRole('menuitem', { name: 'Switch pupil' }).click();
   await expect(page.getByRole('heading', { name: 'Who’s making films today?' })).toBeVisible();
+});
+
+test('without a class list, films are kept in the device’s own folder', async ({ page }) => {
+  await startWithClass(page, []);
+  await page.getByRole('textbox', { name: 'Title' }).fill('Owl Night');
+  await expect(page.getByRole('status')).toHaveText('Saved', { timeout: 10_000 });
+  await page.reload();
+  // No name page: the device's films, then the film itself.
+  await expect(page.getByRole('heading', { name: 'My films' })).toBeVisible();
+  await page.getByRole('row', { name: /Owl Night/ }).click();
+  await expect(page.getByRole('button', { name: 'Film: Owl Night' })).toBeVisible();
+  await page.getByRole('button', { name: 'Film: Owl Night' }).click();
+  await expect(page.getByRole('menuitem', { name: 'My films' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: 'Switch pupil' })).toHaveCount(0);
 });
