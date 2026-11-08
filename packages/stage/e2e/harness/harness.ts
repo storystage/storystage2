@@ -20,7 +20,11 @@ import shots from '../../../../tests/scenes/shots.json';
 import snowFog from '../../../../tests/scenes/snow-fog.json';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../../src/backdrops.ts';
 import { createBabylonStage, type ModelSource } from '../../src/babylon/index.ts';
-import { tinyModelUrl } from '../../src/babylon/tiny-model.ts';
+import { tinyHumanUrl, tinyModelUrl } from '../../src/babylon/tiny-model.ts';
+import type { ObjectView } from '../../src/babylon/view.ts';
+import { loadHumanLibrary } from '../../src/humanoid/library.ts';
+import { sample as samplePose } from '../../src/humanoid/pose.ts';
+import type { ObjectState } from '../../src/timeline.ts';
 
 const W = 640;
 const H = 360;
@@ -226,6 +230,34 @@ async function picture(name: string, seconds: number) {
 }
 
 /**
+ * WP5.7: a picture of a moment, taken while the scene is at another, against the frame drawn at
+ * that moment, and a small picture's top and bottom rows: sky above, ground below.
+ */
+async function pictureCheck() {
+  const scene = SCENES['grass-cast']!;
+  const stage = await offscreenStage();
+  await stage.load(scene.setup);
+  stage.schedule(scene.commands);
+  stage.seek(micros(0.5));
+  const picture = await stage.picture(micros(2), W, H);
+  const time = stage.time();
+  stage.seek(micros(2));
+  const frame = await stage.renderFrame();
+  let differ = 0;
+  for (let p = 0; p < frame.data.length; p += 4)
+    if (
+      Math.abs(frame.data[p]! - picture.data[p]!) +
+        Math.abs(frame.data[p + 1]! - picture.data[p + 1]!) >
+      24
+    )
+      differ++;
+  const small = await stage.picture(micros(2), 160, 90);
+  const pixel = (y: number) => Array.from(small.data.slice(y * 160 * 4 + 320, y * 160 * 4 + 323));
+  stage.dispose();
+  return { time, differ: differ / (W * H), top: pixel(2), bottom: pixel(87) };
+}
+
+/**
  * A stage made as the studio makes one, with the renderer chosen for the device: which it got,
  * how big it draws, and whether anything was drawn.
  */
@@ -343,6 +375,72 @@ function eventCost(objects: number) {
   };
 }
 
+/**
+ * WP4.6: a humanoid in one of the shared clips' poses, `seconds` in, from the front and a
+ * little to its left. With no `url`, the small humanoid in `tiny-model.ts`. For looking at
+ * how a clip plays on a model it wasn't made on.
+ */
+async function humanPicture(
+  clip: string,
+  seconds: readonly number[],
+  url: string = tinyHumanUrl(),
+  joints: readonly string[] = [],
+) {
+  const id = objectId('person');
+  const person = backstageId('test/Biped/person');
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: (b) => (b === person ? { url, joints: joints.map(jointName) } : null) },
+    offscreen: true,
+    renderer: 'webgl2',
+  });
+  await stage.load({
+    backdrop: BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop,
+    objects: [{ id, model: person, class: 'Biped', transform: IDENTITY }],
+    camera: { transform: IDENTITY },
+    markers: [],
+  });
+  stage.schedule([
+    {
+      seq: 1,
+      object: objectId('camera'),
+      start: 0,
+      duration: 0,
+      style: 'beginAndEndAbruptly',
+      kind: 'shot',
+      shot: 'wide',
+      targets: [id],
+    },
+  ]);
+  stage.seek(micros(0.01));
+  const inside = stage as unknown as {
+    views: Map<string, ObjectView>;
+    timeline: { need(o: string): ObjectState; transform(o: string): typeof IDENTITY };
+  };
+  const view = inside.views.get(id)!;
+  const library = await loadHumanLibrary();
+  const out = [];
+  for (const s of seconds) {
+    const human = samplePose(library.get(clip)!, s);
+    view.show(inside.timeline.need(id), inside.timeline.transform(id), { human });
+    const frame = await stage.renderFrame();
+    const c = document.createElement('canvas');
+    c.width = frame.width;
+    c.height = frame.height;
+    c.getContext('2d')!.putImageData(
+      new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height),
+      0,
+      0,
+    );
+    out.push(c.toDataURL('image/png'));
+  }
+  stage.dispose();
+  return out;
+}
+
 /** What the page loaded, in bytes before compression, in order. */
 function scripts() {
   return performance
@@ -363,8 +461,10 @@ Object.assign(window, {
     darkPixels,
     subjectShare,
     rendering,
+    pictureCheck,
     eventCost,
     picture,
+    humanPicture,
     goLive,
     scripts,
   },

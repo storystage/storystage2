@@ -575,7 +575,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 5.4 Camera, camera markers and camera moves; picking for mouse-click events. (C)
 - [x] 5.5 Live mode (real time) and **fixed-time-step offscreen mode** for export (WP11). (C)
 - [ ] 5.6 WebGPU when available, WebGL2 otherwise; a performance budget per reference device; a quality setting (low/standard). (C)
-- [ ] 5.7 Scene picture capture (for the Prompter's "let the Prompter see the scene" and the Screening room compare). (C)
+- [x] 5.7 Scene picture capture (for the Screening room compare; no picture goes to the Prompter, by the owner's decision of 31 Oct 2026). (C)
 - [ ] 5.8 **Character machinery:**
     - navigation meshes built per scene (Babylon.js navigation plugin; check the licence of the Recast/Detour build used);
     - AnimationGroup blending;

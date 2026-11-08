@@ -33,9 +33,10 @@ import {
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
-import { resolveBackdrop, type Colour } from './backdrops.ts';
+import { ROOM, resolveBackdrop, type Colour } from './backdrops.ts';
 import type { Speech } from './contract.ts';
 import type { Box } from './hull.ts';
+import type { NavigationArea } from './navigation.ts';
 import {
   IDENTITY_Q,
   add,
@@ -173,6 +174,21 @@ const badPaint = (paint: string) => bad(`There is no paint called ${paint}.`);
 /** For what the contract has and this stage doesn't do yet. */
 const notYet = (what: string) => bad(`The stage can't do ${what} yet.`);
 
+/** The character actions and faces in the contract (WP4c), which this stage doesn't do yet. */
+const ACTIONS_TO_COME = [
+  'walk',
+  'enter',
+  'posture',
+  'reach',
+  'pickUp',
+  'putDown',
+  'clip',
+  'gesture',
+  'expression',
+  'lookAt',
+] as const;
+const toCome = (kind: string): boolean => (ACTIONS_TO_COME as readonly string[]).includes(kind);
+
 /** Where an object is in the scene: its own pose, carried by its vehicles. */
 function scenePose(state: SceneState, id: ObjectId): Pose {
   const self = state.get(id)!;
@@ -218,6 +234,8 @@ export class Timeline {
   private classes = new Map<ObjectId, StoryClass>();
   private baseSky: Sky = skyOf({});
   private baseLens = ALICE_LENS;
+  /** A room's floor, which its walls stop; null for open ground. */
+  private floor: Box | null = null;
   private commands: StageCommand[] = [];
   private resolved = new Map<number, Resolved>();
   private now: Micros = 0;
@@ -230,6 +248,7 @@ export class Timeline {
     this.shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
     this.baseSky = skyOf(setup.backdrop);
+    this.floor = isRoom(setup.backdrop) ? ROOM_FLOOR : null;
     const degrees = setup.camera.fieldOfViewDegrees;
     this.baseLens = degrees === undefined ? ALICE_LENS : degrees / 360;
     this.reset();
@@ -263,6 +282,20 @@ export class Timeline {
 
   time(): Micros {
     return this.now;
+  }
+
+  /**
+   * What the scene's walkable area is built from (5.8): the boxes of everything that stays put,
+   * where it starts, and where everyone stands. Characters move, so they aren't in the way.
+   */
+  navigationArea(): NavigationArea {
+    const obstacles: Box[] = [];
+    const include: Vec3[] = [];
+    for (const [id, cls] of this.classes) {
+      include.push(scenePose(this.start, id).position);
+      if (!ACTORS.includes(cls)) obstacles.push(this.subject(this.start, [id]));
+    }
+    return this.floor ? { obstacles, include, bounds: this.floor } : { obstacles, include };
   }
 
   /** The objects, the camera included; not `SCENE`. */
@@ -358,6 +391,10 @@ export class Timeline {
       }
       case 'lens':
         return { kind: 'lens', value: state.get(CAMERA)!.lens ?? this.baseLens };
+      case 'naturalDuration':
+        // Everything this stage does takes the time it's given.
+        if (toCome(query.action.kind)) throw notYet(`${query.action.kind} at its own pace`);
+        return { kind: 'naturalDuration', value: 0 };
     }
   }
 
@@ -529,6 +566,7 @@ export class Timeline {
         case 'fade':
           return { kind: 'fade', from: self.fade ?? 0, to: c.to };
       }
+      throw notYet(c.kind);
     };
     const r = resolved();
     this.resolved.set(c.seq, r);
@@ -746,6 +784,7 @@ export class Timeline {
     const classIs = (cls: StoryClass, what: string) => {
       if (this.classes.get(c.object) !== cls) throw bad(`Only ${what} has that.`);
     };
+    if (toCome(c.kind)) throw notYet(c.kind);
     switch (c.kind) {
       case 'translate':
         finite(c.by.x, c.by.y, c.by.z);
@@ -842,6 +881,23 @@ export class Timeline {
         if (!(c.to >= 0 && c.to <= 1)) throw bad('A fade goes from 0 to 1.');
         break;
     }
+  }
+}
+
+/** Classes that act, and so move about: a walking character isn't in another's way. */
+const ACTORS: readonly StoryClass[] = ['Biped', 'Quadruped', 'Flyer', 'Swimmer', 'Slitherer'];
+
+const ROOM_FLOOR: Box = {
+  min: v(-ROOM.width / 2, -0.05, -ROOM.depth / 2),
+  max: v(ROOM.width / 2, 0, ROOM.depth / 2),
+};
+
+/** Whether a backdrop's ground is a room. A ground Babylon.js doesn't know is open ground. */
+function isRoom(backdrop: SceneSetup['backdrop']): boolean {
+  try {
+    return resolveBackdrop(backdrop).ground?.room !== undefined;
+  } catch {
+    return false;
   }
 }
 

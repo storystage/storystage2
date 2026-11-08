@@ -221,7 +221,7 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       ).rejects.toMatchObject({ code: 'bad_argument' });
     });
 
-    // Still to come: smooth paths, wings and the size of a joint.
+    // Still to come: smooth paths, wings, the size of a joint, and the character actions (WP4c).
     it('refuses what it cannot do yet, and adds none of the batch', async () => {
       const stage = await loaded();
       const before = stage.stateHash();
@@ -234,12 +234,18 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       for (const later of [
         cmd(0, 1, { object: cat, kind: 'moveTo', target: dog, pathStyle: 'smooth' }),
         cmd(0, 1, { object: cat, kind: 'pose', pose: 'wingsFolded' }),
+        cmd(0, 1, { object: cat, kind: 'walk', to: dog, gait: 'walk' }),
+        cmd(0, 1, { object: cat, kind: 'gesture', gesture: 'wave' }),
       ])
         expect(() => stage.schedule([move, later])).toThrow(/can't do .* yet/);
       stage.seek(micros(1));
       expect(stage.stateHash()).toBe(before);
       const joint = { object: cat, joint: head };
       expect(() => stage.answer({ kind: 'size', object: joint, at: 0 })).toThrow(/yet/);
+      const walk = { object: cat, kind: 'walk', to: dog, gait: 'run' } as const;
+      expect(() => stage.answer({ kind: 'naturalDuration', action: walk, at: 0 })).toThrow(/yet/);
+      const turn = { object: cat, kind: 'turnToFace', target: dog } as const;
+      expect(stage.answer({ kind: 'naturalDuration', action: turn, at: 0 }).value).toBe(0);
     });
 
     describe('targets', () => {
@@ -464,6 +470,45 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
         expect(() =>
           stage.schedule([cmd(0, 0, { object: cat, kind: 'text', text: 'Hi' })]),
         ).toThrow(StageError);
+      });
+    });
+
+    describe('pictures', () => {
+      it('are the size asked for, and leave the scene where it was', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 2, { object: cat, kind: 'translate', by: { x: 3, y: 0, z: 0 }, space: 'scene' }),
+        ]);
+        stage.seek(micros(0.5));
+        const before = stage.stateHash();
+        const heard: string[] = [];
+        stage.onEvent((e) => heard.push(e.kind));
+        const picture = await stage.picture(micros(2), 160, 90);
+        expect([picture.width, picture.height, picture.data.length]).toEqual([
+          160,
+          90,
+          160 * 90 * 4,
+        ]);
+        expect(stage.time()).toBe(micros(0.5));
+        expect(stage.stateHash()).toBe(before);
+        expect(heard).toEqual([]);
+      });
+
+      it('are the same for the same moment', async () => {
+        const stage = await loaded();
+        const a = await stage.picture(micros(1), 8, 8);
+        const b = await stage.picture(micros(1), 8, 8);
+        expect(Array.from(b.data)).toEqual(Array.from(a.data));
+      });
+
+      it('refuse a size they cannot draw', async () => {
+        const stage = await loaded();
+        for (const [w, h] of [
+          [0, 90],
+          [160, 4097],
+          [1.5, 90],
+        ] as const)
+          await expect(stage.picture(0, w, h)).rejects.toMatchObject({ code: 'bad_argument' });
       });
     });
 

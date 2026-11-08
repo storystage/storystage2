@@ -25,6 +25,7 @@ import {
 } from '@storystage/story-api';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
 import { length, sub } from '../math.ts';
+import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
 
 export { hashState };
@@ -137,16 +138,29 @@ export class FakeStage implements Stage {
 
   async renderFrame(): Promise<FrameImage> {
     this.record('renderFrame', []);
-    const h = this.stateHash();
-    return {
-      width: 1,
-      height: 1,
-      data: new Uint8ClampedArray([h >>> 24, (h >>> 16) & 255, (h >>> 8) & 255, 255]),
-    };
+    return hashPicture(this.stateHash(), 1, 1);
+  }
+
+  /** Every pixel is the colour of the scene's hash at `at`, so equal scenes give equal pictures. */
+  async picture(at: Micros, width: number, height: number): Promise<FrameImage> {
+    this.record('picture', [at, width, height]);
+    checkPictureSize(width, height);
+    const now = this.timeline.time();
+    this.timeline.seek(at);
+    const h = this.timeline.stateHash();
+    this.timeline.seek(now);
+    return hashPicture(h, width, height);
   }
 
   dispose(): void {
     this.record('dispose', []);
     this.listeners.clear();
   }
+}
+
+function hashPicture(h: number, width: number, height: number): FrameImage {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let p = 0; p < data.length; p += 4)
+    data.set([h >>> 24, (h >>> 16) & 255, (h >>> 8) & 255, 255], p);
+  return { width, height, data };
 }

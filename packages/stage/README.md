@@ -40,7 +40,40 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 
 **Renderer and quality (5.6).** `createBabylonStage` is async: it uses WebGPU where the device has it and WebGL2 otherwise (`renderer: 'auto'`), and `stage.renderer` says which. Pass `renderer: 'webgl2'` for the same pixels on every machine. `quality: 'low'` draws at two thirds of the canvas's size without smoothing edges, for the reference devices; `standard`, the default, draws full size. An export always draws full size. Both are fixed when the stage is made.
 
+**Pictures (5.7).** `stage.picture(at, width, height)` draws the scene as it is at `at`, at any size up to 4096 each way, without moving the scene from its last `seek` and without firing events. It's for the Screening room's compare with the storyboard (WP11.6). No picture ever goes to the Prompter (CLAUDE.md rule 3).
+
 **Budget.** `stage.measure()` counts the triangles the loaded scene draws, against Backstage's scene budget (`SCENE_BUDGET`, WP3.9). The budget is provisional until the reference devices have been measured (#6).
+
+## Character machinery (5.8)
+
+These are the parts WP4.5–4.6's commands will use. No command drives them yet; WP4c connects them to the timeline.
+
+- **Ways round things.** `buildNavigation(timeline.navigationArea())` makes a scene's walkable area with Recast and Detour, through `recast-navigation`, which loads only when it's first asked for. `path(from, to)` gives the corners of the shortest way, or null if there isn't one. It has no graphics, so both stages find the same way.
+- **Clips.** The stage blends a model's own animations itself, not through Babylon.js's scene, so a film is posed the same way at the same moment. `ObjectView.show(state, where, motion)` takes the clips:
+  - `name`;
+  - `time`, in seconds;
+  - `weight`;
+  - `loop`, which is on unless it's turned off.
+
+  Weights under 1 leave the rest to the model's resting pose, and weights over 1 are scaled down to 1.
+- **Order.** The clips come first, then each joint's own turn on top of them, then reaching, then looking.
+- **Reaching** (`ik.ts`) bends a limb of three joints so that its end is at a point, with the middle joint bending towards a pole. When the point is out of reach, the limb points at it.
+- **Looking** turns a joint to face a point, by no more than its limit. The limit is a fifth of a turn unless told otherwise, counted from where the clips left the joint.
+- **Why not Babylon.js's own controllers?** They move a skeleton's bones, but a glTF model's bones follow their nodes, so the stage turns the nodes with its own arithmetic.
+- **Not measured:** what any of this costs on the reference devices (#6).
+
+## Humanoids (4.6)
+
+A clip made once plays on any humanoid, as Unity's Mecanim Humanoid does.
+
+- **Poses** (`src/humanoid/pose.ts`) are turns of the VRM 1.0 humanoid bones, each measured from a T-pose and in the axes of a model that faces +Z. A bone's own axes don't matter. `HumanoidRig` works out each model's from where its bones rest, and the hips' movement is in hips' heights, so it fits any size.
+- **The shared clips** are KayKit's (Character Pack: Adventurers, by Kay Lousberg, CC0), by the owner's decision of 8 Nov 2026. There are 15 of them: standing, walking, running, sitting on a chair or the floor, lying, standing up from each, picking up, reaching out and cheering.
+  - `scripts/make-clips.ts` makes `src/humanoid/kaykit-clips.ts` from any KayKit character in Backstage. Don't edit that file; make it again.
+  - They're kept to a hundredth of a degree in about 170 kB, which loads only when a scene first has a humanoid in it (`loadHumanLibrary`).
+- **Walking speed:** a walk's and a run's speed is measured from their feet: about 1.9 and 3.7 hips' heights a second.
+- **VRM 0.x avatars face -Z** (spec 17, section 3), so the stage turns them to face +Z when it places them. It knows one from its file.
+- **Rest poses:** every model so far rests in a T-pose. A model that rests in an A-pose would hold its arms too low. MakeHuman's people may need a correction for that, once they can be looked at here.
+- **Not yet:** WP4c's actions use these, and none does yet.
 
 ## How it fits together
 
@@ -55,7 +88,7 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 - **The scene and the camera.** The sky, light and fog are `SCENE`'s, and only it takes `atmosphere`, `light` and `fog`; only the camera takes `lens`. `SCENE` isn't in `objects()`.
 - **Good view.** `moveAndOrientTo` with `goodView` puts the camera in front of its target, a little above, at two and a half times its largest size, looking at its middle.
 - **Fading.** `fade` on `SCENE` darkens the whole picture, sky included, to black and back. Loading a scene clears it. Going to another scene and crossfading are the production's playback (WP8.3).
-- **Not yet:** smooth paths, folding and spreading wings, and the size of a joint. The stage refuses them with `bad_argument`.
+- **Not yet:** smooth paths, folding and spreading wings, the size of a joint, and the character actions and faces in the contract (`walk` to `lookAt`, WP4c). The stage refuses them with `bad_argument`, and refuses to say how long they take.
 - **Touching.** Alice's rule, in `hull.ts`: each object has a footprint and a height from its box in the scene. Proximity is the same test with a margin, so it measures the gap between two things, not between their centres.
 - **Backdrops.** `backdrops.ts` holds Alice's 20 starting templates, with her numbers. Her fog value is cubed to give the density. Ground surfaces are flat colours until WP3's textures arrive.
 - **Facing the camera.** A camera with no rotation and a model with no rotation both face +Z, so the camera sees the model's back. To face the camera, a model needs half a turn.
