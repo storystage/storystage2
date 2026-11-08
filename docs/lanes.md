@@ -4,6 +4,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S1 Platform and quality
 - Merged:
+  - 8 Nov (#141): **the Prompter's Backstage catalogue (13.3)**: `catalogueText(manifest)` in `@storystage/backstage`, shipped models only, by section and class, with joint sets listed once; the build writes it as `prompter-catalogue.txt` and stops above 12,000 tokens (spec 17, section 4a). Descriptions for the 30 MakeHuman people. **S7: pass `catalogueText(manifest)` as `SystemCatalogs.backstage`.** Today's 50 models take about 2,800 tokens.
   - 25 Oct: **Rust security advisories check** (#48): `cargo deny check advisories` in `desktop.yml` on the platforms we ship, and weekly (Mondays). Its first run found tokio 1.54.0 (RUSTSEC-2026-0384, yanked), updated to 1.54.1. Dependabot's glib alert is Linux-only, so it doesn't reach the app (`docs/github-settings.md`). CodeQL on `main` is green again without Python.
   - 25 Oct: **the Direction A design handoff** in `docs/design/direction-a/` (#49, without the Alice 3 screenshots), with the differences from the workplan listed on #49; the owner's decisions on it: age range (0030) and fonts (0031) (#50), and teacher Prompter levels (0034).
   - 22 Oct: platform upkeep: S1 sessions can push again (Claude GitHub App reinstalled for the organisation); CodeQL default setup saved without Python, which has had no source since WP0.10 and failed the `main` scan.
@@ -40,9 +41,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 8 Nov (#141): **the Prompter's Backstage catalogue (13.3)**: `catalogueText(manifest)` in `@storystage/backstage`, shipped models only, by section and class, with joint sets listed once; the build writes it as `prompter-catalogue.txt` and stops above 12,000 tokens (spec 17, section 4a). Descriptions for the 30 MakeHuman people. **S7: pass `catalogueText(manifest)` as `SystemCatalogs.backstage`.** Today's 50 models take about 2,800 tokens.
-  - 8 Nov (#144, stacked on #141): **colour thumbnails**: `renderThumbnail` in `@storystage/sketches` draws a model in colour on the CPU (front, standing, clear background), so the import worker can use it too; the build writes `thumbnails/<id>.webp` for `files.thumbnail`. **S5: Backstage's browse views can show these.**
-  - 8 Nov (#156, stacked on #141, with backstage-assets#4): **no logo T-shirts**: seven people re-dressed and re-rendered; the plain shirt is only worn in its own colours.
+  - 8 Nov (#144): **colour thumbnails**: `renderThumbnail` in `@storystage/sketches` draws a model in colour on the CPU (front, standing, clear background), so the import worker can use it too; the build writes `thumbnails/<id>.webp` for `files.thumbnail`. **S5: Backstage's browse views can show these.**
+  - 8 Nov (#156, with backstage-assets#4): **no logo T-shirts**: seven people re-dressed and re-rendered; the plain shirt is only worn in its own colours.
 - Merged:
   - 8 Nov (#138, contract): **an optional `description` in the manifest (2.1.0)**, one plain line about what a model looks like. People are described by age, hair and clothes, never by skin colour or ancestry (owner, 8 Nov). **S3, S5, S7:** the shipped manifest becomes 2.1.0 at its next rebuild.
   - 8 Nov: **WP3.9 budgets and reduction** (#126 manifest 2.0.0, #129, #130): `ITEM_BUDGETS` and `SCENE_BUDGET` (provisional until spike 1.2's device run), `checkScene`, and `reduceModel` (glTF Transform with meshoptimizer; WebP textures). The shipped catalogue is rebuilt with them (backstage-assets#3): every person is now under 20,000 triangles. **S3: the manifest now says `vrm: "0"` on each avatar that must be turned, and every item has its `budget`. S6, S5: `checkScene` gives the plain-words warning for a heavy scene.**
