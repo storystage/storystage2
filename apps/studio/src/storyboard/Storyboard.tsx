@@ -1,8 +1,10 @@
-import type { Production, SceneId } from '@storystage/production';
+import type { FrameId, Production, SceneId } from '@storystage/production';
 import { Button } from '@storystage/ui';
 import { useEffect, useState, type Dispatch } from 'react';
 import { words } from '../strings.ts';
 import { nextRedo, nextUndo, type History, type HistoryAction } from './history.ts';
+import { FramePanel } from './FramePanel.tsx';
+import { sceneFrames } from './frames.ts';
 import { SceneDetails } from './SceneDetails.tsx';
 import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
@@ -19,8 +21,8 @@ const isTextEntry = (target: EventTarget | null) =>
 
 /**
  * The Storyboard tab (`docs/spec/07-ux.md` section 6): the script header and arc (10.1, 10.2) and
- * the scene cards (10.3), with the Storyboard's undo history (6.8). Frames, the script pane and the
- * sketch library follow.
+ * the scene cards (10.3) and the frames (10.6), with the Storyboard's undo history (6.8). Sketches
+ * on the frame, the script pane and the sketch library follow.
  */
 export function Storyboard({ history, dispatch }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
@@ -29,6 +31,12 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
   // The chosen scene, or the first one if it has gone (deleted, or undone).
   const order = p.manifest.runningOrder.map((r) => r.scene);
   const current = chosen !== null && order.includes(chosen) ? chosen : (order[0] ?? null);
+  const [chosenFrame, setChosenFrame] = useState<FrameId | null>(null);
+  // The chosen frame if it's in the current scene, or the scene's first frame.
+  const frames = current ? sceneFrames(p, current) : [];
+  const currentFrame = frames.some((f) => f.id === chosenFrame)
+    ? chosenFrame
+    : (frames[0]?.id ?? null);
   const commit = (label: string, next: Production, key?: string) =>
     dispatch({ type: 'commit', label, next, key });
   const undoLabel = nextUndo(history);
@@ -85,6 +93,16 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             onChange={commit}
             onLeave={() => dispatch({ type: 'seal' })}
             onDeleted={() => setChosen(null)}
+          />
+        )}
+        {current && (
+          <FramePanel
+            production={p}
+            scene={current}
+            current={currentFrame}
+            onCurrentChange={setChosenFrame}
+            onChange={commit}
+            onLeave={() => dispatch({ type: 'seal' })}
           />
         )}
       </div>

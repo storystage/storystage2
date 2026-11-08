@@ -244,3 +244,128 @@
   flex-wrap: wrap;
   gap: 10px;
 }
+
+/* The current scene's frames, and the current frame (07-ux 6.4, 6.5). */
+.sb-frames {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sb-frame-row,
+.sb-frame-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.sb-frame-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  outline: none;
+}
+.sb-frame-square {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 10px 0 2px;
+  border-radius: 8px;
+  font-weight: 700;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+  cursor: pointer;
+  outline: none;
+}
+.sb-frame-square[data-selected] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+}
+.sb-frame-square[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-stage-0),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-frame-square[data-dragging] {
+  opacity: 0.6;
+}
+.sb-frame-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 44px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-frame-handle[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+
+/* Length: a stepper of whole seconds. */
+.sb-length {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.sb-length-label {
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-length-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sb-length-input {
+  width: 3ch;
+  min-height: 44px;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  text-align: right;
+  color: var(--ss-text);
+  background: transparent;
+  outline: none;
+}
+.sb-length-input[data-focus-visible],
+.sb-length-input:focus-visible {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.sb-length-unit {
+  font-weight: 700;
+}
+
+/* The frame: white, 16:9, with the spotlight glow (Direction A). */
+.sb-canvas {
+  align-self: center;
+  width: min(100%, 720px);
+  margin: 0;
+  border-radius: 6px;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+  box-shadow: 0 30px 70px -30px var(--ss-amber);
+}
+.sb-canvas-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 0;
+  font-weight: 700;
+}
+.sb-canvas-shot {
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1.5px var(--ss-sketch-ink);
+}
+.sb-canvas-paper {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
