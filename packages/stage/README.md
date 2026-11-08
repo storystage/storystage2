@@ -40,6 +40,8 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 
 **Renderer and quality (5.6).** `createBabylonStage` is async: it uses WebGPU where the device has it and WebGL2 otherwise (`renderer: 'auto'`), and `stage.renderer` says which. Pass `renderer: 'webgl2'` for the same pixels on every machine. `quality: 'low'` draws at two thirds of the canvas's size without smoothing edges, for the reference devices; `standard`, the default, draws full size. An export always draws full size. Both are fixed when the stage is made.
 
+**Pictures (5.7).** `stage.picture(at, width, height)` draws the scene as it is at `at`, at any size up to 4096 each way, without moving the scene from its last `seek` and without firing events. It's for the Screening room's compare with the storyboard (WP11.6). No picture ever goes to the Prompter (CLAUDE.md rule 3).
+
 **Budget.** `stage.measure()` counts the triangles the loaded scene draws, against Backstage's scene budget (`SCENE_BUDGET`, WP3.9). The budget is provisional until the reference devices have been measured (#6).
 
 ## How it fits together

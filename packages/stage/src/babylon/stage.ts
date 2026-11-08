@@ -9,6 +9,8 @@
  */
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera.js';
 import '@babylonjs/core/Culling/ray.js';
+import '@babylonjs/core/Engines/Extensions/engine.readTexture.js';
+import { RenderTargetTexture } from '@babylonjs/core/Materials/Textures/renderTargetTexture.js';
 import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine.js';
 import { Frustum } from '@babylonjs/core/Maths/math.frustum.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
@@ -35,6 +37,7 @@ import { resolveBackdrop } from '../backdrops.ts';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
 import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
+import { checkPictureSize } from '../picture.ts';
 import { Timeline, standInShape, type Touching } from '../timeline.ts';
 import { buildBackdrop, type ShowSky } from './backdrop.ts';
 import { buildFade } from './fade.ts';
@@ -282,6 +285,41 @@ export class BabylonStage implements Stage {
     const height = this.engine.getRenderHeight();
     const pixels = await this.engine.readPixels(0, 0, width, height);
     return { width, height, data: topRowFirst(pixels as Uint8Array, width, height) };
+  }
+
+  /**
+   * WP5.7: the scene at `at`, drawn into a picture of its own. The scene goes back to its last
+   * `seek` before the picture is read, so a live frame drawn meanwhile shows the right time, and
+   * no events fire.
+   */
+  async picture(at: Micros, width: number, height: number): Promise<FrameImage> {
+    const scene = this.loaded();
+    checkPictureSize(width, height);
+    await scene.whenReadyAsync();
+    const target = new RenderTargetTexture('picture', { width, height }, scene, {
+      generateMipMaps: false,
+      // Smoothed edges, as a frame on screen has.
+      samples: 4,
+    });
+    try {
+      target.renderList = scene.meshes.slice();
+      target.activeCamera = this.camera;
+      const now = this.timeline.time();
+      try {
+        this.timeline.seek(at);
+        this.show();
+        target.render();
+      } finally {
+        this.timeline.seek(now);
+        this.show();
+      }
+      const pixels = await target.readPixels();
+      if (!pixels) throw new StageError('bad_argument', 'The picture could not be read back.');
+      const bytes = new Uint8Array(pixels.buffer, pixels.byteOffset, width * height * 4);
+      return { width, height, data: topRowFirst(bytes, width, height) };
+    } finally {
+      target.dispose();
+    }
   }
 
   dispose(): void {

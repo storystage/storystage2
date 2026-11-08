@@ -226,6 +226,34 @@ async function picture(name: string, seconds: number) {
 }
 
 /**
+ * WP5.7: a picture of a moment, taken while the scene is at another, against the frame drawn at
+ * that moment, and a small picture's top and bottom rows: sky above, ground below.
+ */
+async function pictureCheck() {
+  const scene = SCENES['grass-cast']!;
+  const stage = await offscreenStage();
+  await stage.load(scene.setup);
+  stage.schedule(scene.commands);
+  stage.seek(micros(0.5));
+  const picture = await stage.picture(micros(2), W, H);
+  const time = stage.time();
+  stage.seek(micros(2));
+  const frame = await stage.renderFrame();
+  let differ = 0;
+  for (let p = 0; p < frame.data.length; p += 4)
+    if (
+      Math.abs(frame.data[p]! - picture.data[p]!) +
+        Math.abs(frame.data[p + 1]! - picture.data[p + 1]!) >
+      24
+    )
+      differ++;
+  const small = await stage.picture(micros(2), 160, 90);
+  const pixel = (y: number) => Array.from(small.data.slice(y * 160 * 4 + 320, y * 160 * 4 + 323));
+  stage.dispose();
+  return { time, differ: differ / (W * H), top: pixel(2), bottom: pixel(87) };
+}
+
+/**
  * A stage made as the studio makes one, with the renderer chosen for the device: which it got,
  * how big it draws, and whether anything was drawn.
  */
@@ -363,6 +391,7 @@ Object.assign(window, {
     darkPixels,
     subjectShare,
     rendering,
+    pictureCheck,
     eventCost,
     picture,
     goLive,

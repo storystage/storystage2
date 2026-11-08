@@ -467,6 +467,45 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       });
     });
 
+    describe('pictures', () => {
+      it('are the size asked for, and leave the scene where it was', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 2, { object: cat, kind: 'translate', by: { x: 3, y: 0, z: 0 }, space: 'scene' }),
+        ]);
+        stage.seek(micros(0.5));
+        const before = stage.stateHash();
+        const heard: string[] = [];
+        stage.onEvent((e) => heard.push(e.kind));
+        const picture = await stage.picture(micros(2), 160, 90);
+        expect([picture.width, picture.height, picture.data.length]).toEqual([
+          160,
+          90,
+          160 * 90 * 4,
+        ]);
+        expect(stage.time()).toBe(micros(0.5));
+        expect(stage.stateHash()).toBe(before);
+        expect(heard).toEqual([]);
+      });
+
+      it('are the same for the same moment', async () => {
+        const stage = await loaded();
+        const a = await stage.picture(micros(1), 8, 8);
+        const b = await stage.picture(micros(1), 8, 8);
+        expect(Array.from(b.data)).toEqual(Array.from(a.data));
+      });
+
+      it('refuse a size they cannot draw', async () => {
+        const stage = await loaded();
+        for (const [w, h] of [
+          [0, 90],
+          [160, 4097],
+          [1.5, 90],
+        ] as const)
+          await expect(stage.picture(0, w, h)).rejects.toMatchObject({ code: 'bad_argument' });
+      });
+    });
+
     describe('shots', () => {
       const shot = (name: ShotType, ...targets: ObjectId[]) =>
         cmd(0, 1, { object: CAMERA, kind: 'shot', shot: name, targets });

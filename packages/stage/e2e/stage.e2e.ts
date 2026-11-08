@@ -153,6 +153,22 @@ test('draws at two thirds of the size at low quality, for the reference devices'
   expect(low.lit).toBeGreaterThan(0.5);
 });
 
+test('takes a picture of another moment without moving the scene (5.7)', async ({ page }) => {
+  const problems = await open(page);
+  const r = await call<{ time: number; differ: number; top: number[]; bottom: number[] }>(
+    page,
+    'pictureCheck',
+  );
+  console.log(JSON.stringify(r));
+  expect(r.time).toBe(500_000);
+  // The same moment drawn twice: only the smoothing at edges may differ.
+  expect(r.differ).toBeLessThan(0.02);
+  // The right way up: the grass template's sky above and its ground below.
+  expect(r.top[2]).toBeGreaterThan(200);
+  expect(r.bottom[1]).toBeGreaterThan(r.bottom[2]!);
+  expect(problems).toEqual([]);
+});
+
 test('measures what view and occlusion events would cost (decision 0051)', async ({ page }) => {
   await open(page);
   const r = await call<{ objects: number; pairs: number; view: number; occlusion: number }>(
