@@ -16,6 +16,19 @@ export interface ShapeOptions {
   readonly allowExtra?: boolean;
 }
 
+/**
+ * Lengths for the learner's own words that format 1.1.0 added (spec 07, section 6.9). The screens
+ * keep to them; a file over them, edited by hand, is refused when it opens.
+ */
+export const TEXT_LIMITS = {
+  /** One scene's retake notes. */
+  retakeNotes: 200,
+  /** One name in the end credits. */
+  creditName: 40,
+  /** How many names the end credits hold. */
+  creditNames: 40,
+} as const;
+
 type Json = Record<string, unknown>;
 
 /** Collects problems with paths, for developers ("frames/f1.json: sketches[0].x: a number"). */
@@ -51,9 +64,13 @@ class Shape {
     return true;
   }
 
-  string(v: unknown, path: string): v is string {
-    if (typeof v === 'string') return true;
-    this.add(path, 'should be text');
+  string(v: unknown, path: string, max = Infinity): v is string {
+    if (typeof v !== 'string') {
+      this.add(path, 'should be text');
+      return false;
+    }
+    if ([...v].length <= max) return true;
+    this.add(path, `should be at most ${max} characters`);
     return false;
   }
 
@@ -139,8 +156,12 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
     'models',
   ];
   if (!s.object(v, '', keys, ['credits'])) return s.problems;
-  if (v.credits !== undefined && s.object(v.credits, 'credits', ['names']))
-    s.array(v.credits.names, 'credits.names', (n, p) => s.string(n, p));
+  if (v.credits !== undefined && s.object(v.credits, 'credits', ['names'])) {
+    const names = v.credits.names;
+    if (s.array(names, 'credits.names', (n, p) => s.string(n, p, TEXT_LIMITS.creditName)))
+      if ((names as unknown[]).length > TEXT_LIMITS.creditNames)
+        s.fail('credits.names', `should hold at most ${TEXT_LIMITS.creditNames} names`);
+  }
   if (v.format !== 'storystage') s.fail('format', 'should be storystage');
   s.string(v.formatVersion, 'formatVersion');
   if (s.object(v.createdWith, 'createdWith', ['app', 'version'])) {
@@ -223,7 +244,8 @@ export function checkStoryboardShape(v: unknown, options: ShapeOptions = {}): st
   }
   s.array(v.cards, 'cards', (c, p) => {
     if (!s.object(c, p, ['id', 'heading', 'cast', 'arcPart'], ['retakeNotes'])) return;
-    if (c.retakeNotes !== undefined) s.string(c.retakeNotes, join(p, 'retakeNotes'));
+    if (c.retakeNotes !== undefined)
+      s.string(c.retakeNotes, join(p, 'retakeNotes'), TEXT_LIMITS.retakeNotes);
     s.string(c.id, join(p, 'id'));
     s.string(c.heading, join(p, 'heading'));
     s.array(c.cast, join(p, 'cast'), (m, q) => modelRef(s, m, q));

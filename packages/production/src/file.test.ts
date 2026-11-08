@@ -251,6 +251,10 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.production.manifest).toMatchObject({ formatVersion: '2.0.0', title: 'Moved on' });
+    const stuck = { '1.1.0': { to: '1.1.0', manifest: (m: object) => m } };
+    expect(
+      openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: stuck }),
+    ).toMatchObject({ status: 'broken' });
     const gap = { '1.1.0': { to: '1.5.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: gap }),
@@ -286,6 +290,21 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
         cards: (b.cards as object[]).map((c) => ({ ...c, retakeNotes: 3 })),
       })),
       /retakeNotes: should be text/,
+    );
+    brokenWith(
+      changed('storyboard.json', (b) => ({
+        ...b,
+        cards: (b.cards as object[]).map((c) => ({ ...c, retakeNotes: 'x'.repeat(201) })),
+      })),
+      /retakeNotes: should be at most 200 characters/,
+    );
+    brokenWith(
+      changed('manifest.json', (m) => ({ ...m, credits: { names: ['y'.repeat(41)] } })),
+      /credits\.names\[0\]: should be at most 40 characters/,
+    );
+    brokenWith(
+      changed('manifest.json', (m) => ({ ...m, credits: { names: Array(41).fill('Sam') } })),
+      /should hold at most 40 names/,
     );
   });
 

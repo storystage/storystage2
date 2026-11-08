@@ -40,7 +40,7 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 
 1. **The archive reader** (`archive.ts`; `15-security.md`, sections 3.1 and 3.2), unpacking only the entries this section names. Anything else is ignored, and never written back.
 2. **The manifest,** which must say `format: "storystage"` and give its version (section 1.2).
-3. **Every part's shape** (`validate.ts`): the manifest, each scene, the storyboard and each frame, with every number finite and in range. A scene or frame's `id` must match its file name. **In a file of this version, a part may hold only the fields its type names,** so nothing outside this spec (section 1.1) can ride through a save. A newer file, opened read-only, may hold fields this version doesn't know.
+3. **Every part's shape** (`validate.ts`): the manifest, each scene, the storyboard and each frame, with every number finite and in range, and the retake notes and credit names within `TEXT_LIMITS` (200 characters a note, 40 a name, 40 names; spec 07, section 6.9). A scene or frame's `id` must match its file name. **In a file of this version, a part may hold only the fields its type names,** so nothing outside this spec (section 1.1) can ride through a save. A newer file, opened read-only, may hold fields this version doesn't know.
 4. **The program,** with `openProgram` (`01-ast.md`, section 7).
 5. **The script,** with `readFountain` and its limits (section 5).
 6. **`checkReferences`,** and every audio and packed model file the manifest names.

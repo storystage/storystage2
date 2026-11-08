@@ -244,6 +244,9 @@ export function openProduction(
     const from = upgraded.formatVersion!;
     const step = migrations[from];
     if (!step) return broken(TOO_OLD, [`Nothing migrates format ${from} to ${current}.`]);
+    // Migrations are code, but a step that doesn't go up would never end: refuse it.
+    if (compareVersions(step.to, from) <= 0)
+      return broken(TOO_OLD, [`The migration from format ${from} doesn't go to a newer one.`]);
     upgraded = { ...step.manifest(upgraded), formatVersion: step.to };
     formatMigrated = true;
     order = compareVersions(step.to, current);
