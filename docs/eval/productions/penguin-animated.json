@@ -1,0 +1,13 @@
+{
+  "title": "Penguin, animated",
+  "backdrop": "grass",
+  "objects": [
+    { "name": "penguin", "class": "Flyer", "item": "example/Flyer/penguin", "position": { "x": 0, "y": 0, "z": 0 } },
+    { "name": "tree", "class": "Prop", "item": "example/Prop/tree", "position": { "x": -2, "y": 0, "z": 4 } }
+  ],
+  "program": [
+    "penguin.say(\"Hello\")",
+    "penguin.turn(LEFT, 0.25)",
+    "penguin.move(FORWARD, 2)"
+  ]
+}

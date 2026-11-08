@@ -444,7 +444,7 @@ The canonical source for buttons, mode tabs, status chips, a block, tiles (inclu
 | Frame card | 140 × 50, sketch thumbnail of 32px, number, status chip; the selected card has a 2px amber border on `#2E2519`. |
 | Block | See the Blocks editor colours. |
 | Tile, control box, slot, drop line, value menu | See the Tiles editor colours. |
-| Prompter plan step | ≥52px, radius 12, background panel-3, drag handle (30 × 48), a 28px chalk number disc, text, edit button 44px. Reorderable by drag and by keyboard (arrow keys while focused). Editable inline, with a mic. |
+| Prompter plan step | ≥52px, radius 12, background panel-3, drag handle (44 × 48; the handoff drew 30 wide, under the 44 px hard rule), a 28px chalk number disc, text, edit button 44px. Reorderable by drag and by keyboard (arrow keys while focused). Editable inline, with a mic. |
 | Text field | Height 48, radius 12, background `#13100E`, 1px `#8A7B6A`, placeholder `#AFA394`, plus an adjacent 44px mic. |
 | Check box | 26px, radius 7; checked is amber with a check icon. |
 | Radio card | ≥44px; selected is `#2E2519` with a 1.5px amber inset and a 7px amber ring dot. |
