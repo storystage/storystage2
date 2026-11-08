@@ -247,3 +247,32 @@ describe('checkGltfJson', () => {
     expect(p!.message).not.toContain('xxxx');
   });
 });
+
+describe('checkGltfJson and sizes (F8: a glTF with a false size)', () => {
+  const sized = (count: number, viewLength = 36, bufferLength = 36) => ({
+    asset,
+    buffers: [{ byteLength: bufferLength }],
+    bufferViews: [{ buffer: 0, byteLength: viewLength }],
+    accessors: [{ bufferView: 0, componentType: 5126, type: 'VEC3', count }],
+  });
+
+  it('passes accessors that fit their views, and views that fit their buffers', () => {
+    expect(checkGltfJson(sized(3))).toEqual([]);
+  });
+
+  it('refuses an accessor that claims more than its view, or a view more than its buffer', () => {
+    expect(codes(checkGltfJson(sized(4)))).toEqual(['damaged']);
+    expect(codes(checkGltfJson(sized(3, 36, 12)))).toEqual(['damaged']);
+    expect(
+      codes(
+        checkGltfJson({
+          ...sized(3),
+          accessors: [{ bufferView: 0, componentType: 1, type: 'VEC3', count: 3 }],
+        }),
+      ),
+    ).toEqual(['damaged']);
+    expect(
+      codes(checkGltfJson({ ...sized(3), bufferViews: [{ buffer: 4, byteLength: 36 }] })),
+    ).toEqual(['damaged']);
+  });
+});

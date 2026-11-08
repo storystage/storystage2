@@ -8,7 +8,8 @@
  *
  * Textures are shrunk to the budget and made WebP (owner, 7 Nov 2026) by an encoder the caller
  * passes: sharp in the build tools (build-only, its libvips is LGPL), the browser's own canvas in
- * the app. Without one, textures are left as they are and the report says the model doesn't fit.
+ * the app. Safari's canvas can't make WebP, so an encoder may say it made PNG instead (spec 17,
+ * section 5). Without one, textures are left as they are and the report says the model doesn't fit.
  */
 import type { Document } from '@gltf-transform/core';
 import { EXTTextureWebP } from '@gltf-transform/extensions';
@@ -20,13 +21,22 @@ import type { Budget } from './budget.ts';
 // a WebP texture measures 0 pixels, so every reduced model would seem to fit.
 EXTTextureWebP.register();
 
-/** Encodes one image as WebP no larger than `maxPx` on its longer side. */
+/** A picture an encoder made, and which kind it is. */
+export interface EncodedTexture {
+  readonly bytes: Uint8Array;
+  readonly mimeType: 'image/webp' | 'image/png';
+}
+
+/**
+ * Encodes one image no larger than `maxPx` on its longer side: as WebP (bytes alone), or, where
+ * WebP can't be made, as whichever kind it says.
+ */
 export type TextureEncoder = (
   image: Uint8Array,
   mimeType: string,
   maxPx: number,
   size: readonly [number, number],
-) => Promise<Uint8Array>;
+) => Promise<Uint8Array | EncodedTexture>;
 
 export interface ReduceReport {
   readonly before: Budget;
@@ -92,11 +102,16 @@ export async function reduceModel(
       if (!image || !size) continue;
       const tooBig = Math.max(...size) > budget.textureMaxPx;
       if (!tooBig && texture.getMimeType() === 'image/webp') continue;
-      texture.setImage(
-        await options.encodeTexture(image, texture.getMimeType(), budget.textureMaxPx, size),
+      const made = await options.encodeTexture(
+        image,
+        texture.getMimeType(),
+        budget.textureMaxPx,
+        size,
       );
-      texture.setMimeType('image/webp');
-      webp = true;
+      const encoded = made instanceof Uint8Array ? { bytes: made, mimeType: 'image/webp' } : made;
+      texture.setImage(encoded.bytes);
+      texture.setMimeType(encoded.mimeType);
+      if (encoded.mimeType === 'image/webp') webp = true;
     }
     if (webp) doc.createExtension(EXTTextureWebP).setRequired(true);
   }

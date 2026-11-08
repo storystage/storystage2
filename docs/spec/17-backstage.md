@@ -219,19 +219,24 @@ Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is
     - the file sizes (`FILE_LIMIT`);
     - each picture's width and height from its header, before it's decoded: 8,192 pixels on a side and 40 million pixels at most;
     - any **required** glTF extension the stage doesn't use refuses the file. `IMPORT_EXTENSIONS` are the ones accepted: `EXT_meshopt_compression`, `EXT_texture_webp`, `KHR_materials_emissive_strength`, `KHR_materials_unlit`, `KHR_mesh_quantization` and `KHR_texture_transform`. Extensions that are only used, not required, are dropped on reading. Draco compression is refused in its own plain words, which say how to export again from Blender without it;
+    - every accessor inside its buffer view, and every view inside its buffer, so a count the file claims falsely can't read past its own data (F8);
     - ceilings that keep the worker safe before it reduces anything: 2,000,000 triangles, 256 joints, 10,000 nodes and 64 pictures. Over any of them, the file is refused, with which limit in plain words.
 2. **A VRM avatar** has its bones named from its own VRM table, as the sketch reader does. A 0.x avatar is turned to face +Z in the file itself. So what's saved is an ordinary glTF facing +Z, and the item has no `vrm` field.
 3. **Reduce it to its section's budget** (section 4) with `reduceModel`, the same code the shipped build uses. Pictures are shrunk with the browser's own canvas (`OffscreenCanvas`): as WebP where the browser can encode it, and otherwise as PNG, which Safari makes. The texture encoder therefore says which it made.
 4. **Map its skeleton** for a class that has one (`mapSkeleton`). If the required joints aren't all there, it's **prop only**: it can move and turn, but not walk or gesture.
 5. **Draw its sketches and thumbnail** (sections 7 and 7a), with the browser's picture decoder.
 6. **Make its record:**
-    - its id is `class/<Class>/<name>`, made from its name and unique in the class Backstage;
+    - its id is `class/<Class>/<name>`, made from its name (lower case, hyphens, at most 40 characters; `model` if nothing is left) and unique in the class Backstage, with `-2`, `-3` and so on (`classModelId`). The caller passes the ids the class Backstage has had, live and in the bin;
     - the section, class, name and an optional description, as the person chose;
     - the licence, credit and source from section 6;
     - `origin: "imported"`, its measured `budget` and its height.
 7. **The report, in plain words, before anything is saved.** For example: "Reduced from 180,000 to 12,000 triangles; textures from 4K to 1K; skeleton mapped (20 of 22 joints); credit: 'Robot by A. Maker, CC BY 4.0, changed for StoryStage'". The person saves or cancels.
 
-`importModel` returns the record, its files (model, thumbnail and sketches) and the report, or a refusal. It's pure: the caller saves into the class Backstage.
+A model that still doesn't fit its budget after the gentlest simplifying that reaches it, or whose pictures can't be shrunk, is refused in plain words: it would slow every scene it's in (`CLAUDE.md` rule 6).
+
+**The files** sit at paths relative to the item, as a packed model's do (`03-production-format.md`, section 1.3): `model.glb`, `thumbnail.webp` (or `.png`) and `sketches/<facing>[-<pose>].svg`.
+
+`importModel` returns the record, its files (model, thumbnail and sketches) and the report, or a refusal. The licence step is checked first, before anything is read, so the person can fix it straight away. It's pure: the caller saves into the class Backstage.
 
 ### The class Backstage (decision 0066)
 
