@@ -5,7 +5,7 @@
  * file's SHA-256, or an Arweave address (whose transaction id names fixed content). Pinning
  * means a build fetches exactly what was reviewed.
  */
-import { SECTIONS, type Section } from '@storystage/backstage';
+import { SECTIONS, descriptionProblem, type Section } from '@storystage/backstage';
 import { STORY_CLASSES, type StoryClass } from '@storystage/story-api';
 import type { Exclude } from './exclude.ts';
 
@@ -27,6 +27,8 @@ export interface SourceItem {
   readonly class: StoryClass;
   readonly section: Section;
   readonly themes: readonly string[];
+  /** What it looks like, for the Prompter's catalogue (spec 17, section 1, rule 5). */
+  readonly description?: string;
   readonly licence: ShippableLicence;
   readonly credit: string;
   /** The item's own page: the manifest's `source.url`. */
@@ -88,6 +90,13 @@ export function validateSources(json: unknown): Result {
       e(`section must be one of ${SECTIONS.join(', ')}.`);
     if (!Array.isArray(item.themes) || !item.themes.every((t) => typeof t === 'string'))
       e('themes must be a list of words.');
+    if (item.description !== undefined) {
+      const problem =
+        typeof item.description === 'string'
+          ? descriptionProblem(item.description)
+          : 'A description is one line of plain words.';
+      if (problem) e(problem);
+    }
     if (!SHIPPABLE_LICENCES.includes(item.licence as ShippableLicence))
       e(`licence must be one the audit allows to ship: ${SHIPPABLE_LICENCES.join(', ')}.`);
     if (!isText(item.credit)) e('needs a credit line.');

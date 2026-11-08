@@ -20,6 +20,7 @@
 | `id` | The Alice gallery path where there is one (`Quadruped/Cat/AbyssinianCat`), else `source/Class/name` (`kaykit/Biped/knight`). Unique, and never reused for another model |
 | `section`, `class` | Its one home section (section 2) and its Story API class |
 | `displayName`, `themes` | The name learners see, and words to browse by |
+| `description` | Optional. What it looks like in plain words, one line of at most 120 characters, for the Prompter's catalogue, search and screen readers (rule 5) |
 | `files.model` | Binary glTF (`.glb`), or VRM (`.vrm`, kept byte for byte) |
 | `files.thumbnail` | A colour picture of its front (WebP), or its front sketch until one is made |
 | `vrm` | For a VRM file, its version: `"0"` or `"1"` |
@@ -35,7 +36,8 @@
 1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` has a source URL; a `permission` licence names its record in `docs/legal/`.
 2. **Shipped items carry only CC0, CC BY 3.0 or 4.0, or `permission`** (`SHIPPED_LICENCES`; licence audit, section 2, rule 1). A class may import share-alike, non-commercial, own-work or "not sure" models (3.12); `mayDistribute` then keeps films that use them in school.
 3. **Every model faces +Z.** The pipelines turn models that don't (Alice's, section 3), except VRM files, which are kept byte for byte: **a VRM 0.x avatar faces -Z, and whatever shows it (the stage, sketches, the AR baker) turns it half a turn.** `vrm` says which files need it.
-4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule.
+4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule; 2.1.0 added `description`.
+5. **Descriptions say what a learner would see.** A person is described by age, hair, glasses, clothes and anything they use, such as a wheelchair: "a child of 7 with an afro, in a mustard suit". **Never by skin colour or ancestry** (owner, 8 Nov 2026). A shipped item's description comes from its source list and is reviewed with it. An imported item's is typed by the learner or teacher, so the Prompter reads it as data in the user turn, never in `system` (spec 04, section 2.1).
 
 ## 2. Sections
 
@@ -121,6 +123,18 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - Textures are shrunk to 1024 pixels here. Triangles (33,000 to 47,000 each) are reduced in WP3c.
 - **Where Backstage's files live** (owner's decision, 25 Oct 2026): the public repository `storystage/backstage-assets`. It holds the shipped glTF files, `backstage.json`, the sketches and each item's provenance. A GitHub Actions job there downloads the CC0 sources, converts them and commits the results, so nothing large is fetched to a developer's PC. The MakeHuman people are made there too, headless, with MPFB2 in Blender (owner's decision, 25 Oct 2026). Both tools are GPL and are build tools only (CLAUDE.md, rule 8).
 
+## 3a. Credits
+
+Credits come from the manifest (workplan 3.4): the About screen lists every shipped model, and a film's end credits (WP11.4) list the models it uses. The code is `packages/backstage/src/credits.ts`. The About screen itself is S5's (the Studio), and the film credits are the export's (spec 08, section 5); both build on `creditsBySection`.
+
+### Rules
+
+1. **Grouped as everywhere else:** Cast, Props, Set and Backdrops, in that order, with empty sections left out.
+2. **Each model once,** alphabetically within its section, with its credit line exactly as the manifest gives it.
+3. **Each line carries its licence and its page:** a Creative Commons licence's short name and deed link (`LICENCE_LINKS`), and the model's own page. CC BY asks for both. A screen shows them as links; a film shows the name.
+4. **A changed CC BY model says so** (owner, 8 Nov 2026): its credit line ends ", changed for StoryStage" (`creditFor`), as CC BY 4.0 asks (section 3(a)(1)(B)). The build changes every glTF model it ships (textures re-encoded, perhaps simplified), and the import pipeline will too, so both write the credit with `creditFor`. VRM files are kept byte for byte, so they aren't changed. CC0 and `permission` credits are left as written.
+5. **Notices a source requires,** such as an acknowledgement CMU may ask for its Alice models, are added here when the permission that requires them is recorded in `docs/legal/`.
+
 ## 4. Budgets
 
 Every model is reduced to a budget, and every scene is checked against one, so a production runs smoothly on the reference 4 GB Chromebook (CLAUDE.md, rule 6). The code is `packages/backstage/src/budget.ts` (the figures and the scene check) and `optimize.ts` (the reduction, `@storystage/backstage/optimize`).
@@ -150,6 +164,43 @@ Every model is reduced to a budget, and every scene is checked against one, so a
 4. **The encoder is passed in.** The build tools use sharp, as a devDependency only, because sharp bundles libvips under the LGPL (CLAUDE.md, rule 8). A pnpm override keeps sharp out of the app's dependencies (`pnpm-workspace.yaml`). The import worker will use the browser's own canvas (WP3i). Without an encoder, textures are left as they are and the model is reported as not fitting.
 5. **VRM files are measured, not reduced,** because they are kept byte for byte (section 1). The build report flags any over budget.
 6. **A scene over budget gets a plain-words warning** for the learner (`checkScene`): "This scene may be slow on a school Chromebook: it has a lot of detail. Try fewer models, or simpler ones." Nothing is refused.
+
+## 4a. The Prompter's catalogue
+
+The Backstage catalogue in the Prompter's system prompt (workplan 13.3; spec 04, section 2.1). The code is `packages/backstage/src/catalogue.ts`; the Prompter passes its text as `SystemCatalogs.backstage` (`packages/prompter`).
+
+```text
+Joint sets
+  J1: hips, spine, chest, head, leftUpperArm, ...
+
+Cast
+  Biped
+    makehuman/Biped/p01: Alfie, a boy of 6 with short brown hair, in a blue shirt and jeans [everyday, children] 1 m, joints J2
+Props
+  Prop
+    kaykit/Prop/mug: Mug [fantasy, food] 0.55 m, no joints
+```
+
+### Rules
+
+1. **Shipped models only.** Imported models are a class's, named and described by learners and teachers, so they go in the user turn as data (spec 04, section 2.1), never among the instructions.
+2. **Each line gives what Claude needs to choose and use a model:** its id exactly as `add_model` takes it, its name and description, its themes, its height at scale 1, and its joints. Licences, credits, files and budgets are left out.
+3. **Joint sets are listed once** and each model names its set, because models of one class differ (a KayKit character has 18 joints, a MakeHuman person 52). Claude uses only the joints in a model's set; a model with none can move and turn, but not walk or gesture.
+4. **The same manifest always gives the same text,** whatever order it lists its items in, sorted in code-point order rather than the machine's locale. The native layer pins the system prompt's hash for a release (spec 04, section 1.8), so the catalogue a release ships is fixed with it.
+5. **It fits 12,000 tokens,** counted at three characters a token (spec 04, section 2.1). The build (`tools/backstage-sources`) stops before writing anything if it doesn't, writes the text to `prompter-catalogue.txt` for the reviewer, and puts its size in the build report. The 50 models shipped on 8 Nov 2026 take about 3,100.
+
+## 4b. Loading
+
+How the app gets its models (workplan 3.9). The code is `packages/backstage/src/loader.ts`, and, for the bundle, `tools/backstage-sources/src/bundle.ts`.
+
+### Rules
+
+1. **The shipped Backstage is bundled** (decision 0062): the apps carry `backstage.json`, the models, thumbnails, sketches and `prompter-catalogue.txt`, about 85 MB on 8 Nov 2026. The Tauri apps bundle the folder as resources (S8); the browser version serves it from its own origin (S1). Models are never downloaded, so Backstage works offline from the first launch.
+2. **A release ships one pinned catalogue.** `backstage.lock.json` names the assets commit and the SHA-256 of its `backstage.json` and `prompter-catalogue.txt`. `pnpm backstage:fetch` fetches exactly those files into `.backstage/` and checks them (`checkBundle`): both hashes, a valid manifest of this code's version, every file it names, and a Prompter catalogue that is exactly what `catalogueText` makes of it. The release workflows run it before bundling. Updating Backstage means rebuilding the assets, then updating the lock in a pull request.
+3. **Opening:** `openBackstage(folder)` reads `backstage.json` once a session and checks it. If it's missing, damaged or of another manifest version, it fails with a plain-words `BackstageError` ("Backstage couldn't be opened: its list of models is missing. Try installing StoryStage again.") and tries again next time.
+4. **What it answers:** `find(id)` gives the stage a model's address, joints and VRM version, matching the stage's `ModelSource`, so a 0.x avatar can be turned (section 1, rule 3); `thumbnail(id)`, `items` and `item(id)` serve Backstage's browse views; `credits()` the About screen (section 3a); `catalogue()` the Prompter (section 4a). Addresses are the folder plus the manifest's path, each segment escaped.
+5. **A class's imports join the shipped ones** with `combineBackstages(shipped, classes)`. The shipped Backstage answers first, so an import can't stand in for a shipped model's id. Imports are credited, but never put in the Prompter's catalogue.
+6. **Models load lazily:** the stage fetches a model only when a scene places it, and shares one copy across the scene (`packages/stage`, WP5.3). The scene budget (section 4) warns when a scene holds too much.
 
 ## 5. The import pipeline
 
@@ -204,6 +255,19 @@ node tools/make-sketches/src/cli.ts <backstage folder> [--dry-run]
 
 It reads `backstage.json`, which must validate, and every model it names. It writes the sketches, each item's `sketches` list and the touch-up list. It is re-run whenever WP3b adds models.
 
+## 7a. Colour thumbnails
+
+Each model's colour picture for Backstage's browse views (`files.thumbnail`, section 1). The code is `renderThumbnail` in `packages/sketches/src/thumbnail.ts`. Like the sketches, it is drawn on the CPU in TypeScript (owner, 25 Oct 2026), so the same code runs in the build and, for imports, in a Web Worker (section 5).
+
+### Rules
+
+1. **Front view, standing,** as the manifest says: a model that can be posed stands in the sketches' standing pose, arms down; anything else as modelled. Looked at square on, fitted to a 320-pixel square (a sketch's default size) with a small margin, on a clear background.
+2. **Its own colours,** softly lit from the front, above and to the left, never darker than half its colour, so it reads on light and dark themes alike. The material's base colour, picture and vertex colours are used; unlit materials (`KHR_materials_unlit`, many VRM avatars) are drawn as they are. Masked parts are cut out, and see-through parts are drawn last, back to front.
+3. **Smooth edges:** each pixel is the average of nine samples.
+4. **The caller decodes pictures:** sharp in the build tools, as a devDependency only (section 4, rule 4), and the browser's own decoder in the app. A picture that can't be decoded is left out, and its material's plain colour stands in.
+5. **The same model always gives the same picture.**
+6. **The build writes it** as `thumbnails/<id>.webp` (`tools/backstage-sources`), about 5 to 7 KB each, and points `files.thumbnail` at it. Items not yet rebuilt keep their front sketch until they are.
+
 ## 8. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
@@ -218,12 +282,22 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 3, pipelines: the Blender script | Run in the assets repository's CI; every person's render reviewed by eye, then by the owner | CI, manual |
 | 3, pipelines: Alice's output turned to face +Z once, however often the step runs; class, section, triangles, textures and skeleton reported; prop only with the missing joints | `tools/convert-alice-models/src/finish.test.ts` | Unit (Vitest) |
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
-| 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
+| 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; a `description` is one line of at most 120 characters; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
 | 1: the shipped catalogue's builder writes each item's budget and VRM version | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
+| 3a.1–3a.4: credits grouped by section, empty ones left out; each model once, in order; licence name, deed link and page on each line; every Creative Commons licence linked; "changed for StoryStage" on changed CC BY models only, once | `packages/backstage/src/credits.test.ts` | Unit (Vitest) |
+| 3a.4: the build marks a CC BY glTF model changed, and leaves a CC BY VRM file's credit as written | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
+| 4b.3–4b.5: a model's address, joints and VRM version; thumbnails, credits and catalogue from one manifest; escaped addresses; the manifest read once a session; plain errors when missing, damaged or out of date, retried next time; a class's imports after the shipped ones, credited but not in the catalogue | `packages/backstage/src/loader.test.ts` | Unit (Vitest) |
+| 4b.2: the bundle check passes a matching folder, and refuses changed files, missing files, a stale Prompter catalogue and another manifest version; the lock is valid and pins this code's version | `tools/backstage-sources/src/bundle.test.ts` | Unit (Vitest) |
+| 4b.1–4b.2: `pnpm backstage:fetch` fetches the pinned commit and it passes the check | Run by hand on 8 Nov 2026 (Windows); the release workflows run it | Manual, then CI |
 | 4: the figures in one place and provisional; the scene check, counting every copy, estimating picture memory, warning in plain words | `packages/backstage/src/budget.test.ts` | Unit (Vitest) |
 | 4.2–4.4: reduction to the budget keeping shape; skinned characters keep joints and weights; within budget left alone; textures shrunk to WebP with the encoder given, reported as not fitting without one; unused data dropped | `packages/backstage/src/optimize.test.ts` | Unit (Vitest) |
 | 4.1–4.5: the build reduces a 40,000-triangle, 2,048 px model to a prop's budget with real sharp, records before and after, and reports it; a solid-colour texture becomes a plain colour; sharp's WebP shrinks to fit without enlarging, keeping see-through parts | `tools/backstage-sources/src/reduce.test.ts`, `sharp-encoder.test.ts` | Unit (Vitest) |
 | 4.4: sharp is not among the app's dependencies | `pnpm licences` (CI): sharp's libvips is LGPL, so it would fail as linked | CI |
+| 4a.1–4a.4: shipped models only, by section and class with exact ids; joint sets listed once; every section named; the same text whatever the order; three characters a token; 200 described people fit | `packages/backstage/src/catalogue.test.ts` | Unit (Vitest) |
+| 1.5, 4a.5: descriptions are one line, at most 120 characters, with no skin colour or ancestry words, in source lists and `people.json`; the build writes them, `prompter-catalogue.txt` and its size | `packages/backstage/src/catalogue.test.ts`, `tools/backstage-sources/src/sources.test.ts`, `tools/makehuman-export/src/people.test.ts` | Unit (Vitest) |
+| 7a.1–7a.5: square, centred, clear background; unlit colours exact in sRGB; soft light; pictures multiplied in, left out without a decoder or when they can't be decoded; masked parts cut out, see-through parts blended once; characters standing and fitted; the same picture every time; the reader's materials, pictures, UVs and vertex colours | `packages/sketches/src/thumbnail.test.ts` | Unit (Vitest) |
+| 7a.4, 7a.6: sharp decodes pictures and writes WebP with alpha; the build writes `thumbnails/<id>.webp` and points `files.thumbnail` at it | `tools/backstage-sources/src/sharp-encoder.test.ts`, `sources.test.ts` | Unit (Vitest) |
+| 7a: thumbnails of the shipped models look right | The owner's review of the assets pull request that adds them | Manual |
 | 4: models within budget run at 30 fps on the reference Chromebook | Device run of spike 1.2 (#6), which also replaces the provisional figures | Device |
 | 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
 | 7.3: see-through cards drawn as one shape; short inner lines left out; cards read from glTF, unless the whole model is see-through | `packages/sketches/src/render.test.ts`, `gltf.test.ts` | Unit (Vitest) |

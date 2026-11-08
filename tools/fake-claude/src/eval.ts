@@ -3,7 +3,12 @@
  * typo can't quietly turn into a free pass or a false failure. Running and scoring it needs the
  * Prompter core, and comes with WP13b.
  */
-import { PROMPTER_MODES, type PrompterMode } from '@storystage/prompter';
+import {
+  CONTROL_KINDS,
+  LISTENER_EVENTS,
+  PROMPTER_MODES,
+  type PrompterMode,
+} from '@storystage/prompter';
 import { SHOT_TYPES, STORY_CLASSES, type ShotType, type StoryClass } from '@storystage/story-api';
 
 /** How a check is graded: `code` reads the production and the tool calls, `reply` reads the words. */
@@ -166,6 +171,10 @@ export function checkEvalSet(
         problems.push(`${where}: ${row.start} has no line ${check.line}.`);
       if (typeof check.marker === 'string' && !text.includes(check.marker))
         problems.push(`${where}: ${row.start} doesn't contain ${check.marker}.`);
+      if (check.type === 'control' && !CONTROL_KINDS.includes(check.kind as never))
+        problems.push(`${where}: no control block ${String(check.kind)}.`);
+      if (check.type === 'event_listener' && !LISTENER_EVENTS.includes(check.kind as string))
+        problems.push(`${where}: no event ${String(check.kind)}.`);
     }
 
     for (const frame of row.request.match(/\bf\d+-\d+\b/g) ?? [])

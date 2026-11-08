@@ -45,6 +45,8 @@ jobs:
           toolchain: stable
           targets: ${{ matrix.rust-targets }}
       - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
       - name: Build and sign the update
         shell: bash
         env:

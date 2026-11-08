@@ -65,3 +65,195 @@ test('axe finds no serious issues with scenes, and with the delete dialog open',
   await page.getByRole('dialog').getByRole('button', { name: 'Delete scene' }).click();
   await expect.poll(() => titles(page)).toHaveLength(2);
 });
+
+test('axe finds no serious issues with a frame open, its shots and its length', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  await page.getByRole('button', { name: 'More shots' }).click();
+  await expect(page.getByRole('figure')).toContainText('Frame 3.1');
+  expect(await seriousIssues(page)).toEqual([]);
+  // The length field takes the arrow keys.
+  await page.getByRole('textbox', { name: 'Length' }).focus();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('figure')).toContainText('4 s');
+});
+
+const sketchNames = (page: Page) =>
+  page
+    .getByRole('listbox', { name: /^Sketches on frame/ })
+    .getByRole('option')
+    .evaluateAll((options) => options.map((o) => o.getAttribute('aria-label')));
+
+test('a sketch goes on the frame and moves with the keyboard alone, one undo step', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  await page.getByRole('row', { name: 'Add Trees to frame 3.1' }).focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => sketchNames(page)).toEqual(['Trees, in the middle']);
+  await page.getByRole('option', { name: 'Trees, in the middle' }).focus();
+  await page.keyboard.press('Enter');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Shift+ArrowLeft');
+  await page.keyboard.press('Equal');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => sketchNames(page)).toEqual(['Trees, on the left']);
+  // The move and the resize, one step each.
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Make Trees bigger');
+  await page.getByRole('button', { name: /^Undo/ }).click();
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Move Trees');
+  await page.getByRole('button', { name: /^Undo/ }).click();
+  await expect.poll(() => sketchNames(page)).toEqual(['Trees, in the middle']);
+});
+
+test('a sketch drags from the library onto the frame, and across it', async ({ page }) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  const paper = page.locator('.sb-canvas-paper');
+  const box = (await paper.boundingBox())!;
+  await page
+    .getByRole('row', { name: 'Add Speech bubble to frame 3.1' })
+    .dragTo(paper, { targetPosition: { x: box.width * 0.8, y: box.height * 0.3 } });
+  await expect.poll(() => sketchNames(page)).toEqual(['Speech bubble, on the right']);
+  const bubble = page.getByRole('option', { name: 'Speech bubble, on the right' });
+  const at = (await bubble.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.5, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => sketchNames(page)).toEqual(['Speech bubble, on the left']);
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Move Speech bubble');
+});
+
+test('axe finds no serious issues with the sketch library and sketches on the frame', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  for (const name of ['Hills', 'Speech bubble'])
+    await page.getByRole('row', { name: `Add ${name} to frame 3.1` }).click();
+  await expect.poll(() => sketchNames(page)).toHaveLength(2);
+  expect(await seriousIssues(page)).toEqual([]);
+  await page.getByRole('option', { name: /^Speech bubble/ }).focus();
+  await page.keyboard.press('Enter');
+  expect(await seriousIssues(page)).toEqual([]);
+});
+
+const scriptLines = (page: Page) =>
+  page
+    .getByRole('grid', { name: /^Lines in scene/ })
+    .getByRole('row')
+    .evaluateAll((rows) => rows.map((r) => (r as HTMLElement).innerText.replace(/\s+/g, ' ')));
+
+test('lines are written, pinned and reordered with the keyboard alone', async ({ page }) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  const script = page.getByRole('complementary', { name: 'Script' });
+  const newLine = script.getByRole('textbox', { name: 'New line' });
+  await newLine.fill('Night. The owl lands on a low branch.');
+  await newLine.press('Enter');
+  const who = script.getByRole('combobox', { name: 'Who says it' });
+  await who.fill('Owl');
+  await who.press('Tab');
+  await newLine.fill('Here is the key.');
+  await newLine.press('Enter');
+  await expect.poll(() => scriptLines(page)).toHaveLength(2);
+  expect((await scriptLines(page))[1]).toContain('Here is the key.');
+  // Pin line 2 to the current frame from the keyboard.
+  await script.getByRole('button', { name: 'Pin line 2' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menuitem', { name: 'Pin to frame 3.1, this frame' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('list', { name: 'Lines pinned to frame 3.1' })).toContainText(
+    'Owl: Here is the key.',
+  );
+  // Move line 2 above line 1.
+  await script.getByRole('button', { name: 'Move line 2' }).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.sb-line[data-dragging]')).toHaveCount(1);
+  for (let i = 0; i < 2; i++) {
+    await page.keyboard.press('ArrowUp');
+    await page.waitForTimeout(150);
+  }
+  await page.keyboard.press('Enter');
+  await expect.poll(async () => (await scriptLines(page))[0]).toContain('Here is the key.');
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Move line 2');
+  await page.screenshot({ path: 'test-results/script-pane.png' });
+});
+
+test('axe finds no serious issues with the script pane, a line open and a menu open', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  const script = page.getByRole('complementary', { name: 'Script' });
+  for (const text of ['The gate is locked.', 'Who has the key?']) {
+    await script.getByRole('textbox', { name: 'New line' }).fill(text);
+    await script.getByRole('textbox', { name: 'New line' }).press('Enter');
+  }
+  await expect.poll(() => scriptLines(page)).toHaveLength(2);
+  expect(await seriousIssues(page)).toEqual([]);
+  await page
+    .getByRole('grid', { name: /^Lines in scene/ })
+    .getByRole('row')
+    .first()
+    .click();
+  await expect(script.getByRole('textbox', { name: 'Line 1' })).toBeVisible();
+  expect(await seriousIssues(page)).toEqual([]);
+  await script.getByRole('button', { name: 'Pin line 2' }).click();
+  await expect(page.getByRole('menu')).toBeVisible();
+  expect(await seriousIssues(page)).toEqual([]);
+});
+
+test('Print storyboard lays it out for the print dialog, A4 landscape, black on white', async ({
+  page,
+}) => {
+  // The print dialog is the device's: a stand-in records the call and leaves the layout up.
+  await page.addInitScript(() => {
+    (window as unknown as { printed: number }).printed = 0;
+    window.print = () => {
+      (window as unknown as { printed: number }).printed++;
+    };
+  });
+  await planThreeScenes(page);
+  await page.getByRole('textbox', { name: 'Title' }).fill('The Owl and the Key');
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Add a frame' }).click();
+  for (const name of ['Trees', 'Speech bubble'])
+    await page.getByRole('row', { name: `Add ${name} to frame 3.4` }).click();
+  await page.getByRole('textbox', { name: 'Caption' }).fill('The owl finds the key.');
+  const script = page.getByRole('complementary', { name: 'Script' });
+  await script.getByRole('combobox', { name: 'Who says it' }).fill('Owl');
+  await script.getByRole('combobox', { name: 'Who says it' }).press('Tab');
+  await script.getByRole('textbox', { name: 'New line' }).fill('Here is the key.');
+  await script.getByRole('textbox', { name: 'New line' }).press('Enter');
+  await script.getByRole('button', { name: 'Pin line 1' }).click();
+  await page.getByRole('menuitem', { name: 'Pin to frame 3.4, this frame' }).click();
+
+  await page.getByRole('button', { name: 'Print storyboard' }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed))
+    .toBe(1);
+  await page.emulateMedia({ media: 'print', colorScheme: 'dark' });
+  // Only the layout prints, in ink on paper whatever the theme.
+  await expect(page.locator('.studio-shell')).toBeHidden();
+  await expect(page.locator('.sb-print')).toBeVisible();
+  const colours = await page.locator('.sb-print-root').evaluate((el) => {
+    const s = getComputedStyle(el);
+    return [s.color, s.backgroundColor];
+  });
+  expect(colours).toEqual(['rgb(22, 20, 18)', 'rgb(255, 255, 255)']);
+  const frames = page.locator('.sb-print-scene').nth(2).locator('.sb-print-frame');
+  await expect(frames).toHaveCount(4);
+  // Three frames to a row.
+  const tops = await frames.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top));
+  expect(tops[0]).toBe(tops[2]);
+  expect(tops[3]).toBeGreaterThan(tops[0]!);
+  await expect(frames.nth(3)).toContainText('The owl finds the key.');
+  await expect(frames.nth(3)).toContainText('Here is the key.');
+  await page.pdf({ path: 'test-results/storyboard-print.pdf', preferCSSPageSize: true });
+  // When the dialog closes, the layout goes.
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  await expect(page.locator('.sb-print-root')).toHaveCount(0);
+});

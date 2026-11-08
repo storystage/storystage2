@@ -23,6 +23,8 @@ export const LIMITS = {
   heading: 80,
   caption: 200,
   line: 500,
+  lines: 2000,
+  speaker: 40,
   scenes: 50,
   framesPerScene: 30,
   sketchesPerFrame: 30,

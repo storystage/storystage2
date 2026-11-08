@@ -44,6 +44,8 @@ export interface PolicyInForce {
   readonly storyboard: { readonly allowImportedWithoutStoryboard: boolean };
   readonly editor: { readonly default: CodeEditor; readonly locked: boolean };
   readonly study: { readonly enabled: boolean };
+  /** Dictation into any text field, with or without the Prompter (decision 0060). */
+  readonly speech: { readonly dictation: boolean };
   readonly backstage: { readonly import: BackstageImport; readonly search: boolean };
   readonly update: { readonly channel: UpdateChannel; readonly pin: string | null };
 }
@@ -58,6 +60,7 @@ export const BROWSER_POLICY: PolicyInForce = {
   storyboard: { allowImportedWithoutStoryboard: false },
   editor: { default: 'blocks', locked: false },
   study: { enabled: false },
+  speech: { dictation: false },
   backstage: { import: 'teacher', search: false },
   update: { channel: 'off', pin: null },
 };
@@ -90,6 +93,7 @@ export function isPolicyInForce(value: unknown): value is PolicyInForce {
     storyboard,
     editor,
     study,
+    speech,
     backstage,
     update,
   } = value;
@@ -111,6 +115,8 @@ export function isPolicyInForce(value: unknown): value is PolicyInForce {
     typeof editor.locked === 'boolean' &&
     isObject(study) &&
     typeof study.enabled === 'boolean' &&
+    isObject(speech) &&
+    typeof speech.dictation === 'boolean' &&
     isObject(backstage) &&
     isOneOf(BACKSTAGE_IMPORTS, backstage.import) &&
     typeof backstage.search === 'boolean' &&

@@ -24,7 +24,7 @@ pub const MAX_POLICY_BYTES: usize = 64 * 1024;
 const MAX_DAILY_CAP: u32 = 100_000;
 
 /// Every key the policy knows (3.3). Names are case-sensitive.
-pub const KEYS: [&str; 14] = [
+pub const KEYS: [&str; 15] = [
     "prompter.enabled",
     "prompter.explainOnly",
     "prompter.planOnly",
@@ -35,6 +35,7 @@ pub const KEYS: [&str; 14] = [
     "editor.default",
     "editor.locked",
     "study.enabled",
+    "speech.dictation",
     "backstage.import",
     "backstage.search",
     "update.channel",
@@ -120,6 +121,13 @@ pub struct StudyPolicy {
     pub enabled: bool,
 }
 
+/// Dictation into any text field, on the device, with or without the Prompter (decision 0060).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpeechPolicy {
+    pub dictation: bool,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BackstagePolicy {
@@ -150,6 +158,7 @@ pub struct PolicyInForce {
     pub storyboard: StoryboardPolicy,
     pub editor: EditorPolicy,
     pub study: StudyPolicy,
+    pub speech: SpeechPolicy,
     pub backstage: BackstagePolicy,
     pub update: UpdatePolicy,
 }
@@ -165,6 +174,7 @@ impl PolicyInForce {
         let settings = Settings {
             enabled: false,
             voice_input: false,
+            dictation: false,
             cap_action: CapAction::Off,
             import: BackstageImport::Off,
             channel: UpdateChannel::Off,
@@ -286,7 +296,10 @@ fn resolve(source: Source, trusted: bool, entries: &[Entry]) -> Result<PolicyInF
 /// The "Widens?" column in 3.3.
 fn widens(key: &str, value: &str) -> bool {
     match key {
-        "storyboard.allowImportedWithoutStoryboard" | "study.enabled" | "backstage.search" => {
+        "storyboard.allowImportedWithoutStoryboard"
+        | "study.enabled"
+        | "speech.dictation"
+        | "backstage.search" => {
             value == "true"
         }
         "backstage.import" => value == "learners",
@@ -334,6 +347,7 @@ struct Settings {
     default_editor: CodeEditor,
     editor_locked: bool,
     study: bool,
+    dictation: bool,
     import: BackstageImport,
     search: bool,
     channel: UpdateChannel,
@@ -353,6 +367,7 @@ impl Default for Settings {
             default_editor: CodeEditor::Blocks,
             editor_locked: false,
             study: false,
+            dictation: true,
             import: BackstageImport::Teacher,
             search: false,
             channel: UpdateChannel::Stable,
@@ -389,6 +404,7 @@ impl Settings {
             }
             "editor.locked" => self.editor_locked = parse_bool(value)?,
             "study.enabled" => self.study = parse_bool(value)?,
+            "speech.dictation" => self.dictation = parse_bool(value)?,
             "backstage.import" => {
                 self.import = match value {
                     "off" => BackstageImport::Off,
@@ -465,6 +481,7 @@ impl Settings {
             storyboard: StoryboardPolicy { allow_imported_without_storyboard: self.allow_imported },
             editor: EditorPolicy { default_editor: self.default_editor, locked: self.editor_locked },
             study: StudyPolicy { enabled: self.study },
+            speech: SpeechPolicy { dictation: self.dictation },
             backstage: BackstagePolicy { import: self.import, search: self.search },
             update: UpdatePolicy { channel: self.channel, pin: self.pin },
         }
@@ -522,6 +539,7 @@ mod tests {
              editor.default=tiles\n\
              editor.locked=true\n\
              study.enabled=true\n\
+             speech.dictation=false\n\
              backstage.import=learners\n\
              backstage.search=true\n\
              update.channel=pilot\n\
@@ -536,11 +554,12 @@ mod tests {
         assert_eq!(policy.editor.default_editor, CodeEditor::Tiles);
         assert!(policy.editor.locked);
         assert!(policy.study.enabled);
+        assert!(!policy.speech.dictation);
         assert_eq!(policy.backstage.import, BackstageImport::Learners);
         assert!(policy.backstage.search);
         assert_eq!(policy.update.channel, UpdateChannel::Pilot);
         assert_eq!(policy.update.pin.as_deref(), Some("1.4.2"));
-        assert_eq!(policy.set.len(), 11);
+        assert_eq!(policy.set.len(), 12);
     }
 
     #[test]
@@ -599,6 +618,7 @@ mod tests {
         assert_eq!(closed.backstage.import, BackstageImport::Off);
         assert!(!closed.backstage.search);
         assert!(!closed.study.enabled);
+        assert!(!closed.speech.dictation);
         assert_eq!(closed.update.channel, UpdateChannel::Off);
         assert_eq!(closed.update.pin, None);
 
@@ -665,6 +685,7 @@ mod tests {
             "storyboard.allowImportedWithoutStoryboard=true\n\
              editor.default=tiles\n\
              study.enabled=true\n\
+             speech.dictation=true\n\
              backstage.import=learners\n\
              backstage.search=true\n\
              update.channel=pilot\n\
@@ -678,6 +699,7 @@ mod tests {
         assert_eq!(policy.storyboard, defaults.storyboard);
         assert_eq!(policy.editor, defaults.editor);
         assert_eq!(policy.study, defaults.study);
+        assert_eq!(policy.speech, defaults.speech);
         assert_eq!(policy.backstage, defaults.backstage);
         assert_eq!(policy.update, defaults.update);
         assert!(policy.diagnostic.unwrap_or_default().contains("takeown"));
@@ -692,7 +714,8 @@ mod tests {
              prompter.capAction=off\n\
              editor.locked=true\n\
              backstage.import=off\n\
-             study.enabled=false\n",
+             study.enabled=false\n\
+             speech.dictation=false\n",
             false,
         );
         assert_eq!(policy.prompter.level, PrompterLevel::ExplainOnly);
@@ -701,7 +724,8 @@ mod tests {
         assert_eq!(policy.prompter.cap_action, CapAction::Off);
         assert!(policy.editor.locked);
         assert_eq!(policy.backstage.import, BackstageImport::Off);
-        assert_eq!(policy.set.len(), 7);
+        assert!(!policy.speech.dictation);
+        assert_eq!(policy.set.len(), 8);
         assert_eq!(policy.diagnostic, None);
     }
 

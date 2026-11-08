@@ -1,0 +1,20 @@
+{
+  "source": "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/",
+  "downloads": "https://github.com/storystage/storystage2/releases/download/speech-models-v1/",
+  "models": [
+    {
+      "name": "tiny.en-q5_1",
+      "file": "ggml-tiny.en-q5_1.bin",
+      "bytes": 32166155,
+      "sha256": "c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b",
+      "bundled": true
+    },
+    {
+      "name": "tiny.en",
+      "file": "ggml-tiny.en.bin",
+      "bytes": 77704715,
+      "sha256": "921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f",
+      "bundled": false
+    }
+  ]
+}
