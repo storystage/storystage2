@@ -19,7 +19,7 @@ import {
   type Statement,
   type TypeRef,
 } from '@storystage/ast';
-import { StoryFault, type StageCommand } from '@storystage/story-api';
+import { StoryFault, type Micros, type StageCommand } from '@storystage/story-api';
 import { RuntimeFault, type Scheduler, type Task, type Thread } from './scheduler.ts';
 import {
   JOINT_LIBRARY,
@@ -56,6 +56,8 @@ export interface InterpreterOptions {
   readonly seed: number;
   /** The production's scene ids, for the blocks that end a scene. */
   readonly scenes?: readonly string[];
+  /** Called as each block (a call statement) starts, at the scene time it starts. */
+  readonly onBlock?: (node: NodeId, at: Micros) => void;
 }
 
 /** Variables, with an enclosing frame for each-in-together's own copy of its item. */
@@ -135,6 +137,7 @@ export class Interpreter {
   private readonly scheduler: Scheduler;
   private readonly library: StoryLibrary;
   private readonly emitCommand: (command: StageCommand) => void;
+  private readonly onBlock: ((node: NodeId, at: Micros) => void) | undefined;
   private readonly disabled: ReadonlySet<NodeId>;
   private readonly random: () => number;
   /** Fields with a value of their own, by object and field. */
@@ -153,6 +156,7 @@ export class Interpreter {
       ...sceneLibrary(options.scenes ?? []),
     };
     this.emitCommand = options.emit;
+    this.onBlock = options.onBlock;
     this.disabled = new Set(options.disabled);
     this.random = seededRandom(options.seed);
   }
@@ -327,6 +331,7 @@ export class Interpreter {
       case 'comment':
         return;
       case 'call':
+        this.onBlock?.(s.id, this.scheduler.now);
         this.thread.running = s.id;
         yield* this.call(s, frame);
         this.thread.running = null;

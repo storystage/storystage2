@@ -76,6 +76,9 @@ export function serve(
   let finished = false;
   let entryDone = false;
   let highlighted = '[]';
+  /** Fixed mode with `trace`: the blocks started since the last flush (`ran`). */
+  let tracing = false;
+  let ran: { node: NodeId; at: Micros }[] = [];
 
   const post = (message: FromRuntime) => port.post(message);
 
@@ -86,6 +89,10 @@ export function serve(
 
   const flush = () => {
     if (!run) return;
+    if (ran.length > 0) {
+      post({ type: 'ran', blocks: ran });
+      ran = [];
+    }
     const commands = run.out.splice(0);
     if (commands.length > 0 || !pace)
       post({ type: 'commands', commands, until: run.scheduler.now, sentAt: timers.now() });
@@ -146,6 +153,8 @@ export function serve(
     finished = false;
     entryDone = false;
     highlighted = '[]';
+    tracing = false;
+    ran = [];
     const scheduler = new Scheduler({
       onFault: (f: RuntimeFault) => {
         halt();
@@ -175,6 +184,9 @@ export function serve(
       disabled: message.disabled,
       seed: message.seed,
       scenes: message.scenes,
+      onBlock: (node, at) => {
+        if (tracing) ran.push({ node, at });
+      },
     });
     const type = indexProgram(message.program).get(owner.parent)!.node as TypeDecl;
     const router = new EventRouter(scheduler, interpreter, type, (watches) =>
@@ -190,6 +202,7 @@ export function serve(
       return;
     }
     const { scheduler, interpreter, router, entry } = run;
+    tracing = mode.kind === 'fixed' && mode.trace === true;
     scheduler.spawn(
       (function* () {
         yield* router.arm();

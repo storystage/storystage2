@@ -39,8 +39,11 @@ export type RunMode =
       readonly lookahead: Micros;
       readonly speed: number;
     }
-  /** Not paced: the main thread calls `advance` for each frame (export, tests, the self-test). */
-  | { readonly kind: 'fixed' };
+  /**
+   * Not paced: the main thread calls `advance` for each frame (export, tests, the self-test).
+   * With `trace`, the worker also says when each block starts (`ran`), for measuring.
+   */
+  | { readonly kind: 'fixed'; readonly trace?: boolean };
 
 /** Main thread to worker. */
 export type ToRuntime =
@@ -93,6 +96,15 @@ export type FromRuntime =
   | { readonly type: 'ask'; readonly id: number; readonly query: StageQuery }
   /** The blocks running now, for highlighting during Rehearse (WP7.9). Sent when it changes. */
   | { readonly type: 'highlight'; readonly running: readonly NodeId[]; readonly at: Micros }
+  /**
+   * With `trace` (fixed mode): each block that started since the last message, at the scene time
+   * it started, in order. Sent before the `commands` of the same advance. A block that starts
+   * and ends between frames is here, as it isn't in `highlight`.
+   */
+  | {
+      readonly type: 'ran';
+      readonly blocks: readonly { readonly node: NodeId; readonly at: Micros }[];
+    }
   | { readonly type: 'error'; readonly error: RuntimeError }
   /** The entry method has finished. Event handlers can still run until `stop`. */
   | { readonly type: 'finished'; readonly at: Micros }
@@ -162,6 +174,7 @@ const FROM_TYPES = new Set<string>([
   'commands',
   'ask',
   'highlight',
+  'ran',
   'error',
   'finished',
   'stopped',

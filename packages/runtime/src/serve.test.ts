@@ -403,6 +403,31 @@ describe('highlighting', () => {
       [[], micros(3)],
     ]);
   });
+
+  it('with trace, says when every block started, even one that starts and ends between frames', async () => {
+    const a = say(of(CAT), text('a'), 0);
+    const b = say(of(CAT), text('b'), 1.5);
+    const c = say(of(CAT), text('c'), 1);
+    const w = await started(program([a, b, c]), { kind: 'fixed', trace: true });
+    await w.send({ type: 'advance', until: micros(1) });
+    await w.send({ type: 'advance', until: micros(3) });
+    expect(of_(w.heard, 'ran').map((r) => r.blocks)).toEqual([
+      [
+        { node: a.id, at: 0 },
+        { node: b.id, at: 0 },
+      ],
+      [{ node: c.id, at: micros(1.5) }],
+    ]);
+    // Each `ran` comes before the commands of the same advance.
+    const types = w.heard.map((m) => m.type).filter((m) => m === 'ran' || m === 'commands');
+    expect(types.slice(0, 2)).toEqual(['ran', 'commands']);
+  });
+
+  it('sends no ran without trace', async () => {
+    const w = await started(program([say(of(CAT), text('a'), 1)]));
+    await w.send({ type: 'advance', until: micros(2) });
+    expect(of_(w.heard, 'ran')).toEqual([]);
+  });
 });
 
 describe('switching blocks off for a rehearsal', () => {
