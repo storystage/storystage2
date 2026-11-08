@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`. Section 2 is shared, so S5 reviews it. Section 3i is S5's (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3b, 3d (moving), 3f and 3g are built, read-only, in `packages/tiles`. Section 2 is shared, so S5 reviews it. Section 3i is S5's (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -121,7 +121,7 @@ The joints in a cascade come from the caller (`jointsOf`), because which joints 
 1. **Statement rows read like code,** left to right: the target, then the block's words with each value in a pill. Values in pills are tiles themselves, so a function can go in a slot.
 2. **Containers** (do in order, do together, count, while, for each, if/else) draw their body inside them, indented, with their own header row.
 3. **An empty statement list** shows "drop statement here" in a dashed box 44 px high.
-4. **A switched-off statement** is drawn at 45% opacity and named "switched off" for screen readers. It's still saved (`setEnabled`).
+4. **A switched-off statement** is greyed, with a dashed outline, and its name ends "(switched off)". It's still saved (`setEnabled`). This differs from the handoff's 45% opacity, which takes the tile's words below 4.5:1, for the same reason the handoff darkened Alice's blue.
 5. **Colours:** action tiles blue, question tiles green, control tiles as the handoff draws them, and "add detail ▾" in lavender.
 
 ### 3c. Pointer and touch
@@ -156,10 +156,11 @@ Enter or a click on a pill opens its cascade (section 2.3), upward if there's no
 
 ### 3f. Screen readers
 
-1. **The program is a tree:** `role="tree"`, with each statement a `treeitem` at its nesting level, and roving focus.
-2. **Each statement's name is its code in words:** "cat move forward 1, 2 of 5, in do together".
-3. **Each pill's name** is its parameter and value: "amount, 1".
-4. **Announcements** through `host.announce` say what happened, in the same words as the undo label, and say where focus is if it moved: "Moved cat say Hello into do together".
+1. **The program is a tree:** `role="tree"`, with each statement a `treeitem` at its nesting level, and roving focus. Screen readers say "2 of 5" and the level from `aria-posinset`, `aria-setsize` and `aria-level`.
+2. **Each statement's name is the words it shows,** details included: "cat move forward 1 how long 2". A speech-control user says what they see, so a name never differs from the visible words (WCAG 2.5.3).
+3. **A container's tree item is its header row,** so its name is "do together", not its statements too. The box around it is only drawing (`role="none"`), and its statements' group sits beside the header.
+4. **Each pill is named by its value and described by what it's for:** "1", described as "amount".
+5. **Announcements** through `host.announce` say what happened, in the same words as the undo label, and say where focus is if it moved: "Moved cat say Hello into do together".
 
 ### 3g. Highlights
 

@@ -1,0 +1,15 @@
+{
+  "tiles.name": "Tiles",
+  "tiles.program": "Your code: {method}",
+  "tiles.method": "{type}.{method}",
+  "tiles.empty": "drop statement here",
+  "tiles.emptyIn": "drop statement here, in {where}",
+  "tiles.offNote": "(switched off)",
+  "tiles.else": "else",
+  "tiles.noMethod": "Choose a procedure or event to see its code.",
+  "tiles.slot.times": "how many times",
+  "tiles.slot.condition": "condition",
+  "tiles.slot.items": "list",
+  "tiles.slot.value": "value",
+  "tiles.slot.target": "what changes"
+}
