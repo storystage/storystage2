@@ -94,8 +94,19 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 8 Nov (#106, #108–#111): **WP15k, the key store, transport and policy enforcement point (15.2)**. The gate checks every rule in spec 04 §1.8 before the key is read. The transport streams with at most two retries, and in CI 30 clients hitting rate limits make exactly 90 requests, with retries spread out. The key is typed into a system dialog (decision 0056) and kept in Credential Manager, Keychain or Android Keystore. The leak scan runs on every desktop build: a random key in the real store, a real request, and no trace in the page or a heap snapshot. **S7:** `pins.json` refuses every real request until `packages/prompter` generates the `system`, `tools` and mode-message hashes (spec 05 §2.3), which you're doing in WP13b; test against `gate/fixtures/hash.json`. **S5:** screen 10c's field becomes an Add key button calling `key_add` (spec 05 §1.3).
+  - 7–8 Nov (#88, #98–#100): **`@storystage/host`**, the host interface (decision 0028), with the policy in force, the installed version and `tauriHost`; S5 reviewed #100 and asked for one change, now in (no Prompter while the policy is unreadable). **Managed configuration** on iPad and Android. **Updates**: channels, pins, staged rollout, rollback, the `Release` and `Channel` workflows, and universal macOS builds.
+  - 1 Nov (#86, #87, #104): **spec 05 §3–5**, **the policy crate** (15.3), and **WP0.9, the threat model** (`docs/spec/15-security.md`). **S4, S6:** 8.4, 9.1 and 10.4 are unblocked; section 3 has the import rules, with one archive reader in `packages/production`.
+- Open: #103, decisions 0047, 0048 and 0056, waiting for the owner.
 - Blocked on:
-- Next:
+  - S7: `pins.json`, in WP13b. Until then the Prompter can't send a real request.
+  - Owner: the human security review before the pilot. Start with `SecureKeyPlugin.load` (#110), W10 and U3.
+  - Owner: trying the key dialogs on Windows, a Mac and a Chromebook. None has been opened yet. The iPad's waits for the Apple account.
+  - Owner: generating the updater key (0047). Until then `Release` and `Channel` have never run, and the rollback drill (15.7) can't be done.
+  - Owner: a real push of a setting through managed Google Play and iPad device management. The iPad code is compiled but has never run.
+- For D: decision 0047 makes GitHub a named host in the DPIA (17.3) and the privacy notice (17.4).
+- Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. Meanwhile: a test that `PROMPTER_LEVELS` matches S7's list once #133 lands, and spec 15 rows for the whisper model download (S7, spec 06 §7) once the model sizes are known.
+- Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is now `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse.
 
 ## D Documents
 - Merged:
