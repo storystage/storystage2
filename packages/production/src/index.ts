@@ -16,3 +16,4 @@ export * from './session.ts';
 export * from './fountain.ts';
 export * from './validate.ts';
 export * from './file.ts';
+export * from './playback.ts';
