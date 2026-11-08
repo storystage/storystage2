@@ -67,7 +67,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Next: **WP23b** (the projection stage) waits for the release candidate, WP23a (S1) and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
-- In review: nothing.
+- In review:
+  - 8 Nov (#274): **`ALICE_GROUNDS`** (spec 17 §2; for S6's Alice world import, spec 19): the ten ground appearances Alice's starter worlds use, mapped to the stage's built-in grounds (`storystage/Ground/<name>`), checked against `GROUND_TYPES`. **S6: pass it as `WorldOptions.grounds`.** CC0 textures for the grounds can come later under the same ids.
 - Merged:
   - 8 Nov (#271, and this): **WP8 is done.** 8.2 and 8.3 ticked (#271), and 8.4 with S8's request for persistent storage (#272). The owner decided that no end-of-session download prompt is needed; 07-ux §9.2's note and Save a copy are enough. 8.5 (Drive and OneDrive) is on the roadmap (0065).
   - 8 Nov (#266): **WP3i, PR 5: the model pack** (spec 17 §5): `writeModelPack`, `modelPackFromClass` (the class's own models) and `openModelPack`, which checks every model as an import (`buildModel`, split out of `importModel`), reduces only one over budget, draws new sketches and thumbnail rather than trusting the pack's, and leaves out with the reason any that fail or that the class already has. That's all of WP3i's code; 3.11 and 3.12 are ticked once the studio's screens use it and the done-when runs on a 4 GB Chromebook. **S5: Settings can offer "Save the class's models" (`modelPackFromClass(host.classes.backstage())` to `host.picker.saveCopy`) and "Open a model pack" (`openModelPack`, then `add('class', …)` for each model, showing `leftOut`).**
