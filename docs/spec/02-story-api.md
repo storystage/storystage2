@@ -290,9 +290,9 @@ Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters ma
 <!-- catalog:added -->
 | Class | Block | Parameters | Details | Task | On screen | Runs |
 | --- | --- | --- | --- | --- | --- | --- |
-| `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `needs:sceneChange` |
-| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `command:fade` |
-| `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `needs:sceneChange` |
+| `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `runtime` |
+| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `runtime` |
+| `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `runtime` |
 | `Camera` | `frameShot` | `shot: ShotType`, `targets: Thing[]` | `duration`, `animationStyle` | 4.10 | frame a {shot} of {targets} | `command:shot` |
 | `Model` | `speakLine` | `text: Text` | — | 4.4 | speak line {text} | `needs:speech` |
 | `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `command:clip` |
@@ -344,7 +344,7 @@ The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Oc
 
 ## 9. What the stage contract needs
 
-Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). So are 4.5's character actions and 4.6's faces (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
+Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So are 4.5's character actions and 4.6's faces (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. 4.4's scene changes, `goToScene`, `crossfade` and `fadeToBlack`, run in the runtime (rule 8).
 
 1. **Not the stage's sums.** `isVolumePreserved` is the Story API's: it sends `resize` the factors that keep the volume. The `ask` functions belong to the runtime.
 2. **Click positions** are fractions of the picture, from its left and bottom edges, as Alice's `getScreenDistanceFromLeft` and `getScreenDistanceFromBottom` are. Viewing angles are in turns, as Alice's are.
@@ -353,13 +353,13 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 5. **Walking goes round things** where they are when the walk starts, with a navigation mesh (WP5.8). Walking to a thing stops in front of it, facing it; walking to an edge ends out of the picture, as the camera sees it when the walk starts.
 6. **Faces are the model's own.** `expression` uses a VRM model's presets (VRM 0.x and 1.0). A model without that face shows no change, by the owner's decision of 8 Nov 2026.
 7. **Joints in a program** are values of their own, `{kind: 'joint', object, joint}`, the same in the Story API's `Value` and the runtime's. `getJoint` makes one from the object it's called on; `getJointChain` asks the stage `jointChain` for the model's joints in that chain, from the root out. On a joint, `turn`, `roll` and `pointAt` send the stage's `joint` command, in the joint's own axes, and anything that takes a target takes a joint; any other block given a joint is a `bad_value` fault (decision 0051: joints turn only).
+8. **A scene change ends the scene.** `goToScene(scene)` ends this scene and goes to the scene you choose; the film carries on from there. `crossfade(scene)` ends this scene and crossfades into the scene you choose. `fadeToBlack` fades to black and ends the scene; the next scene fades in. A transition's `duration` is the whole of it: a 1 s fade is half a second out, then half a second in. The runtime stops every strand at once (spec 18, 3.1), and the production's player makes the transition (spec 03, 3.1), which the stage draws with its `fade` command. A scene id is text, so `checkProgram` asks the production with `sceneExists` and names a scene that's gone.
 
 <!-- catalog:stage -->
 | Need | What it asks for | Blocks |
 | --- | --- | --- |
 | `audio` | Play a sound at a scene time, for the export to mix (with WP11) | `playAudio` |
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
-| `sceneChange` | Going to another scene, and crossfading to one: the production’s playback (WP8.3) | `goToScene`, `crossfade` |
 | `speech` | Speak a line with visemes (WP14) | `speakLine` |
 <!-- /catalog:stage -->
 
