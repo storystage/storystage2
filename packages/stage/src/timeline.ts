@@ -108,6 +108,8 @@ export interface ObjectState {
   lens: number | null;
   /** `SCENE`'s sky, once a program changes it. */
   sky: Sky | null;
+  /** `SCENE`'s fade to black, 0 (clear) to 1 (black), once a program fades. */
+  fade: number | null;
 }
 
 export type SceneState = ReadonlyMap<ObjectId, ObjectState>;
@@ -137,7 +139,8 @@ type Resolved =
   | { kind: 'shot'; shot: string }
   | { kind: 'lens'; from: number; to: number }
   | { kind: 'skyColour'; part: SkyPart; base: Sky; from: Colour; to: Colour }
-  | { kind: 'fog'; base: Sky; from: number; to: number };
+  | { kind: 'fog'; base: Sky; from: number; to: number }
+  | { kind: 'fade'; from: number; to: number };
 
 const ORIGIN: Pose = { position: v(0, 0, 0), rotation: IDENTITY_Q };
 interface Pose {
@@ -151,7 +154,7 @@ const FORWARD = v(0, 0, 1);
 const ALICE_LENS = 0.5 / (2 * Math.PI);
 
 /** Which commands are the scene's, and which the camera's. */
-const SKY_KINDS: readonly StageCommand['kind'][] = ['atmosphere', 'light', 'fog'];
+const SKY_KINDS: readonly StageCommand['kind'][] = ['atmosphere', 'light', 'fog', 'fade'];
 
 const unknown = (id: ObjectId) =>
   new StageError('unknown_object', `There is nothing called ${id} in this scene.`);
@@ -265,6 +268,11 @@ export class Timeline {
   /** The scene after the last `seek`. */
   current(): SceneState {
     return this.state;
+  }
+
+  /** How far the picture has faded to black after the last `seek`: 0 clear, 1 black. */
+  fade(): number {
+    return this.state.get(SCENE)!.fade ?? 0;
   }
 
   /** The sky, light and fog after the last `seek`. */
@@ -498,6 +506,8 @@ export class Timeline {
           return skyColour(sky, c.from === 'above' ? 'fromAbove' : 'fromBelow', c.colour);
         case 'fog':
           return { kind: 'fog', base: sky, from: sky.fog, to: c.density };
+        case 'fade':
+          return { kind: 'fade', from: self.fade ?? 0, to: c.to };
       }
     };
     const r = resolved();
@@ -707,6 +717,9 @@ export class Timeline {
       case 'fog':
         if (!(c.density >= 0 && c.density <= 1)) throw bad('Fog goes from 0 to 1.');
         break;
+      case 'fade':
+        if (!(c.to >= 0 && c.to <= 1)) throw bad('A fade goes from 0 to 1.');
+        break;
     }
   }
 }
@@ -769,6 +782,7 @@ function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
     joints: new Map(),
     lens: null,
     sky: null,
+    fade: null,
   });
   const place = (id: ObjectId, o?: SceneObjectSetup) => {
     if (id === SCENE) throw bad('Nothing in a scene can be called scene.');
@@ -878,6 +892,9 @@ function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageComman
     case 'fog':
       s.sky = { ...(s.sky ?? r.base), fog: lerp(r.from, r.to, p) };
       return;
+    case 'fade':
+      s.fade = lerp(r.from, r.to, p);
+      return;
   }
 }
 
@@ -906,9 +923,10 @@ export function hashState(state: SceneState): number {
       const s = state.get(id)!;
       if (id === SCENE) {
         const sky = s.sky;
-        if (!sky) return [];
-        const parts = [sky.atmosphere, sky.fromAbove, sky.fromBelow].map(colour);
-        return [[id, ...parts, n(sky.fog)].join('|')];
+        if (!sky && s.fade === null) return [];
+        const parts = sky ? [sky.atmosphere, sky.fromAbove, sky.fromBelow].map(colour) : [];
+        const fade = s.fade === null ? [] : [`fade:${n(s.fade)}`];
+        return [[id, ...parts, ...(sky ? [n(sky.fog)] : []), ...fade].join('|')];
       }
       const pose = scenePose(state, id);
       const joints = [...s.joints.entries()]

@@ -467,6 +467,21 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
     });
 
     describe('the sky and the lens', () => {
+      it('fades the picture to black, as part of the scene', async () => {
+        const stage = await loaded();
+        const start = stage.stateHash();
+        stage.schedule([cmd(0, 2, { object: SCENE, kind: 'fade', to: 1 })]);
+        stage.seek(micros(1));
+        const half = stage.stateHash();
+        stage.seek(micros(2));
+        expect(new Set([start, half, stage.stateHash()]).size).toBe(3);
+        for (const wrong of [
+          cmd(0, 1, { object: cat, kind: 'fade', to: 1 }),
+          cmd(0, 1, { object: SCENE, kind: 'fade', to: 1.5 }),
+        ])
+          expect(() => stage.schedule([wrong])).toThrow(StageError);
+      });
+
       it('changes the sky colour and fog over time, and answers with them', async () => {
         const stage = await loaded({ ...SETUP, backdrop: { fog: 0 } });
         const sky = (t: number) =>

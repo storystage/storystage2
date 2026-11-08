@@ -1,0 +1,53 @@
+{
+  "name": "Grass, fading to black while something moves",
+  "seconds": 3,
+  "setup": {
+    "backdrop": {
+      "ground": "storystage/Ground/grass",
+      "sky": "storystage/Sky/grass",
+      "lighting": "storystage/Lighting/grass"
+    },
+    "objects": [
+      {
+        "id": "walker",
+        "model": { "standIn": "walker" },
+        "class": "Biped",
+        "paint": "orange",
+        "transform": {
+          "position": { "x": 1, "y": 0, "z": 0 },
+          "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+          "scale": { "x": 1, "y": 1, "z": 1 }
+        }
+      }
+    ],
+    "camera": {
+      "transform": {
+        "position": { "x": 0, "y": 1.5, "z": -6 },
+        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+        "scale": { "x": 1, "y": 1, "z": 1 }
+      }
+    },
+    "markers": []
+  },
+  "commands": [
+    {
+      "seq": 1,
+      "object": "walker",
+      "start": 0,
+      "duration": 3000000,
+      "style": "beginAndEndAbruptly",
+      "kind": "translate",
+      "by": { "x": -2, "y": 0, "z": 0 },
+      "space": "scene"
+    },
+    {
+      "seq": 2,
+      "object": "scene",
+      "start": 1000000,
+      "duration": 2000000,
+      "style": "beginAndEndGently",
+      "kind": "fade",
+      "to": 1
+    }
+  ]
+}

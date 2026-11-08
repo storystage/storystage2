@@ -14,6 +14,7 @@ import {
   type StageEvent,
 } from '@storystage/story-api';
 import grassCast from '../../../../tests/scenes/grass-cast.json';
+import fadeOut from '../../../../tests/scenes/fade-out.json';
 import roomCamera from '../../../../tests/scenes/room-camera.json';
 import snowFog from '../../../../tests/scenes/snow-fog.json';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../../src/backdrops.ts';
@@ -35,6 +36,7 @@ const SCENES = {
   'grass-cast': grassCast,
   'snow-fog': snowFog,
   'room-camera': roomCamera,
+  'fade-out': fadeOut,
 } as unknown as Readonly<Record<string, ReferenceScene>>;
 
 const robot = backstageId('test/Biped/robot');

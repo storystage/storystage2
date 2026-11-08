@@ -36,7 +36,7 @@ interface Determinism {
   rewindIdentical: boolean;
 }
 
-for (const scene of ['grass-cast', 'snow-fog', 'room-camera']) {
+for (const scene of ['grass-cast', 'snow-fog', 'room-camera', 'fade-out']) {
   test(`renders ${scene} the same twice, frame for frame`, async ({ page }) => {
     test.setTimeout(120_000);
     const problems = await open(page);
@@ -98,6 +98,18 @@ test('shows a ground in the colour its table says', async ({ page }) => {
 test('labels a stand-in, so a learner can tell what it stands for', async ({ page }) => {
   await open(page);
   expect(await call<number>(page, 'darkPixels', 'room-camera', 3)).toBeGreaterThan(100);
+});
+
+test('fades the whole picture to black, the sky included', async ({ page }) => {
+  await open(page);
+  const sky = (t: number) => call<number[]>(page, 'sample', 'fade-out', t, 320, 20);
+  const ground = (t: number) => call<number[]>(page, 'sample', 'fade-out', t, 320, 340);
+  expect(Math.max(...(await sky(0)))).toBeGreaterThan(150);
+  const half = Math.max(...(await sky(2)));
+  expect(half).toBeGreaterThan(20);
+  expect(half).toBeLessThan(150);
+  expect(Math.max(...(await sky(3)))).toBeLessThanOrEqual(2);
+  expect(Math.max(...(await ground(3)))).toBeLessThanOrEqual(2);
 });
 
 test('measures what view and occlusion events would cost (decision 0051)', async ({ page }) => {
