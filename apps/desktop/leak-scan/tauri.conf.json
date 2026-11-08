@@ -1,0 +1,16 @@
+{
+  "build": {
+    "beforeBuildCommand": "",
+    "frontendDist": "../leak-scan"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "StoryStage leak scan",
+        "additionalBrowserArgs": "--remote-debugging-port=9222"
+      }
+    ]
+  }
+}

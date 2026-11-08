@@ -194,3 +194,60 @@ export function documentFromMesh(mesh: SketchMesh): Document {
 
 export const glbFromMesh = (mesh: SketchMesh): Promise<Uint8Array> =>
   new WebIO().writeBinary(documentFromMesh(mesh));
+
+/** A binary glTF from its JSON and one binary buffer, for tests that need JSON a writer won't make. */
+export function glbFromJSON(json: object, bin: Uint8Array): Uint8Array {
+  const pad = (n: number) => (4 - (n % 4)) % 4;
+  const text = new TextEncoder().encode(JSON.stringify(json));
+  const jsonLen = text.length + pad(text.length);
+  const binLen = bin.length + pad(bin.length);
+  const out = new Uint8Array(12 + 8 + jsonLen + 8 + binLen);
+  const view = new DataView(out.buffer);
+  view.setUint32(0, 0x46546c67, true); // "glTF"
+  view.setUint32(4, 2, true);
+  view.setUint32(8, out.length, true);
+  view.setUint32(12, jsonLen, true);
+  view.setUint32(16, 0x4e4f534a, true); // "JSON"
+  out.set(text, 20);
+  out.fill(0x20, 20 + text.length, 20 + jsonLen);
+  view.setUint32(20 + jsonLen, binLen, true);
+  view.setUint32(24 + jsonLen, 0x004e4942, true); // "BIN"
+  out.set(bin, 28 + jsonLen);
+  return out;
+}
+
+/**
+ * A mesh as a VRM file: its bones renamed `Bone<n>`, with the VRM humanoid table (version 0.x
+ * or 1.0) saying which node is which bone, as real VRM files do.
+ */
+export async function vrmFromMesh(mesh: SketchMesh, version: '0' | '1'): Promise<Uint8Array> {
+  const { json, resources } = await new WebIO().writeJSON(documentFromMesh(mesh));
+  const bones: Record<string, number> = {};
+  json.nodes!.forEach((n, i) => {
+    if (n.name && n.name !== 'model') {
+      bones[n.name] = i;
+      n.name = `Bone${i}`;
+    }
+  });
+  json.extensions =
+    version === '1'
+      ? {
+          VRMC_vrm: {
+            specVersion: '1.0',
+            humanoid: {
+              humanBones: Object.fromEntries(
+                Object.entries(bones).map(([b, node]) => [b, { node }]),
+              ),
+            },
+          },
+        }
+      : {
+          VRM: {
+            humanoid: { humanBones: Object.entries(bones).map(([bone, node]) => ({ bone, node })) },
+          },
+        };
+  json.extensionsUsed = [version === '1' ? 'VRMC_vrm' : 'VRM'];
+  const bin = Object.values(resources)[0]!;
+  json.buffers = [{ byteLength: bin.length }]; // in a binary glTF, the buffer is the BIN chunk
+  return glbFromJSON(json, bin);
+}

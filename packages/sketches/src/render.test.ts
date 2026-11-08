@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { FACINGS } from '@storystage/backstage';
 import { dot } from './math.ts';
 import { renderSketch, viewOf } from './render.ts';
-import { box, boxes, figure } from './testing.ts';
+import { box, boxes, figure, type Part } from './testing.ts';
 import { poseMesh } from './pose.ts';
 
 const cube = box([-0.5, 0, -0.5], [0.5, 1, 0.5]);
@@ -107,6 +107,30 @@ describe('renderSketch', () => {
     const back = renderSketch(fig, 'back');
     expect(back.width).toBe(front.width);
     expect(back.metrics.fillRatio).toBeCloseTo(front.metrics.fillRatio, 2);
+  });
+
+  it('draws see-through cards as one shape, not their every edge', () => {
+    const strands = Array.from({ length: 40 }, (_, i): Part => {
+      const z = 0.5 + (i % 5) * 0.01;
+      return { min: [-0.4 + i * 0.02, 0.6, z], max: [-0.37 + i * 0.02, 1, z + 0.005] };
+    });
+    const mesh = boxes([{ min: [-0.5, 0, 0], max: [0.5, 1, 0.5] }, ...strands]);
+    const plain = renderSketch(mesh, 'front');
+    // The first 12 triangles are the opaque head; the rest are strands.
+    const cards = new Uint8Array(mesh.indices.length / 3).fill(1).fill(0, 0, 12);
+    const s = renderSketch({ ...mesh, cards }, 'front');
+    expect(plain.metrics.lines).toBeGreaterThan(20);
+    expect(s.metrics.lines).toBeLessThan(plain.metrics.lines / 3);
+    // The cards still count as part of the shape.
+    expect(s.metrics.fillRatio).toBe(plain.metrics.fillRatio);
+  });
+
+  it('leaves out inner lines too short to read', () => {
+    const nick = boxes([
+      { min: [-0.5, 0, 0], max: [0.5, 1, 0.5] },
+      { min: [0, 0.5, 0.5], max: [0.004, 0.504, 0.504] },
+    ]);
+    expect(renderSketch(nick, 'front').metrics.detailLength).toBe(0);
   });
 
   it('copes with an empty model', () => {

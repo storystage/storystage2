@@ -4,8 +4,13 @@
  * Owner: S2 until 8.1 merges, then S4. Workplan: WP8.
  *
  * WP0.8: the production and storyboard data types (`types.ts`) and an example production for
- * tests (`example.ts`). Reading and writing the zip arrives with WP8.
+ * tests (`example.ts`). WP8.4: the one archive reader and writer (`archive.ts`), for `.storystage`,
+ * `.a3p` and model packs (`docs/spec/15-security.md`, section 3). WP8.2: the production's undo
+ * session (`session.ts`).
  */
 export * from './types.ts';
 export { exampleProduction } from './example.ts';
+export * from './scenes.ts';
+export * from './archive.ts';
+export * from './session.ts';
 export * from './fountain.ts';

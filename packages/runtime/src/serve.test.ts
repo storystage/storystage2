@@ -214,7 +214,7 @@ const said = (heard: readonly FromRuntime[]) =>
 
 const click = (object: string | null, at = 0): ToRuntime => ({
   type: 'event',
-  event: { kind: 'click', object: object === null ? null : objectId(object), at },
+  event: { kind: 'click', object: object === null ? null : objectId(object), x: 0.5, y: 0.5, at },
 });
 const key = (k: string): ToRuntime => ({ type: 'event', event: { kind: 'key', key: k, at: 0 } });
 

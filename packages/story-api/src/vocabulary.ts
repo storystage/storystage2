@@ -54,6 +54,8 @@ export type JointName = string & { readonly __jointName: true };
 export const objectId = (s: string) => s as ObjectId;
 /** The camera is an object like any other in commands and queries, under this name. */
 export const CAMERA = 'camera' as ObjectId;
+/** The scene itself, for the sky, light and fog. It isn't in a stage's `objects()`. */
+export const SCENE = 'scene' as ObjectId;
 export const backstageId = (s: string) => s as BackstageId;
 export const jointName = (s: string) => s as JointName;
 

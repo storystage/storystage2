@@ -7,15 +7,19 @@
  * A rider keeps its pose relative to its vehicle, so it goes where the vehicle goes, even if it
  * boards in the middle of a move. Scale isn't carried, as in Alice.
  *
- * A target (`moveTo`, `turnToFace`, `asSeenBy`) may name a marker as well as an object.
+ * A target may name a marker or one of an object's joints as well as an object. A joint is
+ * where it rests in the model, carried by its object; turning the joints above it doesn't move
+ * it. The sky, light and fog belong to `SCENE`, and the lens to the camera.
  */
 import {
   CAMERA,
+  SCENE,
   StageError,
   ease,
   type JointName,
   type Micros,
   type ObjectId,
+  type Orientation,
   type Quat,
   type SceneObjectSetup,
   type SceneSetup,
@@ -23,24 +27,67 @@ import {
   type StageCommand,
   type StageQuery,
   type StageQueryResult,
+  type StoryClass,
+  type Target,
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
+import { resolveBackdrop, type Colour } from './backdrops.ts';
 import type { Speech } from './contract.ts';
+import type { Box } from './hull.ts';
 import {
   IDENTITY_Q,
   add,
   axisTurns,
   conjugate,
+  dot,
   heading,
   length,
+  lookRotation,
   mul,
   rotate,
   scale,
   sub,
+  times,
+  toAxisTurns,
+  unit,
   v,
 } from './math.ts';
 import { paintColour } from './paint.ts';
+
+/** What the stage knows of an object's model, for sizes and joints as targets. */
+export interface Shape {
+  /** Its joints, from its Backstage entry. */
+  readonly joints: readonly JointName[];
+  /** Its box at scale 1, around its own origin. */
+  readonly box: Box;
+  /** Where each joint rests, in the object's own space at scale 1. */
+  readonly jointPlaces: ReadonlyMap<JointName, Vec3>;
+}
+
+/** A stand-in's block: half a metre square and a metre tall, standing on its origin. */
+export const STAND_IN_BOX: Box = { min: v(-0.25, 0, -0.25), max: v(0.25, 1, 0.25) };
+
+/** A stand-in's shape. It has no bones, so every joint rests near the top of the block. */
+export function standInShape(joints: readonly JointName[]): Shape {
+  return { joints, box: STAND_IN_BOX, jointPlaces: new Map(joints.map((j) => [j, v(0, 0.85, 0)])) };
+}
+
+/** A paint part of the way from the last one to the new one. */
+export interface Blend {
+  /** `null` is the model's own paint. */
+  readonly from: string | null;
+  /** 0 is all `from`, 1 is all the new paint. */
+  readonly amount: number;
+}
+
+/** The sky, light and fog. `fog` is 0 to 1, as in `SceneSetup`. */
+export interface Sky {
+  readonly atmosphere: Colour;
+  readonly fromAbove: Colour;
+  readonly fromBelow: Colour;
+  readonly fog: number;
+}
 
 export interface ObjectState {
   /** Relative to `vehicle`, or to the scene if it has none. */
@@ -49,10 +96,20 @@ export interface ObjectState {
   scale: Vec3;
   opacity: number;
   paint: string | null;
+  paintBlend: Blend | null;
+  backPaint: string | null;
+  backPaintBlend: Blend | null;
+  text: string | null;
   speech: Speech | null;
   vehicle: ObjectId | null;
   shot: string | null;
   joints: Map<JointName, Quat>;
+  /** The camera's vertical viewing angle in turns, once a program sets it. */
+  lens: number | null;
+  /** `SCENE`'s sky, once a program changes it. */
+  sky: Sky | null;
+  /** `SCENE`'s fade to black, 0 (clear) to 1 (black), once a program fades. */
+  fade: number | null;
 }
 
 export type SceneState = ReadonlyMap<ObjectId, ObjectState>;
@@ -64,28 +121,47 @@ export interface Placed {
   readonly transform: Transform;
 }
 
+type SkyPart = 'atmosphere' | 'fromAbove' | 'fromBelow';
+
 /** A command reduced to scene terms, worked out once at its start time. */
 type Resolved =
   | { kind: 'translate'; delta: Vec3 }
   | { kind: 'rotate'; axis: Vec3; turns: number }
+  | { kind: 'shift'; delta: Vec3; axis: Vec3; turns: number }
   | { kind: 'resize'; factor: Vec3 }
-  | { kind: 'joint'; joint: JointName; axis: Vec3; turns: number }
+  | { kind: 'joints'; turns: readonly { joint: JointName; axis: Vec3; turns: number }[] }
   | { kind: 'opacity'; from: number; to: number }
-  | { kind: 'paint'; paint: string }
+  | { kind: 'paint'; from: string | null; to: string }
+  | { kind: 'backPaint'; from: string | null; to: string }
+  | { kind: 'text'; text: string }
   | { kind: 'say'; speech: Speech }
   | { kind: 'vehicle'; vehicle: ObjectId | null; shift: Vec3; turn: Quat }
-  | { kind: 'shot'; shot: string };
+  | { kind: 'shot'; shot: string }
+  | { kind: 'lens'; from: number; to: number }
+  | { kind: 'skyColour'; part: SkyPart; base: Sky; from: Colour; to: Colour }
+  | { kind: 'fog'; base: Sky; from: number; to: number }
+  | { kind: 'fade'; from: number; to: number };
 
-const SCENE: Pose = { position: v(0, 0, 0), rotation: IDENTITY_Q };
+const ORIGIN: Pose = { position: v(0, 0, 0), rotation: IDENTITY_Q };
 interface Pose {
   readonly position: Vec3;
   readonly rotation: Quat;
 }
 
+const UP = v(0, 1, 0);
+const FORWARD = v(0, 0, 1);
+/** Alice's vertical viewing angle, 0.5 radians, in turns. */
+const ALICE_LENS = 0.5 / (2 * Math.PI);
+
+/** Which commands are the scene's, and which the camera's. */
+const SKY_KINDS: readonly StageCommand['kind'][] = ['atmosphere', 'light', 'fog', 'fade'];
+
 const unknown = (id: ObjectId) =>
   new StageError('unknown_object', `There is nothing called ${id} in this scene.`);
-const badPaint = (paint: string) =>
-  new StageError('bad_argument', `There is no paint called ${paint}.`);
+const bad = (message: string) => new StageError('bad_argument', message);
+const badPaint = (paint: string) => bad(`There is no paint called ${paint}.`);
+/** For what the contract has and this stage doesn't do yet. */
+const notYet = (what: string) => bad(`The stage can't do ${what} yet.`);
 
 /** Where an object is in the scene: its own pose, carried by its vehicles. */
 function scenePose(state: SceneState, id: ObjectId): Pose {
@@ -108,20 +184,44 @@ function relativeTo(carrier: Pose, pose: Pose): Pose {
   };
 }
 
+const extents = (box: Box) => sub(box.max, box.min);
+const centre = (box: Box) => scale(add(box.min, box.max), 0.5);
+const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
+const lerpColour = (a: Colour, b: Colour, p: number): Colour => ({
+  r: lerp(a.r, b.r, p),
+  g: lerp(a.g, b.g, p),
+  b: lerp(a.b, b.b, p),
+});
+const hex = ({ r, g, b }: Colour) =>
+  `#${[r, g, b]
+    .map((x) =>
+      Math.round(Math.min(1, Math.max(0, x)) * 255)
+        .toString(16)
+        .padStart(2, '0'),
+    )
+    .join('')}`;
+
 export class Timeline {
   private start = new Map<ObjectId, ObjectState>();
   private markers = new Map<string, Pose>();
-  private jointLists = new Map<ObjectId, readonly JointName[]>();
+  private shapes = new Map<ObjectId, Shape>();
+  private classes = new Map<ObjectId, StoryClass>();
+  private baseSky: Sky = skyOf({});
+  private baseLens = ALICE_LENS;
   private commands: StageCommand[] = [];
   private resolved = new Map<number, Resolved>();
   private now: Micros = 0;
   private state: SceneState = new Map();
 
   /** Replaces the scene and forgets every command. Throws if a vehicle can't be right. */
-  load(setup: SceneSetup, jointsFor: (object: SceneObjectSetup) => readonly JointName[]): void {
+  load(setup: SceneSetup, shapeFor: (object: SceneObjectSetup) => Shape): void {
     this.start = startingState(setup);
     this.markers = new Map(setup.markers.map((m) => [m.id, m.transform]));
-    this.jointLists = new Map(setup.objects.map((o) => [o.id, jointsFor(o)]));
+    this.shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
+    this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
+    this.baseSky = skyOf(setup.backdrop);
+    const degrees = setup.camera.fieldOfViewDegrees;
+    this.baseLens = degrees === undefined ? ALICE_LENS : degrees / 360;
     this.reset();
   }
 
@@ -155,18 +255,34 @@ export class Timeline {
     return this.now;
   }
 
+  /** The objects, the camera included; not `SCENE`. */
   objects(): readonly ObjectId[] {
-    return [...this.start.keys()];
+    return [...this.start.keys()].filter((id) => id !== SCENE);
   }
 
   joints(object: ObjectId): readonly JointName[] {
     this.need(object);
-    return this.jointLists.get(object) ?? [];
+    return this.shapes.get(object)?.joints ?? [];
   }
 
   /** The scene after the last `seek`. */
   current(): SceneState {
     return this.state;
+  }
+
+  /** How far the picture has faded to black after the last `seek`: 0 clear, 1 black. */
+  fade(): number {
+    return this.state.get(SCENE)!.fade ?? 0;
+  }
+
+  /** The sky, light and fog after the last `seek`. */
+  sky(): Sky {
+    return this.state.get(SCENE)!.sky ?? this.baseSky;
+  }
+
+  /** The camera's vertical viewing angle in turns after the last `seek`. */
+  lens(): number {
+    return this.state.get(CAMERA)!.lens ?? this.baseLens;
   }
 
   /** An object's transform in the scene after the last `seek`. */
@@ -184,12 +300,20 @@ export class Timeline {
       id,
       transform: sceneTransform(state, this.require(state, id)),
     });
+    const target = (t: Target) => {
+      this.checkTarget(t);
+      return this.targetPose(state, t);
+    };
     switch (query.kind) {
-      case 'transform':
-        return { kind: 'transform', value: place(query.object).transform };
+      case 'transform': {
+        const { position, rotation } = target(query.object);
+        const object = typeof query.object === 'string' ? query.object : query.object.object;
+        const scaled = this.start.has(object) ? state.get(object)!.scale : v(1, 1, 1);
+        return { kind: 'transform', value: { position, rotation, scale: scaled } };
+      }
       case 'distance': {
-        const from = place(query.from).transform.position;
-        return { kind: 'distance', value: length(sub(from, place(query.to).transform.position)) };
+        const from = target(query.from).position;
+        return { kind: 'distance', value: length(sub(from, target(query.to).position)) };
       }
       case 'isColliding':
         return { kind: 'isColliding', value: touching(place(query.a), place(query.b)) };
@@ -198,6 +322,32 @@ export class Timeline {
           kind: 'isVisible',
           value: state.get(this.require(state, query.object))!.opacity > 0,
         };
+      case 'size': {
+        if (typeof query.object !== 'string') throw notYet('the size of a joint');
+        const id = this.require(state, query.object);
+        const box = this.shapes.get(id)?.box;
+        const size = box ? times(extents(box), state.get(id)!.scale) : v(0, 0, 0);
+        return { kind: 'size', value: size };
+      }
+      case 'look': {
+        const s = state.get(this.require(state, query.object))!;
+        const value = { paint: s.paint, opacity: s.opacity, backPaint: s.backPaint, text: s.text };
+        return { kind: 'look', value };
+      }
+      case 'vehicle':
+        return { kind: 'vehicle', value: state.get(this.require(state, query.object))!.vehicle };
+      case 'sceneLook': {
+        const sky = state.get(SCENE)!.sky ?? this.baseSky;
+        const value = {
+          atmosphere: hex(sky.atmosphere),
+          fromAbove: hex(sky.fromAbove),
+          fromBelow: hex(sky.fromBelow),
+          fog: sky.fog,
+        };
+        return { kind: 'sceneLook', value };
+      }
+      case 'lens':
+        return { kind: 'lens', value: state.get(CAMERA)!.lens ?? this.baseLens };
     }
   }
 
@@ -209,8 +359,9 @@ export class Timeline {
     return this.state.get(this.require(this.state, object))!;
   }
 
+  /** An object, not `SCENE`. */
   private require(state: SceneState, object: ObjectId): ObjectId {
-    if (!state.has(object)) throw unknown(object);
+    if (!state.has(object) || object === SCENE) throw unknown(object);
     return object;
   }
 
@@ -234,9 +385,28 @@ export class Timeline {
     return state;
   }
 
-  /** The pose of an object or a marker, for a command that targets it. */
-  private target(state: SceneState, id: ObjectId): Pose {
-    return state.has(id) ? scenePose(state, id) : this.markers.get(id)!;
+  /** Where a target is in the scene. A joint rests where the model has it, carried by its object. */
+  private targetPose(state: SceneState, target: Target): Pose {
+    if (typeof target === 'string')
+      return state.has(target) ? scenePose(state, target) : this.markers.get(target)!;
+    const self = state.get(target.object)!;
+    const pose = scenePose(state, target.object);
+    const rest = this.shapes.get(target.object)?.jointPlaces.get(target.joint) ?? v(0, 0, 0);
+    return {
+      position: add(pose.position, rotate(pose.rotation, times(rest, self.scale))),
+      rotation: mul(pose.rotation, self.joints.get(target.joint) ?? IDENTITY_Q),
+    };
+  }
+
+  /** The middle of a target and its height, for framing it. */
+  private framing(state: SceneState, target: Target): { middle: Vec3; size: number } {
+    const pose = this.targetPose(state, target);
+    const box = typeof target === 'string' ? this.shapes.get(target)?.box : undefined;
+    if (!box) return { middle: pose.position, size: 0.5 };
+    const scaled = state.get(target as ObjectId)!.scale;
+    const middle = add(pose.position, rotate(pose.rotation, times(centre(box), scaled)));
+    const size = extents(box);
+    return { middle, size: Math.max(size.x * scaled.x, size.y * scaled.y, size.z * scaled.z) };
   }
 
   /** Works out what command `i` means in scene terms, from the scene just before it starts. */
@@ -246,52 +416,98 @@ export class Timeline {
     if (cached) return cached;
     const before = this.evaluate(c.start, i);
     const self = before.get(c.object)!;
-    const here = scenePose(before, c.object);
-    const carrier = self.vehicle === null ? SCENE : scenePose(before, self.vehicle);
+    const here = c.object === SCENE ? ORIGIN : scenePose(before, c.object);
+    const carrier = self.vehicle === null ? ORIGIN : scenePose(before, self.vehicle);
     // Commands reason in scene terms; the object's own pose is relative to what carries it.
     const carried = (direction: Vec3) => rotate(conjugate(carrier.rotation), direction);
+    const at = (target: Target) => this.targetPose(before, target);
     const axes = (space: Space): Quat =>
       space === 'scene'
         ? IDENTITY_Q
         : space === 'self'
           ? here.rotation
-          : this.target(before, space.asSeenBy).rotation;
+          : at(space.asSeenBy).rotation;
+    const moveBy = (delta: Vec3): Resolved => ({ kind: 'translate', delta: carried(delta) });
+    /** A turn from where it faces now to `to`, as an additive rotation. */
+    const turnTo = (to: Quat | null) => {
+      const { axis, turns } = toAxisTurns(mul(to ?? here.rotation, conjugate(here.rotation)));
+      return { axis: carried(axis), turns };
+    };
+    const sky = before.get(SCENE)!.sky ?? this.baseSky;
     const resolved = (): Resolved => {
       switch (c.kind) {
         case 'translate':
-          return { kind: 'translate', delta: carried(rotate(axes(c.space), c.by)) };
+          return moveBy(rotate(axes(c.space), c.by));
         case 'moveTo': {
-          const target =
-            typeof c.target === 'string' ? this.target(before, c.target).position : c.target;
-          return { kind: 'translate', delta: carried(sub(target, here.position)) };
+          const target = isPoint(c.target) ? c.target : at(c.target).position;
+          return moveBy(sub(target, here.position));
         }
-        case 'rotate':
+        case 'moveToward': {
+          const way = unit(sub(at(c.target).position, here.position));
+          return moveBy(way ? scale(way, c.amount) : v(0, 0, 0));
+        }
+        case 'moveAndOrientTo': {
+          const goal = c.goodView ? this.goodView(before, c.target) : at(c.target);
           return {
-            kind: 'rotate',
-            axis: carried(rotate(axes(c.space), c.axis)),
-            turns: c.turns,
+            kind: 'shift',
+            delta: carried(sub(goal.position, here.position)),
+            ...turnTo(goal.rotation),
           };
+        }
+        case 'place':
+          return moveBy(
+            sub(this.placement(before, c.object, c.relation, c.target, c.gap), here.position),
+          );
+        case 'rotate':
+          return { kind: 'rotate', axis: carried(rotate(axes(c.space), c.axis)), turns: c.turns };
         case 'turnToFace': {
-          const d = sub(this.target(before, c.target).position, here.position);
+          const d = sub(at(c.target).position, here.position);
           const want = Math.atan2(d.x, d.z) / (2 * Math.PI);
           let turns = want - heading(here.rotation);
           turns -= Math.round(turns); // the short way round
-          return { kind: 'rotate', axis: carried(v(0, 1, 0)), turns };
+          return { kind: 'rotate', axis: carried(UP), turns };
         }
+        case 'orient':
+          return { kind: 'rotate', ...turnTo(this.orientation(before, here, c.to, c.up)) };
         case 'resize':
           return { kind: 'resize', factor: c.factor };
+        case 'setSize':
+          return {
+            kind: 'resize',
+            factor: this.sizeFactor(self, c.object, c.dimension, c.to, c.policy),
+          };
         case 'joint':
-          return { kind: 'joint', joint: c.joint, axis: c.axis, turns: c.turns };
+          return { kind: 'joints', turns: [{ joint: c.joint, axis: c.axis, turns: c.turns }] };
+        case 'pose':
+          // Straightening undoes each joint's turn so far; `validate` refuses wings for now.
+          return {
+            kind: 'joints',
+            turns: [...self.joints].map(([joint, q]) => ({ joint, ...toAxisTurns(conjugate(q)) })),
+          };
         case 'opacity':
           return { kind: 'opacity', from: self.opacity, to: c.to };
         case 'paint':
-          return { kind: 'paint', paint: c.paint };
+          return { kind: 'paint', from: self.paint, to: c.paint };
+        case 'backPaint':
+          return { kind: 'backPaint', from: self.backPaint, to: c.paint };
+        case 'text':
+          return { kind: 'text', text: c.text };
         case 'say':
           return { kind: 'say', speech: { text: c.text, bubble: c.bubble } };
         case 'vehicle':
           return boarding(before, c.object, c.vehicle, carrier);
         case 'shot':
-          return { kind: 'shot', shot: `${c.shot}:${c.targets.join(',')}` };
+          return { kind: 'shot', shot: `${c.shot}:${c.targets.map(targetName).join(',')}` };
+        case 'lens':
+          return { kind: 'lens', from: self.lens ?? this.baseLens, to: c.verticalAngle };
+        case 'atmosphere':
+          return skyColour(sky, 'atmosphere', c.colour);
+        case 'light':
+          return skyColour(sky, c.from === 'above' ? 'fromAbove' : 'fromBelow', c.colour);
+        case 'fog':
+          return { kind: 'fog', base: sky, from: sky.fog, to: c.density };
+        case 'fade':
+          return { kind: 'fade', from: self.fade ?? 0, to: c.to };
       }
     };
     const r = resolved();
@@ -299,30 +515,120 @@ export class Timeline {
     return r;
   }
 
+  /** Where the camera sees a target well: in front of it, a little above, looking at its middle. */
+  private goodView(state: SceneState, target: Target): Pose {
+    const pose = this.targetPose(state, target);
+    const { middle, size } = this.framing(state, target);
+    const distance = Math.max(size, 0.3) * 2.5;
+    const position = add(middle, rotate(pose.rotation, v(0, size * 0.25, distance)));
+    return { position, rotation: lookRotation(sub(middle, position), UP) ?? pose.rotation };
+  }
+
+  /** Where `object` goes to be `relation` its target, the boxes `gap` apart, in the target's axes. */
+  private placement(
+    state: SceneState,
+    object: ObjectId,
+    relation: Extract<StageCommand, { kind: 'place' }>['relation'],
+    target: Target,
+    gap: number,
+  ): Vec3 {
+    const [axis, sign] = RELATIONS[relation];
+    const pose = this.targetPose(state, target);
+    const theirs = typeof target === 'string' ? this.shapes.get(target)?.box : undefined;
+    const theirScale =
+      typeof target === 'string' && state.has(target) ? state.get(target)!.scale : v(1, 1, 1);
+    const mine = this.shapes.get(object)?.box;
+    const myScale = state.get(object)!.scale;
+    const edge = (box: Box | undefined, s: Vec3, side: 'min' | 'max') =>
+      box ? box[side][axis] * s[axis] : 0;
+    const along =
+      sign > 0
+        ? edge(theirs, theirScale, 'max') + gap - edge(mine, myScale, 'min')
+        : edge(theirs, theirScale, 'min') - gap - edge(mine, myScale, 'max');
+    const offset = { x: 0, y: 0, z: 0, [axis]: along } as Vec3;
+    return add(pose.position, rotate(pose.rotation, offset));
+  }
+
+  private orientation(
+    state: SceneState,
+    here: Pose,
+    to: Orientation,
+    upTarget?: Target,
+  ): Quat | null {
+    const up = upTarget ? rotate(this.targetPose(state, upTarget).rotation, UP) : UP;
+    if (to === 'upright') {
+      // Keep the way it faces, as far as it can with its top up.
+      const facing = rotate(here.rotation, FORWARD);
+      const level = sub(facing, scale(up, dot(facing, up)));
+      return lookRotation(unit(level) ? level : rotate(here.rotation, v(0, -1, 0)), up);
+    }
+    if ('pointAt' in to)
+      return lookRotation(sub(this.targetPose(state, to.pointAt).position, here.position), up);
+    return this.targetPose(state, to.lineUpWith).rotation;
+  }
+
+  /** The `resize` factors that make one dimension `to` metres, keeping what `policy` says. */
+  private sizeFactor(
+    self: ObjectState,
+    object: ObjectId,
+    dimension: 'width' | 'height' | 'depth',
+    to: number,
+    policy: Extract<StageCommand, { kind: 'setSize' }>['policy'],
+  ): Vec3 {
+    const axis = ({ width: 'x', height: 'y', depth: 'z' } as const)[dimension];
+    const box = this.shapes.get(object)?.box;
+    const now = box ? extents(box)[axis] * self.scale[axis] : 0;
+    if (now <= 0) throw bad(`${object} has no ${dimension} to change.`);
+    const f = to / now;
+    if (policy === 'preserveAspectRatio') return v(f, f, f);
+    const others = policy === 'preserveVolume' ? 1 / Math.sqrt(f) : 1;
+    return { x: others, y: others, z: others, [axis]: f } as Vec3;
+  }
+
+  /** A target names an object, a marker, or a joint the object has. */
+  private checkTarget(target: Target): void {
+    if (typeof target === 'string') {
+      if (!this.markers.has(target)) this.require(this.start, target);
+      return;
+    }
+    this.require(this.start, target.object);
+    if (!(this.shapes.get(target.object)?.joints ?? []).includes(target.joint))
+      throw new StageError(
+        'unknown_joint',
+        `${target.object} has no joint called ${target.joint}.`,
+      );
+  }
+
   private validate(c: StageCommand): void {
     const exists = (id: ObjectId) => {
-      if (!this.start.has(id)) throw unknown(id);
-    };
-    const targetable = (id: ObjectId) => {
-      if (!this.markers.has(id)) exists(id);
+      this.require(this.start, id);
     };
     const inSpace = (space: Space) => {
-      if (typeof space === 'object') targetable(space.asSeenBy);
+      if (typeof space === 'object') this.checkTarget(space.asSeenBy);
     };
-    exists(c.object);
+    const isSky = SKY_KINDS.includes(c.kind);
+    if (isSky ? c.object !== SCENE : c.object === SCENE)
+      throw bad(isSky ? 'Only the scene has a sky, light and fog.' : `The scene can't do that.`);
+    if (!isSky) exists(c.object);
+    if (c.kind === 'lens' && c.object !== CAMERA) throw bad('Only the camera has a lens.');
     if (
       !Number.isInteger(c.start) ||
       c.start < 0 ||
       !Number.isInteger(c.duration) ||
       c.duration < 0
     )
-      throw new StageError(
-        'bad_argument',
-        'Start and duration must be whole, non-negative microseconds.',
-      );
+      throw bad('Start and duration must be whole, non-negative microseconds.');
     const finite = (...n: number[]) => {
-      if (!n.every(Number.isFinite))
-        throw new StageError('bad_argument', 'Every number must be finite.');
+      if (!n.every(Number.isFinite)) throw bad('Every number must be finite.');
+    };
+    const smooth = (pathStyle: string | undefined) => {
+      if (pathStyle === 'smooth') throw notYet('a smooth path');
+    };
+    const colour = (paint: string) => {
+      if (!paintColour(paint)) throw badPaint(paint);
+    };
+    const classIs = (cls: StoryClass, what: string) => {
+      if (this.classes.get(c.object) !== cls) throw bad(`Only ${what} has that.`);
     };
     switch (c.kind) {
       case 'translate':
@@ -331,45 +637,127 @@ export class Timeline {
         break;
       case 'rotate':
         finite(c.axis.x, c.axis.y, c.axis.z, c.turns);
-        if (length(c.axis) === 0) throw new StageError('bad_argument', 'A turn needs an axis.');
+        if (length(c.axis) === 0) throw bad('A turn needs an axis.');
         inSpace(c.space);
         break;
       case 'moveTo':
-        if (typeof c.target === 'string') targetable(c.target);
-        else finite(c.target.x, c.target.y, c.target.z);
+        smooth(c.pathStyle);
+        if (isPoint(c.target)) finite(c.target.x, c.target.y, c.target.z);
+        else this.checkTarget(c.target);
+        break;
+      case 'moveToward':
+        finite(c.amount);
+        this.checkTarget(c.target);
+        break;
+      case 'moveAndOrientTo':
+        smooth(c.pathStyle);
+        this.checkTarget(c.target);
+        break;
+      case 'place':
+        smooth(c.pathStyle);
+        finite(c.gap);
+        this.checkTarget(c.target);
         break;
       case 'turnToFace':
-        targetable(c.target);
+        this.checkTarget(c.target);
+        break;
+      case 'orient':
+        if (typeof c.to === 'object')
+          this.checkTarget('pointAt' in c.to ? c.to.pointAt : c.to.lineUpWith);
+        if (c.up) this.checkTarget(c.up);
         break;
       case 'resize':
         finite(c.factor.x, c.factor.y, c.factor.z);
         break;
+      case 'setSize':
+        finite(c.to);
+        if (!(c.to > 0)) throw bad('A size must be more than nothing.');
+        break;
       case 'joint':
         finite(c.axis.x, c.axis.y, c.axis.z, c.turns);
-        if (!(this.jointLists.get(c.object) ?? []).includes(c.joint))
+        if (!this.joints(c.object).includes(c.joint))
           throw new StageError('unknown_joint', `${c.object} has no joint called ${c.joint}.`);
         break;
+      case 'pose':
+        if (c.pose !== 'straight') throw notYet('folding and spreading wings');
+        break;
       case 'opacity':
-        if (!(c.to >= 0 && c.to <= 1))
-          throw new StageError('bad_argument', 'Opacity goes from 0 to 1.');
+        if (!(c.to >= 0 && c.to <= 1)) throw bad('Opacity goes from 0 to 1.');
         break;
       case 'vehicle':
         if (c.vehicle !== null) {
           exists(c.vehicle);
-          if (c.vehicle === c.object)
-            throw new StageError('bad_argument', `${c.object} can't ride on itself.`);
+          if (c.vehicle === c.object) throw bad(`${c.object} can't ride on itself.`);
         }
         break;
       case 'shot':
-        c.targets.forEach(exists);
+        c.targets.forEach((t) => this.checkTarget(t));
         break;
       case 'paint':
-        if (!paintColour(c.paint)) throw badPaint(c.paint);
+        colour(c.paint);
+        break;
+      case 'backPaint':
+        classIs('Billboard', 'a billboard');
+        colour(c.paint);
+        break;
+      case 'text':
+        classIs('Text', '3D text');
         break;
       case 'say':
         break;
+      case 'lens':
+        finite(c.verticalAngle);
+        if (!(c.verticalAngle > 0 && c.verticalAngle < 0.5))
+          throw bad('A viewing angle is more than nothing and less than half a turn.');
+        break;
+      case 'atmosphere':
+      case 'light':
+        colour(c.colour);
+        break;
+      case 'fog':
+        if (!(c.density >= 0 && c.density <= 1)) throw bad('Fog goes from 0 to 1.');
+        break;
+      case 'fade':
+        if (!(c.to >= 0 && c.to <= 1)) throw bad('A fade goes from 0 to 1.');
+        break;
     }
   }
+}
+
+/** Which of the target's axes each relation goes along, and which way (spec 02, Directions). */
+const RELATIONS = {
+  leftOf: ['x', 1],
+  rightOf: ['x', -1],
+  above: ['y', 1],
+  below: ['y', -1],
+  inFrontOf: ['z', 1],
+  behind: ['z', -1],
+} as const satisfies Record<string, readonly ['x' | 'y' | 'z', 1 | -1]>;
+
+const isPoint = (target: Target | Vec3): target is Vec3 =>
+  typeof target === 'object' && !('joint' in target);
+
+const targetName = (target: Target) =>
+  typeof target === 'string' ? target : `${target.object}.${target.joint}`;
+
+/** A scene with a backdrop Babylon.js doesn't know still has a sky: the default one. */
+function skyOf(backdrop: SceneSetup['backdrop']): Sky {
+  let resolved;
+  try {
+    resolved = resolveBackdrop(backdrop);
+  } catch {
+    resolved = resolveBackdrop({});
+  }
+  return {
+    atmosphere: resolved.sky.atmosphere,
+    fromAbove: resolved.lighting.above,
+    fromBelow: resolved.lighting.below,
+    fog: backdrop.fog ?? 0,
+  };
+}
+
+function skyColour(sky: Sky, part: SkyPart, paint: string): Resolved {
+  return { kind: 'skyColour', part, base: sky, from: sky[part], to: paintColour(paint)! };
 }
 
 /** The scene's first state: set-up transforms are in the scene, so riders are worked back. */
@@ -378,32 +766,44 @@ function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
   if (!places.has(CAMERA)) places.set(CAMERA, setup.camera.transform);
   const vehicles = new Map(setup.objects.map((o) => [o.id, o.vehicle ?? null]));
   const out = new Map<ObjectId, ObjectState>();
+  const blank = (t: Pose & { scale: Vec3 }): ObjectState => ({
+    position: t.position,
+    rotation: t.rotation,
+    scale: t.scale,
+    opacity: 1,
+    paint: null,
+    paintBlend: null,
+    backPaint: null,
+    backPaintBlend: null,
+    text: null,
+    speech: null,
+    vehicle: null,
+    shot: null,
+    joints: new Map(),
+    lens: null,
+    sky: null,
+    fade: null,
+  });
   const place = (id: ObjectId, o?: SceneObjectSetup) => {
+    if (id === SCENE) throw bad('Nothing in a scene can be called scene.');
     const t = places.get(id)!;
     if (o?.paint && !paintColour(o.paint)) throw badPaint(o.paint);
     const vehicle = o?.vehicle ?? null;
     if (vehicle !== null) {
-      if (!places.has(vehicle))
-        throw new StageError(
-          'bad_argument',
-          `${id} rides on ${vehicle}, which isn't in the scene.`,
-        );
+      if (!places.has(vehicle)) throw bad(`${id} rides on ${vehicle}, which isn't in the scene.`);
       for (let ride: ObjectId | null = vehicle; ride !== null; ride = vehicles.get(ride) ?? null)
-        if (ride === id) throw new StageError('bad_argument', `${id} ends up riding on itself.`);
+        if (ride === id) throw bad(`${id} ends up riding on itself.`);
     }
     out.set(id, {
-      ...(vehicle === null ? t : relativeTo(places.get(vehicle)!, t)),
-      scale: t.scale,
+      ...blank({ ...(vehicle === null ? t : relativeTo(places.get(vehicle)!, t)), scale: t.scale }),
       opacity: o?.opacity ?? 1,
       paint: o?.paint ?? null,
-      speech: null,
       vehicle,
-      shot: null,
-      joints: new Map(),
     });
   };
   for (const o of setup.objects) place(o.id, o);
   if (!out.has(CAMERA)) place(CAMERA);
+  out.set(SCENE, blank({ ...ORIGIN, scale: v(1, 1, 1) }));
   return out;
 }
 
@@ -423,10 +823,14 @@ function boarding(
       const stay = before.get(object)!.vehicle;
       return { kind: 'vehicle', vehicle: stay, shift: v(0, 0, 0), turn: IDENTITY_Q };
     }
-  const onto = vehicle === null ? SCENE : scenePose(before, vehicle);
+  const onto = vehicle === null ? ORIGIN : scenePose(before, vehicle);
   const { position, rotation } = relativeTo(onto, from);
   return { kind: 'vehicle', vehicle, shift: position, turn: rotation };
 }
+
+/** A blend that has finished is just the new paint. */
+const blendOf = (from: string | null, p: number): Blend | null =>
+  p >= 1 ? null : { from, amount: p };
 
 function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageCommand): void {
   switch (r.kind) {
@@ -436,6 +840,10 @@ function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageComman
     case 'rotate':
       s.rotation = mul(axisTurns(r.axis, r.turns * p), s.rotation);
       return;
+    case 'shift':
+      s.position = add(s.position, scale(r.delta, p));
+      s.rotation = mul(axisTurns(r.axis, r.turns * p), s.rotation);
+      return;
     case 'resize':
       s.scale = v(
         s.scale.x * (1 + (r.factor.x - 1) * p),
@@ -443,17 +851,26 @@ function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageComman
         s.scale.z * (1 + (r.factor.z - 1) * p),
       );
       return;
-    case 'joint':
-      s.joints.set(
-        r.joint,
-        mul(s.joints.get(r.joint) ?? IDENTITY_Q, axisTurns(r.axis, r.turns * p)),
-      );
+    case 'joints':
+      for (const j of r.turns)
+        s.joints.set(
+          j.joint,
+          mul(s.joints.get(j.joint) ?? IDENTITY_Q, axisTurns(j.axis, j.turns * p)),
+        );
       return;
     case 'opacity':
       s.opacity = r.from + (r.to - r.from) * p;
       return;
     case 'paint':
-      s.paint = r.paint;
+      s.paint = r.to;
+      s.paintBlend = blendOf(r.from, p);
+      return;
+    case 'backPaint':
+      s.backPaint = r.to;
+      s.backPaintBlend = blendOf(r.from, p);
+      return;
+    case 'text':
+      s.text = r.text;
       return;
     case 'say':
       if (t < c.start + c.duration) s.speech = r.speech;
@@ -466,6 +883,18 @@ function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageComman
     case 'shot':
       s.shot = r.shot;
       return;
+    case 'lens':
+      s.lens = lerp(r.from, r.to, p);
+      return;
+    case 'skyColour':
+      s.sky = { ...(s.sky ?? r.base), [r.part]: lerpColour(r.from, r.to, p) };
+      return;
+    case 'fog':
+      s.sky = { ...(s.sky ?? r.base), fog: lerp(r.from, r.to, p) };
+      return;
+    case 'fade':
+      s.fade = lerp(r.from, r.to, p);
+      return;
   }
 }
 
@@ -473,7 +902,11 @@ function sceneTransform(state: SceneState, id: ObjectId): Transform {
   return { ...scenePose(state, id), scale: state.get(id)!.scale };
 }
 
-/** FNV-1a over everything that makes up the scene, rounded to a micrometre (or a millionth). */
+/**
+ * FNV-1a over everything that makes up the scene, rounded to a micrometre (or a millionth).
+ * What only later commands can set is added only once set, so a scene that doesn't use it
+ * hashes as it always has.
+ */
 export function hashState(state: SceneState): number {
   const n = (x: number) => (Math.abs(x) < 5e-7 ? 0 : x).toFixed(6);
   const vec = (a: Vec3) => `${n(a.x)},${n(a.y)},${n(a.z)}`;
@@ -482,26 +915,45 @@ export function hashState(state: SceneState): number {
     const k = q.w < 0 ? -1 : 1;
     return `${n(q.x * k)},${n(q.y * k)},${n(q.z * k)},${n(q.w * k)}`;
   };
+  const colour = (c: Colour) => `${n(c.r)},${n(c.g)},${n(c.b)}`;
+  const blend = (b: Blend | null) => (b ? `${b.from ?? ''}>${n(b.amount)}` : null);
   const text = [...state.keys()]
     .sort()
-    .map((id) => {
+    .flatMap((id) => {
       const s = state.get(id)!;
+      if (id === SCENE) {
+        const sky = s.sky;
+        if (!sky && s.fade === null) return [];
+        const parts = sky ? [sky.atmosphere, sky.fromAbove, sky.fromBelow].map(colour) : [];
+        const fade = s.fade === null ? [] : [`fade:${n(s.fade)}`];
+        return [[id, ...parts, ...(sky ? [n(sky.fog)] : []), ...fade].join('|')];
+      }
       const pose = scenePose(state, id);
       const joints = [...s.joints.entries()]
         .sort(([a], [b]) => a.localeCompare(b))
         .map(([j, q]) => `${j}=${quat(q)}`);
+      const later = [
+        blend(s.paintBlend),
+        s.backPaint === null ? null : `back:${s.backPaint}`,
+        blend(s.backPaintBlend),
+        s.text === null ? null : `text:${s.text}`,
+        s.lens === null ? null : `lens:${n(s.lens)}`,
+      ].filter((x) => x !== null);
       return [
-        id,
-        vec(pose.position),
-        quat(pose.rotation),
-        vec(s.scale),
-        n(s.opacity),
-        s.paint ?? '',
-        s.speech ? `${s.speech.bubble}:${s.speech.text}` : '',
-        s.vehicle ?? '',
-        s.shot ?? '',
-        joints.join(';'),
-      ].join('|');
+        [
+          id,
+          vec(pose.position),
+          quat(pose.rotation),
+          vec(s.scale),
+          n(s.opacity),
+          s.paint ?? '',
+          s.speech ? `${s.speech.bubble}:${s.speech.text}` : '',
+          s.vehicle ?? '',
+          s.shot ?? '',
+          joints.join(';'),
+          ...later,
+        ].join('|'),
+      ];
     })
     .join('\n');
   let hash = 0x811c9dc5;

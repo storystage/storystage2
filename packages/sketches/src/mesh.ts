@@ -17,12 +17,44 @@ export interface SketchMesh {
   readonly positions: Float32Array;
   /** Three vertex indices per triangle. */
   readonly indices: Uint32Array;
+  /**
+   * One flag per triangle: 1 for a see-through card (hair, eyelashes), a flat shape with a
+   * picture of strands on it. A sketch draws the cards' shape as a whole, not their every edge.
+   */
+  readonly cards?: Uint8Array;
   /** The model's nodes, parents before children. Absent for a model that can't be posed. */
   readonly nodes?: readonly SketchNode[];
   /** Nodes that are joints of a skin, by index into `nodes`: the bones a pose may move. */
   readonly joints?: readonly number[];
   /** Four node indices and four weights per vertex: what moves each vertex when posed. */
   readonly influences?: { readonly nodes: Uint16Array; readonly weights: Float32Array };
+  /** What the model's surfaces look like, for colour thumbnails (`thumbnail.ts`). */
+  readonly surface?: SketchSurface;
+}
+
+/** A glTF material, as much of it as a thumbnail needs. */
+export interface SketchMaterial {
+  /** Base colour, linear red, green, blue and alpha, 0 to 1. */
+  readonly colour: readonly [number, number, number, number];
+  /** Index into `SketchSurface.images` of its base-colour picture, or -1. */
+  readonly image: number;
+  readonly alpha: 'OPAQUE' | 'MASK' | 'BLEND';
+  /** For `MASK`: alpha below this is not drawn. */
+  readonly cutoff: number;
+  /** Lit by nothing: drawn in its own colours (`KHR_materials_unlit`, many VRM avatars). */
+  readonly unlit: boolean;
+}
+
+export interface SketchSurface {
+  /** u, v per vertex (glTF's: v runs down the picture). */
+  readonly uvs: Float32Array;
+  /** Linear red, green, blue and alpha per vertex: glTF's `COLOR_0`, or white. */
+  readonly colours: Float32Array;
+  /** One material index per triangle. */
+  readonly triangleMaterial: Uint16Array;
+  readonly materials: readonly SketchMaterial[];
+  /** Encoded pictures (PNG, JPEG, WebP) as the file holds them. */
+  readonly images: readonly { readonly bytes: Uint8Array; readonly mimeType: string }[];
 }
 
 /**

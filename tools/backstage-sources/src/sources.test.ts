@@ -1,0 +1,417 @@
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
+import { validateManifest } from '@storystage/backstage';
+import {
+  box,
+  documentFromMesh,
+  figure,
+  glbFromMesh,
+  vrmFromMesh,
+} from '@storystage/sketches/testing';
+import { buildSources } from './build.ts';
+import { fetchModel, type Fetcher } from './fetch.ts';
+import { validateSources } from './sources.ts';
+
+const COMMIT = 'a'.repeat(40);
+const RAW = `https://raw.githubusercontent.com/kaykit/pack/${COMMIT}/`;
+const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
+
+/** A box whose texture is WebP, so the file requires `EXT_texture_webp`, as reduced models do. */
+function webpModel() {
+  const doc = documentFromMesh(box([0, 0, 0], [1, 1, 1]));
+  doc.createExtension(EXTTextureWebP).setRequired(true);
+  const texture = doc
+    .createTexture('paint')
+    .setImage(new Uint8Array([0x52, 0x49, 0x46, 0x46]))
+    .setMimeType('image/webp')
+    .setURI('paint.webp');
+  const material = doc.createMaterial('paint').setBaseColorTexture(texture);
+  for (const mesh of doc.getRoot().listMeshes())
+    for (const prim of mesh.listPrimitives()) prim.setMaterial(material);
+  return doc;
+}
+
+const item = (over: Record<string, unknown>) => ({
+  id: 'kaykit/Biped/knight',
+  displayName: 'Knight',
+  class: 'Biped',
+  section: 'cast',
+  themes: ['fantasy'],
+  licence: 'CC0-1.0',
+  credit: 'Knight by Kay Lousberg, KayKit (CC0)',
+  page: 'https://github.com/kaykit/pack',
+  fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Knight.glb' },
+  ...over,
+});
+
+let files: Map<string, Uint8Array>;
+const fetcher: Fetcher = async (url) => {
+  const f = files.get(url);
+  if (!f) throw new Error(`404 ${url}`);
+  return f;
+};
+
+beforeAll(async () => {
+  files = new Map();
+  files.set(`${RAW}chars/Knight.glb`, await glbFromMesh(figure()));
+  // A .gltf with its buffer in a separate file, as many packs ship.
+  const { json, resources } = await new WebIO().writeJSON(
+    documentFromMesh(box([0, 0, 0], [1, 2, 1])),
+  );
+  const [binName, bin] = Object.entries(resources)[0]!;
+  files.set(`${RAW}props/crate.gltf`, new TextEncoder().encode(JSON.stringify(json)));
+  files.set(`${RAW}props/${binName}`, bin);
+  files.set('https://arweave.net/robert', await vrmFromMesh(figure(), '0'));
+});
+
+describe('validateSources', () => {
+  it('accepts a list of items with pinned sources', () => {
+    expect(validateSources({ source: 'kaykit', items: [item({})] }).ok).toBe(true);
+  });
+
+  it('refuses licences the audit does not allow in the shipped catalogue, and unpinned sources', () => {
+    const r = validateSources({
+      source: 'x',
+      items: [
+        item({ licence: 'CC-BY-NC-4.0' }),
+        item({ id: 'a/Prop/b', fetch: { github: 'a/b', commit: 'main', path: 'x.glb' } }),
+        item({ id: 'a/Prop/c', fetch: { url: 'https://x.org/c.vrm', sha256: 'nope' } }),
+        item({ id: 'a/Prop/d', credit: ' ' }),
+      ],
+    });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors.join('\n')).toMatch(/licence/);
+    expect(r.errors.join('\n')).toMatch(/commit/);
+    expect(r.errors.join('\n')).toMatch(/sha256/);
+    expect(r.errors.join('\n')).toMatch(/credit/);
+  });
+
+  it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
+    const list = (exclude: unknown, itemExclude?: unknown) =>
+      validateSources({
+        source: 'k',
+        exclude,
+        items: [item(itemExclude === undefined ? {} : { exclude: itemExclude })],
+      }).ok;
+    expect(list({ nodes: ['*Sword*'], animations: ['*Attack*'] }, { nodes: ['Cape'] })).toBe(true);
+    expect(list({ meshes: ['x'] })).toBe(false);
+    expect(list({ nodes: 'Sword' })).toBe(false);
+    expect(list(undefined, { animations: [''] })).toBe(false);
+  });
+
+  it('lets an Arweave address, which names fixed content, leave out the sha256', () => {
+    const tx = 'gfVzs1oH_aPaHVxpQK86HT_rqzyrFPOUKUrDJ30yprs';
+    const vrm = (url: string) =>
+      validateSources({ source: 'osa', items: [item({ fetch: { url, ext: 'vrm' } })] }).ok;
+    expect(vrm(`https://arweave.net/${tx}`)).toBe(true);
+    expect(vrm('https://example.org/robert.vrm')).toBe(false);
+  });
+});
+
+describe('fetchModel', () => {
+  it('fetches a model from GitHub at a pinned commit, and records what it fetched', async () => {
+    const got = await fetchModel(item({}) as never, fetcher);
+    expect(got.ext).toBe('glb');
+    expect(got.fetched).toEqual([
+      { url: `${RAW}chars/Knight.glb`, sha256: sha(files.get(`${RAW}chars/Knight.glb`)!) },
+    ]);
+  });
+
+  it('packs a .gltf and its files into one binary glTF', async () => {
+    const got = await fetchModel(
+      item({ fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/crate.gltf' } }) as never,
+      fetcher,
+    );
+    expect(got.ext).toBe('glb');
+    expect(got.fetched).toHaveLength(2);
+    expect(new TextDecoder().decode(got.bytes.slice(0, 4))).toBe('glTF');
+  });
+
+  it('packs a .gltf that needs a glTF extension, keeping it', async () => {
+    const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+    const { json, resources } = await io.writeJSON(webpModel());
+    files.set(`${RAW}props/painted.gltf`, new TextEncoder().encode(JSON.stringify(json)));
+    for (const [name, bytes] of Object.entries(resources)) files.set(`${RAW}props/${name}`, bytes);
+    const got = await fetchModel(
+      item({
+        fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/painted.gltf' },
+      }) as never,
+      fetcher,
+    );
+    const packed = await io.binaryToJSON(got.bytes);
+    expect(packed.json.extensionsRequired).toEqual(['EXT_texture_webp']);
+  });
+
+  it('checks a downloaded file against its sha256', async () => {
+    const vrm = files.get('https://arweave.net/robert')!;
+    const ok = item({ fetch: { url: 'https://arweave.net/robert', sha256: sha(vrm), ext: 'vrm' } });
+    expect((await fetchModel(ok as never, fetcher)).ext).toBe('vrm');
+    const bad = item({
+      fetch: { url: 'https://arweave.net/robert', sha256: 'b'.repeat(64), ext: 'vrm' },
+    });
+    await expect(fetchModel(bad as never, fetcher)).rejects.toThrow(/sha256/);
+  });
+});
+
+describe('CC BY credits', () => {
+  it('say "changed for StoryStage" on a glTF model, which the build changes, not on a VRM', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-ccby-'));
+    await mkdir(join(dir, 'sources'));
+    const vrm = files.get('https://arweave.net/robert')!;
+    await writeFile(
+      join(dir, 'sources/ccby.json'),
+      JSON.stringify({
+        source: 'ccby',
+        items: [
+          item({ licence: 'CC-BY-4.0', credit: 'Knight by Kay, CC BY 4.0' }),
+          item({
+            id: 'osa/Biped/robert',
+            licence: 'CC-BY-4.0',
+            credit: 'Robert by Polygonal Mind, CC BY 4.0',
+            fetch: { url: 'https://arweave.net/robert', sha256: sha(vrm), ext: 'vrm' },
+          }),
+        ],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-11-08' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const credit = (id: string) =>
+      manifest.items.find((i: { id: string }) => i.id === id).credit as string;
+    expect(credit('kaykit/Biped/knight')).toBe('Knight by Kay, CC BY 4.0, changed for StoryStage');
+    expect(credit('osa/Biped/robert')).toBe('Robert by Polygonal Mind, CC BY 4.0');
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('descriptions', () => {
+  const list = (description: unknown) =>
+    validateSources({ source: 'm', items: [item({ description })] });
+
+  it('takes a plain line about what it looks like', () => {
+    expect(list('a knight in silver armour').ok).toBe(true);
+    expect(validateSources({ source: 'm', items: [item({})] }).ok).toBe(true);
+  });
+
+  it('refuses skin colour or ancestry, and long or empty lines', () => {
+    expect(list('an Asian woman with a bob')).toMatchObject({
+      ok: false,
+      errors: [expect.stringMatching(/never by skin colour or ancestry/)],
+    });
+    expect(list('x'.repeat(121)).ok).toBe(false);
+    expect(list('').ok).toBe(false);
+    expect(list(7).ok).toBe(false);
+  });
+});
+
+describe('generated models', () => {
+  it('accepts a path under generated/, and nothing outside it', () => {
+    const list = (generated: string) =>
+      validateSources({ source: 'm', items: [item({ fetch: { generated } })] }).ok;
+    expect(list('makehuman/p01.glb')).toBe(true);
+    expect(list('../secrets/p01.glb')).toBe(false);
+    expect(list('/etc/p01.glb')).toBe(false);
+    expect(list('makehuman/p01.vrm')).toBe(false);
+  });
+
+  it('reads a generated model, and records where it came from', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-generated-'));
+    await mkdir(join(dir, 'generated/makehuman'), { recursive: true });
+    const glb = await glbFromMesh(figure());
+    await writeFile(join(dir, 'generated/makehuman/p01.glb'), glb);
+    const got = await fetchModel(
+      item({ fetch: { generated: 'makehuman/p01.glb' } }) as never,
+      fetcher,
+      dir,
+    );
+    expect(got.ext).toBe('glb');
+    expect(got.fetched).toEqual([{ url: 'generated:makehuman/p01.glb', sha256: sha(glb) }]);
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  // generated/ isn't committed: a rebuild that hasn't just made the people uses the shipped ones.
+  it('uses the committed model when the generated one is not there', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-kept-'));
+    await mkdir(join(dir, 'models/mh/Biped'), { recursive: true });
+    const glb = await glbFromMesh(figure());
+    await writeFile(join(dir, 'models/mh/Biped/p01.glb'), glb);
+    const generated = item({ id: 'mh/Biped/p01', fetch: { generated: 'makehuman/p01.glb' } });
+    const got = await fetchModel(generated as never, fetcher, dir);
+    expect(got.ext).toBe('glb');
+    expect(got.fetched).toEqual([{ url: 'kept:models/mh/Biped/p01.glb', sha256: sha(glb) }]);
+    await rm(join(dir, 'models'), { recursive: true });
+    await expect(fetchModel(generated as never, fetcher, dir)).rejects.toThrow(
+      /makehuman\/p01\.glb.*models\/mh\/Biped\/p01\.glb/s,
+    );
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('rebuilds a kept model, keeping where and when it was first made', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-rebuild-'));
+    await mkdir(join(dir, 'sources'));
+    await mkdir(join(dir, 'generated/makehuman'), { recursive: true });
+    const glb = await glbFromMesh(figure());
+    await writeFile(join(dir, 'generated/makehuman/p01.glb'), glb);
+    await writeFile(
+      join(dir, 'sources/makehuman.json'),
+      JSON.stringify({
+        source: 'makehuman',
+        items: [item({ id: 'mh/Biped/p01', fetch: { generated: 'makehuman/p01.glb' } })],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-10-20' });
+    const first = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'))['mh/Biped/p01'];
+
+    await rm(join(dir, 'generated'), { recursive: true });
+    await buildSources(dir, { fetcher, today: '2026-11-07' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const provenance = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'));
+    expect(provenance['mh/Biped/p01']).toMatchObject({
+      fetched: [{ url: 'generated:makehuman/p01.glb', sha256: sha(glb) }],
+      retrieved: '2026-10-20',
+      fetchedSize: first.fetchedSize,
+    });
+    expect(manifest.items[0].source.retrieved).toBe('2026-10-20');
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+describe('buildSources', () => {
+  let dir: string;
+  beforeAll(async () => {
+    dir = await mkdtemp(join(tmpdir(), 'backstage-sources-'));
+    await mkdir(join(dir, 'sources'));
+    const vrm = files.get('https://arweave.net/robert')!;
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({ description: 'a knight in silver armour with a blue tunic' }),
+          item({
+            id: 'kaykit/Prop/crate',
+            displayName: 'Crate',
+            class: 'Prop',
+            section: 'props',
+            credit: 'Crate by Kay Lousberg, KayKit (CC0)',
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/crate.gltf' },
+          }),
+          item({
+            id: 'osa/Biped/robert',
+            displayName: 'Robert',
+            credit: 'Robert by Polygonal Mind, 100Avatars (CC0)',
+            page: 'https://arweave.net/robert',
+            fetch: { url: 'https://arweave.net/robert', sha256: sha(vrm), ext: 'vrm' },
+          }),
+        ],
+      }),
+    );
+  });
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('writes the models, a manifest that validates, provenance and sketches', async () => {
+    const report = await buildSources(dir, { fetcher, today: '2026-10-25' });
+    expect(report.items).toBe(3);
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    expect(validateManifest(manifest).ok).toBe(true);
+    const byId = Object.fromEntries(manifest.items.map((i: { id: string }) => [i.id, i]));
+    const knight = byId['kaykit/Biped/knight'];
+    expect(knight.files.model).toBe('models/kaykit/Biped/knight.glb');
+    // Its colour thumbnail, as WebP.
+    expect(knight.files.thumbnail).toBe('thumbnails/kaykit/Biped/knight.webp');
+    const webp = await readFile(join(dir, knight.files.thumbnail));
+    expect(webp.subarray(0, 4).toString('latin1')).toBe('RIFF');
+    expect(webp.subarray(8, 12).toString('latin1')).toBe('WEBP');
+    expect(existsSync(join(dir, 'thumbnails/osa/Biped/robert.webp'))).toBe(true);
+    expect(knight.joints).toContain('leftUpperArm');
+    expect(knight.source).toEqual({
+      url: 'https://github.com/kaykit/pack',
+      retrieved: '2026-10-25',
+    });
+    expect(knight.defaultSize.height).toBeCloseTo(1.78, 1);
+    expect(knight.budget).toEqual({ triangles: 180, textureMaxPx: 0 });
+    expect(knight.vrm).toBeUndefined();
+    expect(knight.sketches).toHaveLength(16);
+    expect(byId['kaykit/Prop/crate'].joints).toBe('prop-only');
+    expect(byId['kaykit/Prop/crate'].sketches).toHaveLength(4);
+    // The VRM is kept byte for byte, and its VRM table maps its oddly named bones.
+    expect(await readFile(join(dir, 'models/osa/Biped/robert.vrm'))).toEqual(
+      Buffer.from(files.get('https://arweave.net/robert')!),
+    );
+    expect(byId['osa/Biped/robert'].joints).toContain('hips');
+    // A VRM 0.x avatar faces -Z: the manifest says so, for the stage.
+    expect(byId['osa/Biped/robert'].vrm).toBe('0');
+    expect(byId['osa/Biped/robert'].sketches).toHaveLength(16);
+
+    const provenance = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'));
+    expect(provenance['osa/Biped/robert']).toMatchObject({ vrm: '0', skeleton: 'mapped' });
+    expect(provenance['kaykit/Prop/crate'].fetched).toHaveLength(2);
+    expect(provenance['kaykit/Biped/knight'].excluded).toEqual({ nodes: [], animations: [] });
+    const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
+    expect(md).toContain('| `osa/Biped/robert` | Robert | CC0-1.0 |');
+    expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);
+  });
+
+  it("writes each description, and the Prompter's catalogue with its size", async () => {
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const knight = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Biped/knight');
+    expect(knight.description).toBe('a knight in silver armour with a blue tunic');
+    expect(
+      manifest.items.find((i: { id: string }) => i.id === 'osa/Biped/robert'),
+    ).not.toHaveProperty('description');
+    const catalogue = await readFile(join(dir, 'prompter-catalogue.txt'), 'utf8');
+    expect(catalogue).toContain(
+      'kaykit/Biped/knight: Knight, a knight in silver armour with a blue tunic [fantasy]',
+    );
+    expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
+    const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
+    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 12,000 tokens/);
+  });
+
+  it('builds one list on its own with only, leaving the others alone', async () => {
+    await writeFile(
+      join(dir, 'sources/other.json'),
+      JSON.stringify({
+        source: 'other',
+        items: [
+          item({
+            id: 'other/Prop/widget',
+            class: 'Prop',
+            section: 'props',
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/crate.gltf' },
+          }),
+        ],
+      }),
+    );
+    const report = await buildSources(dir, { fetcher, today: '2026-11-01', only: 'other' });
+    expect(report.items).toBe(1);
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const ids = manifest.items.map((i: { id: string }) => i.id);
+    expect(ids).toContain('kaykit/Biped/knight');
+    expect(ids).toContain('other/Prop/widget');
+    await rm(join(dir, 'sources/other.json'));
+  });
+
+  it('keeps items it did not build, and replaces those it rebuilt', async () => {
+    const path = join(dir, 'backstage.json');
+    const manifest = JSON.parse(await readFile(path, 'utf8'));
+    const other = { ...manifest.items[1], id: 'other/Prop/thing', displayName: 'Thing' };
+    manifest.items.push(other);
+    await writeFile(path, JSON.stringify(manifest));
+    const report = await buildSources(dir, { fetcher, today: '2026-10-26' });
+    expect(report.items).toBe(3);
+    const after = JSON.parse(await readFile(path, 'utf8'));
+    expect(after.items.map((i: { id: string }) => i.id)).toContain('other/Prop/thing');
+    expect(after.items.filter((i: { id: string }) => i.id === 'kaykit/Biped/knight')).toHaveLength(
+      1,
+    );
+  });
+});

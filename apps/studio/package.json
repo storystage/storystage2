@@ -12,6 +12,10 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/sketches": "workspace:*",
+    "@storystage/story-api": "workspace:*",
     "@storystage/ui": "workspace:*",
     "react": "^19.3.1",
     "react-aria-components": "^1.22.1",

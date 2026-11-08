@@ -1,0 +1,250 @@
+/**
+ * WP3.5: the everyday people made with MakeHuman (`people.json`), checked against the assets in
+ * MakeHuman's CC0 system pack, and described in plain words for the owner's review of
+ * respectful, varied representation (`people.md`).
+ *
+ * The pipeline that makes them (MPFB2 in Blender, headless, in the assets repository's CI) reads
+ * the same file.
+ */
+import { descriptionProblem } from '@storystage/backstage';
+
+/**
+ * Asset names in `makehuman_system_assets_cc0.zip` (CC0), as its page lists them:
+ * https://static.makehumancommunity.org/assets/assetpacks/makehuman_system_assets.html
+ */
+export const SYSTEM_ASSETS = {
+  hair: [
+    'afro01',
+    'bob01',
+    'bob02',
+    'braid01',
+    'long01',
+    'ponytail01',
+    'short01',
+    'short02',
+    'short03',
+    'short04',
+  ],
+  eyebrows: Array.from({ length: 12 }, (_, i) => `eyebrow${String(i + 1).padStart(3, '0')}`),
+  eyes: [
+    'blue',
+    'bluegreen',
+    'brown',
+    'brownlight',
+    'deepblue',
+    'green',
+    'grey',
+    'ice',
+    'lightblue',
+  ],
+  clothes: [
+    'female_casualsuit01',
+    'female_casualsuit02',
+    'female_elegantsuit01',
+    'female_sportsuit01',
+    'male_casualsuit01',
+    'male_casualsuit02',
+    'male_casualsuit03',
+    'male_casualsuit04',
+    'male_casualsuit05',
+    'male_casualsuit06',
+    'male_elegantsuit01',
+    'male_worksuit01',
+  ],
+  shoes: ['shoes01', 'shoes02', 'shoes03', 'shoes04', 'shoes05', 'shoes06'],
+  hats: ['fedora01', 'fedora_cocked'],
+} as const;
+
+/**
+ * Outfits in the pack that nobody wears (owner, 1 Nov 2026): the crop top and the short denim
+ * shorts don't suit a tool for 6 to 13-year-olds, and the rest carry MakeHuman's logo.
+ */
+export const RETIRED_CLOTHES = [
+  'female_sportsuit01',
+  'female_casualsuit01',
+  'female_casualsuit02',
+  'male_casualsuit02',
+  'male_casualsuit04',
+  // Its T-shirt carries MakeHuman's logo too, faint once recoloured (found in the renders, 8 Nov).
+  'male_casualsuit06',
+] as const;
+
+/**
+ * Outfits worn only in their own colours: recolouring the plain shirt and grey jeans
+ * (`male_casualsuit01`) leaves the shirt navy and stains the belt and the jeans' knees instead
+ * (found in the renders, 8 Nov 2026).
+ */
+export const NOT_RECOLOURED = ['male_casualsuit01'] as const;
+
+/**
+ * Colours for an outfit, red, green and blue from 0 to 1, so 30 people don't look like a team in
+ * uniform. The pipeline leaves denim alone and recolours the rest of the outfit.
+ */
+export const CLOTHES_COLOURS = {
+  coral: [0.91, 0.45, 0.36],
+  green: [0.3, 0.6, 0.35],
+  lilac: [0.66, 0.55, 0.82],
+  mustard: [0.85, 0.66, 0.2],
+  plum: [0.52, 0.27, 0.5],
+  rose: [0.85, 0.5, 0.6],
+  rust: [0.7, 0.36, 0.2],
+  teal: [0.16, 0.56, 0.58],
+} as const;
+export type ClothesColour = keyof typeof CLOTHES_COLOURS;
+
+export interface Person {
+  /** `p01` to `p30`; the Backstage id is `makehuman/Biped/<id>`. */
+  readonly id: string;
+  /** The name learners see in Backstage. */
+  readonly name: string;
+  /**
+   * What they look like, for the Prompter's catalogue, search and screen readers: age, hair,
+   * clothes, never skin colour or ancestry (owner, 8 Nov 2026; spec 17, section 1, rule 5).
+   * Written from their render, so it changes when the render does.
+   */
+  readonly description: string;
+  readonly ageYears: number;
+  /** MakeHuman's gender slider: 0 a female body, 1 a male body, 0.5 in between. */
+  readonly gender: number;
+  /** MakeHuman's macro sliders, 0 to 1; 0.5 is average. */
+  readonly build: {
+    readonly weight: number;
+    readonly muscle: number;
+    readonly height: number;
+    readonly proportions: number;
+  };
+  /** MakeHuman's three ancestry sliders, which add up to 1. */
+  readonly ancestry: {
+    readonly african: number;
+    readonly asian: number;
+    readonly caucasian: number;
+  };
+  readonly eyes: string;
+  /** null for no hair. */
+  readonly hair: string | null;
+  /**
+   * The pack's hair comes in fixed colours, none of them grey, so older people's hair is tinted
+   * in the pipeline (owner, 1 Nov 2026).
+   */
+  readonly hairTint?: 'grey' | 'white';
+  readonly eyebrows: string;
+  readonly clothes: readonly string[];
+  /** The outfit's colour; left out, it keeps the pack's. */
+  readonly clothesColour?: ClothesColour;
+  readonly shoes: string;
+  readonly hat?: string;
+}
+
+/**
+ * MakeHuman's age slider: 0 is 1 year, 0.1875 is 11, 0.5 is 25 and 1 is 90, straight lines
+ * between.
+ */
+export function ageToMacro(years: number): number {
+  if (years <= 11) return ((years - 1) / 10) * 0.1875;
+  if (years <= 25) return 0.1875 + ((years - 11) / 14) * 0.3125;
+  return 0.5 + ((years - 25) / 65) * 0.5;
+}
+
+/** The system pack's skin for a person: age band, largest ancestry share, body. */
+export function skinFor(p: Person): string {
+  const band = p.ageYears < 35 ? 'young' : p.ageYears < 60 ? 'middleage' : 'old';
+  const [group] = (Object.entries(p.ancestry) as [string, number][]).sort(
+    (a, b) => b[1] - a[1],
+  )[0]!;
+  return `${band}_${group}_${p.gender < 0.5 ? 'female' : 'male'}`;
+}
+
+type Result = { ok: true } | { ok: false; errors: string[] };
+
+const in01 = (x: unknown) => typeof x === 'number' && x >= 0 && x <= 1;
+
+export function validatePeople(people: readonly Person[]): Result {
+  const errors: string[] = [];
+  const seen = new Set<string>();
+  people.forEach((p, i) => {
+    const e = (m: string) => errors.push(`people[${i}] (${p.id ?? '?'}): ${m}`);
+    if (!/^p\d{2}$/.test(p.id)) e('id must be p01 to p99.');
+    else if (seen.has(p.id)) e('has the same id as an earlier person.');
+    else seen.add(p.id);
+    if (typeof p.name !== 'string' || !p.name.trim()) e('needs a name.');
+    const problem =
+      typeof p.description === 'string'
+        ? descriptionProblem(p.description)
+        : 'needs a description.';
+    if (problem) e(problem);
+    if (!(p.ageYears >= 1 && p.ageYears <= 90)) e('age must be 1 to 90 years.');
+    if (!in01(p.gender)) e('gender must be 0 to 1.');
+    for (const k of ['weight', 'muscle', 'height', 'proportions'] as const)
+      if (!in01(p.build?.[k])) e(`build.${k} must be 0 to 1.`);
+    const a = p.ancestry ?? {};
+    const sum = (a.african ?? -1) + (a.asian ?? -1) + (a.caucasian ?? -1);
+    if (![a.african, a.asian, a.caucasian].every(in01) || Math.abs(sum - 1) > 0.01)
+      e('ancestry must be three shares from 0 to 1 that add up to 1.');
+    const has = (list: readonly string[], x: unknown) => typeof x === 'string' && list.includes(x);
+    if (!has(SYSTEM_ASSETS.eyes, p.eyes))
+      e(`eyes must be one of ${SYSTEM_ASSETS.eyes.join(', ')}.`);
+    if (p.hair !== null && !has(SYSTEM_ASSETS.hair, p.hair))
+      e(`hair must be null or one of ${SYSTEM_ASSETS.hair.join(', ')}.`);
+    if (p.hairTint !== undefined && (p.hair === null || !['grey', 'white'].includes(p.hairTint)))
+      e('hairTint must be grey or white, on someone with hair.');
+    if (!has(SYSTEM_ASSETS.eyebrows, p.eyebrows)) e('eyebrows must be eyebrow001 to eyebrow012.');
+    if (!Array.isArray(p.clothes) || p.clothes.length === 0) e('needs clothes.');
+    else
+      for (const c of p.clothes)
+        if (!has(SYSTEM_ASSETS.clothes, c)) e(`clothes: "${c}" is not in the system pack.`);
+        else if (has(RETIRED_CLOTHES, c)) e(`clothes: "${c}" is retired.`);
+    if (p.clothesColour !== undefined && !(p.clothesColour in CLOTHES_COLOURS))
+      e(`clothesColour must be one of ${Object.keys(CLOTHES_COLOURS).join(', ')}.`);
+    else if (p.clothesColour !== undefined && p.clothes?.some((c) => has(NOT_RECOLOURED, c)))
+      e(`clothes: "${p.clothes.find((c) => has(NOT_RECOLOURED, c))}" can't be recoloured.`);
+    if (!has(SYSTEM_ASSETS.shoes, p.shoes))
+      e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
+    if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
+      e(`hat must be one of ${SYSTEM_ASSETS.hats.join(', ')}.`);
+  });
+  return errors.length ? { ok: false, errors } : { ok: true };
+}
+
+const buildWords = ({ weight, muscle, height }: Person['build']) =>
+  [
+    height < 0.4 ? 'shorter' : height > 0.65 ? 'taller' : '',
+    weight < 0.4 ? 'slight' : weight > 0.65 ? 'larger' : '',
+    muscle > 0.65 ? 'muscular' : '',
+  ]
+    .filter(Boolean)
+    .join(', ') || 'average';
+
+const ancestryWords = (a: Person['ancestry']) =>
+  (
+    [
+      ['African', a.african],
+      ['Asian', a.asian],
+      ['Caucasian', a.caucasian],
+    ] as const
+  )
+    .filter(([, v]) => v > 0)
+    .sort((x, y) => y[1] - x[1])
+    .map(([k, v]) => `${k} ${Math.round(v * 100)}%`)
+    .join(', ');
+
+const hairWords = (p: Person) =>
+  p.hair === null ? 'none' : p.hairTint ? `${p.hair}, tinted ${p.hairTint}` : p.hair;
+
+const clothesWords = (p: Person) =>
+  [
+    ...p.clothes.map((c) => (p.clothesColour ? `${c} (${p.clothesColour})` : c)),
+    p.shoes,
+    ...(p.hat ? [p.hat] : []),
+  ].join(', ');
+
+/** The review table: one row per person, in plain words. */
+export function peopleTable(people: readonly Person[]): string {
+  return [
+    '| # | Name | Age | Build | MakeHuman ancestry | Skin | Hair | Eyes | Clothes | Description (for the Prompter) |',
+    '|---|---|---|---|---|---|---|---|---|---|',
+    ...people.map(
+      (p, i) =>
+        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${clothesWords(p)} | ${p.description} |`,
+    ),
+  ].join('\n');
+}

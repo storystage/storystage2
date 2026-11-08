@@ -1,4 +1,4 @@
-import type { Color3 } from '@babylonjs/core/Maths/math.color.js';
+import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
@@ -7,7 +7,7 @@ import type { JointName, Quat, Transform } from '@storystage/story-api';
 import type { Box } from '../hull.ts';
 import { mul } from '../math.ts';
 import { paintColour } from '../paint.ts';
-import type { ObjectState } from '../timeline.ts';
+import type { Blend, ObjectState } from '../timeline.ts';
 import { color3 } from './materials.ts';
 
 /** Metres between the top of an object and its label. */
@@ -43,7 +43,8 @@ export class ObjectView {
   private readonly bones: readonly { joint: JointName; node: TransformNode; rest: Quat }[];
   private posed = false;
   private opacity = 1;
-  private paint: string | null = null;
+  /** The paint and blend last shown, so an unchanged paint costs nothing. */
+  private painted = '';
 
   constructor({ root, meshes, box, paintable, joints, label }: ViewParts) {
     this.root = root;
@@ -69,7 +70,12 @@ export class ObjectView {
     }
     if (state.joints.size > 0 || this.posed) this.pose(state);
     if (state.opacity !== this.opacity) this.fade(state.opacity);
-    if (state.paint !== this.paint) this.repaint(state.paint);
+    const blend = state.paintBlend;
+    const painted = `${state.paint}|${blend ? `${blend.from}|${blend.amount}` : ''}`;
+    if (painted !== this.painted) {
+      this.painted = painted;
+      this.repaint(state.paint, blend);
+    }
   }
 
   /** A joint's rotation is on top of the pose it has in the model. */
@@ -88,9 +94,17 @@ export class ObjectView {
     for (const mesh of this.meshes) mesh.visibility = opacity;
   }
 
-  private repaint(paint: string | null): void {
-    this.paint = paint;
-    const colour = paint === null ? null : paintColour(paint);
-    for (const s of this.surfaces) s.material.diffuseColor = colour ? color3(colour) : s.colour;
+  /** A paint tints each surface; part-way through a blend, the old tint and the new are mixed. */
+  private repaint(paint: string | null, blend: Blend | null): void {
+    const tint = (name: string | null, own: Color3) => {
+      const colour = name === null ? null : paintColour(name);
+      return colour ? color3(colour) : own;
+    };
+    for (const s of this.surfaces) {
+      const to = tint(paint, s.colour);
+      s.material.diffuseColor = blend
+        ? Color3.Lerp(tint(blend.from, s.colour), to, blend.amount)
+        : to;
+    }
   }
 }

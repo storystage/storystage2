@@ -8,3 +8,6 @@ import enGB from './strings/en-GB.json' with { type: 'json' };
  */
 export const words = createStrings(enGB);
 export type WordKey = keyof typeof enGB;
+
+/** Whether the studio has words for `key`, for keys made from data (an arc part's name). */
+export const hasWord = (key: string): key is WordKey => Object.hasOwn(enGB, key);

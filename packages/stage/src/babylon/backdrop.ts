@@ -11,7 +11,8 @@ import { CreateGround } from '@babylonjs/core/Meshes/Builders/groundBuilder.js';
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import type { Backdrop, Colour, Ground, Lighting } from '../backdrops.ts';
+import { fogDensity, type Backdrop, type Ground, type Lighting } from '../backdrops.ts';
+import type { Sky } from '../timeline.ts';
 import { color3, plainMaterial } from './materials.ts';
 
 const AMBIENT = 0.3;
@@ -24,29 +25,34 @@ const GROUND_SIZE = 600;
 /** Alice's room, in metres. */
 const ROOM = { width: 10, height: 3, depth: 10 } as const;
 
-function directional(name: string, direction: Vector3, colour: Colour, power: number, s: Scene) {
+function directional(name: string, direction: Vector3, power: number, s: Scene) {
   const light = new DirectionalLight(name, direction, s);
-  light.diffuse = color3(colour);
   light.specular = Color3.Black();
   light.intensity = power;
+  return light;
 }
 
-function addLights({ above, below }: Lighting, scene: Scene) {
+/** The lights, and how to colour them: the ambient and the three above take one colour. */
+function addLights(scene: Scene) {
   const ambient = new HemisphericLight('ambient', Vector3.Up(), scene);
-  ambient.diffuse = color3(above);
-  ambient.groundColor = color3(above);
   ambient.specular = Color3.Black();
   ambient.intensity = AMBIENT;
-  for (const turn of [0, 1 / 3, 2 / 3]) {
+  const above = [0, 1 / 3, 2 / 3].map((turn) => {
     const yaw = turn * 2 * Math.PI;
     const direction = new Vector3(
       Math.sin(yaw) * Math.cos(TILT),
       -Math.sin(TILT),
       Math.cos(yaw) * Math.cos(TILT),
     );
-    directional(`above ${turn}`, direction, above, FROM_ABOVE, scene);
-  }
-  directional('below', Vector3.Up(), below, FROM_BELOW, scene);
+    return directional(`above ${turn}`, direction, FROM_ABOVE, scene);
+  });
+  const below = directional('below', Vector3.Up(), FROM_BELOW, scene);
+  return (lighting: Lighting) => {
+    ambient.diffuse = color3(lighting.above);
+    ambient.groundColor = color3(lighting.above);
+    for (const light of above) light.diffuse = color3(lighting.above);
+    below.diffuse = color3(lighting.below);
+  };
 }
 
 function addGround(ground: Ground, scene: Scene) {
@@ -80,12 +86,28 @@ function addGround(ground: Ground, scene: Scene) {
   ceiling.isPickable = false;
 }
 
-export function buildBackdrop(scene: Scene, backdrop: Backdrop): void {
-  const sky = color3(backdrop.sky.atmosphere);
-  scene.clearColor = Color4.FromColor3(sky, 1);
-  scene.fogColor = sky;
-  scene.fogDensity = backdrop.fogDensity;
-  scene.fogMode = backdrop.fogDensity > 0 ? Scene.FOGMODE_EXP : Scene.FOGMODE_NONE;
-  addLights(backdrop.lighting, scene);
+/** The sky, light and fog as a program has them (`Sky`, fog 0 to 1), applied to the scene. */
+export type ShowSky = (sky: Sky) => void;
+
+/** Builds the backdrop, and gives back how to change its sky, light and fog. */
+export function buildBackdrop(scene: Scene, backdrop: Backdrop): ShowSky {
+  const colourLights = addLights(scene);
   if (backdrop.ground) addGround(backdrop.ground, scene);
+  const show: ShowSky = (sky) => {
+    const atmosphere = color3(sky.atmosphere);
+    scene.clearColor = Color4.FromColor3(atmosphere, 1);
+    scene.fogColor = atmosphere;
+    const density = fogDensity(sky.fog);
+    scene.fogDensity = density;
+    scene.fogMode = density > 0 ? Scene.FOGMODE_EXP : Scene.FOGMODE_NONE;
+    colourLights({ above: sky.fromAbove, below: sky.fromBelow });
+  };
+  // Until there's a timeline to ask, the backdrop's own sky.
+  show({
+    atmosphere: backdrop.sky.atmosphere,
+    fromAbove: backdrop.lighting.above,
+    fromBelow: backdrop.lighting.below,
+    fog: Math.cbrt(backdrop.fogDensity),
+  });
+  return show;
 }

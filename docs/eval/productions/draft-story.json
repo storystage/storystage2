@@ -1,0 +1,20 @@
+{
+  "title": "Pip's Trip",
+  "backdrop": "ice",
+  "objects": [
+    { "name": "penguin", "class": "Flyer", "item": "example/Flyer/penguin", "position": { "x": 0, "y": 0, "z": 0 } }
+  ],
+  "program": [],
+  "storyboard": {
+    "logline": "Pip the penguin goes on a trip.",
+    "synopsis": "Pip floats away on some ice. Pip meets a fox.",
+    "arc": { "template": "threePart", "parts": ["beginning", "middle", "end"] }
+  },
+  "scenes": [
+    { "id": "s1", "heading": "Ice shelf, morning", "cast": ["example/Flyer/penguin"], "arcPart": "beginning" }
+  ],
+  "script": [
+    { "id": "l1", "scene": "s1", "kind": "action", "character": null, "text": "Pip looks at the sea.", "pinnedFrame": null }
+  ],
+  "frames": []
+}

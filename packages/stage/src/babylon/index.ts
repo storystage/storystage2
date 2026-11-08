@@ -35,6 +35,10 @@ function listenTo(canvas: HTMLCanvasElement, stage: BabylonStage) {
     if (name) stage.key(name);
     if (SCROLLING_KEYS.includes(e.key)) e.preventDefault();
   });
+  canvas.addEventListener('keyup', (e) => {
+    const name = keyName(e.key);
+    if (name) stage.keyRelease(name);
+  });
 }
 
 export function createBabylonStage(options: BabylonStageOptions): BabylonStage {
