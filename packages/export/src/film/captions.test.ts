@@ -73,8 +73,17 @@ describe('captionsFor', () => {
   });
 
   it('captions speak lines, with their script words', () => {
-    const [caption] = captionsFor([line({ kind: 'speak', text: 'Run!' })], []);
+    const [caption] = captionsFor([line({ kind: 'caption', text: 'Run!' })], []);
     expect(caption!.text).toBe('OWL: Run!');
+  });
+
+  it("names a speak line's speaker from its own script line", () => {
+    const spoken = dialogue(S1, 'Hoot', 'Run!');
+    const [caption] = captionsFor(
+      [line({ kind: 'caption', text: 'Run!', line: spoken.id })],
+      [dialogue(S1, 'Wise owl', 'Run!'), spoken],
+    );
+    expect(caption!.text).toBe('HOOT: Run!');
   });
 
   it('lasts as long as its line, at least a second, counted from the film start', () => {

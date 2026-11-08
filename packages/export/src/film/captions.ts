@@ -13,8 +13,13 @@ export interface SpokenLine {
   readonly object: string;
   /** A speak line's words are its script line's words. */
   readonly text: string;
-  /** A `think` is a thought, not speech, so it isn't captioned. */
-  readonly kind: 'say' | 'think' | 'speak';
+  /**
+   * A `think` is a thought, not speech, so it isn't captioned. A speak line comes as the stage's
+   * `caption` (spec 06, section 4.7).
+   */
+  readonly kind: 'say' | 'think' | 'caption';
+  /** The script line a speak line speaks (its `LineId`), if it came from one. */
+  readonly line?: string;
   readonly start: Micros;
   readonly duration: Micros;
 }
@@ -65,6 +70,7 @@ export function captionsFor(
 ): Caption[] {
   const offset = options.offset ?? 0;
   const characters = new Map<string, string>();
+  const byId = new Map(script.map((s) => [s.id as string, s]));
   for (const s of script) {
     const key = `${s.scene}\n${sameWords(s.text)}`;
     if (s.kind === 'dialogue' && s.character && !characters.has(key))
@@ -75,7 +81,12 @@ export function captionsFor(
     .filter(({ line }) => line.kind !== 'think' && oneLine(line.text) !== '')
     .sort((a, b) => a.line.start - b.line.start || a.order - b.order)
     .map(({ line }) => {
-      const who = characters.get(`${line.scene}\n${sameWords(line.text)}`) ?? oneLine(line.object);
+      // A speak line's own script line names its speaker first.
+      const spoken = line.line === undefined ? undefined : byId.get(line.line);
+      const who =
+        (spoken?.kind === 'dialogue' && spoken.character ? oneLine(spoken.character) : null) ??
+        characters.get(`${line.scene}\n${sameWords(line.text)}`) ??
+        oneLine(line.object);
       const start = line.start + offset;
       return {
         start,
