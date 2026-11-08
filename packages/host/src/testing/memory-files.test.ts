@@ -1,0 +1,32 @@
+import { describe, expect, it } from 'vitest';
+import { FileError } from '../files.ts';
+import { describeClassFoldersContract } from './conformance.ts';
+import { memoryClassFolders, memoryFilePicker } from './memory-files.ts';
+
+describeClassFoldersContract('memoryClassFolders', () => memoryClassFolders());
+
+describe('memoryFilePicker', () => {
+  const bytes = new TextEncoder().encode('a film');
+
+  it('keeps what was saved and collected', async () => {
+    const picker = memoryFilePicker();
+    await picker.saveCopy('The Owl.storystage', bytes);
+    const count = await picker.collect([{ folder: 'Ava', file: 'The Owl.storystage', bytes }]);
+    expect(count).toBe(1);
+    expect(picker.saved.map((file) => file.name)).toEqual(['The Owl.storystage']);
+    expect(picker.collected.map((file) => `${file.folder}/${file.file}`)).toEqual([
+      'Ava/The Owl.storystage',
+    ]);
+  });
+
+  it('plays its answers, and closing the picker is cancelled', async () => {
+    const picker = memoryFilePicker({
+      open: () => ({ name: 'x.storystage', bytes }),
+      handBack: () => null,
+    });
+    expect((await picker.open()).name).toBe('x.storystage');
+    await expect(picker.handBack()).rejects.toBeInstanceOf(FileError);
+    await expect(picker.handBack()).rejects.toMatchObject({ code: 'cancelled' });
+    await expect(memoryFilePicker().open()).rejects.toMatchObject({ code: 'cancelled' });
+  });
+});
