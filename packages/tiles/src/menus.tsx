@@ -33,7 +33,25 @@ import { t } from './words.ts';
 interface Anchored {
   /** The pill or button the menu opens from. */
   readonly anchor: Element;
+  /**
+   * Closed without a choice: Escape, or a click outside. Not called after a choice, an ask or
+   * a removal, so a caller never has to tell React Aria's own close from the learner's.
+   */
   readonly onClose: () => void;
+}
+
+/**
+ * A menu's `onClose`, and a way to mark that an item has acted: React Aria closes a menu after
+ * its action, and that close isn't the learner's.
+ */
+function useCloseUnlessActed(onClose: () => void) {
+  const acted = useRef(false);
+  return {
+    acted: () => void (acted.current = true),
+    closed: () => {
+      if (!acted.current) onClose();
+    },
+  };
 }
 
 /** Everything a menu's popover takes but its anchor, which is passed straight in as `triggerRef`. */
@@ -80,7 +98,9 @@ export function ValueMenu(props: ValueMenuProps) {
   const chosen =
     now >= 0 || props.current !== undefined ? now : choices.findIndex((c) => c.suggested);
 
+  const close = useCloseUnlessActed(props.onClose);
   const pick = (key: string) => {
+    close.acted();
     if (key === REMOVE) return props.onRemoveDetail?.();
     let list: readonly Choice[] = choices;
     let choice: Choice | undefined;
@@ -121,7 +141,7 @@ export function ValueMenu(props: ValueMenuProps) {
     });
 
   return (
-    <Popover triggerRef={anchorRef} {...popoverProps(props.onClose)}>
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)}>
       <Menu
         aria-label={props.label}
         autoFocus={chosen >= 0 ? true : 'first'}
@@ -204,12 +224,16 @@ export function DetailMenu(props: DetailMenuProps) {
     () => detailsToAdd(props.program, props.node),
     [props.program, props.node],
   );
+  const close = useCloseUnlessActed(props.onClose);
   return (
-    <Popover triggerRef={anchorRef} {...popoverProps(props.onClose)}>
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)}>
       <Menu
         aria-label={t('addDetail')}
         autoFocus="first"
-        onAction={(k) => props.onChoose(String(k))}
+        onAction={(k) => {
+          close.acted();
+          props.onChoose(String(k));
+        }}
       >
         {details.map((d) => (
           <MenuItem key={d.name} id={d.name} className="tl-menu-item">
