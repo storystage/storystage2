@@ -95,6 +95,14 @@ describe('clothes', () => {
     expect(r.errors.join('\n')).toMatch(/clothesColour/);
   });
 
+  it("refuses a colour on an outfit that can't take one", () => {
+    const r = validatePeople([person({ clothesColour: 'teal' })]);
+    expect(r).toMatchObject({ ok: false, errors: [expect.stringMatching(/can't be recoloured/)] });
+    expect(
+      validatePeople([person({ clothes: ['male_casualsuit03'], clothesColour: 'teal' })]).ok,
+    ).toBe(true);
+  });
+
   it('shows the colour in the review table', () => {
     expect(peopleTable([person({ clothesColour: 'teal' })])).toContain(
       'male_casualsuit01 (teal), shoes01',

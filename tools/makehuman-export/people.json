@@ -25,7 +25,7 @@
   {
     "id": "p02",
     "name": "Amara",
-    "description": "a girl of 7 with short curly black hair, in a yellow T-shirt and jeans",
+    "description": "a girl of 7 with short curly black hair, in a yellow jacket and jeans",
     "ageYears": 7,
     "gender": 0.3,
     "build": {
@@ -42,14 +42,14 @@
     "eyes": "brown",
     "hair": "afro01",
     "eyebrows": "eyebrow002",
-    "clothes": ["male_casualsuit06"],
+    "clothes": ["male_casualsuit05"],
     "clothesColour": "mustard",
     "shoes": "shoes02"
   },
   {
     "id": "p03",
     "name": "Kai",
-    "description": "a child of 8 with a brown side fringe, in a teal T-shirt and jeans",
+    "description": "a child of 8 with a brown side fringe, in a teal striped shirt and jeans",
     "ageYears": 8,
     "gender": 0.5,
     "build": {
@@ -66,7 +66,7 @@
     "eyes": "brown",
     "hair": "short03",
     "eyebrows": "eyebrow003",
-    "clothes": ["male_casualsuit06"],
+    "clothes": ["male_casualsuit03"],
     "clothesColour": "teal",
     "shoes": "shoes03"
   },
@@ -120,7 +120,7 @@
   {
     "id": "p06",
     "name": "Niamh",
-    "description": "a tall girl of 11 with short light brown hair, in a green T-shirt and jeans",
+    "description": "a tall girl of 11 with short light brown hair, in a green jacket and jeans",
     "ageYears": 11,
     "gender": 0.3,
     "build": {
@@ -137,7 +137,7 @@
     "eyes": "green",
     "hair": "ponytail01",
     "eyebrows": "eyebrow006",
-    "clothes": ["male_casualsuit06"],
+    "clothes": ["male_casualsuit05"],
     "clothesColour": "green",
     "shoes": "shoes05"
   },
@@ -168,7 +168,7 @@
   {
     "id": "p08",
     "name": "Mei",
-    "description": "a girl of 6 with a black bob and a long fringe, in a coral T-shirt and jeans",
+    "description": "a girl of 6 with a black bob and a long fringe, in a coral striped shirt and jeans",
     "ageYears": 6,
     "gender": 0.3,
     "build": {
@@ -185,7 +185,7 @@
     "eyes": "brown",
     "hair": "bob01",
     "eyebrows": "eyebrow008",
-    "clothes": ["male_casualsuit06"],
+    "clothes": ["male_casualsuit03"],
     "clothesColour": "coral",
     "shoes": "shoes06"
   },
@@ -239,7 +239,7 @@
   {
     "id": "p11",
     "name": "Jayden",
-    "description": "a tall boy of 14 with short brown hair, in a white T-shirt and jeans",
+    "description": "a tall boy of 14 with short brown hair, in a coral jacket and jeans",
     "ageYears": 14,
     "gender": 0.75,
     "build": {
@@ -256,7 +256,8 @@
     "eyes": "brown",
     "hair": "short03",
     "eyebrows": "eyebrow011",
-    "clothes": ["male_casualsuit06"],
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "coral",
     "shoes": "shoes01"
   },
   {
@@ -309,7 +310,7 @@
   {
     "id": "p14",
     "name": "Leah",
-    "description": "a girl of 16 with short brown hair, in an orange T-shirt and jeans",
+    "description": "a girl of 16 with short brown hair, in a pink striped shirt and jeans",
     "ageYears": 16,
     "gender": 0.25,
     "build": {
@@ -326,8 +327,8 @@
     "eyes": "brown",
     "hair": "ponytail01",
     "eyebrows": "eyebrow002",
-    "clothes": ["male_casualsuit06"],
-    "clothesColour": "rust",
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "rose",
     "shoes": "shoes06"
   },
   {
@@ -545,7 +546,7 @@
   {
     "id": "p24",
     "name": "Morgan",
-    "description": "an adult of 26 with short dark hair, in a white T-shirt and jeans",
+    "description": "an adult of 26 with short dark hair, in a purple striped shirt and jeans",
     "ageYears": 26,
     "gender": 0.5,
     "build": {
@@ -562,7 +563,8 @@
     "eyes": "brownlight",
     "hair": "short04",
     "eyebrows": "eyebrow012",
-    "clothes": ["male_casualsuit06"],
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "lilac",
     "shoes": "shoes01"
   },
   {
