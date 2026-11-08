@@ -160,6 +160,36 @@ describe('fetchModel', () => {
   });
 });
 
+describe('CC BY credits', () => {
+  it('say "changed for StoryStage" on a glTF model, which the build changes, not on a VRM', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-ccby-'));
+    await mkdir(join(dir, 'sources'));
+    const vrm = files.get('https://arweave.net/robert')!;
+    await writeFile(
+      join(dir, 'sources/ccby.json'),
+      JSON.stringify({
+        source: 'ccby',
+        items: [
+          item({ licence: 'CC-BY-4.0', credit: 'Knight by Kay, CC BY 4.0' }),
+          item({
+            id: 'osa/Biped/robert',
+            licence: 'CC-BY-4.0',
+            credit: 'Robert by Polygonal Mind, CC BY 4.0',
+            fetch: { url: 'https://arweave.net/robert', sha256: sha(vrm), ext: 'vrm' },
+          }),
+        ],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-11-08' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const credit = (id: string) =>
+      manifest.items.find((i: { id: string }) => i.id === id).credit as string;
+    expect(credit('kaykit/Biped/knight')).toBe('Knight by Kay, CC BY 4.0, changed for StoryStage');
+    expect(credit('osa/Biped/robert')).toBe('Robert by Polygonal Mind, CC BY 4.0');
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
 describe('descriptions', () => {
   const list = (description: unknown) =>
     validateSources({ source: 'm', items: [item({ description })] });
