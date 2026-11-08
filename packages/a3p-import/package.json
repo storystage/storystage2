@@ -12,6 +12,8 @@
     "fetch-starters": "node scripts/fetch-starters.ts"
   },
   "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/backstage": "workspace:*",
     "@storystage/production": "workspace:*",
     "@storystage/story-api": "workspace:*"
   }
