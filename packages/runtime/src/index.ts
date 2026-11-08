@@ -3,7 +3,12 @@
  *
  * Owner: S2. Workplan: WP6.
  *
- * WP0.8: the messages between the worker and the main thread (`messages.ts`). The interpreter
- * arrives in WP6, built on spike 1.4's scheduler.
+ * `serve` is the worker's side of `messages.ts`. The Story API reaches it as a `StoryLibrary`
+ * (WP4.3). Rules: `docs/spec/18-runtime.md`.
  */
+export * from './interpreter.ts';
 export * from './messages.ts';
+export * from './scheduler.ts';
+export * from './serve.ts';
+export * from './story.ts';
+export * from './values.ts';

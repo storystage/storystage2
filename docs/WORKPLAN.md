@@ -225,8 +225,8 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP3b | Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7) | Backstage | WP0, WP3a | 4 | wk 1.5 (29 Oct 2026) | 5 |  |
 | WP0s | Threat model and security spec (0.9) | Foundations | WP0 | 1.5 | wk 1.5 (29 Oct 2026) | 3 |  |
 | WP18a | Test harness, fake stage, self-test skeleton (18.1, 18.4) | Foundations | WP0 | 2 | wk 1.5 (29 Oct 2026) | 21 | 0.1 (21 Oct) |
-| WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 |  |
-| WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 |  |
+| WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 | 0.3 (31 Oct–1 Nov) |
+| WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 | 1 (1–7 Nov) |
 | WP13a | Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8) | Prompter and speech | WP0 | 3 | wk 1.5 (29 Oct 2026) | 4.5 |  |
 | WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct |
 | WP19a | Website and teacher guide drafts (19.1, 19.2) | Curriculum and legal | WP12a | 3 | wk 2 (2 Nov 2026) | 13.5 |  |
@@ -235,8 +235,8 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |  |
 | WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
-| WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 |  |
-| WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 |  |
+| WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | started 1 Nov |
+| WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | 0.3 (31 Oct–1 Nov) |
 | WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 8 |  |
 | WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 | 0.3 (21–22 Oct) |
 | WP5a | Stage core: scene, models, camera, picking, offscreen (5.1–5.5) | Stage | WP0, WP1 | 3 | wk 4.5 (20 Nov 2026) | **0 (critical)** |  |
@@ -399,7 +399,7 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
     Each gets a note on what changes in StoryStage 2. (C)
 - [x] 0.8 **Interface contracts**, so lanes can work in parallel (section 5a): TypeScript interfaces and stub packages for the stage (with a fake stage that records calls), runtime messages between worker and main thread, production and storyboard data types, the Backstage manifest schema, the Prompter transport, and the **editor contract** that both code editors implement (WP7, WP7c). Changes to a contract go in their own small pull request, reviewed before the code that uses them. (C)
 
-- [ ] 0.9 **Threat model** (`docs/spec/15-security.md`): a STRIDE pass over every trust boundary: the webview and the native layer, imported files (`.storystage`, `.a3p`, glTF, Fountain), learner text sent to the Prompter, sidecars, the browser version, and (if chosen) the classroom relay. Each threat gets a control and a test. Import code (8.4, 9.1, 10.4) and the transport (15.2) start only after it. (C; a human security review is recommended before the pilot)
+- [x] 0.9 **Threat model** (`docs/spec/15-security.md`): a STRIDE pass over every trust boundary: the webview and the native layer, imported files (`.storystage`, `.a3p`, glTF, Fountain), learner text sent to the Prompter, sidecars, the browser version, and (if chosen) the classroom relay. Each threat gets a control and a test. Import code (8.4, 9.1, 10.4) and the transport (15.2) start only after it. (C; a human security review is recommended before the pilot)
 - [x] 0.10 **One schedule file:** `tools/plan/schedule.yaml` holds every item, its dependencies, its duration, the basis for the estimate and the actual duration. Section 5a's tables and charts are generated from it, section 6's "Depends on" lines cite its item ids, and CI fails when they disagree. Recalibrate at every milestone. (C)
 
 **Done when:** a pull request with a failing test is blocked by CI, and a passing one merges. Both desktop builds produce an empty Tauri window as a workflow artifact. The contract packages (0.8) build, and the fake stage passes its own tests.
@@ -431,17 +431,17 @@ Each WP lists its objective, dependencies, tasks (C or U), deliverables and the 
 <!-- schedule:wp2 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP2 after WP0.
 <!-- /schedule:wp2 -->
-- [ ] 2.1 Spec `docs/spec/01-ast.md`:
+- [x] 2.1 Spec `docs/spec/01-ast.md`:
     - node kinds: types, fields, methods, statements (do in order, do together, count, while, for each, each together, if, local, assign, comment, call), expressions and event listeners;
     - JSON schema;
     - id rules: short stable ids; ids survive edits; copy-paste mints new ids and records `copiedFrom`.
 
     (C)
-- [ ] 2.2 TypeScript types plus a JSON-schema validator. Every load and every edit is validated. (C)
-- [ ] 2.3 **Edit operations** as the only way to change a program: insert, remove, move, set-argument, declare, rename. Each is invertible, giving undo/redo with grouping, so a whole Prompter request is one undo step. Each edit has a human label ("Add cat", "Make cat say Hello"). (C)
-- [ ] 2.4 Project history: the list of edits with labels, as in StoryStage 1. (C)
-- [ ] 2.5 Text view generator: the AST rendered as read-only Python-like text, with node ids available for highlighting. (C)
-- [ ] 2.6 Schema version and a migration framework, from version 1. **Versioning promise:** semantic versions for the file format; migrating keeps the original file; an older app opens a newer file read-only, with a plain message; deprecated nodes stay readable for two major versions; a changelog. (C)
+- [x] 2.2 TypeScript types plus a JSON-schema validator. Every load and every edit is validated. (C)
+- [x] 2.3 **Edit operations** as the only way to change a program: insert, remove, move, set-argument, declare, rename. Each is invertible, giving undo/redo with grouping, so a whole Prompter request is one undo step. Each edit has a human label ("Add cat", "Make cat say Hello"). (C)
+- [x] 2.4 Project history: the list of edits with labels, as in StoryStage 1. (C)
+- [x] 2.5 Text view generator: the AST rendered as read-only Python-like text, with node ids available for highlighting. (C)
+- [x] 2.6 Schema version and a migration framework, from version 1. **Versioning promise:** semantic versions for the file format; migrating keeps the original file; an older app opens a newer file read-only, with a plain message; deprecated nodes stay readable for two major versions; a changelog. (C)
 
 **Done when:** property-based tests show that any sequence of edits followed by full undo returns the original program byte-for-byte, and that every valid edit keeps the schema valid.
 
@@ -483,7 +483,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
 - [ ] 3.1 **Licence audit:** list every candidate asset with its source, licence, credit line and ship / don't ship. For Alice's own models (about 340), the Alice 3 EULA, clause 5, says the gallery "is contributed by Electronic Arts Inc. and may be used for personal, non-commercial, and academic use only"; confirm with CMU which models CMU made and on what terms (WP17.1). (C drafts; U confirms with CMU)
 - [ ] 3.2 `tools/convert-alice-models`: a Java CLI that reuses StoryStage 1's model-loading code to read `.a3r` and `.a3t` files and write glTF 2.0. It keeps meshes, textures, skeleton and joint names, and the default pose. It runs once, on StoryStage 1's checkout, never ships, and writes a conversion report; the glTF files and report are committed with their provenance to an assets repository and the tool is archived, so StoryStage 1 need not stay buildable. Only models cleared in 3.1 are published. (C)
-- [ ] 3.3 **Joint map** (see `docs/spec/10-crosswalk.md`):
+- [x] 3.3 **Joint map** (see `docs/spec/10-crosswalk.md`):
     - humanoids use **VRM 1.0 bone names** as internal ids, with an **H-Anim (ISO/IEC 19774)** mapping;
     - Alice's friendly words (for example "mouth", "left elbow") are display names on the blocks;
     - Alice's two-joint wrist/hand and ankle/foot map onto the single standard bone, and a ring finger is added;
@@ -496,7 +496,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - credits generated from it for the About screen and exported films (WP11.4).
 
     (C)
-- [ ] 3.5 **Everyday people from MakeHuman:** a pipeline (`tools/makehuman-export`) that generates a set of diverse, rigged people from MakeHuman's CC0 assets, exports them to glTF, maps them to the biped joints, and simplifies them to the device budget (3.9). First set: about 30 people (children, teenagers, adults, older people; a range of body types, skin tones and clothes), checked by the owner for respectful, varied representation. (C; U reviews)
+- [x] 3.5 **Everyday people from MakeHuman:** a pipeline (`tools/makehuman-export`) that generates a set of diverse, rigged people from MakeHuman's CC0 assets, exports them to glTF, maps them to the biped joints, and simplifies them to the device budget (3.9). First set: about 30 people (children, teenagers, adults, older people; a range of body types, skin tones and clothes), checked by the owner for respectful, varied representation. (C; U reviews)
 - [ ] 3.6 **Storybook cast (commissioned):**
     - a shortlist of 12–20 public-domain characters chosen with the curriculum mapping (WP16). Candidates: Alice, the Mad Hatter and the White Rabbit (Carroll and Tenniel); Sherlock Holmes and Dr Watson; Robin Hood; King Arthur and Merlin; characters from Shakespeare; Greek myths; Anansi; Beowulf;
     - a design brief: original 3D designs based only on the public-domain text and illustrations, in one style; rigged to the biped or quadruped joints, with a mouth joint for lip sync;
@@ -530,7 +530,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp4 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP4a after WP0, WP3a; WP4d after WP4a; WP4b after WP4a, WP5a; WP4c after WP4b, WP5b, WP3c.
 <!-- /schedule:wp4 -->
-- [ ] 4.1 Spec `docs/spec/02-story-api.md`, generated from Alice's `PRIME_TIME` methods (StoryStage 1's `ApiCatalog` output). It covers:
+- [x] 4.1 Spec `docs/spec/02-story-api.md`, generated from Alice's `PRIME_TIME` methods (StoryStage 1's `ApiCatalog` output). It covers:
     - classes (Scene, Camera, Biped, Quadruped, Flyer, Swimmer, Slitherer, Prop, Transport, Ground, Billboard, Text);
     - procedures (move, turn, roll, resize, say, think, moveTo, moveToward, turnToFace, pointAt, orientTo, moveAndOrientTo, setOpacity, setPaint, play audio…);
     - functions (getDistanceTo, isCollidingWith, getWidth…);
@@ -538,7 +538,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - joints; event kinds.
 
     Anything dropped or added is listed. (C)
-- [ ] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
+- [x] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
 - [ ] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
 - [ ] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). (C)
 - [ ] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
@@ -556,7 +556,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - **retargeting**: every animation is authored once against the VRM humanoid bones and plays on any humanoid (MakeHuman, Kenney, commissioned), as Unity's Mecanim Humanoid does.
 
     (C)
-- [ ] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
+- [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
 - [ ] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)
 - [ ] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
@@ -569,11 +569,11 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp5 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP5a after WP0, WP1; WP5b after WP5a.
 <!-- /schedule:wp5 -->
-- [ ] 5.1 Stage interface (`packages/stage`), so the runtime and story API never touch Babylon.js directly. (C)
-- [ ] 5.2 Scene with backdrops (ground types, sky, lighting, fog) matching Alice's starting templates; these are Backstage's **Backdrops** section. (C)
-- [ ] 5.3 Model placement, transforms, joints, opacity and paint; vehicles (parenting). (C)
-- [ ] 5.4 Camera, camera markers and camera moves; picking for mouse-click events. (C)
-- [ ] 5.5 Live mode (real time) and **fixed-time-step offscreen mode** for export (WP11). (C)
+- [x] 5.1 Stage interface (`packages/stage`), so the runtime and story API never touch Babylon.js directly. (C)
+- [x] 5.2 Scene with backdrops (ground types, sky, lighting, fog) matching Alice's starting templates; these are Backstage's **Backdrops** section. (C)
+- [x] 5.3 Model placement, transforms, joints, opacity and paint; vehicles (parenting). (C)
+- [x] 5.4 Camera, camera markers and camera moves; picking for mouse-click events. (C)
+- [x] 5.5 Live mode (real time) and **fixed-time-step offscreen mode** for export (WP11). (C)
 - [ ] 5.6 WebGPU when available, WebGL2 otherwise; a performance budget per reference device; a quality setting (low/standard). (C)
 - [ ] 5.7 Scene picture capture (for the Prompter's "let the Prompter see the scene" and the Screening room compare). (C)
 - [ ] 5.8 **Character machinery:**
@@ -592,10 +592,10 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Schedule items** (`tools/plan/schedule.yaml`): WP6 after WP2, WP4a, WP1.
 <!-- /schedule:wp6 -->
 - [ ] 6.1 Interpreter in a Web Worker over the AST. A cooperative scheduler covers do in order, do together, each in together, count, while, for each and if, plus locals, parameters and return values. (C)
-- [ ] 6.2 **Events:** when the scene starts, mouse click on object or screen, key press, arrow keys, move with arrow keys, timer, proximity and collision; event handlers with parameters. (C)
+- [ ] 6.2 **Events:** when the scene starts, mouse click on object or screen, key press, arrow keys, move with arrow keys, timer, proximity, collision and camera view (decision 0051); event handlers with parameters. (C)
 - [ ] 6.3 **Safety:** an infinite-loop guard, a recursion limit and a time-slice budget. The stop button always works. Errors are explained in plain words, with the block highlighted. (C)
 - [ ] 6.4 Rehearse controls: play, pause, restart, speed, fast-forward to a block, disable a block. (C)
-- [ ] 6.5 Deterministic mode for export and tests (seeded random, fixed time step). (C)
+- [x] 6.5 Deterministic mode for export and tests (seeded random, fixed time step). (C)
 
 **Done when:** the semantics test suite passes, including the TR1 evaluation-set programs re-expressed in StoryStage 2 AST.
 
@@ -641,8 +641,8 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp8 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP8f after WP2; WP8 after WP8f, WP5a, WP6, WP0s.
 <!-- /schedule:wp8 -->
-- [ ] 8.1 Spec `docs/spec/03-production-format.md`:
-    - zip layout: `manifest.json`, `program.json`, `scenes/*.json`, `storyboard.json`, `script.fountain`, `frames/*.json` and `audio/`;
+- [x] 8.1 Spec `docs/spec/03-production-format.md`:
+    - zip layout: `manifest.json`, `program.json`, `scenes/*.json`, `storyboard.json`, `script.fountain`, `frames/*.json`, `audio/` and `models/` (class-imported models, decision 0049);
     - versioning;
     - what is never stored (keys, Prompter conversations).
 
@@ -672,11 +672,11 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp10 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP10s after WP0, WP3a; WP10a after WP8f, WP12b, WP10s; WP10b after WP10a, WP7, WP8; WP10c after WP10a, WP3i, WP8, WP5b.
 <!-- /schedule:wp10 -->
-- [ ] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
-- [ ] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
+- [x] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
+- [x] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
 - [ ] 10.3 Scene cards: heading (place and time), cast, arc part and transition. Cards are reordered by drag and by keyboard. (C)
 - [ ] 10.4 **Script against scenes:** a script pane beside the boards. Action and dialogue lines sit under each scene heading, and dialogue carries the character's name. Each line can be pinned to a frame. Fountain import and export, with size limits. (C)
-- [ ] 10.5 **Sketch library:** `tools/make-sketches` renders every shipped model as a black outline on white in four facings (front, three-quarter, side, back) and, for characters, two or three standard poses, grouped in the same Cast, Props, Set and Backdrops sections as Backstage, with backdrop sketches and a small hand-made set of storyboard marks (speech bubble, movement arrow, camera arrow, text). Each sketch carries the model's Backstage id. Include a manual touch-up list for unreadable sketches. The same renderer (Babylon offscreen, outline and edge lines, no colour) is packaged to run in the app, so models imported through 3.11 get sketches too. Outside drawings are not imported (decided); a missing item comes in as a model through Backstage (10.9) or as a stand-in. (C)
+- [x] 10.5 **Sketch library:** `tools/make-sketches` renders every shipped model as a black outline on white in four facings (front, three-quarter, side, back) and, for characters, two or three standard poses, grouped in the same Cast, Props, Set and Backdrops sections as Backstage, with backdrop sketches and a small hand-made set of storyboard marks (speech bubble, movement arrow, camera arrow, text). Each sketch carries the model's Backstage id. Include a manual touch-up list for unreadable sketches. The same renderer (a CPU line renderer in TypeScript: outline and edge lines, no colour; it replaced Babylon offscreen by the owner's decision of 25 Oct 2026, `docs/spec/17-backstage.md` section 7) is packaged to run in the app, so models imported through 3.11 get sketches too. Outside drawings are not imported (decided); a missing item comes in as a model through Backstage (10.9) or as a stand-in. (C)
 - [ ] 10.6 **Frame canvas:** drag sketches onto a frame; move, scale, flip, layer and delete; caption, **shot type** (WP4.10) and rough length in seconds; 3–9 frames per scene suggested. (C)
 - [ ] 10.7 Storyboard PDF print for display and marking. (C)
 - [ ] 10.9 **Backstage from the Storyboard:** the sketch library has an "Open Backstage" side panel with the same four sections and search across the whole catalogue (shipped and the class's). Choosing a model adds it to the scene's cast list and its sketches to the library. "Can't find it?" leads to import (3.11) when `backstage.import` allows; otherwise to a **stand-in**: a labelled outline (for example "dragon") that can go on frames and on the stage, keeps its name in code so the real model can replace it without changing any blocks, and is listed for the teacher in the class's Backstage (24.4). (C)
@@ -720,9 +720,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Schedule items** (`tools/plan/schedule.yaml`): WP12a needs nothing first; WP12b after WP0, WP12a.
 <!-- /schedule:wp12 -->
 - [ ] 12.1 Mock-ups of the three tabs, the Prompter panel, the set-up wizard and the teacher's class set-up, at laptop, Chromebook (1366×768) and iPad sizes. Reviewed against the teacher interviews (16.7) and the first use cases (16.6) before approval. (C drafts; U approves)
-- [ ] 12.2 Design tokens (colour, type, spacing, sizes for touch and young users), light and dark themes, and an icon set. (C)
-- [ ] 12.3 Component library on an accessible base (for example React Aria), with each component checked for keyboard access and contrast. (C)
-- [ ] 12.4 Theatre vocabulary in the UI strings: Backstage (Cast, Props, Set, Backdrops), Rehearse, Storyboard, Production stage, Code editor (Blocks or Tiles), Screening room, Export for distribution, Projection stage. Wording follows StoryStage 1 spec 04 §5. All strings live in translation files. (C)
+- [x] 12.2 Design tokens (colour, type, spacing, sizes for touch and young users), light and dark themes, and an icon set. (C)
+- [x] 12.3 Component library on an accessible base (for example React Aria), with each component checked for keyboard access and contrast. (C)
+- [x] 12.4 Theatre vocabulary in the UI strings: Backstage (Cast, Props, Set, Backdrops), Rehearse, Storyboard, Production stage, Code editor (Blocks or Tiles), Screening room, Export for distribution, Projection stage. Wording follows StoryStage 1 spec 04 §5. All strings live in translation files. (C)
 - [ ] 12.5 Automated accessibility checks (axe) in Playwright. (C)
 
 **Done when:** the owner approves the mock-ups, and axe reports no serious issues on any screen.
@@ -733,14 +733,14 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp13 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP13a after WP0; WP13b after WP13a, WP2, WP4a, WP15k; WP13c after WP13b, WP10a, WP7.
 <!-- /schedule:wp13 -->
-- [ ] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
+- [x] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
 - [ ] 13.2 **Transport:** the request body is built in TypeScript without the key. It goes to the native layer through a Tauri command, which **checks it against the policy enforcement point (15.2)**, adds the key and streams events back. Learner text (script, storyboard, captions) goes into the context as clearly delimited data, never as instructions. In the browser version, all Prompter features are switched off. (C)
 - [ ] 13.3 **Context:**
     - a Story API catalog generated from WP4 metadata;
     - a Backstage catalogue from `backstage.json`, grouped by section;
     - the project as text with node ids;
     - the storyboard and script as text, including which sketches are on which frame;
-    - an optional scene picture.
+    - the scene as data. No picture is ever sent (`CLAUDE.md` rule 3; the owner confirmed this on 31 Oct 2026).
 
     Token budgets as in StoryStage 1. (C)
 - [ ] 13.4 **Tools:**
@@ -753,7 +753,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 13.5 **Modes:** Explain only, Show me how, Build it, and the **story coach**. The coach asks questions about logline, synopsis and scenes, and never writes the learner's story or script lines. (C)
 - [ ] 13.6 Set-up wizard (from StoryStage 1 spec 02): what is sent, cost, the adult-account rule, Console steps, paste and check key, options. A usage meter. Remove key. (C)
 - [ ] 13.7 Fake Claude server and recordings, with the evaluation set re-expressed for StoryStage 2. Add new categories: storyboard, "doesn't write the story", and prompt injection (a script line or a shared production that tells the Prompter to break its rules). Run the set on each model used by the mode routing (24.3). (C)
-- [ ] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
+- [x] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
 - [ ] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
     - **What the learner sees:** before anything changes, the Prompter shows a short numbered plan in plain words, made from the frame's sketch, its script lines and its shot type. For example, for frame 2.3: "1. The owl walks to the tree. 2. The owl turns to face the cat. 3. The owl says 'Here is the key.' 4. The cat jumps. 5. Hold for 1 second."
     - **What the learner can do with it:** reorder steps by drag or keyboard, delete a step, change a value (who, where, how long, which line) with the same dropdowns the blocks use, add a step from a short menu, or ask "why this step?". Nothing in the program changes until the learner presses **Build these steps**.
