@@ -30,6 +30,11 @@ jobs:
       - name: Schedule matches the workplan (WP0.10)
         run: pnpm schedule:check
       - run: pnpm typecheck
+      # Cached by the manifest, so a cache hit needs no network; the fetch still checks every hash.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/alice-starters
+          key: alice-starters-${{ hashFiles('packages/a3p-import/starters.json') }}
       - name: Alice's starter projects for WP9's test (fetched at a pinned commit, not kept here)
         run: node packages/a3p-import/scripts/fetch-starters.ts "$RUNNER_TEMP/alice-starters"
       - run: pnpm test

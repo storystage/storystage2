@@ -25,3 +25,5 @@ node packages/a3p-import/scripts/fetch-starters.ts <folder>
 ```
 
 With `ALICE_STARTERS=<folder>` set, `src/starters.test.ts` reads all 34; without it, that test is skipped.
+
+A file already in the folder with the right SHA-256 is kept rather than fetched again, so CI caches the folder by `starters.json` and a cache hit needs no network, with every hash still checked.
