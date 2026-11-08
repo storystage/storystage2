@@ -1,22 +1,145 @@
 # 05 Keys privacy switches
 
-- **Covers:** Wizard, key store per platform, policy and managed configuration, updates and channels (from StoryStage 1 spec 02)
-- **Work package:** WP15.3, WP15.7 (sections 3 and 4); WP15.2 (sections 1 and 2)
+- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels (from StoryStage 1 spec 02)
+- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4)
 - **Owner:** S8
-- **Status:** sections 3 and 4 written, 31 Oct 2026, before the code they govern. Sections 1 and 2 follow with WP15k.
+- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026.
 - **Carried over from:** StoryStage 1 spec 02 (keys, privacy, switches); see `docs/carried-over/` and its note on what changes.
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), 0049 Key entry, [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` section 2.1 (W1 to W10).
 
 ## 1. Wizard
 
-_To be written with WP15k._
+The studio draws the set-up pages (Direction A screens 10a to 10d). The key itself is typed into a **system dialog**, never into the studio (decision 0049, CLAUDE.md rule 1).
 
-## 2. Key store per platform
+### 1.1 The pages
 
-_To be written with WP15k._
+| Page | Who draws it | Content |
+|---|---|---|
+| 10a Who is setting up | Studio | Learner or adult. A learner skips to the app, with the Prompter off |
+| 10b About the Prompter | Studio | What the Prompter does, what is sent, what is never sent, and the adult's consent. "The Claude account must belong to an adult." It also says the key belongs on the adult's own login, not one that pupils share (threat W10) |
+| 10c Add your Claude key | Studio, with one system dialog | The steps for making a key, with a spending limit on its workspace. An **Add key** button opens the dialog. There is no key field in the studio |
+| 10d You're ready | Studio | The summary. It shows the key's status, and never the key |
+
+Finishing the wizard is the only way to switch the Prompter on (0022).
+
+### 1.2 The system dialog
+
+One small dialog from the platform's own controls, in the native layer. It has a masked field, Show, Paste, Cancel and Add. It has no microphone, as on screen 10c.
+
+| Platform | Controls |
+|---|---|
+| Windows | A dialog with a password-style Win32 edit control |
+| macOS | `NSAlert` with an `NSSecureTextField` |
+| iPad | `UIAlertController` with a secure text field |
+| Android and Chromebook | `AlertDialog` with a password `EditText` |
+
+When the adult presses Add, the native layer trims the text and checks the key against `GET /v1/models`, which uses no tokens. It stores the key only if that succeeds. Then it clears the text.
+
+### 1.3 What the studio can do
+
+Three commands, and none of them takes or returns the key.
+
+| Command | Takes | Returns |
+|---|---|---|
+| `key_add` | Nothing | One outcome from the table below |
+| `key_status` | Nothing | `present` or `absent` |
+| `key_remove` | Nothing | Nothing. It deletes the key and switches the Prompter off |
+
+| Outcome | When | On screen 10c |
+|---|---|---|
+| `saved` | The check passed and the key is stored | "Key works. Checked just now." |
+| `cancelled` | The adult closed the dialog | Nothing changes |
+| `notAccepted` | 401 | "That key wasn't accepted." |
+| `noClaudeAccess` | 403 or 404 | "That key works but can't use Claude models." |
+| `unreachable` | No connection | "Couldn't reach Anthropic: check the internet connection or school proxy." |
+| `storeUnavailable` | The secure store refused | "This device can't keep the key safely, so the Prompter stays off." |
+
+`key_add` is refused with no dialog while the level is Off, so a pupil can't add a key on a locked device.
+
+## 2. Key store, gate and transport
+
+### 2.1 Where the key lives
+
+| Platform | Store | Entry |
+|---|---|---|
+| Windows | Credential Manager | Service `StoryStage2`, account `anthropic-api-key` |
+| macOS, iPad | Keychain | The same |
+| Android and Chromebook | An AES key held in Android Keystore, which can't leave it, encrypts the Claude key. The result is a file in `noBackupFilesDir`, so it never goes into a cloud backup | The same names |
+
+There is **no fallback**. StoryStage 1's DPAPI file is gone (threat model): if the store can't be used, the Prompter stays off and the outcome is `storeUnavailable`. Nothing is kept for the session.
+
+### 2.2 Rules for the key
+
+- It is read only inside `prompter_send`, after the gate has passed the request, and held only for that one request.
+- The type that holds it clears its memory when dropped, and prints as `(hidden)`.
+- No command returns it, and nothing derived from it, such as a hash or a last few characters.
+- It never appears in a log, settings file, production, export, study log or diagnostic bundle.
+- The `ANTHROPIC_API_KEY` environment variable is ignored.
+- It is sent only to `https://api.anthropic.com`. That address is fixed. Only a test build (a Cargo feature that release builds never turn on) can change it, for the fake server.
+
+### 2.3 The gate
+
+Every request passes the gate before the key is read. The gate is `storystage-gate`, a crate with no Tauri and no network. It carries out spec 04 section 1.8 in this order, and stops at the first refusal, so nothing is sent:
+
+| Check | Refused with |
+|---|---|
+| The level in force (3.4) allows the mode: Off allows none; Explain only allows `explain`, `storyCoach` and `scriptCheck`; Plan only and Full allow all | `refused_by_policy` |
+| The level allows it once the day's cap is taken into account (2.4) | `cap_reached` |
+| Nothing in the body or `betas` looks like a key or an auth field | `refused_by_policy` |
+| `model` is allowed for `mode`, and `max_tokens` is at or under the mode's ceiling | `refused_by_allowlist` |
+| `stream` is `true` | `refused_by_allowlist` |
+| `betas` is a subset of the allowed list, and `fallbacks` is absent or `"default"` | `refused_by_allowlist` |
+| `system` and `tools` hash to the pinned values | `refused_by_allowlist` |
+| Each `role: "system"` entry in `messages` is one of the pinned mode messages | `refused_by_allowlist` |
+| No top-level `thinking`, `tool_choice`, `temperature`, `top_p` or `top_k`, and no field outside the known list | `refused_by_allowlist` |
+| No `image` or `document` content anywhere in `messages` (rule 3) | `refused_by_allowlist` |
+| The per-minute and per-day caps (2.4) | `rate_limited` for the minute, `cap_reached` for the day |
+
+A request refused by any check above doesn't count towards the caps.
+
+**Pins.** `apps/desktop/src-tauri/gate/pins.json` is built into the app. It holds the allowed model and token ceiling for each mode (spec 04 section 1.3), the allowed betas, and SHA-256 hashes of `system`, `tools` and each mode message. Both sides hash the JSON with keys sorted and no spaces, and a test proves they agree. A pin that isn't set yet refuses everything it guards. `packages/prompter` makes the file, and CI fails if it's out of date, as the schedule check does.
+
+### 2.4 Caps
+
+| Cap | Value | Counted | Reached |
+|---|---|---|---|
+| Per minute | 10 requests, on one device | In memory | `rate_limited`, with the seconds until a slot frees |
+| Per day | `prompter.dailyCap` (3.3), or no limit | On the device, by local date, in the app's data folder | `prompter.capAction` |
+
+When the day's cap is reached and `capAction` is `explainOnly`, the level drops to Explain only for the rest of the day, and requests in other modes get `cap_reached`. With `off`, every request gets `cap_reached`. A further 50% of the cap in Explain only is allowed, and then every request gets `cap_reached`: the graduated limit in 24.5.
+
+Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7). Class-wide counts follow in WP24b.
+
+### 2.5 Transport
+
+- One request in flight on a device at a time. A second gets `rate_limited`.
+- HTTPS only, with the system's certificates, so a school's inspecting proxy works, and the system's proxy settings. Connection timeout 30 seconds. A stream that's silent for 120 seconds ends with `offline`.
+- `POST /v1/messages`, with `anthropic-version: 2023-06-01`, `anthropic-beta` from the checked `betas`, and the key added last.
+- **Retries:** at most two, only for 429 and 5xx, and only before the first byte of the reply. The wait doubles from 1 second, with up to 100% random jitter added, and `retry-after` is honoured if it's longer. A device that gets `retry-after` longer than 60 seconds doesn't retry at all.
+- **Cancelling:** `prompter_cancel` ends the request. It ends with `cancelled`, and no retry follows.
+- After `end` or `error`, nothing else is sent on the channel.
+
+| Cause | Code |
+|---|---|
+| No connection, a timeout, or a dropped stream | `offline` |
+| No key in the store | `no_key` |
+| 401 or 403 | `key_revoked` |
+| 402 | `no_credit` |
+| 429, after retries | `rate_limited`, with `retryAfterSeconds` |
+| 5xx or 529, after retries | `overloaded` |
+| Anything else, including 400 | `internal` |
+
+### 2.6 Commands and windows
+
+`prompter_send`, `prompter_cancel` and `prompter_status` follow the transport contract. Each has its own permission in `capabilities/`, as do the `key_*` commands. There is one window today, so `main` holds them. When the Prompter gets a window of its own, they move to it. `prompter_status` reads the policy again, so a lock applied while the app is open shows at once. It reports `prompter_off` at level Off, then `no_key`, and otherwise `available`.
+
+### 2.7 CI
+
+- **The leak scan** from spike 1.6 runs on each desktop build: the page, storage, IPC replies and a heap snapshot, with a positive control. It uses a test build with a random key made in CI. The port it needs is never in a release build.
+- **The retry storm test:** 30 simulated clients against a fake server that answers 429. The test passes if no client retries more than twice and the retries spread out.
 
 ## 3. Policy and managed configuration
 
@@ -225,6 +348,16 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 
 | Rule | Test | Level |
 |---|---|---|
+| Every check in the gate (2.3) | One test per row, each refused before the network, with one good request as a positive control | Rust unit, `storystage-gate` |
+| Caps (2.4) | The minute's window, the day's roll-over, both cap actions and the 50% allowance | Rust unit |
+| Retries (2.5) | Waits, jitter, `retry-after`, and no retry after the first byte | Rust unit |
+| One code per cause (2.5) | One test per row, and the same codes as `TRANSPORT_ERROR_CODES` | Rust unit and Vitest |
+| Hashes agree between Rust and TypeScript (2.3) | One fixture, hashed on both sides | Rust unit and Vitest |
+| The key can't reach the webview (2.2) | The leak scan (2.7) | Windows job |
+| No retry storm (2.5) | 30 simulated clients (2.7) | Rust integration |
+| The key's type hides it (2.2) | Its `Debug` output | Rust unit |
+| The store round trip (2.1) | Store, read, replace and delete under a test-only entry | Windows and macOS jobs |
+| The system dialogs (1.2) | By hand on each platform | Device (owner) |
 | Parsing, values, defaults (3.3, 3.5) | One unit test per key and per way of being malformed | Rust unit, `storystage-policy` |
 | Fail closed, with every "When unreadable" value (3.5) | A table of broken files, all giving the same result | Rust unit |
 | The four levels, and the more restrictive winning (3.4) | All eight combinations of the three keys | Rust unit |
