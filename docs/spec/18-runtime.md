@@ -32,7 +32,7 @@ A value is a number, text, true or false, nothing (`none`), an object, an enum v
 
 - **A parameter left out** gets its default, worked out in the called method.
 - **Arguments** are worked out in sorted order, so the order doesn't depend on how the program was built.
-- **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. WP4.3 supplies it (S3): `STORY_LIBRARY` in `@storystage/story-api`, which fits the runtime's type as it is. A block refuses a value it can't use by throwing `StoryFault`, and the runtime reports that as a `bad_value` fault at the block, with the block's own words in `detail`, whether it refuses straight away or after waiting. The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
+- **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. A question (`yield { kind: 'ask', query }`) resumes with the stage's whole answer, a `StageQueryResult` such as `{ kind: 'distance', value: 2.5 }`, not its `value` alone. WP4.3 supplies it (S3): `STORY_LIBRARY` in `@storystage/story-api`, which fits the runtime's type as it is. A block refuses a value it can't use by throwing `StoryFault`, and the runtime reports that as a `bad_value` fault at the block, with the block's own words in `detail`, whether it refuses straight away or after waiting. The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
 - **Random numbers** come from the run's seed, so deterministic runs repeat (WP6.5).
 
 ### 3.1 Ending a scene (WP8.3)

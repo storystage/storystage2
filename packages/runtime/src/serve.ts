@@ -244,7 +244,8 @@ export function serve(
         if (message.result.kind === 'error')
           run.scheduler.refuse(new RuntimeFault('stage', null, undefined, message.result.code));
         else {
-          run.scheduler.answer(message.result.value);
+          // The whole answer, `kind` and all, as the Story API's blocks read it.
+          run.scheduler.answer(message.result);
           pump();
         }
         break;
