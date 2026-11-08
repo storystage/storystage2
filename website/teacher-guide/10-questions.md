@@ -13,7 +13,7 @@ Yes. StoryStage is free and open source. The only cost is the optional Prompter,
 No. There are no accounts, and StoryStage has no server.
 
 **Does it work offline?**
-The apps do, apart from the Prompter. The first time voice input is used, the app downloads its speech model once. The browser version needs the internet to open.
+The apps do, apart from the Prompter. Voice input works offline: its speech model is built into the app. The browser version needs the internet to open.
 
 **Which devices?**
 Windows, Mac, iPad and Chromebook apps, and a browser version for anything else, including Chromebooks where Android apps are blocked. [Get StoryStage](../download.md)
