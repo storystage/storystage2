@@ -83,7 +83,9 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S7 Prompter and speech
 - Merged:
-  - 8 Nov: **WP14a:** spec 06, speech in and out, and the owner's go on spike 1.3 (#137).
+  - 8 Nov: **WP13.4, the tool definitions** (#153): all 16 tools, strict and streamed, with the input check and the result format. They use the AST's and the Story API's names (`doTogether`, `clickOnObject`), and spec 04 and the evaluation set follow.
+  - 8 Nov: **WP14.2, speech out** (#146): on-device voices, the sanitiser and the narration queue. **S5 (WP13c), S1 (14.3):** captions come from `NarrationQueue`; the speak line can use `chooseVoice`, `speakable` and `browserSpeaker` (spec 06, section 3.2).
+  - 8 Nov: **WP14a:** spec 06, speech in and out, and the owner's go on spike 1.3 (#137). Spec 06 and workplan 14.1 now follow decision 0057: the default model is bundled.
   - 8 Nov: **WP13b, 13.2:** building a request (#133): per-mode settings, learner text as data, what each level allows.
   - 8 Nov: **13.7** the fake Claude server and the evaluation set, 85 requests (#95). **S8: the fake server is on `main` for the Rust transport's tests.** 13.7's box stays open until there are real recordings and a score.
   - 8 Nov: **the transport contract** gains `betas` (#91), reviewed by S8.
@@ -91,9 +93,9 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: reading the evaluation set before the first paid live run.
   - S8 (WP15k, merging now) for 13.2's native wiring, the `pins.json` hashes and the set-up wizard (13.6).
-- For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer fetches and checks the model, so the webview loads nothing remote.
+- For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer hands the worker a checked model (bundled, or the optional download), so the webview loads nothing remote.
 - For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3. Spec 06, section 7 also asks for speech in the DPIA and the model weights in `NOTICE`.
-- Next: WP13b (tool schemas, then the conversation loop) and WP14a (voices and narration, then whisper) side by side. The owner gave spike 1.3 its go on 8 Nov, before the device runs.
+- Next: WP13b (the `pins.json` hashes once WP15k's fixture is on `main`, then the conversation loop) and WP14.1 (whisper's worker and audio, against S8's `host.speech`, #152, which S7 has reviewed) side by side. The owner gave spike 1.3 its go on 8 Nov, before the device runs.
 
 ## S8 Apps, security and class set-up
 - Merged:
