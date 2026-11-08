@@ -1,0 +1,163 @@
+/*
+  The start of a lesson (07-ux.md section 9.1) and the Film menu (section 9.3). Tokens only: every
+  colour is a var(--ss-*) from @storystage/ui's ThemeRoot (shell.test.ts checks).
+*/
+
+/* The pages before the studio: full screen, inside the same amber frame. */
+.ls-shell {
+  display: flex;
+  height: 100%;
+  box-sizing: border-box;
+  border: 3px solid var(--ss-amber);
+  border-radius: 8px;
+  background: var(--ss-panel-2);
+  overflow: auto;
+}
+.ls-page {
+  --ss-surface: var(--ss-panel-2);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 40px 22px;
+}
+.ls-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 34px;
+  font-weight: 800;
+  text-align: center;
+}
+.ls-subtitle {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.ls-search {
+  width: min(420px, 100%);
+}
+.ls-note {
+  margin: 0;
+  color: var(--ss-muted);
+  text-align: center;
+}
+.ls-problem {
+  margin: 0;
+  max-width: 60ch;
+  text-align: center;
+}
+.ls-backups {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Names and films: large tiles, at least 56 px tall (07-ux section 2, touch targets). */
+.ls-names,
+.ls-films {
+  display: grid;
+  gap: 12px;
+  width: 100%;
+  outline: none;
+}
+.ls-names {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+.ls-films {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.ls-name,
+.ls-film {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ss-text);
+  background: var(--ss-panel-4);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: pointer;
+  outline: none;
+}
+.ls-film {
+  flex-wrap: wrap;
+  min-height: 84px;
+}
+.ls-film-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ls-film-when {
+  flex-basis: 100%;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--ss-muted);
+}
+.ls-film[data-new] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+  box-shadow: none;
+}
+.ls-name[data-hovered],
+.ls-film[data-hovered]:not([data-new]) {
+  background: var(--ss-band);
+}
+.ls-name[data-focus-visible],
+.ls-film[data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-1),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.ls-film[data-new][data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-amber),
+    0 0 0 4px var(--ss-focus-on-amber);
+}
+
+/* The Film menu: the production's title as a button in the header. */
+.ls-film-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 6px 0 8px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ss-text);
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+}
+.ls-film-button[data-hovered],
+.ls-film-button[data-pressed] {
+  background: var(--ss-panel-4);
+}
+.ls-film-button[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.ls-film-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ls-film-pupil {
+  flex: none;
+  font-weight: 400;
+  color: var(--ss-muted);
+}
