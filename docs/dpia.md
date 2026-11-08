@@ -4,7 +4,7 @@
 - **Written:** 8 November 2026, by session D, from the specs and decisions as they stand that day. Sections marked **To verify** describe things specified but not yet built; they are checked against the build before the pilot (WP19), and this document is updated then.
 - **Covers:** StoryStage 2 as the first release will ship it (the apps for Windows, macOS, iPad and Android, and the browser version), the website `storystage.org`, updates, and the features planned for after the release candidate that the workplan says the DPIA must cover (AR, 21.5 and 22.8–22.9). Workplan 17.3 lists them; section 2.4 maps each one.
 - **Follows** the structure of the ICO's DPIA template: the need (1), the processing (2), consultation (3), necessity and proportionality (4), risks (5), measures (6), sign-off (7). Annex A reviews the ICO Children's code's 15 standards. Annex B covers the US, because the apps are offered in US stores (decision 0043).
-- **Ids:** F1–F17 are the data flows (section 2.1), R1–R16 the risks (section 5), Q1–Q12 the legal questions (section 8). Ids such as W8, L5, B2 or U6 are threats in the threat model (`docs/spec/15-security.md`). "The Anthropic note" is `docs/legal/anthropic-terms-under-18s.md` (#52), whose own requirements are also numbered R1–R10; they are always called "requirement Rn in the Anthropic note" here.
+- **Ids:** F1–F18 are the data flows (section 2.1), R1–R17 the risks (section 5), Q1–Q12 the legal questions (section 8). Ids such as W8, L5, B2 or U6 are threats in the threat model (`docs/spec/15-security.md`). "The Anthropic note" is `docs/legal/anthropic-terms-under-18s.md` (#52), whose own requirements are also numbered R1–R10; they are always called "requirement Rn in the Anthropic note" here.
 - **Feeds:** the privacy notice and the set-up wizard's consent text (17.4, `docs/privacy.md`), the app-store privacy labels (15.5), the teacher guide (19.2), and the pilot's consent and information sheets (19.6).
 
 ## 1. Why a DPIA is needed
@@ -25,7 +25,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 
 | No. | Flow | Data | Where it goes | When | Status |
 |---|---|---|---|---|---|
-| F1 | **Productions** | The learner's own words (title, logline, synopsis, script, captions, names they type, credits), the program, frame layouts, any imported models with their licence and source | A `.storystage` file on the device, or where the learner or teacher saves it (8.4; and, if switched on, the school's Google Drive or OneDrive, 8.5) | Always | Specified (spec 03); building |
+| F1 | **Productions** | The learner's own words (title, logline, synopsis, script, captions, names they type, credits), the program, frame layouts, any imported models with their licence and source | The pupil's own **folder in the app**, inside the device user's app data (decision 0065), autosaved; or a `.storystage` file where the learner or teacher saves it. Work moves between devices only as files: the teacher **Collects** a class's work into, and **Hands it back** from, the school's own storage (a drive, OneDrive or Google Drive) through the system's file picker. StoryStage has no sign-in, so no new third party | Always | Specified (spec 03; 0065); building |
 | F2 | **The Prompter** | The learner's request as text; the production, storyboard and program as text (spec 04 §2); the conversation so far | **Leaves the device:** to Anthropic's API (`api.anthropic.com`), under the Claude account of the adult who added the key | Only in the apps, only after an adult completes set-up, only at a level the teacher allows, only when the learner asks | The gate, key store and transport are built (#108, #109, #110, the leak scan #111), and building a request (#133); **to verify:** the Prompter panel and modes (WP13b) |
 | F3 | **The Claude key** | The adult's API key, typed into the system's own dialog, never the studio (decision 0056) | The device's secure store; sent only to Anthropic with each request | When the Prompter is set up | Built (#109, #110), with the leak scan in CI (#111) |
 | F4 | **Voice input** | Microphone audio while the learner holds a microphone button, at most 30 seconds | Turned into text on the device by whisper.cpp, in memory only, then zeroed and discarded. The text goes into the field for the learner to check (spec 06 §1.5–1.7) | In the apps, beside every text field except the key, with or without the Prompter (decision 0060); a school can turn it off with `speech.dictation` (spec 05 §5.5). Not in the browser version (15.6) | Specified (spec 06); **to verify** in the build |
@@ -41,6 +41,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | F14 | **Backstage search** | A teacher's search words | **Leaves the device:** Poly Pizza's API | Teachers only, on unless the school sets `backstage.search=false`; models about guns screened out (decision 0058) | Specified; not built |
 | F15 | **AR camera** | Camera images, used to place the set on a table | The device only; never to the Prompter | After the release candidate (21.5); `ar.enabled` | Later |
 | F16 | **Mixed-reality films** | Video from the camera, with the performance on top | An MP4 on the device | After the release candidate (22.8); off unless the teacher sets `ar.recording` | Later |
+| F18 | **The class list** | Pupils' first names, or a word and a picture, that open their folders | The device only, in the app's data. **Never** in a production, an export or a study log (threat PS3) | When a teacher sets up a class (screen 11) | Decided (0065); building (24.4) |
 | F17 | **AR packs** | 3D files of the production, with credits | Shared as the school chooses (a website, Drive or OneDrive links) | After the release candidate (22.9) | Later |
 
 **Never collected or sent anywhere:** location; contacts; device identifiers; advertising identifiers; usage analytics; crash reports sent automatically; camera images or audio to the Prompter (rule 3); anything to a StoryStage server (there is none).
@@ -71,7 +72,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | The Prompter's data flow to Anthropic under the user's account | F2, F3; risks R1–R3, R9 |
 | Scene pictures | **None are sent.** StoryStage 1 had an option to send a small picture of the scene; StoryStage 2 doesn't (rule 3; spec 04 §2.1; the gate refuses image content, spec 05 §2.3) |
 | Speech, on the device | F4, F5, F6, F7; risk R11 |
-| Shared devices and the Prompter route (24.2, 24.3) | R4, R10; section 8, Q5–Q6 |
+| Shared devices (24.2, decided in 0065) and the Prompter route (24.3) | F1, F18; R4, R16, R10; Q6 |
 | The AR camera (21.5) | F15; R8 |
 | AR packs and mixed-reality films (22.8, 22.9) | F16, F17; R8 |
 | The editor study (7.13, 19.5–19.6) | F8; R6 |
@@ -93,7 +94,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | **The StoryStage project** | Designer and provider | The design of everything else. It receives none of that data, but it decides what the app does with it, so it carries the duty to build privacy in: this DPIA |
 | **Bluehost (Newfold Digital), GitHub (Microsoft)** | Processors or independent controllers of their own logs, per their terms | GitHub: F5 (the optional model) and F11; Bluehost: F13 |
 | **Apple, Google** | Independent controllers | F12 |
-| **Google, Microsoft** (Drive, OneDrive) | The school's processors, under the school's existing agreements | F1, if switched on |
+| **Google, Microsoft** (Drive, OneDrive) | The school's processors, under the school's existing agreements; StoryStage only saves files there through the system's file picker, with no sign-in of its own (0065) | F1, when a teacher chooses them |
 
 ## 3. Consultation
 
@@ -165,7 +166,7 @@ Because StoryStage holds nothing centrally, most rights are exercised **on the d
 
 ### 4.7 Processors and suppliers
 
-Each must be named in the privacy notice: Anthropic (F2), Bluehost (F13), GitHub (F11), Poly Pizza only if search is switched on (F14), and Google or Microsoft only if a school switches on Drive or OneDrive (F1).
+Each must be named in the privacy notice: Anthropic (F2), Bluehost (F13), GitHub (F11), Poly Pizza only if search is switched on (F14), and Google or Microsoft only as the school's own storage, when a teacher collects work there (F1).
 
 ## 5. Risks
 
@@ -185,10 +186,11 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | R10 | Children or parents don't understand what the Prompter is or what it sees (transparency), or a child uses it without an adult's agreement | Possible | Significant | Medium |
 | R11 | The microphone records more than the child meant, or audio leaves the device | Remote | Significant | Low |
 | R12 | The website or update host tracks visitors (for example through WordPress plugins, Elementor's Google Fonts, or analytics) | Probable without checks | Minimal | Medium |
-| R13 | Drive or OneDrive access is broader than needed, or links pupils' work to accounts unexpectedly | Possible | Significant | Medium |
+| R13 | A collected folder on the school's drive, OneDrive or Google Drive is readable by people who shouldn't see it (threat PS6) | Possible | Significant | Medium |
 | R14 | Backstage search sends search words to a third party, and shows models that aren't moderated for children | Possible | Significant | Medium |
 | R15 | The Prompter writes the child's story, or the child relies on it, against the child's best interests (standard 1) | Possible | Minimal | Low |
-| R16 | Pupils' work is lost between lessons, or the school can't meet its retention policy, because where work lives isn't settled (24.2) | Probable until decided | Significant | Medium |
+| R16 | Pupils' work is lost between lessons, for example a device is reset or a pupil gets a different device (threat PS4) | Possible | Significant | Medium |
+| R17 | On a shared desktop login, a pupil reads another pupil's files on disk, outside the app (threat PS2) | Possible | Minimal to significant | Medium |
 
 ## 6. Measures
 
@@ -199,7 +201,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | R1 | Prompter off by default; a teacher chooses its level, or off (0034); plain words on the panel: "Don't type your name, address or other personal details" (requirement for S5); the system prompt tells it never to ask for personal details (13.8); text only, never pictures or audio (gate, spec 05 §2.3); conversations never saved; the adult's set-up says what is sent; teacher guide and lesson rules (use cases' common rules) | S5, S7, S8, D | **Medium.** Free text can't be filtered reliably, so this can be reduced, not removed. Accepted with the measures, because the Prompter is optional and the curriculum value doesn't depend on it (`docs/curriculum/mapping.md` §4). **Proposed extra** for S7: a local check that warns before sending text that looks like a phone number, email or postcode |
 | R2 | Anthropic's child-safety measures and the guidelines for organisations serving minors (R1–R10 in the Anthropic note); the system prompt's safety rules; learner text passed as delimited data (spec 04 §2.4); no tool can write the story (L2); replies shown as plain text with no links (L6); the evaluation set's safety and injection categories (13.7); Stop and Undo; safeguarding guidance for teachers (teacher guide, page 5) | S7, D | Low |
 | R3 | Key in the OS secure store, never in a file, never shown again (spec 05 §2); the gate (2.3); caps (2.4); the wizard asks for a spend-limited workspace and says the key belongs on the adult's own login (W10); Remove key | S8 | Low |
-| R4 | Decide 24.2 before 8.4 is built; class and pupil separation (24.4); in the browser version, a banner while work isn't saved to a file, and a prompt to download (B5, 8.4) | Owner, S4, S8 | Low once 24.2 is built; **medium until then** |
+| R4 | **Decided (0065):** pupil folders in the app; each opens only by choosing that pupil's name, and nothing lists other pupils' productions; deleting asks first and goes to a bin the teacher empties (PS1); in the browser version, a banner while work isn't saved to a file, and a prompt to download (B5, 8.4) | S4, S5, S8 | Low |
 | R5 | Credits use first names or initials by default (export and AR packs, 22.9); licences block public export where they must (3.12); teacher guide and use cases on school consent arrangements; key-shaped text is scanned before save and export (threat F11 in `docs/spec/15-security.md`) | S1, S2, D | Low |
 | R6 | Pseudonymous logs with a fresh id per session, no names, content, camera or voice (7.13); on the device until a teacher exports; the study's information sheets and consent (19.6); ethical review; deletion on the device after export (proposed, 4.4) | S5, S6, D, owner | Low |
 | R7 | Logs scrubbed, key never formatted (W8); the bundle is a file the teacher sees before sending; nothing sent automatically (18.5). **Proposed:** the bundle lists its contents in plain text, and leaves out production content unless the teacher adds it | S1 | Low |
@@ -208,10 +210,11 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | R10 | An adult must complete set-up; the "AI" badge always shown, and its colour used for nothing else; "a computer program, not a person" (10b); privacy information written for children (6.2); the teacher guide; Learn's guided films | S5, S8, D | Low |
 | R11 | The microphone is used only while the button is held, for at most 30 seconds, and its tracks stop on release, on blur and when the page is hidden, so the system's microphone light goes off; audio stays in memory, is never written, logged or sent, and is zeroed after transcription; the text goes into the field for the learner to check, and nothing is sent to the Prompter until they press Send; the system's own microphone permission is asked the first time; the default model is in the app (0057), and the larger one downloads only on request, from the update host (GitHub, 0061); a school can turn voice input off; no microphone on the key field (spec 06; decisions 0057, 0060) | S7, S8 | Low (**to verify**, WP14a) |
 | R12 | `website/README.md`'s pre-publish check (no statistics plugins, no Google Fonts or Font Awesome from a CDN, no visitor cookies, nothing from third parties); the browser version on its own origin with no third-party requests (B2); the update check holds nothing about the device (U6); `update.channel=off` | Owner, S8 | Low once the check is done |
-| R13 | Off by default; Google Drive's narrowest scope (`drive.file`), and the equivalent for OneDrive; through the school's own Google or Microsoft accounts, under its agreements (8.5) | S4, owner | Low |
+| R13 | StoryStage never signs in to Google or Microsoft (8.5 is off the first release, 0065); files go there only through the system's file picker, under the school's own sharing settings; the teacher guide (24.7) says to collect into a staff-only folder (PS6) | S8, D | Low |
 | R14 | **Decided (0058):** search is for teachers only, never learners, so no child's search words leave the device; models about guns are screened out by whole-word and compound match; every import still shows its report before reaching a class (3.11); a school can switch search off. The owner chose "on for teachers by default" over the recommended "off by default". The screen is a keyword filter, not moderation | S4, S8 | Low |
 | R15 | No tool can write the logline, synopsis or script (spec 04 §3.4); the story coach only asks; plan before change; the teacher levels | S7 | Low |
-| R16 | Decide 24.2 at M1, before 8.4 | Owner | Low once decided |
+| R16 | Autosave and backups (8.4); Collect and Hand back; Settings shows when work was last collected (PS4) | S4, S8 | Low |
+| R17 | **Accepted** (0065, PS2), and said plainly to schools: folders stop slips and casual looking, not a determined pupil reading files on a shared desktop login. Per-pupil sign-in on the device removes it; the teacher guide recommends it where the school has it | Owner, D | Medium (accepted) |
 
 ### 6.2 Transparency (Children's code standard 4)
 
@@ -240,7 +243,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | Summary of advice | | |
 | Advice accepted or overruled by | | If overruled, record why |
 | Consultation responses reviewed by | | Section 3 |
-| Kept under review by | Session D, then the owner | Reviewed: before the pilot (verifying "To verify" items); at each release; when WP21–22 (AR) are specified; when 24.2 and 24.3 are decided; and when any new third party is proposed |
+| Kept under review by | Session D, then the owner | Reviewed: before the pilot (verifying "To verify" items); at each release; when WP21–22 (AR) are specified; when 24.3 is decided, and when 0065 is confirmed after 1.11; and when any new third party is proposed |
 
 ## 8. Questions for legal advice (before the pilot)
 
@@ -250,7 +253,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | Q2 | Are the roles in section 2.5 right, especially: the school as controller of Prompter use under its own key; the StoryStage project's position as a provider that receives no learner data; and a parent at home? |
 | Q3 | Are the lawful bases in 4.1 right, especially for the Prompter in class, and for the editor study? |
 | Q4 | What should the StoryStage project offer schools so they can do their own DPIAs: this document, a summary, a data processing statement? |
-| Q5 | Where pupils' work lives between lessons (24.2): which option best suits schools' retention and access duties? |
+| Q5 | *Decided by the owner (0065): pupil folders on the device, and files through the school's own storage.* For advice: does accepting PS2 (R17) on shared desktop logins need anything more from schools than the teacher guide's recommendation of per-pupil sign-in? |
 | Q6 | How the Prompter reaches a group (24.3): what changes for the DPIA under option B (the classroom relay) or C (keys on devices)? |
 | Q7 | Anthropic: how long it keeps API inputs and outputs under the current Commercial Terms, and which UK transfer mechanism its DPA uses. |
 | Q8 | Bluehost and GitHub: where the logs are held, for how long, and under which terms. |
@@ -269,7 +272,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | 4 | **Transparency:** clear, prominent, age-appropriate privacy information, with "bite-sized" explanations at the point of use | Section 6.2; the learner version of the notice; the AI label | S5 to place the point-of-use explanations; test with children in the pilot |
 | 5 | **Detrimental use of data:** no uses shown to be harmful to children's wellbeing | No profiling, ads, rankings or streaks; the Prompter doesn't grade (R9 in the Anthropic note) | None |
 | 6 | **Policies and community standards:** uphold your own published terms | The privacy notice describes only what the app does; tests check the claims (for example that the browser build makes no third-party request, B2) | Publish terms of use with the release (owner) |
-| 7 | **Default settings:** high privacy by default | Prompter off; voice input only while a button is held, on the device, with nothing sent; study off; search for teachers only (0058); Drive and OneDrive off; AR recording off; first-name credits | None |
+| 7 | **Default settings:** high privacy by default | Prompter off; voice input only while a button is held, on the device, with nothing sent; study off; search for teachers only (0058); no sign-in to Drive or OneDrive (0065); each pupil sees only their own folder; AR recording off; first-name credits | None |
 | 8 | **Data minimisation** | Section 4.2 | None |
 | 9 | **Data sharing:** don't disclose children's data unless there's a compelling reason | Only to Anthropic, only when the learner asks the Prompter, only at a level the teacher allows, under the adult's agreement | None |
 | 10 | **Geolocation:** off by default, obvious when on | No location is collected, including in AR (22.9) | None |
@@ -296,6 +299,6 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 
 - **No scene pictures** go to the Prompter (StoryStage 1 had an opt-in picture).
 - **No Linux,** so no Secret Service key store; no DPAPI fallback file (spec 05 §2.1).
-- **New flows:** update checks (GitHub), the browser version on its own origin, study logs, Drive and OneDrive, Backstage import and search, and later AR.
+- **New flows:** update checks (GitHub), the browser version on its own origin, study logs, pupil folders and the class list on the device (0065), Backstage import and search, and later AR.
 - **Speech:** StoryStage 1 downloaded its model from Hugging Face; StoryStage 2 ships the default model in the app (0057), and the optional larger one comes from the update host on GitHub (0061). Voice input now works in every text field, not only for the Prompter (0060).
 - **Problem reports:** StoryStage 1 opened a GitHub issue in the browser; StoryStage 2 builds a local file a teacher may attach to an email (18.5, decision 0063); issues are filed anonymised.
