@@ -53,4 +53,4 @@ The Prompter runs on **Claude**, from Anthropic, using a key from an **adult's o
 - **Plan only is a computing lesson in itself.** Learners compare the plan in plain words with the blocks they build: algorithm to code.
 - **It can be wrong.** Teach learners to check what it suggests, by rehearsing and running the automatic check. That's a good habit with any AI.
 - **No personal details.** Learners shouldn't type names, addresses or other personal information into it, and it is told never to ask.
-- **Something worrying?** If the Prompter ever says something inappropriate or upsetting, stop, keep a note of what was asked and said, and follow your school's safeguarding procedure. **Report a problem** in Settings makes a bundle you can send with the feedback form; nothing is sent automatically.
+- **Something worrying?** If the Prompter ever says something inappropriate or upsetting, stop, keep a note of what was asked and said, and follow your school's safeguarding procedure. **Report a problem** in Settings makes a file you can attach when you email us ([Feedback and problems](../feedback.md)); nothing is sent automatically.

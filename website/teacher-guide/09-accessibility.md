@@ -26,4 +26,4 @@ StoryStage needs a window at least 1024 pixels wide (an iPad held sideways, a la
 
 ## Tell us
 
-If something gets in a learner's way, please tell us through the feedback form. **[Open: the feedback form (WP19.4).]**
+If something gets in a learner's way, please email us: [Feedback and problems](../feedback.md) says what to include. Accessibility barriers are always treated as serious.
