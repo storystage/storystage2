@@ -187,7 +187,20 @@ Props
 2. **Each line gives what Claude needs to choose and use a model:** its id exactly as `add_model` takes it, its name and description, its themes, its height at scale 1, and its joints. Licences, credits, files and budgets are left out.
 3. **Joint sets are listed once** and each model names its set, because models of one class differ (a KayKit character has 18 joints, a MakeHuman person 52). Claude uses only the joints in a model's set; a model with none can move and turn, but not walk or gesture.
 4. **The same manifest always gives the same text,** whatever order it lists its items in, sorted in code-point order rather than the machine's locale. The native layer pins the system prompt's hash for a release (spec 04, section 1.8), so the catalogue a release ships is fixed with it.
-5. **It fits 12,000 tokens,** counted at three characters a token (spec 04, section 2.1). The build (`tools/backstage-sources`) stops before writing anything if it doesn't, writes the text to `prompter-catalogue.txt` for the reviewer, and puts its size in the build report. The 50 models shipped on 8 Nov 2026 take about 2,800.
+5. **It fits 12,000 tokens,** counted at three characters a token (spec 04, section 2.1). The build (`tools/backstage-sources`) stops before writing anything if it doesn't, writes the text to `prompter-catalogue.txt` for the reviewer, and puts its size in the build report. The 50 models shipped on 8 Nov 2026 take about 3,100.
+
+## 4b. Loading
+
+How the app gets its models (workplan 3.9). The code is `packages/backstage/src/loader.ts`, and, for the bundle, `tools/backstage-sources/src/bundle.ts`.
+
+### Rules
+
+1. **The shipped Backstage is bundled** (decision 0062): the apps carry `backstage.json`, the models, thumbnails, sketches and `prompter-catalogue.txt`, about 85 MB on 8 Nov 2026. The Tauri apps bundle the folder as resources (S8); the browser version serves it from its own origin (S1). Models are never downloaded, so Backstage works offline from the first launch.
+2. **A release ships one pinned catalogue.** `backstage.lock.json` names the assets commit and the SHA-256 of its `backstage.json` and `prompter-catalogue.txt`. `pnpm backstage:fetch` fetches exactly those files into `.backstage/` and checks them (`checkBundle`): both hashes, a valid manifest of this code's version, every file it names, and a Prompter catalogue that is exactly what `catalogueText` makes of it. The release workflows run it before bundling. Updating Backstage means rebuilding the assets, then updating the lock in a pull request.
+3. **Opening:** `openBackstage(folder)` reads `backstage.json` once a session and checks it. If it's missing, damaged or of another manifest version, it fails with a plain-words `BackstageError` ("Backstage couldn't be opened: its list of models is missing. Try installing StoryStage again.") and tries again next time.
+4. **What it answers:** `find(id)` gives the stage a model's address, joints and VRM version, matching the stage's `ModelSource`, so a 0.x avatar can be turned (section 1, rule 3); `thumbnail(id)`, `items` and `item(id)` serve Backstage's browse views; `credits()` the About screen (section 3a); `catalogue()` the Prompter (section 4a). Addresses are the folder plus the manifest's path, each segment escaped.
+5. **A class's imports join the shipped ones** with `combineBackstages(shipped, classes)`. The shipped Backstage answers first, so an import can't stand in for a shipped model's id. Imports are credited, but never put in the Prompter's catalogue.
+6. **Models load lazily:** the stage fetches a model only when a scene places it, and shares one copy across the scene (`packages/stage`, WP5.3). The scene budget (section 4) warns when a scene holds too much.
 
 ## 5. The import pipeline
 
@@ -273,6 +286,9 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 1: the shipped catalogue's builder writes each item's budget and VRM version | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
 | 3a.1–3a.4: credits grouped by section, empty ones left out; each model once, in order; licence name, deed link and page on each line; every Creative Commons licence linked; "changed for StoryStage" on changed CC BY models only, once | `packages/backstage/src/credits.test.ts` | Unit (Vitest) |
 | 3a.4: the build marks a CC BY glTF model changed, and leaves a CC BY VRM file's credit as written | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
+| 4b.3–4b.5: a model's address, joints and VRM version; thumbnails, credits and catalogue from one manifest; escaped addresses; the manifest read once a session; plain errors when missing, damaged or out of date, retried next time; a class's imports after the shipped ones, credited but not in the catalogue | `packages/backstage/src/loader.test.ts` | Unit (Vitest) |
+| 4b.2: the bundle check passes a matching folder, and refuses changed files, missing files, a stale Prompter catalogue and another manifest version; the lock is valid and pins this code's version | `tools/backstage-sources/src/bundle.test.ts` | Unit (Vitest) |
+| 4b.1–4b.2: `pnpm backstage:fetch` fetches the pinned commit and it passes the check | Run by hand on 8 Nov 2026 (Windows); the release workflows run it | Manual, then CI |
 | 4: the figures in one place and provisional; the scene check, counting every copy, estimating picture memory, warning in plain words | `packages/backstage/src/budget.test.ts` | Unit (Vitest) |
 | 4.2–4.4: reduction to the budget keeping shape; skinned characters keep joints and weights; within budget left alone; textures shrunk to WebP with the encoder given, reported as not fitting without one; unused data dropped | `packages/backstage/src/optimize.test.ts` | Unit (Vitest) |
 | 4.1–4.5: the build reduces a 40,000-triangle, 2,048 px model to a prop's budget with real sharp, records before and after, and reports it; a solid-colour texture becomes a plain colour; sharp's WebP shrinks to fit without enlarging, keeping see-through parts | `tools/backstage-sources/src/reduce.test.ts`, `sharp-encoder.test.ts` | Unit (Vitest) |

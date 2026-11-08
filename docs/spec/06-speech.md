@@ -144,7 +144,8 @@ class DictationError extends Error {
 - `createDictation` returns `null` when `speech` is `null`, so a field with no `onSpeak` has no mic.
 - `start` takes nothing about the field: the studio knows which field it is for. One `Dictation` serves the whole studio, one take at a time.
 - `state` can be read and subscribed to, so the button shows "Listening…" and the meter without polling. `level` runs from 0 to 1.
-- `options` holds the learner's model choice and, for tests, the worker and the microphone.
+- `options` holds the microphone, the recogniser (whisper in its worker), the learner's model choice, a clock, and what tells it the window lost focus. Until the browser's microphone and worker are built (WP14.1's next part), the studio passes them in; after that they have defaults.
+- **A take can stop listening by itself:** at 30 seconds, or when the window loses focus or the page is hidden. `state` then goes from `listening` to `working`, and the studio calls `stop` to collect the words, as after a tap. A new `start` drops words nobody collected.
 
 The words come back from `stop`, and the studio inserts them (section 1.7).
 

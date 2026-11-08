@@ -49,6 +49,7 @@ export const ICON_NAMES = [
   'mic',
   'photo_camera',
   'play_arrow',
+  'print',
   'radio_button_unchecked',
   'redo',
   'remove',

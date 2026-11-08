@@ -1,7 +1,8 @@
 import type { FrameId, LineId, Production, SceneId } from '@storystage/production';
 import { addSketch } from '@storystage/sketches';
-import { Button } from '@storystage/ui';
+import { Button, useThemeStyle } from '@storystage/ui';
 import { useEffect, useState, type Dispatch } from 'react';
+import { createPortal } from 'react-dom';
 import { words } from '../strings.ts';
 import { nextRedo, nextUndo, type History, type HistoryAction } from './history.ts';
 import { FramePanel } from './FramePanel.tsx';
@@ -12,12 +13,17 @@ import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
 import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
+import { PrintStoryboard } from './PrintStoryboard.tsx';
 import { ScriptPane } from './ScriptPane.tsx';
 
 export interface StoryboardProps {
   history: History<Production>;
   dispatch: Dispatch<HistoryAction<Production>>;
 }
+
+/** A CSS string, for the page foot's `content`. */
+const cssString = (text: string) =>
+  `"${text.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\s/g, ' ')}"`;
 
 /** Keys typed into a text field are the field's own: there, Ctrl+Z undoes the typing. */
 const isTextEntry = (target: EventTarget | null) =>
@@ -31,6 +37,9 @@ const isTextEntry = (target: EventTarget | null) =>
  */
 export function Storyboard({ history, dispatch }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
+  // Each press of Print storyboard, until the print dialog closes; 0 when not printing.
+  const [printing, setPrinting] = useState(0);
+  const themeStyle = useThemeStyle();
   const [chosen, setChosen] = useState<SceneId | null>(null);
   const p = history.present;
   // The chosen scene, or the first one if it has gone (deleted, or undone).
@@ -81,6 +90,25 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
     setAnnouncement(words.t('history.redone', { step: redoLabel }));
   };
 
+  // Print: lay the storyboard out, open the device's print dialog, and put the layout away when
+  // the dialog closes (decision 0054). The page foot reads the title and the word for page from
+  // custom properties on the root, which `@page` margin boxes inherit.
+  const footTitle = p.manifest.title.trim() || words.t('storyboard.untitled');
+  useEffect(() => {
+    if (printing === 0) return;
+    const root = document.documentElement.style;
+    root.setProperty('--sb-print-title', cssString(footTitle));
+    root.setProperty('--sb-print-page', cssString(words.t('storyboard.print.page')));
+    const done = () => setPrinting(0);
+    window.addEventListener('afterprint', done);
+    window.print();
+    return () => {
+      window.removeEventListener('afterprint', done);
+      root.removeProperty('--sb-print-title');
+      root.removeProperty('--sb-print-page');
+    };
+  }, [printing, footTitle]);
+
   // Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac or iPad): the keymap's first shortcuts (07-ux 6.8).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -103,6 +131,9 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
       />
       <div className="sb-main">
         <div className="sb-toolbar" role="toolbar" aria-label={words.t('history.label')}>
+          <Button variant="quiet" icon="print" onPress={() => setPrinting((n) => n + 1)}>
+            {words.t('storyboard.print')}
+          </Button>
           <Button variant="quiet" icon="undo" isDisabled={!undoLabel} onPress={undo}>
             {words.t('history.undo')}
             {undoLabel && <span className="ss-visually-hidden">: {undoLabel}</span>}
@@ -155,6 +186,13 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
         onLeave={() => dispatch({ type: 'seal' })}
         onAnnounce={setAnnouncement}
       />
+      {printing > 0 &&
+        createPortal(
+          <div className="ss-root sb-print-root" style={themeStyle}>
+            <PrintStoryboard production={p} />
+          </div>,
+          document.body,
+        )}
       <p className="ss-visually-hidden" aria-live="polite">
         {announcement}
       </p>

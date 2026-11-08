@@ -75,6 +75,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Website and browser version | The website is **storystage.org**, on the existing Bluehost WordPress site (Elementor), updated through WPVibe; the browser version is static files at **app.storystage.org**, a separate origin. storystage.org.uk is not used (0046) | 25 Oct 2026 |
 | Backstage search | Poly Pizza CC0 search is on for teachers by default, hidden from learners; models with "gun" as a word or compound in their name, tags or category are screened out; a school can switch it off (`backstage.search=false`) (0058) | 8 Nov 2026 |
 | The optional speech model's host | The 78 MB model downloads from the speech-models-v1 GitHub release, the update host (0047); S8 merges #151, #152 and #155 when green (0061) | 8 Nov 2026 |
+| The shipped Backstage is bundled | The apps carry the whole shipped Backstage folder (about 85 MB today), so it works offline from the first launch; the browser version serves it from its own origin; `backstage.lock.json` pins the catalogue a release ships (0062) | 8 Nov 2026 |
 
 ## Still to decide (owner)
 
