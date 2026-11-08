@@ -62,6 +62,19 @@ These are the parts WP4.5–4.6's commands will use. No command drives them yet;
 - **Why not Babylon.js's own controllers?** They move a skeleton's bones, but a glTF model's bones follow their nodes, so the stage turns the nodes with its own arithmetic.
 - **Not measured:** what any of this costs on the reference devices (#6).
 
+## Humanoids (4.6)
+
+A clip made once plays on any humanoid, as Unity's Mecanim Humanoid does.
+
+- **Poses** (`src/humanoid/pose.ts`) are turns of the VRM 1.0 humanoid bones, each measured from a T-pose and in the axes of a model that faces +Z. A bone's own axes don't matter. `HumanoidRig` works out each model's from where its bones rest, and the hips' movement is in hips' heights, so it fits any size.
+- **The shared clips** are KayKit's (Character Pack: Adventurers, by Kay Lousberg, CC0), by the owner's decision of 8 Nov 2026. There are 15 of them: standing, walking, running, sitting on a chair or the floor, lying, standing up from each, picking up, reaching out and cheering.
+  - `scripts/make-clips.ts` makes `src/humanoid/kaykit-clips.ts` from any KayKit character in Backstage. Don't edit that file; make it again.
+  - They're kept to a hundredth of a degree in about 170 kB, which loads only when a scene first has a humanoid in it (`loadHumanLibrary`).
+- **Walking speed:** a walk's and a run's speed is measured from their feet: about 1.9 and 3.7 hips' heights a second.
+- **VRM 0.x avatars face -Z** (spec 17, section 3), so the stage turns them to face +Z when it places them. It knows one from its file.
+- **Rest poses:** every model so far rests in a T-pose. A model that rests in an A-pose would hold its arms too low. MakeHuman's people may need a correction for that, once they can be looked at here.
+- **Not yet:** WP4c's actions use these, and none does yet.
+
 ## How it fits together
 
 `timeline.ts` works the scene out, with no graphics: the scene at any time is a pure function of the set-up and the commands so far. `FakeStage` and `BabylonStage` both wrap it, so they agree exactly. `BabylonStage` copies the timeline's state onto Babylon.js objects on each `seek`, and nothing else moves them.

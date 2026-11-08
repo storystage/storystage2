@@ -6,10 +6,12 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { JointName, Quat, Transform, Vec3 } from '@storystage/story-api';
 import type { Box } from '../hull.ts';
+import type { HumanPose } from '../humanoid/pose.ts';
 import { localAfter, lookTurn, reachTurns } from '../ik.ts';
 import { conjugate, mul, rotate, v } from '../math.ts';
 import { paintColour } from '../paint.ts';
 import type { Blend, ObjectState } from '../timeline.ts';
+import { HumanoidRig } from './humanoid-rig.ts';
 import { color3 } from './materials.ts';
 
 /** Metres between the top of an object and its label. */
@@ -65,10 +67,12 @@ export interface LookPose {
 }
 
 /**
- * How an object moves besides its joints' turns, applied in this order: the clips, blended; the
- * joints' turns on top of them; reaching; then looking.
+ * How an object moves besides its joints' turns, applied in this order: the model's own clips,
+ * blended; a humanoid pose; the joints' turns on top of them; reaching; then looking.
  */
 export interface Motion {
+  /** A humanoid pose, from the shared clips (WP4.6), on top of the model's own clips. */
+  readonly human?: HumanPose;
   readonly clips?: readonly ClipPose[];
   readonly reach?: readonly ReachPose[];
   readonly look?: readonly LookPose[];
@@ -144,6 +148,9 @@ export class ObjectView {
   private readonly clipsByName: ReadonlyMap<string, Clip>;
   /** The rest of every node a clip moves, to blend with and to go back to. */
   private readonly rests: ReadonlyMap<TransformNode, NodeRest>;
+  /** Its humanoid bones, if it has them. */
+  private readonly rig: HumanoidRig | null;
+  private humanPosed = false;
   private posed = false;
   private opacity = 1;
   /** The paint and blend last shown, so an unchanged paint costs nothing. */
@@ -192,6 +199,7 @@ export class ObjectView {
     }
     this.rests = rests;
     this.clipsByName = clips;
+    this.rig = joints?.has('hips' as JointName) ? new HumanoidRig(root, joints) : null;
   }
 
   /** The names of the model's clips. */
@@ -208,7 +216,12 @@ export class ObjectView {
       const height = position.y + this.label.above * scale.y + LABEL_GAP;
       this.label.mesh.position.set(position.x, height, position.z);
     }
-    const moving = !!(motion.clips?.length || motion.reach?.length || motion.look?.length);
+    const moving = !!(
+      motion.human ||
+      motion.clips?.length ||
+      motion.reach?.length ||
+      motion.look?.length
+    );
     if (state.joints.size > 0 || moving || this.posed) this.pose(state, motion, moving);
     if (state.opacity !== this.opacity) this.fade(state.opacity);
     const blend = state.paintBlend;
@@ -224,7 +237,11 @@ export class ObjectView {
    * clips, a joint's turn is on top of the pose it has in the model.
    */
   private pose(state: ObjectState, motion: Motion, moving: boolean): void {
+    if (this.humanPosed && !motion.human) this.rig!.rest();
     const animated = this.blend(motion.clips ?? []);
+    this.humanPosed = !!(motion.human && this.rig);
+    if (motion.human && this.rig)
+      for (const [node, turn] of this.rig.apply(motion.human)) animated.set(node, turn);
     for (const { joint, node, rest } of this.bones) {
       const base = animated.get(node) ?? rest;
       const turn = state.joints.get(joint);
