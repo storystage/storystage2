@@ -191,12 +191,19 @@ importers:
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+    devDependencies:
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
 
   packages/projection: {}
 

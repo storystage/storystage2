@@ -171,6 +171,35 @@ Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playba
 - **The player** passes the ending to `nextScene`. It also derives `{ kind: 'finished' }` itself, from the runtime's `finished` message (the script method has ended): unless the scene waits on the viewer (`waitsForViewer`), it waits for the last stage command to end, sends `stop`, and asks `nextScene`.
 - The same worker takes a fresh `load` for the next scene, from scene time 0 with that scene's own seed. Going to the scene already playing restarts it.
 
+### 3.2 The player
+
+`ProductionPlayer` (`player.ts`) is the player's controller, agreed with S2 on 8 Nov 2026. It's a pure state machine: it has no worker, stage or clock of its own. The one-scene driver (S2, WP6.4) and the Screening room (WP11.1) tell it what happens, and do what it says.
+
+- **In:**
+  - `start()`;
+  - every message from the runtime (`runtime()`);
+  - the picture's scene time (`now()`): every frame live, and at each `advance` when fixed. It's the picture's time, not the worker's, which runs ahead by its lookahead, so a scene ends when the screen gets there;
+  - the learner's Stop (`stop()`).
+- **Out:** actions, in the order to do them:
+  - `load`, which is self-contained: the scene, its script method, its set-up, its seed, the scene ids for the runtime, how it came in, and any commands to schedule before its first seek;
+  - `stageCommands`, a fade on the scene that's ending;
+  - `crossfade`: keep the old scene's picture playing, its timeline carrying on with the commands it already has, while the next one loads. Only one runtime runs;
+  - `stop`, for the worker;
+  - `next`, Rehearse's "Next: <heading>";
+  - `fault`, the scene start limit or a missing scene, in plain words;
+  - `end`.
+- **Rules:**
+  - **Seeds:** each scene's seed is the run's seed plus its start number, so a rerun repeats (WP6.5).
+  - **A runtime error** stops play; the driver shows the error with its block highlighted.
+  - **The last command's end** is worked out from the `commands` the worker sends.
+  - **The player's fade commands** take sequence numbers from 2^30 up, after anything the runtime sends at the same moment.
+
+**WP8's done-when** ("plays through with each transition type") is `playthrough.test.ts`. A four-scene film plays through the real runtime (`serve`, fixed steps) with the stage's fake:
+1. a goToScene and the cut it leads into;
+2. a scene that ends on its own into a fade to black;
+3. another into a crossfade;
+4. a last scene that waits for a click, whose listener fades the film to black.
+
 ## 4. Storyboard
 
 `storyboard.json` holds the logline and synopsis (required before scenes can be added, WP10.1), the arc (a template and its part names, WP10.2) and one card per scene, with the same id as the scene. `SceneCard.heading` is what 10.8 means by the scene's heading.
@@ -230,6 +259,8 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | One undo step for program edits, scene steps and stage changes, alone or grouped; cancel; renaming or removing an object's field in code keeps its set-up in step; read-only; listeners; load (section 2.1) | `session.test.ts` | Unit |
 | Renaming and duplicating a scene: the copy's type, set-up, card, place, new ids, links and pins (section 2.1) | `session.test.ts` | Unit |
 | Playing a production: the running order, each scene's transition, the end; go to scene, crossfade and fade to black; scenes that aren't there; the scene start limit; scenes that wait on the viewer (section 3.1) | `playback.test.ts` | Unit |
+| The player: a self-contained load with its seed; endings judged on the picture's time; waiting on the viewer; fade out then in; crossfade; the end, in black; the start limit; missing scenes; Rehearse; errors and Stop; reruns repeat (section 3.2) | `player.test.ts` | Unit |
+| WP8 done-when: a film plays through every transition, a goToScene and a scene that waits for a click, through the real runtime and the stage's fake (section 3.2) | `playthrough.test.ts` | Integration |
 | Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
 | A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
 | A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
