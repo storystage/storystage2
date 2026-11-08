@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ALLOWED_BETAS,
   containsSecret,
   offTransport,
   scriptedTransport,
@@ -83,6 +84,20 @@ describe('scriptedTransport', () => {
     const t = scriptedTransport(() => reply);
     const leaked = { ...request, body: { ...request.body, system: FAKE_KEY } };
     expect(await collect(t, leaked)).toEqual([{ type: 'error', code: 'refused_by_policy' }]);
+    expect(t.sent).toEqual([]);
+  });
+
+  it('sends a listed beta along with the request', async () => {
+    const t = scriptedTransport(() => reply);
+    const withBeta = { ...request, betas: [...ALLOWED_BETAS] };
+    expect(await collect(t, withBeta)).toEqual(reply);
+    expect(t.sent[0]?.betas).toEqual(ALLOWED_BETAS);
+  });
+
+  it('refuses a beta that is not on the list, as the native layer does', async () => {
+    const t = scriptedTransport(() => reply);
+    const unlisted = { ...request, betas: ['some-other-beta'] } as unknown as PrompterRequest;
+    expect(await collect(t, unlisted)).toEqual([{ type: 'error', code: 'refused_by_allowlist' }]);
     expect(t.sent).toEqual([]);
   });
 });
