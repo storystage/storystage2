@@ -3,5 +3,14 @@
   "identifier": "default",
   "description": "The main window. The webview gets nothing it is not given explicitly.",
   "windows": ["main"],
-  "permissions": ["allow-policy-in-force"]
+  "permissions": [
+    "allow-policy-in-force",
+    "allow-app-version",
+    "allow-prompter-send",
+    "allow-prompter-cancel",
+    "allow-prompter-status",
+    "allow-key-add",
+    "allow-key-status",
+    "allow-key-remove"
+  ]
 }

@@ -51,7 +51,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S5 Studio interface
 - Merged:
-  - 7 Nov (PR open): **WP10a, the script header and arc (10.1, 10.2)**: the Storyboard's first screen part: title, logline and synopsis with the §6.9 limits, the plan size, and the arc (Free, 3-part, 5-part; curriculum templates join by id); the Storyboard's undo history (Undo and Redo buttons, Ctrl/Cmd+Z, one step per field's typing); `newProduction`; `TextField` gains paragraphs and the at-limit note.
+  - 7 Nov (PR open): **WP10a, the scene cards (10.3)**: the scene strip (cards in running order with heading, length, part and frame numbers; reorder by drag or keyboard), Add a scene (waits for the logline and synopsis, saying why), and the chosen scene in full (heading, part of the arc, how it ends, cast, Delete scene with a confirmation that says why when code still uses it). 10.1 and 10.2 ticked.
+  - 7 Nov (#128): **WP10a, the script header and arc (10.1, 10.2)**: the Storyboard's first screen part: title, logline and synopsis with the §6.9 limits, the plan size, and the arc (Free, 3-part, 5-part; curriculum templates join by id); the Storyboard's undo history (Undo and Redo buttons, Ctrl/Cmd+Z, one step per field's typing); `newProduction`; `TextField` gains paragraphs and the at-limit note.
   - 7 Nov (#127, contract for S4): **scene changes for the Storyboard (from 8.2)**: `addScene`, `deleteScene`, `moveScene` in `packages/production`, each one step across the type, set-up, card, frames, lines and running order, with the program edits and their inverses for 8.2's session.
   - 7 Nov (#125, open, contract for S4): **Fountain reading and writing (10.4)**: `writeFountain`, `readFountain` and `FOUNTAIN_LIMITS` in `packages/production`.
   - 7 Nov (#124): **WP10a spec**, `07-ux.md` §6 (the Storyboard), and decision 0054 (print through the device's print dialog).
@@ -67,17 +68,18 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 25 Oct (#58): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, `docs/spec/07-ux.md` §1 (screen sizes), and decisions 0032 (light theme) and 0033 (narrow windows). 12.1 stays unticked until the owner approves it.
 - Blocked on:
   - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6).
-- Next: WP10a, the Storyboard's screens in `apps/studio`: the scene cards (10.3, on #127's `addScene`), the script pane (10.4), the frame canvas (10.6) and print (10.7). **S4:** #125 (Fountain) is waiting for your review; by the owner's decision of 7 Nov, S5 wrote it for you to review.
+- Next: WP10a, the Storyboard's screens in `apps/studio`: the script pane (10.4), the frame canvas (10.6) and print (10.7). **S4:** #125 (Fountain) is waiting for your review; by the owner's decision of 7 Nov, S5 wrote it for you to review.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
+  - 8 Nov (PR open): **WP4d, the open specification (4.8, decision 0055)**: `docs/story-api/`, version 0.9.0, a draft for comment: a readable reference and crosswalk annex (CC BY 4.0), and `story-api.json`, its schema and `program.schema.json` (Apache-2.0), all generated from the metadata and checked by a test. A GitHub release `story-api-v0.9.0` follows the merge. **S2:** please change `PROGRAM_SCHEMA.$id` to `https://storystage.org/spec/program/1/program.schema.json` (0055). **S4:** the joint map as a published file, before 1.0.
   - 7 Nov (#116): **the whole-program check, which finishes WP4a**: `checkProgram` from `@storystage/story-api/program-check`, for `check` in `validateProgram` and the session (spec 02, section 9a). **S2, S5:** pass it wherever a session is made. **S2:** `sampleProgram` has two type slips it would refuse (spec 02, section 12). In a program, `Paint` beyond a `Color`, `Audio`, `SceneId` and `AnimationClip` are `text`; `JointId` is an `enum` node.
   - 1 Nov (decision 0051): the owner's review of the joint and event choices: joints turn only; `viewEnter` and `viewExit` are **added to 6.2**; occlusion waits for a measurement; point-of-view and drag-while-playing events stay out. **S2:** two more events for WP6. **S3:** please measure occlusion and view events on the reference devices once the stage exists (WP5a); the owner decides occlusion from that.
   - 1 Nov (#107): the palette checked against a compiled Alice in one CI run, as the owner asked: reflection and the real `ApiCatalog` both match, line for line. `ApiCatalog` lists 109 of the 309 members, not the 126 first implied (spec 02).
   - 1 Nov: **#57, S4's joint map (3.3)**, merged at the owner's request after CI on current `main`. **S4:** #60 was stacked on it and still has that base, so please retarget it to `main`.
   - 1 Nov (#105): **WP4.1, 4.2, 4.7**: `docs/spec/02-story-api.md`, with its tables generated from typed metadata in `@storystage/story-api` (`src/catalog/`): 99 blocks, 12 events, details, values, plain words, stage bindings and crosswalk fields. All 309 members of Alice's palette are kept or listed as dropped, and a test keeps it that way. The owner has said S6 merges its WP4 pull requests when green. **S2, S3, S7:** final names are in spec 02; S7's catalog is `catalogText()`, about 2,600 tokens. **S3:** section 1 has the direction axes, which differ from Alice's; section 9 lists what the stage contract needs. **S2:** `TextModel` and the enum names (spec 02, section 12).
 - Blocked on:
-- Next: WP4d (4.8), the open specification.
+- Next: WP7c, the Alice-style tile editor, which waits for WP12b (S5).
 
 ## S7 Prompter and speech
 - Merged:
@@ -92,8 +94,19 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 8 Nov (#106, #108–#111): **WP15k, the key store, transport and policy enforcement point (15.2)**. The gate checks every rule in spec 04 §1.8 before the key is read. The transport streams with at most two retries, and in CI 30 clients hitting rate limits make exactly 90 requests, with retries spread out. The key is typed into a system dialog (decision 0056) and kept in Credential Manager, Keychain or Android Keystore. The leak scan runs on every desktop build: a random key in the real store, a real request, and no trace in the page or a heap snapshot. **S7:** `pins.json` refuses every real request until `packages/prompter` generates the `system`, `tools` and mode-message hashes (spec 05 §2.3), which you're doing in WP13b; test against `gate/fixtures/hash.json`. **S5:** screen 10c's field becomes an Add key button calling `key_add` (spec 05 §1.3).
+  - 7–8 Nov (#88, #98–#100): **`@storystage/host`**, the host interface (decision 0028), with the policy in force, the installed version and `tauriHost`; S5 reviewed #100 and asked for one change, now in (no Prompter while the policy is unreadable). **Managed configuration** on iPad and Android. **Updates**: channels, pins, staged rollout, rollback, the `Release` and `Channel` workflows, and universal macOS builds.
+  - 1 Nov (#86, #87, #104): **spec 05 §3–5**, **the policy crate** (15.3), and **WP0.9, the threat model** (`docs/spec/15-security.md`). **S4, S6:** 8.4, 9.1 and 10.4 are unblocked; section 3 has the import rules, with one archive reader in `packages/production`.
+- Open: #103, decisions 0047, 0048 and 0056, waiting for the owner.
 - Blocked on:
-- Next:
+  - S7: `pins.json`, in WP13b. Until then the Prompter can't send a real request.
+  - Owner: the human security review before the pilot. Start with `SecureKeyPlugin.load` (#110), W10 and U3.
+  - Owner: trying the key dialogs on Windows, a Mac and a Chromebook. None has been opened yet. The iPad's waits for the Apple account.
+  - Owner: generating the updater key (0047). Until then `Release` and `Channel` have never run, and the rollback drill (15.7) can't be done.
+  - Owner: a real push of a setting through managed Google Play and iPad device management. The iPad code is compiled but has never run.
+- For D: decision 0047 makes GitHub a named host in the DPIA (17.3) and the privacy notice (17.4).
+- Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. Meanwhile: a test that `PROMPTER_LEVELS` matches S7's list once #133 lands, and spec 15 rows for the whisper model download (S7, spec 06 §7) once the model sizes are known.
+- Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is now `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse.
 
 ## D Documents
 - Merged:

@@ -233,7 +233,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 |  |
 | WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 |  |
 | WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |  |
-| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
+| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 | 0.1 (8 Nov) |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
 | WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | started 1 Nov |
 | WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | 0.3 (31 Oct–1 Nov) |
@@ -557,7 +557,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
     (C)
 - [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
-- [ ] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
+- [x] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)
 - [ ] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
 
@@ -672,8 +672,8 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp10 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP10s after WP0, WP3a; WP10a after WP8f, WP12b, WP10s; WP10b after WP10a, WP7, WP8; WP10c after WP10a, WP3i, WP8, WP5b.
 <!-- /schedule:wp10 -->
-- [ ] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
-- [ ] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
+- [x] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
+- [x] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
 - [ ] 10.3 Scene cards: heading (place and time), cast, arc part and transition. Cards are reordered by drag and by keyboard. (C)
 - [ ] 10.4 **Script against scenes:** a script pane beside the boards. Action and dialogue lines sit under each scene heading, and dialogue carries the character's name. Each line can be pinned to a frame. Fountain import and export, with size limits. (C)
 - [x] 10.5 **Sketch library:** `tools/make-sketches` renders every shipped model as a black outline on white in four facings (front, three-quarter, side, back) and, for characters, two or three standard poses, grouped in the same Cast, Props, Set and Backdrops sections as Backstage, with backdrop sketches and a small hand-made set of storyboard marks (speech bubble, movement arrow, camera arrow, text). Each sketch carries the model's Backstage id. Include a manual touch-up list for unreadable sketches. The same renderer (a CPU line renderer in TypeScript: outline and edge lines, no colour; it replaced Babylon offscreen by the owner's decision of 25 Oct 2026, `docs/spec/17-backstage.md` section 7) is packaged to run in the app, so models imported through 3.11 get sketches too. Outside drawings are not imported (decided); a missing item comes in as a model through Backstage (10.9) or as a stand-in. (C)

@@ -1,0 +1,3788 @@
+{
+  "$schema": "https://storystage.org/spec/story-api/0.9/story-api.schema.json",
+  "$id": "https://storystage.org/spec/story-api/0.9/story-api.json",
+  "version": "0.9.0",
+  "status": "draft",
+  "language": "en-GB",
+  "space": {
+    "units": "metres, seconds and whole turns (0.25 is a quarter turn)",
+    "axes": "glTF: right-handed, Y up, and a model faces +Z. Each direction is in the object’s own axes.",
+    "move": {
+      "left": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "right": {
+        "x": -1,
+        "y": 0,
+        "z": 0
+      },
+      "up": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "down": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+      },
+      "forward": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "backward": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      }
+    },
+    "turn": {
+      "left": {
+        "x": 0,
+        "y": 1,
+        "z": 0
+      },
+      "right": {
+        "x": 0,
+        "y": -1,
+        "z": 0
+      },
+      "forward": {
+        "x": 1,
+        "y": 0,
+        "z": 0
+      },
+      "backward": {
+        "x": -1,
+        "y": 0,
+        "z": 0
+      }
+    },
+    "roll": {
+      "left": {
+        "x": 0,
+        "y": 0,
+        "z": -1
+      },
+      "right": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      }
+    }
+  },
+  "classes": [
+    {
+      "name": "Thing",
+      "extends": null,
+      "abstract": true,
+      "words": "anything",
+      "fromAlice": [
+        "SThing"
+      ]
+    },
+    {
+      "name": "Scene",
+      "extends": "Thing",
+      "abstract": false,
+      "words": "scene",
+      "fromAlice": [
+        "SScene"
+      ]
+    },
+    {
+      "name": "Ground",
+      "extends": "Thing",
+      "abstract": false,
+      "words": "ground",
+      "fromAlice": [
+        "SGround"
+      ]
+    },
+    {
+      "name": "Turnable",
+      "extends": "Thing",
+      "abstract": true,
+      "words": "anything that turns",
+      "fromAlice": [
+        "STurnable"
+      ]
+    },
+    {
+      "name": "Joint",
+      "extends": "Turnable",
+      "abstract": false,
+      "words": "joint",
+      "fromAlice": [
+        "SJoint"
+      ]
+    },
+    {
+      "name": "MovableTurnable",
+      "extends": "Turnable",
+      "abstract": true,
+      "words": "anything that moves",
+      "fromAlice": [
+        "SMovableTurnable"
+      ]
+    },
+    {
+      "name": "Camera",
+      "extends": "MovableTurnable",
+      "abstract": false,
+      "words": "camera",
+      "fromAlice": [
+        "SCamera"
+      ]
+    },
+    {
+      "name": "Marker",
+      "extends": "MovableTurnable",
+      "abstract": false,
+      "words": "marker",
+      "fromAlice": [
+        "SMarker",
+        "SCameraMarker",
+        "SThingMarker",
+        "STarget"
+      ]
+    },
+    {
+      "name": "Model",
+      "extends": "MovableTurnable",
+      "abstract": true,
+      "words": "model",
+      "fromAlice": [
+        "SModel"
+      ]
+    },
+    {
+      "name": "Billboard",
+      "extends": "Model",
+      "abstract": false,
+      "words": "billboard",
+      "fromAlice": [
+        "SBillboard"
+      ]
+    },
+    {
+      "name": "Text",
+      "extends": "Model",
+      "abstract": false,
+      "words": "3D text",
+      "fromAlice": [
+        "STextModel"
+      ]
+    },
+    {
+      "name": "JointedModel",
+      "extends": "Model",
+      "abstract": true,
+      "words": "model with joints",
+      "fromAlice": [
+        "SJointedModel"
+      ]
+    },
+    {
+      "name": "Prop",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "prop",
+      "fromAlice": [
+        "SProp",
+        "SShape",
+        "SBox",
+        "SSphere",
+        "SCone",
+        "SCylinder",
+        "SDisc",
+        "STorus",
+        "SAxes"
+      ]
+    },
+    {
+      "name": "Transport",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "transport",
+      "fromAlice": [
+        "STransport"
+      ]
+    },
+    {
+      "name": "Biped",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "biped",
+      "fromAlice": [
+        "SBiped"
+      ]
+    },
+    {
+      "name": "Quadruped",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "quadruped",
+      "fromAlice": [
+        "SQuadruped"
+      ]
+    },
+    {
+      "name": "Flyer",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "flyer",
+      "fromAlice": [
+        "SFlyer"
+      ]
+    },
+    {
+      "name": "Swimmer",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "swimmer",
+      "fromAlice": [
+        "SSwimmer"
+      ]
+    },
+    {
+      "name": "Slitherer",
+      "extends": "JointedModel",
+      "abstract": false,
+      "words": "slitherer",
+      "fromAlice": [
+        "SSlitherer"
+      ]
+    }
+  ],
+  "types": {
+    "basic": [
+      "Number",
+      "WholeNumber",
+      "Text",
+      "Boolean"
+    ],
+    "references": [
+      "Paint",
+      "Audio",
+      "JointId",
+      "SceneId",
+      "AnimationClip"
+    ],
+    "writtenAsText": [
+      "Paint",
+      "Audio",
+      "SceneId",
+      "AnimationClip"
+    ]
+  },
+  "values": [
+    {
+      "name": "AnimationStyle",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "beginAndEndGently",
+          "words": "begin and end gently"
+        },
+        {
+          "name": "beginGentlyAndEndAbruptly",
+          "words": "begin gently and end abruptly"
+        },
+        {
+          "name": "beginAbruptlyAndEndGently",
+          "words": "begin abruptly and end gently"
+        },
+        {
+          "name": "beginAndEndAbruptly",
+          "words": "begin and end abruptly"
+        }
+      ]
+    },
+    {
+      "name": "BubblePosition",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "automatic",
+          "words": "automatic"
+        },
+        {
+          "name": "left",
+          "words": "left"
+        },
+        {
+          "name": "center",
+          "words": "centre"
+        },
+        {
+          "name": "right",
+          "words": "right"
+        }
+      ]
+    },
+    {
+      "name": "Color",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "black",
+          "words": "black"
+        },
+        {
+          "name": "blue",
+          "words": "blue"
+        },
+        {
+          "name": "cyan",
+          "words": "cyan"
+        },
+        {
+          "name": "darkGray",
+          "words": "dark grey"
+        },
+        {
+          "name": "gray",
+          "words": "grey"
+        },
+        {
+          "name": "green",
+          "words": "green"
+        },
+        {
+          "name": "lightGray",
+          "words": "light grey"
+        },
+        {
+          "name": "magenta",
+          "words": "magenta"
+        },
+        {
+          "name": "orange",
+          "words": "orange"
+        },
+        {
+          "name": "pink",
+          "words": "pink"
+        },
+        {
+          "name": "red",
+          "words": "red"
+        },
+        {
+          "name": "white",
+          "words": "white"
+        },
+        {
+          "name": "yellow",
+          "words": "yellow"
+        },
+        {
+          "name": "lightBlue",
+          "words": "light blue"
+        },
+        {
+          "name": "darkBlue",
+          "words": "dark blue"
+        },
+        {
+          "name": "purple",
+          "words": "purple"
+        },
+        {
+          "name": "brown",
+          "words": "brown"
+        }
+      ]
+    },
+    {
+      "name": "HeldKeyPolicy",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "fireMultiple",
+          "words": "keep going"
+        },
+        {
+          "name": "fireOnceOnPress",
+          "words": "once, when pressed"
+        },
+        {
+          "name": "fireOnceOnRelease",
+          "words": "once, when let go"
+        }
+      ]
+    },
+    {
+      "name": "MoveDirection",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "left",
+          "words": "left"
+        },
+        {
+          "name": "right",
+          "words": "right"
+        },
+        {
+          "name": "up",
+          "words": "up"
+        },
+        {
+          "name": "down",
+          "words": "down"
+        },
+        {
+          "name": "forward",
+          "words": "forward"
+        },
+        {
+          "name": "backward",
+          "words": "backward"
+        }
+      ]
+    },
+    {
+      "name": "MultipleEventPolicy",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "enqueue",
+          "words": "wait, then run again"
+        },
+        {
+          "name": "ignore",
+          "words": "ignore it"
+        },
+        {
+          "name": "combine",
+          "words": "run both together"
+        }
+      ]
+    },
+    {
+      "name": "PathStyle",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "beeLine",
+          "words": "straight line"
+        },
+        {
+          "name": "smooth",
+          "words": "smooth curve"
+        }
+      ]
+    },
+    {
+      "name": "RollDirection",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "left",
+          "words": "left"
+        },
+        {
+          "name": "right",
+          "words": "right"
+        }
+      ]
+    },
+    {
+      "name": "SetDimensionPolicy",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "preserveVolume",
+          "words": "keep the volume"
+        },
+        {
+          "name": "preserveAspectRatio",
+          "words": "keep the proportions"
+        },
+        {
+          "name": "preserveNothing",
+          "words": "change this side only"
+        }
+      ]
+    },
+    {
+      "name": "SpatialRelation",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "leftOf",
+          "words": "left of"
+        },
+        {
+          "name": "rightOf",
+          "words": "right of"
+        },
+        {
+          "name": "above",
+          "words": "above"
+        },
+        {
+          "name": "below",
+          "words": "below"
+        },
+        {
+          "name": "inFrontOf",
+          "words": "in front of"
+        },
+        {
+          "name": "behind",
+          "words": "behind"
+        }
+      ]
+    },
+    {
+      "name": "TextFont",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "default",
+          "words": "the usual font"
+        },
+        {
+          "name": "serif",
+          "words": "serif"
+        },
+        {
+          "name": "sansSerif",
+          "words": "sans serif"
+        },
+        {
+          "name": "monospaced",
+          "words": "monospaced"
+        }
+      ]
+    },
+    {
+      "name": "TextStyle",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "plain",
+          "words": "plain"
+        },
+        {
+          "name": "bold",
+          "words": "bold"
+        },
+        {
+          "name": "italic",
+          "words": "italic"
+        }
+      ]
+    },
+    {
+      "name": "TurnDirection",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "left",
+          "words": "left"
+        },
+        {
+          "name": "right",
+          "words": "right"
+        },
+        {
+          "name": "forward",
+          "words": "forward"
+        },
+        {
+          "name": "backward",
+          "words": "backward"
+        }
+      ]
+    },
+    {
+      "name": "Key",
+      "origin": "alice",
+      "values": [
+        {
+          "name": "a",
+          "words": "A"
+        },
+        {
+          "name": "b",
+          "words": "B"
+        },
+        {
+          "name": "c",
+          "words": "C"
+        },
+        {
+          "name": "d",
+          "words": "D"
+        },
+        {
+          "name": "e",
+          "words": "E"
+        },
+        {
+          "name": "f",
+          "words": "F"
+        },
+        {
+          "name": "g",
+          "words": "G"
+        },
+        {
+          "name": "h",
+          "words": "H"
+        },
+        {
+          "name": "i",
+          "words": "I"
+        },
+        {
+          "name": "j",
+          "words": "J"
+        },
+        {
+          "name": "k",
+          "words": "K"
+        },
+        {
+          "name": "l",
+          "words": "L"
+        },
+        {
+          "name": "m",
+          "words": "M"
+        },
+        {
+          "name": "n",
+          "words": "N"
+        },
+        {
+          "name": "o",
+          "words": "O"
+        },
+        {
+          "name": "p",
+          "words": "P"
+        },
+        {
+          "name": "q",
+          "words": "Q"
+        },
+        {
+          "name": "r",
+          "words": "R"
+        },
+        {
+          "name": "s",
+          "words": "S"
+        },
+        {
+          "name": "t",
+          "words": "T"
+        },
+        {
+          "name": "u",
+          "words": "U"
+        },
+        {
+          "name": "v",
+          "words": "V"
+        },
+        {
+          "name": "w",
+          "words": "W"
+        },
+        {
+          "name": "x",
+          "words": "X"
+        },
+        {
+          "name": "y",
+          "words": "Y"
+        },
+        {
+          "name": "z",
+          "words": "Z"
+        },
+        {
+          "name": "digit0",
+          "words": "0"
+        },
+        {
+          "name": "digit1",
+          "words": "1"
+        },
+        {
+          "name": "digit2",
+          "words": "2"
+        },
+        {
+          "name": "digit3",
+          "words": "3"
+        },
+        {
+          "name": "digit4",
+          "words": "4"
+        },
+        {
+          "name": "digit5",
+          "words": "5"
+        },
+        {
+          "name": "digit6",
+          "words": "6"
+        },
+        {
+          "name": "digit7",
+          "words": "7"
+        },
+        {
+          "name": "digit8",
+          "words": "8"
+        },
+        {
+          "name": "digit9",
+          "words": "9"
+        },
+        {
+          "name": "left",
+          "words": "left arrow"
+        },
+        {
+          "name": "right",
+          "words": "right arrow"
+        },
+        {
+          "name": "up",
+          "words": "up arrow"
+        },
+        {
+          "name": "down",
+          "words": "down arrow"
+        },
+        {
+          "name": "space",
+          "words": "space bar"
+        },
+        {
+          "name": "enter",
+          "words": "enter"
+        },
+        {
+          "name": "tab",
+          "words": "tab"
+        },
+        {
+          "name": "backSpace",
+          "words": "backspace"
+        },
+        {
+          "name": "escape",
+          "words": "escape"
+        },
+        {
+          "name": "shift",
+          "words": "shift"
+        },
+        {
+          "name": "control",
+          "words": "control"
+        },
+        {
+          "name": "alt",
+          "words": "alt"
+        },
+        {
+          "name": "comma",
+          "words": "comma"
+        },
+        {
+          "name": "period",
+          "words": "full stop"
+        },
+        {
+          "name": "minus",
+          "words": "minus"
+        },
+        {
+          "name": "equals",
+          "words": "equals"
+        },
+        {
+          "name": "slash",
+          "words": "slash"
+        },
+        {
+          "name": "semicolon",
+          "words": "semicolon"
+        },
+        {
+          "name": "quote",
+          "words": "quote"
+        }
+      ]
+    },
+    {
+      "name": "ShotType",
+      "origin": "storystage",
+      "values": [
+        {
+          "name": "wide",
+          "words": "wide shot"
+        },
+        {
+          "name": "medium",
+          "words": "medium shot"
+        },
+        {
+          "name": "closeUp",
+          "words": "close-up"
+        },
+        {
+          "name": "overTheShoulder",
+          "words": "over-the-shoulder shot"
+        },
+        {
+          "name": "follow",
+          "words": "follow shot"
+        },
+        {
+          "name": "twoShot",
+          "words": "two-shot"
+        }
+      ]
+    },
+    {
+      "name": "Gesture",
+      "origin": "storystage",
+      "values": [
+        {
+          "name": "wave",
+          "words": "wave"
+        },
+        {
+          "name": "nod",
+          "words": "nod"
+        },
+        {
+          "name": "shrug",
+          "words": "shrug"
+        },
+        {
+          "name": "clap",
+          "words": "clap"
+        },
+        {
+          "name": "point",
+          "words": "point"
+        }
+      ]
+    },
+    {
+      "name": "Expression",
+      "origin": "storystage",
+      "values": [
+        {
+          "name": "happy",
+          "words": "happy"
+        },
+        {
+          "name": "sad",
+          "words": "sad"
+        },
+        {
+          "name": "angry",
+          "words": "angry"
+        },
+        {
+          "name": "surprised",
+          "words": "surprised"
+        },
+        {
+          "name": "relaxed",
+          "words": "relaxed"
+        },
+        {
+          "name": "blink",
+          "words": "blink"
+        }
+      ]
+    },
+    {
+      "name": "SceneEdge",
+      "origin": "storystage",
+      "values": [
+        {
+          "name": "left",
+          "words": "the left"
+        },
+        {
+          "name": "right",
+          "words": "the right"
+        },
+        {
+          "name": "back",
+          "words": "the back"
+        },
+        {
+          "name": "front",
+          "words": "the front"
+        }
+      ]
+    },
+    {
+      "name": "JointChain",
+      "origin": "storystage",
+      "values": [
+        {
+          "name": "neck",
+          "words": "neck"
+        },
+        {
+          "name": "tail",
+          "words": "tail"
+        }
+      ]
+    }
+  ],
+  "details": [
+    {
+      "name": "duration",
+      "type": "Number",
+      "default": 1,
+      "range": "positiveOrZero",
+      "words": "how long"
+    },
+    {
+      "name": "animationStyle",
+      "type": "AnimationStyle",
+      "default": "beginAndEndGently",
+      "words": "how it starts and ends"
+    },
+    {
+      "name": "asSeenBy",
+      "type": "Thing",
+      "default": null,
+      "defaultMeans": "the object itself",
+      "words": "as seen by"
+    },
+    {
+      "name": "pathStyle",
+      "type": "PathStyle",
+      "default": "beeLine",
+      "words": "path"
+    },
+    {
+      "name": "alongAxisOffset",
+      "type": "Number",
+      "default": 0,
+      "words": "gap"
+    },
+    {
+      "name": "upAsSeenBy",
+      "type": "Thing",
+      "default": null,
+      "defaultMeans": "the scene",
+      "words": "which way is up"
+    },
+    {
+      "name": "isVolumePreserved",
+      "type": "Boolean",
+      "default": true,
+      "words": "keep the same volume"
+    },
+    {
+      "name": "policy",
+      "type": "SetDimensionPolicy",
+      "default": "preserveAspectRatio",
+      "words": "keep its shape"
+    },
+    {
+      "name": "textScale",
+      "type": "Number",
+      "default": 1,
+      "range": "positive",
+      "words": "text size"
+    },
+    {
+      "name": "textStyle",
+      "type": "TextStyle",
+      "default": "plain",
+      "words": "text style"
+    },
+    {
+      "name": "fontType",
+      "type": "TextFont",
+      "default": "default",
+      "words": "font"
+    },
+    {
+      "name": "fontColor",
+      "type": "Color",
+      "default": "black",
+      "words": "text colour"
+    },
+    {
+      "name": "bubbleFillColor",
+      "type": "Color",
+      "default": "white",
+      "words": "bubble colour"
+    },
+    {
+      "name": "bubbleOutlineColor",
+      "type": "Color",
+      "default": "white",
+      "words": "bubble outline"
+    },
+    {
+      "name": "bubblePosition",
+      "type": "BubblePosition",
+      "default": "automatic",
+      "words": "bubble position"
+    },
+    {
+      "name": "heldKeyPolicy",
+      "type": "HeldKeyPolicy",
+      "default": "fireMultiple",
+      "words": "when the key is held"
+    },
+    {
+      "name": "multipleEventPolicy",
+      "type": "MultipleEventPolicy",
+      "default": "ignore",
+      "words": "if it happens again while running"
+    },
+    {
+      "name": "setOfVisuals",
+      "type": "Thing[]",
+      "default": null,
+      "defaultMeans": "every object",
+      "words": "which objects"
+    }
+  ],
+  "blocks": [
+    {
+      "class": "Thing",
+      "name": "delay",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "duration",
+          "type": "Number",
+          "range": "positiveOrZero",
+          "words": "seconds"
+        }
+      ],
+      "details": [],
+      "words": "wait {duration} seconds",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.delay"
+      ],
+      "crosswalk": {
+        "bml": "wait",
+        "unreal": "Delay"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "playAudio",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "audioSource",
+          "type": "Audio",
+          "words": "sound"
+        }
+      ],
+      "details": [],
+      "words": "play {audioSource}",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.playAudio"
+      ],
+      "crosswalk": {
+        "unreal": "Play Sound 2D"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "isCollidingWith",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [],
+      "words": "is touching {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.isCollidingWith"
+      ],
+      "crosswalk": {
+        "unreal": "Is Overlapping Actor"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "getVehicle",
+      "kind": "function",
+      "params": [],
+      "returns": "Thing",
+      "details": [],
+      "words": "vehicle",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.getVehicle"
+      ],
+      "crosswalk": {
+        "unreal": "Get Attach Parent"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "getBooleanFromUser",
+      "kind": "function",
+      "params": [
+        {
+          "name": "message",
+          "type": "Text",
+          "words": "question"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [],
+      "words": "ask yes or no: {message}",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.getBooleanFromUser"
+      ],
+      "crosswalk": {
+        "unreal": "A UI widget that waits for input"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "getStringFromUser",
+      "kind": "function",
+      "params": [
+        {
+          "name": "message",
+          "type": "Text",
+          "words": "question"
+        }
+      ],
+      "returns": "Text",
+      "details": [],
+      "words": "ask for words: {message}",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.getStringFromUser"
+      ],
+      "crosswalk": {
+        "unreal": "A UI widget that waits for input"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "getDoubleFromUser",
+      "kind": "function",
+      "params": [
+        {
+          "name": "message",
+          "type": "Text",
+          "words": "question"
+        }
+      ],
+      "returns": "Number",
+      "details": [],
+      "words": "ask for a number: {message}",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.getDoubleFromUser"
+      ],
+      "crosswalk": {
+        "unreal": "A UI widget that waits for input"
+      }
+    },
+    {
+      "class": "Thing",
+      "name": "getIntegerFromUser",
+      "kind": "function",
+      "params": [
+        {
+          "name": "message",
+          "type": "Text",
+          "words": "question"
+        }
+      ],
+      "returns": "WholeNumber",
+      "details": [],
+      "words": "ask for a whole number: {message}",
+      "origin": "alice",
+      "fromAlice": [
+        "SThing.getIntegerFromUser"
+      ],
+      "crosswalk": {
+        "unreal": "A UI widget that waits for input"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "turn",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "direction",
+          "type": "TurnDirection",
+          "words": "direction"
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "words": "amount"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "asSeenBy"
+      ],
+      "words": "turn {direction} {amount}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.turn"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Location and Rotation, Timeline"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "roll",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "direction",
+          "type": "RollDirection",
+          "words": "direction"
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "words": "amount"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "asSeenBy"
+      ],
+      "words": "roll {direction} {amount}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.roll"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Location and Rotation, Timeline"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "turnToFace",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "turn to face {target}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.turnToFace"
+      ],
+      "crosswalk": {
+        "bml": "gaze",
+        "unreal": "Find Look at Rotation"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "orientToUpright",
+      "kind": "procedure",
+      "params": [],
+      "details": [
+        "duration",
+        "animationStyle",
+        "upAsSeenBy"
+      ],
+      "words": "turn upright",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.orientToUpright"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Location and Rotation, Timeline"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "pointAt",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "upAsSeenBy"
+      ],
+      "words": "point at {target}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.pointAt"
+      ],
+      "crosswalk": {
+        "bml": "pointing",
+        "unreal": "Find Look at Rotation"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "orientTo",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "line up with {target}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.orientTo"
+      ],
+      "crosswalk": {
+        "unreal": "Find Look at Rotation"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isFacing",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [],
+      "words": "is facing {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isFacing"
+      ],
+      "crosswalk": {
+        "unreal": "Get Dot Product To"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceTo",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [],
+      "words": "distance to {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceTo"
+      ],
+      "crosswalk": {
+        "unreal": "Get Distance To"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceAbove",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "distance above {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceAbove"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isAbove",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "is above {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isAbove"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceBelow",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "distance below {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceBelow"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isBelow",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "is below {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isBelow"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceToTheRightOf",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "distance to the right of {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceToTheRightOf"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isToTheRightOf",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "is to the right of {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isToTheRightOf"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceToTheLeftOf",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "distance to the left of {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceToTheLeftOf"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isToTheLeftOf",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "is to the left of {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isToTheLeftOf"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceInFrontOf",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "distance in front of {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceInFrontOf"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isInFrontOf",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "is in front of {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isInFrontOf"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "getDistanceBehind",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Number",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "distance behind {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.getDistanceBehind"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "Turnable",
+      "name": "isBehind",
+      "kind": "function",
+      "params": [
+        {
+          "name": "other",
+          "type": "Thing",
+          "words": "the other one"
+        }
+      ],
+      "returns": "Boolean",
+      "details": [
+        "asSeenBy"
+      ],
+      "words": "is behind {other}",
+      "origin": "alice",
+      "fromAlice": [
+        "STurnable.isBehind"
+      ],
+      "crosswalk": {
+        "unreal": "Get Actor Location, compared along an axis"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "move",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "direction",
+          "type": "MoveDirection",
+          "words": "direction"
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "words": "amount"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "asSeenBy"
+      ],
+      "words": "move {direction} {amount}",
+      "origin": "alice",
+      "fromAlice": [
+        "SMovableTurnable.move"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Location and Rotation, Timeline"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "moveToward",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "words": "amount"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "move toward {target} by {amount}",
+      "origin": "alice",
+      "fromAlice": [
+        "SMovableTurnable.moveToward"
+      ],
+      "crosswalk": {
+        "bml": "locomotion",
+        "unreal": "Move Component To"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "moveAwayFrom",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        },
+        {
+          "name": "amount",
+          "type": "Number",
+          "words": "amount"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "move away from {target} by {amount}",
+      "origin": "alice",
+      "fromAlice": [
+        "SMovableTurnable.moveAwayFrom"
+      ],
+      "crosswalk": {
+        "unreal": "Move Component To"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "moveTo",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "pathStyle"
+      ],
+      "words": "move to {target}",
+      "origin": "alice",
+      "fromAlice": [
+        "SMovableTurnable.moveTo"
+      ],
+      "crosswalk": {
+        "bml": "locomotion",
+        "unreal": "Move Component To"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "moveAndOrientTo",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "pathStyle"
+      ],
+      "words": "move to and line up with {target}",
+      "origin": "alice",
+      "fromAlice": [
+        "SMovableTurnable.moveAndOrientTo"
+      ],
+      "crosswalk": {
+        "unreal": "Move Component To"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "place",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "spatialRelation",
+          "type": "SpatialRelation",
+          "words": "where"
+        },
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "pathStyle",
+        "alongAxisOffset"
+      ],
+      "words": "place {spatialRelation} {target}",
+      "origin": "alice",
+      "fromAlice": [
+        "SMovableTurnable.place"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Location, from the target’s bounds"
+      }
+    },
+    {
+      "class": "MovableTurnable",
+      "name": "setVehicle",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "vehicle",
+          "type": "Thing",
+          "words": "vehicle"
+        }
+      ],
+      "details": [],
+      "words": "ride on {vehicle}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.setVehicle",
+        "SCamera.setVehicle",
+        "SMarker.setVehicle"
+      ],
+      "crosswalk": {
+        "unreal": "Attach Actor To Actor"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "getAtmosphereColor",
+      "kind": "function",
+      "params": [],
+      "returns": "Color",
+      "details": [],
+      "words": "sky colour",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.getAtmosphereColor"
+      ],
+      "crosswalk": {
+        "unreal": "Sky Atmosphere and Directional Light settings"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "setAtmosphereColor",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "color",
+          "type": "Color",
+          "words": "colour"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "change the sky colour to {color}",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.setAtmosphereColor"
+      ],
+      "crosswalk": {
+        "unreal": "Sky Atmosphere and Directional Light settings"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "getFromAboveLightColor",
+      "kind": "function",
+      "params": [],
+      "returns": "Color",
+      "details": [],
+      "words": "light from above",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.getFromAboveLightColor"
+      ],
+      "crosswalk": {
+        "unreal": "Sky Atmosphere and Directional Light settings"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "setFromAboveLightColor",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "color",
+          "type": "Color",
+          "words": "colour"
+        }
+      ],
+      "details": [],
+      "words": "change the light from above to {color}",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.setFromAboveLightColor"
+      ],
+      "crosswalk": {
+        "unreal": "Sky Atmosphere and Directional Light settings"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "getFromBelowLightColor",
+      "kind": "function",
+      "params": [],
+      "returns": "Color",
+      "details": [],
+      "words": "light from below",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.getFromBelowLightColor"
+      ],
+      "crosswalk": {
+        "unreal": "Sky Atmosphere and Directional Light settings"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "setFromBelowLightColor",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "color",
+          "type": "Color",
+          "words": "colour"
+        }
+      ],
+      "details": [],
+      "words": "change the light from below to {color}",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.setFromBelowLightColor"
+      ],
+      "crosswalk": {
+        "unreal": "Sky Atmosphere and Directional Light settings"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "getFogDensity",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "how thick the fog is",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.getFogDensity"
+      ],
+      "crosswalk": {
+        "unreal": "Exponential Height Fog"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "setFogDensity",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "density",
+          "type": "Number",
+          "range": "portion",
+          "words": "thickness"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "change the fog to {density}",
+      "origin": "alice",
+      "fromAlice": [
+        "SScene.setFogDensity"
+      ],
+      "crosswalk": {
+        "unreal": "Exponential Height Fog"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "goToScene",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "scene",
+          "type": "SceneId",
+          "words": "scene"
+        }
+      ],
+      "details": [],
+      "words": "go to {scene}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Open Level, or level streaming"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "fadeToBlack",
+      "kind": "procedure",
+      "params": [],
+      "details": [
+        "duration"
+      ],
+      "words": "fade to black",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Fade track in Sequencer"
+      }
+    },
+    {
+      "class": "Scene",
+      "name": "crossfade",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "scene",
+          "type": "SceneId",
+          "words": "scene"
+        }
+      ],
+      "details": [
+        "duration"
+      ],
+      "words": "crossfade to {scene}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Shot blend in Sequencer"
+      }
+    },
+    {
+      "class": "Ground",
+      "name": "getPaint",
+      "kind": "function",
+      "params": [],
+      "returns": "Paint",
+      "details": [],
+      "words": "paint",
+      "origin": "alice",
+      "fromAlice": [
+        "SGround.getPaint"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Ground",
+      "name": "setPaint",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "paint",
+          "type": "Paint",
+          "words": "paint"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "paint {paint}",
+      "origin": "alice",
+      "fromAlice": [
+        "SGround.setPaint"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Ground",
+      "name": "getOpacity",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "opacity",
+      "origin": "alice",
+      "fromAlice": [
+        "SGround.getOpacity"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Ground",
+      "name": "setOpacity",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "opacity",
+          "type": "Number",
+          "range": "portion",
+          "words": "opacity"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "change opacity to {opacity}",
+      "origin": "alice",
+      "fromAlice": [
+        "SGround.setOpacity"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Camera",
+      "name": "moveAndOrientToAGoodVantagePointOf",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "entity",
+          "type": "Thing",
+          "words": "what to look at"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "find a good view of {entity}",
+      "origin": "alice",
+      "fromAlice": [
+        "SCamera.moveAndOrientToAGoodVantagePointOf"
+      ],
+      "crosswalk": {
+        "unreal": "CineCamera with Sequencer camera cuts"
+      }
+    },
+    {
+      "class": "Camera",
+      "name": "getVerticalViewingAngle",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "viewing angle",
+      "origin": "alice",
+      "fromAlice": [
+        "SCamera.getVerticalViewingAngle"
+      ],
+      "crosswalk": {
+        "unreal": "CineCamera field of view"
+      }
+    },
+    {
+      "class": "Camera",
+      "name": "setVerticalViewingAngle",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "angle",
+          "type": "Number",
+          "words": "angle"
+        }
+      ],
+      "details": [],
+      "words": "change the viewing angle to {angle}",
+      "origin": "alice",
+      "fromAlice": [
+        "SCamera.setVerticalViewingAngle"
+      ],
+      "crosswalk": {
+        "unreal": "CineCamera field of view"
+      }
+    },
+    {
+      "class": "Camera",
+      "name": "frameShot",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "shot",
+          "type": "ShotType",
+          "words": "shot"
+        },
+        {
+          "name": "targets",
+          "type": "Thing[]",
+          "words": "who to film"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "frame a {shot} of {targets}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "CineCamera with Sequencer camera cuts"
+      }
+    },
+    {
+      "class": "Joint",
+      "name": "getWidth",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "width",
+      "origin": "alice",
+      "fromAlice": [
+        "SJoint.getWidth"
+      ],
+      "crosswalk": {
+        "unreal": "Get Component Bounds"
+      }
+    },
+    {
+      "class": "Joint",
+      "name": "getHeight",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "height",
+      "origin": "alice",
+      "fromAlice": [
+        "SJoint.getHeight"
+      ],
+      "crosswalk": {
+        "unreal": "Get Component Bounds"
+      }
+    },
+    {
+      "class": "Joint",
+      "name": "getDepth",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "depth",
+      "origin": "alice",
+      "fromAlice": [
+        "SJoint.getDepth"
+      ],
+      "crosswalk": {
+        "unreal": "Get Component Bounds"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "getPaint",
+      "kind": "function",
+      "params": [],
+      "returns": "Paint",
+      "details": [],
+      "words": "paint",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.getPaint"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "setPaint",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "paint",
+          "type": "Paint",
+          "words": "paint"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "paint {paint}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.setPaint",
+        "SBillboard.setPaint"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "getOpacity",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "opacity",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.getOpacity"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "setOpacity",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "opacity",
+          "type": "Number",
+          "range": "portion",
+          "words": "opacity"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "change opacity to {opacity}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.setOpacity"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "getWidth",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "width",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.getWidth"
+      ],
+      "crosswalk": {
+        "unreal": "Get Component Bounds"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "setWidth",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "width",
+          "type": "Number",
+          "range": "positive",
+          "words": "width"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "policy"
+      ],
+      "words": "change width to {width}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.setWidth"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "resizeWidth",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "factor",
+          "type": "Number",
+          "range": "positive",
+          "words": "how much"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "isVolumePreserved"
+      ],
+      "words": "resize width by {factor}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.resizeWidth"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "getHeight",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "height",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.getHeight"
+      ],
+      "crosswalk": {
+        "unreal": "Get Component Bounds"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "setHeight",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "height",
+          "type": "Number",
+          "range": "positive",
+          "words": "height"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "policy"
+      ],
+      "words": "change height to {height}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.setHeight"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "resizeHeight",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "factor",
+          "type": "Number",
+          "range": "positive",
+          "words": "how much"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "isVolumePreserved"
+      ],
+      "words": "resize height by {factor}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.resizeHeight"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "getDepth",
+      "kind": "function",
+      "params": [],
+      "returns": "Number",
+      "details": [],
+      "words": "depth",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.getDepth"
+      ],
+      "crosswalk": {
+        "unreal": "Get Component Bounds"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "setDepth",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "depth",
+          "type": "Number",
+          "range": "positive",
+          "words": "depth"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "policy"
+      ],
+      "words": "change depth to {depth}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.setDepth"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "resizeDepth",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "factor",
+          "type": "Number",
+          "range": "positive",
+          "words": "how much"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle",
+        "isVolumePreserved"
+      ],
+      "words": "resize depth by {factor}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.resizeDepth"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "resize",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "factor",
+          "type": "Number",
+          "range": "positive",
+          "words": "how much"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "resize by {factor}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.resize"
+      ],
+      "crosswalk": {
+        "unreal": "Set Actor Scale 3D"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "say",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "text",
+          "type": "Text",
+          "words": "words"
+        }
+      ],
+      "details": [
+        "duration",
+        "textScale",
+        "textStyle",
+        "fontType",
+        "fontColor",
+        "bubbleFillColor",
+        "bubbleOutlineColor",
+        "bubblePosition"
+      ],
+      "words": "say {text}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.say"
+      ],
+      "crosswalk": {
+        "bml": "speech",
+        "unreal": "A UI widget; there is no built-in speech bubble"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "think",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "text",
+          "type": "Text",
+          "words": "words"
+        }
+      ],
+      "details": [
+        "duration",
+        "textScale",
+        "textStyle",
+        "fontType",
+        "fontColor",
+        "bubbleFillColor",
+        "bubbleOutlineColor",
+        "bubblePosition"
+      ],
+      "words": "think {text}",
+      "origin": "alice",
+      "fromAlice": [
+        "SModel.think"
+      ],
+      "crosswalk": {
+        "unreal": "A UI widget; there is no built-in speech bubble"
+      }
+    },
+    {
+      "class": "Model",
+      "name": "speakLine",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "text",
+          "type": "Text",
+          "words": "words"
+        }
+      ],
+      "details": [],
+      "words": "speak line {text}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "speech",
+        "unreal": "Audio with lip-sync tools"
+      }
+    },
+    {
+      "class": "JointedModel",
+      "name": "getJoint",
+      "kind": "function",
+      "params": [
+        {
+          "name": "joint",
+          "type": "JointId",
+          "words": "joint"
+        }
+      ],
+      "returns": "Joint",
+      "details": [],
+      "words": "{joint}",
+      "origin": "alice",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Get Socket Transform"
+      }
+    },
+    {
+      "class": "JointedModel",
+      "name": "getJointChain",
+      "kind": "function",
+      "params": [
+        {
+          "name": "chain",
+          "type": "JointChain",
+          "words": "part"
+        }
+      ],
+      "returns": "Joint[]",
+      "details": [],
+      "words": "all of the {chain}",
+      "origin": "alice",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Get Bone Names, filtered"
+      }
+    },
+    {
+      "class": "JointedModel",
+      "name": "straightenOutJoints",
+      "kind": "procedure",
+      "params": [],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "straighten out joints",
+      "origin": "alice",
+      "fromAlice": [
+        "SJointedModel.straightenOutJoints"
+      ],
+      "crosswalk": {
+        "unreal": "Reset the Control Rig pose"
+      }
+    },
+    {
+      "class": "JointedModel",
+      "name": "playAnimation",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "clip",
+          "type": "AnimationClip",
+          "words": "animation"
+        }
+      ],
+      "details": [],
+      "words": "play animation {clip}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Play Animation or Montage"
+      }
+    },
+    {
+      "class": "Billboard",
+      "name": "getBackPaint",
+      "kind": "function",
+      "params": [],
+      "returns": "Paint",
+      "details": [],
+      "words": "back paint",
+      "origin": "alice",
+      "fromAlice": [
+        "SBillboard.getBackPaint"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Billboard",
+      "name": "setBackPaint",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "paint",
+          "type": "Paint",
+          "words": "paint"
+        }
+      ],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "paint the back {paint}",
+      "origin": "alice",
+      "fromAlice": [
+        "SBillboard.setBackPaint"
+      ],
+      "crosswalk": {
+        "unreal": "Dynamic material instance parameter"
+      }
+    },
+    {
+      "class": "Text",
+      "name": "getValue",
+      "kind": "function",
+      "params": [],
+      "returns": "Text",
+      "details": [],
+      "words": "words",
+      "origin": "alice",
+      "fromAlice": [
+        "STextModel.getValue"
+      ],
+      "crosswalk": {
+        "unreal": "Get Text"
+      }
+    },
+    {
+      "class": "Text",
+      "name": "setValue",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "text",
+          "type": "Text",
+          "words": "words"
+        }
+      ],
+      "details": [],
+      "words": "change the words to {text}",
+      "origin": "alice",
+      "fromAlice": [
+        "STextModel.setValue"
+      ],
+      "crosswalk": {
+        "unreal": "Set Text"
+      }
+    },
+    {
+      "class": "Flyer",
+      "name": "foldWings",
+      "kind": "procedure",
+      "params": [],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "fold wings",
+      "origin": "alice",
+      "fromAlice": [
+        "SFlyer.foldWings"
+      ],
+      "crosswalk": {
+        "unreal": "Play Montage"
+      }
+    },
+    {
+      "class": "Flyer",
+      "name": "spreadWings",
+      "kind": "procedure",
+      "params": [],
+      "details": [
+        "duration",
+        "animationStyle"
+      ],
+      "words": "spread wings",
+      "origin": "alice",
+      "fromAlice": [
+        "SFlyer.spreadWings"
+      ],
+      "crosswalk": {
+        "unreal": "Play Montage"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "walkTo",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "walk to {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "locomotion",
+        "unreal": "AI MoveTo with a navigation mesh"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "runTo",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "run to {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "locomotion",
+        "unreal": "AI MoveTo with a navigation mesh"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "sitOn",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "sit on {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "posture",
+        "unreal": "Montage with Attach To Component"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "standUp",
+      "kind": "procedure",
+      "params": [],
+      "details": [],
+      "words": "stand up",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "posture",
+        "unreal": "Play Montage"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "lieDown",
+      "kind": "procedure",
+      "params": [],
+      "details": [],
+      "words": "lie down",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "posture",
+        "unreal": "Play Montage"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "fall",
+      "kind": "procedure",
+      "params": [],
+      "details": [],
+      "words": "fall",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "posture",
+        "unreal": "Play Montage"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "touch",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "touch {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Control Rig IK"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "reachFor",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "reach for {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "pointing",
+        "unreal": "Control Rig IK"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "pickUp",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "pick up {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Control Rig IK with Attach To Component"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "putDown",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "put down {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Detach From Actor"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "enterFrom",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "edge",
+          "type": "SceneEdge",
+          "words": "side"
+        }
+      ],
+      "details": [],
+      "words": "enter from {edge}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Spawn Actor"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "exitTo",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "edge",
+          "type": "SceneEdge",
+          "words": "side"
+        }
+      ],
+      "details": [],
+      "words": "exit to {edge}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "unreal": "Destroy Actor"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "gesture",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "gesture",
+          "type": "Gesture",
+          "words": "gesture"
+        }
+      ],
+      "details": [],
+      "words": "gesture {gesture}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "gesture",
+        "unreal": "Play Montage"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "showExpression",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "expression",
+          "type": "Expression",
+          "words": "expression"
+        }
+      ],
+      "details": [],
+      "words": "look {expression}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "faceLexeme",
+        "unreal": "Morph targets or pose assets"
+      }
+    },
+    {
+      "class": "Biped",
+      "name": "lookAt",
+      "kind": "procedure",
+      "params": [
+        {
+          "name": "target",
+          "type": "Thing",
+          "words": "target"
+        }
+      ],
+      "details": [],
+      "words": "look at {target}",
+      "origin": "storystage",
+      "fromAlice": [],
+      "crosswalk": {
+        "bml": "gaze",
+        "unreal": "Look At in Control Rig or an Animation Blueprint"
+      }
+    }
+  ],
+  "events": [
+    {
+      "name": "sceneStart",
+      "needs": [],
+      "gives": [],
+      "details": [],
+      "words": "when the scene starts",
+      "fromAlice": [
+        "SScene.addSceneActivationListener",
+        "SScene.handleActiveChanged"
+      ],
+      "crosswalk": {
+        "unreal": "Event BeginPlay"
+      }
+    },
+    {
+      "name": "clickOnScreen",
+      "needs": [],
+      "gives": [
+        {
+          "name": "x",
+          "type": "Number",
+          "words": "distance from the left",
+          "fromAlice": [
+            "MouseClickEvent.getScreenDistanceFromLeft"
+          ]
+        },
+        {
+          "name": "y",
+          "type": "Number",
+          "words": "distance from the bottom",
+          "fromAlice": [
+            "MouseClickEvent.getScreenDistanceFromBottom"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when the screen is clicked",
+      "fromAlice": [
+        "SScene.addMouseClickOnScreenListener"
+      ],
+      "crosswalk": {
+        "unreal": "Input actions"
+      }
+    },
+    {
+      "name": "clickOnObject",
+      "needs": [],
+      "gives": [
+        {
+          "name": "model",
+          "type": "Model",
+          "words": "model",
+          "fromAlice": [
+            "MouseClickOnObjectEvent.getModelAtMouseLocation"
+          ]
+        },
+        {
+          "name": "x",
+          "type": "Number",
+          "words": "distance from the left",
+          "fromAlice": [
+            "MouseClickEvent.getScreenDistanceFromLeft"
+          ]
+        },
+        {
+          "name": "y",
+          "type": "Number",
+          "words": "distance from the bottom",
+          "fromAlice": [
+            "MouseClickEvent.getScreenDistanceFromBottom"
+          ]
+        }
+      ],
+      "details": [
+        "setOfVisuals",
+        "multipleEventPolicy"
+      ],
+      "words": "when an object is clicked",
+      "fromAlice": [
+        "SScene.addMouseClickOnObjectListener"
+      ],
+      "crosswalk": {
+        "unreal": "OnClicked"
+      }
+    },
+    {
+      "name": "keyPress",
+      "needs": [],
+      "gives": [
+        {
+          "name": "key",
+          "type": "Key",
+          "words": "key",
+          "fromAlice": [
+            "AbstractKeyEvent.getKey"
+          ]
+        }
+      ],
+      "details": [
+        "heldKeyPolicy",
+        "multipleEventPolicy"
+      ],
+      "words": "when a key is pressed",
+      "fromAlice": [
+        "SScene.addKeyPressListener"
+      ],
+      "crosswalk": {
+        "unreal": "Input actions"
+      }
+    },
+    {
+      "name": "arrowKeyPress",
+      "needs": [],
+      "gives": [
+        {
+          "name": "moveDirection",
+          "type": "MoveDirection",
+          "words": "direction to move",
+          "fromAlice": [
+            "ArrowKeyEvent.getMoveDirection"
+          ]
+        },
+        {
+          "name": "turnDirection",
+          "type": "TurnDirection",
+          "words": "direction to turn",
+          "fromAlice": [
+            "ArrowKeyEvent.getTurnDirection"
+          ]
+        }
+      ],
+      "details": [
+        "heldKeyPolicy",
+        "multipleEventPolicy"
+      ],
+      "words": "when an arrow key is pressed",
+      "fromAlice": [
+        "SScene.addArrowKeyPressListener"
+      ],
+      "crosswalk": {
+        "unreal": "Input actions"
+      }
+    },
+    {
+      "name": "numberKeyPress",
+      "needs": [],
+      "gives": [
+        {
+          "name": "number",
+          "type": "WholeNumber",
+          "words": "number",
+          "fromAlice": [
+            "NumberKeyEvent.getNumber"
+          ]
+        }
+      ],
+      "details": [
+        "heldKeyPolicy",
+        "multipleEventPolicy"
+      ],
+      "words": "when a number key is pressed",
+      "fromAlice": [
+        "SScene.addNumberKeyPressListener"
+      ],
+      "crosswalk": {
+        "unreal": "Input actions"
+      }
+    },
+    {
+      "name": "moveWithArrowKeys",
+      "needs": [
+        {
+          "name": "object",
+          "type": "MovableTurnable",
+          "words": "what moves"
+        }
+      ],
+      "gives": [],
+      "details": [],
+      "words": "move {object} with the arrow keys",
+      "fromAlice": [
+        "SScene.addObjectMoverFor"
+      ],
+      "crosswalk": {
+        "unreal": "Input actions with Add Movement Input"
+      }
+    },
+    {
+      "name": "timer",
+      "needs": [
+        {
+          "name": "seconds",
+          "type": "Number",
+          "words": "seconds"
+        }
+      ],
+      "gives": [
+        {
+          "name": "seconds",
+          "type": "Number",
+          "words": "seconds",
+          "fromAlice": [
+            "TimeEvent.getTimeSinceLastFire"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "every {seconds} seconds",
+      "fromAlice": [
+        "SScene.addTimeListener"
+      ],
+      "crosswalk": {
+        "unreal": "Set Timer by Event"
+      }
+    },
+    {
+      "name": "collisionStart",
+      "needs": [
+        {
+          "name": "setA",
+          "type": "Thing[]",
+          "words": "these"
+        },
+        {
+          "name": "setB",
+          "type": "Thing[]",
+          "words": "and these"
+        }
+      ],
+      "gives": [
+        {
+          "name": "a",
+          "type": "Thing",
+          "words": "first",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetA"
+          ]
+        },
+        {
+          "name": "b",
+          "type": "Thing",
+          "words": "second",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetB"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when {setA} touches {setB}",
+      "fromAlice": [
+        "SScene.addCollisionStartListener"
+      ],
+      "crosswalk": {
+        "unreal": "Actor overlap and hit events"
+      }
+    },
+    {
+      "name": "collisionEnd",
+      "needs": [
+        {
+          "name": "setA",
+          "type": "Thing[]",
+          "words": "these"
+        },
+        {
+          "name": "setB",
+          "type": "Thing[]",
+          "words": "and these"
+        }
+      ],
+      "gives": [
+        {
+          "name": "a",
+          "type": "Thing",
+          "words": "first",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetA"
+          ]
+        },
+        {
+          "name": "b",
+          "type": "Thing",
+          "words": "second",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetB"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when {setA} stops touching {setB}",
+      "fromAlice": [
+        "SScene.addCollisionEndListener"
+      ],
+      "crosswalk": {
+        "unreal": "Actor overlap and hit events"
+      }
+    },
+    {
+      "name": "proximityEnter",
+      "needs": [
+        {
+          "name": "setA",
+          "type": "Thing[]",
+          "words": "these"
+        },
+        {
+          "name": "setB",
+          "type": "Thing[]",
+          "words": "and these"
+        },
+        {
+          "name": "distance",
+          "type": "Number",
+          "words": "distance"
+        }
+      ],
+      "gives": [
+        {
+          "name": "a",
+          "type": "Thing",
+          "words": "first",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetA"
+          ]
+        },
+        {
+          "name": "b",
+          "type": "Thing",
+          "words": "second",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetB"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when {setA} gets within {distance} of {setB}",
+      "fromAlice": [
+        "SScene.addProximityEnterListener"
+      ],
+      "crosswalk": {
+        "unreal": "Actor overlap and hit events"
+      }
+    },
+    {
+      "name": "proximityExit",
+      "needs": [
+        {
+          "name": "setA",
+          "type": "Thing[]",
+          "words": "these"
+        },
+        {
+          "name": "setB",
+          "type": "Thing[]",
+          "words": "and these"
+        },
+        {
+          "name": "distance",
+          "type": "Number",
+          "words": "distance"
+        }
+      ],
+      "gives": [
+        {
+          "name": "a",
+          "type": "Thing",
+          "words": "first",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetA"
+          ]
+        },
+        {
+          "name": "b",
+          "type": "Thing",
+          "words": "second",
+          "fromAlice": [
+            "AbstractBinarySThingEvent.getSThingFromSetB"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when {setA} gets further than {distance} from {setB}",
+      "fromAlice": [
+        "SScene.addProximityExitListener"
+      ],
+      "crosswalk": {
+        "unreal": "Actor overlap and hit events"
+      }
+    },
+    {
+      "name": "viewEnter",
+      "needs": [
+        {
+          "name": "set",
+          "type": "Model[]",
+          "words": "which ones"
+        }
+      ],
+      "gives": [
+        {
+          "name": "model",
+          "type": "Model",
+          "words": "model",
+          "fromAlice": [
+            "ViewEvent.getModel"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when {set} comes into shot",
+      "fromAlice": [
+        "SScene.addViewEnterListener"
+      ],
+      "crosswalk": {
+        "unreal": "A test against the camera’s view"
+      }
+    },
+    {
+      "name": "viewExit",
+      "needs": [
+        {
+          "name": "set",
+          "type": "Model[]",
+          "words": "which ones"
+        }
+      ],
+      "gives": [
+        {
+          "name": "model",
+          "type": "Model",
+          "words": "model",
+          "fromAlice": [
+            "ViewEvent.getModel"
+          ]
+        }
+      ],
+      "details": [
+        "multipleEventPolicy"
+      ],
+      "words": "when {set} leaves shot",
+      "fromAlice": [
+        "SScene.addViewExitListener"
+      ],
+      "crosswalk": {
+        "unreal": "A test against the camera’s view"
+      }
+    }
+  ],
+  "dropped": [
+    {
+      "members": [
+        "SVRUser.*",
+        "SVRHeadset.*",
+        "SCamera.getLeftHand",
+        "SCamera.getRightHand"
+      ],
+      "why": "Virtual reality isn’t in the first release. AR is its own work (WP21, WP22)."
+    },
+    {
+      "members": [
+        "SCone.*",
+        "SCylinder.*",
+        "SDisc.*",
+        "SSphere.*",
+        "STorus.*"
+      ],
+      "why": "Shapes are Props now, so they use width, height and depth like every other model."
+    },
+    {
+      "members": [
+        "SCamera.getFarClippingPlaneDistance",
+        "SCamera.setFarClippingPlaneDistance",
+        "SCamera.getNearClippingPlaneDistance",
+        "SCamera.setNearClippingPlaneDistance",
+        "SCamera.getHorizontalViewingAngle",
+        "SCamera.setHorizontalViewingAngle"
+      ],
+      "why": "Set by the stage for the device, or a second way to do the same thing. Filming uses the vertical viewing angle and shot types."
+    },
+    {
+      "members": [
+        "SGround.setVehicle",
+        "SSun.setVehicle"
+      ],
+      "why": "The ground and the sky stay where they are."
+    },
+    {
+      "members": [
+        "SJoint.isPivotVisible",
+        "SJoint.setPivotVisible",
+        "SMarker.getColorId",
+        "SMarker.setColorId",
+        "SThing.getVantagePoint"
+      ],
+      "why": "Aids for Alice’s own scene editor, not story blocks."
+    },
+    {
+      "members": [
+        "STextModel.append",
+        "STextModel.charAt",
+        "STextModel.delete",
+        "STextModel.deleteCharAt",
+        "STextModel.getLength",
+        "STextModel.indexOf",
+        "STextModel.insert",
+        "STextModel.lastIndexOf",
+        "STextModel.replace",
+        "STextModel.setCharAt"
+      ],
+      "why": "Java’s string editing, left over on Alice’s text model. `getValue` and `setValue` stay."
+    },
+    {
+      "members": [
+        "SScene.addDefaultModelManipulation"
+      ],
+      "why": "Dragging objects while a film plays. It would share the screen with the scene view’s drag handles (7.1) and the Rehearse controls, and it’s pointer-only (decision 0051)."
+    },
+    {
+      "members": [
+        "SScene.addPointOfViewChangeListener",
+        "PointOfViewEvent.getEntity"
+      ],
+      "why": "It fires on every frame while an object moves, which is hard for a young programmer to reason about. Proximity, collision, timers and the `follow` shot cover most uses (decision 0051)."
+    },
+    {
+      "members": [
+        "SScene.addOcclusionStartListener",
+        "SScene.addOcclusionEndListener",
+        "OcclusionEvent.getBackgroundModel",
+        "OcclusionEvent.getForegroundModel"
+      ],
+      "why": "Waiting for a measurement. Each pair of objects is tested from the camera on every frame. S3 measures that on the reference devices, then the owner decides (decision 0051)."
+    },
+    {
+      "members": [
+        "AbstractKeyEvent.isKey",
+        "KeyEvent.isDigit",
+        "KeyEvent.isLetter"
+      ],
+      "why": "A handler gets the key itself, so it can compare it. `numberKeyPress` covers digits."
+    },
+    {
+      "members": [
+        "Key.*"
+      ],
+      "why": "Only the keys listed under `Key` are kept: function keys, keypads and input-method keys are left out, because many school keyboards and iPads lack them."
+    },
+    {
+      "members": [
+        "TimerFrequency.ASAP"
+      ],
+      "why": "“As often as possible” can’t work with a time-slice budget, so a timer always has a number of seconds."
+    },
+    {
+      "members": [
+        "Scale.IDENTITY"
+      ],
+      "why": "No block that is kept uses it."
+    },
+    {
+      "members": [
+        "VantagePoint.IDENTITY"
+      ],
+      "why": "No block that is kept uses it."
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "system": [{ "type": "text", "text": "You are the Prompter, in the leak scan." }],
+  "tools": [{ "name": "explain", "description": "The leak scan's only tool." }],
+  "modeMessage": "Mode: the leak scan."
+}

@@ -1,8 +1,10 @@
-import type { Production } from '@storystage/production';
+import type { Production, SceneId } from '@storystage/production';
 import { Button } from '@storystage/ui';
 import { useEffect, useState, type Dispatch } from 'react';
 import { words } from '../strings.ts';
 import { nextRedo, nextUndo, type History, type HistoryAction } from './history.ts';
+import { SceneDetails } from './SceneDetails.tsx';
+import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
 
 export interface StoryboardProps {
@@ -16,12 +18,19 @@ const isTextEntry = (target: EventTarget | null) =>
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
 /**
- * The Storyboard tab (`docs/spec/07-ux.md` section 6). This is its main area's first part, the
- * script header and arc (10.1, 10.2), with the Storyboard's undo history (6.8). Scenes, frames,
- * the script pane and the sketch library follow.
+ * The Storyboard tab (`docs/spec/07-ux.md` section 6): the script header and arc (10.1, 10.2) and
+ * the scene cards (10.3), with the Storyboard's undo history (6.8). Frames, the script pane and the
+ * sketch library follow.
  */
 export function Storyboard({ history, dispatch }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
+  const [chosen, setChosen] = useState<SceneId | null>(null);
+  const p = history.present;
+  // The chosen scene, or the first one if it has gone (deleted, or undone).
+  const order = p.manifest.runningOrder.map((r) => r.scene);
+  const current = chosen !== null && order.includes(chosen) ? chosen : (order[0] ?? null);
+  const commit = (label: string, next: Production, key?: string) =>
+    dispatch({ type: 'commit', label, next, key });
   const undoLabel = nextUndo(history);
   const redoLabel = nextRedo(history);
 
@@ -62,11 +71,22 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             {redoLabel && <span className="ss-visually-hidden">: {redoLabel}</span>}
           </Button>
         </div>
-        <ScriptHeader
-          production={history.present}
-          onChange={(label, next, key) => dispatch({ type: 'commit', label, next, key })}
-          onLeave={() => dispatch({ type: 'seal' })}
+        <ScriptHeader production={p} onChange={commit} onLeave={() => dispatch({ type: 'seal' })} />
+        <SceneStrip
+          production={p}
+          current={current}
+          onCurrentChange={setChosen}
+          onChange={commit}
         />
+        {current && (
+          <SceneDetails
+            production={p}
+            scene={current}
+            onChange={commit}
+            onLeave={() => dispatch({ type: 'seal' })}
+            onDeleted={() => setChosen(null)}
+          />
+        )}
       </div>
       <p className="ss-visually-hidden" aria-live="polite">
         {announcement}
