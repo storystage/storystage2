@@ -118,6 +118,8 @@ The native layer pins `system`, `tools` and the mode messages (section 1.8; spec
 
 - `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the shipped Backstage catalogue. That catalogue is kept in `src/shipped-catalogue.ts`, an exact copy of `prompter-catalogue.txt` at the commit `backstage.lock.json` pins; a test fails if its SHA-256 differs from the lock's.
 - `tools` is `TOOLS`, and the mode messages are `pinnedSystemMessages()`.
+- **The studio sends `releaseSystem()` and `releaseTools()` as they are.** It never rebuilds a catalogue at run time, not even from the fetched `.backstage/`, so what it sends can't drift from what is pinned by a byte.
+- **A class's imported models never go in `system`** (section 2.1). They travel in `<production_data>` as `imported` (section 2.6), so a teacher importing a model (`backstage.import`) never changes the pin, and the gate never refuses that class's requests for it.
 - `system` and `tools` are hashed as JSON with keys sorted and no spaces (`canonicalJson`); mode messages as their text. A test hashes S8's `gate/fixtures/hash.json` the same way and gets its `sha256`.
 
 `pnpm prompter:pins` writes `apps/desktop/src-tauri/gate/pins.json`, and `gate/fixtures/release-request.json`: a real Build it request made by `buildRequest` with the release's `system` and `tools` and a mode message, which the gate's own test passes through the shipped pins. With `--fetch` it first fetches the catalogue for the locked commit and checks it. A test fails when either file is out of date, so a change to the prompt, a tool, a mode's model or the Backstage lock shows up in CI with the command that fixes it.
@@ -310,7 +312,7 @@ Changes nothing.
 
 #### `read_project`
 
-Changes nothing. Returns the latest production and storyboard data (sections 2.2, 2.3) when the Prompter needs them after several changes. Takes no fields.
+Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` blocks, exactly as a turn sends them (section 2.6), when the Prompter needs them after several changes. Takes no fields.
 
 ### 3.2 Storyboard tools
 
