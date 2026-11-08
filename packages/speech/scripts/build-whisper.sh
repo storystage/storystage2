@@ -8,8 +8,10 @@
 # Settings, each a change to whisper.cpp's own example, applied and checked:
 #   WHISPER_INITIAL_MEMORY  memory at start (the example's is 512MB; spec 06 asks for less)
 #   WHISPER_MAXIMUM_MEMORY  the most it may grow to (the example's is 2000MB)
-#   WHISPER_INCOMING=1      list the module settings the worker passes, mainScriptUrlOrBlob among
-#                           them, so whisper's threads load whisper.js, not the worker's script
+#   WHISPER_INCOMING=1      add mainScriptUrlOrBlob to Emscripten's own list of module settings it
+#                           reads, so whisper's threads load whisper.js, not the worker's script.
+#                           The rest of the list stays as Emscripten 6.0.13 has it: a shorter list
+#                           hangs whisper's threads (CI, 8 Nov 2026)
 #   WHISPER_POOL            threads made at start (the example makes them as it goes)
 set -euo pipefail
 
@@ -17,8 +19,9 @@ WHISPER_VERSION=v1.9.5
 # The commit the tag points to, so a moved tag can't change what is built.
 WHISPER_COMMIT=d1be6fde11ac6e0407606b4e42fe72d34add8037
 EMSDK_VERSION=6.0.13
-INITIAL_MEMORY="${WHISPER_INITIAL_MEMORY:-512MB}"
-MAXIMUM_MEMORY="${WHISPER_MAXIMUM_MEMORY:-2000MB}"
+# Spec 06 section 1.2: 64 MB at start, 1 GB at most. To measure at M1.
+INITIAL_MEMORY="${WHISPER_INITIAL_MEMORY:-64MB}"
+MAXIMUM_MEMORY="${WHISPER_MAXIMUM_MEMORY:-1024MB}"
 INCOMING="${WHISPER_INCOMING:-1}"
 POOL="${WHISPER_POOL:-0}"
 SETTINGS="INITIAL_MEMORY=$INITIAL_MEMORY, MAXIMUM_MEMORY=$MAXIMUM_MEMORY, INCOMING=$INCOMING, POOL=$POOL"
@@ -50,8 +53,8 @@ if [ ! -f "$BUILT/whisper.js" ]; then
   grep -q "INITIAL_MEMORY=$INITIAL_MEMORY" "$cmake_file"
   grep -q "MAXIMUM_MEMORY=$MAXIMUM_MEMORY" "$cmake_file"
   if [ "$INCOMING" = 1 ]; then
-    sed -i 's/-s FORCE_FILESYSTEM=1/-s FORCE_FILESYSTEM=1 -s INCOMING_MODULE_JS_API=\\"[print,printErr,locateFile,onRuntimeInitialized,onAbort,mainScriptUrlOrBlob]\\"/' "$cmake_file"
-    grep -qF 'INCOMING_MODULE_JS_API=\"[print,printErr,locateFile,onRuntimeInitialized,onAbort,mainScriptUrlOrBlob]\"' "$cmake_file"
+    sed -i 's/-s FORCE_FILESYSTEM=1/-s FORCE_FILESYSTEM=1 -s INCOMING_MODULE_JS_API=\\"[ENVIRONMENT,arguments,canvas,dynamicLibraries,elementPointerLock,instantiateWasm,locateFile,monitorRunDependencies,noExitRuntime,noInitialRun,onAbort,onExit,onRuntimeInitialized,postRun,preInit,preRun,print,printErr,setStatus,statusMessage,stderr,stdin,stdout,thisProgram,wasm,websocket,mainScriptUrlOrBlob]\\"/' "$cmake_file"
+    grep -qF 'INCOMING_MODULE_JS_API=\"[ENVIRONMENT,arguments,canvas,dynamicLibraries,elementPointerLock,instantiateWasm,locateFile,monitorRunDependencies,noExitRuntime,noInitialRun,onAbort,onExit,onRuntimeInitialized,postRun,preInit,preRun,print,printErr,setStatus,statusMessage,stderr,stdin,stdout,thisProgram,wasm,websocket,mainScriptUrlOrBlob]\"' "$cmake_file"
   fi
   if [ "$POOL" != 0 ]; then
     sed -i "s/-s PTHREAD_POOL_SIZE_STRICT=0/-s PTHREAD_POOL_SIZE_STRICT=0 -s PTHREAD_POOL_SIZE=$POOL/" "$cmake_file"
