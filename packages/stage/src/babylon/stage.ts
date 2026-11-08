@@ -426,6 +426,8 @@ export class BabylonStage implements Stage {
       view.show(state.get(id)!, this.timeline.transform(id), {
         ...(shown.human ? { human: shown.human } : {}),
         clips: shown.own,
+        face: shown.face,
+        blink: shown.blink,
       });
     }
     this.showSky?.(this.timeline.sky());

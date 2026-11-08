@@ -34,18 +34,21 @@ function clip(name: string, keys: readonly (readonly [number, Turns])[]): HumanC
   return { name, duration, loop: false, keys: keys.map(([time, t]) => ({ time, pose: pose(t) })) };
 }
 
-/** The right hand up by the head, the forearm waving from side to side. */
+/**
+ * The right hand up in front of the shoulder, the forearm waving from side to side. In front, not
+ * beside the head, so it shows on a character whose head is wider than its arms are long.
+ */
 function wave(): HumanClip {
-  const up = { ...ARMS_DOWN, rightUpperArm: axisTurns(Z, -0.13) };
+  const up = { ...ARMS_DOWN, rightUpperArm: mul(axisTurns(Y, 0.12), axisTurns(Z, -0.08)) };
   const hand = (turns: number) => ({ ...up, rightLowerArm: axisTurns(Z, turns) });
   return clip('wave', [
     [0, ARMS_DOWN],
-    [0.35, hand(-0.12)],
-    [0.6, hand(-0.04)],
-    [0.85, hand(-0.17)],
-    [1.1, hand(-0.04)],
-    [1.35, hand(-0.17)],
-    [1.6, hand(-0.12)],
+    [0.35, hand(-0.16)],
+    [0.6, hand(-0.09)],
+    [0.85, hand(-0.22)],
+    [1.1, hand(-0.09)],
+    [1.35, hand(-0.22)],
+    [1.6, hand(-0.16)],
     [2, ARMS_DOWN],
   ]);
 }

@@ -12,6 +12,7 @@ import {
   type SceneSetup,
   type StageCommand,
   type StageEvent,
+  type StageQuery,
 } from '@storystage/story-api';
 import grassCast from '../../../../tests/scenes/grass-cast.json';
 import fadeOut from '../../../../tests/scenes/fade-out.json';
@@ -441,6 +442,65 @@ async function humanPicture(
   return out;
 }
 
+/**
+ * WP4c: any scene, with its models given by address, its commands run, and a picture at each of
+ * `seconds`. For looking at the character actions on real models.
+ */
+async function scenePictures(
+  setup: SceneSetup,
+  commands: readonly StageCommand[],
+  seconds: readonly number[],
+  files: Readonly<Record<string, { url: string; joints: readonly string[] }>>,
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: {
+      find: (id) => {
+        const file = files[id];
+        return file ? { url: file.url, joints: file.joints.map(jointName) } : null;
+      },
+    },
+    offscreen: true,
+    renderer: 'webgl2',
+  });
+  // A backdrop may be named by its template.
+  const backdrop = setup.backdrop as unknown;
+  if (typeof backdrop === 'string')
+    setup = { ...setup, backdrop: BACKDROP_TEMPLATES.find((t) => t.id === backdrop)!.backdrop };
+  await stage.load(setup);
+  // A duration below zero means the action's own, from naturalDuration, as a block asks for it.
+  for (const c of commands) {
+    const { seq, start, duration, style, ...action } = c;
+    void seq;
+    void style;
+    const own =
+      duration < 0
+        ? (stage.answer({ kind: 'naturalDuration', action, at: start } as StageQuery)
+            .value as number)
+        : duration;
+    stage.schedule([{ ...c, duration: own }]);
+  }
+  const out = [];
+  for (const s of seconds) {
+    stage.seek(micros(s));
+    const frame = await stage.renderFrame();
+    const c = document.createElement('canvas');
+    c.width = frame.width;
+    c.height = frame.height;
+    c.getContext('2d')!.putImageData(
+      new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height),
+      0,
+      0,
+    );
+    out.push(c.toDataURL('image/png'));
+  }
+  stage.dispose();
+  return out;
+}
+
 /** What the page loaded, in bytes before compression, in order. */
 function scripts() {
   return performance
@@ -465,6 +525,7 @@ Object.assign(window, {
     eventCost,
     picture,
     humanPicture,
+    scenePictures,
     goLive,
     scripts,
   },

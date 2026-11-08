@@ -11,6 +11,7 @@ import { localAfter, lookTurn, reachTurns } from '../ik.ts';
 import { conjugate, mul, rotate, v } from '../math.ts';
 import { paintColour } from '../paint.ts';
 import type { Blend, ObjectState } from '../timeline.ts';
+import type { FaceTarget } from './faces.ts';
 import { HumanoidRig } from './humanoid-rig.ts';
 import { color3 } from './materials.ts';
 
@@ -37,6 +38,8 @@ export interface ViewParts {
   readonly label?: { readonly mesh: AbstractMesh; readonly above: number } | undefined;
   /** The model's own clips. The stage plays them itself (`Motion`); the scene never does. */
   readonly animations?: readonly AnimationGroup[];
+  /** A VRM's expressions, and the morph targets that make each (`faces.ts`). */
+  readonly faces?: ReadonlyMap<string, readonly FaceTarget[]>;
 }
 
 /** One of a model's clips, `time` seconds in, counting for `weight` of the pose. */
@@ -73,6 +76,9 @@ export interface LookPose {
 export interface Motion {
   /** A humanoid pose, from the shared clips (WP4.6), on top of the model's own clips. */
   readonly human?: HumanPose;
+  /** An expression, `amount` of the way there (0 to 1), and how far the eyes are shut. */
+  readonly face?: { readonly expression: string; readonly amount: number } | null;
+  readonly blink?: number;
   readonly clips?: readonly ClipPose[];
   readonly reach?: readonly ReachPose[];
   readonly look?: readonly LookPose[];
@@ -151,6 +157,9 @@ export class ObjectView {
   /** Its humanoid bones, if it has them. */
   private readonly rig: HumanoidRig | null;
   private humanPosed = false;
+  private readonly faces: ReadonlyMap<string, readonly FaceTarget[]>;
+  /** The face last shown, so an unchanged one costs nothing. */
+  private faceShown = '';
   /** The model's own clips moved its nodes last time. */
   private clipsPosed = false;
   private posed = false;
@@ -158,7 +167,16 @@ export class ObjectView {
   /** The paint and blend last shown, so an unchanged paint costs nothing. */
   private painted = '';
 
-  constructor({ root, meshes, box, paintable, joints, label, animations = [] }: ViewParts) {
+  constructor({
+    root,
+    meshes,
+    box,
+    paintable,
+    joints,
+    label,
+    animations = [],
+    faces = new Map(),
+  }: ViewParts) {
     this.root = root;
     this.meshes = meshes;
     this.box = box;
@@ -202,6 +220,7 @@ export class ObjectView {
     this.rests = rests;
     this.clipsByName = clips;
     this.rig = joints?.has('hips' as JointName) ? new HumanoidRig(root, joints) : null;
+    this.faces = faces;
   }
 
   /** The names of the model's clips. */
@@ -226,6 +245,7 @@ export class ObjectView {
     );
     if (state.joints.size > 0 || moving || this.posed) this.pose(state, motion, moving);
     if (state.opacity !== this.opacity) this.fade(state.opacity);
+    this.showFace(motion.face ?? null, motion.blink ?? 0);
     const blend = state.paintBlend;
     const painted = `${state.paint}|${blend ? `${blend.from}|${blend.amount}` : ''}`;
     if (painted !== this.painted) {
@@ -352,6 +372,21 @@ export class ObjectView {
     const world = worldTurn(node);
     const turn = lookTurn(vec(node.getAbsolutePosition()), rotate(world, facing), target, limit);
     setRotation(node, localAfter(turn, world, parentTurn(node)));
+  }
+
+  /** Sets the morph targets of the expression shown and the blink; the rest go back to none. */
+  private showFace(face: Motion['face'], blink: number): void {
+    if (this.faces.size === 0) return;
+    const key = `${face?.expression ?? ''}|${face?.amount ?? 0}|${blink}`;
+    if (key === this.faceShown) return;
+    this.faceShown = key;
+    for (const list of this.faces.values()) for (const { target } of list) target.influence = 0;
+    const set = (expression: string, amount: number) => {
+      for (const { target, weight } of this.faces.get(expression) ?? [])
+        target.influence = Math.min(1, target.influence + weight * amount);
+    };
+    if (face) set(face.expression, face.amount);
+    if (blink > 0) set('blink', blink);
   }
 
   private fade(opacity: number): void {
