@@ -20,6 +20,7 @@ import type {
   StageQuery,
   StageQueryResult,
   Transform,
+  Watch,
 } from '@storystage/story-api';
 
 export interface Speech {
@@ -75,6 +76,13 @@ export interface Stage {
 
   /** Listens for clicks, keys, collisions and proximity. Returns a function that stops listening. */
   onEvent(listener: (event: StageEvent) => void): () => void;
+
+  /**
+   * What to keep an eye on for proximity and view events, from the program's listeners. Each
+   * call replaces the last; `load` forgets them. Nothing fires for a pair or an object that's
+   * already within reach or in view when watching starts.
+   */
+  watch(watches: readonly Watch[]): void;
 
   /**
    * A hash of every object's transform, joints, opacity, paint, speech and vehicle after the
