@@ -29,22 +29,28 @@ if [ ! -f "$WORK/whisper-build/whisper.js" ] || ! grep -q "INITIAL_MEMORY=$INITI
   actual=$(git -C "$WORK/whisper.cpp" rev-parse HEAD)
   [ "$actual" = "$WHISPER_COMMIT" ] || { echo "whisper.cpp $WHISPER_VERSION is $actual, not $WHISPER_COMMIT"; exit 1; }
 
-  # The example's link settings, changed in four places and checked: export the file system,
-  # which the worker uses to hand over the model; spec 06's memory; and the module settings the
-  # worker passes. Emscripten reads only those listed, and without `mainScriptUrlOrBlob` whisper's
-  # threads would load the worker's own script instead of whisper.js.
+  # The example's link settings, changed in five places and checked:
+  # - export the file system, which the worker uses to hand over the model;
+  # - spec 06's memory;
+  # - the module settings the worker passes. Emscripten reads only those listed, and without
+  #   `mainScriptUrlOrBlob` whisper's threads would load the worker's own script, not whisper.js;
+  # - a pool of threads made at start. Run from a worker, whisper.cpp can't make threads from its
+  #   own threads as it goes: the first extra one is made and then it waits for ever (CI, 8 Nov
+  #   2026). Five covers the example's own thread and three more for four threads in all.
   cmake_file="$WORK/whisper.cpp/examples/whisper.wasm/CMakeLists.txt"
   sed -i \
     -e "s/'print', 'printErr', 'ccall', 'cwrap', 'HEAPU8'/'print', 'printErr', 'ccall', 'cwrap', 'HEAPU8', 'FS'/" \
     -e "s/INITIAL_MEMORY=512MB/INITIAL_MEMORY=$INITIAL_MEMORY/" \
     -e 's/MAXIMUM_MEMORY=2000MB/MAXIMUM_MEMORY=1024MB/' \
     -e 's/-s FORCE_FILESYSTEM=1/-s FORCE_FILESYSTEM=1 -s INCOMING_MODULE_JS_API=\\"[print,printErr,locateFile,onRuntimeInitialized,onAbort,mainScriptUrlOrBlob]\\"/' \
+    -e 's/-s PTHREAD_POOL_SIZE_STRICT=0/-s PTHREAD_POOL_SIZE_STRICT=0 -s PTHREAD_POOL_SIZE=5/' \
     "$cmake_file"
   grep -q "'HEAPU8', 'FS'" "$cmake_file"
   grep -q "INITIAL_MEMORY=$INITIAL_MEMORY" "$cmake_file"
   grep -q 'MAXIMUM_MEMORY=1024MB' "$cmake_file"
   grep -q 'ALLOW_MEMORY_GROWTH=1' "$cmake_file"
   grep -qF 'INCOMING_MODULE_JS_API=\"[print,printErr,locateFile,onRuntimeInitialized,onAbort,mainScriptUrlOrBlob]\"' "$cmake_file"
+  grep -q 'PTHREAD_POOL_SIZE=5' "$cmake_file"
 
   (cd "$WORK/whisper.cpp" &&
     emcmake cmake -B build-em -DCMAKE_BUILD_TYPE=Release -DWHISPER_WASM_SINGLE_FILE=ON > /dev/null &&
