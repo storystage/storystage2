@@ -8,6 +8,8 @@ The Screening room (WP11.1, 11.2): the rough cut, compare with the storyboard, r
 
 **`RoughCut`** is the rough cut's screen (spec 08 section 2): the player, the time, the bar, the running order strip and errors. It's controlled: the host gives it the time, whether it's playing, the stage's picture and the captions, and it calls back to play, seek, move a scene (a `SceneStep`, one undo step through the session), open a block on the Production stage, and share the current place. Import `@storystage/screening/styles.css` once.
 
+**`ScreeningPlayer`** plays it. `prepare(signal)` measures the film on a hidden stage that it makes with `measureStage()` and disposes of when done, and a cancelled measure stops at once. `play`, `pause` and `seek(t)` drive the shown stage: a seek starts the driver from the scene at `t` and fast-forwards to it. Call `tick()` on every animation frame and draw `RoughCut` from `state` (`subscribe` says when it changes). `dispose()` ends every worker it started; the shown stage is the host's.
+
 Its logic, from `measure`'s timeline (`rough-cut.ts`):
 
 - `segments(production, timeline)`: one per scene, numbered in running order, for the bar under the player and the running order strip;

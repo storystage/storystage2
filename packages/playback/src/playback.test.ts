@@ -579,6 +579,23 @@ describe('measure', () => {
     expect(timeline.lines.map((l) => l.text)).toEqual(['Before.']);
   });
 
+  it('stops when cancelled, ending the worker, and says so', async () => {
+    await settle();
+    const controller = new AbortController();
+    let ended = 0;
+    const running = measure({
+      production: exampleProduction(),
+      stage: new FakeStage(),
+      port: runtime(),
+      seed: 1,
+      terminate: () => ended++,
+      signal: controller.signal,
+    });
+    controller.abort();
+    await expect(running).rejects.toMatchObject({ name: 'AbortError' });
+    expect(ended).toBe(1);
+  });
+
   it('stops at the length cap', async () => {
     const timeline = await measured(exampleProduction(), 1.5);
     expect(timeline.end).toEqual({ kind: 'cap' });
