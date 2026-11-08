@@ -1,0 +1,21 @@
+{
+  "name": "@storystage/backstage-import",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Importing a model into the class Backstage: checks, OBJ, reduction, sketches, licence and credit (WP3i).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/backstage": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  },
+  "devDependencies": {
+    "@storystage/host": "workspace:*",
+    "vitest": "^5.0.5"
+  }
+}

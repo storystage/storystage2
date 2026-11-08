@@ -1,6 +1,7 @@
 import { jointName, type Quat } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { axisTurns, v } from '../math.ts';
+import { Body } from './body.ts';
 import { loadHumanLibrary } from './library.ts';
 import { pack, unpack } from './packed.ts';
 import {
@@ -111,5 +112,40 @@ describe('the shared clips', () => {
   it('come back the same every time', async () => {
     const a = await loadHumanLibrary();
     expect(sample(a.get('walk')!, 0.4)).toEqual(sample(a.get('walk')!, 0.4));
+  });
+});
+
+describe('a body resting in an A-pose', () => {
+  const k = Math.SQRT1_2;
+  const places = new Map(
+    (
+      [
+        ['hips', 0, 1, 0],
+        ['spine', 0, 1.1, 0],
+        ['head', 0, 1.6, 0],
+        ['leftUpperArm', 0.2, 1.45, 0],
+        ['leftLowerArm', 0.2 + 0.3 * k, 1.45 - 0.3 * k, 0],
+        ['leftHand', 0.2 + 0.55 * k, 1.45 - 0.55 * k, 0],
+        ['rightUpperArm', -0.2, 1.45, 0],
+        ['rightLowerArm', -0.2 - 0.3 * k, 1.45 - 0.3 * k, 0],
+        ['rightHand', -0.2 - 0.55 * k, 1.45 - 0.55 * k, 0],
+        ['leftUpperLeg', 0.1, 0.95, 0],
+        ['leftFoot', 0.1, 0.08, 0],
+        ['rightUpperLeg', -0.1, 0.95, 0],
+        ['rightFoot', -0.1, 0.08, 0],
+      ] as const
+    ).map(([j, x, y, z]) => [jointName(j), v(x, y, z)]),
+  );
+
+  it('is posed from a T-pose, as the rig poses it', () => {
+    const body = Body.of(places)!;
+    const hand = body.places(T_POSE).get(jointName('leftHand'))!;
+    expect(hand.x).toBeCloseTo(0.75, 9);
+    expect(hand.y).toBeCloseTo(1.45, 9);
+    const down = body
+      .places(pose({ leftUpperArm: axisTurns(v(0, 0, 1), -0.25) }))
+      .get(jointName('leftHand'))!;
+    expect(down.x).toBeCloseTo(0.2, 9);
+    expect(down.y).toBeCloseTo(0.9, 9);
   });
 });

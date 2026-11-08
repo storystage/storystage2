@@ -8,6 +8,7 @@
  */
 import {
   lineId,
+  scriptLineText,
   type FrameId,
   type LineId,
   type Production,
@@ -51,7 +52,8 @@ export function addLine(
   text: string,
   character: string | null,
 ): { production: Production; line: LineId } | null {
-  const words = clamp(text.trim(), LIMITS.line);
+  // Stored as the script file keeps it, so it reopens exactly (spec 03 section 5).
+  const words = clamp(scriptLineText(text), LIMITS.line);
   if (words === '' || p.script.length >= LIMITS.lines) return null;
   const id = freeLineId(p);
   const speaker = character === null ? null : speakerOf(character);
@@ -75,9 +77,23 @@ const updateLine = (p: Production, id: LineId, change: (l: ScriptLine) => Script
   script: p.script.map((l) => (l.id === id ? change(l) : l)),
 });
 
-/** Rewrites a line, within the limit. An emptied line stays, empty, until it's deleted. */
+/**
+ * Rewrites a line, within the limit, exactly as typed (trimming while typing would swallow the
+ * space just typed). An emptied line stays, empty, until it's deleted.
+ */
 export const setLineText = (p: Production, id: LineId, text: string): Production =>
   updateLine(p, id, (l) => ({ ...l, text: clamp(text, LIMITS.line) }));
+
+/**
+ * The line tidied as the script file keeps it (`scriptLineText`: no blank lines, no spaces at the
+ * ends), for when the learner leaves it; the same production if it is tidy already.
+ */
+export function tidyLine(p: Production, id: LineId): Production {
+  const line = p.script.find((l) => l.id === id);
+  if (!line) return p;
+  const text = clamp(scriptLineText(line.text), LIMITS.line);
+  return text === line.text ? p : updateLine(p, id, (l) => ({ ...l, text }));
+}
 
 /** Makes a line action (`null`) or dialogue said by `character`. */
 export const setSpeaker = (p: Production, id: LineId, character: string | null): Production => {

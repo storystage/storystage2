@@ -7,6 +7,7 @@ import type { JointName, Quat, Vec3 } from '@storystage/story-api';
 import { localAfter, lookTurn, reachTurns } from '../ik.ts';
 import { add, conjugate, IDENTITY_Q, mul, rotate, sub, v } from '../math.ts';
 import { HUMAN_BONES, modelTurns, slerp, type HumanPose } from './pose.ts';
+import { restCorrections, tPosePlaces } from './rest.ts';
 
 export type Hand = 'left' | 'right';
 
@@ -39,7 +40,8 @@ export class Body {
   private readonly rest: ReadonlyMap<JointName, Vec3>;
 
   private constructor(rest: ReadonlyMap<JointName, Vec3>) {
-    this.rest = rest;
+    // Posed from a T-pose, as the rig poses it, whatever pose the model rests in (`rest.ts`).
+    this.rest = tPosePlaces(rest, restCorrections(rest));
     this.hipsHeight = rest.get(HIPS)!.y;
     this.clearance = Math.min(...[...rest.values()].map((p) => p.y));
   }

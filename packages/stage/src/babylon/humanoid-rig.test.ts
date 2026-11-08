@@ -21,10 +21,10 @@ import { tinyHumanUrl } from './tiny-model.ts';
 
 registerBuiltInLoaders();
 
-async function human(twisted = false) {
+async function human(twisted = false, arms: 'T' | 'A' = 'T') {
   const scene = new Scene(headlessEngine());
   scene.useRightHandedSystem = true;
-  const container = await LoadAssetContainerAsync(tinyHumanUrl({ twisted }), scene, {
+  const container = await LoadAssetContainerAsync(tinyHumanUrl({ twisted, arms }), scene, {
     pluginExtension: '.glb',
   });
   container.addAllToScene();
@@ -83,6 +83,21 @@ describe('a humanoid rig', () => {
       rig.apply(pose({ spine: axisTurns(v(1, 0, 0), 0.25) }));
       // Bending forward a quarter at the spine takes the head out in front.
       close(at('head'), v(0, 1.1, 0.5));
+    });
+
+  for (const twisted of [false, true])
+    it(`poses a model resting in an A-pose as one resting in a T-pose${twisted ? ' (odd axes)' : ''}`, async () => {
+      const { rig, at } = await human(twisted, 'A');
+      // At rest its arms hang; posed from the T-pose, they're straight out.
+      close(at('leftHand'), v(0.2 + 0.55 * Math.SQRT1_2, 1.45 - 0.55 * Math.SQRT1_2, 0));
+      rig.apply({ turns: new Map(), hips: v(0, 0, 0) });
+      close(at('leftHand'), v(0.75, 1.45, 0));
+      close(at('rightHand'), v(-0.75, 1.45, 0));
+      rig.apply(armDown);
+      close(at('leftHand'), v(0.2, 0.9, 0));
+      // And it reads back as the T-pose it was given.
+      rig.apply({ turns: new Map(), hips: v(0, 0, 0) });
+      for (const q of rig.read().turns.values()) expect(Math.abs(q.w)).toBeCloseTo(1, 5);
     });
 
   it('moves the hips by hips’ heights, and goes back to rest', async () => {

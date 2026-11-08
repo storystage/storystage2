@@ -9,7 +9,14 @@ import {
   type Program,
   type Statement,
 } from '@storystage/ast';
-import { IDENTITY, micros, objectId, type StageEvent } from '@storystage/story-api';
+import {
+  IDENTITY,
+  STORY_LIBRARY,
+  micros,
+  objectId,
+  type StageEvent,
+  type StageQueryResult,
+} from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import {
   RUNTIME_PROTOCOL,
@@ -119,7 +126,7 @@ const library: StoryLibrary = {
     return null;
   },
   *getDistanceTo(call, context) {
-    return (yield {
+    const answer = (yield {
       kind: 'ask',
       query: {
         kind: 'distance',
@@ -127,7 +134,8 @@ const library: StoryLibrary = {
         to: objectId('dog'),
         at: context.now,
       },
-    }) as number;
+    }) as StageQueryResult;
+    return answer.value as number;
   },
   *move(call, context) {
     context.emit({
@@ -148,7 +156,7 @@ const library: StoryLibrary = {
 };
 
 /** The worker's side, with fake time, and what it has said. */
-function worker() {
+function worker(blocks: StoryLibrary = library) {
   const { main, worker: port } = inMemoryPorts();
   const heard: FromRuntime[] = [];
   main.listen((m) => heard.push(m));
@@ -161,7 +169,7 @@ function worker() {
       return () => (tick = null);
     },
   };
-  serve(port, library, timers);
+  serve(port, blocks, timers);
   const settle = async () => {
     for (let i = 0; i < 20; i++) await Promise.resolve();
   };
@@ -311,6 +319,33 @@ describe('asking the stage', () => {
       code: 'stage',
       stageCode: 'unknown_object',
     });
+  });
+
+  it("gives the Story API's own blocks the stage's whole answer", async () => {
+    const w = worker(STORY_LIBRARY);
+    await w.settle();
+    const turn: Statement = {
+      id: id(),
+      kind: 'call',
+      target: of(CAT),
+      callee: { kind: 'story', name: 'turn' },
+      args: {
+        direction: { id: id(), kind: 'enum', type: 'TurnDirection', value: 'left' },
+        amount: { ...distance, args: { other: of(DOG) } },
+      },
+      details: {},
+    };
+    await w.send(load(program([turn])));
+    await w.send({ type: 'start', mode: FIXED });
+    await w.send({ type: 'advance', until: micros(1) });
+    const [ask] = of_(w.heard, 'ask');
+    const answer: StageQueryResult = { kind: 'distance', value: 2.5 };
+    await w.send({ type: 'answer', id: ask!.id, result: answer });
+    expect(of_(w.heard, 'error')).toEqual([]);
+    const turns = of_(w.heard, 'commands').flatMap((m) =>
+      m.commands.flatMap((c) => (c.kind === 'rotate' ? [c.turns] : [])),
+    );
+    expect(turns).toEqual([2.5]);
   });
 
   it('ignores an answer to the wrong question', async () => {
