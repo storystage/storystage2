@@ -53,9 +53,9 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
 |---|---|
 | `load` | `stage.load(setup)` and schedules the action's commands. Then sends the runtime `load` and `start`, and starts the scene's clock at 0 |
 | `stageCommands` | Hands them to `stage.schedule` |
-| `crossfade` | Tells the stage to fade the old picture out over the new one |
+| `crossfade` | Reported as an event. The `load` that follows passes its length to the stage (`stage.load(setup, { crossfade })`), which draws the old scene fading out over the new one |
 | `stop` | Sends the runtime `stop` |
-| `preload` | Hands the next scene's set-up to the stage's `preload` (S3), so a cut or crossfade doesn't wait. Ignored until the stage has one |
+| `preload` | Hands the next scene's set-up to the stage's `preload` (S3), so a cut or crossfade doesn't wait. Not waited for; it never fails play |
 | `next` | Ends a Rehearse run and tells its listeners "Next: <heading>" |
 | `fault` | Tells its listeners. The player sends `end` straight after |
 | `end` | Ends play, and tells its listeners once, however play ended. Its `fadeOut` is always empty: the player sends any fade first |
@@ -80,6 +80,8 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
     - every `say`, `think` and speak line, for captions.
 
     The rough cut and the export start with one. A deterministic run (6.5) gives the same timeline every time.
+
+    It's `measure` in `packages/playback`: the driver in fixed steps at 30 a second, with the runtime's `trace`, so a block's time is when it started, even one that starts and ends between frames (spec 18, section 1). A scene that waits on the viewer is measured with `viewerWait` of 0, so it ends after its last stage command and the run goes on; it's marked `waits`. A line a scene change cuts short is cut short in the timeline too. The run stops at the 10-minute cap, or at an error, which the timeline gives in plain words.
 
 **Rehearse (WP7.4)** is the driver with one scene, live, on the scene view's own stage, from the scene's set-up. A block that ends the scene (`goToScene`, `crossfade`, `fadeToBlack`) ends the rehearsal and says what would play next (spec 03 section 3.1, rule 9).
 

@@ -277,6 +277,8 @@ function line(c: StageCommand): string {
         return `moveToward ${String(c.target)} ${c.amount}`;
       case 'orient':
         return `orient ${JSON.stringify(c.to)}`;
+      case 'joint':
+        return `joint ${c.joint} ${c.turns} about ${v(c.axis)}`;
       default:
         return c.kind;
     }
@@ -430,9 +432,29 @@ const ROWS: readonly Row[] = [
     start: 'penguin',
     request: 'The camera should look at the penguin, then the penguin turns its head.',
     checks: [{ type: 'method_has_call', procedure: 'pointAt', target: 'camera' }],
-    // The head turn waits for joint values (see the todo below).
-    program: () => scene('penguin', [call('camera', 'pointAt', { target: the('penguin') })]),
-    expect: ['0s camera orient {"pointAt":"penguin"} (1s)'],
+    program: () =>
+      scene('penguin', [
+        call('camera', 'pointAt', { target: the('penguin') }),
+        {
+          id: id(),
+          kind: 'call',
+          target: {
+            id: id(),
+            kind: 'functionCall',
+            target: the('penguin'),
+            callee: { kind: 'story', name: 'getJoint' },
+            args: { joint: choice('JointId', 'head') },
+            details: {},
+          },
+          callee: { kind: 'story', name: 'turn' },
+          args: { direction: choice('TurnDirection', 'left'), amount: num(0.25) },
+          details: {},
+        },
+      ]),
+    expect: [
+      '0s camera orient {"pointAt":"penguin"} (1s)',
+      `1s penguin joint head 0.25 about ${UP} (1s)`,
+    ],
   },
   {
     id: 'together-01',
@@ -710,8 +732,4 @@ describe('the TR1 programs (WP6 done-when)', () => {
       { type: 'watch', watches: [{ kind: 'proximity', a: ['cat'], b: ['dog'], distance: 1 }] },
     ]);
   });
-
-  it.todo(
-    "anim-06's head turn: `penguin.getJoint(neck).turn(…)` needs joint values in the runtime and joint targets in the Story API's blocks",
-  );
 });
