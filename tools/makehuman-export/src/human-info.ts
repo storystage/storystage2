@@ -114,6 +114,7 @@ export function sourceList(people: readonly Person[]) {
       class: 'Biped',
       section: 'cast',
       themes: ['everyday', ageGroup(p.ageYears)],
+      description: p.description,
       licence: 'CC0-1.0',
       credit: `${p.name}, made with MakeHuman (CC0)`,
       page: MAKEHUMAN_LICENCE_PAGE,

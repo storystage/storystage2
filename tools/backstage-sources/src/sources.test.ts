@@ -129,6 +129,26 @@ describe('fetchModel', () => {
   });
 });
 
+describe('descriptions', () => {
+  const list = (description: unknown) =>
+    validateSources({ source: 'm', items: [item({ description })] });
+
+  it('takes a plain line about what it looks like', () => {
+    expect(list('a knight in silver armour').ok).toBe(true);
+    expect(validateSources({ source: 'm', items: [item({})] }).ok).toBe(true);
+  });
+
+  it('refuses skin colour or ancestry, and long or empty lines', () => {
+    expect(list('an Asian woman with a bob')).toMatchObject({
+      ok: false,
+      errors: [expect.stringMatching(/never by skin colour or ancestry/)],
+    });
+    expect(list('x'.repeat(121)).ok).toBe(false);
+    expect(list('').ok).toBe(false);
+    expect(list(7).ok).toBe(false);
+  });
+});
+
 describe('generated models', () => {
   it('accepts a path under generated/, and nothing outside it', () => {
     const list = (generated: string) =>
@@ -212,7 +232,7 @@ describe('buildSources', () => {
       JSON.stringify({
         source: 'test',
         items: [
-          item({}),
+          item({ description: 'a knight in silver armour with a blue tunic' }),
           item({
             id: 'kaykit/Prop/crate',
             displayName: 'Crate',
@@ -244,6 +264,12 @@ describe('buildSources', () => {
     const byId = Object.fromEntries(manifest.items.map((i: { id: string }) => [i.id, i]));
     const knight = byId['kaykit/Biped/knight'];
     expect(knight.files.model).toBe('models/kaykit/Biped/knight.glb');
+    // Its colour thumbnail, as WebP.
+    expect(knight.files.thumbnail).toBe('thumbnails/kaykit/Biped/knight.webp');
+    const webp = await readFile(join(dir, knight.files.thumbnail));
+    expect(webp.subarray(0, 4).toString('latin1')).toBe('RIFF');
+    expect(webp.subarray(8, 12).toString('latin1')).toBe('WEBP');
+    expect(existsSync(join(dir, 'thumbnails/osa/Biped/robert.webp'))).toBe(true);
     expect(knight.joints).toContain('leftUpperArm');
     expect(knight.source).toEqual({
       url: 'https://github.com/kaykit/pack',
@@ -271,6 +297,22 @@ describe('buildSources', () => {
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
     expect(md).toContain('| `osa/Biped/robert` | Robert | CC0-1.0 |');
     expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);
+  });
+
+  it("writes each description, and the Prompter's catalogue with its size", async () => {
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const knight = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Biped/knight');
+    expect(knight.description).toBe('a knight in silver armour with a blue tunic');
+    expect(
+      manifest.items.find((i: { id: string }) => i.id === 'osa/Biped/robert'),
+    ).not.toHaveProperty('description');
+    const catalogue = await readFile(join(dir, 'prompter-catalogue.txt'), 'utf8');
+    expect(catalogue).toContain(
+      'kaykit/Biped/knight: Knight, a knight in silver armour with a blue tunic [fantasy]',
+    );
+    expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
+    const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
+    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 12,000 tokens/);
   });
 
   it('builds one list on its own with only, leaving the others alone', async () => {

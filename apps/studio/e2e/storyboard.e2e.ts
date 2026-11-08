@@ -65,3 +65,17 @@ test('axe finds no serious issues with scenes, and with the delete dialog open',
   await page.getByRole('dialog').getByRole('button', { name: 'Delete scene' }).click();
   await expect.poll(() => titles(page)).toHaveLength(2);
 });
+
+test('axe finds no serious issues with a frame open, its shots and its length', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  await page.getByRole('button', { name: 'More shots' }).click();
+  await expect(page.getByRole('figure')).toContainText('Frame 3.1');
+  expect(await seriousIssues(page)).toEqual([]);
+  // The length field takes the arrow keys.
+  await page.getByRole('textbox', { name: 'Length' }).focus();
+  await page.keyboard.press('ArrowUp');
+  await expect(page.getByRole('figure')).toContainText('4 s');
+});

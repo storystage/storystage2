@@ -90,7 +90,7 @@ Stream the reply, then look at `stop_reason` before doing anything else:
 | `refusal` | No tools run, and any partial reply is discarded. Section 7. |
 | `pause_turn` or anything unknown | No tools run. Treat it as the Prompter couldn't finish; section 7. |
 
-A reply that ended any way but `end_turn` or `tool_use` is never added to the conversation: a cut-off `tool_use` has no result to go with it, so it can't be sent back. The next request carries on from the turn before, and two user turns in a row are allowed. This trims nothing, because that reply was never in the history.
+A reply that ended any way but `end_turn` or `tool_use` is never added to the conversation: a cut-off `tool_use` has no result to go with it, so it can't be sent back. If the request kept no reply at all (a refusal, a cut-off first reply, an error, Stop before anything came back), the session also takes back the learner's turn and mode message it added for that request. Otherwise a mode message would be followed by the next learner turn, which the API refuses. This edits nothing a thinking block is bound to, because every one of those blocks comes before the last kept reply, and nothing after it is bound. If the request kept some replies before it ended, they stay, with their tool results, and the next learner turn follows them (two user turns in a row are allowed).
 
 - **Limit:** 25 tool calls in one learner request, counted across the whole loop. At the limit the loop stops, and the Prompter says what it finished and why it stopped.
 - **Validation.** Parse each input strictly from the accumulated `partial_json`, then validate it against the tool's schema and the rules JSON Schema can't express under strict mode (ranges, lengths). A failure doesn't run the tool: it returns `is_error: true` with `bad_argument`.
@@ -549,8 +549,10 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 
 | Needs | From | For |
 |---|---|---|
-| Grouping edit operations into one undo step, with a plain-words label | S2 (WP2.3, spec 01) | Section 1.7 |
-| The text view's node id form | S2 (WP2.5) | Section 2.2 |
+| Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
+| The production's undo session, holding program edits and scene set-ups in one step. Until it exists, `add_model`, `set_property` and `stage_scene` answer `not_allowed_here` | S4, S2 (WP8.2, spec 03 section 2.1) | Section 3.1, 3.2 |
+| Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
+| The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production` | S4 | Section 6.7, a contract pull request |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
