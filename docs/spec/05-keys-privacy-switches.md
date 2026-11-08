@@ -8,7 +8,7 @@
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [0061 The optional speech model's host](../decisions/0061-speech-model-host.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
 
 ## 1. Wizard
 
@@ -366,7 +366,7 @@ On Windows, macOS and iPad the native layer reads it from the resource folder. O
 
 ### 5.3 Downloaded
 
-*Proposed, for the owner to decide:* the optional model is published as a file on a GitHub release, `speech-models-v1`, by the same CI that checks its pin. Decision 0047 already names GitHub Releases as the host for static files, so this adds no new third party. Spec 06 had StoryStage's website, which is uploaded by hand (0046).
+The optional model is published as a file on a GitHub release, `speech-models-v1`, by the `Speech models` workflow, which checks its pin first (decision 0061). Decision 0047 already names GitHub Releases as the host for static files, so this adds no new third party.
 
 - Only after the learner agrees in Settings (spec 06 section 1.4). Nothing downloads at start-up.
 - Over HTTPS, to a temporary file in the app's data folder, never into memory whole.

@@ -67,6 +67,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Key entry | The Claude key is typed into a system dialog, never into the studio. Screen 10c's field becomes an Add key button. The iPad's dialog waits for the Apple developer account (0056) | 1 Nov 2026 |
 | The speech model is bundled | The Tauri apps bundle the 32 MB default whisper model, so speech works offline from the first launch; the optional 78 MB model downloads on request, checked by the native layer (0057) | 8 Nov 2026 |
 | Dictation in every field | Learners can dictate (on the device) into every field they type in, as Direction A draws, whether or not the Prompter is on; dictation gets its own policy key (S8) and spec 06 widens (S7) (0060) | 8 Nov 2026 |
+| The optional speech model's host | The 78 MB model downloads from the speech-models-v1 GitHub release, the update host (0047); S8 merges #151, #152 and #155 when green (0061) | 8 Nov 2026 |
 
 ## Still to decide (owner)
 
