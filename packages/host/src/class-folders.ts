@@ -424,6 +424,24 @@ export function storedClassFolders(
       return current;
     },
 
+    async deviceFilms() {
+      return (await productions('pupils', DEVICE_PUPIL.id)).map(({ key, meta }) => info(key, meta));
+    },
+
+    moveDeviceFilms(to) {
+      return queue(async () => {
+        if (to === DEVICE_PUPIL.id) throw new FileError('not_found');
+        await pupilById(to);
+        let moved = 0;
+        for (const { key } of await productions('pupils', DEVICE_PUPIL.id)) {
+          // Keys are random, so a pupil's folder never already has one.
+          await store.move(home('pupils', DEVICE_PUPIL.id, key), home('pupils', to, key));
+          moved += 1;
+        }
+        return moved;
+      });
+    },
+
     async openDevice() {
       // Only on a device with no class list, so a pupil can't keep work where Collect never
       // reaches it, or use the Prompter outside their own count (S4's review of #248).

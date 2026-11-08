@@ -97,6 +97,8 @@ export function countingFor(classes: ClassFolders, invoke: Invoke): ClassFolders
       await tell(opened.pupil.id);
       return opened;
     },
+    deviceFilms: () => classes.deviceFilms(),
+    moveDeviceFilms: (to) => classes.moveDeviceFilms(to),
     async openDevice() {
       const opened = await classes.openDevice();
       // The device's own folder: requests count against the device, as with none open.

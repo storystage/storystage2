@@ -220,6 +220,17 @@ export interface ClassFolders {
    * `invalid`: a pupil on a class device can't step outside Collect or their own Prompter count.
    */
   openDevice(): Promise<PupilFolder>;
+  /**
+   * The films kept in the device's own folder, listed without opening it: for a device that has
+   * since gained a class list, so Pupils and folders can offer to move them (07-ux section 9.4).
+   */
+  deviceFilms(): Promise<readonly ProductionInfo[]>;
+  /**
+   * Moves every film in the device's own folder, with its backups and original, into a pupil's
+   * folder. Gives how many moved. `not_found` for a pupil who isn't in the class. For the teacher
+   * or the adult at home: the studio checks who may.
+   */
+  moveDeviceFilms(to: PupilId): Promise<number>;
   /** The folder in use, if a pupil has chosen their name. */
   current(): PupilFolder | null;
   /** At the end of a lesson: waits for writes in progress, then nobody's folder is open. */

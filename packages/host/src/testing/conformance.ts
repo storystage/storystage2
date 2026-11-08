@@ -255,6 +255,28 @@ export function describeClassFoldersContract(
       expect(await (await folders.open(ava.id)).list()).toEqual([]);
     });
 
+    it('moves the device’s films into a pupil’s folder once there’s a class list', async () => {
+      const folders = await make();
+      const device = await folders.openDevice();
+      const { key } = await device.write(null, 'At home', bytes('one'));
+      await device.write(key, 'At home', bytes('two'));
+      await device.write(null, 'Another', bytes('x'));
+      await folders.close();
+      const ava = await folders.addPupil('Ava');
+      expect((await folders.deviceFilms()).map((info) => info.name).sort()).toEqual([
+        'Another',
+        'At home',
+      ]);
+      await failsWith('not_found', () => folders.moveDeviceFilms('nobody'));
+      await failsWith('not_found', () => folders.moveDeviceFilms('device'));
+      expect(await folders.moveDeviceFilms(ava.id)).toBe(2);
+      expect(await folders.deviceFilms()).toEqual([]);
+      const moved = await folders.open(ava.id);
+      expect(text(await moved.read(key))).toBe('two');
+      expect((await moved.backups(key)).length).toBe(1);
+      expect(await folders.moveDeviceFilms(ava.id)).toBe(0);
+    });
+
     it('won’t open the device’s folder once there’s a class list', async () => {
       const folders = await make();
       await folders.addPupil('Ava');

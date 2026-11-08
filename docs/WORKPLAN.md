@@ -1109,6 +1109,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | 13-projection.md | Projection stage, surface rules, virtual projectors, bake renderer, classroom output, Export for projection and to Pixera, flash check | WP23 |
 | 14-editors.md | The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data | WP7, WP7c |
 | 17-backstage.md | Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches | WP3 |
+| 19-alice-import.md | Reading Alice 3 worlds and turning them into one-scene productions: classes, objects and set-up, code, events, the report | WP9 |
 | 15-security.md | Threat model (STRIDE) for every trust boundary, with a control and a test for each threat | WP0.9 |
 | 16-scene-exchange.md | Versioned JSON Schema for scenes, keyframed transforms, cameras, audio cues and timing (metres, glTF Y-up), produced by the baker and consumed by the Unreal, Unity and Godot exports and Export for projection | WP22.2, WP20, WP23 |
 | 12-ar-distribution.md | AR for audiences: experiences, the player's AR mode, the baker, AR pack (GLB, USDZ, page, QR), mixed-reality film, budgets, hosting, safeguards | WP22 |
