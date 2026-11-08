@@ -210,6 +210,15 @@ importers:
 
   packages/export:
     dependencies:
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
       mediabunny:
         specifier: ^1.62.0
         version: 1.62.0

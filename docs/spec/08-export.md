@@ -151,7 +151,7 @@ The right column, as on screen 03.
 
 **Who says it:**
 
-- the character's name from the script, if a dialogue line in that scene has the same words;
+- the character's name from the script, if a dialogue line in that scene has the same words (ignoring case, spacing and the marks at the end);
 - otherwise the object's name, with its first letter in capitals.
 
 It's written as "OWL: Here is the key." in capitals, as a script writes names.
@@ -159,7 +159,7 @@ It's written as "OWL: Here is the key." in capitals, as a script writes names.
 **Rules.**
 
 - A caption lasts as long as its bubble or line, and at least 1 second.
-- Two at once are stacked, earliest first, and at most two show at a time.
+- Two at once are stacked, earliest first, and at most two show at a time: when more overlap, the two that started last.
 - On the picture they sit centred near the bottom, in Atkinson Hyperlegible on a dark panel, sized to the picture's height (decision 0031).
 - **WebVTT** (`.vtt`) and **SRT** (`.srt`) files hold the same captions. Times are `00:00:01.000` in WebVTT and `00:00:01,000` in SRT. The text is escaped, so a learner's `<`, `>` and `&` stay text.
 - Times count from the start of the film, title card included.
@@ -169,9 +169,9 @@ It's written as "OWL: Here is the key." in capitals, as a script writes names.
 The credits roll after the last scene, upwards at a steady pace, about 3 seconds a screenful, with lines in this order:
 
 1. **Story and code:** the names the learner chose, from the production's manifest (`manifest.credits.names`, spec 03, S4's #231). Left out if there are none. The title card's byline is written from them too.
-2. **Cast, Props, Set and Backdrops:** each model the production uses, its credit line from Backstage, grouped by S4's `creditsBySection`. A packed model (decision 0049) is marked "Imported". Shipped models from one source are grouped, as "Owl, Cat and Robot from the StoryStage Cast".
+2. **Cast, Props, Set and Backdrops:** each model the production uses, its credit line from Backstage, grouped by S4's `creditsBySection`. A packed model (decision 0049) is marked "Imported". Shipped models from one source are grouped, as "Cat, Owl and Robot from the StoryStage Cast": the lines whose words after "by" or "from" are the same. A CC BY model's line gives its licence's name and deed.
 3. **Sound:** each recording's label, if there are any.
-4. **Notices** a licence requires, such as Carnegie Mellon University's acknowledgement for models made from Alice's. Each model's record says which notice it needs.
+4. **Notices** a licence requires, such as Carnegie Mellon University's acknowledgement for models made from Alice's, each once. Each model's record will say which notice it needs (spec 17, section 3a, rule 5); until it does, the caller passes `notices`.
 5. **Made with StoryStage 2.**
 
 The credits are the same whatever language the interface is in, apart from the headings.
