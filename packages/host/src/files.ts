@@ -126,7 +126,6 @@ export interface PupilFolder {
   remove(key: ProductionKey): Promise<void>;
 }
 
-/** The class on this device: its pupils, their folders and the bin. */
 /** Who a class Backstage item belongs to: the class, or the one pupil who imported it. */
 export type BackstageOwner = 'class' | PupilId;
 
