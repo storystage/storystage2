@@ -1,6 +1,6 @@
 # Spike 23.1: the surface bake renderer
 
-- **Status:** proposed by S1, 8 Nov 2026. Waiting for the owner.
+- **Status:** decided: **go** (owner, 8 Nov 2026). Proposed by S1 on 8 Nov 2026.
 - **Evidence:** `docs/spikes/REPORT.md`, section 23.1; code in `spikes/23.1-projection/`.
 
 ## Proposal
@@ -18,4 +18,6 @@ For S3's Projection stage (23.3, 23.4) and exports (23.6, 23.7), from the findin
 
 ## Owner decision
 
-_Not yet decided._
+Go, as proposed, with the findings for S3's Projection stage and exports (23.3–23.7).
+
+Recorded by S1 from the owner's answer in the S1 session, 8 Nov 2026.
