@@ -69,6 +69,61 @@ describe('a save is atomic (spec 05 section 6.3)', () => {
   });
 });
 
+describe('first saves that never finished (S4’s review of #194)', () => {
+  const setUp = async () => {
+    let time = Date.parse('2026-11-08T10:00:00Z');
+    const store = failingStore();
+    const folders = storedClassFolders(store, { clock: () => new Date(time) });
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    store.failAt = 3; // the meta.json of the first save
+    await expect(folder.write(null, 'Film', bytes('x'))).rejects.toThrow();
+    store.failAt = Infinity;
+    const left = () => [...store.files.keys()].filter((name) => name.startsWith('pupils/'));
+    return { folders, pupil, left, later: (ms: number) => (time += ms) };
+  };
+
+  it('are swept away when the pupil’s folder is next opened, a minute on', async () => {
+    const { folders, pupil, left, later } = await setUp();
+    expect(left()).toHaveLength(1);
+    later(61_000);
+    await folders.open(pupil.id);
+    expect(left()).toEqual([]);
+  });
+
+  it('are left alone while they could still be another window’s save in progress', async () => {
+    const { folders, pupil, left, later } = await setUp();
+    later(10_000);
+    await folders.open(pupil.id);
+    expect(left()).toHaveLength(1);
+  });
+
+  it('leave whole productions, and files the folders didn’t write, alone', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store, { clock: () => new Date(0) });
+    const pupil = await folders.addPupil('Ava');
+    const { key } = await (await folders.open(pupil.id)).write(null, 'Film', bytes('x'));
+    await store.write(['pupils', pupil.id, 'production-stranger', 'notes.txt'], bytes('?'));
+    const later = storedClassFolders(store);
+    expect(text(await (await later.open(pupil.id)).read(key))).toBe('x');
+    expect(
+      await store.read(['pupils', pupil.id, 'production-stranger', 'notes.txt']),
+    ).not.toBeNull();
+  });
+});
+
+describe('a read alongside a save (S4’s review of #194)', () => {
+  it('waits for the save, so it never finds a file the save has just tidied away', async () => {
+    const folders = storedClassFolders(memoryStore());
+    const folder = await folders.open((await folders.addPupil('Ava')).id);
+    const { key } = await folder.write(null, 'Film', bytes('one'));
+    const saves = Array.from({ length: 5 }, (_, n) => folder.write(key, 'Film', bytes(`v${n}`)));
+    const reads = Array.from({ length: 5 }, () => folder.read(key));
+    await Promise.all(saves);
+    for (const read of await Promise.all(reads)) expect(text(read)).toMatch(/^v\d$/);
+  });
+});
+
 describe('what goes on disk (spec 05 section 6.2)', () => {
   it('keeps names out of every path, and ids random and safe', async () => {
     const store = memoryStore();

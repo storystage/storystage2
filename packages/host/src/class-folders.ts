@@ -22,6 +22,10 @@ const NAME_LIMIT = 80;
 const CLASS_FILE: StorePath = ['class.json'];
 const META = 'meta.json';
 const ORIGINAL = 'original.storystage';
+/** How old a first save's file must be before a folder with no meta.json is swept away. */
+const UNFINISHED_AFTER_MS = 60_000;
+/** A version file's name: when it was written, in base 36, then random letters and digits. */
+const VERSION_FILE = /^v-([a-z0-9]{1,12})-[a-z0-9]+\.storystage$/;
 
 interface Version {
   readonly file: string;
@@ -204,6 +208,24 @@ export function storedClassFolders(
     return run;
   };
 
+  /**
+   * Removes production folders that a first save left without a meta.json, once their files are a
+   * minute old (S4's review of #194). A save in progress in another window is newer than that.
+   */
+  const sweep = async (pupil: PupilId) => {
+    const cutoff = clock().getTime() - UNFINISHED_AFTER_MS;
+    for (const key of (await store.list(checkPath(['pupils', pupil]))).filter(isSafePart)) {
+      const folder = checkPath(['pupils', pupil, key]);
+      const names = await store.list(folder);
+      if (names.includes(META)) continue;
+      const old = names.every((name) => {
+        const time = VERSION_FILE.exec(name)?.[1];
+        return time !== undefined && Number.parseInt(time, 36) < cutoff;
+      });
+      if (old) await store.remove(folder);
+    }
+  };
+
   const folderFor = (pupil: Pupil): PupilFolder => {
     const write = async (
       key: ProductionKey | null,
@@ -216,7 +238,11 @@ export function storedClassFolders(
       const made = key ?? `production-${random()}`;
       const folder = home('pupils', pupil.id, made);
       const previous = key === null ? null : await readMeta(folder);
-      const version = { file: `v-${random()}.storystage`, savedAt: now(), bytes: bytes.length };
+      const version = {
+        file: `v-${clock().getTime().toString(36)}-${random()}.storystage`,
+        savedAt: now(),
+        bytes: bytes.length,
+      };
 
       // 1. The new version, in a file of its own.
       await store.write(checkPath([...folder, version.file]), bytes);
@@ -244,10 +270,13 @@ export function storedClassFolders(
       async list() {
         return (await productions('pupils', pupil.id)).map(({ key, meta }) => info(key, meta));
       },
-      async read(key) {
-        const folder = home('pupils', pupil.id, key);
-        const meta = await readMeta(folder);
-        return readFile([...folder, meta.current.file]);
+      // Reads go through the queue too, so a read never finds a file a save has just tidied away.
+      read(key) {
+        return queue(async () => {
+          const folder = home('pupils', pupil.id, key);
+          const meta = await readMeta(folder);
+          return readFile([...folder, meta.current.file]);
+        });
       },
       write(key, name, bytes, options = {}) {
         return queue(() => write(key, name, bytes, options.backup !== false));
@@ -260,11 +289,13 @@ export function storedClassFolders(
           bytes: version.bytes,
         }));
       },
-      async readBackup(key, index) {
-        const folder = home('pupils', pupil.id, key);
-        const version = (await readMeta(folder)).backups[index];
-        if (!version) throw new FileError('not_found');
-        return readFile([...folder, version.file]);
+      readBackup(key, index) {
+        return queue(async () => {
+          const folder = home('pupils', pupil.id, key);
+          const version = (await readMeta(folder)).backups[index];
+          if (!version) throw new FileError('not_found');
+          return readFile([...folder, version.file]);
+        });
       },
       keepOriginal(key, bytes) {
         return queue(async () => {
@@ -276,10 +307,12 @@ export function storedClassFolders(
           await store.write(checkPath([...folder, META]), toJson({ ...meta, original: ORIGINAL }));
         });
       },
-      async readOriginal(key) {
-        const folder = home('pupils', pupil.id, key);
-        const meta = await readMeta(folder);
-        return meta.original === null ? null : readFile([...folder, meta.original]);
+      readOriginal(key) {
+        return queue(async () => {
+          const folder = home('pupils', pupil.id, key);
+          const meta = await readMeta(folder);
+          return meta.original === null ? null : readFile([...folder, meta.original]);
+        });
       },
       remove(key) {
         return queue(async () => {
@@ -337,7 +370,9 @@ export function storedClassFolders(
     },
 
     async open(id) {
-      current = folderFor(await pupilById(id));
+      const pupil = await pupilById(id);
+      await queue(() => sweep(pupil.id)).catch(() => undefined);
+      current = folderFor(pupil);
       return current;
     },
 

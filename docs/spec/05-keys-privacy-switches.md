@@ -429,7 +429,7 @@ Until the native store lands, the Tauri apps use the browser store too. They sho
 ```
 class.json                                    the class list: { "version": 1, "pupils": [...] }
 pupils/<pupil id>/<key>/meta.json             { "name", "current", "backups": [...], "original" }
-pupils/<pupil id>/<key>/v-<random>.storystage  the current version, and each backup
+pupils/<pupil id>/<key>/v-<time>-<random>.storystage  the current version, and each backup
 pupils/<pupil id>/<key>/original.storystage    the untouched original of a migrated production
 bin/<pupil id>/<key>/...                       the same, with "binnedAt" in meta.json
 ```
@@ -438,11 +438,11 @@ bin/<pupil id>/<key>/...                       the same, with "binnedAt" in meta
 
 ### 6.3 A save is atomic
 
-1. The new version is written to a new `v-<random>.storystage`.
+1. The new version is written to a new `v-<time>-<random>.storystage`, where `<time>` is when, in milliseconds in base 36.
 2. `meta.json` is replaced, atomically, to point at it. With `backup` (the default), the version it replaces is listed first among the backups and only `BACKUPS_KEPT` stay. Without it, the replaced version is dropped.
 3. Files the new `meta.json` doesn't list are deleted.
 
-A crash before step 2 leaves the last whole version and a stray file, which the next save deletes. A crash after step 2 leaves the new version. So a production is never half-written (threat PS4). A store's `write` is itself atomic: a temporary file then a rename on the native side, and `createWritable`, which commits on close, in the browser.
+A crash before step 2 leaves the last whole version and a stray file, which the next save deletes. A first save that crashes there leaves a folder with no `meta.json`. It isn't listed, and opening the pupil's folder removes it once its files are a minute old, so a save still going on in another window is left alone. Reads wait for saves in progress, so a read never finds a file a save has just tidied away. A crash after step 2 leaves the new version. So a production is never half-written (threat PS4). A store's `write` is itself atomic: a temporary file then a rename on the native side, and `createWritable`, which commits on close, in the browser.
 
 ### 6.4 The native store's commands
 

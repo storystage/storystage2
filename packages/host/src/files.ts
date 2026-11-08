@@ -117,6 +117,7 @@ export interface PupilFolder {
   ): Promise<ProductionInfo>;
   /** Newest first. */
   backups(key: ProductionKey): Promise<readonly BackupInfo[]>;
+  /** `index` is as of the last `backups()`: a save since then moves every backup along by one. */
   readBackup(key: ProductionKey, index: number): Promise<Uint8Array>;
   /** Keeps the untouched original of a migrated production (spec 03 1.2). The first one stays. */
   keepOriginal(key: ProductionKey, bytes: Uint8Array): Promise<void>;
