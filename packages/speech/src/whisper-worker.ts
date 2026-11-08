@@ -65,6 +65,8 @@ function loadModule(script: string): Promise<WhisperModule> {
 
 // A listener, not `onmessage`: whisper's script may set `self.onmessage` for itself.
 scope.addEventListener('message', ({ data }) => {
+  // Only this protocol's messages; anything else isn't for this listener.
+  if (typeof data !== 'object' || data === null || !('type' in data)) return;
   void (async () => {
     if (data.type === 'load') {
       verbose = data.verbose === true;
