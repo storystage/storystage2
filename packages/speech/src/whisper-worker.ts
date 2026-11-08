@@ -24,6 +24,21 @@ const log = (line: string) => {
 
 const outOfMemory = (what: unknown) => /memory|oom|alloc/i.test(String(what));
 
+/** In verbose mode: log each thread worker whisper starts, and any error it raises. */
+function watchThreads(): void {
+  const g = globalThis as unknown as {
+    Worker: new (url: string | URL, options?: WorkerOptions) => Worker;
+  };
+  const Original = g.Worker;
+  g.Worker = class extends Original {
+    constructor(url: string | URL, options?: WorkerOptions) {
+      log(`thread worker ${String(url)} ${options?.name ?? ''}`);
+      super(url, options);
+      this.addEventListener('error', (e) => log(`thread worker error: ${e.message}`));
+    }
+  };
+}
+
 function loadModule(script: string): Promise<WhisperModule> {
   return new Promise((resolve, reject) => {
     const Module: Record<string, unknown> = {
@@ -52,6 +67,7 @@ function loadModule(script: string): Promise<WhisperModule> {
       },
     };
     scope.Module = Module;
+    if (verbose) watchThreads();
     try {
       log(`loading ${script}`);
       scope.importScripts(script);
@@ -72,7 +88,7 @@ scope.addEventListener('message', ({ data }) => {
       verbose = data.verbose === true;
       try {
         const module = await loadModule(data.script);
-        core = new WhisperCore(module, data.threads);
+        core = new WhisperCore(module, data.threads, log);
         core.load(new Uint8Array(data.model));
         log('model loaded');
         scope.postMessage({ type: 'ready' });

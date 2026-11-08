@@ -40,14 +40,17 @@ const TIMED_LINE = /^\s*\[\d{2}:\d{2}:\d{2}\.\d+ --> \d{2}:\d{2}:\d{2}\.\d+\]/;
 export class WhisperCore {
   readonly #module: WhisperModule;
   readonly #threads: number;
+  readonly #log: (line: string) => void;
   #instance = 0;
   #lines: string[] = [];
   #done: (() => void) | null = null;
   #busy = false;
 
-  constructor(module: WhisperModule, threads: number) {
+  /** `log` hears what it is doing, for diagnosing a build. */
+  constructor(module: WhisperModule, threads: number, log: (line: string) => void = () => {}) {
     this.#module = module;
     this.#threads = threads;
+    this.#log = log;
   }
 
   /** whisper.cpp's printed output, from `Module.print` and `Module.printErr`. */
@@ -84,9 +87,15 @@ export class WhisperCore {
     const heard = resample(audio, rate, WHISPER_RATE);
     audio.fill(0);
     this.#lines = [];
+    let waited = 0;
+    const heartbeat = setInterval(
+      () => this.#log(`still hearing after ${(waited += 10)} s`),
+      10_000,
+    );
     try {
       const done = new Promise<void>((resolve) => (this.#done = resolve));
       const rc = this.#module.full_default(this.#instance, heard, 'en', this.#threads, false);
+      this.#log(`full_default returned ${rc}`);
       if (rc !== 0) throw new WhisperError('internal');
       await done;
       return this.#lines
@@ -95,6 +104,7 @@ export class WhisperCore {
         .join(' ')
         .trim();
     } finally {
+      clearInterval(heartbeat);
       heard.fill(0);
       this.#done = null;
       this.#busy = false;
