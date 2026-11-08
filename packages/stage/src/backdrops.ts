@@ -195,6 +195,9 @@ export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map
 /** Every built-in ground type, for Backstage's Backdrops section. */
 export const GROUND_TYPES: readonly BackstageId[] = [...GROUNDS.keys()];
 
+/** Alice's room, in metres: its floor is centred on the origin. */
+export const ROOM = { width: 10, height: 3, depth: 10 } as const;
+
 /** A built-in ground's colour, for painting something with a surface. */
 export const groundColour = (id: BackstageId): Colour | null => GROUNDS.get(id)?.colour ?? null;
 

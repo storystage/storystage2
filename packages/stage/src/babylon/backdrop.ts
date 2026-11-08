@@ -11,7 +11,7 @@ import { CreateGround } from '@babylonjs/core/Meshes/Builders/groundBuilder.js';
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder.js';
 import { Mesh } from '@babylonjs/core/Meshes/mesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import { fogDensity, type Backdrop, type Ground, type Lighting } from '../backdrops.ts';
+import { ROOM, fogDensity, type Backdrop, type Ground, type Lighting } from '../backdrops.ts';
 import type { Sky } from '../timeline.ts';
 import { color3, plainMaterial } from './materials.ts';
 
@@ -22,8 +22,6 @@ const TILT = Math.PI / 4;
 
 /** The ground reaches past the far edge of the camera's view (256 m), so it has no visible end. */
 const GROUND_SIZE = 600;
-/** Alice's room, in metres. */
-const ROOM = { width: 10, height: 3, depth: 10 } as const;
 
 function directional(name: string, direction: Vector3, power: number, s: Scene) {
   const light = new DirectionalLight(name, direction, s);
