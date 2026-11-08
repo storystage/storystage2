@@ -11,6 +11,7 @@ import {
   STORY_LIBRARY,
   StageError,
   entriesOf,
+  jointName,
   micros,
   objectId,
   type ApiClass,
@@ -22,6 +23,7 @@ import {
   type StoryClass,
   type StoryContext,
   type StoryCall,
+  type Transform,
   type Value,
 } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
@@ -57,7 +59,8 @@ let seq = 0;
 function drive(
   stage: Stage,
   name: string,
-  target: ObjectId,
+  /** What the block is called on: an object, or a joint value. */
+  target: ObjectId | Value,
   args: Record<string, Value>,
   details: Record<string, Value> = {},
 ): Value {
@@ -70,7 +73,13 @@ function drive(
     random: () => 0,
   };
   const steps = STORY_LIBRARY[name]!(
-    { node: 'n' as StoryCall['node'], target: obj(target), name, args, details },
+    {
+      node: 'n' as StoryCall['node'],
+      target: typeof target === 'string' ? obj(target) : target,
+      name,
+      args,
+      details,
+    },
     context,
   );
   let input: unknown;
@@ -376,6 +385,61 @@ describe('every Story API block, against the stage', () => {
 
   it('ran every block in the library', () => {
     expect([...ran].sort()).toEqual(Object.keys(STORY_LIBRARY).sort());
+  });
+});
+
+describe('joints, as the runtime gives them (getJoint)', () => {
+  const head: Value = { kind: 'joint', object: it_, joint: 'head' };
+  const headAt = { object: it_, joint: jointName('head') };
+  const headTurn = (stage: Stage) =>
+    (stage.answer({ kind: 'transform', object: headAt, at: stage.time() }).value as Transform)
+      .rotation;
+  const loaded = async () => {
+    const stage = new FakeStage();
+    await stage.load(setup('Biped'));
+    return stage;
+  };
+
+  it('turn in their own axes, and leave their object where it was', async () => {
+    const stage = await loaded();
+    drive(stage, 'turn', head, { direction: choice('TurnDirection', 'left'), amount: 0.25 });
+    close(heading(headTurn(stage)), 0.25);
+    close(heading(where(stage).rotation), 0);
+    drive(stage, 'roll', head, { direction: choice('RollDirection', 'right'), amount: 0.25 });
+    close(rotate(headTurn(stage), { x: 0, y: 1, z: 0 }).y, 0);
+  });
+
+  it('point at a thing by turning, and can be a target themselves', async () => {
+    const stage = await loaded();
+    // `other` is 2 m to its left (+X), so the head turns a quarter to face it.
+    drive(stage, 'pointAt', head, { target: obj(other) });
+    close(heading(headTurn(stage)), 0.25);
+    close(heading(where(stage).rotation), 0);
+    drive(stage, 'turnToFace', other, { target: head });
+    close(heading(stage.transform(other).rotation), -0.25);
+  });
+
+  it("can't move, which is a fault at the block (decision 0051)", async () => {
+    const stage = await loaded();
+    expect(() =>
+      drive(stage, 'move', head, { direction: choice('MoveDirection', 'up'), amount: 1 }),
+    ).toThrow(/joint/);
+  });
+
+  it('come in chains, from the root out, as the model has them', async () => {
+    const stage = new FakeStage({
+      jointsFor: () => ['tailTip', 'tail2', 'neck', 'tail', 'head'].map(jointName),
+    });
+    await stage.load(setup('Quadruped'));
+    const chain = (c: 'neck' | 'tail') =>
+      stage.answer({ kind: 'jointChain', object: it_, chain: c, at: 0 }).value;
+    expect(chain('tail')).toEqual(['tail', 'tail2', 'tailTip']);
+    expect(chain('neck')).toEqual(['neck']);
+    const bare = new FakeStage();
+    await bare.load(setup('Prop'));
+    expect(bare.answer({ kind: 'jointChain', object: it_, chain: 'tail', at: 0 }).value).toEqual(
+      [],
+    );
   });
 });
 

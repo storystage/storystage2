@@ -352,6 +352,7 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 4. **Actions take their own time.** A character action has no `duration` detail. The block asks the stage `naturalDuration` (a walk by the length of its way, a clip by its length on that model), sends the command with that duration, and waits for it.
 5. **Walking goes round things** where they are when the walk starts, with a navigation mesh (WP5.8). Walking to a thing stops in front of it, facing it; walking to an edge ends out of the picture, as the camera sees it when the walk starts.
 6. **Faces are the model's own.** `expression` uses a VRM model's presets (VRM 0.x and 1.0). A model without that face shows no change, by the owner's decision of 8 Nov 2026.
+7. **Joints in a program** are values of their own, `{kind: 'joint', object, joint}`, the same in the Story API's `Value` and the runtime's. `getJoint` makes one from the object it's called on; `getJointChain` asks the stage `jointChain` for the model's joints in that chain, from the root out. On a joint, `turn`, `roll` and `pointAt` send the stage's `joint` command, in the joint's own axes, and anything that takes a target takes a joint; anything else is a `bad_value` fault (decision 0051).
 
 <!-- catalog:stage -->
 | Need | What it asks for | Blocks |

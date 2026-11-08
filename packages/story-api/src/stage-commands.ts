@@ -273,7 +273,17 @@ export type StageQuery =
    * How long an action takes at its own pace if it starts at `at`: a walk by the length of its
    * way, a clip or gesture by its length on that model. Any other command is instant, 0.
    */
-  | { readonly kind: 'naturalDuration'; readonly action: StageAction; readonly at: Micros };
+  | { readonly kind: 'naturalDuration'; readonly action: StageAction; readonly at: Micros }
+  /**
+   * An object's joints in a chain (`getJointChain`), from the root out: `neck` is its neck,
+   * `tail` its tail joints and then the tip. Empty if its model has none.
+   */
+  | {
+      readonly kind: 'jointChain';
+      readonly object: ObjectId;
+      readonly chain: EnumOf<'JointChain'>;
+      readonly at: Micros;
+    };
 
 /** How a model looks. A paint the model was made with, not one set since, is `null`. */
 export interface Look {
@@ -297,6 +307,7 @@ export type StageQueryResult =
   | { readonly kind: 'transform'; readonly value: Transform }
   | { readonly kind: 'distance' | 'lens'; readonly value: number }
   | { readonly kind: 'naturalDuration'; readonly value: Micros }
+  | { readonly kind: 'jointChain'; readonly value: readonly JointName[] }
   | { readonly kind: 'isColliding' | 'isVisible'; readonly value: boolean }
   | { readonly kind: 'size'; readonly value: Vec3 }
   | { readonly kind: 'look'; readonly value: Look }

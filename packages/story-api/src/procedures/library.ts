@@ -4,7 +4,8 @@
  * it to finish, as Alice's do; "do together" is the runtime's. A function asks the stage.
  *
  * Details left out take Alice's defaults (`DETAILS`). Units are spec 02's: metres, turns and
- * seconds. Blocks on a joint wait for the runtime's joint value (`getJoint`).
+ * seconds. A joint (the runtime's `getJoint`, a `JointValue`) turns, rolls and points with the
+ * stage's `joint` command, and can be a target; anything else on a joint is a fault (decision 0051).
  */
 import { MOVE_AXES, ROLL_AXES, TURN_AXES } from '../catalog/axes.ts';
 import { DETAILS } from '../catalog/details.ts';
@@ -23,6 +24,7 @@ import {
   SCENE,
   micros,
   type AnimationStyle,
+  type JointName,
   type ObjectId,
   type Quat,
   type Transform,
@@ -32,6 +34,7 @@ import { COLOR_BYTES, colorName } from './colours.ts';
 import {
   StoryFault,
   type EnumValue,
+  type JointValue,
   type ObjectValue,
   type StoryCall,
   type StoryContext,
@@ -54,6 +57,8 @@ const isObject = (v: Value): v is ObjectValue =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && v.kind === 'object';
 const isEnum = (v: Value): v is EnumValue =>
   typeof v === 'object' && v !== null && !Array.isArray(v) && v.kind === 'enum';
+const isJoint = (v: Value | undefined): v is JointValue =>
+  typeof v === 'object' && v !== null && !Array.isArray(v) && v.kind === 'joint';
 
 function number(v: Value | undefined, what: string): number {
   if (typeof v !== 'number' || !Number.isFinite(v))
@@ -71,8 +76,15 @@ function portion(v: Value | undefined, what: string): number {
   return n;
 }
 function object(v: Value | undefined, what: string): ObjectId {
+  if (isJoint(v))
+    throw new StoryFault(`${what} is a joint, which can turn, roll and point, but not do this.`);
   if (v === undefined || !isObject(v)) throw new StoryFault(`${what} must be an object.`);
   return v.id as ObjectId;
+}
+/** Something to go to, face or measure from: an object, a marker or a joint. */
+function thing(v: Value | undefined, what: string): Target {
+  if (isJoint(v)) return { object: v.object as ObjectId, joint: v.joint as JointName };
+  return object(v, what);
 }
 function words(v: Value | undefined, what: string): string {
   if (typeof v !== 'string') throw new StoryFault(`${what} must be words.`);
@@ -179,6 +191,24 @@ const action = (make: (call: StoryCall) => Untimed): StoryFunction =>
       style: 'beginAndEndGently',
     } as Command);
   };
+
+/**
+ * `turn` and `roll`: an object turns in the axes `asSeenBy` gives, and a joint turns in its own
+ * (the stage's `joint` command), as Alice's joints do.
+ */
+function turning(call: StoryCall, axis: Vec3): Command {
+  const turns = number(call.args.amount, 'amount');
+  if (isJoint(call.target))
+    return {
+      object: call.target.object as ObjectId,
+      kind: 'joint',
+      joint: call.target.joint as JointName,
+      axis,
+      turns,
+      ...timing(call),
+    };
+  return { object: self(call), kind: 'rotate', axis, turns, space: space(call), ...timing(call) };
+}
 
 // ---- Where things are, for the "is above" family -------------------------------------------
 
@@ -344,26 +374,16 @@ export const STORY_LIBRARY: StoryLibrary = {
     const by = { x: way.x * amount, y: way.y * amount, z: way.z * amount };
     return { object: self(call), kind: 'translate', by, space: space(call), ...timing(call) };
   }),
-  turn: procedure((call) => ({
-    object: self(call),
-    kind: 'rotate',
-    axis: TURN_AXES[choice('TurnDirection', call.args.direction, 'direction')],
-    turns: number(call.args.amount, 'amount'),
-    space: space(call),
-    ...timing(call),
-  })),
-  roll: procedure((call) => ({
-    object: self(call),
-    kind: 'rotate',
-    axis: ROLL_AXES[choice('RollDirection', call.args.direction, 'direction')],
-    turns: number(call.args.amount, 'amount'),
-    space: space(call),
-    ...timing(call),
-  })),
+  turn: procedure((call) =>
+    turning(call, TURN_AXES[choice('TurnDirection', call.args.direction, 'direction')]),
+  ),
+  roll: procedure((call) =>
+    turning(call, ROLL_AXES[choice('RollDirection', call.args.direction, 'direction')]),
+  ),
   turnToFace: procedure((call) => ({
     object: self(call),
     kind: 'turnToFace',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     ...timing(call),
   })),
   orientToUpright: procedure((call) => ({
@@ -373,44 +393,68 @@ export const STORY_LIBRARY: StoryLibrary = {
     ...up(call),
     ...timing(call),
   })),
-  pointAt: procedure((call) => ({
-    object: self(call),
-    kind: 'orient',
-    to: { pointAt: object(call.args.target, 'target') },
-    ...up(call),
-    ...timing(call),
-  })),
+  pointAt: function* (call, context) {
+    if (!isJoint(call.target))
+      return yield* perform(context, {
+        object: self(call),
+        kind: 'orient',
+        to: { pointAt: thing(call.args.target, 'target') },
+        ...up(call),
+        ...timing(call),
+      });
+    // A joint points by turning, from the way it faces now (+Z in its own axes) to the target.
+    const joint = call.target;
+    const at = { object: joint.object as ObjectId, joint: joint.joint as JointName };
+    const me = (yield* ask({ kind: 'transform', object: at, at: context.now })).value as Transform;
+    const there = thing(call.args.target, 'target');
+    const them = (yield* ask({ kind: 'transform', object: there, at: context.now }))
+      .value as Transform;
+    const d = rotate(back(me.rotation), sub(them.position, me.position));
+    const n = Math.hypot(d.x, d.y, d.z);
+    // The turn from +Z to `d`: about +Z × d, by the angle between them.
+    const axis = { x: -d.y, y: d.x, z: 0 };
+    const a = Math.hypot(axis.x, axis.y);
+    const turns = n > 0 && a > 1e-9 ? Math.atan2(a, d.z) / (2 * Math.PI) : 0;
+    return yield* perform(context, {
+      object: at.object,
+      kind: 'joint',
+      joint: at.joint,
+      axis: a > 1e-9 ? { x: axis.x / a, y: axis.y / a, z: 0 } : { x: 0, y: 1, z: 0 },
+      turns,
+      ...timing(call),
+    });
+  },
   orientTo: procedure((call) => ({
     object: self(call),
     kind: 'orient',
-    to: { lineUpWith: object(call.args.target, 'target') },
+    to: { lineUpWith: thing(call.args.target, 'target') },
     ...timing(call),
   })),
   moveToward: procedure((call) => ({
     object: self(call),
     kind: 'moveToward',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     amount: number(call.args.amount, 'amount'),
     ...timing(call),
   })),
   moveAwayFrom: procedure((call) => ({
     object: self(call),
     kind: 'moveToward',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     amount: -number(call.args.amount, 'amount'),
     ...timing(call),
   })),
   moveTo: procedure((call) => ({
     object: self(call),
     kind: 'moveTo',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     ...path(call),
     ...timing(call),
   })),
   moveAndOrientTo: procedure((call) => ({
     object: self(call),
     kind: 'moveAndOrientTo',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     ...path(call),
     ...timing(call),
   })),
@@ -425,7 +469,7 @@ export const STORY_LIBRARY: StoryLibrary = {
     object: self(call),
     kind: 'place',
     relation: choice('SpatialRelation', call.args.spatialRelation, 'spatialRelation'),
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     gap: number(detail(call, 'alongAxisOffset'), 'alongAxisOffset'),
     ...path(call),
     ...timing(call),
@@ -632,20 +676,20 @@ export const STORY_LIBRARY: StoryLibrary = {
   walkTo: action((call) => ({
     object: self(call),
     kind: 'walk',
-    to: object(call.args.target, 'target'),
+    to: thing(call.args.target, 'target'),
     gait: 'walk',
   })),
   runTo: action((call) => ({
     object: self(call),
     kind: 'walk',
-    to: object(call.args.target, 'target'),
+    to: thing(call.args.target, 'target'),
     gait: 'run',
   })),
   sitOn: action((call) => ({
     object: self(call),
     kind: 'posture',
     posture: 'sit',
-    on: object(call.args.target, 'target'),
+    on: thing(call.args.target, 'target'),
   })),
   standUp: action((call) => ({ object: self(call), kind: 'posture', posture: 'stand' })),
   lieDown: action((call) => ({ object: self(call), kind: 'posture', posture: 'lie' })),
@@ -653,13 +697,13 @@ export const STORY_LIBRARY: StoryLibrary = {
   touch: action((call) => ({
     object: self(call),
     kind: 'reach',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     then: 'touch',
   })),
   reachFor: action((call) => ({
     object: self(call),
     kind: 'reach',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
     then: 'stay',
   })),
   pickUp: action((call) => ({
@@ -697,6 +741,6 @@ export const STORY_LIBRARY: StoryLibrary = {
   lookAt: action((call) => ({
     object: self(call),
     kind: 'lookAt',
-    target: object(call.args.target, 'target'),
+    target: thing(call.args.target, 'target'),
   })),
 };
