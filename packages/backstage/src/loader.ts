@@ -67,7 +67,12 @@ const MISSING =
 const DAMAGED =
   "Backstage couldn't be opened: its list of models is damaged or out of date. Try installing StoryStage again.";
 
-const trimSlash = (folder: string) => folder.replace(/\/+$/, '');
+/** The folder without trailing slashes. A loop, not a regular expression: linear on any input. */
+function trimSlash(folder: string): string {
+  let end = folder.length;
+  while (end > 0 && folder[end - 1] === '/') end--;
+  return folder.slice(0, end);
+}
 
 /** A path inside the folder, made safe for an address segment by segment. */
 const address = (folder: string, path: string) =>

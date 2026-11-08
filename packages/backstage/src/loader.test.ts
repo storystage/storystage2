@@ -89,6 +89,15 @@ describe('backstageFrom', () => {
   it('joins addresses with or without a slash, and keeps odd characters safe', () => {
     const plain = backstageFrom(manifest(item('a/Biped/b c')), 'backstage');
     expect(plain.find('a/Biped/b c' as never)?.url).toBe('backstage/models/a/Biped/b%20c.glb');
+    const slashes = backstageFrom(manifest(item('a/Biped/b')), 'backstage///');
+    expect(slashes.find('a/Biped/b' as never)?.url).toBe('backstage/models/a/Biped/b.glb');
+  });
+
+  it('trims a folder in linear time, however many slashes it has (CodeQL)', () => {
+    const start = performance.now();
+    const odd = backstageFrom(manifest(item('a/Biped/b')), `${'/'.repeat(200_000)}x`);
+    expect(odd.find('a/Biped/b' as never)?.url).toMatch(/x\/models\/a\/Biped\/b\.glb$/);
+    expect(performance.now() - start).toBeLessThan(1000);
   });
 
   it('refuses a manifest that is not valid, saying so in plain words', () => {
