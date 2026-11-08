@@ -30,11 +30,12 @@ impl Drop for Scratch {
 
 #[test]
 fn plain_names_are_what_the_studio_gives() {
-    for name in ["Ava", "Zoë O’Brien", "The Owl (2).storystage", "con_", "陈 小明", "a.b"] {
+    // What `safeFileName` gives for device names (S4's review of #218) must pass too.
+    for name in ["Ava", "Zoë O’Brien", "The Owl (2).storystage", "con_", "陈 小明", "a.b", "CON_", "con_.txt", "Aux_. notes", "nul_.storystage", "Con_.txt"] {
         assert!(is_plain_name(name), "should be plain: {name}");
     }
     let long = "x".repeat(81);
-    for name in ["", ".", "..", ".hidden", "a/b", "a\\b", "a:b", "a\tb", "trailing.", "trailing ", " leading", "con", "NUL.txt", "Com1", long.as_str()] {
+    for name in ["", ".", "..", ".hidden", "a/b", "a\\b", "a:b", "a\tb", "trailing.", "trailing ", " leading", "con", "NUL.txt", "Com1", "con.txt_", "Aux. notes_", "nul.storystage_", "con .txt", long.as_str()] {
         assert!(!is_plain_name(name), "should be refused: {name:?}");
     }
     assert!(is_production_name("Film.storystage"));

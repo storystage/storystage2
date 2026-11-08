@@ -23,7 +23,8 @@ const DEVICES: [&str; 22] = [
 /// or ending in a dot or space, at most 80 characters as the studio counts them, and never a
 /// device name.
 pub fn is_plain_name(name: &str) -> bool {
-    let stem = name.split('.').next().unwrap_or(name).to_ascii_lowercase();
+    // Windows ignores spaces before the dot: "con .txt" is CON too.
+    let stem = name.split('.').next().unwrap_or(name).trim_end().to_ascii_lowercase();
     !name.is_empty()
         && name.encode_utf16().count() <= NAME_LIMIT
         && !name.chars().any(|c| c.is_control() || REFUSED.contains(&c))
