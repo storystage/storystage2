@@ -66,6 +66,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Story API open specification | Text CC BY 4.0, JSON files Apache-2.0; published as 0.9, a draft, with 1.0 at the release candidate; the owner decides changes, with no fixed comment period; in the repository with a GitHub release per version, and storystage.org ids (0055) | 8 Nov 2026 |
 | Key entry | The Claude key is typed into a system dialog, never into the studio. Screen 10c's field becomes an Add key button. The iPad's dialog waits for the Apple developer account (0056) | 1 Nov 2026 |
 | The speech model is bundled | The Tauri apps bundle the 32 MB default whisper model, so speech works offline from the first launch; the optional 78 MB model downloads on request, checked by the native layer (0057) | 8 Nov 2026 |
+| Dictation in every field | Learners can dictate (on the device) into every field they type in, as Direction A draws, whether or not the Prompter is on; dictation gets its own policy key (S8) and spec 06 widens (S7) (0060) | 8 Nov 2026 |
 
 ## Still to decide (owner)
 

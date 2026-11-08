@@ -56,3 +56,4 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0055](0055-story-api-open-specification.md) | The Story API open specification | 8 Nov 2026 |
 | [0056](0056-key-entry.md) | Key entry | 1 Nov 2026 |
 | [0057](0057-speech-model-bundled.md) | The speech model is bundled | 8 Nov 2026 |
+| [0060](0060-dictation-in-every-field.md) | Dictation in every field | 8 Nov 2026 |
