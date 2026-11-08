@@ -56,8 +56,11 @@ describe('the palette as a toolbox (3i.2)', () => {
     const ids = blocks.map((b) => JSON.stringify(b).match(/"id":"[^"]+"/g)).flat();
     expect(new Set(ids).size).toBe(ids.length);
     const ws = new Blockly.Workspace();
-    for (const { kind: _, ...state } of blocks)
+    for (const block of blocks) {
+      const state = { ...block } as Record<string, unknown>;
+      delete state.kind;
       expect(() => Blockly.serialization.blocks.append(state as never, ws)).not.toThrow();
+    }
     ws.dispose();
   });
 });

@@ -39,9 +39,12 @@ export function useEditorHost(
   const latest = useRef(history);
   const say = useRef(announce);
   // The host reads the latest history and live region when an editor calls it, after rendering.
+  // A program applied but not yet rendered: what `program()` gives until the history catches up.
+  const ahead = useRef<Program | null>(null);
   useLayoutEffect(() => {
     latest.current = history;
     say.current = announce;
+    ahead.current = null;
   });
   const listeners = useRef(new Set<(change: ProgramChange) => void>());
   const pending = useRef<Pending | null>(null);
@@ -49,17 +52,18 @@ export function useEditorHost(
 
   const host = useMemo<EditorHost>(
     () => ({
-      program: () => latest.current.present.program,
+      program: () => ahead.current ?? latest.current.present.program,
       apply(edits: readonly EditOperation[], label: string, source: EditorId): EditResult {
         const present = latest.current.present;
         let next: Program;
         try {
-          next = applyCode(present.program, edits);
+          next = applyCode(ahead.current ?? present.program, edits);
         } catch (e) {
           if (e instanceof EditRefused) return { ok: false, reason: e.reason };
           throw e;
         }
         pending.current = { source, edits, label };
+        ahead.current = next;
         dispatch({ type: 'commit', label, next: { ...present, program: next } });
         return { ok: true };
       },

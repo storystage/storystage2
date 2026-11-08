@@ -43,6 +43,25 @@ function withNewIds<T>(node: T, mint: () => NodeId): T {
   return copy as T;
 }
 
+/**
+ * A palette block's values as shadow blocks, as Blockly means a palette's defaults to be: drawn the
+ * same, but named for screen readers as part of their block, not blocks of their own (Blockly
+ * names a nested block a figure, which a palette's list may not hold). `fromBlocks` reads either.
+ */
+function withShadows(state: BlockState): BlockState {
+  if (!state.inputs) return state;
+  const inputs: NonNullable<BlockState['inputs']> = {};
+  for (const [name, slot] of Object.entries(state.inputs)) {
+    const child = slot.block ?? slot.shadow;
+    // A statement list's blocks stay blocks; only values become shadows.
+    inputs[name] =
+      child && !name.startsWith('BODY') && name !== 'THEN' && name !== 'ELSE'
+        ? { shadow: withShadows(child) }
+        : slot;
+  }
+  return { ...state, inputs };
+}
+
 /** The palette for `target`, seen from a method of the type `self`, on `tab`. */
 export function toolboxFor(
   program: Program,
@@ -64,13 +83,16 @@ export function toolboxFor(
         undefined,
         self,
       );
-      contents.push({ kind: 'block', ...blockStateOf(program, node) });
+      contents.push({ kind: 'block', ...withShadows(blockStateOf(program, node)) });
     }
   }
   if (tab === 'actions') {
     contents.push({ kind: 'label', text: WORDS['palette.control']! });
     for (const kind of CONTROL_KINDS)
-      contents.push({ kind: 'block', ...blockStateOf(program, newControl(kind, mint)) });
+      contents.push({
+        kind: 'block',
+        ...withShadows(blockStateOf(program, newControl(kind, mint))),
+      });
   }
   return { kind: 'flyoutToolbox', contents };
 }

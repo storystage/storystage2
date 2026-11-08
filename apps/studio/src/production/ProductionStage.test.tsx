@@ -1,6 +1,6 @@
 import type { EditorHost, ViewState } from '@storystage/editor-contract';
 import { exampleProduction, type Production } from '@storystage/production';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.tsx';
@@ -8,8 +8,11 @@ import { App } from '../App.tsx';
 // Blockly can't draw in a test DOM: a stand-in Blocks editor records what it is given. The real
 // one is checked in a browser (e2e/production.e2e.ts).
 const mounted: { method: string | null; host: EditorHost }[] = [];
+const palettes: { target: unknown; tab: string }[] = [];
+let ask: ((request: unknown) => Promise<unknown>) | undefined;
 vi.mock('@storystage/blocks', () => ({
-  createBlocksEditor: () => ({
+  createBlocksEditor: (options: { ask?: (request: unknown) => Promise<unknown> } = {}) => ({
+    ...((ask = options.ask), {}),
     id: 'blocks',
     displayName: 'Blocks',
     mount: (element: HTMLElement, host: EditorHost, view?: ViewState) => {
@@ -18,6 +21,7 @@ vi.mock('@storystage/blocks', () => ({
     },
     unmount: () => ({ method: null, selection: [], focus: null }),
     openMethod: () => {},
+    setPalette: (target: unknown, tab: string) => palettes.push({ target, tab }),
     highlight: () => {},
     focus: () => {},
     selection: () => [],
@@ -27,6 +31,8 @@ vi.mock('@storystage/blocks', () => ({
 
 beforeEach(() => {
   mounted.length = 0;
+  palettes.length = 0;
+  ask = undefined;
 });
 
 const openStage = async (user: ReturnType<typeof userEvent.setup>) =>
@@ -110,5 +116,69 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     );
     await user.click(screen.getByRole('tab', { name: /Storyboard/ }));
     expect(screen.getByRole('button', { name: /^Undo/ }).textContent).toBe('Undo: Switch it off');
+  });
+
+  it('offers blocks for the scene or one of its objects, as actions or questions', async () => {
+    const user = userEvent.setup();
+    render(<App start={exampleProduction()} />);
+    await openStage(user);
+    await screen.findByText('blocks');
+    expect(palettes.at(-1)).toMatchObject({ tab: 'actions', target: { kind: 'this' } });
+    await user.click(screen.getByRole('button', { name: /Blocks for/ }));
+    const options = screen.getAllByRole('option').map((o) => o.textContent);
+    expect(options[0]).toBe('the scene');
+    expect(options.length).toBeGreaterThan(1);
+    await user.click(screen.getAllByRole('option')[1]!);
+    expect(palettes.at(-1)).toMatchObject({ tab: 'actions', target: { kind: 'fieldRef' } });
+    await user.click(screen.getByRole('radio', { name: 'Questions' }));
+    expect(palettes.at(-1)).toMatchObject({ tab: 'questions' });
+  });
+
+  it('asks for a dropped block’s values with Tiles’ menus, and gives back the answer', async () => {
+    const user = userEvent.setup();
+    const p = exampleProduction();
+    render(<App start={p} />);
+    await openStage(user);
+    await screen.findByText('blocks');
+    const method = p.program.types
+      .flatMap((t) => t.methods)
+      .find((m) => m.id === p.scenes[0]!.method)!;
+    const say = method.body[0]!;
+    let answer: unknown = 'none yet';
+    act(() => {
+      void ask!({
+        program: p.program,
+        place: { kind: 'value', node: say.id, slot: 'args', param: 'text' },
+        label: 'words',
+        anchor: screen.getByText('blocks'),
+      }).then((value) => (answer = value));
+    });
+    const menu = await screen.findByRole('menu');
+    await user.click(within(menu).getByRole('menuitem', { name: /Other words/ }));
+    const field = await screen.findByRole('textbox');
+    await user.type(field, 'Hello there{Enter}');
+    await waitFor(() => expect(answer).toMatchObject({ kind: 'text', value: 'Hello there' }));
+  });
+
+  it('cancels the drop when the learner presses Escape at a question', async () => {
+    const user = userEvent.setup();
+    const p = exampleProduction();
+    render(<App start={p} />);
+    await openStage(user);
+    await screen.findByText('blocks');
+    const say = p.program.types.flatMap((t) => t.methods).find((m) => m.id === p.scenes[0]!.method)!
+      .body[0]!;
+    let answer: unknown = 'none yet';
+    act(() => {
+      void ask!({
+        program: p.program,
+        place: { kind: 'value', node: say.id, slot: 'args', param: 'text' },
+        label: 'words',
+        anchor: screen.getByText('blocks'),
+      }).then((value) => (answer = value));
+    });
+    await screen.findByRole('menu');
+    await user.keyboard('{Escape}');
+    await waitFor(() => expect(answer).toBeNull());
   });
 });

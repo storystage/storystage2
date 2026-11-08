@@ -63,6 +63,17 @@ export interface BlocksEditor extends CodeEditor {
   setPalette(target: Expression, tab: PaletteTab): void;
 }
 
+/**
+ * Blockly 13 gives each connection's highlight a `figure` role, including inside the palette's
+ * list, where only options may be (axe: aria-required-children). The highlight is only drawing,
+ * so it is hidden from screen readers. To report to Blockly; remove when it is fixed there.
+ */
+function quietPalette(ws: Blockly.WorkspaceSvg) {
+  const flyout = ws.getFlyout()?.getWorkspace().getParentSvg();
+  for (const path of flyout?.querySelectorAll('.blocklyHighlightedConnectionPath') ?? [])
+    path.setAttribute('aria-hidden', 'true');
+}
+
 /** The scene itself, the palette's object until the learner picks one. */
 const THE_SCENE: Expression = { id: 'palscene' as NodeId, kind: 'this' };
 
@@ -78,12 +89,15 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   let tab: PaletteTab = 'actions';
   /** While the cascade asks about a dropped block, the workspace waits. */
   let asking = false;
+  /** A palette drop just applied: redraw when it comes back, to show the program's own ids. */
+  let redraw = false;
 
   /** The palette for the chosen object, as the program has it now. */
   function updatePalette() {
     if (!ws || !host) return;
     const self = typeOf(host.program(), owner);
     if (self) ws.updateToolbox(toolboxFor(host.program(), target, self, tab) as never);
+    quietPalette(ws);
   }
 
   /** Shows the open method as the program has it now. */
@@ -159,7 +173,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       if (outcome.kind === 'refused') host.announce(outcome.reason);
       if (outcome.kind === 'edits') {
         const applied = host.apply(outcome.edits, outcome.label, 'blocks');
-        if (!applied.ok) host.announce(applied.reason);
+        if (applied.ok) redraw = true;
+        else host.announce(applied.reason);
       }
     } finally {
       asking = false;
@@ -205,7 +220,10 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       });
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {
-        if (change.source !== 'blocks') rebuild();
+        if (change.source !== 'blocks' || redraw) {
+          redraw = false;
+          rebuild();
+        }
       });
       rebuild();
       if (view.focus) this.focus(view.focus);

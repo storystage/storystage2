@@ -43,7 +43,8 @@ export interface BlockState {
   y?: number;
   extraState?: Extra;
   fields?: Record<string, string | number | boolean>;
-  inputs?: Record<string, { block?: BlockState }>;
+  /** A slot's block, or the palette's shadow block standing in for it (`toolbox.ts`). */
+  inputs?: Record<string, { block?: BlockState; shadow?: BlockState }>;
   next?: { block?: BlockState };
   disabledReasons?: string[];
   deletable?: boolean;
@@ -373,7 +374,7 @@ function list(b: BlockState, input: string): Statement[] {
 }
 
 function slot(b: BlockState, input: string): Expression {
-  const child = b.inputs?.[input]?.block;
+  const child = b.inputs?.[input]?.block ?? b.inputs?.[input]?.shadow;
   if (!child) throw new BlocksMismatch(`an empty ${input} on ${b.type}`);
   return expressionOf(child);
 }
