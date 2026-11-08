@@ -24,6 +24,7 @@ import {
   type ToRuntime,
 } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
+import { errorWords } from './words.ts';
 import {
   StageError,
   micros,
@@ -61,7 +62,13 @@ export type PlaybackEvent =
   /** Rehearse ended at a block that goes to another scene: show "Next: <heading>". */
   | { readonly kind: 'next'; readonly scene: SceneId; readonly heading: string }
   /** The program stopped with an error. The studio says it in plain words, at `error.node`. */
-  | { readonly kind: 'error'; readonly scene: SceneId; readonly error: RuntimeError }
+  | {
+      readonly kind: 'error';
+      readonly scene: SceneId;
+      readonly error: RuntimeError;
+      /** What happened and what to do next, for the learner (6.3). */
+      readonly words: string;
+    }
   /** Play can't go on: too many scene starts, or a scene that isn't there. */
   | { readonly kind: 'fault'; readonly code: string; readonly message: string }
   /** Play is over: the film ended (after any fade, which the player sends first), or it was stopped. */
@@ -77,6 +84,8 @@ export interface PlaybackOptions {
   readonly seed: number;
   /** The scene to start with: Rehearse's scene, or the Screening room's "play from here". */
   readonly from?: SceneId;
+  /** Ends the worker: `dispose` calls it (`startRuntimeWorker`'s `terminate`). */
+  readonly terminate?: () => void;
   /** Blocks switched off for this run (WP6.4). */
   readonly disabled?: readonly NodeId[];
   /** How far the runtime runs ahead of the picture. Default 100 ms (spike 1.4). */
@@ -187,10 +196,16 @@ export class Playback {
     this.finish(true);
   }
 
-  /** Stops listening to the worker and the stage. The worker itself is the caller's. */
+  /**
+   * Stops listening to the worker and the stage, and ends the worker if `terminate` was given:
+   * for when the learner leaves the Production stage or the Screening room.
+   */
   dispose(): void {
     for (const stop of this.stopListening.splice(0)) stop();
     this.listeners.clear();
+    this.over = true;
+    this.release();
+    this.options.terminate?.();
   }
 
   /** Play is over: says so once, whichever way it ended. */
@@ -275,7 +290,8 @@ export class Playback {
 
   private fail(message: FromRuntime & { type: 'error' }): void {
     const scene = this.scene;
-    if (scene !== null) this.emit({ kind: 'error', scene, error: message.error });
+    if (scene !== null)
+      this.emit({ kind: 'error', scene, error: message.error, words: errorWords(message.error) });
     this.running = false;
     // The player stops and ends; its `stop` goes to a worker that has already stopped.
     void this.perform(this.player.runtime(message));

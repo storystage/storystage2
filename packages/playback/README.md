@@ -12,6 +12,7 @@ Plays a production on the page: the runtime worker, the stage and the production
 - `frame(t)` moves the film to time `t`, every frame live or once per frame when exporting;
 - `event(e)` sends a click or a key on;
 - `stop()` stops, and puts the scene's set-up back;
-- `on(listener)` tells you what happens: a scene starting, the running blocks, finished, an error, the end.
+- `on(listener)` tells you what happens: a scene starting, the running blocks, finished, an error in plain words (`errorWords`), the end;
+- `dispose()` stops listening and ends the worker.
 
-`fastForward` runs ahead to a time or a block, drawing nothing. `LiveClock` gives the film's time for live play, with pause and speed. The worker itself is `packages/runtime/src/worker.ts`.
+`fastForward` runs ahead to a time or a block, drawing nothing. `LiveClock` gives the film's time for live play, with pause and speed. `startRuntimeWorker()` starts a real runtime worker: pass its `port` and `terminate` to `Playback`.

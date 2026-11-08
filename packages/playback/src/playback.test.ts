@@ -20,6 +20,7 @@ import { describe, expect, it } from 'vitest';
 import { LiveClock } from './clock.ts';
 import { fastForward } from './fast-forward.ts';
 import { Playback, type PlaybackEvent } from './playback.ts';
+import { errorWords } from './words.ts';
 
 // ---- A production to play --------------------------------------------------------------------
 
@@ -301,6 +302,7 @@ describe('the runtime’s messages', () => {
       kind: 'error',
       scene: 's1',
       error: { code: 'bad_value', node: bad.id },
+      words: "This block got something it can't use. Check what you've put in its spaces.",
     });
     expect(ended(events)).toEqual([{ kind: 'ended', stopped: false }]);
   });
@@ -403,5 +405,58 @@ describe('LiveClock', () => {
 
   it('refuses a speed of nothing', () => {
     expect(() => new LiveClock(() => 0).setSpeed(0)).toThrow();
+  });
+});
+
+describe('dispose', () => {
+  it('stops listening and ends the worker', async () => {
+    await settle();
+    const stage = new FakeStage();
+    let ended = 0;
+    const playback = new Playback({
+      production: exampleProduction(),
+      stage,
+      port: runtime(),
+      mode: 'rehearse',
+      seed: 1,
+      terminate: () => ended++,
+    });
+    const events: PlaybackEvent[] = [];
+    playback.on((e) => events.push(e));
+    await playback.start();
+    playback.dispose();
+    stage.emit({ kind: 'click', object: null, x: 0, y: 0, at: 0 });
+    await playback.frame(micros(1));
+    expect(ended).toBe(1);
+    expect(playback.ended()).toBe(true);
+    expect(events.map((e) => e.kind)).toEqual(['scene']);
+  });
+});
+
+describe('errorWords', () => {
+  it('has plain words for every code, with no technical words', () => {
+    const codes = [
+      'infinite_loop',
+      'recursion_limit',
+      'time_slice',
+      'bad_value',
+      'protocol',
+      'internal',
+    ] as const;
+    const stageCodes = [
+      'unknown_object',
+      'unknown_joint',
+      'unknown_model',
+      'bad_argument',
+    ] as const;
+    const all = [
+      ...codes.map((code) => errorWords({ code, node: null, at: 0 })),
+      ...stageCodes.map((stageCode) => errorWords({ code: 'stage', node: null, at: 0, stageCode })),
+      errorWords({ code: 'stage', node: null, at: 0 }),
+    ];
+    for (const words of all) {
+      expect(words).toMatch(/\.$/);
+      expect(words).not.toMatch(/\b(ast|node|field|invocation|edit|token|schema|api|sorry)\b/i);
+    }
   });
 });
