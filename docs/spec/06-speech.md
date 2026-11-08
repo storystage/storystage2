@@ -10,6 +10,7 @@
 
 - [0020 Speech in](../decisions/0020-speech-in.md): whisper.cpp in WebAssembly, on the device; audio never leaves it.
 - [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md): the default model ships in the apps; the optional one downloads on request.
+- [0061 The optional speech model's host](../decisions/0061-speech-model-host.md): GitHub Releases, the update host.
 - [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md): dictation into any text field, not only Prompter requests, and not tied to the Prompter.
 - [0021 Speech out](../decisions/0021-speech-out.md): browser speech synthesis with on-device voices only; captions always shown.
 - [Spike 1.3](../decisions/spike-1.3-whisper.md): go, on the CI evidence, 8 Nov 2026.
@@ -66,7 +67,7 @@ Both models reach the worker the same way: **through the native layer, never the
 **The optional model downloads on request:**
 
 - **After consent.** Choosing "More accurate" in Settings shows the size, that it downloads once, and where it comes from. Nothing downloads until the learner presses **Download**.
-- **From where.** From the address the native layer pins at build time (spec 05, section 5.3). The build copies the file there from whisper.cpp's repository and checks it against its pin.
+- **From where.** From GitHub Releases: the `speech-models-v1` release on `storystage/storystage2` (decision 0061). That is the host already named for updates (decision 0047), so no new third party sees a device. The `Speech models` workflow publishes the file there from whisper.cpp's repository after checking it against its pin, and the native layer pins the address (spec 05, section 5.3).
 - **Checked.** The download is refused unless its SHA-256 matches the pin, so a swapped file can't be used. A mismatch keeps nothing and says "The download didn't arrive whole. Try again."
 - **Kept** in the app's data folder. Settings shows its size and has **Remove**, which goes back to the bundled model.
 - **Progress** is shown, with **Cancel**. A failed download can be tried again; until one succeeds, the bundled model is used.
@@ -222,7 +223,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Speech in | Prompter requests only | Dictation into every text field, with or without the Prompter | Decision 0060 |
 | Engine | whisper-jni in Java | whisper.cpp in WebAssembly, in a worker | No Java; decision 0020 |
 | Models | Multilingual tiny (default) and base | English tiny, quantised by default; full tiny optional; no base | Memory on 4 GB devices (spike 1.3) |
-| Getting the model | Downloaded from Hugging Face | Default bundled in the app (0057); the optional one from StoryStage's website. Both checked by the native layer, pinned | Works offline from the first launch; the webview loads no remote content |
+| Getting the model | Downloaded from Hugging Face | Default bundled in the app (0057); the optional one from the update host, GitHub Releases (0061). Both checked by the native layer, pinned | Works offline from the first launch; the webview loads no remote content |
 | Capture | Java sound, 16 kHz | `AudioWorklet` at the device's rate, resampled to 16 kHz | Browsers choose the rate |
 | Starting and stopping | Hold to talk, or Ctrl+Space | Tap to start, tap to stop; Enter or Space on the focused mic; Esc cancels | Holding is hard for some children; Ctrl+Space switches input languages on some systems |
 | Where the words go | Into the Prompter's box | Given back to the studio, which puts them in the field as one undo step | The field and its history stay the studio's |
@@ -239,7 +240,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | COOP and COEP headers in the Tauri apps: done on Windows (#155) | S8 (WP15) | Section 1.1 |
 | The `speech.dictation` policy key, with `host.speech` following it (#152), in spec 05 and workplan 15.3 | S8 (WP15) | Section 1.1 |
 | The bundled model in the app's resources, the optional download, the check on every load, and their rows in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
-| Where the optional model is hosted: StoryStage's website or GitHub Releases (S8 proposes the latter, spec 05 section 5.3) | Owner, with S8 | Section 1.4 |
+| Running the `Speech models` workflow once, before the first build that offers the optional model (decision 0061) | Owner | Section 1.4 |
 | The mic button beside every field (`TextField`'s `onSpeak`), inserting the words as one undo step, and the Talk to type and model Settings | S5 (WP12) | Sections 1.5, 1.7, 1.11 |
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |
