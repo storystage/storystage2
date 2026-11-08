@@ -6,11 +6,14 @@
 import {
   CAMERA,
   IDENTITY,
+  SCENE,
   StageError,
   jointName,
   micros,
   objectId,
+  type Look,
   type ObjectId,
+  type SceneLook,
   type SceneSetup,
   type StageCommand,
   type Transform,
@@ -22,6 +25,8 @@ import { heading } from '../math.ts';
 
 const cat = objectId('cat');
 const dog = objectId('dog');
+/** Both stages give an actor a head (`FakeStage` by default, a stand-in by its class). */
+const head = jointName('head');
 const at = (x: number, y: number, z: number): Transform => ({ ...IDENTITY, position: { x, y, z } });
 
 export const SETUP: SceneSetup = {
@@ -215,7 +220,7 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       ).rejects.toMatchObject({ code: 'bad_argument' });
     });
 
-    // Until WP4b's stage work: the contract has these, and no stage does them yet.
+    // Still to come: smooth paths, wings and the size of a joint.
     it('refuses what it cannot do yet, and adds none of the batch', async () => {
       const stage = await loaded();
       const before = stage.stateHash();
@@ -226,17 +231,292 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
         space: 'scene',
       });
       for (const later of [
-        cmd(0, 1, { object: cat, kind: 'moveToward', target: dog, amount: 1 }),
-        cmd(0, 1, {
-          object: cat,
-          kind: 'moveTo',
-          target: { object: dog, joint: jointName('head') },
-        }),
+        cmd(0, 1, { object: cat, kind: 'moveTo', target: dog, pathStyle: 'smooth' }),
+        cmd(0, 1, { object: cat, kind: 'pose', pose: 'wingsFolded' }),
       ])
         expect(() => stage.schedule([move, later])).toThrow(/can't do .* yet/);
       stage.seek(micros(1));
       expect(stage.stateHash()).toBe(before);
-      expect(() => stage.answer({ kind: 'vehicle', object: cat, at: 0 })).toThrow(StageError);
+      const joint = { object: cat, joint: head };
+      expect(() => stage.answer({ kind: 'size', object: joint, at: 0 })).toThrow(/yet/);
+    });
+
+    describe('targets', () => {
+      it('can be a joint, where it rests on its object', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, { object: cat, kind: 'moveTo', target: { object: dog, joint: head } }),
+        ]);
+        stage.seek(micros(1));
+        close(stage.transform(cat).position.x, 1);
+        expect(stage.transform(cat).position.y).toBeGreaterThan(0.5);
+        const q = {
+          kind: 'distance',
+          from: cat,
+          to: { object: dog, joint: head },
+          at: micros(1),
+        } as const;
+        close(stage.answer(q).value as number, 0);
+      });
+
+      it('refuses a joint the object does not have', async () => {
+        const stage = await loaded();
+        const nothing = { object: dog, joint: jointName('noSuchJoint') };
+        expect(() =>
+          stage.schedule([cmd(0, 1, { object: cat, kind: 'turnToFace', target: nothing })]),
+        ).toThrow(StageError);
+      });
+    });
+
+    describe('moving', () => {
+      it('moves toward a target, and away with a negative amount', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, { object: cat, kind: 'moveToward', target: dog, amount: 0.5 }),
+          cmd(1, 1, { object: cat, kind: 'moveToward', target: dog, amount: -2 }),
+        ]);
+        stage.seek(micros(1));
+        close(stage.transform(cat).position.x, -0.5);
+        stage.seek(micros(2));
+        close(stage.transform(cat).position.x, -2.5);
+      });
+
+      it('takes on a marker’s place and the way it faces', async () => {
+        const quarter = { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 };
+        const stage = await loaded({
+          ...SETUP,
+          markers: [{ id: 'spot', transform: { ...at(3, 0, 3), rotation: quarter } }],
+        });
+        stage.schedule([
+          cmd(0, 1, { object: cat, kind: 'moveAndOrientTo', target: objectId('spot') }),
+        ]);
+        stage.seek(micros(0.5));
+        close(stage.transform(cat).position.x, 1);
+        stage.seek(micros(1));
+        close(stage.transform(cat).position.z, 3);
+        close(heading(stage.transform(cat).rotation), 0.25);
+      });
+
+      it('finds the camera a good view of its target, looking at it', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, { object: CAMERA, kind: 'moveAndOrientTo', target: dog, goodView: true }),
+        ]);
+        stage.seek(micros(1));
+        const camera = stage.transform(CAMERA);
+        // The dog faces +Z, so the camera is in front of it and faces back towards it.
+        expect(camera.position.z).toBeGreaterThan(0.5);
+        close(camera.position.x, 1);
+        close(Math.abs(heading(camera.rotation)), 0.5);
+      });
+
+      it('places one thing beside another by their sizes, with a gap', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, { object: cat, kind: 'place', relation: 'leftOf', target: dog, gap: 0.5 }),
+        ]);
+        stage.seek(micros(1));
+        // A stand-in is half a metre wide, and left is +X (spec 02, Directions).
+        close(stage.transform(cat).position.x, 2);
+        stage.schedule([
+          cmd(1, 1, { object: cat, kind: 'place', relation: 'above', target: dog, gap: 0 }),
+        ]);
+        stage.seek(micros(2));
+        close(stage.transform(cat).position.x, 1);
+        close(stage.transform(cat).position.y, 1);
+      });
+    });
+
+    describe('turning', () => {
+      const tilt = cmd(0, 0, {
+        object: cat,
+        kind: 'rotate',
+        axis: { x: 1, y: 0, z: 0 },
+        turns: 0.1,
+        space: 'scene',
+      });
+
+      it('stands back upright, still facing the same way', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 0, {
+            object: cat,
+            kind: 'rotate',
+            axis: { x: 0, y: 1, z: 0 },
+            turns: 0.25,
+            space: 'scene',
+          }),
+          { ...tilt, seq: tilt.seq, start: micros(0.1) },
+          cmd(1, 1, { object: cat, kind: 'orient', to: 'upright' }),
+        ]);
+        stage.seek(micros(2));
+        const r = stage.transform(cat).rotation;
+        close(heading(r), 0.25);
+        close(Math.abs(r.x) + Math.abs(r.z), 0);
+      });
+
+      it('points at a target, and lines up with one', async () => {
+        const stage = await loaded();
+        stage.schedule([cmd(0, 1, { object: cat, kind: 'orient', to: { pointAt: dog } })]);
+        stage.seek(micros(1));
+        close(heading(stage.transform(cat).rotation), 0.25);
+        stage.schedule([tilt, cmd(1, 1, { object: cat, kind: 'orient', to: { lineUpWith: dog } })]);
+        stage.seek(micros(2));
+        const r = stage.transform(cat).rotation;
+        close(Math.abs(r.w), 1);
+      });
+    });
+
+    describe('sizes', () => {
+      it('sets a height and keeps the shape, and answers with the new size', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, {
+            object: cat,
+            kind: 'setSize',
+            dimension: 'height',
+            to: 2,
+            policy: 'preserveAspectRatio',
+          }),
+        ]);
+        stage.seek(micros(1));
+        close(stage.transform(cat).scale.x, 2);
+        const size = stage.answer({ kind: 'size', object: cat, at: micros(1) }).value as Vec3;
+        close(size.y, 2);
+        close(size.x, 1);
+      });
+
+      it('keeps the volume, or nothing, if asked', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 0, {
+            object: cat,
+            kind: 'setSize',
+            dimension: 'width',
+            to: 2,
+            policy: 'preserveVolume',
+          }),
+          cmd(0, 0, {
+            object: dog,
+            kind: 'setSize',
+            dimension: 'depth',
+            to: 1,
+            policy: 'preserveNothing',
+          }),
+        ]);
+        stage.seek(0);
+        const cats = stage.transform(cat).scale;
+        close(cats.x * cats.y * cats.z, 1);
+        close(cats.x, 4);
+        expect(stage.transform(dog).scale).toEqual({ x: 1, y: 1, z: 2 });
+      });
+    });
+
+    describe('looks', () => {
+      it('blends a paint over its duration, and answers with it', async () => {
+        const stage = await loaded();
+        stage.schedule([cmd(0, 1, { object: cat, kind: 'paint', paint: 'red' })]);
+        stage.seek(micros(0.5));
+        const half = stage.stateHash();
+        stage.seek(micros(1));
+        expect(stage.stateHash()).not.toBe(half);
+        const look = stage.answer({ kind: 'look', object: cat, at: micros(1) }).value as Look;
+        expect(look).toEqual({ paint: 'red', opacity: 1, backPaint: null, text: null });
+      });
+
+      it('straightens every joint', async () => {
+        const stage = await loaded();
+        const start = stage.stateHash();
+        stage.schedule([
+          cmd(0, 1, {
+            object: cat,
+            kind: 'joint',
+            joint: head,
+            axis: { x: 0, y: 1, z: 0 },
+            turns: 0.2,
+          }),
+          cmd(1, 1, { object: cat, kind: 'pose', pose: 'straight' }),
+        ]);
+        stage.seek(micros(1.5));
+        expect(stage.stateHash()).not.toBe(start);
+        stage.seek(micros(2));
+        const q = stage.answer({
+          kind: 'transform',
+          object: { object: cat, joint: head },
+          at: micros(2),
+        });
+        close(Math.abs((q.value as Transform).rotation.w), 1);
+      });
+
+      it('answers with an object’s vehicle', async () => {
+        const stage = await loaded();
+        stage.schedule([cmd(1, 0, { object: cat, kind: 'vehicle', vehicle: dog })]);
+        expect(stage.answer({ kind: 'vehicle', object: cat, at: 0 }).value).toBeNull();
+        expect(stage.answer({ kind: 'vehicle', object: cat, at: micros(1) }).value).toBe(dog);
+      });
+
+      it('gives only a billboard a back paint, and only 3D text words', async () => {
+        const stage = await loaded();
+        expect(() =>
+          stage.schedule([cmd(0, 0, { object: cat, kind: 'backPaint', paint: 'red' })]),
+        ).toThrow(StageError);
+        expect(() =>
+          stage.schedule([cmd(0, 0, { object: cat, kind: 'text', text: 'Hi' })]),
+        ).toThrow(StageError);
+      });
+    });
+
+    describe('the sky and the lens', () => {
+      it('fades the picture to black, as part of the scene', async () => {
+        const stage = await loaded();
+        const start = stage.stateHash();
+        stage.schedule([cmd(0, 2, { object: SCENE, kind: 'fade', to: 1 })]);
+        stage.seek(micros(1));
+        const half = stage.stateHash();
+        stage.seek(micros(2));
+        expect(new Set([start, half, stage.stateHash()]).size).toBe(3);
+        for (const wrong of [
+          cmd(0, 1, { object: cat, kind: 'fade', to: 1 }),
+          cmd(0, 1, { object: SCENE, kind: 'fade', to: 1.5 }),
+        ])
+          expect(() => stage.schedule([wrong])).toThrow(StageError);
+      });
+
+      it('changes the sky colour and fog over time, and answers with them', async () => {
+        const stage = await loaded({ ...SETUP, backdrop: { fog: 0 } });
+        const sky = (t: number) =>
+          stage.answer({ kind: 'sceneLook', at: micros(t) }).value as SceneLook;
+        const start = sky(0).atmosphere;
+        stage.schedule([
+          cmd(0, 1, { object: SCENE, kind: 'atmosphere', colour: '#000000' }),
+          cmd(0, 1, { object: SCENE, kind: 'fog', density: 0.5 }),
+          cmd(0, 0, { object: SCENE, kind: 'light', from: 'below', colour: 'red' }),
+        ]);
+        expect(sky(1).atmosphere).toBe('#000000');
+        expect(sky(0.5).atmosphere).not.toBe(start);
+        close(sky(1).fog, 0.5);
+        close(sky(0.5).fog, 0.25);
+        expect(sky(0).fromBelow).toBe('#ff0000');
+      });
+
+      it('changes the camera’s viewing angle', async () => {
+        const stage = await loaded();
+        close(stage.answer({ kind: 'lens', at: 0 }).value as number, 0.5 / (2 * Math.PI));
+        stage.schedule([cmd(0, 1, { object: CAMERA, kind: 'lens', verticalAngle: 0.1 })]);
+        close(stage.answer({ kind: 'lens', at: micros(1) }).value as number, 0.1);
+      });
+
+      it('keeps the sky to the scene and the lens to the camera', async () => {
+        const stage = await loaded();
+        for (const wrong of [
+          cmd(0, 0, { object: cat, kind: 'fog', density: 0.5 }),
+          cmd(0, 0, { object: SCENE, kind: 'translate', by: { x: 1, y: 0, z: 0 }, space: 'scene' }),
+          cmd(0, 0, { object: cat, kind: 'lens', verticalAngle: 0.1 }),
+          cmd(0, 0, { object: SCENE, kind: 'fog', density: 2 }),
+        ])
+          expect(() => stage.schedule([wrong])).toThrow(StageError);
+        expect(stage.objects()).not.toContain(SCENE);
+      });
     });
 
     it('forgets every command on reset, and on load', async () => {

@@ -10,6 +10,7 @@
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera.js';
 import '@babylonjs/core/Culling/ray.js';
 import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine.js';
+import { Frustum } from '@babylonjs/core/Maths/math.frustum.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
@@ -34,20 +35,25 @@ import { resolveBackdrop } from '../backdrops.ts';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
 import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
-import { Timeline, type Touching } from '../timeline.ts';
-import { buildBackdrop } from './backdrop.ts';
+import { Timeline, standInShape, type Touching } from '../timeline.ts';
+import { buildBackdrop, type ShowSky } from './backdrop.ts';
+import { buildFade } from './fade.ts';
 import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
 import { buildStandIn } from './stand-in.ts';
 import { setRotation, type ObjectView } from './view.ts';
 
 /** A camera with no rotation looks along +Z. */
 const CAMERA_TURN: Quat = { x: 0, y: 1, z: 0, w: 0 };
-/** Alice's vertical viewing angle and clipping distances. */
-const FIELD_OF_VIEW = 0.5;
+/** Alice's clipping distances. The viewing angle is the timeline's `lens`. */
 const NEAR = 0.125;
 const FAR = 256;
 
-const radians = (degrees: number) => (degrees * Math.PI) / 180;
+/** A pair being watched for proximity, and the distance that counts as near. */
+interface Near {
+  readonly a: ObjectId;
+  readonly b: ObjectId;
+  readonly distance: number;
+}
 
 /** With no models to find, a scene can still use stand-ins. */
 const NO_MODELS: ModelSource = { find: () => null };
@@ -75,7 +81,13 @@ export class BabylonStage implements Stage {
   private camera: FreeCamera | null = null;
   private views = new Map<ObjectId, ObjectView>();
   private owners = new Map<AbstractMesh, ObjectId>();
+  private showSky: ShowSky | null = null;
+  private showFade: ((amount: number) => void) | null = null;
+  private watches: readonly Watch[] = [];
+  /** What was true at the last check, so that events fire on a change. */
   private touchingPairs = new Map<string, readonly [ObjectId, ObjectId]>();
+  private nearPairs = new Map<string, Near>();
+  private inView = new Set<ObjectId>();
   private drawing: (() => void) | null = null;
 
   constructor(engine: AbstractEngine, { models = NO_MODELS }: BabylonStageParts = {}) {
@@ -89,20 +101,21 @@ export class BabylonStage implements Stage {
     scene.useRightHandedSystem = true;
     const library = new ModelLibrary(scene, this.models);
     try {
-      buildBackdrop(scene, backdrop);
+      const showSky = buildBackdrop(scene, backdrop);
       const camera = new FreeCamera('camera', Vector3.Zero(), scene);
-      const fieldOfView = setup.camera.fieldOfViewDegrees;
-      camera.fov = fieldOfView === undefined ? FIELD_OF_VIEW : radians(fieldOfView);
       camera.minZ = NEAR;
       camera.maxZ = FAR;
       const placed = await Promise.all(setup.objects.map((o) => place(o, library, scene)));
       const objects = new Map(setup.objects.map((o, i) => [o.id, placed[i]!]));
-      this.timeline.load(setup, (o) => objects.get(o.id)!.joints);
+      this.timeline.load(setup, (o) => objects.get(o.id)!.shape);
       this.library?.dispose();
       this.scene?.dispose();
       this.scene = scene;
       this.library = library;
       this.camera = camera;
+      this.showSky = showSky;
+      this.showFade = buildFade(scene, camera);
+      this.watches = [];
       this.views = new Map([...objects].map(([id, { view }]) => [id, view]));
       this.owners = new Map(
         [...this.views].flatMap(([id, view]) => view.meshes.map((m) => [m, id] as const)),
@@ -113,7 +126,7 @@ export class BabylonStage implements Stage {
       throw e;
     }
     this.show();
-    this.noticeTouching(false);
+    this.notice(false);
     await scene.whenReadyAsync();
   }
 
@@ -133,15 +146,15 @@ export class BabylonStage implements Stage {
   reset(): void {
     this.timeline.reset();
     this.show();
-    this.noticeTouching(false);
+    this.notice(false);
   }
 
-  /** Only time going forward can start a collision: rewinding fires nothing. */
+  /** Only time going forward fires events: rewinding fires nothing. */
   seek(t: Micros): void {
     const forward = t >= this.timeline.time();
     this.timeline.seek(t);
     this.show();
-    this.noticeTouching(forward);
+    this.notice(forward);
   }
 
   time(): Micros {
@@ -163,7 +176,7 @@ export class BabylonStage implements Stage {
   onEvent(listener: (event: StageEvent) => void): () => void {
     this.listeners.add(listener);
     // Nothing keeps track of who's touching while nobody is listening.
-    if (this.listeners.size === 1) this.noticeTouching(false);
+    if (this.listeners.size === 1) this.notice(false);
     return () => this.listeners.delete(listener);
   }
 
@@ -178,12 +191,28 @@ export class BabylonStage implements Stage {
     this.fire({ kind: 'click', object, x: across, y: up, at: this.time() });
   }
 
-  /** Proximity and view events come with WP4b's stage work; until then nothing is watched. */
-  watch(_watches: readonly Watch[]): void {}
+  watch(watches: readonly Watch[]): void {
+    const objects = new Set(this.objects());
+    for (const watch of watches) {
+      const ids = watch.kind === 'view' ? watch.objects : [...watch.a, ...watch.b];
+      const missing = ids.find((id) => !objects.has(id));
+      if (missing !== undefined)
+        throw new StageError('unknown_object', `There is nothing called ${missing} in this scene.`);
+      if (watch.kind === 'proximity' && !(watch.distance >= 0))
+        throw new StageError('bad_argument', 'A distance is zero or more metres.');
+    }
+    this.watches = structuredClone(watches);
+    this.notice(false);
+  }
 
   /** A key press, by its Story API name. */
   key(key: string): void {
     this.fire({ kind: 'key', key, at: this.time() });
+  }
+
+  /** A key let go, by its Story API name. */
+  keyRelease(key: string): void {
+    this.fire({ kind: 'keyRelease', key, at: this.time() });
   }
 
   /**
@@ -248,33 +277,86 @@ export class BabylonStage implements Stage {
     for (const listener of [...this.listeners]) listener(event);
   }
 
-  /** Brings the list of who's touching up to date, firing for any new pair if `announce`. */
-  private noticeTouching(announce: boolean): void {
+  /**
+   * Brings what's touching, near and in view up to date. With `announce`, fires an event for
+   * each change; without, only remembers, so nothing fires for what was already so.
+   */
+  private notice(announce: boolean): void {
     if (this.listeners.size === 0) return;
-    const placed = [...this.views].map(([id, view]) => ({
-      id,
-      hull: hullOf(view.box, this.timeline.transform(id)),
-    }));
-    const now = new Map<string, readonly [ObjectId, ObjectId]>();
-    placed.forEach((a, i) => {
-      for (const b of placed.slice(i + 1))
-        if (within(a.hull, b.hull)) now.set(`${a.id}\n${b.id}`, [a.id, b.id]);
+    const at = this.time();
+    const hulls = new Map(
+      [...this.views].map(([id, view]) => [id, hullOf(view.box, this.timeline.transform(id))]),
+    );
+    const ids = [...hulls.keys()];
+    const touching = new Map<string, readonly [ObjectId, ObjectId]>();
+    ids.forEach((a, i) => {
+      for (const b of ids.slice(i + 1))
+        if (within(hulls.get(a)!, hulls.get(b)!)) touching.set(`${a}\n${b}`, [a, b]);
     });
-    if (announce)
-      for (const [pair, [a, b]] of now)
-        if (!this.touchingPairs.has(pair))
-          this.fire({ kind: 'collisionStart', a, b, at: this.time() });
-    this.touchingPairs = now;
+    const near = new Map<string, Near>();
+    this.watches.forEach((watch, n) => {
+      if (watch.kind !== 'proximity') return;
+      for (const a of watch.a)
+        for (const b of watch.b) {
+          const ha = hulls.get(a);
+          const hb = hulls.get(b);
+          if (a !== b && ha && hb && within(ha, hb, watch.distance))
+            near.set(`${n}\n${a}\n${b}`, { a, b, distance: watch.distance });
+        }
+    });
+    const seen = this.visible(
+      new Set(this.watches.flatMap((w) => (w.kind === 'view' ? w.objects : []))),
+    );
+    if (announce) {
+      for (const [pair, [a, b]] of touching)
+        if (!this.touchingPairs.has(pair)) this.fire({ kind: 'collisionStart', a, b, at });
+      for (const [pair, [a, b]] of this.touchingPairs)
+        if (!touching.has(pair)) this.fire({ kind: 'collisionEnd', a, b, at });
+      for (const [pair, p] of near)
+        if (!this.nearPairs.has(pair)) this.fire({ kind: 'proximityEnter', ...p, at });
+      for (const [pair, p] of this.nearPairs)
+        if (!near.has(pair)) this.fire({ kind: 'proximityExit', ...p, at });
+      for (const object of seen)
+        if (!this.inView.has(object)) this.fire({ kind: 'viewEnter', object, at });
+      for (const object of this.inView)
+        if (!seen.has(object)) this.fire({ kind: 'viewExit', object, at });
+    }
+    this.touchingPairs = touching;
+    this.nearPairs = near;
+    this.inView = seen;
+  }
+
+  /** Which of these objects the camera can see any part of. Faded away is out of sight. */
+  private visible(objects: ReadonlySet<ObjectId>): Set<ObjectId> {
+    const out = new Set<ObjectId>();
+    if (!this.camera || objects.size === 0) return out;
+    this.camera.computeWorldMatrix();
+    const planes = Frustum.GetPlanes(
+      this.camera.getViewMatrix(true).multiply(this.camera.getProjectionMatrix(true)),
+    );
+    for (const id of objects) {
+      const meshes = this.views.get(id)?.meshes ?? [];
+      const showing = (m: AbstractMesh) => {
+        if (!m.isEnabled() || m.visibility <= 0) return false;
+        m.computeWorldMatrix(true);
+        return m.isInFrustum(planes);
+      };
+      if (meshes.some(showing)) out.add(id);
+    }
+    return out;
   }
 
   /** Copies the timeline's state onto the scene. */
   private show(): void {
     const state = this.timeline.current();
     for (const [id, view] of this.views) view.show(state.get(id)!, this.timeline.transform(id));
+    this.showSky?.(this.timeline.sky());
+    this.showFade?.(this.timeline.fade());
     if (this.camera) {
       const { position, rotation } = this.timeline.transform(CAMERA);
       this.camera.position.set(position.x, position.y, position.z);
       setRotation(this.camera, mul(rotation, CAMERA_TURN));
+      this.camera.fov = this.timeline.lens() * 2 * Math.PI;
     }
   }
 }
@@ -289,6 +371,6 @@ function place(
   const skeleton = skeletonOf(object.class);
   return {
     view: buildStandIn(object.id, object.model.standIn, scene),
-    joints: skeleton ? jointsOf(skeleton).map((d) => d.id) : [],
+    shape: standInShape(skeleton ? jointsOf(skeleton).map((d) => d.id) : []),
   };
 }
