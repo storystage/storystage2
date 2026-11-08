@@ -16,6 +16,7 @@ import {
   type PupilFolder,
   type PupilId,
 } from './files.ts';
+import { storedClassBackstage } from './class-backstage.ts';
 import { checkPath, isSafePart, type FileStore, type StorePath } from './store.ts';
 
 const NAME_LIMIT = 80;
@@ -53,6 +54,8 @@ export interface StoredClassFoldersOptions {
   readonly limit?: number;
   /** Random letters and digits for ids and file names. Replaced in tests only. */
   readonly random?: () => string;
+  /** Stands in for `CLASS_BACKSTAGE_LIMIT`, so a test can reach it. */
+  readonly classLimit?: number;
 }
 
 const encoder = new TextEncoder();
@@ -226,6 +229,16 @@ export function storedClassFolders(
     }
   };
 
+  const backstage = storedClassBackstage({
+    store,
+    queue,
+    clock,
+    random,
+    limit,
+    classLimit: options.classLimit,
+    hasPupil: async (id) => (await readClass()).some((pupil) => pupil.id === id),
+  });
+
   const folderFor = (pupil: Pupil): PupilFolder => {
     const write = async (
       key: ProductionKey | null,
@@ -371,6 +384,7 @@ export function storedClassFolders(
           await store.remove(home('bin', id, key));
           await store.move(folder, home('bin', id, key));
         }
+        await backstage.binOwnedBy(id);
         await writeClass(pupils.filter((each) => each.id !== id));
         await store.remove(checkPath(['pupils', id]));
         if (current?.pupil.id === id) current = null;
@@ -418,5 +432,7 @@ export function storedClassFolders(
     emptyBin() {
       return queue(() => store.remove(['bin']));
     },
+
+    backstage: () => backstage,
   };
 }
