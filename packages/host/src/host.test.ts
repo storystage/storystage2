@@ -15,6 +15,11 @@ const answering =
   };
 
 describe('the Tauri host', () => {
+  it('keeps files for sure, as the native store is never cleared by a browser', async () => {
+    const host = await tauriHost(answering('1.4.2'), native);
+    expect(await host.storagePersistent()).toBe(true);
+  });
+
   it('keeps pupil folders through the native store', async () => {
     const asked: string[] = [];
     const invoke = async (command: string): Promise<unknown> => {

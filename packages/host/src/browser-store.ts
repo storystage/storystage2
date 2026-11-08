@@ -50,19 +50,59 @@ export function originPrivateRoot(): Promise<DirectoryHandleLike> {
   return navigator.storage.getDirectory() as unknown as Promise<DirectoryHandleLike>;
 }
 
-/** `root` is called the first time the store is used, so nothing is touched at start-up. */
+/** The parts of `navigator.storage` used to ask that the site's files are kept. */
+export interface StorageManagerLike {
+  persisted?(): Promise<boolean>;
+  persist?(): Promise<boolean>;
+}
+
+const siteStorage = (): StorageManagerLike | undefined =>
+  (globalThis as { navigator?: { storage?: StorageManagerLike } }).navigator?.storage;
+
+/**
+ * Asks the browser to keep the site's files under storage pressure and after a time unused (S4,
+ * WP8.4). `true` if they're kept; a refusal, a missing API or an error is `false`, and nothing
+ * is shown. Firefox may ask the person; Chromium decides by itself.
+ */
+export async function requestPersistence(
+  storage: StorageManagerLike | undefined = siteStorage(),
+): Promise<boolean> {
+  try {
+    if (!storage?.persist) return false;
+    if (await storage.persisted?.()) return true;
+    return (await storage.persist()) === true;
+  } catch {
+    return false;
+  }
+}
+
+/** The browser store, and whether the browser agreed to keep its files. */
+export interface BrowserStore extends FileStore {
+  /** Asks once, the first time the store is used or this is called, and gives that answer after. */
+  persistent(): Promise<boolean>;
+}
+
+/**
+ * `root` is called the first time the store is used, so nothing is touched at start-up. That's
+ * also when the browser is asked to keep the files, once.
+ */
 export function browserStore(
   root: () => Promise<DirectoryHandleLike> = originPrivateRoot,
-): FileStore {
+  storage: () => StorageManagerLike | undefined = siteStorage,
+): BrowserStore {
+  let asked: Promise<boolean> | null = null;
+  const persistent = () => (asked ??= requestPersistence(storage()));
   let classes: Promise<DirectoryHandleLike> | null = null;
   /** A browser without the storage, or one that refuses it, says `unreadable` and is asked again next time. */
-  const base = () =>
-    (classes ??= root()
+  const base = () => {
+    void persistent();
+    return (classes ??= root()
       .then((handle) => handle.getDirectoryHandle('classes', { create: true }))
       .catch((error: unknown) => {
         classes = null;
         throw asFileError(error);
       }));
+  };
 
   /** The folder holding a path's last part, or `null` if it isn't there and `create` is off. */
   const parentOf = async (path: StorePath, create: boolean) => {
@@ -149,6 +189,7 @@ export function browserStore(
   };
 
   return {
+    persistent,
     read,
     write,
     remove,

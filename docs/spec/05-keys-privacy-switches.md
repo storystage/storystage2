@@ -426,6 +426,8 @@ The rules are written once, in `storedClassFolders` in `packages/host`: backups,
 
 A store does five things, on paths made of **safe parts**: `read`, an atomic `write`, `remove` (a file or a folder), `list` and `move`. A safe part is 1 to 64 characters from `a-z`, `0-9`, `.`, `_` and `-`, starting with a letter or digit. It never ends in a dot, which Windows drops, and is never one of Windows' device names (`con`, `prn`, `aux`, `nul`, `com1` to `com9`, `lpt1` to `lpt9`, with or without an extension). Every path is checked against that before a store touches anything, so no path can leave the store's folder (threat F1).
 
+**In the browser version, the store asks the browser to keep its files** (`navigator.storage.persist()`), once, the first time it's used: otherwise Chromium and Firefox may clear them under storage pressure, and Safari after a time unused. A refusal or a missing API is fine and shows nothing then; `HostInterface.storagePersistent()` gives the answer, so Settings can say "This browser may clear your films if space runs low", and Save a copy is the way to keep them (07-ux §9.2). Firefox may ask the person; Chromium decides by itself. The Tauri apps' answer is always `true`.
+
 The Tauri apps use the native store, not the browser's. WebKit deletes script-written storage in Safari after a period without use (the board review's OPS4), and whether that ever reaches an app's own webview on iPad isn't something pupils' work should depend on. The rule for safe parts is the same on both sides: `apps/desktop/src-tauri/classes/fixtures/parts.json` is tested from each.
 
 ### 6.2 What's on disk

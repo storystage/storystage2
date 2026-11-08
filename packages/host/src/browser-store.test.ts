@@ -129,3 +129,58 @@ describe('the browser store', () => {
     }
   });
 });
+
+describe('asking the browser to keep the files (S4, WP8.4)', () => {
+  /** A stand-in for `navigator.storage`, recording how often it was asked. */
+  const storage = (answer: boolean | 'throws', already = false) => {
+    const asked = { persist: 0 };
+    return {
+      asked,
+      manager: {
+        persisted: async () => already,
+        persist: async () => {
+          asked.persist += 1;
+          if (answer === 'throws') throw new Error('not allowed');
+          return answer;
+        },
+      },
+    };
+  };
+
+  it('asks once, the first time the store is used', async () => {
+    const { asked, manager } = storage(true);
+    const store = browserStore(
+      async () => fakeDirectory(),
+      () => manager,
+    );
+    expect(asked.persist).toBe(0);
+    await store.read(['class.json']);
+    await store.read(['class.json']);
+    expect(asked.persist).toBe(1);
+    expect(await store.persistent()).toBe(true);
+    expect(asked.persist).toBe(1);
+  });
+
+  it('doesn’t ask again when the files are already kept', async () => {
+    const { asked, manager } = storage(false, true);
+    expect(
+      await browserStore(
+        async () => fakeDirectory(),
+        () => manager,
+      ).persistent(),
+    ).toBe(true);
+    expect(asked.persist).toBe(0);
+  });
+
+  it('takes a refusal, an error or no API as not kept, and the store still works', async () => {
+    for (const manager of [storage(false).manager, storage('throws').manager, {}, undefined]) {
+      const store = browserStore(
+        async () => fakeDirectory(),
+        () => manager,
+      );
+      await store.write(['class.json'], new TextEncoder().encode('{}'));
+      expect(await store.read(['class.json'])).not.toBeNull();
+      expect(await store.persistent()).toBe(false);
+    }
+  });
+});
