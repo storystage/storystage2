@@ -153,6 +153,30 @@ Every model is reduced to a budget, and every scene is checked against one, so a
 5. **VRM files are measured, not reduced,** because they are kept byte for byte (section 1). The build report flags any over budget.
 6. **A scene over budget gets a plain-words warning** for the learner (`checkScene`): "This scene may be slow on a school Chromebook: it has a lot of detail. Try fewer models, or simpler ones." Nothing is refused.
 
+## 4a. The Prompter's catalogue
+
+The Backstage catalogue in the Prompter's system prompt (workplan 13.3; spec 04, section 2.1). The code is `packages/backstage/src/catalogue.ts`; the Prompter passes its text as `SystemCatalogs.backstage` (`packages/prompter`).
+
+```text
+Joint sets
+  J1: hips, spine, chest, head, leftUpperArm, ...
+
+Cast
+  Biped
+    makehuman/Biped/p01: Alfie, a boy of 6 with short brown hair, in a blue shirt and jeans [everyday, children] 1 m, joints J2
+Props
+  Prop
+    kaykit/Prop/mug: Mug [fantasy, food] 0.55 m, no joints
+```
+
+### Rules
+
+1. **Shipped models only.** Imported models are a class's, named and described by learners and teachers, so they go in the user turn as data (spec 04, section 2.1), never among the instructions.
+2. **Each line gives what Claude needs to choose and use a model:** its id exactly as `add_model` takes it, its name and description, its themes, its height at scale 1, and its joints. Licences, credits, files and budgets are left out.
+3. **Joint sets are listed once** and each model names its set, because models of one class differ (a KayKit character has 18 joints, a MakeHuman person 52). Claude uses only the joints in a model's set; a model with none can move and turn, but not walk or gesture.
+4. **The same manifest always gives the same text,** whatever order it lists its items in, sorted in code-point order rather than the machine's locale. The native layer pins the system prompt's hash for a release (spec 04, section 1.8), so the catalogue a release ships is fixed with it.
+5. **It fits 12,000 tokens,** counted at three characters a token (spec 04, section 2.1). The build (`tools/backstage-sources`) stops before writing anything if it doesn't, writes the text to `prompter-catalogue.txt` for the reviewer, and puts its size in the build report. The 50 models shipped on 8 Nov 2026 take about 2,800.
+
 ## 5. The import pipeline
 
 _To be written._
@@ -226,6 +250,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 4.2–4.4: reduction to the budget keeping shape; skinned characters keep joints and weights; within budget left alone; textures shrunk to WebP with the encoder given, reported as not fitting without one; unused data dropped | `packages/backstage/src/optimize.test.ts` | Unit (Vitest) |
 | 4.1–4.5: the build reduces a 40,000-triangle, 2,048 px model to a prop's budget with real sharp, records before and after, and reports it; a solid-colour texture becomes a plain colour; sharp's WebP shrinks to fit without enlarging, keeping see-through parts | `tools/backstage-sources/src/reduce.test.ts`, `sharp-encoder.test.ts` | Unit (Vitest) |
 | 4.4: sharp is not among the app's dependencies | `pnpm licences` (CI): sharp's libvips is LGPL, so it would fail as linked | CI |
+| 4a.1–4a.4: shipped models only, by section and class with exact ids; joint sets listed once; every section named; the same text whatever the order; three characters a token; 200 described people fit | `packages/backstage/src/catalogue.test.ts` | Unit (Vitest) |
+| 1.5, 4a.5: descriptions are one line, at most 120 characters, with no skin colour or ancestry words, in source lists and `people.json`; the build writes them, `prompter-catalogue.txt` and its size | `packages/backstage/src/catalogue.test.ts`, `tools/backstage-sources/src/sources.test.ts`, `tools/makehuman-export/src/people.test.ts` | Unit (Vitest) |
 | 4: models within budget run at 30 fps on the reference Chromebook | Device run of spike 1.2 (#6), which also replaces the provisional figures | Device |
 | 7.2–7.3: facings and their directions; a cube with no inner lines from the front and one fold at three-quarters; hidden lines; holes in the white shape; mirrored back; same SVG every time | `packages/sketches/src/render.test.ts` | Unit (Vitest) |
 | 7.3: see-through cards drawn as one shape; short inner lines left out; cards read from glTF, unless the whole model is see-through | `packages/sketches/src/render.test.ts`, `gltf.test.ts` | Unit (Vitest) |

@@ -2,6 +2,7 @@
   {
     "id": "p01",
     "name": "Alfie",
+    "description": "a boy of 6 with short brown hair, in a blue shirt and jeans",
     "ageYears": 6,
     "gender": 0.7,
     "build": {
@@ -24,6 +25,7 @@
   {
     "id": "p02",
     "name": "Amara",
+    "description": "a girl of 7 with short curly black hair, in a yellow T-shirt and jeans",
     "ageYears": 7,
     "gender": 0.3,
     "build": {
@@ -47,6 +49,7 @@
   {
     "id": "p03",
     "name": "Kai",
+    "description": "a child of 8 with a brown side fringe, in a teal T-shirt and jeans",
     "ageYears": 8,
     "gender": 0.5,
     "build": {
@@ -70,6 +73,7 @@
   {
     "id": "p04",
     "name": "Aisha",
+    "description": "a girl of 9 with short black hair, in a purple striped shirt and jeans",
     "ageYears": 9,
     "gender": 0.3,
     "build": {
@@ -93,6 +97,7 @@
   {
     "id": "p05",
     "name": "Rhys",
+    "description": "a boy of 10 with short dark hair, in a dark red striped shirt and jeans",
     "ageYears": 10,
     "gender": 0.7,
     "build": {
@@ -115,6 +120,7 @@
   {
     "id": "p06",
     "name": "Niamh",
+    "description": "a tall girl of 11 with short light brown hair, in a green T-shirt and jeans",
     "ageYears": 11,
     "gender": 0.3,
     "build": {
@@ -138,6 +144,7 @@
   {
     "id": "p07",
     "name": "Zain",
+    "description": "a boy of 12 with short black hair, in a teal jacket and jeans",
     "ageYears": 12,
     "gender": 0.7,
     "build": {
@@ -161,6 +168,7 @@
   {
     "id": "p08",
     "name": "Mei",
+    "description": "a girl of 6 with a black bob and a long fringe, in a coral T-shirt and jeans",
     "ageYears": 6,
     "gender": 0.3,
     "build": {
@@ -184,6 +192,7 @@
   {
     "id": "p09",
     "name": "Kofi",
+    "description": "a boy of 11 with short black hair, in a khaki jacket and jeans",
     "ageYears": 11,
     "gender": 0.7,
     "build": {
@@ -206,6 +215,7 @@
   {
     "id": "p10",
     "name": "Isla",
+    "description": "a girl of 9 with long brown hair, in a green striped shirt and jeans",
     "ageYears": 9,
     "gender": 0.3,
     "build": {
@@ -229,6 +239,7 @@
   {
     "id": "p11",
     "name": "Jayden",
+    "description": "a tall boy of 14 with short brown hair, in a white T-shirt and jeans",
     "ageYears": 14,
     "gender": 0.75,
     "build": {
@@ -251,6 +262,7 @@
   {
     "id": "p12",
     "name": "Priya",
+    "description": "a girl of 15 with long brown hair, in a purple jacket and jeans",
     "ageYears": 15,
     "gender": 0.25,
     "build": {
@@ -274,6 +286,7 @@
   {
     "id": "p13",
     "name": "Oskar",
+    "description": "a boy of 13 with short dark hair, in a blue shirt and grey jeans",
     "ageYears": 13,
     "gender": 0.7,
     "build": {
@@ -296,6 +309,7 @@
   {
     "id": "p14",
     "name": "Leah",
+    "description": "a girl of 16 with short brown hair, in an orange T-shirt and jeans",
     "ageYears": 16,
     "gender": 0.25,
     "build": {
@@ -319,6 +333,7 @@
   {
     "id": "p15",
     "name": "Hamza",
+    "description": "a boy of 17 with short brown hair, in an orange jacket and jeans",
     "ageYears": 17,
     "gender": 0.8,
     "build": {
@@ -342,6 +357,7 @@
   {
     "id": "p16",
     "name": "Sam",
+    "description": "a teenager of 15 with short black hair, in a yellow striped shirt and jeans",
     "ageYears": 15,
     "gender": 0.5,
     "build": {
@@ -365,6 +381,7 @@
   {
     "id": "p17",
     "name": "Grace",
+    "description": "a woman of 28 with short curly black hair, in a striped blouse, grey skirt and white socks",
     "ageYears": 28,
     "gender": 0.15,
     "build": {
@@ -387,6 +404,7 @@
   {
     "id": "p18",
     "name": "Tom",
+    "description": "a tall man of 32 with short brown hair, in blue dungarees and a white T-shirt",
     "ageYears": 32,
     "gender": 0.85,
     "build": {
@@ -409,6 +427,7 @@
   {
     "id": "p19",
     "name": "Yusuf",
+    "description": "a man of 40 with short black hair, in a dark suit and striped tie",
     "ageYears": 40,
     "gender": 0.85,
     "build": {
@@ -431,6 +450,7 @@
   {
     "id": "p20",
     "name": "Hannah",
+    "description": "a woman of 36 with a black bob, in a teal striped shirt and jeans",
     "ageYears": 36,
     "gender": 0.15,
     "build": {
@@ -454,6 +474,7 @@
   {
     "id": "p21",
     "name": "Chen",
+    "description": "a man of 45 with a brown side fringe, in a green striped shirt and jeans",
     "ageYears": 45,
     "gender": 0.85,
     "build": {
@@ -477,6 +498,7 @@
   {
     "id": "p22",
     "name": "Tunde",
+    "description": "a bald man of 50, in a khaki jacket and jeans",
     "ageYears": 50,
     "gender": 0.85,
     "build": {
@@ -499,6 +521,7 @@
   {
     "id": "p23",
     "name": "Fatima",
+    "description": "a woman of 30 with a short black bob, in a purple striped blouse and purple skirt",
     "ageYears": 30,
     "gender": 0.15,
     "build": {
@@ -522,6 +545,7 @@
   {
     "id": "p24",
     "name": "Morgan",
+    "description": "an adult of 26 with short dark hair, in a white T-shirt and jeans",
     "ageYears": 26,
     "gender": 0.5,
     "build": {
@@ -544,6 +568,7 @@
   {
     "id": "p25",
     "name": "Siân",
+    "description": "a woman of 55 with a silver-blonde bob, in a dark red striped blouse and grey skirt",
     "ageYears": 55,
     "gender": 0.15,
     "build": {
@@ -566,6 +591,7 @@
   {
     "id": "p26",
     "name": "Margaret",
+    "description": "an older woman of 72 with a grey bob, in a pink striped blouse and pink skirt",
     "ageYears": 72,
     "gender": 0.15,
     "build": {
@@ -590,6 +616,7 @@
   {
     "id": "p27",
     "name": "Winston",
+    "description": "an older man of 78 in a grey hat, dark suit and striped tie",
     "ageYears": 78,
     "gender": 0.85,
     "build": {
@@ -613,6 +640,7 @@
   {
     "id": "p28",
     "name": "Lin",
+    "description": "an older woman of 68 with a grey bob, in a teal striped blouse and teal skirt",
     "ageYears": 68,
     "gender": 0.15,
     "build": {
@@ -637,6 +665,7 @@
   {
     "id": "p29",
     "name": "Ravi",
+    "description": "an older man of 70 with short grey hair, in an orange striped shirt and jeans",
     "ageYears": 70,
     "gender": 0.85,
     "build": {
@@ -661,6 +690,7 @@
   {
     "id": "p30",
     "name": "Eileen",
+    "description": "an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt",
     "ageYears": 85,
     "gender": 0.15,
     "build": {

@@ -5,7 +5,8 @@
  * map its skeleton onto the joint map (WP3.3), using a VRM's own bone table where it has one;
  * and write its `backstage.json` item with the licence, credit line and source from the list.
  * Then draw every item's sketches (`@storystage/make-sketches`, WP10.5), and write
- * `provenance.json` (what was fetched, with SHA-256s) and `sources-report.md` for the reviewer.
+ * `provenance.json` (what was fetched, with SHA-256s), `prompter-catalogue.txt` (the Prompter's
+ * catalogue, WP3c) and `sources-report.md` for the reviewer.
  *
  * Every glTF model is reduced to its section's device budget on the way in (WP3.9,
  * `@storystage/backstage/optimize`), its textures shrunk to WebP with sharp. VRM files are kept
@@ -19,8 +20,11 @@ import { dirname, join } from 'node:path';
 import { WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import {
+  CATALOGUE_TOKEN_BUDGET,
   MANIFEST_VERSION,
   budgetFor,
+  catalogueText,
+  catalogueTokens,
   mapSkeleton,
   skeletonOf,
   validateManifest,
@@ -65,6 +69,8 @@ export interface BuildReport {
   readonly items: number;
   readonly sketches: MakeReport;
   readonly provenance: Readonly<Record<string, Provenance>>;
+  /** The Prompter catalogue's estimated size (`prompter-catalogue.txt`). */
+  readonly catalogueTokens: number;
 }
 
 export async function buildSources(
@@ -143,6 +149,7 @@ export async function buildSources(
       class: item.class,
       displayName: item.displayName,
       themes: item.themes,
+      ...(item.description ? { description: item.description } : {}),
       files: { model, thumbnail: `sketches/${item.id}/front.svg` },
       ...(vrm ? { vrm } : {}),
       joints:
@@ -179,15 +186,27 @@ export async function buildSources(
   const checked = validateManifest(manifest);
   if (!checked.ok)
     throw new Error(`The built manifest is not valid:\n${checked.errors.join('\n')}`);
+  // The Prompter's catalogue (spec 17, section 4a), written out so the reviewer reads exactly
+  // what Claude will. The build stops before writing anything if it is over its budget.
+  const catalogue = catalogueText(manifest);
+  const tokens = catalogueTokens(catalogue);
+  if (tokens > CATALOGUE_TOKEN_BUDGET)
+    throw new Error(
+      `The Prompter's catalogue would be about ${tokens} tokens, over its budget of ${CATALOGUE_TOKEN_BUDGET} (spec 04, section 2.1). Shorten descriptions or themes, or raise it with the owner.`,
+    );
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  await writeFile(join(dir, 'prompter-catalogue.txt'), catalogue);
   const ordered = Object.fromEntries(
     Object.entries(provenance).sort(([a], [b]) => a.localeCompare(b, 'en')),
   );
   await writeFile(provenancePath, `${JSON.stringify(ordered, null, 2)}\n`);
 
   const sketches = await makeSketches(dir);
-  await writeFile(join(dir, 'sources-report.md'), report(sketches.manifest.items, ordered, built));
-  return { items: built.size, sketches, provenance: ordered };
+  await writeFile(
+    join(dir, 'sources-report.md'),
+    report(sketches.manifest.items, ordered, built, tokens),
+  );
+  return { items: built.size, sketches, provenance: ordered, catalogueTokens: tokens };
 }
 
 const removedText = (p: Provenance) =>
@@ -217,6 +236,7 @@ function report(
   items: readonly BackstageItem[],
   provenance: Readonly<Record<string, Provenance>>,
   built: ReadonlyMap<string, BackstageItem>,
+  tokens: number,
 ): string {
   const rows = items
     .filter((i) => built.has(i.id))
@@ -234,6 +254,8 @@ function report(
     ...rows,
     '',
     "Triangles and textures show fetched → shipped where the build reduced them to the section's budget (`ITEM_BUDGETS`, provisional until the reference devices have run). VRM files are kept byte for byte, so they aren't reduced. VRM 0.x avatars face -Z and must be turned by the stage's loader.",
+    '',
+    `**Prompter catalogue:** about ${tokens.toLocaleString('en-GB')} of ${CATALOGUE_TOKEN_BUDGET.toLocaleString('en-GB')} tokens. \`prompter-catalogue.txt\` is exactly what Claude reads; check its descriptions with the sketches.`,
     '',
   ].join('\n');
 }
