@@ -16,6 +16,7 @@ import {
   type EditorCommand,
   type EditorHost,
   type HighlightKind,
+  type HighlightMark,
   type ViewState,
 } from '@storystage/editor-contract';
 import { defineBlocks } from './definitions.ts';
@@ -254,7 +255,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       rebuild();
     },
 
-    highlight(nodes: readonly NodeId[], kind: HighlightKind) {
+    highlight(marks: readonly HighlightMark[], kind: HighlightKind) {
+      const nodes = marks.map((m) => m.node);
       highlights.set(kind, nodes);
       paint(kind, nodes);
     },

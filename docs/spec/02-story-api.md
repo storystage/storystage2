@@ -201,7 +201,7 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | `Key` | a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, digit0, digit1, digit2, digit3, digit4, digit5, digit6, digit7, digit8, digit9, left, right, up, down, space, enter, tab, backSpace, escape, shift, control, alt, comma, period, minus, equals, slash, semicolon, quote | Alice |
 | `ShotType` | wide, medium, closeUp, overTheShoulder, follow, twoShot | StoryStage |
 | `Gesture` | wave, nod, shrug, clap, point | StoryStage |
-| `Expression` | happy, sad, angry, surprised, relaxed, blink | StoryStage |
+| `Expression` | neutral, happy, sad, angry, surprised, relaxed, blink | StoryStage |
 | `SceneEdge` | left, right, back, front | StoryStage |
 | `JointChain` | neck, tail | StoryStage |
 <!-- /catalog:values -->
@@ -290,27 +290,27 @@ Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters ma
 <!-- catalog:added -->
 | Class | Block | Parameters | Details | Task | On screen | Runs |
 | --- | --- | --- | --- | --- | --- | --- |
-| `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `needs:sceneChange` |
-| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `command:fade` |
-| `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `needs:sceneChange` |
+| `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `runtime` |
+| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `runtime` |
+| `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `runtime` |
 | `Camera` | `frameShot` | `shot: ShotType`, `targets: Thing[]` | `duration`, `animationStyle` | 4.10 | frame a {shot} of {targets} | `command:shot` |
 | `Model` | `speakLine` | `text: Text` | — | 4.4 | speak line {text} | `needs:speech` |
-| `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `needs:animation` |
-| `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `needs:character` |
-| `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `needs:character` |
-| `Biped` | `sitOn` | `target: Thing` | — | 4.5 | sit on {target} | `needs:character` |
-| `Biped` | `standUp` | — | — | 4.5 | stand up | `needs:character` |
-| `Biped` | `lieDown` | — | — | 4.5 | lie down | `needs:character` |
-| `Biped` | `fall` | — | — | 4.5 | fall | `needs:character` |
-| `Biped` | `touch` | `target: Thing` | — | 4.5 | touch {target} | `needs:character` |
-| `Biped` | `reachFor` | `target: Thing` | — | 4.5 | reach for {target} | `needs:character` |
-| `Biped` | `pickUp` | `target: Thing` | — | 4.5 | pick up {target} | `needs:character` |
-| `Biped` | `putDown` | `target: Thing` | — | 4.5 | put down {target} | `needs:character` |
-| `Biped` | `enterFrom` | `edge: SceneEdge` | — | 4.5 | enter from {edge} | `needs:character` |
-| `Biped` | `exitTo` | `edge: SceneEdge` | — | 4.5 | exit to {edge} | `needs:character` |
-| `Biped` | `gesture` | `gesture: Gesture` | — | 4.6 | gesture {gesture} | `needs:animation` |
-| `Biped` | `showExpression` | `expression: Expression` | — | 4.6 | look {expression} | `needs:animation` |
-| `Biped` | `lookAt` | `target: Thing` | — | 4.6 | look at {target} | `needs:animation` |
+| `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `command:clip` |
+| `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `command:walk` |
+| `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `command:walk` |
+| `Biped` | `sitOn` | `target: Thing` | — | 4.5 | sit on {target} | `command:posture` |
+| `Biped` | `standUp` | — | — | 4.5 | stand up | `command:posture` |
+| `Biped` | `lieDown` | — | — | 4.5 | lie down | `command:posture` |
+| `Biped` | `fall` | — | — | 4.5 | fall | `command:posture` |
+| `Biped` | `touch` | `target: Thing` | — | 4.5 | touch {target} | `command:reach` |
+| `Biped` | `reachFor` | `target: Thing` | — | 4.5 | reach for {target} | `command:reach` |
+| `Biped` | `pickUp` | `target: Thing` | — | 4.5 | pick up {target} | `command:pickUp` |
+| `Biped` | `putDown` | `target: Thing` | — | 4.5 | put down {target} | `command:putDown` |
+| `Biped` | `enterFrom` | `edge: SceneEdge` | — | 4.5 | enter from {edge} | `command:enter` |
+| `Biped` | `exitTo` | `edge: SceneEdge` | — | 4.5 | exit to {edge} | `command:walk` |
+| `Biped` | `gesture` | `gesture: Gesture` | — | 4.6 | gesture {gesture} | `command:gesture` |
+| `Biped` | `showExpression` | `expression: Expression` | — | 4.6 | look {expression} | `command:expression` |
+| `Biped` | `lookAt` | `target: Thing` | — | 4.6 | look at {target} | `command:lookAt` |
 <!-- /catalog:added -->
 
 1. **Alice's hidden blocks return.** `walkTo`, `touch` and `reachFor` exist in Alice, hidden and unfinished, and aren't on her palette. They're added here as new blocks, so they aren't listed as Alice's.
@@ -344,7 +344,7 @@ The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Oc
 
 ## 9. What the stage contract needs
 
-Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). The contract also has 4.5's character actions and 4.6's faces, which the blocks move to as the stage runs them (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
+Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So are 4.5's character actions and 4.6's faces (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. 4.4's scene changes, `goToScene`, `crossfade` and `fadeToBlack`, run in the runtime (rule 8).
 
 1. **Not the stage's sums.** `isVolumePreserved` is the Story API's: it sends `resize` the factors that keep the volume. The `ask` functions belong to the runtime.
 2. **Click positions** are fractions of the picture, from its left and bottom edges, as Alice's `getScreenDistanceFromLeft` and `getScreenDistanceFromBottom` are. Viewing angles are in turns, as Alice's are.
@@ -352,16 +352,15 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 4. **Actions take their own time.** A character action has no `duration` detail. The block asks the stage `naturalDuration` (a walk by the length of its way, a clip by its length on that model), sends the command with that duration, and waits for it.
 5. **Walking goes round things** where they are when the walk starts, with a navigation mesh (WP5.8). Walking to a thing stops in front of it, facing it; walking to an edge ends out of the picture, as the camera sees it when the walk starts.
 6. **Faces are the model's own.** `expression` uses a VRM model's presets (VRM 0.x and 1.0). A model without that face shows no change, by the owner's decision of 8 Nov 2026.
+7. **Joints in a program** are values of their own, `{kind: 'joint', object, joint}`, the same in the Story API's `Value` and the runtime's. `getJoint` makes one from the object it's called on; `getJointChain` asks the stage `jointChain` for the model's joints in that chain, from the root out. On a joint, `turn`, `roll` and `pointAt` send the stage's `joint` command, in the joint's own axes, and anything that takes a target takes a joint; any other block given a joint is a `bad_value` fault (decision 0051: joints turn only).
+8. **A scene change ends the scene.** `goToScene(scene)` ends this scene and goes to the scene you choose; the film carries on from there. `crossfade(scene)` ends this scene and crossfades into the scene you choose. `fadeToBlack` fades to black and ends the scene; the next scene fades in. A transition's `duration` is the whole of it: a 1 s fade is half a second out, then half a second in. The runtime stops every strand at once (spec 18, 3.1), and the production's player makes the transition (spec 03, 3.1), which the stage draws: a fade to black with its `fade` command, and a crossfade with `load`'s `crossfade` option, the old scene fading out over the new one (`Stage.load`, WP8.3). A scene id is text, so `checkProgram` asks the production with `sceneExists` and names a scene that's gone.
 
 <!-- catalog:stage -->
 | Need | What it asks for | Blocks |
 | --- | --- | --- |
 | `audio` | Play a sound at a scene time, for the export to mix (with WP11) | `playAudio` |
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
-| `sceneChange` | Going to another scene, and crossfading to one: the production’s playback (WP8.3) | `goToScene`, `crossfade` |
 | `speech` | Speak a line with visemes (WP14) | `speakLine` |
-| `character` | Navigation, posture and hand contact (WP5b) | `walkTo`, `runTo`, `sitOn`, `standUp`, `lieDown`, `fall`, `touch`, `reachFor`, `pickUp`, `putDown`, `enterFrom`, `exitTo` |
-| `animation` | Clips, gestures, expressions and head turning (WP5b) | `playAnimation`, `gesture`, `showExpression`, `lookAt` |
 <!-- /catalog:stage -->
 
 ## 9a. The program check

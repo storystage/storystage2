@@ -36,7 +36,20 @@ import {
 import { ROOM, resolveBackdrop, type Colour } from './backdrops.ts';
 import type { Speech } from './contract.ts';
 import type { Box } from './hull.ts';
-import type { NavigationArea } from './navigation.ts';
+import type { Navigation, NavigationArea, NavigationMaker } from './navigation.ts';
+import {
+  applyAction,
+  bodyPose,
+  isAction,
+  naturalLength,
+  resolveAction,
+  type Action,
+  type BodyState,
+  type Shown,
+  type World,
+} from './actions.ts';
+import { Body } from './humanoid/body.ts';
+import type { HumanLibrary } from './humanoid/library.ts';
 import {
   IDENTITY_Q,
   add,
@@ -66,6 +79,8 @@ export interface Shape {
   readonly box: Box;
   /** Where each joint rests, in the object's own space at scale 1. */
   readonly jointPlaces: ReadonlyMap<JointName, Vec3>;
+  /** The model's own clips, by name, and how long each is in seconds. */
+  readonly clips?: ReadonlyMap<string, number>;
 }
 
 /** A stand-in's block: half a metre square and a metre tall, standing on its origin. */
@@ -113,6 +128,8 @@ export interface ObjectState {
   sky: Sky | null;
   /** `SCENE`'s fade to black, 0 (clear) to 1 (black), once a program fades. */
   fade: number | null;
+  /** What a character's body is doing (WP4c), once an action sets it. */
+  body: BodyState | null;
 }
 
 export type SceneState = ReadonlyMap<ObjectId, ObjectState>;
@@ -151,7 +168,8 @@ type Resolved =
   | { kind: 'lens'; from: number; to: number }
   | { kind: 'skyColour'; part: SkyPart; base: Sky; from: Colour; to: Colour }
   | { kind: 'fog'; base: Sky; from: number; to: number }
-  | { kind: 'fade'; from: number; to: number };
+  | { kind: 'fade'; from: number; to: number }
+  | { kind: 'action'; action: Action };
 
 const ORIGIN: Pose = { position: v(0, 0, 0), rotation: IDENTITY_Q };
 interface Pose {
@@ -173,21 +191,6 @@ const bad = (message: string) => new StageError('bad_argument', message);
 const badPaint = (paint: string) => bad(`There is no paint called ${paint}.`);
 /** For what the contract has and this stage doesn't do yet. */
 const notYet = (what: string) => bad(`The stage can't do ${what} yet.`);
-
-/** The character actions and faces in the contract (WP4c), which this stage doesn't do yet. */
-const ACTIONS_TO_COME = [
-  'walk',
-  'enter',
-  'posture',
-  'reach',
-  'pickUp',
-  'putDown',
-  'clip',
-  'gesture',
-  'expression',
-  'lookAt',
-] as const;
-const toCome = (kind: string): boolean => (ACTIONS_TO_COME as readonly string[]).includes(kind);
 
 /** Where an object is in the scene: its own pose, carried by its vehicles. */
 function scenePose(state: SceneState, id: ObjectId): Pose {
@@ -240,6 +243,63 @@ export class Timeline {
   private resolved = new Map<number, Resolved>();
   private now: Micros = 0;
   private state: SceneState = new Map();
+  /** The shared humanoid clips and walkable areas, once the stage has loaded them (WP4c). */
+  private library: HumanLibrary | null = null;
+  private makeNavigation: NavigationMaker | null = null;
+  private walkable = new Map<string, Navigation | null>();
+  private bodies = new Map<ObjectId, Body | null>();
+  private readonly world: World = this.makeWorld();
+
+  /**
+   * Gives the timeline the shared humanoid clips and a maker of walkable areas, which the stage
+   * loads for a scene with characters in it. Without them a walk goes straight, and nothing is
+   * posed.
+   */
+  useHumanoids(library: HumanLibrary | null, navigation: NavigationMaker | null): void {
+    this.library = library;
+    this.makeNavigation = navigation;
+    this.walkable.clear();
+  }
+
+  /** What a character shows after the last `seek`: its pose, its own clips and its face. */
+  shown(object: ObjectId): Shown {
+    const s = this.need(object);
+    return bodyPose(this.world, this.state, object, s, this.now);
+  }
+
+  private makeWorld(): World {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const timeline = this;
+    return {
+      get library() {
+        return timeline.library;
+      },
+      body: (object) => this.bodies.get(object) ?? null,
+      scale: (state, object) => (state as SceneState).get(object)?.scale ?? v(1, 1, 1),
+      ownClip: (object, clip) => this.shapes.get(object)?.clips?.get(clip) ?? null,
+      pose: (state, object) => scenePose(state as SceneState, object),
+      targetPose: (state, target) => this.targetPose(state as SceneState, target),
+      box: (state, target) => this.subject(state as SceneState, [target]),
+      ownBox: (object) => this.shapes.get(object)?.box ?? null,
+      lens: (state) => (state as SceneState).get(CAMERA)?.lens ?? this.baseLens,
+      navigation: (state) => this.navigationAt(state as SceneState),
+      ground: () => (this.floor ? this.floor.max.y : 0),
+      isObject: (target) => typeof target === 'string' && this.start.has(target),
+    };
+  }
+
+  /** The walkable area round what stays put where it is in `state`, built once for each layout. */
+  private navigationAt(state: SceneState): Navigation | null {
+    if (!this.makeNavigation) return null;
+    const area = this.areaOf(state);
+    const key = area.obstacles
+      .map((b) =>
+        [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z].map((n) => n.toFixed(2)).join(','),
+      )
+      .join(';');
+    if (!this.walkable.has(key)) this.walkable.set(key, this.makeNavigation(area));
+    return this.walkable.get(key)!;
+  }
 
   /** Replaces the scene and forgets every command. Throws if a vehicle can't be right. */
   load(setup: SceneSetup, shapeFor: (object: SceneObjectSetup) => Shape): void {
@@ -247,6 +307,10 @@ export class Timeline {
     this.markers = new Map(setup.markers.map((m) => [m.id, m.transform]));
     this.shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
+    this.bodies = new Map(
+      [...this.shapes].map(([id, shape]) => [id, Body.of(shape.jointPlaces)] as const),
+    );
+    this.walkable.clear();
     this.baseSky = skyOf(setup.backdrop);
     this.floor = isRoom(setup.backdrop) ? ROOM_FLOOR : null;
     const degrees = setup.camera.fieldOfViewDegrees;
@@ -289,11 +353,17 @@ export class Timeline {
    * where it starts, and where everyone stands. Characters move, so they aren't in the way.
    */
   navigationArea(): NavigationArea {
+    return this.areaOf(this.start);
+  }
+
+  /** The same, from where things are in `state`. A thing being carried isn't in the way. */
+  private areaOf(state: SceneState): NavigationArea {
     const obstacles: Box[] = [];
     const include: Vec3[] = [];
     for (const [id, cls] of this.classes) {
-      include.push(scenePose(this.start, id).position);
-      if (!ACTORS.includes(cls)) obstacles.push(this.subject(this.start, [id]));
+      include.push(scenePose(state, id).position);
+      if (!ACTORS.includes(cls) && state.get(id)!.vehicle === null)
+        obstacles.push(this.subject(state, [id]));
     }
     return this.floor ? { obstacles, include, bounds: this.floor } : { obstacles, include };
   }
@@ -391,10 +461,29 @@ export class Timeline {
       }
       case 'lens':
         return { kind: 'lens', value: state.get(CAMERA)!.lens ?? this.baseLens };
-      case 'naturalDuration':
-        // Everything this stage does takes the time it's given.
-        if (toCome(query.action.kind)) throw notYet(`${query.action.kind} at its own pace`);
-        return { kind: 'naturalDuration', value: 0 };
+      case 'jointChain': {
+        // The joint map numbers a chain from its root (`tail`, `tail2`…) and ends a tail at its tip.
+        const joints = this.shapes.get(this.require(state, query.object))?.joints ?? [];
+        const chain = query.chain === 'neck' ? /^neck\d*$/ : /^tail(\d*|Tip)$/;
+        const place = (j: string) =>
+          j.endsWith('Tip') ? Infinity : Number(j.replace(/\D/g, '') || 1);
+        const value = joints.filter((j) => chain.test(j)).sort((a, b) => place(a) - place(b));
+        return { kind: 'jointChain', value };
+      }
+      case 'naturalDuration': {
+        const c = {
+          ...query.action,
+          seq: -1,
+          start: query.at,
+          duration: 0,
+          style: 'beginAndEndGently',
+        } as StageCommand;
+        this.validate(c);
+        if (!isAction(c)) return { kind: 'naturalDuration', value: 0 };
+        const here = scenePose(state, c.object);
+        const seconds = naturalLength(resolveAction(this.world, c, state, here));
+        return { kind: 'naturalDuration', value: Math.round(seconds * 1_000_000) };
+      }
     }
   }
 
@@ -427,7 +516,7 @@ export class Timeline {
       if (c.start > t) break;
       const r = this.resolve(i);
       const p = c.duration === 0 ? 1 : ease(c.style, (t - c.start) / c.duration);
-      apply(state.get(c.object)!, r, p, t, c);
+      apply(state.get(c.object)!, r, p, t, c, state);
     }
     return state;
   }
@@ -566,7 +655,8 @@ export class Timeline {
         case 'fade':
           return { kind: 'fade', from: self.fade ?? 0, to: c.to };
       }
-      throw notYet(c.kind);
+      // Only the character actions are left (WP4c).
+      return { kind: 'action', action: resolveAction(this.world, c, before, here) };
     };
     const r = resolved();
     this.resolved.set(c.seq, r);
@@ -784,7 +874,37 @@ export class Timeline {
     const classIs = (cls: StoryClass, what: string) => {
       if (this.classes.get(c.object) !== cls) throw bad(`Only ${what} has that.`);
     };
-    if (toCome(c.kind)) throw notYet(c.kind);
+    if (isAction(c)) {
+      if (c.object === CAMERA) throw bad("The camera can't do that.");
+      switch (c.kind) {
+        case 'walk':
+          if (typeof c.to !== 'object' || !('edge' in c.to)) this.checkTarget(c.to);
+          break;
+        case 'posture':
+          if (c.on !== undefined) this.checkTarget(c.on);
+          break;
+        case 'reach':
+          this.checkTarget(c.target);
+          break;
+        case 'pickUp':
+        case 'putDown':
+          exists(c.target);
+          if (c.target === c.object || c.target === CAMERA) throw bad("It can't hold that.");
+          break;
+        case 'clip':
+          // The shared clips are humanoid ones; anything else plays only its own.
+          if (
+            !this.shapes.get(c.object)?.clips?.has(c.clip) &&
+            !(this.classes.get(c.object) === 'Biped' && this.library?.has(c.clip))
+          )
+            throw bad(`${c.object} has no clip called ${c.clip}.`);
+          break;
+        case 'lookAt':
+          if (c.target !== null) this.checkTarget(c.target);
+          break;
+      }
+      return;
+    }
     switch (c.kind) {
       case 'translate':
         finite(c.by.x, c.by.y, c.by.z);
@@ -983,6 +1103,7 @@ function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
     lens: null,
     sky: null,
     fade: null,
+    body: null,
   });
   const place = (id: ObjectId, o?: SceneObjectSetup) => {
     if (id === SCENE) throw bad('Nothing in a scene can be called scene.');
@@ -1032,8 +1153,23 @@ function boarding(
 const blendOf = (from: string | null, p: number): Blend | null =>
   p >= 1 ? null : { from, amount: p };
 
-function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageCommand): void {
+function apply(
+  s: ObjectState,
+  r: Resolved,
+  p: number,
+  t: Micros,
+  c: StageCommand,
+  state: ReadonlyMap<ObjectId, ObjectState>,
+): void {
+  // Straightening up also lets go of a reach and a look (WP4c).
+  if (c.kind === 'pose' && s.body && p >= 1) {
+    s.body.reach = null;
+    s.body.look = null;
+  }
   switch (r.kind) {
+    case 'action':
+      applyAction(s, r.action, p, t, c, state);
+      return;
     case 'translate':
       s.position = add(s.position, scale(r.delta, p));
       return;
@@ -1115,6 +1251,24 @@ function sceneTransform(state: SceneState, id: ObjectId): Transform {
  * What only later commands can set is added only once set, so a scene that doesn't use it
  * hashes as it always has.
  */
+/** What a body is doing, for `hashState`. */
+function bodyHash(b: BodyState, n: (x: number) => string): string {
+  const target = (t: Target | Vec3) =>
+    typeof t === 'object' && 'x' in t ? `${n(t.x)},${n(t.y)},${n(t.z)}` : targetName(t);
+  return [
+    b.rest,
+    b.restSince,
+    b.seated ? 'seated' : '',
+    b.layers.map((l) => `${l.clip}@${n(l.time)}x${n(l.weight)}`).join(','),
+    b.reach ? `reach:${target(b.reach.target)}:${b.reach.hand ?? ''}:${n(b.reach.weight)}` : '',
+    b.holding.map((h) => h.object).join(','),
+    b.look ? `look:${targetName(b.look.target)}:${n(b.look.weight)}` : '',
+    b.face ? `face:${b.face.expression}:${n(b.face.amount)}` : '',
+    b.fading ? `fading:${b.fading.expression}:${n(b.fading.amount)}` : '',
+    n(b.blink),
+  ].join('/');
+}
+
 export function hashState(state: SceneState): number {
   const n = (x: number) => (Math.abs(x) < 5e-7 ? 0 : x).toFixed(6);
   const vec = (a: Vec3) => `${n(a.x)},${n(a.y)},${n(a.z)}`;
@@ -1146,6 +1300,7 @@ export function hashState(state: SceneState): number {
         blend(s.backPaintBlend),
         s.text === null ? null : `text:${s.text}`,
         s.lens === null ? null : `lens:${n(s.lens)}`,
+        s.body ? `body:${bodyHash(s.body, n)}` : null,
       ].filter((x) => x !== null);
       return [
         [

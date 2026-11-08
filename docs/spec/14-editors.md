@@ -167,7 +167,7 @@ Enter or a click on a pill opens its cascade (section 2.3), upward if there's no
 
 Through the contract (7.9): Rehearse outlines the running statement (a still outline when the learner has asked for reduced motion); an error marks the statement in the stop colour with the error's words beside it; the Prompter's highlight carries its AI badge. Several kinds can show at once.
 
-**Not yet:** the error's words. `highlight(nodes, kind)` (WP0.8) gives the nodes and not the words, so showing them needs the contract to carry a message for each error node. Until then an error is marked by colour and border.
+The contract's `highlight(marks, kind)` takes each node with its words, `{node, message?}`, so the two can't drift apart. In Tiles an error's words sit beside its statement in a chip of the program's own colour, so the stop colour reads at 4.5:1 on any tile, and they're part of the row's name. Blocks marks the blocks, and showing the words there is S5's (3i).
 
 ### 3h. Performance
 

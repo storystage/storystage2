@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://storystage.org/spec/story-api/0.9/story-api.schema.json",
+  "$id": "https://storystage.org/spec/story-api/0.10/story-api.schema.json",
   "title": "StoryStage Story API catalog",
   "description": "The classes, blocks, details, values and events of the StoryStage Story API, with their words in one language.",
   "type": "object",

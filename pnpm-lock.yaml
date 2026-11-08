@@ -192,6 +192,24 @@ importers:
         specifier: workspace:*
         version: link:../prompter
 
+  packages/playback:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+
   packages/production:
     dependencies:
       '@storystage/ast':
@@ -517,6 +535,15 @@ importers:
       mediabunny:
         specifier: ^1.62.0
         version: 1.62.0
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
+
+  spikes/23.1-projection:
+    devDependencies:
+      '@babylonjs/core':
+        specifier: ^9.31.1
+        version: 9.31.1
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)

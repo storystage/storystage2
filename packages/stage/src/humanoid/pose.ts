@@ -168,3 +168,19 @@ export function fromModelTurns(world: ReadonlyMap<JointName, Quat>, hips: Vec3):
   }
   return { turns, hips };
 }
+
+/**
+ * A clip's pose laid over another, `weight` of the way: only the bones it turns, and the hips
+ * only if `hips` (a gesture leaves the legs and hips to whatever else is going on).
+ */
+export function overlay(base: HumanPose, top: HumanPose, weight: number, hips: boolean): HumanPose {
+  if (weight <= 0) return base;
+  const turns = new Map(base.turns);
+  for (const [joint, q] of top.turns)
+    turns.set(joint, slerp(base.turns.get(joint) ?? IDENTITY_Q, q, Math.min(weight, 1)));
+  const w = Math.min(weight, 1);
+  return {
+    turns,
+    hips: hips ? lerpV(base.hips, top.hips, w) : base.hips,
+  };
+}

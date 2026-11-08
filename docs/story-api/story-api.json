@@ -1,7 +1,7 @@
 {
-  "$schema": "https://storystage.org/spec/story-api/0.9/story-api.schema.json",
-  "$id": "https://storystage.org/spec/story-api/0.9/story-api.json",
-  "version": "0.9.0",
+  "$schema": "https://storystage.org/spec/story-api/0.10/story-api.schema.json",
+  "$id": "https://storystage.org/spec/story-api/0.10/story-api.json",
+  "version": "0.10.0",
   "status": "draft",
   "language": "en-GB",
   "space": {
@@ -888,6 +888,10 @@
       "name": "Expression",
       "origin": "storystage",
       "values": [
+        {
+          "name": "neutral",
+          "words": "plain"
+        },
         {
           "name": "happy",
           "words": "happy"
