@@ -5,6 +5,7 @@ import {
   SpeechModelError,
   tauriSpeech,
   type ChannelClass,
+  type Invoke,
 } from './speech.ts';
 
 /** Records what was sent, and lets a test play the native side's channel messages. */
@@ -17,9 +18,11 @@ function fakeTauri(answer: (command: string, args?: Record<string, unknown>) => 
       channels.push(this);
     }
   } as ChannelClass;
-  const invoke = async (command: string, args?: Record<string, unknown>) => {
-    calls.push({ command, args });
-    return answer(command, args);
+  // The speech commands only ever take named arguments.
+  const invoke: Invoke = async (command, args) => {
+    const named = args as Record<string, unknown> | undefined;
+    calls.push({ command, args: named });
+    return answer(command, named);
   };
   return { calls, channels, speech: tauriSpeech(invoke, Channel) };
 }
