@@ -1,8 +1,12 @@
 /**
  * @storystage/speech: whisper.cpp WASM input, speech synthesis output, narration queue.
  *
- * Owner: S7. Workplan: WP14.
- * Stub created by WP0.2. Other sessions use this package only through its
- * WP0.8 contract; changes to the contract go in their own pull request.
+ * Owner: S7. Workplan: WP14. Spec: `docs/spec/06-speech.md`.
+ *
+ * WP14.2: voices (`voices.ts`), the sanitiser (`speakable.ts`), the narration queue
+ * (`narration.ts`) and the browser's speaker (`browser-speaker.ts`). Speech in (14.1) comes next.
  */
-export {};
+export * from './browser-speaker.ts';
+export * from './narration.ts';
+export * from './speakable.ts';
+export * from './voices.ts';
