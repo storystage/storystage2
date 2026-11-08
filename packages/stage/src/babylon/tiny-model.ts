@@ -38,14 +38,42 @@ function glb(json: object, bin: Uint8Array): Uint8Array {
   return out;
 }
 
-/** The model as a `data:` address, with one bone for each name, each the child of the last. */
-export function tinyModelUrl(bones: readonly string[]): string {
+/** A clip that turns one bone from its rest to `turns` about `axis` over a second, linearly. */
+export interface TinyClip {
+  readonly name: string;
+  readonly bone: string;
+  readonly axis: readonly [number, number, number];
+  readonly turns: number;
+}
+
+/** A quaternion turning `turns` about a unit `axis`, as glTF keeps it: x, y, z, w. */
+const quaternion = ([x, y, z]: readonly [number, number, number], turns: number) => {
+  const s = Math.sin(turns * Math.PI);
+  return [x * s, y * s, z * s, Math.cos(turns * Math.PI)];
+};
+
+/**
+ * The model as a `data:` address, with one bone for each name, each the child of the last and
+ * `step` above it (or along it), and any clips.
+ */
+export function tinyModelUrl(
+  bones: readonly string[],
+  {
+    step = [0, 0.2, 0],
+    clips = [],
+  }: { step?: readonly number[]; clips?: readonly TinyClip[] } = {},
+): string {
   const parts: Uint8Array[] = [
     new Uint8Array(new Float32Array(POSITIONS).buffer),
     new Uint8Array(new Uint16Array(INDICES).buffer),
     new Uint8Array(VERTICES * 4),
     new Uint8Array(new Float32Array(Array(VERTICES).fill([1, 0, 0, 0]).flat()).buffer),
     new Uint8Array(new Float32Array(bones.flatMap(() => IDENTITY)).buffer),
+    // Every clip's two key times, 0 and 1 seconds, then each clip's two rotations.
+    new Uint8Array(new Float32Array([0, 1]).buffer),
+    ...clips.map(
+      (c) => new Uint8Array(new Float32Array([0, 0, 0, 1, ...quaternion(c.axis, c.turns)]).buffer),
+    ),
   ];
   const views: object[] = [];
   let length = 0;
@@ -60,7 +88,7 @@ export function tinyModelUrl(bones: readonly string[]): string {
   const nodes: object[] = bones.map((name, i) => ({
     name,
     ...(i < bones.length - 1 ? { children: [i + 1] } : {}),
-    ...(i > 0 ? { translation: [0, 0.2, 0] } : {}),
+    ...(i > 0 ? { translation: [...step] } : {}),
   }));
   nodes.push({ name: 'Body', mesh: 0, skin: 0 });
   const json = {
@@ -92,7 +120,18 @@ export function tinyModelUrl(bones: readonly string[]): string {
       { bufferView: 2, componentType: 5121, count: VERTICES, type: 'VEC4' },
       { bufferView: 3, componentType: FLOAT, count: VERTICES, type: 'VEC4' },
       { bufferView: 4, componentType: FLOAT, count: bones.length, type: 'MAT4' },
+      { bufferView: 5, componentType: FLOAT, count: 2, type: 'SCALAR', min: [0], max: [1] },
+      ...clips.map((_, i) => ({ bufferView: 6 + i, componentType: FLOAT, count: 2, type: 'VEC4' })),
     ],
+    ...(clips.length
+      ? {
+          animations: clips.map((c, i) => ({
+            name: c.name,
+            samplers: [{ input: 5, output: 6 + i, interpolation: 'LINEAR' }],
+            channels: [{ sampler: 0, target: { node: bones.indexOf(c.bone), path: 'rotation' } }],
+          })),
+        }
+      : {}),
   };
   const text = glb(json, bin).reduce((s, b) => s + String.fromCharCode(b), '');
   return `data:model/gltf-binary;base64,${btoa(text)}`;
