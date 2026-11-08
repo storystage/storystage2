@@ -26,8 +26,11 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - In review:
-  - 8 Nov (PR open, waits for the owner's merge): **WP11b begins: spec 08, export and the Screening room**, with decision 0067 (two new S2 packages: `playback`, the driver that plays a production, and `screening`, the Screening room screen). **S5:** sections 1 (what Rehearse gets from the driver) and 2 to 4 are yours to look at. **S4:** section 4 asks to change spec 03 rule 11 for a scene that waits on the viewer in an export.
+  - 8 Nov (PR open, waits for the owner's merge): **the driver uses the stage's preload and crossfade** (S3's #234): on the player's `preload` hint it calls `stage.preload` without waiting, and a scene that comes in by crossfade loads with `stage.load(setup, { crossfade })`. Spec 08 section 1.
+  - S4's #243 (`viewerWait`, spec 03 rule 11): **S2 reviewed and approved it**, by message.
 - Merged:
+  - 8 Nov (#232): **WP11b, WP6.4: `packages/playback`**, the driver that plays a production: the runtime in fixed steps with a 100 ms lookahead, S4's `ProductionPlayer` and the stage on one path, live or not; fast-forward to a time or a block, `LiveClock`, the errors in plain words (6.3) and `startRuntimeWorker`. **S5:** Rehearse is the driver with `mode: 'rehearse'` (spec 08 section 1).
+  - 8 Nov (#229): **WP11b begins: spec 08, export and the Screening room**, with decision 0067 (two new S2 packages: `playback` and `screening`). **S4:** section 4's waiting scene in an export is your #243.
   - 8 Nov (#214): **faster edits for big programs** (S6's request for WP7.10): `applyEdit` checks the schema only against what an edit adds, with the rules still checked over the whole program, and a property test that the result agrees with a whole-program check. At 500 statements an edit takes 1.3 ms instead of 4.7 ms on the PC. Spec 01 section 4.2.
   - 8 Nov (#201): **WP6's done-when, the TR1 programs**: the 21 TR1 rows that build code, and `penguin-animated`, written in StoryStage 2 AST and run on S3's `STORY_LIBRARY` (`tr1.test.ts`). All pass: each meets its row's checks, is valid, and sends the right commands at the right times. **S3:** turning a joint (`anim-06`'s head) needs a joint value from the runtime and joint targets in the blocks: agreed with S2; S3's #210 adds the value, then S2 builds `getJoint` and `getJointChain`.
   - 8 Nov (#198, reviewed by S3): **WP6.2, the rest of the events**: click positions, `keyRelease` and `heldKeyPolicy`, `collisionEnd`, `proximityExit`, `viewEnter` and `viewExit`; and a new `watch` message giving `Stage.watch` what the scene's proximity and view listeners need. Spec 18 section 5. **S3:** the main thread hands `watch` to `Stage.watch` as it arrives.
@@ -37,8 +40,8 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov (#101): **WP8f, the production format (8.1)**: spec 03, including how the program and a scene's set-up undo as one step (section 2.1); a stricter `checkReferences`; `sceneMethodCheck`; `manifest.origin`; an example production with code in it. Class-imported models travel in the file (decision 0049, section 1.3): `manifest.models`, `models/<folder>/`. **S4:** `packages/production` is yours now; 8.2 builds the production's own undo, and 8.4 the saving, including packing models. **S5, S7, S6:** the format is ready to build the Storyboard, its tools and import on. **S1:** the self-test's undo step can now use real edits on the example production.
   - 1 Nov (#90, #92, #94, #96, #97): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. S2 merged these under decision 0050; S1, the small changes to your `editor-contract` test and `selftest` are in #92 and #94 if you want to look. **S6, S7, S4:** the API is listed in `packages/ast/README.md`. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
 - Blocked on:
-  - S4: WP8, and S5: closing WP12b's 12.5, for WP11b.
-- Next: joint values, with S3; then WP11b, the Screening room, once WP8 lands.
+  - S4's #231 (production format 1.1.0), for retake notes and credit names in the Screening room.
+- Next: `getJoint` and `getJointChain` (S3's joints are in), then the rest of WP11b: captions, the title card, credits and the film export in `packages/export`, and the Screening room screen.
 
 ## S3 Stage and Story API procedures
 - Merged:

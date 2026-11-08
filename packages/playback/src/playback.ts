@@ -52,7 +52,7 @@ export type PlaybackEvent =
   | { readonly kind: 'running'; readonly nodes: readonly NodeId[]; readonly at: Micros }
   /** The scene's script method has finished; listeners may still run. */
   | { readonly kind: 'finished'; readonly scene: SceneId; readonly at: Micros }
-  /** The old scene fades out over the new one: the stage's to draw. */
+  /** The old scene fades out over the new one. The stage draws it (`LoadOptions.crossfade`). */
   | {
       readonly kind: 'crossfade';
       readonly from: SceneId;
@@ -306,8 +306,10 @@ export class Playback {
         case 'load':
           await this.load(action);
           break;
-        default:
-          // `preload` (S4's #225) waits for the stage's `preload` (S3); until then, nothing to do.
+        case 'preload':
+          // Only a hint, so not waited for. The stage never rejects one; if it did, the `load`
+          // that follows reports a model it can't have.
+          this.options.stage.preload(action.setup).catch(() => undefined);
           break;
         case 'stageCommands':
           this.options.stage.schedule(action.commands);
@@ -344,7 +346,8 @@ export class Playback {
   private async load(action: PlayerAction & { kind: 'load' }): Promise<void> {
     const { stage, port, production } = this.options;
     this.awaitingLoaded = true;
-    await stage.load(action.setup);
+    const fade = action.transition?.kind === 'crossfade' ? action.transition.duration : null;
+    await stage.load(action.setup, fade === null ? undefined : { crossfade: fade });
     stage.schedule(action.commands);
     this.scene = action.scene;
     this.sceneStart = this.film;
