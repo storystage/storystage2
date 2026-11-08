@@ -70,3 +70,4 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0065](0065-pupil-work-between-lessons.md) | Where a pupil's work lives between lessons | 8 Nov 2026 |
 | [0066](0066-imported-models.md) | Where imported models live, and an OBJ reader of our own | 8 Nov 2026 |
 | [0067](0067-playback-and-screening-packages.md) | Two packages for playing productions and the Screening room | 8 Nov 2026 |
+| [0068](0068-bundled-voices.md) | Bundled voices for speak line | 8 Nov 2026 |

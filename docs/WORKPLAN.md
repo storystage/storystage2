@@ -172,9 +172,9 @@ The same dependencies, scheduled with a cap on parallel Claude Code sessions. Ow
 |---|---|---|
 | Unlimited (13 at the peak, in weeks 1.5–3) | week 18.5 (26 Feb 2027) | week 24.5 (9 Apr 2027) |
 | **8 (recommended)** | **week 18.5** | **week 24.5** |
-| 6 | week 22.5 | week 28.5 |
-| 5 | week 26 | week 32 |
-| 4 | week 31.5 | week 38 |
+| 6 | week 23.5 | week 29.5 |
+| 5 | week 27.5 | week 33.5 |
+| 4 | week 32.5 | week 38.5 |
 
 <!-- /schedule:lanes -->
 
@@ -188,7 +188,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 19 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 20 more started:
 
 - **Release candidate:** week 13.5 (21 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 19.5 (4 Mar 2027). The plan says week 24.5 (9 Apr 2027).
@@ -256,7 +256,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 | 1.1 (1–8 Nov) |
 | WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | 1.1 (1–8 Nov) |
 | WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | 0.3 (31 Oct–1 Nov) |
-| WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 8 | started 8 Nov; ends about 30 Nov |
+| WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 6 | started 8 Nov; ends about 30 Nov |
 | WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 | 0.3 (21–22 Oct) |
 | WP5a | Stage core: scene, models, camera, picking, offscreen (5.1–5.5) | Stage | WP0, WP1 | 3 | wk 4.5 (20 Nov 2026) | **0 (critical)** | 1 (1–7 Nov) |
 | WP3d | Storybook cast commissioned and delivered (3.6) | Backstage | WP16a, WP17a | 10 | wk 5 (23 Nov 2026) | 9.5 | forecast: 9 Nov to 18 Jan |
@@ -272,12 +272,12 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | started 8 Nov; ends about 30 Nov |
 | WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | started 8 Nov; ends about 23 Nov |
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
+| WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP4b | 3 | wk 10.5 (1 Jan 2027) | 3 | started 8 Nov; ends about 30 Nov |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | started 8 Nov; ends about 7 Dec |
 | WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | forecast: 30 Nov to 21 Dec |
 | WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
 | WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 1 Jan |
-| WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP13b, WP4b | 1 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 18 Dec |
 | WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 7 Dec to 21 Dec |
 | WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 21 Dec to 1 Jan |
 | WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 10 Dec to 24 Dec |
@@ -354,7 +354,7 @@ gantt
     WP13a Prompter spec, fake Claude, system prompt, eval set :WP13a, 2026-10-29, 21d
     WP14a Speech engines - whisper WASM, voices :WP14a, 2026-11-20, 21d
     WP13b Prompter core - transport, context, AST tools, modes, plan before change, wizard :WP13b, 2026-12-10, 32d
-    WP14b Speak line and narration :WP14b, 2027-01-11, 7d
+    WP14b Speak line and narration :WP14b, 2027-01-01, 21d
     WP13c Prompter panel, storyboard tools, story coach, live eval :crit, WP13c, 2027-01-29, 14d
     section Productions
     WP9a .a3p reader :WP9a, 2026-11-09, 7d
@@ -788,9 +788,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
 ### WP14: Speech
 **Objective:** voice in and out, on the device.
-**Depends on:** WP1.3 (go) for the speech engines (14.1, 14.2), which don't need the Prompter; WP13 core and WP4.3 for narration tied to Prompter steps and the speak line block (14.3).
+**Depends on:** WP1.3 (go) for the speech engines (14.1, 14.2), which don't need the Prompter; WP4.3 and the speech engines for the speak line block (14.3); WP13 core only for narration tied to Prompter steps (spec 06, section 3), which isn't the block (8 Nov 2026).
 <!-- schedule:wp14 -->
-**Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP13b, WP4b.
+**Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP4b.
 <!-- /schedule:wp14 -->
 - [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). The default model is bundled in the apps (decision 0057); the optional, more accurate one downloads on request after consent, with a checksum. Dictation into every text field, with or without the Prompter (decision 0060): a mic beside each field, tap to start and stop; the words go into the field for the learner to edit; audio is discarded after transcription. (C)
 - [ ] 14.2 Speech output with speech synthesis, filtered to voices marked `localService`, preferring en-GB. A narration queue tied to Prompter steps, stop, and captions always shown. (C)

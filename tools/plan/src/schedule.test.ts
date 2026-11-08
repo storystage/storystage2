@@ -54,10 +54,12 @@ describe('the real schedule', () => {
     );
   });
 
-  it('gives what each lane cap costs, as section 5a says', () => {
-    expect(simulateCap(s, 8)).toMatchObject({ rc: 18.5, pilotEnd: 24.5 });
-    expect(simulateCap(s, 6)).toMatchObject({ rc: 22.5, pilotEnd: 28.5 });
-    expect(simulateCap(s, 4)).toMatchObject({ rc: 31.5, pilotEnd: 38 });
+  // The numbers themselves change with every estimate; `pnpm schedule:check` keeps section 5a's
+  // table in step with them. These are the rules that always hold.
+  it('reaches the shortest schedule with eight lanes, and never sooner with fewer', () => {
+    expect(simulateCap(s, 8)).toMatchObject({ rc: s.rc, pilotEnd: s.pilotEnd });
+    const caps = [8, 6, 5, 4].map((cap) => simulateCap(s, cap).rc);
+    for (let i = 1; i < caps.length; i++) expect(caps[i]).toBeGreaterThanOrEqual(caps[i - 1]!);
   });
 
   it('puts every item except the release candidate under a section 6 heading', () => {
