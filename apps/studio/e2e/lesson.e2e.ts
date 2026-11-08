@@ -57,7 +57,7 @@ test('a pupil finds their name, makes a film, and finds it again after a reload'
   await expect(page.getByRole('heading', { name: 'Sam’s films' })).toBeVisible();
   expect(await seriousIssues(page)).toEqual([]);
   await page.getByRole('row', { name: /The Lost Kite/ }).click();
-  await expect(page.getByRole('button', { name: 'Film: The Lost Kite' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Film: The Lost Kite · Sam' })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Title' })).toHaveValue('The Lost Kite');
   // The browser's note shows once only.
   await expect(page.getByText(/kept in this browser on this device/)).toHaveCount(0);
@@ -69,7 +69,7 @@ test('Ctrl+S saves at once, and the Film menu leads back to the names', async ({
   await page.getByRole('textbox', { name: 'Title' }).fill('Moon Garden');
   await page.keyboard.press('Control+s');
   await expect(page.getByRole('status')).toHaveText('Saved');
-  await page.getByRole('button', { name: 'Film: Moon Garden' }).click();
+  await page.getByRole('button', { name: 'Film: Moon Garden · Ana' }).click();
   await page.getByRole('menuitem', { name: 'Switch pupil' }).click();
   await expect(page.getByRole('heading', { name: 'Who’s making films today?' })).toBeVisible();
 });

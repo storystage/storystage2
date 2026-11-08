@@ -24,6 +24,30 @@
   margin: 0 auto;
   padding: 40px 22px;
 }
+/* The teacher's way to Settings, in the screen's corner. */
+.ls-shell {
+  position: relative;
+}
+.ls-corner {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+/* Settings, reached from the name page: the same page as in the studio, full screen. */
+.ls-settings {
+  --ss-surface: var(--ss-panel-2);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 22px;
+}
+.ls-settings > .ls-title {
+  text-align: left;
+}
+
 .ls-title {
   margin: 0;
   font-family: var(--ss-font-display);
