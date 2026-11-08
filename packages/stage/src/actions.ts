@@ -58,6 +58,8 @@ export interface BodyState {
   holding: { object: ObjectId; hand: Hand | null }[];
   look: { target: Target; weight: number } | null;
   face: { expression: string; amount: number } | null;
+  /** The face before, part way gone, while a new expression comes in. */
+  fading: { expression: string; amount: number } | null;
   blink: number;
 }
 
@@ -70,6 +72,7 @@ export const freshBody = (): BodyState => ({
   holding: [],
   look: null,
   face: null,
+  fading: null,
   blink: 0,
 });
 
@@ -142,7 +145,13 @@ export type Action =
     }
   | { kind: 'clip'; clip: string; own: boolean; length: number }
   | { kind: 'gesture'; clip: string; length: number }
-  | { kind: 'expression'; expression: string; length: number }
+  | {
+      kind: 'expression';
+      expression: string;
+      /** The face it changes from, which fades out as the new one comes in. */
+      previous: { expression: string; amount: number } | null;
+      length: number;
+    }
   | { kind: 'lookAt'; target: Target | null; previous: Target | null; length: number };
 
 type ActionCommand = Extract<
@@ -410,6 +419,7 @@ export function resolveAction(
       return {
         kind: 'expression',
         expression: c.expression,
+        previous: was.face,
         length: c.expression === 'blink' ? 0.25 : 0.3,
       };
     case 'lookAt':
@@ -739,8 +749,16 @@ export function applyAction(
         });
       return;
     case 'expression':
-      if (a.expression === 'blink') body.blink = going ? (x < 0.5 ? 2 * x : 2 - 2 * x) : 0;
-      else body.face = { expression: a.expression, amount: p };
+      if (a.expression === 'blink') {
+        body.blink = going ? (x < 0.5 ? 2 * x : 2 - 2 * x) : 0;
+        return;
+      }
+      // The old face goes as the new one comes. `neutral` is a plain face: nothing comes.
+      body.fading =
+        going && a.previous && a.previous.expression !== a.expression
+          ? { expression: a.previous.expression, amount: a.previous.amount * (1 - p) }
+          : null;
+      body.face = a.expression === 'neutral' ? null : { expression: a.expression, amount: p };
       return;
     case 'lookAt':
       if (a.target) body.look = { target: a.target, weight: p };
@@ -755,6 +773,7 @@ export interface Shown {
   readonly human: HumanPose | null;
   readonly own: readonly { name: string; time: number; weight: number }[];
   readonly face: { expression: string; amount: number } | null;
+  readonly fading: { expression: string; amount: number } | null;
   readonly blink: number;
 }
 
@@ -779,7 +798,8 @@ export function bodyPose(
     .map((l) => ({ name: l.clip, time: l.time, weight: l.weight }));
   const shape = world.body(object);
   const library = world.library;
-  if (!shape || !library) return { human: null, own, face: b.face, blink: b.blink };
+  if (!shape || !library)
+    return { human: null, own, face: b.face, fading: b.fading, blink: b.blink };
   const rest = library.get(REST_CLIP[b.rest])!;
   let pose = sample(rest, (t - b.restSince) / SECOND, true);
   for (const layer of b.layers) {
@@ -818,5 +838,5 @@ export function bodyPose(
       : world.targetPose(state, b.look.target).position;
     pose = shape.look(pose, model(point), b.look.weight, LOOK_LIMIT);
   }
-  return { human: pose, own, face: b.face, blink: b.blink };
+  return { human: pose, own, face: b.face, fading: b.fading, blink: b.blink };
 }

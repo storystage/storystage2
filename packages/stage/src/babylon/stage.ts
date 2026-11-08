@@ -427,6 +427,7 @@ export class BabylonStage implements Stage {
         ...(shown.human ? { human: shown.human } : {}),
         clips: shown.own,
         face: shown.face,
+        fading: shown.fading,
         blink: shown.blink,
       });
     }

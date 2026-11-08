@@ -213,3 +213,32 @@ describe('a person', () => {
     void axisTurns;
   });
 });
+
+describe('faces', () => {
+  const face = (expression: string, start: number) =>
+    cmd(start, 1, { object: ann, kind: 'expression', expression: expression as never });
+
+  it('fade the old face out as a new one comes in', () => {
+    const t = timeline();
+    t.schedule([face('happy', 0), face('sad', 2)]);
+    t.seek(micros(2.5));
+    const { face: now, fading } = t.shown(ann);
+    expect(now?.expression).toBe('sad');
+    expect(fading?.expression).toBe('happy');
+    expect(now!.amount + fading!.amount).toBeCloseTo(1, 6);
+    t.seek(micros(3));
+    expect(t.shown(ann).fading).toBeNull();
+    expect(t.shown(ann).face).toEqual({ expression: 'sad', amount: 1 });
+  });
+
+  it('go back to plain with neutral, over its duration (S6, #220)', () => {
+    const t = timeline();
+    t.schedule([face('happy', 0), face('neutral', 2)]);
+    t.seek(micros(2.5));
+    expect(t.shown(ann).face).toBeNull();
+    expect(t.shown(ann).fading?.amount).toBeCloseTo(0.5, 6);
+    t.seek(micros(3));
+    expect(t.shown(ann).fading).toBeNull();
+    expect(t.shown(ann).face).toBeNull();
+  });
+});
