@@ -3,9 +3,15 @@
  * Collect and Hand back, the Prompter's use today and the bin. For the teacher, on the trust of
  * the name page (PS1); reached from the studio's header, or from the name page's corner.
  */
-import type { BinnedProduction, HostInterface, ProductionInfo, UsageToday } from '@storystage/host';
+import type {
+  BinnedProduction,
+  BinnedPupil,
+  HostInterface,
+  ProductionInfo,
+  UsageToday,
+} from '@storystage/host';
 import { collectClass, handBackClass, type HandBackReport } from '@storystage/production';
-import { Button, Dialog, NeutralNote } from '@storystage/ui';
+import { Button, Dialog, Icon, NeutralNote } from '@storystage/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { sinceWords } from '../lesson/LessonPages.tsx';
 import { words } from '../strings.ts';
@@ -29,6 +35,7 @@ export function ClassSetup({
   const [version, setVersion] = useState(0);
   const [pupils, setPupils] = useState<readonly PupilFilms[] | null>(null);
   const [bin, setBin] = useState<readonly BinnedProduction[]>([]);
+  const [removed, setRemoved] = useState<readonly BinnedPupil[]>([]);
   const [deviceFilms, setDeviceFilms] = useState<readonly ProductionInfo[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
@@ -44,11 +51,13 @@ export function ClassSetup({
         })),
       );
       const binned = await classes.bin();
+      const binnedPupils = await classes.binnedPupils();
       const device = await classes.deviceFilms();
       if (gone) return;
       setDeviceFilms(newestFirst(device));
       setPupils(withFilms.sort((a, b) => a.pupil.name.localeCompare(b.pupil.name, 'en-GB')));
       setBin([...binned].sort((a, b) => b.binnedAt.localeCompare(a.binnedAt)));
+      setRemoved(binnedPupils);
     })().catch(() => {
       if (!gone) setProblem(words.t('lesson.folderProblem'));
     });
@@ -112,7 +121,7 @@ export function ClassSetup({
             {host.prompterUsage && (
               <UsageCard usage={host.prompterUsage} pupils={pupils} version={version} />
             )}
-            <BinCard bin={bin} pupils={pupils} classes={classes} act={act} />
+            <BinCard bin={bin} removed={removed} pupils={pupils} classes={classes} act={act} />
           </div>
         </div>
       )}
@@ -272,11 +281,14 @@ function UsageCard({
 
 function BinCard({
   bin,
+  removed,
   pupils,
   classes,
   act,
 }: {
   bin: readonly BinnedProduction[];
+  /** Pupils removed from the class, newest first, who can be put back with their films. */
+  removed: readonly BinnedPupil[];
   pupils: readonly PupilFilms[];
   classes: HostInterface['classes'];
   act: (work: () => Promise<unknown>) => Promise<boolean>;
@@ -286,21 +298,67 @@ function BinCard({
   const whose = (id: string) => {
     if (id === DEVICE) return words.t('settings.bin.device');
     const pupil = pupils.find((p) => p.pupil.id === id)?.pupil;
-    return pupil
-      ? words.t('settings.bin.whose', { name: pupil.name })
+    if (pupil) return words.t('settings.bin.whose', { name: pupil.name });
+    const gone = removed.find((r) => r.pupil.id === id)?.pupil;
+    return gone
+      ? words.t('settings.bin.whoseRemoved', { name: gone.name })
       : words.t('settings.bin.gone');
   };
   const anyGone = bin.some((b) => !inClass(b.pupil));
+  // Putting a pupil back brings their films back with them: one step, as removing was.
+  const restorePupil = (id: string) =>
+    act(async () => {
+      await classes.restorePupil(id);
+      for (const b of bin) if (b.pupil === id) await classes.restore(id, b.key);
+    });
+  const emptyWords = [
+    bin.length > 0 ? words.plural('settings.bin.emptyFilms', bin.length) : '',
+    removed.length > 0 ? words.plural('settings.bin.emptyPupils', removed.length) : '',
+    words.t('settings.bin.cantUndo'),
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
     <section className="st-card" aria-labelledby="st-bin-title">
       <h3 id="st-bin-title" className="st-card-title">
         {words.t('settings.bin')}
       </h3>
       <p className="st-note">{words.t('settings.bin.help')}</p>
-      {bin.length === 0 ? (
+      {bin.length === 0 && removed.length === 0 ? (
         <p className="st-note">{words.t('settings.bin.empty')}</p>
       ) : (
         <>
+          {removed.length > 0 && (
+            <>
+              <h4 className="st-subtitle">{words.t('settings.bin.pupils')}</h4>
+              <ul className="st-films">
+                {removed.map((r) => {
+                  const films = bin.filter((b) => b.pupil === r.pupil.id).length;
+                  return (
+                    <li key={r.pupil.id} className="st-film st-binned">
+                      <Icon name="person_remove" />
+                      <span className="st-binned-text">
+                        <span className="st-row-name">{r.pupil.name}</span>
+                        <span className="st-row-count">
+                          {words.plural('settings.filmCount', films)} ·{' '}
+                          {words.t('settings.bin.removedWhen', { when: sinceWords(r.binnedAt) })}
+                        </span>
+                      </span>
+                      <Button
+                        variant="quiet"
+                        icon="restore_from_trash"
+                        aria-label={words.t('settings.bin.restoreNamed', { name: r.pupil.name })}
+                        onPress={() => void restorePupil(r.pupil.id)}
+                      >
+                        {words.t('settings.bin.restore')}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+              <h4 className="st-subtitle">{words.t('settings.pupilFilms')}</h4>
+            </>
+          )}
           <ul className="st-films">
             {bin.map((b) => (
               <li key={`${b.pupil}/${b.key}`} className="st-film st-binned">
@@ -324,6 +382,7 @@ function BinCard({
             ))}
           </ul>
           {anyGone && <NeutralNote>{words.t('settings.bin.goneNote')}</NeutralNote>}
+          {bin.length === 0 && <p className="st-note">{words.t('settings.noFilms')}</p>}
           <Button variant="secondary" icon="delete" onPress={() => setEmptying(true)}>
             {words.t('settings.bin.emptyBin')}
           </Button>
@@ -335,7 +394,7 @@ function BinCard({
         title={words.t('settings.bin.emptyTitle')}
         icon="delete"
       >
-        <p className="st-dialog-text">{words.plural('settings.bin.emptyWarning', bin.length)}</p>
+        <p className="st-dialog-text">{emptyWords}</p>
         <div className="st-actions">
           <Button
             variant="stop"

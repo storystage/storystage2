@@ -265,7 +265,8 @@ function PupilPage({
         <p className="st-dialog-text">
           {films.length === 0
             ? words.t('settings.removeNoFilms', { name: pupil.name })
-            : words.plural('settings.removeFilms', films.length, { name: pupil.name })}
+            : words.plural('settings.removeFilms', films.length, { name: pupil.name })}{' '}
+          {words.t('settings.removeUndo')}
         </p>
         <div className="st-actions">
           <Button

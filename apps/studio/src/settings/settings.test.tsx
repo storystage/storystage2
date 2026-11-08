@@ -117,13 +117,19 @@ describe('Pupils and folders (07-ux 9.4)', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Remove' }));
     const remove = await screen.findByRole('dialog', { name: 'Remove Sam?' });
     expect(remove.textContent).toContain('Sam comes off the class list, and their film goes');
+    expect(remove.textContent).toContain('You can put them back from the bin.');
     await userEvent.click(within(remove).getByRole('button', { name: 'Remove' }));
     await waitFor(async () => expect(await pupilRows()).toEqual(['Ana B.']));
-    // In the bin, but not restorable until the pupil can be put back (S8's #262).
-    expect(within(bin()).getByText(/A pupil no longer in the class/)).toBeTruthy();
+    // In the bin: the pupil, and their film, which comes back with them.
+    expect(within(bin()).getByText(/Sam’s \(removed\) · Moved/)).toBeTruthy();
+    expect(within(bin()).getByText('1 film · Removed this minute')).toBeTruthy();
     expect(
       within(bin()).getByRole('button', { name: 'Restore Kite' }).hasAttribute('disabled'),
     ).toBe(true);
+    await userEvent.click(within(bin()).getByRole('button', { name: 'Restore Sam' }));
+    await waitFor(async () => expect(await pupilRows()).toEqual(['Ana B.', 'Sam']));
+    expect(screen.getByRole('row', { name: 'Open Sam’s folder' }).textContent).toContain('1 film');
+    expect(within(bin()).getByText('The bin is empty.')).toBeTruthy();
   });
 
   it('moves a film to the bin and restores it, and empties the bin after asking', async () => {

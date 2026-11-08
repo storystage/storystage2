@@ -333,11 +333,9 @@
   "settings.bin.when": "Moved {when}",
   "settings.bin.restore": "Restore",
   "settings.bin.restoreNamed": "Restore {name}",
-  "settings.bin.goneNote": "Films of pupils no longer in the class can’t be restored yet.",
+  "settings.bin.goneNote": "To restore a removed pupil’s film, restore the pupil: their films come back with them.",
   "settings.bin.emptyBin": "Empty the bin",
   "settings.bin.emptyTitle": "Empty the bin?",
-  "settings.bin.emptyWarning.one": "The film in the bin will be deleted. This can’t be undone.",
-  "settings.bin.emptyWarning.other": "The {count} films in the bin will be deleted. This can’t be undone.",
   "settings.collect": "Collect and hand back",
   "settings.collect.help": "Collect copies every pupil’s films into a folder you choose, one folder for each pupil. Hand back reads that folder and gives each pupil their marked films, as new films beside their own.",
   "settings.collect.button": "Collect…",
@@ -365,5 +363,14 @@
   "settings.device.move": "Move these films to…",
   "settings.device.moved.one": "Moved {count} film to {name}’s folder.",
   "settings.device.moved.other": "Moved {count} films to {name}’s folder.",
-  "settings.device.open": "These films are open in the studio now. Close StoryStage and open it again, then move them."
+  "settings.device.open": "These films are open in the studio now. Close StoryStage and open it again, then move them.",
+  "settings.removeUndo": "You can put them back from the bin.",
+  "settings.bin.pupils": "Pupils removed",
+  "settings.bin.removedWhen": "Removed {when}",
+  "settings.bin.whoseRemoved": "{name}’s (removed)",
+  "settings.bin.emptyFilms.one": "The film in the bin will be deleted.",
+  "settings.bin.emptyFilms.other": "The {count} films in the bin will be deleted.",
+  "settings.bin.emptyPupils.one": "The removed pupil can’t be put back after this.",
+  "settings.bin.emptyPupils.other": "The {count} removed pupils can’t be put back after this.",
+  "settings.bin.cantUndo": "This can’t be undone."
 }
