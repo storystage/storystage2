@@ -42,10 +42,10 @@ test('every row and empty list is 44 px high or more', async ({ page }) => {
 test('the keyboard reaches every row and pill, with focus always visible', async ({ page }) => {
   await open(page);
   await page.keyboard.press('Tab');
-  await expect(item(page, 'cat say Hello')).toBeFocused();
+  await expect(item(page, 'cat say Hello add detail')).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
-  await expect(item(page, 'cat move forward 1 how long 2')).toBeFocused();
+  await expect(item(page, 'cat move forward 1 how long 2 add detail')).toBeFocused();
   await page.keyboard.press('ArrowRight');
   await expect(page.locator('.tl-pill', { hasText: 'forward' })).toBeFocused();
   const ring = await page.evaluate(() => getComputedStyle(document.activeElement!).boxShadow);
@@ -58,8 +58,8 @@ test('names rows by the words they show, and a switched-off row as switched off'
   page,
 }) => {
   await open(page);
-  await expect(item(page, 'cat move forward 1 how long 2')).toBeVisible();
-  await expect(item(page, 'cat turn left 0.25 (switched off)')).toBeVisible();
+  await expect(item(page, 'cat move forward 1 how long 2 add detail')).toBeVisible();
+  await expect(item(page, 'cat turn left 0.25 (switched off) add detail')).toBeVisible();
   await expect(item(page, 'count up to 2')).toBeVisible();
 });
 
@@ -74,4 +74,82 @@ test('highlights through the contract show on the row', async ({ page }) => {
   await expect(page.locator('li.tl-box', { has: item(page, 'count up to 2') })).toHaveClass(
     /tl-hl-rehearse/,
   );
+});
+
+// Editing (spec 14, 3c–3e), which needs real layout and real pointer events.
+
+/** The keys of the statements directly inside `do together`, in order. */
+const together = (page: Page) =>
+  page
+    .locator('[data-key="togeth"]')
+    .evaluate((header) =>
+      [...header.closest('li')!.querySelectorAll('[data-statement]')]
+        .map((e) => e.getAttribute('data-key'))
+        .filter((k) => k !== 'togeth'),
+    );
+
+test('dragging a statement by its grip shows the drop line, then moves it there', async ({
+  page,
+}) => {
+  await open(page);
+  const grip = (await page.locator('[data-key="saystm"] [data-grip]').boundingBox())!;
+  const turn = (await page.locator('[data-key="turnst"]').boundingBox())!;
+  await page.mouse.move(grip.x + 6, grip.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 60, grip.y + 60, { steps: 5 });
+  await page.mouse.move(turn.x + 200, turn.y + 8, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await expect(page.locator('.tl-drop-line')).toContainText('Drops here');
+  await page.mouse.up();
+  expect(await together(page)).toEqual(['movest', 'saystm', 'turnst']);
+});
+
+test('a drag let go somewhere nothing can go changes nothing', async ({ page }) => {
+  await open(page);
+  const grip = (await page.locator('[data-key="saystm"] [data-grip]').boundingBox())!;
+  await page.mouse.move(grip.x + 6, grip.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 400, grip.y + 700, { steps: 10 });
+  await page.mouse.up();
+  await expect(item(page, 'cat say Hello add detail')).toHaveAttribute('aria-posinset', '1');
+});
+
+test('moving by keyboard: Space, ↓, Space', async ({ page }) => {
+  await open(page);
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.keyboard.press('Space');
+  expect(await together(page)).toEqual(['saystm', 'movest', 'turnst']);
+  await expect(item(page, 'cat say Hello add detail')).toBeFocused();
+});
+
+test('choosing a value from its menu, with axe finding nothing while it is open', async ({
+  page,
+}) => {
+  await open(page);
+  await page.locator('[data-key="movest"] .tl-pill', { hasText: 'forward' }).click();
+  const menu = page.getByRole('menu', { name: 'direction' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitemradio', { name: 'forward' })).toBeFocused();
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+  await menu.getByRole('menuitemradio', { name: 'backward' }).click();
+  await expect(item(page, 'cat move backward 1 how long 2 add detail')).toBeVisible();
+});
+
+test('a typed number is checked before it goes in', async ({ page }) => {
+  await open(page);
+  await page.locator('[data-key="movest"] .tl-pill', { hasText: /^1$/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Other number…' }).click();
+  const field = page.getByRole('textbox', { name: 'amount' });
+  await field.fill('far');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alert')).toHaveText(
+    'That isn’t a number. Type digits, like 2 or 0.5.',
+  );
+  await field.fill('3');
+  await page.keyboard.press('Enter');
+  await expect(item(page, 'cat move forward 3 how long 2 add detail')).toBeVisible();
 });

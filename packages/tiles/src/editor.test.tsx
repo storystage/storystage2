@@ -24,7 +24,10 @@ afterEach(() => {
   document.body.innerHTML = '';
 });
 
-const item = (name: string) => screen.getByRole('treeitem', { name });
+const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, (c) => `\\${c}`);
+/** A row by its words; a row that can take a detail also ends "add detail", as it shows. */
+const item = (name: string) =>
+  screen.getByRole('treeitem', { name: new RegExp(`^${escape(name)}( add detail)?$`) });
 /** The words a pill is described by: what it's for. */
 const describedBy = (el: Element | null) =>
   document.getElementById(el?.getAttribute('aria-describedby') ?? '')?.textContent;
@@ -65,15 +68,16 @@ describe('drawing (spec 14, 3b, 3f)', () => {
     mountEditor();
     for (const row of screen.getAllByRole('treeitem')) {
       const name = row.getAttribute('aria-label') ?? visible(row);
-      const own = visible(row).replace(/ ?(switched off)$/, '');
+      const own = visible(row)
+        .replace(/ ?\(switched off\)$/, '')
+        .replace(/ ▾$/, '');
       expect(name, own).toContain(own.split(' drop statement here')[0]);
     }
   });
 
   it('greys a switched-off statement and says so', () => {
     mountEditor();
-    const off = item('cat turn left 0.25 (switched off)');
-    expect(off.className).toContain('tl-off');
+    expect(item('cat turn left 0.25 (switched off)').className).toContain('tl-off');
   });
 
   it('nests a container’s statements a level down', () => {
@@ -202,9 +206,8 @@ describe('the contract (spec 14, 1)', () => {
     expect(item('count up to 2').closest('li')?.className).toContain('tl-hl-error');
   });
 
-  it('is called Tiles, and refuses commands until editing arrives', () => {
+  it('is called Tiles', () => {
     const { editor: e } = mountEditor();
     expect(e.displayName).toBe('Tiles');
-    expect(e.command('delete')).toBe(false);
   });
 });
