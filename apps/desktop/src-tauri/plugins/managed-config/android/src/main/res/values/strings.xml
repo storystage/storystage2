@@ -11,6 +11,7 @@
     <string name="policy_editor_default">Default code editor</string>
     <string name="policy_editor_locked">Lock the code editor for pupils</string>
     <string name="policy_study_enabled">Turn on study mode</string>
+    <string name="policy_speech_dictation">Allow dictation, on the device, into any text field</string>
     <string name="policy_backstage_import">Who can import models</string>
     <string name="policy_backstage_search">Allow searching for CC0 models online</string>
     <string name="policy_cap_explain_only">Switch to Explain only</string>
