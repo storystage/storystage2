@@ -9,6 +9,7 @@
 ## 0. Decisions this spec relies on
 
 - [0020 Speech in](../decisions/0020-speech-in.md): whisper.cpp in WebAssembly, on the device; audio never leaves it.
+- [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md): the default model ships in the apps; the optional one downloads on request.
 - [0021 Speech out](../decisions/0021-speech-out.md): browser speech synthesis with on-device voices only; captions always shown.
 - [Spike 1.3](../decisions/spike-1.3-whisper.md): go, on the CI evidence, 8 Nov 2026.
 - [0022 Off switches](../decisions/0022-off-switches.md) and [0034 Prompter levels](../decisions/0034-prompter-levels.md): the policy key `prompter.voiceInput`, and Off.
@@ -26,7 +27,7 @@ The **Hold to talk** button is shown when all of these are true:
 - the page is cross-origin isolated (`crossOriginIsolated`), because whisper's threads need it. The Tauri apps set the headers themselves (section 7);
 - the learner has turned **Talk to the Prompter** on in Settings. It is off until they do.
 
-Turning it on is where the learner agrees to the download (section 1.4).
+Turning it on says, in plain words, that what the learner says stays on this device and is never sent anywhere. The default model ships with the app, so nothing downloads (section 1.4).
 
 ### 1.2 The engine
 
@@ -39,8 +40,8 @@ Turning it on is where the learner agrees to the download (section 1.4).
 
 | Model | Size | SHA-256 | Use |
 |---|---|---|---|
-| `ggml-tiny.en-q5_1.bin` | 32 MB | `c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b` | The default. Less memory |
-| `ggml-tiny.en.bin` | 78 MB | `921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f` | Offered in Settings as "More accurate, uses more memory" |
+| `ggml-tiny.en-q5_1.bin` | 32 MB | `c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b` | The default, **bundled in the app** (decision 0057). Less memory |
+| `ggml-tiny.en.bin` | 78 MB | `921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f` | Offered in Settings as "More accurate, uses more memory". Downloaded on request |
 
 Both are from whisper.cpp's model repository, as measured in spike 1.3. The base model isn't offered in the first release: the workplan makes it optional, and memory is already the risk. English only, because the interface is English in the first release; Welsh and Gaelic wait for a model that handles them.
 
@@ -48,15 +49,19 @@ Both are from whisper.cpp's model repository, as measured in spike 1.3. The base
 
 ### 1.4 Getting the model
 
-- **After consent.** Turning on **Talk to the Prompter** shows what is about to happen, in plain words: the size, that it downloads once, where it comes from, and that what the learner says stays on this device. Nothing downloads until they press **Download**.
-- **By the native layer, not the webview.** The webview loads no remote content (threat model, spec 15). The native layer (S8, WP15) fetches the file, checks it, keeps it, and hands the checked bytes to the worker. The webview's content security policy gains no remote host.
-- **From where.** From StoryStage's own website, where it sits beside the browser version (15.6), so no new third party sees the device. The build copies it there from whisper.cpp's repository and checks it against the pins above. The address is pinned in the native layer at build time.
-- **Checked.** The download is refused unless its SHA-256 matches the pin, so a file swapped on the website can't be used. A mismatch keeps nothing and says "The download didn't arrive whole. Try again."
-- **Kept.** In the app's own data folder, and checked again each time it is loaded. Settings shows its size and has **Remove**.
-- **Or bundled.** Shipping the default model inside the app (32 MB) would remove the download, the host and the consent step altogether, at the cost of a larger app. Workplan 14.1 says download, so that stands unless the owner changes it (section 7).
-- **Progress** is shown, with **Cancel**. A failed download can be tried again, and voice input stays off until one succeeds.
+**The default model ships inside the app** (decision 0057), so speech works offline from the first launch, with no download and no host to reach. Every install is about 32 MB bigger for it.
 
-This download is the only network traffic speech ever makes (WP14's done-when).
+Both models reach the worker the same way: **through the native layer, never the webview.** The webview loads no remote content (threat model, spec 15). The native layer (S8, WP15) reads the bundled model from the app's resources, or a downloaded one from its data folder, checks it against its pinned SHA-256 every time it is loaded, and hands the checked bytes to the worker over a Tauri channel. A model that fails the check isn't used. The webview's content security policy gains no remote host.
+
+**The optional model downloads on request:**
+
+- **After consent.** Choosing "More accurate" in Settings shows the size, that it downloads once, and where it comes from. Nothing downloads until the learner presses **Download**.
+- **From where.** From StoryStage's own website, where it sits beside the browser version (15.6), so no new third party sees the device. The build copies it there from whisper.cpp's repository and checks it against its pin. The address is pinned in the native layer at build time.
+- **Checked.** The download is refused unless its SHA-256 matches the pin, so a file swapped on the website can't be used. A mismatch keeps nothing and says "The download didn't arrive whole. Try again."
+- **Kept** in the app's data folder. Settings shows its size and has **Remove**, which goes back to the bundled model.
+- **Progress** is shown, with **Cancel**. A failed download can be tried again; until one succeeds, the bundled model is used.
+
+This optional download is the only network traffic speech ever makes (WP14's done-when).
 
 ### 1.5 Hold to talk
 
@@ -149,7 +154,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Rule | Level | Where |
 |---|---|---|
 | The model is refused unless its SHA-256 matches (1.4) | Unit, with a tampered file | `packages/speech`; the native layer (S8) |
-| Nothing downloads without consent (1.4) | Unit | `packages/speech` |
+| The optional model downloads only after consent, and the bundled one is used until it does (1.4) | Unit | `packages/speech` |
 | Resampling to 16 kHz mono (1.6) | Unit, known signals | `packages/speech` |
 | Audio buffers are zeroed after transcription, and nothing is written or sent (1.6) | Unit; the leak scan (15.2) checks storage | `packages/speech`, `apps/desktop` |
 | Bracketed notes and empty transcripts (1.7) | Unit | `packages/speech` |
@@ -168,7 +173,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 |---|---|---|---|
 | Speech in | whisper-jni in Java | whisper.cpp in WebAssembly, in a worker | No Java; decision 0020 |
 | Models | Multilingual tiny (default) and base | English tiny, quantised by default; full tiny optional; no base | Memory on 4 GB devices (spike 1.3) |
-| Download from | Hugging Face | StoryStage's own website, fetched and checked by the native layer, pinned | No new third party; the webview loads no remote content |
+| Getting the model | Downloaded from Hugging Face | Default bundled in the app (0057); the optional one from StoryStage's website. Both checked by the native layer, pinned | Works offline from the first launch; the webview loads no remote content |
 | Capture | Java sound, 16 kHz | `AudioWorklet` at the device's rate, resampled to 16 kHz | Browsers choose the rate |
 | Shortcut | Ctrl+Space | Space on the focused button; any global shortcut is S5's | Ctrl+Space switches input languages on some systems |
 | Worker life | Model loaded once | Worker ended after 30 seconds idle | Gives memory back on 4 GB devices |
@@ -182,9 +187,8 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Needs | From | For |
 |---|---|---|
 | COOP and COEP headers in the Tauri apps | S8 (WP15) | Section 1.1 |
-| The model download, check and store in the native layer, and its row in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
-| Download on first use, or ship the default model in the app (32 MB) | Owner, with S8 | Section 1.4 |
-| The model files on StoryStage's website, beside the browser version, if downloaded | Owner (U hosts, 15.6) | Section 1.4 |
+| The bundled model in the app's resources, the optional download, the check on every load, and their rows in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
+| The optional model on StoryStage's website, beside the browser version | Owner (U hosts, 15.6) | Section 1.4 |
 | A shortcut for Hold to talk, if wanted, and the consent and Settings screens | S5 (WP12) | Sections 1.4, 1.5 |
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |
