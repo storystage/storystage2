@@ -163,6 +163,19 @@ whisper's model files (spec 05 section 5, spec 06 section 1.3). The default is b
 | M5 | E | The webview reads files through the fs plugin that Android needs | It's used from Rust only, and no capability grants it to any window | The leak scan's ungranted-plugin check covers plugins registered on desktop; on Android, with the human review | Spec 05 §5.2 |
 | M6 | E | Cross-origin isolation is turned off, or a page loads content it shouldn't | `Cross-Origin-Embedder-Policy: require-corp` stops anything cross-origin loading without consent. The content security policy is unchanged | A test on the shipped headers | Spec 05 §5.6 |
 
+### 2.10 Pupils on shared devices
+
+Decision 0065: pupil folders in the app, inside the device user's own data, with Collect and Hand back through files. Built in 24.4.
+
+| Id | Class | Threat | Control | Test | Where |
+|---|---|---|---|---|---|
+| PS1 | I, T | A pupil opens, changes or deletes another pupil's production in the app | Each folder opens only by choosing that name, and nothing lists other pupils' productions. Deleting asks first, and goes to a bin the teacher empties | A pupil's view shows only their own productions | 24.4 |
+| PS2 | I | A pupil reads another's files on disk, on a shared desktop login | Accepted, and said in the DPIA: folders stop slips and casual looking, not a determined pupil on a shared desktop login. Per-pupil sign-in on the device removes it | n/a | Accepted |
+| PS3 | I | The class list on a device names children | It stays in the app's data on the device, never in a production, an export or a study log. First names, or a word and a picture, are enough | A production, an export and a study log hold no class list | 24.4 |
+| PS4 | D | Work is lost: a device is reset, or a pupil is on another device | Autosave and backups (8.4). Collect and Hand back. Settings shows when work was last collected | Collect, reset, hand back: every production returns | 8.4, 24.4 |
+| PS5 | T, E | A handed-back file is crafted | The same import rules as any file (section 3, F1 to F12) | The hostile-file set, through Hand back | 24.4 |
+| PS6 | I | A collected folder on a school drive is readable by others | The school's storage, under its own sharing settings. The teacher's guide (24.7) says to collect into a staff-only folder | The guide | 24.7 |
+
 ### 2.8 The classroom relay, if chosen
 
 Only if the owner chooses option B in WP24.3. Nothing is built until then, and these are the spike's questions.
@@ -235,5 +248,5 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 
 - **The human security review,** before the pilot. W1, W2, W10 and U3 first.
 - **W10 and WP24.3.** Option C, a key on every device, puts the key where any program on a pupil's login could read it on Windows, as well as breaking the rule against keeping it in a settings file. This is a further reason to prefer A or B.
-- **Pupil separation on shared devices** waits for WP24.2. Until it's decided, this spec can't say how one pupil is kept from another's work. A threat table is added with that decision, before 24.4 is built.
+- **Pupil separation on shared devices** is decided (0065) and in section 2.10. PS2 is accepted for shared desktop logins.
 - **Accepted, and recorded here:** P7 (a pupil can turn the Prompter off on a device), and U3 (an older signed build, if the host is taken over).
