@@ -74,11 +74,13 @@ export interface MeasureOptions extends Omit<PlaybackOptions, 'mode' | 'viewerWa
   readonly fps?: number;
   /** Default `FILM_CAP`. */
   readonly limit?: Micros;
+  /** Stops the run, when the learner leaves the Screening room: `measure` rejects with an `AbortError`. */
+  readonly signal?: AbortSignal;
 }
 
 /** Plays the running order through in fixed steps, drawing nothing, and says what happened. */
 export async function measure(options: MeasureOptions): Promise<Timeline> {
-  const { fps = 30, limit = FILM_CAP, ...rest } = options;
+  const { fps = 30, limit = FILM_CAP, signal, ...rest } = options;
   // A scene that waits on the viewer ends after its last command, so the run goes on.
   const playback = new Playback({ ...rest, mode: 'production', viewerWait: 0, trace: true });
   const scenes: { scene: SceneId; transition: Transition | null; start: Micros }[] = [];
@@ -122,8 +124,10 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
 
   let length: Micros = 0;
   try {
+    signal?.throwIfAborted();
     await playback.start();
     for (let frame = 1; !playback.ended(); frame++) {
+      signal?.throwIfAborted();
       const t = Math.min(limit, Math.round((frame * 1_000_000) / fps));
       length = t;
       await playback.frame(t);
