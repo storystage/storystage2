@@ -16,11 +16,16 @@ import type {
   StatementSlot,
 } from '@storystage/ast';
 import { checkProgram, type ProgramCheckOptions } from '../catalog/program-check.ts';
-import { perProgram } from './cache.ts';
+import { indexOf, perProgram } from './cache.ts';
 import { labelFor } from './labels.ts';
 import { word, type WordsOptions } from './words.ts';
 
-/** A place in a list of statements: before the statement at `index`, or at the end. */
+/**
+ * A place in a list of statements: before the statement at `index`, or at the end. The list is
+ * counted as it's drawn: when a statement moves within its own list, it still counts, so the
+ * places just above and just below it both leave it where it is. (The AST's `move` counts after
+ * the statement has left; `canDrop` turns one into the other.)
+ */
 export interface StatementPlace {
   readonly kind: 'statement';
   readonly parent: NodeId;
@@ -59,12 +64,16 @@ const refuse = (reason: string): DropResult => ({ ok: false, reason });
 function editFor(program: Program, place: Place, candidate: Candidate, options: DropOptions) {
   if ('existing' in candidate) {
     if (place.kind !== 'statement') return word('drop.valuesOnly');
+    // Below its old place in the same list, one fewer comes before it once it has left.
+    const from = indexOf(program).get(candidate.existing);
+    const sameList = from?.parent === place.parent && from.slot === place.slot;
+    const below = sameList && typeof from.key === 'number' && place.index > from.key;
     const edit = {
       kind: 'move',
       node: candidate.existing,
       parent: place.parent,
       slot: place.slot,
-      index: place.index,
+      index: below ? place.index - 1 : place.index,
     } as const;
     return { ...edit, label: labelFor(program, { ...edit, label: '' }, options) };
   }
@@ -96,7 +105,9 @@ const key = (p: { readonly node: NodeId | null; readonly message: string }) =>
 /** The problems a program already has, worked out once for each program checked without options. */
 const problemsIn = perProgram((program) => new Set(checkProgram(program).map(key)));
 
-const hasOptions = (options: ProgramCheckOptions) => options.jointExists !== undefined;
+/** Any option given at all, so one added later can never be served from the cache. */
+const hasOptions = (options: ProgramCheckOptions) =>
+  Object.values(options).some((v) => v !== undefined);
 
 /** Whether `candidate` may go at `place`, and if so, the edits and their label. */
 export function canDrop(

@@ -4,7 +4,7 @@
  * asks the same thing for each of 500 rows gets it worked out once. A `WeakMap` lets each go
  * with its program.
  */
-import { indexProgram, type Program } from '@storystage/ast';
+import { indexProgram, type Location, type NodeId, type Program } from '@storystage/ast';
 import { programTypes } from '../catalog/program-types.ts';
 
 /** `make`, worked out once for each program. */
@@ -18,7 +18,8 @@ export function perProgram<T>(make: (program: Program) => T): (program: Program)
   };
 }
 
-/** Where every node is. Callers only read it. */
-export const indexOf = perProgram(indexProgram);
+/** Where every node is. Read-only: every caller shares it. */
+export const indexOf: (program: Program) => ReadonlyMap<NodeId, Location> =
+  perProgram(indexProgram);
 
 export const typesOf = perProgram(programTypes);

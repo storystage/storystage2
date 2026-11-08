@@ -48,7 +48,9 @@ export interface Describer {
  * same describer, so asking for one per row costs nothing (spec 14, 3h).
  */
 export function describer(program: Program, options: WordsOptions = {}): Describer {
-  return options.jointWord ? describe(program, options) : plain(program);
+  // Any option at all bypasses the cache, so one added later is never ignored.
+  const given = Object.values(options).some((v) => v !== undefined);
+  return given ? describe(program, options) : plain(program);
 }
 
 const plain = perProgram((program) => describe(program, {}));
