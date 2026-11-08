@@ -6,6 +6,7 @@
  * The pipeline that makes them (MPFB2 in Blender, headless, in the assets repository's CI) reads
  * the same file.
  */
+import { descriptionProblem } from '@storystage/backstage';
 
 /**
  * Asset names in `makehuman_system_assets_cc0.zip` (CC0), as its page lists them:
@@ -87,6 +88,12 @@ export interface Person {
   readonly id: string;
   /** The name learners see in Backstage. */
   readonly name: string;
+  /**
+   * What they look like, for the Prompter's catalogue, search and screen readers: age, hair,
+   * clothes, never skin colour or ancestry (owner, 8 Nov 2026; spec 17, section 1, rule 5).
+   * Written from their render, so it changes when the render does.
+   */
+  readonly description: string;
   readonly ageYears: number;
   /** MakeHuman's gender slider: 0 a female body, 1 a male body, 0.5 in between. */
   readonly gender: number;
@@ -151,6 +158,11 @@ export function validatePeople(people: readonly Person[]): Result {
     else if (seen.has(p.id)) e('has the same id as an earlier person.');
     else seen.add(p.id);
     if (typeof p.name !== 'string' || !p.name.trim()) e('needs a name.');
+    const problem =
+      typeof p.description === 'string'
+        ? descriptionProblem(p.description)
+        : 'needs a description.';
+    if (problem) e(problem);
     if (!(p.ageYears >= 1 && p.ageYears <= 90)) e('age must be 1 to 90 years.');
     if (!in01(p.gender)) e('gender must be 0 to 1.');
     for (const k of ['weight', 'muscle', 'height', 'proportions'] as const)
@@ -217,11 +229,11 @@ const clothesWords = (p: Person) =>
 /** The review table: one row per person, in plain words. */
 export function peopleTable(people: readonly Person[]): string {
   return [
-    '| # | Name | Age | Build | MakeHuman ancestry | Skin | Hair | Eyes | Clothes |',
-    '|---|---|---|---|---|---|---|---|---|',
+    '| # | Name | Age | Build | MakeHuman ancestry | Skin | Hair | Eyes | Clothes | Description (for the Prompter) |',
+    '|---|---|---|---|---|---|---|---|---|---|',
     ...people.map(
       (p, i) =>
-        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${clothesWords(p)} |`,
+        `| ${i + 1} | ${p.name} | ${p.ageYears} | ${buildWords(p.build)} | ${ancestryWords(p.ancestry)} | ${skinFor(p)} | ${hairWords(p)} | ${p.eyes} | ${clothesWords(p)} | ${p.description} |`,
     ),
   ].join('\n');
 }

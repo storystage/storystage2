@@ -6,6 +6,7 @@ import { ageToMacro, peopleTable, skinFor, validatePeople, type Person } from '.
 const person = (over: Partial<Person> = {}): Person => ({
   id: 'p01',
   name: 'Alfie',
+  description: 'a boy of 6 with short brown hair, in a blue shirt and jeans',
   ageYears: 6,
   gender: 0.7,
   build: { weight: 0.5, muscle: 0.5, height: 0.5, proportions: 0.5 },
@@ -63,6 +64,22 @@ describe('validatePeople', () => {
     expect(all).toMatch(/age/);
     expect(all).toMatch(/same id/);
     expect(all).toMatch(/hoodie99/);
+  });
+});
+
+describe('descriptions', () => {
+  it('needs one, in plain words that never mention skin colour or ancestry', () => {
+    expect(validatePeople([person()]).ok).toBe(true);
+    const r = validatePeople([
+      person({ description: undefined as never }),
+      person({ id: 'p02', description: 'a Caucasian boy of 6' }),
+      person({ id: 'p03', description: 'a boy with fair skin' }),
+    ]);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]).toMatch(/p01.*needs a description/);
+    expect(r.errors[1]).toMatch(/p02.*never by skin colour or ancestry/);
+    expect(r.errors[2]).toMatch(/p03.*never by skin colour or ancestry/);
   });
 });
 

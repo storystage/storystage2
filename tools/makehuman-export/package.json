@@ -8,6 +8,9 @@
     "typecheck": "tsc --noEmit -p .",
     "people": "node src/people-cli.ts"
   },
+  "dependencies": {
+    "@storystage/backstage": "workspace:*"
+  },
   "devDependencies": {
     "vitest": "^5.0.5"
   }
