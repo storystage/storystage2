@@ -49,6 +49,7 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 - **Sizes.** `load` gives the timeline each object's box and its joints' resting places (`Shape`). A stand-in is the same block on both stages (`STAND_IN_BOX`), and `FakeStage` gives every object that block, so the two agree.
 - **The scene and the camera.** The sky, light and fog are `SCENE`'s, and only it takes `atmosphere`, `light` and `fog`; only the camera takes `lens`. `SCENE` isn't in `objects()`.
 - **Good view.** `moveAndOrientTo` with `goodView` puts the camera in front of its target, a little above, at two and a half times its largest size, looking at its middle.
+- **Fading.** `fade` on `SCENE` darkens the whole picture, sky included, to black and back. Loading a scene clears it. Going to another scene and crossfading are the production's playback (WP8.3).
 - **Not yet:** smooth paths, folding and spreading wings, and the size of a joint. The stage refuses them with `bad_argument`.
 - **Touching.** Alice's rule, in `hull.ts`: each object has a footprint and a height from its box in the scene. Proximity is the same test with a margin, so it measures the gap between two things, not between their centres.
 - **Backdrops.** `backdrops.ts` holds Alice's 20 starting templates, with her numbers. Her fog value is cubed to give the density. Ground surfaces are flat colours until WP3's textures arrive.
@@ -56,6 +57,27 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 - **Events.** Each fires once, at the change: two things start or stop touching, a watched pair comes within or goes beyond its distance, a watched object comes into or leaves the picture. Nothing fires for what was already so when listening or watching starts, and rewinding fires nothing. An object faded to nothing is out of the picture.
 - **Hashes.** What only the newer commands set (paint part-way through a blend, back paint, words, the lens, the sky) is in `stateHash` only once something sets it, so older scenes hash as they did.
 - **Budgets.** Spike 1.2 is waiting for its device runs, so nothing here is held to a budget yet.
+
+## Shots (4.10)
+
+A `shot` moves the camera, over its duration, to frame its targets. Where it goes is worked out when it starts, from `SHOTS` in `timeline.ts`. The same rules should stand behind the storyboard's shot types (WP10.6) and the check against the storyboard (11.6).
+
+- **Subject:** the box round all the targets. A marker or a joint counts as a 30 cm cube.
+- **Side:** the camera looks level at the subject's front. With one target that's the way it faces. With more, it's across the line between the first two, on the side they face, or on the camera's side if they face each other.
+- **How close:** each shot takes in a part of the subject's height, looking that far down from its top.
+
+| Shot | Takes in | Looks at, down from the top | Notes |
+| --- | --- | --- | --- |
+| `wide` | 2.2 × its height | half way | Wide enough for 1.6 × its width |
+| `medium` | 0.7 × its height | 0.3 | From the top down to the waist, with room above |
+| `closeUp` | 0.38 × its height | 0.15 | Head and shoulders, with room above |
+| `twoShot` | 0.7 × its height | 0.3 | Two side by side; wide enough for 1.3 × their width |
+| `follow` | 1.4 × its height | 0.4 | From behind and a little above, then rides on the target |
+| `overTheShoulder` | — | — | Behind and beside the first target's shoulder, looking at the second's face |
+
+- **Distance** comes from the lens, and from a 16:9 picture for width.
+- **Not done:** keeping out of the way. A shot doesn't move round something between the camera and its subject, as Cinemachine's collider would.
+- **Follow** is followed from the end of the move: the camera then rides on the target, so it keeps up from there.
 
 ## Tests
 

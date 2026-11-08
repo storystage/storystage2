@@ -16,6 +16,7 @@ import {
 import grassCast from '../../../../tests/scenes/grass-cast.json';
 import fadeOut from '../../../../tests/scenes/fade-out.json';
 import roomCamera from '../../../../tests/scenes/room-camera.json';
+import shots from '../../../../tests/scenes/shots.json';
 import snowFog from '../../../../tests/scenes/snow-fog.json';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../../src/backdrops.ts';
 import { createBabylonStage, type ModelSource } from '../../src/babylon/index.ts';
@@ -37,6 +38,7 @@ const SCENES = {
   'snow-fog': snowFog,
   'room-camera': roomCamera,
   'fade-out': fadeOut,
+  shots,
 } as unknown as Readonly<Record<string, ReferenceScene>>;
 
 const robot = backstageId('test/Biped/robot');
@@ -195,6 +197,22 @@ async function darkPixels(name: string, seconds: number) {
   return count;
 }
 
+/**
+ * How much of a grass scene's frame is neither sky nor ground: what the camera has framed. The
+ * grass template's sky and ground are flat colours (`backdrops.ts`).
+ */
+async function subjectShare(name: string, seconds: number) {
+  const { data } = await frameOf(name, seconds);
+  const near = (p: number, r: number, g: number, b: number) =>
+    Math.abs(data[p]! - r) < 25 &&
+    Math.abs(data[p + 1]! - g) < 25 &&
+    Math.abs(data[p + 2]! - b) < 25;
+  let count = 0;
+  for (let p = 0; p < data.length; p += 4)
+    if (!near(p, 150, 226, 252) && !near(p, 0x5f, 0x9e, 0x3a)) count++;
+  return count / (W * H);
+}
+
 /** A frame as a PNG, for people to look at. */
 async function picture(name: string, seconds: number) {
   const frame = await frameOf(name, seconds);
@@ -314,6 +332,7 @@ Object.assign(window, {
     skies,
     sample,
     darkPixels,
+    subjectShare,
     eventCost,
     picture,
     goLive,

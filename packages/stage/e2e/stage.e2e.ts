@@ -36,7 +36,7 @@ interface Determinism {
   rewindIdentical: boolean;
 }
 
-for (const scene of ['grass-cast', 'snow-fog', 'room-camera', 'fade-out']) {
+for (const scene of ['grass-cast', 'snow-fog', 'room-camera', 'fade-out', 'shots']) {
   test(`renders ${scene} the same twice, frame for frame`, async ({ page }) => {
     test.setTimeout(120_000);
     const problems = await open(page);
@@ -110,6 +110,16 @@ test('fades the whole picture to black, the sky included', async ({ page }) => {
   expect(half).toBeLessThan(150);
   expect(Math.max(...(await sky(3)))).toBeLessThanOrEqual(2);
   expect(Math.max(...(await ground(3)))).toBeLessThanOrEqual(2);
+});
+
+test('fills more of the picture with its subject, the closer the shot', async ({ page }) => {
+  await open(page);
+  const share = (t: number) => call<number>(page, 'subjectShare', 'shots', t);
+  const [wide, medium, closeUp] = [await share(0.9), await share(1.9), await share(2.9)];
+  console.log(JSON.stringify({ wide, medium, closeUp }));
+  expect(wide).toBeGreaterThan(0.02);
+  expect(medium).toBeGreaterThan(wide * 2);
+  expect(closeUp).toBeGreaterThan(medium);
 });
 
 test('measures what view and occlusion events would cost (decision 0051)', async ({ page }) => {

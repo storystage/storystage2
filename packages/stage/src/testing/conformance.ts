@@ -15,13 +15,14 @@ import {
   type ObjectId,
   type SceneLook,
   type SceneSetup,
+  type ShotType,
   type StageCommand,
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import type { Stage } from '../contract.ts';
-import { heading } from '../math.ts';
+import { heading, rotate } from '../math.ts';
 
 const cat = objectId('cat');
 const dog = objectId('dog');
@@ -462,6 +463,92 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
         ).toThrow(StageError);
         expect(() =>
           stage.schedule([cmd(0, 0, { object: cat, kind: 'text', text: 'Hi' })]),
+        ).toThrow(StageError);
+      });
+    });
+
+    describe('shots', () => {
+      const shot = (name: ShotType, ...targets: ObjectId[]) =>
+        cmd(0, 1, { object: CAMERA, kind: 'shot', shot: name, targets });
+      const frame = async (name: ShotType, ...targets: ObjectId[]) => {
+        const stage = await loaded();
+        stage.schedule([shot(name, ...targets)]);
+        stage.seek(micros(1));
+        return { stage, camera: stage.transform(CAMERA) };
+      };
+      /** Where a point is as the camera sees it: +Z is straight ahead. */
+      const seen = (camera: Transform, point: Vec3) => {
+        const d = {
+          x: point.x - camera.position.x,
+          y: point.y - camera.position.y,
+          z: point.z - camera.position.z,
+        };
+        const q = camera.rotation;
+        return rotate({ x: -q.x, y: -q.y, z: -q.z, w: q.w }, d);
+      };
+
+      it('look at the front of their target, nearer for a closer shot', async () => {
+        const distances: number[] = [];
+        for (const name of ['wide', 'medium', 'closeUp'] as const) {
+          const { camera } = await frame(name, dog);
+          // The dog faces +Z, so the camera is in front of it, looking back at it.
+          expect(camera.position.z).toBeGreaterThan(0.5);
+          const there = seen(camera, { x: 1, y: 0.5, z: 0 });
+          close(there.x, 0);
+          expect(there.z).toBeGreaterThan(0);
+          distances.push(camera.position.z);
+        }
+        expect(distances[0]).toBeGreaterThan(distances[1]!);
+        expect(distances[1]).toBeGreaterThan(distances[2]!);
+      });
+
+      it('aim a close-up nearer the top than a wide shot', async () => {
+        const wide = (await frame('wide', dog)).camera.position.y;
+        const closeUp = (await frame('closeUp', dog)).camera.position.y;
+        expect(closeUp).toBeGreaterThan(wide);
+      });
+
+      it('put both of a two-shot in front of the camera, seen side by side', async () => {
+        const { camera } = await frame('twoShot', cat, dog);
+        const a = seen(camera, { x: -1, y: 0.5, z: 0 });
+        const b = seen(camera, { x: 1, y: 0.5, z: 0 });
+        expect(a.z).toBeGreaterThan(0);
+        close(a.z, b.z);
+        expect(Math.sign(a.x)).toBe(-Math.sign(b.x));
+      });
+
+      it('look over the first target’s shoulder at the second', async () => {
+        const { camera } = await frame('overTheShoulder', cat, dog);
+        const cats = seen(camera, { x: -1, y: 0.5, z: 0 });
+        const dogs = seen(camera, { x: 1, y: 0.85, z: 0 });
+        expect(dogs.z).toBeGreaterThan(cats.z);
+        expect(cats.z).toBeGreaterThan(0);
+        expect(Math.abs(dogs.x / dogs.z)).toBeLessThan(0.1);
+      });
+
+      it('follow a target as it moves on after the shot', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          shot('follow', dog),
+          cmd(1, 1, { object: dog, kind: 'translate', by: { x: 0, y: 0, z: 3 }, space: 'scene' }),
+        ]);
+        stage.seek(micros(1));
+        const before = stage.transform(CAMERA).position;
+        // Behind the dog, which faces +Z.
+        expect(before.z).toBeLessThan(0);
+        stage.seek(micros(2));
+        close(stage.transform(CAMERA).position.z - before.z, 3);
+      });
+
+      it('are only the camera’s, and a two-shot needs two', async () => {
+        const stage = await loaded();
+        expect(() =>
+          stage.schedule([cmd(0, 1, { object: cat, kind: 'shot', shot: 'wide', targets: [dog] })]),
+        ).toThrow(StageError);
+        expect(() =>
+          stage.schedule([
+            cmd(0, 1, { object: CAMERA, kind: 'shot', shot: 'twoShot', targets: [dog] }),
+          ]),
         ).toThrow(StageError);
       });
     });

@@ -23,6 +23,7 @@ import {
   type Quat,
   type SceneObjectSetup,
   type SceneSetup,
+  type ShotType,
   type Space,
   type StageCommand,
   type StageQuery,
@@ -40,6 +41,7 @@ import {
   add,
   axisTurns,
   conjugate,
+  cross,
   dot,
   heading,
   length,
@@ -136,7 +138,15 @@ type Resolved =
   | { kind: 'text'; text: string }
   | { kind: 'say'; speech: Speech }
   | { kind: 'vehicle'; vehicle: ObjectId | null; shift: Vec3; turn: Quat }
-  | { kind: 'shot'; shot: string }
+  | {
+      kind: 'shot';
+      shot: string;
+      delta: Vec3;
+      axis: Vec3;
+      turns: number;
+      /** A follow shot ends riding on its target, keeping this pose relative to it. */
+      follow: { vehicle: ObjectId; position: Vec3; rotation: Quat } | null;
+    }
   | { kind: 'lens'; from: number; to: number }
   | { kind: 'skyColour'; part: SkyPart; base: Sky; from: Colour; to: Colour }
   | { kind: 'fog'; base: Sky; from: number; to: number }
@@ -496,8 +506,18 @@ export class Timeline {
           return { kind: 'say', speech: { text: c.text, bubble: c.bubble } };
         case 'vehicle':
           return boarding(before, c.object, c.vehicle, carrier);
-        case 'shot':
-          return { kind: 'shot', shot: `${c.shot}:${c.targets.map(targetName).join(',')}` };
+        case 'shot': {
+          const lens = self.lens ?? this.baseLens;
+          const { pose, follow } = this.shotPose(before, here, c.shot, c.targets, lens);
+          const riding = follow ? relativeTo(scenePose(before, follow), pose) : null;
+          return {
+            kind: 'shot',
+            shot: `${c.shot}:${c.targets.map(targetName).join(',')}`,
+            delta: carried(sub(pose.position, here.position)),
+            ...turnTo(pose.rotation),
+            follow: follow && riding ? { vehicle: follow, ...riding } : null,
+          };
+        }
         case 'lens':
           return { kind: 'lens', from: self.lens ?? this.baseLens, to: c.verticalAngle };
         case 'atmosphere':
@@ -513,6 +533,102 @@ export class Timeline {
     const r = resolved();
     this.resolved.set(c.seq, r);
     return r;
+  }
+
+  /** The box round some targets, in the scene's axes. A marker or a joint is a 30 cm cube. */
+  private subject(state: SceneState, targets: readonly Target[]): Box {
+    const corners: Vec3[] = [];
+    for (const target of targets) {
+      const pose = this.targetPose(state, target);
+      const box = typeof target === 'string' ? this.shapes.get(target)?.box : undefined;
+      const s = box ? state.get(target as ObjectId)!.scale : v(1, 1, 1);
+      const { min, max } = box ?? { min: v(-0.15, -0.15, -0.15), max: v(0.15, 0.15, 0.15) };
+      for (const x of [min.x, max.x])
+        for (const y of [min.y, max.y])
+          for (const z of [min.z, max.z])
+            corners.push(add(pose.position, rotate(pose.rotation, times(v(x, y, z), s))));
+    }
+    const low = (k: keyof Vec3) => Math.min(...corners.map((p) => p[k]));
+    const high = (k: keyof Vec3) => Math.max(...corners.map((p) => p[k]));
+    return { min: v(low('x'), low('y'), low('z')), max: v(high('x'), high('y'), high('z')) };
+  }
+
+  /**
+   * Where the camera goes for a shot (4.10), worked out when it starts. Every shot but
+   * over-the-shoulder looks level at the front of its subject: the box round its targets. With
+   * one target, the front is the way it faces; with more, it is across the line between the
+   * first two, on the side they face, or the camera's side if they face each other.
+   * How much of the subject fills the picture's height is the shot's (`SHOTS`); a wide shot and
+   * a two-shot also make room for the subject's width, in a 16:9 picture.
+   */
+  private shotPose(
+    state: SceneState,
+    here: Pose,
+    shot: ShotType,
+    targets: readonly Target[],
+    lens: number,
+  ): { pose: Pose; follow: ObjectId | null } {
+    const tan = Math.tan(lens * Math.PI);
+    const level = (a: Vec3) => unit(v(a.x, 0, a.z));
+    const at = (t: Target) => this.targetPose(state, t);
+    const facing = (t: Target) => level(rotate(at(t).rotation, FORWARD));
+    const box = this.subject(state, targets);
+    const height = Math.max(box.max.y - box.min.y, 0.1);
+    const middle = centre(box);
+    if (shot === 'overTheShoulder') {
+      // Behind the first target's shoulder, looking at the second's face.
+      const [a, b] = [this.subject(state, [targets[0]!]), this.subject(state, [targets[1]!])];
+      const ahead = level(sub(centre(b), centre(a))) ?? FORWARD;
+      const tall = a.max.y - a.min.y;
+      const shoulder = v(centre(a).x, a.max.y - 0.1 * tall, centre(a).z);
+      const side = unit(cross(UP, ahead)) ?? v(1, 0, 0);
+      // Far enough back and to the side to see past them, as a person would be.
+      const position = add(shoulder, add(scale(ahead, -0.6 * tall), scale(side, 0.5 * tall)));
+      const face = v(centre(b).x, b.max.y - 0.15 * (b.max.y - b.min.y), centre(b).z);
+      return {
+        pose: { position, rotation: lookRotation(sub(face, position), UP) ?? here.rotation },
+        follow: null,
+      };
+    }
+    // Which way from the subject the camera is.
+    let toward = facing(targets[0]!) ?? level(rotate(here.rotation, v(0, 0, -1))) ?? FORWARD;
+    // A shot of more than one sees them side by side, as a two-shot does.
+    if (targets.length > 1) {
+      const across = level(sub(at(targets[1]!).position, at(targets[0]!).position));
+      const side = across ? unit(cross(UP, across)) : null;
+      if (side) {
+        const both = add(facing(targets[0]!) ?? v(0, 0, 0), facing(targets[1]!) ?? v(0, 0, 0));
+        const front = length(both) > 1e-6 ? dot(side, both) : dot(side, sub(here.position, middle));
+        toward = front >= 0 ? side : scale(side, -1);
+      }
+    }
+    if (shot === 'follow') toward = scale(toward, -1);
+    const { fill, aim, wide } = SHOTS[shot];
+    const across = unit(cross(UP, toward)) ?? v(1, 0, 0);
+    /** How far the subject's footprint reaches along a level direction. */
+    const spread = (k: Vec3) => {
+      const values = [box.min.x, box.max.x].flatMap((x) =>
+        [box.min.z, box.max.z].map((z) => dot(v(x, 0, z), k)),
+      );
+      return Math.max(...values) - Math.min(...values);
+    };
+    let distance = (height * fill) / 2 / tan;
+    if (wide) distance = Math.max(distance, (spread(across) * wide) / 2 / (tan * ASPECT));
+    distance = Math.max(distance, 0.5) + spread(toward) / 2;
+    const target = v(middle.x, box.max.y - aim * height, middle.z);
+    const lift = shot === 'follow' ? height * 0.4 : 0;
+    const position = add(add(target, scale(toward, distance)), v(0, lift, 0));
+    const rotation = lookRotation(sub(target, position), UP) ?? here.rotation;
+    const first = targets[0]!;
+    const follow =
+      shot !== 'follow'
+        ? null
+        : typeof first === 'string'
+          ? this.start.has(first)
+            ? first
+            : null
+          : first.object;
+    return { pose: { position, rotation }, follow };
   }
 
   /** Where the camera sees a target well: in front of it, a little above, looking at its middle. */
@@ -690,9 +806,14 @@ export class Timeline {
           if (c.vehicle === c.object) throw bad(`${c.object} can't ride on itself.`);
         }
         break;
-      case 'shot':
+      case 'shot': {
+        if (c.object !== CAMERA) throw bad('Only the camera frames a shot.');
+        const needs = c.shot === 'twoShot' || c.shot === 'overTheShoulder' ? 2 : 1;
+        if (c.targets.length < needs)
+          throw bad(`That shot needs ${needs === 2 ? 'two things' : 'something'} to frame.`);
         c.targets.forEach((t) => this.checkTarget(t));
         break;
+      }
       case 'paint':
         colour(c.paint);
         break;
@@ -723,6 +844,29 @@ export class Timeline {
     }
   }
 }
+
+/** The picture's width over its height, for fitting a subject's width: the export's 16:9. */
+const ASPECT = 16 / 9;
+
+/**
+ * How each shot frames its subject (4.10). `fill` is how much of the subject's height the
+ * picture's height takes in; `aim` is how far down from the top of the subject the camera
+ * looks, as a part of its height; `wide`, where set, makes the picture that much wider than
+ * the subject. Over-the-shoulder is placed by its own rule.
+ */
+export const SHOTS: Readonly<Record<ShotType, { fill: number; aim: number; wide?: number }>> = {
+  /** All of it, with room round it. */
+  wide: { fill: 2.2, aim: 0.5, wide: 1.6 },
+  /** From the top down to the waist, with a little room above. */
+  medium: { fill: 0.7, aim: 0.3 },
+  /** Head and shoulders, with a little room above. */
+  closeUp: { fill: 0.38, aim: 0.15 },
+  /** Two targets side by side, from the waist up, from the side they face. */
+  twoShot: { fill: 0.7, aim: 0.3, wide: 1.3 },
+  /** Behind and a little above the target, riding with it. */
+  follow: { fill: 1.4, aim: 0.4 },
+  overTheShoulder: { fill: 0, aim: 0 },
+};
 
 /** Which of the target's axes each relation goes along, and which way (spec 02, Directions). */
 const RELATIONS = {
@@ -882,6 +1026,14 @@ function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageComman
       return;
     case 'shot':
       s.shot = r.shot;
+      if (r.follow && p >= 1) {
+        s.vehicle = r.follow.vehicle;
+        s.position = r.follow.position;
+        s.rotation = r.follow.rotation;
+        return;
+      }
+      s.position = add(s.position, scale(r.delta, p));
+      s.rotation = mul(axisTurns(r.axis, r.turns * p), s.rotation);
       return;
     case 'lens':
       s.lens = lerp(r.from, r.to, p);
