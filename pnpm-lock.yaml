@@ -54,6 +54,12 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../../packages/ast
+      '@storystage/blocks':
+        specifier: workspace:*
+        version: link:../../packages/blocks
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../../packages/editor-contract
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
@@ -191,12 +197,19 @@ importers:
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
       fflate:
         specifier: ^0.8.3
         version: 0.8.3
+    devDependencies:
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
 
   packages/projection: {}
 

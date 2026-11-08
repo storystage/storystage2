@@ -13,7 +13,11 @@
   "dependencies": {
     "@storystage/ast": "workspace:*",
     "@storystage/backstage": "workspace:*",
+    "@storystage/runtime": "workspace:*",
     "@storystage/story-api": "workspace:*",
     "fflate": "^0.8.3"
+  },
+  "devDependencies": {
+    "@storystage/stage": "workspace:*"
   }
 }

@@ -7,6 +7,7 @@
 
 mod classes;
 mod key_dialog;
+mod picker;
 mod prompter;
 mod speech;
 #[cfg(desktop)]
@@ -52,7 +53,10 @@ pub fn run() {
         // For the bundled speech model inside the APK, from Rust only (spec 05 section 5.2).
         .plugin(tauri_plugin_fs::init());
     #[cfg(desktop)]
-    let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+    let builder = builder
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        // The file dialog, from Rust only: no window is given its permissions (spec 05 section 6.5).
+        .plugin(tauri_plugin_dialog::init());
     builder
         .setup(|app| {
             let policy = read_policy(app.handle());
@@ -60,6 +64,7 @@ pub fn run() {
             app.manage(prompter::Prompter::default());
             app.manage(speech::Speech::default());
             app.manage(classes::Classes::new(app.handle()));
+            app.manage(picker::Picker::default());
             #[cfg(desktop)]
             {
                 app.manage(updates::Pending::default());
@@ -86,6 +91,14 @@ pub fn run() {
             classes::classes_remove,
             classes::classes_list,
             classes::classes_move,
+            picker::picker_kind,
+            picker::picker_save,
+            picker::picker_open,
+            picker::picker_collect_start,
+            picker::picker_collect_write,
+            picker::picker_hand_back_start,
+            picker::picker_hand_back_read,
+            picker::picker_end,
         ])
         .build(tauri::generate_context!())
         .expect("error while running StoryStage 2")

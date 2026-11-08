@@ -467,7 +467,20 @@ In the browser version (`browserPicker`):
 
 Collect refuses a clash or a name `safeFileName` wouldn't give, and anything over `FILE_LIMIT`, before writing anything. Open and Hand back refuse a file over `FILE_LIMIT` before reading it, and Hand back reads nothing if any is. Closing a picker, or refusing it permission, is `cancelled`.
 
-The Tauri apps use the browser's pickers until the native picker lands: the system dialog opened from Rust, so the webview never holds a path.
+In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the native layer, with `tauri-plugin-dialog` used from Rust only: no window is given the plugin's permissions. The webview sends bytes and names and gets bytes back, and never holds a path:
+
+| Command | Takes | Gives |
+|---|---|---|
+| `picker_kind` | | `native` on desktop, `browser` on iPad and Android |
+| `picker_save` | The copy as a raw body; its suggested name in `x-storystage-name` | Nothing, or `cancelled` |
+| `picker_open` | | One raw reply: the name's length in four bytes (big-endian), the name, then the file |
+| `picker_collect_start` | | A session, once the teacher has picked a folder |
+| `picker_collect_write` | A file as a raw body; `folder/file` in `x-storystage-name`, the session in `x-storystage-session` | Nothing |
+| `picker_hand_back_start` | | A session, and `{ folder, file }` for each production one level down |
+| `picker_hand_back_read` | A session and an index | The file, as a raw reply |
+| `picker_end` | A session | Forgets the picked folder |
+
+Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. On iPad and Android, `picker_kind` is `browser` and the webview's own pickers are used, until the native dialogs there have been tried on devices.
 
 ## 7. Tests
 
@@ -514,6 +527,9 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Safe path parts only (6.1, 6.4) | One fixture of safe and unsafe parts (`classes/fixtures/parts.json`), tested in TypeScript and in Rust, so the two rules stay the same | Vitest, Rust unit |
 | A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
 | The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
+| The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |
+| The page can't reach the dialog itself (6.5) | `plugin:dialog|open` refused on the real Windows app | The leak scan |
+| The native dialogs (6.5) | By hand on Windows and a Mac: each of the four, and closing each | Device (owner) |
 | The browser's own pickers and inputs (6.5) | By hand in Chrome on a Chromebook, and in Safari on an iPad | Device (owner) |
 | The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |
