@@ -18,7 +18,13 @@ Teachers set each class up in **Settings › Class set-up**. Changes save as you
 | **Backstage imports** | Off, **Teacher only**, Learners | Teacher only (the default) |
 | **Study logs** | Export | Only for pilot schools taking part in the study |
 
-**[Open: pupils and their folders. How each pupil finds their own work next lesson on a shared device, and can't see anyone else's, is being decided (WP24.2). This section gains the steps once it is.]**
+## Pupils and their folders
+
+- **Add the class once** in **Settings › Class set-up › Pupils and folders**: first names, or a word and a picture for each pupil. The list stays on the device and never goes into a film, an export or a study log.
+- **Each lesson,** a pupil chooses their name and their own work opens. Autosave keeps it there. A pupil sees only their own productions; deleting asks first, and goes to a bin you empty.
+- **Pupils on different devices next lesson?** **Collect** the class's work into the school's own storage (a drive, OneDrive or Google Drive), then **Hand back** on the next devices. Collect into a **staff-only folder**, so pupils can't open each other's work there.
+- **Shared computer logins:** folders stop slips and casual looking, not a determined pupil looking for files on the computer itself. If your school can give each pupil their own sign-in on the device, use it.
+- StoryStage has no accounts and never signs in to Google or Microsoft (decision 0065).
 
 ## The school lock
 

@@ -22,7 +22,7 @@ Windows, Mac, iPad and Chromebook apps, and a browser version for anything else,
 Six to 13. The youngest learners need an adult nearby for reading and for their first lessons; guided films, read-aloud tips and voice input help.
 
 **Can pupils carry on at home?**
-Yes: a production is a `.storystage` file that opens in any version, and the browser version needs nothing installed. **[Open: how pupils take their work home from shared school devices follows the decision on where work lives (WP24.2).]**
+Yes: a production is a `.storystage` file that opens in any version, and the browser version needs nothing installed. A pupil can **Save a copy** to a file the school allows them to take home, or the teacher can collect work into the school's own storage and share it as the school usually does.
 
 **Can my class use it without the Prompter?**
 Yes. Every lesson and use case works with it off, and the browser version doesn't have it at all.
