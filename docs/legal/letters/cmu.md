@@ -1,6 +1,6 @@
 # The CMU and EA email (WP17.1, 17.7)
 
-- **Status:** draft, for the owner to send. Not yet sent.
+- **Status:** **sent** by the owner (by 8 Nov 2026). CMU replied that it is seeking advice from its legal department; no permission yet. See [`../correspondence.md`](../correspondence.md).
 - **One letter:** this combines S4's request from the licence audit (#60: the model list and the question about the tile editor) with session D's (#51: EA, StoryStage 1, exports and credit). It replaces both earlier drafts.
 - **To:** the Alice Project at Carnegie Mellon University, Entertainment Technology Center, 700 Technology Drive, Pittsburgh, PA 15219. The director (Melanie Lam, as listed on [alice.org/about/the-team](https://www.alice.org/about/the-team/), October 2026) by email, with a copy through the [alice.org contact form](https://www.alice.org/contact/) in case the address has changed.
 - **From:** the owner, in their own name, from an email address they will keep (the reply becomes a permission record).
