@@ -773,7 +773,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp14 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP13b, WP4b.
 <!-- /schedule:wp14 -->
-- [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). Download on first use after consent, with a checksum. Hold to talk; an editable transcript; audio is discarded after transcription. (C)
+- [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). The default model is bundled in the apps (decision 0057); the optional, more accurate one downloads on request after consent, with a checksum. Hold to talk; an editable transcript; audio is discarded after transcription. (C)
 - [ ] 14.2 Speech output with speech synthesis, filtered to voices marked `localService`, preferring en-GB. A narration queue tied to Prompter steps, stop, and captions always shown. (C)
 - [ ] 14.3 **Speak line** block: characters speak script dialogue through the same voices, captioned. (C)
 - [ ] 14.4 **Later** (not in the first release): a voice-over recorder per script line, and Rhubarb Lip Sync (MIT) as a desktop sidecar driving the mouth joint. (C)
