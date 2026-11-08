@@ -5,11 +5,13 @@
   "description": "Option C: Alice-style tile editor in React (rows, drop targets, cascading menus, add detail).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./cascade": "./src/cascade.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
-    "harness": "vite --config harness/vite.config.ts --port 4183 --strictPort"
+    "harness": "vite --config harness/vite.config.ts --port 4183 --strictPort",
+    "harness:production": "vite build --config harness/vite.config.ts && vite preview --config harness/vite.config.ts --port 4184 --strictPort"
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",

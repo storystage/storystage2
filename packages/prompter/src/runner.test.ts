@@ -311,19 +311,24 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
 });
 
 describe('PrompterRunner: reading (spec 04, sections 3.1, 3.2)', () => {
-  it('reads the project as data, with each block and its id', () => {
+  it('reads the production and the storyboard as a turn sends them, with block ids', () => {
     const { run } = setUp();
     const result = run('read_project', {});
     const summary = result.ok ? result.summary : '';
-    expect(summary).toMatch(/^<production_data>.*<\/production_data>$/s);
-    expect(summary).toContain('scene2b');
+    const blocks =
+      /^<production_data>(.*)<\/production_data>\n<storyboard_data>(.*)<\/storyboard_data>$/s.exec(
+        summary,
+      );
+    expect(blocks).not.toBeNull();
     // Learner text inside can't open or close a tag (section 2.4).
-    const inside = summary.slice('<production_data>'.length, -'</production_data>'.length);
-    expect(inside).not.toMatch(/[<>]/);
-    expect(JSON.parse(inside)).toMatchObject({
+    for (const inside of blocks!.slice(1)) expect(inside).not.toMatch(/[<>]/);
+    const production = JSON.parse(blocks![1]!);
+    expect(production).toMatchObject({
       scene: 's2',
-      objects: ['camera', 'penguin', 'fox'],
+      setup: { objects: [{ id: 'penguin' }, { id: 'fox' }] },
     });
+    expect(production.program).toContain('# [scene2b]');
+    expect(JSON.parse(blocks![2]!).frames).toHaveLength(3);
   });
 
   it("gives a frame's check result, or says it hasn't run", () => {

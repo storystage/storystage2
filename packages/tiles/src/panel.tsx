@@ -5,7 +5,7 @@
  */
 import type { NodeId, Program } from '@storystage/ast';
 import { palette, type PaletteItem, type PaletteTab } from '@storystage/story-api/editing';
-import { useMemo, type PointerEvent } from 'react';
+import { memo, useMemo, type PointerEvent } from 'react';
 import {
   Button,
   Header,
@@ -24,6 +24,7 @@ import {
 import { Ghost, useDragSource, type DragTarget } from './drag.tsx';
 import type { Target } from './insert.ts';
 import { tileVariables } from './tokens.ts';
+import { namesOf } from './view.tsx';
 import { t } from './words.ts';
 
 export interface PanelProps {
@@ -42,7 +43,11 @@ export interface PanelProps {
 
 const NO_IDS = () => 'zzzzzz' as NodeId;
 
-export function MethodsPanel(props: PanelProps) {
+/**
+ * Memoised: drawn again only when a name, the object or the tab changes, not on every edit to the
+ * code, since the palette depends only on what the program declares (spec 14, 3h).
+ */
+export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
   const { program, type, targets, target, tab } = props;
   const chosen = targets.find((x) => x.key === target) ?? targets[0];
   const groups = useMemo(
@@ -141,5 +146,20 @@ export function MethodsPanel(props: PanelProps) {
       </Tabs>
       <Ghost ghost={ghost} />
     </div>
+  );
+}, samePanel);
+
+function samePanel(a: PanelProps, b: PanelProps): boolean {
+  const words = (p: PanelProps) => p.targets.map((x) => `${x.key}:${x.words}`).join('|');
+  return (
+    namesOf(a.program) === namesOf(b.program) &&
+    a.type === b.type &&
+    a.target === b.target &&
+    a.tab === b.tab &&
+    a.onTarget === b.onTarget &&
+    a.onTab === b.onTab &&
+    a.onInsert === b.onInsert &&
+    a.drag === b.drag &&
+    words(a) === words(b)
   );
 }

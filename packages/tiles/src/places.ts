@@ -2,7 +2,7 @@
  * Where statements are, and every place one could go in a method, in reading order: the stops
  * for moving a statement by keyboard (spec 14, 3d) and the drop line's targets (3c).
  */
-import { indexProgram } from '@storystage/ast';
+import { indexProgram, type Location } from '@storystage/ast';
 import type { AstNode, NodeId, Program, Statement, StatementSlot } from '@storystage/ast';
 import type { StatementPlace } from '@storystage/story-api/editing';
 
@@ -25,9 +25,24 @@ export function listsOf(
   }));
 }
 
+const indexes = new WeakMap<Program, ReadonlyMap<NodeId, Location>>();
+
+/**
+ * Where every node in a program is, worked out once for each program: a program is immutable,
+ * and a long method asks this for every row and every keystroke (spec 14, 3h).
+ */
+export function indexOf(program: Program): ReadonlyMap<NodeId, Location> {
+  let index = indexes.get(program);
+  if (!index) {
+    index = indexProgram(program);
+    indexes.set(program, index);
+  }
+  return index;
+}
+
 /** The list a statement is in, and its place there. */
 export function whereIs(program: Program, id: NodeId): Where | null {
-  const at = indexProgram(program).get(id);
+  const at = indexOf(program).get(id);
   if (!at?.parent || typeof at.key !== 'number' || !SLOTS.includes(at.slot as StatementSlot))
     return null;
   return { parent: at.parent, slot: at.slot as StatementSlot, index: at.key };
@@ -44,7 +59,7 @@ export const placeKey = (p: StatementPlace) => `${p.parent}/${p.slot}/${p.index}
 
 /** Every place in a method or listener, in reading order: before each statement, then the end. */
 export function placesIn(program: Program, method: NodeId): readonly StatementPlace[] {
-  const owner = indexProgram(program).get(method)?.node;
+  const owner = indexOf(program).get(method)?.node;
   if (!owner) return [];
   const places: StatementPlace[] = [];
   const visit = (parent: AstNode) => {
