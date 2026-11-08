@@ -15,6 +15,7 @@ import {
   type EditorCommand,
   type EditorHost,
   type HighlightKind,
+  type HighlightMark,
   type ViewState,
 } from '@storystage/editor-contract';
 import {
@@ -73,7 +74,7 @@ import {
 import { t } from './words.ts';
 import './tiles.css';
 
-const NO_HIGHLIGHTS: Highlights = { rehearse: new Set(), error: new Set(), prompter: new Set() };
+const NO_HIGHLIGHTS: Highlights = { rehearse: new Map(), error: new Map(), prompter: new Map() };
 
 /** The first method or listener of the first type that has one. */
 function firstMethod(program: Program): NodeId | null {
@@ -195,8 +196,9 @@ export class TileEditor implements CodeEditor {
     this.render();
   }
 
-  highlight(nodes: readonly NodeId[], kind: HighlightKind): void {
-    this.highlights = { ...this.highlights, [kind]: new Set(nodes) };
+  highlight(marks: readonly HighlightMark[], kind: HighlightKind): void {
+    const byNode = new Map(marks.map((m) => [m.node, m.message] as const));
+    this.highlights = { ...this.highlights, [kind]: byNode };
     this.render();
   }
 
