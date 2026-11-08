@@ -13,6 +13,7 @@ const cards = () =>
   within(screen.getByRole('grid', { name: 'Scenes' }))
     .getAllByRole('row')
     .map((r) => r.querySelector('.sb-scene-title')!.textContent);
+const sceneRows = () => within(screen.getByRole('grid', { name: 'Scenes' })).getAllByRole('row');
 const undo = () => screen.getByRole('button', { name: /^Undo/ });
 
 describe('Add a scene (10.1, 10.3)', () => {
@@ -48,7 +49,7 @@ describe('a scene’s card (10.3)', () => {
       '2 · Forest, night',
       '3 · Ice shelf, evening',
     ]);
-    const first = screen.getAllByRole('row')[0]!;
+    const first = sceneRows()[0]!;
     expect(first.textContent).toContain('Beginning');
     expect(first.textContent).toContain('1.1');
   });
@@ -70,7 +71,7 @@ describe('a scene’s card (10.3)', () => {
     const user = userEvent.setup();
     render(<App start={exampleProduction()} />);
     await user.click(screen.getByRole('radio', { name: 'Middle' }));
-    expect(screen.getAllByRole('row')[0]!.textContent).toContain('Middle');
+    expect(sceneRows()[0]!.textContent).toContain('Middle');
     expect(undo().textContent).toBe('Undo: Put scene 1 in Middle');
     await user.click(screen.getByRole('radio', { name: 'None' }));
     expect(undo().textContent).toBe('Undo: Take scene 1 out of the arc');
@@ -82,20 +83,22 @@ describe('a scene’s card (10.3)', () => {
     await user.click(screen.getByRole('radio', { name: 'Crossfade' }));
     expect(undo().textContent).toBe('Undo: End scene 1 with crossfade');
     expect(screen.queryByText('The last scene just ends.')).toBeNull();
-    await user.click(screen.getAllByRole('row')[2]!);
+    await user.click(sceneRows()[2]!);
     expect(screen.getByText('The last scene just ends.')).toBeTruthy();
   });
 
   it('shows the cast, and the hint about frames', () => {
     render(<App start={exampleProduction()} />);
-    expect(screen.getByText('penguin')).toBeTruthy();
+    // On the scene's card, as well as in the sketch library.
+    const library = screen.getByRole('complementary', { name: 'Sketches' });
+    expect(screen.getAllByText('penguin').some((el) => !library.contains(el))).toBe(true);
     expect(screen.getByText('Most scenes need 3 to 9 frames.')).toBeTruthy();
   });
 
   it('chooses a scene by its card', async () => {
     const user = userEvent.setup();
     render(<App start={exampleProduction()} />);
-    await user.click(screen.getAllByRole('row')[1]!);
+    await user.click(sceneRows()[1]!);
     expect(screen.getByRole('heading', { name: 'Scene 2' })).toBeTruthy();
     expect((screen.getByRole('textbox', { name: 'Heading' }) as HTMLInputElement).value).toBe(
       'Forest, night',
@@ -112,7 +115,7 @@ describe('Delete scene (10.3)', () => {
   it('asks first, then deletes the scene as one undo step', async () => {
     const user = userEvent.setup();
     render(<App start={exampleProduction()} />);
-    await user.click(screen.getAllByRole('row')[1]!);
+    await user.click(sceneRows()[1]!);
     await user.click(screen.getByRole('button', { name: 'Delete scene' }));
     const dialog = screen.getByRole('dialog', { name: 'Delete scene 2?' });
     expect(dialog.textContent).toContain('You can undo this.');
@@ -152,7 +155,7 @@ describe('Delete scene (10.3)', () => {
         : t,
     );
     render(<App start={{ ...p, program: { ...p.program, types } }} />);
-    await user.click(screen.getAllByRole('row')[1]!);
+    await user.click(sceneRows()[1]!);
     await user.click(screen.getByRole('button', { name: 'Delete scene' }));
     await user.click(
       within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete scene' }),

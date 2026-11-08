@@ -1,10 +1,14 @@
 import type { FrameId, Production, SceneId } from '@storystage/production';
+import { addSketch } from '@storystage/sketches';
 import { Button } from '@storystage/ui';
 import { useEffect, useState, type Dispatch } from 'react';
 import { words } from '../strings.ts';
 import { nextRedo, nextUndo, type History, type HistoryAction } from './history.ts';
 import { FramePanel } from './FramePanel.tsx';
-import { sceneFrames } from './frames.ts';
+import { sceneNumber } from './edits.ts';
+import { sceneFrames, updateFrame } from './frames.ts';
+import { sketchName, type SketchItem } from './SketchArt.tsx';
+import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
 import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
@@ -21,8 +25,8 @@ const isTextEntry = (target: EventTarget | null) =>
 
 /**
  * The Storyboard tab (`docs/spec/07-ux.md` section 6): the script header and arc (10.1, 10.2) and
- * the scene cards (10.3) and the frames (10.6), with the Storyboard's undo history (6.8). Sketches
- * on the frame, the script pane and the sketch library follow.
+ * the scene cards (10.3), the sketch library and the frames with their sketches (10.6), with the
+ * Storyboard's undo history (6.8). The script pane follows.
  */
 export function Storyboard({ history, dispatch }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
@@ -37,8 +41,28 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
   const currentFrame = frames.some((f) => f.id === chosenFrame)
     ? chosenFrame
     : (frames[0]?.id ?? null);
+  const frameNumber =
+    current && currentFrame
+      ? `${sceneNumber(p, current)}.${frames.findIndex((f) => f.id === currentFrame) + 1}`
+      : null;
+  // The chosen sketch, while its frame is current.
+  const [chosenSketch, setChosenSketch] = useState<{ frame: FrameId; id: string } | null>(null);
+  const sketch = chosenSketch && chosenSketch.frame === currentFrame ? chosenSketch.id : null;
   const commit = (label: string, next: Production, key?: string) =>
     dispatch({ type: 'commit', label, next, key });
+
+  const addToFrame = (item: SketchItem, x?: number, y?: number) => {
+    const frame = p.frames.find((f) => f.id === currentFrame);
+    const added = frame && frameNumber ? addSketch(frame, { item, x, y }) : null;
+    if (!frame || !frameNumber || !added) return;
+    const name = sketchName(item);
+    commit(
+      words.t('step.addSketch', { name }),
+      updateFrame(p, frame.id, () => added.frame),
+    );
+    setChosenSketch({ frame: frame.id, id: added.id });
+    setAnnouncement(words.t('storyboard.canvas.added', { name, number: frameNumber }));
+  };
   const undoLabel = nextUndo(history);
   const redoLabel = nextRedo(history);
 
@@ -68,6 +92,11 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
 
   return (
     <div className="sb">
+      <SketchLibrary
+        production={p}
+        frame={currentFrame && frameNumber ? { id: currentFrame, number: frameNumber } : null}
+        onAdd={(item) => addToFrame(item)}
+      />
       <div className="sb-main">
         <div className="sb-toolbar" role="toolbar" aria-label={words.t('history.label')}>
           <Button variant="quiet" icon="undo" isDisabled={!undoLabel} onPress={undo}>
@@ -103,6 +132,12 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             onCurrentChange={setChosenFrame}
             onChange={commit}
             onLeave={() => dispatch({ type: 'seal' })}
+            sketch={sketch}
+            onSketchChange={(id) =>
+              setChosenSketch(id && currentFrame ? { frame: currentFrame, id } : null)
+            }
+            onAddSketch={addToFrame}
+            onAnnounce={setAnnouncement}
           />
         )}
       </div>

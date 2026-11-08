@@ -79,3 +79,64 @@ test('axe finds no serious issues with a frame open, its shots and its length', 
   await page.keyboard.press('ArrowUp');
   await expect(page.getByRole('figure')).toContainText('4 s');
 });
+
+const sketchNames = (page: Page) =>
+  page
+    .getByRole('listbox', { name: /^Sketches on frame/ })
+    .getByRole('option')
+    .evaluateAll((options) => options.map((o) => o.getAttribute('aria-label')));
+
+test('a sketch goes on the frame and moves with the keyboard alone, one undo step', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  await page.getByRole('row', { name: 'Add Trees to frame 3.1' }).focus();
+  await page.keyboard.press('Enter');
+  await expect.poll(() => sketchNames(page)).toEqual(['Trees, in the middle']);
+  await page.getByRole('option', { name: 'Trees, in the middle' }).focus();
+  await page.keyboard.press('Enter');
+  for (let i = 0; i < 3; i++) await page.keyboard.press('Shift+ArrowLeft');
+  await page.keyboard.press('Equal');
+  await page.keyboard.press('Enter');
+  await expect.poll(() => sketchNames(page)).toEqual(['Trees, on the left']);
+  // The move and the resize, one step each.
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Make Trees bigger');
+  await page.getByRole('button', { name: /^Undo/ }).click();
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Move Trees');
+  await page.getByRole('button', { name: /^Undo/ }).click();
+  await expect.poll(() => sketchNames(page)).toEqual(['Trees, in the middle']);
+});
+
+test('a sketch drags from the library onto the frame, and across it', async ({ page }) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  const paper = page.locator('.sb-canvas-paper');
+  const box = (await paper.boundingBox())!;
+  await page
+    .getByRole('row', { name: 'Add Speech bubble to frame 3.1' })
+    .dragTo(paper, { targetPosition: { x: box.width * 0.8, y: box.height * 0.3 } });
+  await expect.poll(() => sketchNames(page)).toEqual(['Speech bubble, on the right']);
+  const bubble = page.getByRole('option', { name: 'Speech bubble, on the right' });
+  const at = (await bubble.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width * 0.2, box.y + box.height * 0.5, { steps: 8 });
+  await page.mouse.up();
+  await expect.poll(() => sketchNames(page)).toEqual(['Speech bubble, on the left']);
+  await expect(page.getByRole('button', { name: /^Undo/ })).toHaveText('Undo: Move Speech bubble');
+});
+
+test('axe finds no serious issues with the sketch library and sketches on the frame', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Add a frame' }).click();
+  for (const name of ['Hills', 'Speech bubble'])
+    await page.getByRole('row', { name: `Add ${name} to frame 3.1` }).click();
+  await expect.poll(() => sketchNames(page)).toHaveLength(2);
+  expect(await seriousIssues(page)).toEqual([]);
+  await page.getByRole('option', { name: /^Speech bubble/ }).focus();
+  await page.keyboard.press('Enter');
+  expect(await seriousIssues(page)).toEqual([]);
+});
