@@ -213,6 +213,15 @@ importers:
 
   packages/export:
     dependencies:
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
       mediabunny:
         specifier: ^1.62.0
         version: 1.62.0
@@ -304,6 +313,9 @@ importers:
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
@@ -317,6 +329,9 @@ importers:
         specifier: ^1.22.1
         version: 1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
     devDependencies:
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
