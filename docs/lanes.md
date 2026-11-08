@@ -29,14 +29,21 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S3 Stage and Story API procedures
 - Merged:
-  - 1 Nov (#114, #115, #117, #118, #119): **WP5a, the stage core (5.1 to 5.5)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. Each one renders twice, pixel for pixel the same, in CI. S3 merged these under decision 0053. The README says how to use it.
-  - **S2:** `FakeStage` now carries riders on their vehicles, takes a marker as a target, and refuses a paint that doesn't exist. Your bridge calls `seek` in `startLive(beforeFrame)`. `exampleProduction`'s `example/Ground/...` ids need `BACKDROP_TEMPLATES` ids before the self-test can run on the real stage.
-  - **S4:** `ModelSource` and `modelsFromManifest` are how the stage finds a model. Files must be binary glTF. Joints are found with your `mapSkeleton`. A flat colour stands in for each ground until WP3's textures arrive.
-  - **S5:** see the README's "Using it". Import `@storystage/stage/babylon` with `import()`. Call `resize()` when the canvas changes. A model with no rotation shows its back to a camera with no rotation, so default placement must turn it round.
-  - **S1:** #119 (only the stage may use Babylon.js) is in `tools/repo/src/boundaries.ts`. #118 added a `webServer` to `playwright.config.ts`. WP23a can build on the stage now.
+  - 1 Nov (#114, #115, #117, #118, #119): **WP5a, the stage core (5.1 to 5.5)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. The stage README says how to use it.
+- Open (a stack, each on the one before; critical path):
+  - 8 Nov (#132, `contract`): **the stage contract for WP4.3 and 4.4**, spec 02 section 9. **S6 to review first**; nothing above it can merge until it does. **S2:** one line of `serve.test.ts`, and see below.
+  - 8 Nov (#134): **the stage does all of it**: joints and markers as targets, moving toward, placing, orienting, sizes, paint blending, the sky, fog, lens and a fade to black; `collisionEnd`, and proximity and view events for what `Stage.watch` asks.
+  - 8 Nov (#136): **WP4.3, `STORY_LIBRARY`**, a block for every catalog entry the stage runs, and `fadeToBlack` (4.4). WP4's done-when is a test: every block on every class, against the stage.
+  - 8 Nov (#142): **WP4.10, shot types**: wide, medium, close-up, two-shot, over the shoulder and follow, framed by one table (the stage README's "Shots").
+  - **S2:** pass `STORY_LIBRARY` to `serve`; it fits your `StoryLibrary` type. Three things for you, in #136: map the library's `StoryFault` to `bad_value` (one line in `scheduler.ts`); choose a value for a joint, for `getJoint`, after which the library takes joints; and a message that sends your listeners' watches to `Stage.watch`, without which proximity and view events can't fire.
+  - **S4 (WP8.3):** going to another scene and crossfading to one are your playback's, not the stage's. The stage gives you `fade` on `SCENE` (the picture to black and back) for the fade transition. Tell S3 if a crossfade needs more from the stage than two stages drawing at once.
+  - **S1 (WP14.3):** `speakLine` waits for your speak line design. Tell S3 what the stage must do with visemes.
+  - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
 - Blocked on:
+  - S6: reviewing #132.
   - Owner: the reference devices (#6), for WP5's 30 fps check, spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
-- Next: WP4b. First the `contract` pull request for spec 02 section 9 (S6 and S3), which also needs: click `x` and `y`, a key's release, `collisionEnd`, `proximityExit`, `viewEnter`, `viewExit` (S2's spec 18, section 5), and a way to tell the stage which distances to watch, because nothing does yet and `proximityEnter` can't fire without it. Speech bubbles and shot framing come with WP4.3 and 4.10.
+  - S4 and S1: 4.4's scene changes (WP8.3) and speak line (WP14.3), by the owner's decision of 8 Nov.
+- Next: WP5b, the stage extras (5.6 to 5.8): WebGPU, the quality setting, the scene picture, and the character machinery WP4c needs.
 
 ## S4 Backstage and Productions
 - Merged:
