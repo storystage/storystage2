@@ -6,7 +6,7 @@
 
 ## Decision
 
-**A block dropped outside a method doesn't stay there.** It goes back where it came from, or, dropped from the palette, isn't added, and the learner hears "Blocks go inside a method". This is Alice's own rule. It applies to both code editors, through the shared `canPlace` (`14-editors.md` section 1.2): Blocks (option B) and Tiles (option C) behave the same way.
+**A block dropped outside a method doesn't stay there.** It goes back where it came from, or, dropped from the palette, isn't added, and the learner hears "Blocks go inside a method". This is Alice's own rule. It applies to both code editors, through the shared drop rule `canDrop` (`14-editors.md` section 2.2, which already says nothing floats loose): Blocks (option B) and Tiles (option C) behave the same way.
 
 ## Why
 
@@ -14,6 +14,6 @@ A loose block isn't part of the program (`01-ast.md`): the program belongs to th
 
 ## What follows
 
-- **S5:** `14-editors.md` section 2.2 and workplan 7.6 say so; the Blocks editor removes the drop and announces it.
+- **S5:** `14-editors.md` section 3i and workplan 7.6 say so; the Blocks editor removes the drop and announces it.
 - **S6:** Tiles refuse the same drop (no drop zone outside a method, as in spike 1.5).
 - **Unchanged:** switching a statement off inside a method (`enabled: false`) stays, in both editors.

@@ -4,7 +4,7 @@
 
 **Where:** the browser version (Chrome on Windows, Chrome on the reference Chromebook, Safari on the reference iPad), from the build the pull request names. **Before you start:** a new production with a logline, a synopsis and one scene with a heading and one frame (the Storyboard, section 6), so the Code editor is open (`07-ux.md` section 1.4).
 
-This script is written with the spec (`07-ux.md` section 7, `14-editors.md` section 2.2), before the code. Steps marked _(WP6)_ need the runtime, and _(S3)_ the stage's editing additions; leave them until those land.
+This script is written with the spec (`07-ux.md` section 7, `14-editors.md` section 3i), before the code. Steps marked _(WP6)_ need the runtime, and _(S3)_ the stage's editing additions; leave them until those land.
 
 ## 1. Set the scene, by pointer or touch
 
