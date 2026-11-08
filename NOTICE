@@ -35,6 +35,11 @@ reqwest  0.13  MIT OR Apache-2.0
 rustls  0.23  Apache-2.0 OR ISC OR MIT
 tokio  1  MIT
 zeroize  1  Apache-2.0 OR MIT
+tauri-plugin-fs  2  Apache-2.0 OR MIT
+
+== Bundled files (apps/desktop/src-tauri/speech-models.json) ==
+
+ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cpp  MIT
 
 == Linked into the app (40) ==
 

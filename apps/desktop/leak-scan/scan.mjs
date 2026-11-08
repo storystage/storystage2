@@ -9,6 +9,10 @@ import { join } from 'node:path';
 
 const [outDir, logFile, port = '9222'] = process.argv.slice(2);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const pins = JSON.parse(
+  readFileSync(new URL('../src-tauri/speech-models.json', import.meta.url), 'utf8'),
+);
+const bundled = pins.models.find((model) => model.bundled);
 
 async function findPage() {
   for (let tries = 0; tries < 240; tries++) {
@@ -82,6 +86,12 @@ const checks = [
   ['an unpinned system prompt was refused', refusedBy('wrongSystem', 'refused_by_allowlist')],
   ['a picture was refused', refusedBy('picture', 'refused_by_allowlist')],
   ['a plugin no capability grants is refused', /not allowed/i.test(report.ungrantedPlugin)],
+  [
+    'the bundled speech model arrived whole',
+    report.speechModel?.bytes === bundled.bytes && report.speechModel?.sha256 === bundled.sha256,
+  ],
+  ['a path instead of a model name is refused', report.speechByPath === 'internal'],
+  ['the page is cross-origin isolated, for whisper', report.crossOriginIsolated === true],
   ['only one request reached the network', requests.length === 1],
   ['the fake server received the stored key', requests.every((line) => line.keyMatched)],
 ];
