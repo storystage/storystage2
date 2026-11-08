@@ -24,7 +24,9 @@ import {
 
 /** What packing needs from the class Backstage. The host's `ClassBackstage` fits it. */
 export interface ClassModels {
-  list(): Promise<readonly { readonly id: string; readonly record: unknown }[]>;
+  list(): Promise<
+    readonly { readonly id: string; readonly record: unknown; readonly owner?: string }[]
+  >;
   read(id: string, path: string): Promise<Uint8Array>;
 }
 
