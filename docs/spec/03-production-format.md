@@ -28,11 +28,24 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 | `audio/` | Lines and narration the learner chose to record | Files named in the manifest |
 | `models/<folder>/` | Each class-imported model the production uses (section 1.3) | `PackedModel`, named in the manifest |
 
-**The same production gives the same bytes.** JSON is written with sorted keys (`serializeProgram` for the program, the same rule for the rest), entries go in the order above and then by name, and each entry has a fixed date. So a save with no changes is identical, and the round-trip test (WP8) can compare bytes.
+**The same production gives the same bytes.** JSON is written with sorted keys (`serializeProgram` for the program, the same rule for the rest), entries go in the order above and then by name, and each entry has a fixed date. So a save with no changes is identical, and the round-trip test (WP8) can compare bytes. `saveProduction` and `openProduction` (`file.ts`) do this. **Reopening gives the same production,** except that `scenes` and `frames` come back in order of their ids: their order in memory carries no meaning (the running order and each frame's `order` do), and saving doesn't depend on it.
 
 **File names from ids.** A scene or frame id, or a model's folder, becomes part of a path, so it must match `SAFE_ID` (lowercase letters, digits and hyphens, 1 to 32 characters, starting with a letter or digit). An audio file is a plain name in `audio/`. `checkReferences` refuses anything else.
 
 **Reading a file** follows `15-security.md` section 3: one archive reader, in this package (`archive.ts`: `readArchive`, `writeArchive`, `readJson`), with its limits on sizes and names, and the whole file checked before anything loads (WP8.4). The reader parses the zip itself, so it refuses links and devices, encrypted, split and ZIP64 archives, and unknown packing methods; it unpacks only the entries the format names, counting bytes as they come; and it refuses the whole file on any problem, in plain words that never quote the file. `.a3p` files and model packs use the same reader. The writer gives the same bytes for the same entries: deflated at level 6 (or stored, when that is smaller), names in UTF-8, every entry dated 1 January 1980.
+
+### 1.0 Opening a file
+
+`openProduction` opens nothing until the whole file has passed, in this order:
+
+1. **The archive reader** (`archive.ts`; `15-security.md`, sections 3.1 and 3.2), unpacking only the entries this section names. Anything else is ignored, and never written back.
+2. **The manifest,** which must say `format: "storystage"` and give its version (section 1.2).
+3. **Every part's shape** (`validate.ts`): the manifest, each scene, the storyboard and each frame, with every number finite and in range. A scene or frame's `id` must match its file name. **In a file of this version, a part may hold only the fields its type names,** so nothing outside this spec (section 1.1) can ride through a save. A newer file, opened read-only, may hold fields this version doesn't know.
+4. **The program,** with `openProgram` (`01-ast.md`, section 7).
+5. **The script,** with `readFountain` and its limits (section 5).
+6. **`checkReferences`,** and every audio and packed model file the manifest names.
+
+It returns `ok`, `migrated` (with the `original` bytes to keep), `readOnly` (with the plain-words reason for the session), or `broken` (a plain-words message that never quotes the file, and problems for developers). `saveProduction` refuses a production that `checkReferences` faults, or whose audio or packed model files it isn't given, so a saved file always opens.
 
 ### 1.1 What is never stored
 
@@ -49,7 +62,7 @@ A production gets shared between pupils and schools, so anything in it should be
 `manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.0.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
-- **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, until the learner deletes it (where it goes: WP24.2).
+- **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
 - **An older app opens a newer file read-only,** with a plain message. It never writes back to that file.
 - **Deprecated parts stay readable for two major versions.**
 - **A changelog,** in `packages/production/CHANGELOG.md`.
@@ -165,8 +178,10 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | One undo step for program edits, scene steps and stage changes, alone or grouped; cancel; renaming or removing an object's field in code keeps its set-up in step; read-only; listeners; load (section 2.1) | `session.test.ts` | Unit |
 | Renaming and duplicating a scene: the copy's type, set-up, card, place, new ids, links and pins (section 2.1) | `session.test.ts` | Unit |
 | Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
-| A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |
-| A newer file opens read-only and is never written (section 1.2) | With WP8.4 | Unit |
-| Nothing in section 1.1 reaches a file | With WP8.4 | Unit |
+| A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
+| A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
+| A read-only file is never written (section 1.2) | With WP8.4's pupil-folder layer | Unit |
+| Nothing in section 1.1 reaches a file: a field the types don't name is refused (section 1.0) | `file.test.ts`, `validate.test.ts` | Unit |
+| Opening checks the archive, every part's shape, the script's limits and the references before anything loads; unknown entries are ignored and never written back (section 1.0) | `file.test.ts`, `validate.test.ts` | Unit |
 | Adding, deleting and moving a scene keep the production sound, and their inverses restore the program (section 2.1) | `scenes.test.ts` | Unit |
 | One undo step covers the program and the set-up (section 2.1) | With WP8.2 | Unit |
