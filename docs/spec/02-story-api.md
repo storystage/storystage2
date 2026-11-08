@@ -344,11 +344,14 @@ The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Oc
 
 ## 9. What the stage contract needs
 
-Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
+Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). The contract also has 4.5's character actions and 4.6's faces, which the blocks move to as the stage runs them (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
 
 1. **Not the stage's sums.** `isVolumePreserved` is the Story API's: it sends `resize` the factors that keep the volume. The `ask` functions belong to the runtime.
 2. **Click positions** are fractions of the picture, from its left and bottom edges, as Alice's `getScreenDistanceFromLeft` and `getScreenDistanceFromBottom` are. Viewing angles are in turns, as Alice's are.
 3. **Watching.** The stage reports collisions and keys by itself. It fires `proximityEnter`, `proximityExit`, `viewEnter` and `viewExit` only for what `Stage.watch` asks: the distances come from the listeners, and view tests cost something on every frame (decision 0051). **S2:** the runtime sends its listeners' watches with a message of its own.
+4. **Actions take their own time.** A character action has no `duration` detail. The block asks the stage `naturalDuration` (a walk by the length of its way, a clip by its length on that model), sends the command with that duration, and waits for it.
+5. **Walking goes round things** where they are when the walk starts, with a navigation mesh (WP5.8). Walking to a thing stops in front of it, facing it; walking to an edge ends out of the picture, as the camera sees it when the walk starts.
+6. **Faces are the model's own.** `expression` uses a VRM model's presets (VRM 0.x and 1.0). A model without that face shows no change, by the owner's decision of 8 Nov 2026.
 
 <!-- catalog:stage -->
 | Need | What it asks for | Blocks |
