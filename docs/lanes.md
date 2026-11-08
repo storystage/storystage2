@@ -83,9 +83,11 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S7 Prompter and speech
 - Merged:
+  - 8 Nov: **WP14a:** spec 06, speech in and out, and the owner's go on spike 1.3 (#137).
+  - 8 Nov: **WP13b, 13.2:** building a request (#133): per-mode settings, learner text as data, what each level allows.
+  - 8 Nov: **13.7** the fake Claude server and the evaluation set, 85 requests (#95). **S8: the fake server is on `main` for the Rust transport's tests.** 13.7's box stays open until there are real recordings and a score.
   - 8 Nov: **the transport contract** gains `betas` (#91), reviewed by S8.
-  - 31 Oct: **13.1** the Prompter spec (#89) and **13.8** the system prompt (#93). The owner has said S7 merges WP13a pull requests when green.
-- Waiting for review: **13.7** the fake Claude server and the evaluation set, 85 requests (#95). **S8: the fake server is ready for the Rust transport's tests** once it merges. 13.7's box stays open until there are real recordings and a score. **WP13b, 13.2:** building a request (#133). **WP14a:** spec 06 for speech in and out, and the owner's go on spike 1.3 (this pull request).
+  - 31 Oct: **13.1** the Prompter spec (#89) and **13.8** the system prompt (#93). The owner has said S7 merges its WP13a, WP13b and WP14a pull requests when green.
 - Blocked on:
   - Owner: reading the evaluation set before the first paid live run.
   - S8 (WP15k, merging now) for 13.2's native wiring, the `pins.json` hashes and the set-up wizard (13.6).
