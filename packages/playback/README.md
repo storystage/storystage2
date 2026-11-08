@@ -3,7 +3,7 @@
 Plays a production on the page: the runtime worker, the stage and the production's player. Rehearse (WP7.4), the Screening room (WP11.1) and the export (WP11.3) all use it.
 
 - **Owner:** S2
-- **Workplan:** WP6.4, WP11 (decision 0066)
+- **Workplan:** WP6.4, WP11 (decision 0067)
 - **Spec:** `docs/spec/08-export.md`, section 1
 
 `Playback` is the driver. Make one with a production, a stage and a port to the runtime worker, then:
