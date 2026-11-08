@@ -91,7 +91,7 @@ The Windows and Mac apps check for updates at most once a day, by reading a file
 ### Optional features a school can switch on
 
 - **Google Drive or OneDrive:** save and open productions in the school's own accounts. The app asks only for access to the files it creates or opens. Google or Microsoft holds the files under the school's agreement with them.
-- **Model search (Poly Pizza):** **[Open: the owner's decision on `backstage.search`. The DPIA recommends keeping it off.]** If switched on, the search words go to Poly Pizza.
+- **Model search (Poly Pizza),** for teachers only: teachers can search Poly Pizza's free models from inside StoryStage, unless the school switches it off. The search words, and the device's IP address, go to Poly Pizza. Learners can't use search. Models about guns are screened out.
 - **AR (augmented reality), in a later release:** placing a film's set on a real table using the camera. Camera images stay on the device and never go to the Prompter. Recording a film with the camera background is off unless a teacher allows it, and no location is stored.
 
 ### This website
