@@ -452,6 +452,23 @@ Writes carry raw bytes, not JSON, with the path in an `x-storystage-path` header
 
 The webview can reach every pupil's folder through these commands, as it can in the browser. Pupils are kept apart by the app (threat PS1), and the operating system adds to it where a school has per-pupil sign-in (PS2).
 
+### 6.5 The file picker
+
+`HostInterface.picker` is `FilePicker` in `files.ts`: Save a copy, Open, Collect and Hand back, through the system's own picker, so a file can go to the device, a school drive, OneDrive or Google Drive without StoryStage signing in to anything (0065). StoryStage gets only what the person picks, never a path, and everything read is untrusted until `packages/production`'s import rules have checked it (PS5).
+
+In the browser version (`browserPicker`):
+
+| | Chrome, Edge, Chromebooks | Safari, Firefox |
+|---|---|---|
+| Save a copy | The system's save picker | A download |
+| Open | The system's open picker | A file input |
+| Collect | The teacher picks a folder; one folder per pupil is written in it | Each file downloads on its own, named `<pupil> - <production>.storystage` |
+| Hand back | The teacher picks a folder; every `.storystage` one level down is read | A folder input, with the same rule |
+
+Collect refuses a clash or a name `safeFileName` wouldn't give, and anything over `FILE_LIMIT`, before writing anything. Open and Hand back refuse a file over `FILE_LIMIT` before reading it, and Hand back reads nothing if any is. Closing a picker, or refusing it permission, is `cancelled`.
+
+The Tauri apps use the browser's pickers until the native picker lands: the system dialog opened from Rust, so the webview never holds a path.
+
 ## 7. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
@@ -496,5 +513,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Every rule of the folders, on every store (6.1 to 6.3) | `describeClassFoldersContract` over the memory store, the browser store (with a stand-in for its handles) and the native store's commands (over a stand-in for the native side) | Vitest |
 | Safe path parts only (6.1, 6.4) | One fixture of safe and unsafe parts (`classes/fixtures/parts.json`), tested in TypeScript and in Rust, so the two rules stay the same | Vitest, Rust unit |
 | A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
+| The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
+| The browser's own pickers and inputs (6.5) | By hand in Chrome on a Chromebook, and in Safari on an iPad | Device (owner) |
 | The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |
