@@ -153,6 +153,52 @@ describe('generated models', () => {
     expect(got.fetched).toEqual([{ url: 'generated:makehuman/p01.glb', sha256: sha(glb) }]);
     await rm(dir, { recursive: true, force: true });
   });
+
+  // generated/ isn't committed: a rebuild that hasn't just made the people uses the shipped ones.
+  it('uses the committed model when the generated one is not there', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-kept-'));
+    await mkdir(join(dir, 'models/mh/Biped'), { recursive: true });
+    const glb = await glbFromMesh(figure());
+    await writeFile(join(dir, 'models/mh/Biped/p01.glb'), glb);
+    const generated = item({ id: 'mh/Biped/p01', fetch: { generated: 'makehuman/p01.glb' } });
+    const got = await fetchModel(generated as never, fetcher, dir);
+    expect(got.ext).toBe('glb');
+    expect(got.fetched).toEqual([{ url: 'kept:models/mh/Biped/p01.glb', sha256: sha(glb) }]);
+    await rm(join(dir, 'models'), { recursive: true });
+    await expect(fetchModel(generated as never, fetcher, dir)).rejects.toThrow(
+      /makehuman\/p01\.glb.*models\/mh\/Biped\/p01\.glb/s,
+    );
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('rebuilds a kept model, keeping where and when it was first made', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-rebuild-'));
+    await mkdir(join(dir, 'sources'));
+    await mkdir(join(dir, 'generated/makehuman'), { recursive: true });
+    const glb = await glbFromMesh(figure());
+    await writeFile(join(dir, 'generated/makehuman/p01.glb'), glb);
+    await writeFile(
+      join(dir, 'sources/makehuman.json'),
+      JSON.stringify({
+        source: 'makehuman',
+        items: [item({ id: 'mh/Biped/p01', fetch: { generated: 'makehuman/p01.glb' } })],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-10-20' });
+    const first = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'))['mh/Biped/p01'];
+
+    await rm(join(dir, 'generated'), { recursive: true });
+    await buildSources(dir, { fetcher, today: '2026-11-07' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const provenance = JSON.parse(await readFile(join(dir, 'provenance.json'), 'utf8'));
+    expect(provenance['mh/Biped/p01']).toMatchObject({
+      fetched: [{ url: 'generated:makehuman/p01.glb', sha256: sha(glb) }],
+      retrieved: '2026-10-20',
+      fetchedSize: first.fetchedSize,
+    });
+    expect(manifest.items[0].source.retrieved).toBe('2026-10-20');
+    await rm(dir, { recursive: true, force: true });
+  });
 });
 
 describe('buildSources', () => {

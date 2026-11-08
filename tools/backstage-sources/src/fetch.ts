@@ -1,9 +1,11 @@
 /**
  * Fetches one source item's model, pinned (see `sources.ts`), and records the SHA-256 of every
  * file fetched for the provenance record. A .gltf and its files are packed into one binary glTF;
- * .glb and .vrm files are kept byte for byte.
+ * .glb and .vrm files are kept byte for byte. A generated model (MakeHuman) is read from the
+ * uncommitted `generated/` folder, or, when that isn't there, from its committed `models/` file.
  */
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { WebIO } from '@gltf-transform/core';
@@ -32,12 +34,24 @@ export async function fetchModel(
 ): Promise<Fetched> {
   const f = item.fetch;
   if ('generated' in f) {
-    const bytes = new Uint8Array(await readFile(join(folder, 'generated', f.generated)));
-    return {
-      bytes,
-      ext: 'glb',
-      fetched: [{ url: `generated:${f.generated}`, sha256: sha256(bytes) }],
-    };
+    const made = join(folder, 'generated', f.generated);
+    if (existsSync(made)) {
+      const bytes = new Uint8Array(await readFile(made));
+      return {
+        bytes,
+        ext: 'glb',
+        fetched: [{ url: `generated:${f.generated}`, sha256: sha256(bytes) }],
+      };
+    }
+    // generated/ isn't committed, so a rebuild that hasn't just made the model uses the shipped
+    // one. The build keeps the first build's provenance for it (`build.ts`).
+    const kept = `models/${item.id}.glb`;
+    if (!existsSync(join(folder, kept)))
+      throw new Error(
+        `${item.id}: neither generated/${f.generated} nor ${kept} is there. Run the workflow that makes it first.`,
+      );
+    const bytes = new Uint8Array(await readFile(join(folder, kept)));
+    return { bytes, ext: 'glb', fetched: [{ url: `kept:${kept}`, sha256: sha256(bytes) }] };
   }
   if ('url' in f) {
     const bytes = await fetcher(f.url);

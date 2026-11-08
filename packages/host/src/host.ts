@@ -7,14 +7,49 @@
  */
 
 import { offTransport, type PrompterTransport } from '@storystage/prompter';
-import { BROWSER_POLICY, type PolicyInForce } from './policy.ts';
+import { BROWSER_POLICY, readPolicy, type PolicyInForce } from './policy.ts';
 
 export interface HostInterface {
   /** The policy in force, read once at start-up. */
   readonly policy: PolicyInForce;
   /** The native layer in the Tauri apps. `offTransport` in the browser version: no Prompter. */
   readonly prompter: PrompterTransport;
+  /** The installed version, for About (spec 05 section 4.6). `null` in the browser version. */
+  readonly version: string | null;
 }
 
 /** The browser version's host (0022, 15.6): the Prompter has no way to reach anything. */
-export const browserHost: HostInterface = { policy: BROWSER_POLICY, prompter: offTransport };
+export const browserHost: HostInterface = {
+  policy: BROWSER_POLICY,
+  prompter: offTransport,
+  version: null,
+};
+
+/** The Tauri command that returns the installed version. It takes no arguments. */
+export const VERSION_COMMAND = 'app_version';
+
+/** Three whole numbers, such as `1.4.2`: the versions the release workflow makes. */
+const VERSION = /^\d{1,6}\.\d{1,6}\.\d{1,6}$/;
+
+async function readVersion(invoke: (command: string) => Promise<unknown>): Promise<string | null> {
+  try {
+    const reply = await invoke(VERSION_COMMAND);
+    return typeof reply === 'string' && VERSION.test(reply) ? reply : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The Tauri apps' host. `invoke` is Tauri's, and `prompter` is the native transport, both passed
+ * in by the Tauri entry point so this package has no Tauri in it. If the policy can't be read,
+ * the studio gets no way to reach the Prompter at all, as well as the native layer refusing.
+ */
+export async function tauriHost(
+  invoke: (command: string) => Promise<unknown>,
+  prompter: PrompterTransport,
+): Promise<HostInterface> {
+  const [policy, version] = await Promise.all([readPolicy(invoke), readVersion(invoke)]);
+  const reachable = policy.source === 'unreadable' ? offTransport : prompter;
+  return { policy, prompter: reachable, version };
+}

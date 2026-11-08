@@ -8,7 +8,7 @@ rust-version = "1.80"
 publish = false
 
 [workspace]
-members = ["policy", "plugins/managed-config"]
+members = ["gate", "policy", "plugins/managed-config"]
 
 [lib]
 # The mobile targets load the app as a library.
@@ -26,6 +26,9 @@ storystage-policy = { path = "policy" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-managed-config = { path = "plugins/managed-config" }
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
 
 [profile.release]
 codegen-units = 1

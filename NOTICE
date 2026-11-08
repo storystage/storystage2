@@ -24,6 +24,9 @@ windows-sys  0.61  MIT OR Apache-2.0
 objc2  0.6  MIT
 objc2-foundation  0.3  MIT
 tauri-plugin  2  Apache-2.0 OR MIT
+tauri-plugin-updater  2  Apache-2.0 OR MIT
+hex  0.4  MIT OR Apache-2.0
+sha2  0.10  MIT OR Apache-2.0
 
 == Linked into the app (40) ==
 
