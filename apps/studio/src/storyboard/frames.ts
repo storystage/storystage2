@@ -46,7 +46,12 @@ function withSceneFrames(p: Production, scene: SceneId, ordered: readonly Frame[
   return { ...p, frames: [...others, ...ordered.map((f, order) => ({ ...f, order }))] };
 }
 
-const updateFrame = (p: Production, id: FrameId, change: (f: Frame) => Frame): Production => ({
+/** Changes one frame: its sketches, from the frame canvas (`canvas.ts`). */
+export const updateFrame = (
+  p: Production,
+  id: FrameId,
+  change: (f: Frame) => Frame,
+): Production => ({
   ...p,
   frames: p.frames.map((f) => (f.id === id ? change(f) : f)),
 });

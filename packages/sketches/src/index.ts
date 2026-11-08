@@ -27,3 +27,21 @@ export { makeItemSketches } from './make.ts';
 export type { MadeSketch } from './make.ts';
 export { THUMBNAIL_SIZE, renderThumbnail } from './thumbnail.ts';
 export type { ImageDecoder, Picture, ThumbnailOptions } from './thumbnail.ts';
+
+// WP10.6, the frame canvas model (S5).
+export {
+  NUDGE,
+  SCALE,
+  SKETCH_LIMIT,
+  across,
+  addSketch,
+  flipSketch,
+  inLayerOrder,
+  layerSketch,
+  moveSketch,
+  nudgeSketch,
+  removeSketch,
+  resizeSketch,
+  scaleSketch,
+} from './canvas.ts';
+export type { NewSketch } from './canvas.ts';

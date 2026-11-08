@@ -56,6 +56,9 @@ importers:
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
+      '@storystage/sketches':
+        specifier: workspace:*
+        version: link:../../packages/sketches
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
@@ -220,6 +223,9 @@ importers:
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api

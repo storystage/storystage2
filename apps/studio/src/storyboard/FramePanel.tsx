@@ -16,6 +16,8 @@ import {
 } from 'react-aria-components';
 import { words } from '../strings.ts';
 import { LIMITS, sceneNumber } from './edits.ts';
+import { FrameCanvas } from './FrameCanvas.tsx';
+import type { SketchItem } from './SketchArt.tsx';
 import {
   FRAME_LENGTH,
   MAIN_SHOTS,
@@ -38,6 +40,12 @@ export interface FramePanelProps {
   onCurrentChange: (frame: FrameId) => void;
   onChange: (label: string, next: Production, key?: string) => void;
   onLeave: () => void;
+  /** The chosen sketch on the current frame, or `null`. */
+  sketch: string | null;
+  onSketchChange: (id: string | null) => void;
+  /** Puts a library item on the current frame, at (x, y) or in the middle. */
+  onAddSketch: (item: SketchItem, x?: number, y?: number) => void;
+  onAnnounce: (text: string) => void;
 }
 
 const shotName = (shot: ShotType) => messages.t(`shot.${shot}`);
@@ -45,7 +53,7 @@ const shotName = (shot: ShotType) => messages.t(`shot.${shot}`);
 /**
  * The current scene's frames and the current frame (`07-ux.md` sections 6.4, 6.5; WP10.6): the
  * frames as numbered squares, reordered by drag or keyboard, Add a frame and Delete frame; then the
- * frame's shot, length and caption, and the frame itself. Sketches go on it with `canvas.ts`.
+ * frame's shot, length and caption, and the frame with its sketches (`FrameCanvas`).
  */
 export function FramePanel({
   production: p,
@@ -54,6 +62,10 @@ export function FramePanel({
   onCurrentChange,
   onChange,
   onLeave,
+  sketch,
+  onSketchChange,
+  onAddSketch,
+  onAnnounce,
 }: FramePanelProps) {
   const [confirming, setConfirming] = useState(false);
   const [moreShots, setMoreShots] = useState(false);
@@ -242,16 +254,23 @@ export function FramePanel({
               onBlur={onLeave}
             />
           </div>
-          <figure className="sb-canvas" aria-labelledby="sb-canvas-title">
-            <figcaption id="sb-canvas-title" className="sb-canvas-head">
-              <span className="sb-canvas-number">
-                {words.t('storyboard.frame', { number: numberOf(frame.id) })}
-              </span>
-              <span className="sb-canvas-shot">{shotName(frame.shot)}</span>
-              <span>{words.t('storyboard.seconds', { seconds: frame.lengthSeconds })}</span>
-            </figcaption>
-            <div className="sb-canvas-paper" />
-          </figure>
+          <FrameCanvas
+            production={p}
+            frame={frame}
+            number={numberOf(frame.id)}
+            chosen={sketch}
+            onChosenChange={onSketchChange}
+            onChange={onChange}
+            onLeave={onLeave}
+            onAdd={onAddSketch}
+            onAnnounce={onAnnounce}
+          >
+            <span className="sb-canvas-number">
+              {words.t('storyboard.frame', { number: numberOf(frame.id) })}
+            </span>
+            <span className="sb-canvas-shot">{shotName(frame.shot)}</span>
+            <span>{words.t('storyboard.seconds', { seconds: frame.lengthSeconds })}</span>
+          </FrameCanvas>
         </>
       )}
 

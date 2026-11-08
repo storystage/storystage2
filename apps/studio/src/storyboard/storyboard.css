@@ -369,3 +369,222 @@
   position: relative;
   aspect-ratio: 16 / 9;
 }
+
+/* The sketch library: a column left of the main area (07-ux section 6.1). */
+.sb-library {
+  --ss-surface: var(--ss-panel-1);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  width: 232px;
+  padding: 14px 12px;
+  overflow-y: auto;
+  background: var(--ss-panel-1);
+  box-shadow: inset -1px 0 0 var(--ss-line-1);
+}
+.sb-library-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 19px;
+}
+.sb-library-heading {
+  margin: 4px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.sb-library-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.sb-library-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  outline: none;
+}
+.sb-library-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: grab;
+  outline: none;
+}
+.sb-library-item[data-hovered] {
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+}
+.sb-library-item[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-panel-1),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-library-item[data-disabled] {
+  color: var(--ss-unavailable-text);
+  background: var(--ss-unavailable-bg);
+  cursor: default;
+}
+.sb-library-item[data-dragging] {
+  opacity: 0.6;
+}
+.sb-library-item .sb-art {
+  width: 100%;
+  height: 56px;
+  border-radius: 4px;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+}
+.sb-library-item[data-disabled] .sb-art {
+  opacity: 0.5;
+}
+
+/* A sketch's drawing: black lines on white, filling its box. */
+.sb-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.sb-art svg {
+  width: 100%;
+  height: 100%;
+}
+.sb-art-outline {
+  padding: 4px;
+  border: 2px dashed var(--ss-sketch-ink);
+  border-radius: 6px;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+/* The frame canvas: a drop target holding the sketches. */
+.sb-canvas-drop {
+  outline: none;
+}
+.sb-canvas-drop[data-drop-target] .sb-canvas-paper,
+.sb-canvas-drop[data-focus-visible] .sb-canvas-paper {
+  box-shadow:
+    inset 0 0 0 2px var(--ss-sketch-ink),
+    inset 0 0 0 6px var(--ss-amber);
+}
+.sb-canvas-paper {
+  overflow: hidden;
+}
+.sb-canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+}
+.sb-canvas-list {
+  position: absolute;
+  inset: 0;
+}
+.sb-sketch {
+  position: absolute;
+  translate: -50% -50%;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.sb-sketch-art,
+.sb-sketch-art .sb-art {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.sb-sketch-art[data-flipped] {
+  transform: scaleX(-1);
+}
+/* The chosen sketch: an amber box with corner handles, edged in ink so it shows on white. */
+.sb-sketch[data-chosen] {
+  box-shadow:
+    0 0 0 1px var(--ss-sketch-ink),
+    0 0 0 4px var(--ss-amber),
+    0 0 0 5px var(--ss-sketch-ink);
+}
+.sb-sketch:focus-visible {
+  box-shadow:
+    0 0 0 1px var(--ss-sketch-ink),
+    0 0 0 4px var(--ss-amber),
+    0 0 0 5px var(--ss-sketch-ink),
+    0 0 0 8px var(--ss-amber);
+}
+.sb-sketch[data-lifted] {
+  cursor: grabbing;
+  filter: drop-shadow(0 8px 10px var(--ss-sketch-ink));
+}
+.sb-sketch-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--ss-amber);
+  box-shadow: 0 0 0 1.5px var(--ss-sketch-ink);
+  touch-action: none;
+}
+.sb-sketch-handle[data-corner='nw'] {
+  top: -9px;
+  left: -9px;
+  cursor: nwse-resize;
+}
+.sb-sketch-handle[data-corner='ne'] {
+  top: -9px;
+  right: -9px;
+  cursor: nesw-resize;
+}
+.sb-sketch-handle[data-corner='sw'] {
+  bottom: -9px;
+  left: -9px;
+  cursor: nesw-resize;
+}
+.sb-sketch-handle[data-corner='se'] {
+  right: -9px;
+  bottom: -9px;
+  cursor: nwse-resize;
+}
+.sb-canvas-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  padding: 6px 8px 10px;
+}
+/* The drag handle sits on the sketch's white, so it is drawn in ink. */
+.sb-library-handle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--ss-sketch-ink);
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-library-handle[data-focus-visible] {
+  box-shadow:
+    0 0 0 1px var(--ss-sketch-ink),
+    0 0 0 4px var(--ss-amber);
+}

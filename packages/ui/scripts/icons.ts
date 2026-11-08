@@ -21,6 +21,7 @@ export const ICON_NAMES = [
   'chevron_right',
   'close',
   'deck',
+  'delete',
   'description',
   'download',
   'drag_indicator',
@@ -29,6 +30,9 @@ export const ICON_NAMES = [
   'edit_note',
   'extension',
   'flag',
+  'flip',
+  'flip_to_back',
+  'flip_to_front',
   'fullscreen',
   'gesture',
   'groups',
@@ -55,6 +59,8 @@ export const ICON_NAMES = [
   'undo',
   'videocam',
   'view_in_ar',
+  'zoom_in',
+  'zoom_out',
 ] as const;
 
 const here = dirname(fileURLToPath(import.meta.url));
