@@ -199,14 +199,32 @@ export async function openFromFolder(folder: SaveFolder, key: string): Promise<O
 
 /** A name for a copy of the production, safe to suggest to the system's file picker. */
 export function copyName(production: Production): string {
-  const title = [...production.manifest.title]
-    .map((c) => ((c.codePointAt(0) ?? 0) < 32 || '<>:"/\\|?*'.includes(c) ? ' ' : c))
+  return `${plainName(production.manifest.title, 'My film')}.storystage`;
+}
+
+const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
+
+/**
+ * Text as a file or folder name that works on every system, by the same rules as the host's
+ * `safeFileName`: no control characters or characters Windows refuses, no part that is only
+ * dots, nothing Windows reserves, no trailing dot or space, at most 80 characters. Never empty.
+ */
+export function plainName(text: string, fallback: string): string {
+  let name = [...text.normalize('NFC')]
+    .map((c) => {
+      const code = c.codePointAt(0) ?? 0;
+      return code < 32 || code === 127 || '<>:"/\\|?*'.includes(c) ? ' ' : c;
+    })
     .join('')
-    .replace(/\s+/g, ' ')
+    .split(/\s+/)
+    .filter((word) => !/^\.+$/.test(word))
+    .join(' ')
     .trim()
-    .slice(0, 80)
-    .replace(/[. ]+$/, '');
-  return `${title || 'My film'}.storystage`;
+    .replace(/^\.+/, '')
+    .slice(0, 80);
+  while (name.endsWith('.') || name.endsWith(' ')) name = name.slice(0, -1);
+  if (name === '') return fallback;
+  return RESERVED.test(name.split('.')[0] ?? '') ? `${name}_` : name;
 }
 
 /** Save a copy: the learner picks where (decision 0065). */

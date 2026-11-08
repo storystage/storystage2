@@ -96,7 +96,13 @@ A `ProductionSaver` holds one open production's saves:
 
 **Open** reads from the pupil's folder (`openFromFolder`) or from a file the learner picks (`openFromPicker`). Either way the bytes go through `openProduction` (section 1.0): a picked file is untrusted (threat PS5). **Save a copy** (`saveCopy`) suggests a name made from the title that works on every system.
 
-**Still to come:** Collect and Hand back, which read and write every pupil's folder for the teacher.
+### 1.5 Collect and Hand back
+
+At the end of a unit, the teacher **collects** every pupil's productions into a folder they pick, one folder per pupil, and later **hands back** marked work from the same layout (decision 0065; `collect.ts`). They read each pupil's folder with `ClassFolders.folder(id)`, which doesn't change the current pupil, so autosave keeps writing where it was.
+
+1. **Names the teacher sees:** each pupil's folder is their name, made safe for every system (`plainName`, the host's `safeFileName` rules). Two pupils with the same name get "Sam" and "Sam (2)", in class-list order, ignoring case, so Hand back finds the same pupil again. Productions with the same title in one folder get "Pip" and "Pip (2)".
+2. **Collect copies each production as saved,** byte for byte.
+3. **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5). It writes each good one into its pupil's folder as a new production called "<title> (handed back)", so it never overwrites the pupil's own work. A file that fails, or whose folder names no pupil, is skipped, and the teacher sees why in plain words.
 
 ## 2. Scenes
 
@@ -228,6 +234,7 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
 | A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
 | A read-only file is never written (section 1.2) | `saving.test.ts` | Unit |
+| Collect and Hand back: one folder per pupil, names made safe and unique as the teacher sees them, files copied as saved; handed-back files checked and written as new productions, the rest skipped with reasons (section 1.5) | `collect.test.ts` | Unit |
 | Saving in a pupil's folder: a key for a new production, backups on a session's first save and saves asked for, the original kept once, plain-words problems, one save at a time with waiting autosaves merged; opening from the folder and the picker through `openProduction`; a copy's name (section 1.4) | `saving.test.ts` | Unit |
 | Nothing in section 1.1 reaches a file: a field the types don't name is refused (section 1.0) | `file.test.ts`, `validate.test.ts` | Unit |
 | Opening checks the archive, every part's shape, the script's limits and the references before anything loads; unknown entries are ignored and never written back (section 1.0) | `file.test.ts`, `validate.test.ts` | Unit |
