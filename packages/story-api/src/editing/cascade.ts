@@ -3,7 +3,6 @@
  * only values that fit. After a drop, `emptySlots` says what to ask, in order; Escape at any
  * point cancels the whole drop, which is the editor's business.
  */
-import { indexProgram } from '@storystage/ast';
 import type { AstNode, Expression, NodeId, Program, TypeRef } from '@storystage/ast';
 import {
   entriesOf,
@@ -14,7 +13,8 @@ import {
   isKindOf,
 } from '../catalog/catalog.ts';
 import { DETAILS } from '../catalog/details.ts';
-import { BOOLEAN, NUMBER, programTypes, storyType, WHOLE } from '../catalog/program-types.ts';
+import { BOOLEAN, NUMBER, storyType, WHOLE } from '../catalog/program-types.ts';
+import { indexOf, typesOf } from './cache.ts';
 import { ENUMS } from '../catalog/types.ts';
 import type { NumberRange, ParamDef } from '../catalog/types.ts';
 import type { ValuePlace } from './drop.ts';
@@ -71,7 +71,7 @@ function contextOf(
   program: Program,
   place: ValuePlace,
 ): (Context & { wanted: TypeRef | null }) | null {
-  const index = indexProgram(program);
+  const index = indexOf(program);
   const node = index.get(place.node)?.node;
   if (!node) return null;
   const describe = describer(program);
@@ -154,7 +154,7 @@ export function scopeAt(
   program: Program,
   node: NodeId,
 ): readonly { id: NodeId; name: string; type: TypeRef }[] {
-  const index = indexProgram(program);
+  const index = indexOf(program);
   const found: { id: NodeId; name: string; type: TypeRef }[] = [];
   for (let at = index.get(node); at?.parent;) {
     const up = index.get(at.parent);
@@ -361,9 +361,9 @@ export function detailsToAdd(
   program: Program,
   node: NodeId,
 ): readonly { name: string; words: string }[] {
-  const found = indexProgram(program).get(node)?.node;
+  const found = indexOf(program).get(node)?.node;
   if (!found) return [];
-  const types = programTypes(program);
+  const types = typesOf(program);
   let offered: readonly string[] = [];
   if ((found.kind === 'call' || found.kind === 'functionCall') && found.callee.kind === 'story') {
     const owner = describer(program).ownerOf(found.id);

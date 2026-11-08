@@ -76,6 +76,33 @@ test('highlights through the contract show on the row', async ({ page }) => {
   );
 });
 
+const highlight = (page: Page, nodes: string[], kind: string) =>
+  page.evaluate(
+    ([n, k]) =>
+      (
+        window as unknown as { tiles: { editor: { highlight(n: string[], k: string): void } } }
+      ).tiles.editor.highlight(n as string[], k as string),
+    [nodes, kind] as const,
+  );
+
+test('the Prompter’s highlight wears the AI badge, and axe finds nothing', async ({ page }) => {
+  await open(page);
+  await highlight(page, ['saystm'], 'prompter');
+  await expect(item(page, 'cat say Hello add detail AI')).toHaveClass(/tl-hl-prompter/);
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+});
+
+test('Rehearse’s outline moves, and holds still for reduced motion', async ({ page }) => {
+  await open(page);
+  await highlight(page, ['saystm'], 'rehearse');
+  const animation = () =>
+    page.locator('[data-key="saystm"]').evaluate((e) => getComputedStyle(e).animationName);
+  expect(await animation()).toBe('tl-running');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await animation()).toBe('none');
+});
+
 // Editing (spec 14, 3c–3e), which needs real layout and real pointer events.
 
 /** The keys of the statements directly inside `do together`, in order. */

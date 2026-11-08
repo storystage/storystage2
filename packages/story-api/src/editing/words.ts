@@ -3,10 +3,10 @@
  * phrases ("cat move forward 1"). The tile editor's rows, both editors' screen-reader names and
  * the undo labels all read from here, so they say the same thing.
  */
-import { indexProgram } from '@storystage/ast';
 import type { AstNode, Expression, NodeId, Program, Statement, TypeRef } from '@storystage/ast';
 import { findEntry } from '../catalog/catalog.ts';
-import { programTypes, type ProgramTypes } from '../catalog/program-types.ts';
+import type { ProgramTypes } from '../catalog/program-types.ts';
+import { indexOf, perProgram, typesOf } from './cache.ts';
 import strings from '../strings/en-GB.json' with { type: 'json' };
 
 const all = strings as Readonly<Record<string, string>>;
@@ -43,10 +43,21 @@ export interface Describer {
   readonly types: ProgramTypes;
 }
 
-/** Plain words for the nodes of one program. Build it once per program and reuse it. */
+/**
+ * Plain words for the nodes of one program. Without options, the same program always gets the
+ * same describer, so asking for one per row costs nothing (spec 14, 3h).
+ */
 export function describer(program: Program, options: WordsOptions = {}): Describer {
-  const index = indexProgram(program);
-  const types = programTypes(program);
+  // Any option at all bypasses the cache, so one added later is never ignored.
+  const given = Object.values(options).some((v) => v !== undefined);
+  return given ? describe(program, options) : plain(program);
+}
+
+const plain = perProgram((program) => describe(program, {}));
+
+function describe(program: Program, options: WordsOptions): Describer {
+  const index = indexOf(program);
+  const types = typesOf(program);
   const joint = (id: string) => options.jointWord?.(id) ?? splitWords(id);
 
   /** The type a node is inside, so `this` can be read. */

@@ -34,6 +34,16 @@
   user-select: none;
 }
 
+/*
+ * Spec 14, 3h: the browser skips styling and laying out the top-level rows out of sight, so a long
+ * method costs what's on screen. They stay in the accessibility tree, and each keeps the size it
+ * last had, so the page doesn't jump as they come into view.
+ */
+.tl-tree > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
+
 .tl-tree,
 .tl-group {
   list-style: none;
@@ -230,6 +240,32 @@
 /* Highlights (spec 14, 3g). Several can show at once. */
 .tl-hl-rehearse {
   box-shadow: 0 0 0 3px var(--tl-rehearse);
+  animation: tl-running 0.9s ease-in-out infinite alternate;
+}
+
+/* The running statement's outline breathes, so the eye finds it; still for reduced motion. */
+@keyframes tl-running {
+  to {
+    box-shadow: 0 0 0 6px var(--tl-rehearse);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-hl-rehearse {
+    animation: none;
+  }
+}
+
+.tl-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--tl-program);
+  background: var(--tl-prompter);
 }
 
 .tl-hl-error {
