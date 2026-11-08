@@ -117,7 +117,36 @@ A scene's script method can't be removed by an edit: `sceneMethodCheck` is the `
 
 `manifest.runningOrder` is the one place that says what order the scenes play in. Every scene appears in it exactly once. The Storyboard shows cards in this order, whatever order `storyboard.cards` happens to be in; reordering cards reorders this list.
 
-Each entry has a `Transition`, which says how that scene ends: `cut`, `fadeToBlack` or `crossfade`, with a `duration` ignored for a cut. The last scene's transition is ignored. **Go to scene** jumps to a scene and carries on from there in running order (WP8.3).
+Each entry has a `Transition`, which says how that scene ends: `cut`, `fadeToBlack` or `crossfade`, with a `duration` ignored for a cut. The last scene's transition is ignored.
+
+### 3.1 Playing a production
+
+Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playback.ts` holds the rules below (`firstScene`, `nextScene`, `waitsForViewer`). The player (Storyboard play, the Screening room, the export) asks it what comes next.
+
+1. **Play starts with the first scene in running order.** Each scene starts fresh, from its own set-up and fields. It's its own type, so nothing carries over from the scene before.
+2. **A scene ends on its own** when its script method has finished and its last stage command has ended, unless it **waits on the viewer**, with a listener for `clickOnScreen`, `clickOnObject`, `keyPress` or `arrowKeyPress` (`VIEWER_EVENTS`).
+    - A scene that waits ends only at `goToScene`, `crossfade` or `fadeToBlack`, or when play is stopped.
+    - Other listeners (timers, collisions, proximity, view) don't keep a scene going, and they stop when it ends.
+3. **When a scene ends on its own,** the next scene in running order plays, and the ended scene's transition leads into it. After the last scene, the film ends.
+4. **`goToScene(scene)`** ends this scene at once. No more of its code runs, including blocks running alongside it in a do together. Its transition leads into `scene`, and play carries on in running order from there.
+5. **`crossfade(scene; duration)`** does the same, with a crossfade over `duration` (the catalog's default, 1 second), whatever the running order says.
+6. **`fadeToBlack(; duration)`** fades to black and ends the scene, and the next scene in running order fades in. After the last scene, the film ends in black.
+7. **How transitions look.** A transition's `duration` is the whole transition.
+    - **Cut:** the next scene's first frame follows this scene's last frame.
+    - **Fade to black:** the picture fades to black over the first half, then the next scene fades in over the second half. It uses the stage's `fade` command on the scene, so the export renders it frame by frame:
+        - `to: 1` over the first half;
+        - then, on the next scene, `to: 1` at time 0 with no duration, before its first frame;
+        - then `to: 0` over the second half.
+    - **Crossfade:** both scenes are on screen, the old one fading out over the new, for the whole duration. It's the stage's job (S3, `packages/stage`), with the next scene preloaded (WP8.2). On a slow device the old scene may be shown still rather than moving.
+8. **Going back is allowed,** so a film might never end. Play stops after 200 scene starts (`SCENE_START_LIMIT`), or at the export's length cap, with a plain-words message.
+9. **Rehearse** (one scene, from the code editor) doesn't jump. At `goToScene`, `crossfade` or `fadeToBlack` it ends and shows "Next: <the scene's heading>".
+10. **A scene that isn't there:** a scene in code is text (spec 02, section 3a), so deleting a scene can leave a stale value. `checkProgram` flags it before play (`sceneExists`, S6). If play reaches it anyway, it stops with "There's no scene called …" (`noSuchScene`).
+11. **The export** has no viewer, so a scene that waits on the viewer runs to the length cap. The Screening room says so in plain words before exporting (`waitsForViewer`).
+
+**The runtime's part (S2, still to agree).**
+- The three blocks run in the runtime. Each stops the scene's code and sends the main thread a new message: `{ type: 'sceneEnded', at, ending }`, where `ending` is a `SceneEnding` (`playback.ts`).
+- The runtime also sends `sceneEnded` with `{ kind: 'finished' }` once the script method and its last command are done, unless the scene waits on the viewer.
+- The player then asks `nextScene`, and loads the next scene.
 
 ## 4. Storyboard
 
@@ -177,6 +206,7 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
 | One undo step for program edits, scene steps and stage changes, alone or grouped; cancel; renaming or removing an object's field in code keeps its set-up in step; read-only; listeners; load (section 2.1) | `session.test.ts` | Unit |
 | Renaming and duplicating a scene: the copy's type, set-up, card, place, new ids, links and pins (section 2.1) | `session.test.ts` | Unit |
+| Playing a production: the running order, each scene's transition, the end; go to scene, crossfade and fade to black; scenes that aren't there; the scene start limit; scenes that wait on the viewer (section 3.1) | `playback.test.ts` | Unit |
 | Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
 | A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
 | A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
