@@ -235,6 +235,7 @@ export function storedClassFolders(
     ): Promise<ProductionInfo> => {
       const title = checkName(name);
       if (bytes.length > limit) throw new FileError('too_big');
+      await pupilById(pupil.id);
       const made = key ?? `production-${random()}`;
       const folder = home('pupils', pupil.id, made);
       const previous = key === null ? null : await readMeta(folder);
@@ -327,6 +328,13 @@ export function storedClassFolders(
     };
   };
 
+  /** A pupil's folder, after sweeping away first saves that never finished. */
+  const folder = async (id: PupilId) => {
+    const pupil = await pupilById(id);
+    await queue(() => sweep(pupil.id)).catch(() => undefined);
+    return folderFor(pupil);
+  };
+
   return {
     pupils: readClass,
 
@@ -370,11 +378,11 @@ export function storedClassFolders(
     },
 
     async open(id) {
-      const pupil = await pupilById(id);
-      await queue(() => sweep(pupil.id)).catch(() => undefined);
-      current = folderFor(pupil);
+      current = await folder(id);
       return current;
     },
+
+    folder,
 
     current: () => current,
 
