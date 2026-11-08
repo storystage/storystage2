@@ -22,10 +22,11 @@ import type {
   StageEvent,
   StageQuery,
   StageQueryResult,
+  Watch,
 } from '@storystage/story-api';
 
 /** Bumped on any change that an older main thread or worker couldn't read. */
-export const RUNTIME_PROTOCOL = 1;
+export const RUNTIME_PROTOCOL = 2;
 
 export type RunMode =
   /**
@@ -54,6 +55,8 @@ export type ToRuntime =
       readonly seed: number;
       /** Blocks the learner has switched off (WP6.4). */
       readonly disabled: readonly NodeId[];
+      /** The production's scene ids, which `goToScene` and `crossfade` may name (WP8.3). */
+      readonly scenes: readonly string[];
     }
   | { readonly type: 'start'; readonly mode: RunMode }
   /** Fixed-step mode: run everything due up to and including `until`, then send `commands`. */
@@ -93,7 +96,28 @@ export type FromRuntime =
   | { readonly type: 'error'; readonly error: RuntimeError }
   /** The entry method has finished. Event handlers can still run until `stop`. */
   | { readonly type: 'finished'; readonly at: Micros }
-  | { readonly type: 'stopped' };
+  | { readonly type: 'stopped' }
+  /**
+   * `goToScene`, `crossfade` or `fadeToBlack` ran: every strand has stopped, after the commands
+   * already sent. Nothing more comes from this run; the player asks the production what plays
+   * next (WP8.3, `docs/spec/03-production-format.md` section 3.1) and sends a new `load`.
+   */
+  | { readonly type: 'sceneChange'; readonly at: Micros; readonly ending: RuntimeSceneEnding }
+  /**
+   * What the stage must watch for this scene's proximity and view listeners: hand it to
+   * `Stage.watch`. Sent once, as the run starts, before any commands, and empty if there's
+   * nothing to watch (WP6.2).
+   */
+  | { readonly type: 'watch'; readonly watches: readonly Watch[] };
+
+/**
+ * Which block ended the scene. The production's `SceneEnding` without `finished`, which the
+ * player works out itself, so it assigns to that type as it is.
+ */
+export type RuntimeSceneEnding =
+  | { readonly kind: 'goToScene'; readonly scene: string }
+  | { readonly kind: 'crossfade'; readonly scene: string; readonly duration: Micros }
+  | { readonly kind: 'fadeToBlack'; readonly duration: Micros };
 
 /**
  * Why a run stopped with an error. The studio turns the code into plain words ("This loop never
@@ -141,6 +165,8 @@ const FROM_TYPES = new Set<string>([
   'error',
   'finished',
   'stopped',
+  'sceneChange',
+  'watch',
 ]);
 
 const hasType = (m: unknown, types: Set<string>): boolean =>

@@ -117,6 +117,7 @@ export interface PupilFolder {
   ): Promise<ProductionInfo>;
   /** Newest first. */
   backups(key: ProductionKey): Promise<readonly BackupInfo[]>;
+  /** `index` is as of the last `backups()`: a save since then moves every backup along by one. */
   readBackup(key: ProductionKey, index: number): Promise<Uint8Array>;
   /** Keeps the untouched original of a migrated production (spec 03 1.2). The first one stays. */
   keepOriginal(key: ProductionKey, bytes: Uint8Array): Promise<void>;
@@ -134,6 +135,11 @@ export interface ClassFolders {
   removePupil(id: PupilId): Promise<void>;
   /** Opens a pupil's folder, and makes it the current one, where autosave writes. */
   open(id: PupilId): Promise<PupilFolder>;
+  /**
+   * A pupil's folder, leaving `current()` as it is: for the teacher's Collect and Hand back,
+   * which reach every pupil's folder in turn. `not_found` for a pupil who isn't in the class.
+   */
+  folder(id: PupilId): Promise<PupilFolder>;
   /** The folder in use, if a pupil has chosen their name. */
   current(): PupilFolder | null;
   /** At the end of a lesson: waits for writes in progress, then nobody's folder is open. */
@@ -165,8 +171,8 @@ export interface FilePicker {
   open(): Promise<{ readonly name: string; readonly bytes: Uint8Array }>;
   /**
    * Collect: the teacher picks a folder, and every file is written into it. Gives the count. The
-   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file` are
-   * `invalid`, and nothing is written.
+   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file`, ignoring
+   * case as Windows and macOS do (`collectedPath`), are `invalid`, and nothing is written.
    */
   collect(files: readonly CollectedFile[]): Promise<number>;
   /**
@@ -174,6 +180,14 @@ export interface FilePicker {
    * over `FILE_LIMIT` is `too_big`, and nothing is read.
    */
   handBack(): Promise<readonly CollectedFile[]>;
+}
+
+/**
+ * Where a collected file lands, as a folder on Windows or macOS sees it: case and Unicode form
+ * don't count, so "Sam/Pip" and "sam/pip" are the same file (S4's review of #211).
+ */
+export function collectedPath(file: Pick<CollectedFile, 'folder' | 'file'>): string {
+  return `${file.folder}/${file.file}`.normalize('NFC').toLowerCase();
 }
 
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
