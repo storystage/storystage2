@@ -525,6 +525,8 @@ export const STORY_LIBRARY: StoryLibrary = {
     density: portion(call.args.density, 'density'),
     ...timing(call),
   })),
+  // 4.4. Going to another scene, and crossfading to one, are the production's playback (WP8.3).
+  fadeToBlack: procedure((call) => ({ object: SCENE, kind: 'fade', to: 1, ...timing(call) })),
   *getAtmosphereColor(_call, context) {
     return colourValue((yield* skyOf(context)).atmosphere);
   },

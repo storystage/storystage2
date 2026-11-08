@@ -235,6 +235,14 @@ const SCENE_CASES: Readonly<Record<string, Case>> = {
     check: (s) => expect(sky(s).fromBelow).toBe('#ff0000'),
   },
   setFogDensity: { args: { density: 0.5 }, check: (s) => close(sky(s).fog, 0.5) },
+  fadeToBlack: {
+    // Half way through, the picture is part way to black; at the end it changes no further.
+    check: (s) => {
+      const end = s.stateHash();
+      s.seek(micros(0.5));
+      expect(s.stateHash()).not.toBe(end);
+    },
+  },
   getAtmosphereColor: { check: (_s, v) => expect(v).toEqual(choice('Color', 'black')) },
   getFromAboveLightColor: { check: (_s, v) => expect(v).toEqual(choice('Color', 'white')) },
   getFromBelowLightColor: { check: (_s, v) => expect(v).toEqual(choice('Color', 'black')) },

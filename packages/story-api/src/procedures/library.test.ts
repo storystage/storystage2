@@ -164,6 +164,9 @@ describe('procedures', () => {
       verticalAngle: 0.1,
       duration: 0,
     });
+    const fade = run('fadeToBlack', { target: obj(SCENE), details: { duration: 2 } });
+    expect(fade.sent[0]).toMatchObject({ object: SCENE, kind: 'fade', to: 1, duration: micros(2) });
+    expect(fade.waits).toEqual([{ kind: 'sleep', duration: micros(2) }]);
   });
 
   it('refuse a value out of range or of the wrong kind', () => {
