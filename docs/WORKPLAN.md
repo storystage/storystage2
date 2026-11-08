@@ -773,7 +773,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp14 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP13b, WP4b.
 <!-- /schedule:wp14 -->
-- [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). The default model is bundled in the apps (decision 0057); the optional, more accurate one downloads on request after consent, with a checksum. Hold to talk; an editable transcript; audio is discarded after transcription. (C)
+- [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). The default model is bundled in the apps (decision 0057); the optional, more accurate one downloads on request after consent, with a checksum. Dictation into every text field, with or without the Prompter (decision 0060): a mic beside each field, tap to start and stop; the words go into the field for the learner to edit; audio is discarded after transcription. (C)
 - [ ] 14.2 Speech output with speech synthesis, filtered to voices marked `localService`, preferring en-GB. A narration queue tied to Prompter steps, stop, and captions always shown. (C)
 - [ ] 14.3 **Speak line** block: characters speak script dialogue through the same voices, captioned. (C)
 - [ ] 14.4 **Later** (not in the first release): a voice-over recorder per script line, and Rhubarb Lip Sync (MIT) as a desktop sidecar driving the mouth joint. (C)
@@ -800,13 +800,13 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 15.3 **Policy and the school lock** (from StoryStage 1 spec 02 §4):
     - a policy file on desktop;
     - managed app configuration on iPad and Android, so schools set it through their device management;
-    - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `speech.dictation` (decision 0060), `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
+    - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
     - a malformed policy means the Prompter is off.
 
     (C)
 - [ ] 15.4 Code signing: Windows (certificate), macOS (notarisation). (C sets up CI; U buys certificate)
 - [ ] 15.5 Apple developer account and App Store listing; Google Play listing with managed Play for schools. (U; C prepares listings and privacy labels)
-- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files on `storystage.org.uk`, with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
+- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files at `app.storystage.org` (decision 0046), with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
 - [ ] 15.7 **Updates and rollback:** a pilot channel and a stable channel, chosen by policy (`update.channel`), with version pinning (`update.pin`) so a school can hold a version through a term; staged rollout; desktop auto-update only within the chosen channel; version shown in About. A rollback drill: push a broken build to the pilot channel and roll it back. (C)
 
 **Done when:** signed builds install on each target, the key survives restart, with the policy lock set the Prompter can't be switched on, a request with an unlisted model or system prompt is refused, 30 simulated clients hitting rate limits back off without a retry storm, and the rollback drill passes.
@@ -817,11 +817,11 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp16 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP16a needs nothing first; WP16b after WP16a.
 <!-- /schedule:wp16 -->
-- [ ] 16.1 **England:** the national curriculum programmes of study for computing (KS1–KS3), English (writing narrative, drafting, spoken language and drama, KS1–KS3), art and design, and other subjects where storytelling or modelling fits (for example history and science explanations). (C)
-- [ ] 16.2 **Scotland:** Curriculum for Excellence experiences and outcomes and benchmarks, for technologies (computing science), literacy and English, and expressive arts (drama). (C)
-- [ ] 16.3 **Wales:** Curriculum for Wales areas of learning and experience (science and technology; languages, literacy and communication; expressive arts) and the cross-curricular digital competence framework. (C)
-- [ ] 16.4 **Northern Ireland:** the Northern Ireland Curriculum, covering language and literacy, the arts, and the cross-curricular skill Using ICT. (C)
-- [ ] 16.5 **Mapping table:** for each statement, the StoryStage feature, the activity, the arc template and the age range. Highlight the statements with the most touch points. (C)
+- [x] 16.1 **England:** the national curriculum programmes of study for computing (KS1–KS3), English (writing narrative, drafting, spoken language and drama, KS1–KS3), art and design, and other subjects where storytelling or modelling fits (for example history and science explanations). (C)
+- [x] 16.2 **Scotland:** Curriculum for Excellence experiences and outcomes and benchmarks, for technologies (computing science), literacy and English, and expressive arts (drama). (C)
+- [x] 16.3 **Wales:** Curriculum for Wales areas of learning and experience (science and technology; languages, literacy and communication; expressive arts) and the cross-curricular digital competence framework. (C)
+- [x] 16.4 **Northern Ireland:** the Northern Ireland Curriculum, covering language and literacy, the arts, and the cross-curricular skill Using ICT. (C)
+- [x] 16.5 **Mapping table:** for each statement, the StoryStage feature, the activity, the arc template and the age range. Highlight the statements with the most touch points. (C)
 - [ ] 16.6 Curriculum arc templates and 6–10 classroom use cases with lesson outlines. (C drafts; U reviews with teachers)
 - [ ] 16.7 **The teacher's job:** five interviews (computing, English, drama or media teachers, and a club leader) on what a teacher would hire StoryStage to do, in their words and circumstances; written into the doc's purpose section before the mock-ups (12.1) are approved. (U interviews; C prepares questions and writes up)
 - [ ] 16.8 **The pathway's first rung:** map the text view to KS3 text programming and GCSE computer science (commonly Python), so the pathway guide (20.4) starts there, before Unreal and Unity. (C)
@@ -870,7 +870,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp19 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP19a after WP12a; WP19 after RC, WP16b, WP17b, WP19a.
 <!-- /schedule:wp19 -->
-- [ ] 19.1 Website pages on `storystage.org.uk`: download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
+- [ ] 19.1 Website pages on `storystage.org` (the WordPress site, decision 0046): download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
 - [ ] 19.2 Teacher guide: the three tabs, the storyboard rule, the Prompter modes, the curriculum use cases. (C)
 - [ ] 19.3 Recruit 2–3 schools across at least two UK nations, plus at least one after-school club. Ask each whether it would fund a Prompter key, and which Prompter route (24.3) suits it. (U)
 - [ ] 19.4 Feedback form, issue templates, and triage into the next release. (C)

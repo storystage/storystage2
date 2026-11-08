@@ -8,6 +8,7 @@ import type { Person } from './people.ts';
 const person: Person = {
   id: 'p26',
   name: 'Margaret',
+  description: 'an older woman of 72 with a grey bob, in a pink striped blouse and pink skirt',
   ageYears: 72,
   gender: 0.15,
   build: { weight: 0.55, muscle: 0.4, height: 0.4, proportions: 0.5 },
@@ -80,6 +81,7 @@ describe('sourceList', () => {
     expect(list.items[25]).toMatchObject({
       id: 'makehuman/Biped/p26',
       displayName: 'Margaret',
+      description: 'an older woman of 72 with a grey bob, in a pink striped blouse and pink skirt',
       class: 'Biped',
       section: 'cast',
       licence: 'CC0-1.0',
