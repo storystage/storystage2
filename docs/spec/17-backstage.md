@@ -123,6 +123,18 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - Textures are shrunk to 1024 pixels here. Triangles (33,000 to 47,000 each) are reduced in WP3c.
 - **Where Backstage's files live** (owner's decision, 25 Oct 2026): the public repository `storystage/backstage-assets`. It holds the shipped glTF files, `backstage.json`, the sketches and each item's provenance. A GitHub Actions job there downloads the CC0 sources, converts them and commits the results, so nothing large is fetched to a developer's PC. The MakeHuman people are made there too, headless, with MPFB2 in Blender (owner's decision, 25 Oct 2026). Both tools are GPL and are build tools only (CLAUDE.md, rule 8).
 
+## 3a. Credits
+
+Credits come from the manifest (workplan 3.4): the About screen lists every shipped model, and a film's end credits (WP11.4) list the models it uses. The code is `packages/backstage/src/credits.ts`. The About screen itself is S5's (the Studio), and the film credits are the export's (spec 08, section 5); both build on `creditsBySection`.
+
+### Rules
+
+1. **Grouped as everywhere else:** Cast, Props, Set and Backdrops, in that order, with empty sections left out.
+2. **Each model once,** alphabetically within its section, with its credit line exactly as the manifest gives it.
+3. **Each line carries its licence and its page:** a Creative Commons licence's short name and deed link (`LICENCE_LINKS`), and the model's own page. CC BY asks for both. A screen shows them as links; a film shows the name.
+4. **A changed CC BY model says so** (owner, 8 Nov 2026): its credit line ends ", changed for StoryStage" (`creditFor`), as CC BY 4.0 asks (section 3(a)(1)(B)). The build changes every glTF model it ships (textures re-encoded, perhaps simplified), and the import pipeline will too, so both write the credit with `creditFor`. VRM files are kept byte for byte, so they aren't changed. CC0 and `permission` credits are left as written.
+5. **Notices a source requires,** such as an acknowledgement CMU may ask for its Alice models, are added here when the permission that requires them is recorded in `docs/legal/`.
+
 ## 4. Budgets
 
 Every model is reduced to a budget, and every scene is checked against one, so a production runs smoothly on the reference 4 GB Chromebook (CLAUDE.md, rule 6). The code is `packages/backstage/src/budget.ts` (the figures and the scene check) and `optimize.ts` (the reduction, `@storystage/backstage/optimize`).
@@ -259,6 +271,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
 | 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; a `description` is one line of at most 120 characters; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
 | 1: the shipped catalogue's builder writes each item's budget and VRM version | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
+| 3a.1–3a.4: credits grouped by section, empty ones left out; each model once, in order; licence name, deed link and page on each line; every Creative Commons licence linked; "changed for StoryStage" on changed CC BY models only, once | `packages/backstage/src/credits.test.ts` | Unit (Vitest) |
+| 3a.4: the build marks a CC BY glTF model changed, and leaves a CC BY VRM file's credit as written | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
 | 4: the figures in one place and provisional; the scene check, counting every copy, estimating picture memory, warning in plain words | `packages/backstage/src/budget.test.ts` | Unit (Vitest) |
 | 4.2–4.4: reduction to the budget keeping shape; skinned characters keep joints and weights; within budget left alone; textures shrunk to WebP with the encoder given, reported as not fitting without one; unused data dropped | `packages/backstage/src/optimize.test.ts` | Unit (Vitest) |
 | 4.1–4.5: the build reduces a 40,000-triangle, 2,048 px model to a prop's budget with real sharp, records before and after, and reports it; a solid-colour texture becomes a plain colour; sharp's WebP shrinks to fit without enlarging, keeping see-through parts | `tools/backstage-sources/src/reduce.test.ts`, `sharp-encoder.test.ts` | Unit (Vitest) |
