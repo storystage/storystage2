@@ -34,6 +34,26 @@ const goTo = (scene: string, at: number): FromRuntime => ({
 const kinds = (actions: PlayerAction[]) => actions.map((a) => a.kind);
 const loads = (actions: PlayerAction[]) => actions.flatMap((a) => (a.kind === 'load' ? [a] : []));
 
+/** The example, with its first scene waiting for a click. */
+function waiting(): Production {
+  const listener: ListenerDecl = {
+    id: nodeId('scene1l'),
+    kind: 'listener',
+    event: 'clickOnObject',
+    args: {},
+    details: {},
+    params: [],
+    body: [],
+  };
+  return {
+    ...p,
+    program: {
+      ...p.program,
+      types: p.program.types.map((t, i) => (i === 0 ? { ...t, listeners: [listener] } : t)),
+    },
+  };
+}
+
 const player = (q: Production = p, mode: 'production' | 'rehearse' = 'production', from?: string) =>
   new ProductionPlayer(q, { mode, seed: 100, ...(from ? { from: sceneId(from) } : {}) });
 
@@ -68,28 +88,43 @@ describe('ProductionPlayer', () => {
   });
 
   it("doesn't end a scene that waits on the viewer, until a block ends it", () => {
-    const listener: ListenerDecl = {
-      id: nodeId('scene1l'),
-      kind: 'listener',
-      event: 'clickOnObject',
-      args: {},
-      details: {},
-      params: [],
-      body: [],
-    };
-    const q: Production = {
-      ...p,
-      program: {
-        ...p.program,
-        types: p.program.types.map((t, i) => (i === 0 ? { ...t, listeners: [listener] } : t)),
-      },
-    };
-    const pl = player(q);
+    const pl = player(waiting());
     pl.start();
     pl.runtime(finished(0));
     expect(pl.now(micros(60))).toEqual([]);
     pl.runtime(goTo('s3', 61));
     expect(loads(pl.now(micros(61)))[0]).toMatchObject({ scene: 's3' });
+  });
+
+  it('in an export, ends a waiting scene viewerWait after its last command (rule 11)', () => {
+    const pl = new ProductionPlayer(waiting(), {
+      mode: 'production',
+      seed: 100,
+      viewerWait: micros(5),
+    });
+    pl.start();
+    pl.runtime(commands(command(0, 3)));
+    pl.runtime(finished(1));
+    expect(pl.now(micros(7.9))).toEqual([]);
+    // A later command (a timer, say) moves the end on.
+    pl.runtime(commands(command(6, 2)));
+    expect(pl.now(micros(12.9))).toEqual([]);
+    const actions = pl.now(micros(13));
+    expect(kinds(actions)).toEqual(['stop', 'load', 'preload']);
+    expect(loads(actions)[0]).toMatchObject({ scene: 's2', transition: { kind: 'cut' } });
+  });
+
+  it('in an export, still lets a block end a waiting scene first', () => {
+    const pl = new ProductionPlayer(waiting(), {
+      mode: 'production',
+      seed: 100,
+      viewerWait: micros(5),
+    });
+    pl.start();
+    pl.runtime(finished(0));
+    pl.runtime(goTo('s3', 2));
+    pl.runtime(commands(command(2, 10))); // left over from before the change: moves nothing on
+    expect(loads(pl.now(micros(2)))[0]).toMatchObject({ scene: 's3' });
   });
 
   it('fades to black: out over the first half, then the next scene loads and fades in', () => {

@@ -77,6 +77,12 @@ export interface PlayerOptions {
   readonly seed: number;
   /** The scene to start with: Rehearse's scene, or the Screening room's "play from here". */
   readonly from?: SceneId;
+  /**
+   * For the export, which has no viewer (spec 03, section 3.1, rule 11): a scene that waits on
+   * the viewer ends this long after its last stage command, as if it had finished, and goes on
+   * with its transition. Unset (the Screening room, Rehearse), it waits until a block ends it.
+   */
+  readonly viewerWait?: Micros;
 }
 
 /** The player's fade commands come after anything the runtime sends at the same moment. */
@@ -100,6 +106,8 @@ export class ProductionPlayer {
   private started = 0;
   private lastCommandEnds: Micros = 0;
   private pending: Pending | null = null;
+  /** True while `pending` is a waiting scene's `viewerWait` end, which later commands move on. */
+  private waitingOut = false;
   private fadeSeq = FADE_SEQ;
 
   constructor(production: Production, options: PlayerOptions) {
@@ -134,16 +142,32 @@ export class ProductionPlayer {
       case 'commands':
         for (const c of message.commands)
           this.lastCommandEnds = Math.max(this.lastCommandEnds, c.start + c.duration);
+        if (this.waitingOut && this.pending)
+          this.pending = {
+            ...this.pending,
+            at: Math.max(this.pending.at, this.lastCommandEnds + this.options.viewerWait!),
+          };
         return [];
       case 'finished':
-        // A scene that waits on the viewer carries on until a block ends it, or Stop.
-        if (waitsForViewer(this.production.program, this.production, this.scene!)) return [];
+        // A scene that waits on the viewer carries on until a block ends it, or Stop; in an
+        // export, until `viewerWait` after its last stage command.
+        if (waitsForViewer(this.production.program, this.production, this.scene!)) {
+          const wait = this.options.viewerWait;
+          if (wait === undefined || this.pending) return [];
+          this.waitingOut = true;
+          this.pending = {
+            at: Math.max(message.at, this.lastCommandEnds) + wait,
+            ending: { kind: 'finished' },
+          };
+          return [];
+        }
         this.pending ??= {
           at: Math.max(message.at, this.lastCommandEnds),
           ending: { kind: 'finished' },
         };
         return [];
       case 'sceneChange':
+        this.waitingOut = false;
         this.pending = { at: message.at, ending: message.ending };
         return [];
       case 'error':
@@ -169,6 +193,7 @@ export class ProductionPlayer {
     if (phase.kind !== 'playing' || !this.pending || t < this.pending.at) return [];
     const { at, ending } = this.pending;
     this.pending = null;
+    this.waitingOut = false;
     // A scene that ended on its own may still have listeners running; one a block ended has stopped.
     const stop: PlayerAction[] = ending.kind === 'finished' ? [{ kind: 'stop' }] : [];
     return [...stop, ...this.after(at, ending)];
@@ -274,6 +299,7 @@ export class ProductionPlayer {
     this.scene = scene;
     this.lastCommandEnds = 0;
     this.pending = null;
+    this.waitingOut = false;
     this.phase = { kind: 'playing' };
     return [
       {
