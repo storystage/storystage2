@@ -115,20 +115,36 @@ export function tauriSpeech(invoke: Invoke, Channel: ChannelClass): SpeechModels
       return reply;
     },
 
+    // From S5's and S7's reviews of #152: it always settles, once, and leaves nothing behind.
     download(name, onProgress, signal) {
       return new Promise((resolve, reject) => {
         if (signal?.aborted) return reject(new SpeechModelError('cancelled'));
+        let settled = false;
+        const settle = (error?: SpeechModelError) => {
+          if (settled) return;
+          settled = true;
+          signal?.removeEventListener('abort', abort);
+          if (error) reject(error);
+          else resolve();
+        };
+        // Stop at once on Cancel, whatever the native side says next.
+        const abort = () => {
+          invoke(SPEECH_COMMANDS.cancel, { name }).catch(() => {});
+          settle(new SpeechModelError('cancelled'));
+        };
         const channel = new Channel();
         channel.onmessage = (message) => {
-          const event = message as SpeechDownloadEvent;
-          if (event.type === 'progress') onProgress?.(event.received, event.total);
-          else if (event.type === 'end') resolve();
-          else reject(asError(event.code));
+          const event = message as Partial<SpeechDownloadEvent> | null;
+          if (event?.type === 'progress' && typeof event.received === 'number') {
+            if (!settled) onProgress?.(event.received, event.total ?? 0);
+          } else if (event?.type === 'end') settle();
+          else if (event?.type === 'error') settle(asError(event.code));
+          else settle(new SpeechModelError('internal'));
         };
-        signal?.addEventListener('abort', () => void invoke(SPEECH_COMMANDS.cancel, { name }), {
-          once: true,
-        });
-        call(SPEECH_COMMANDS.download, { name, channel }).catch(reject);
+        signal?.addEventListener('abort', abort, { once: true });
+        call(SPEECH_COMMANDS.download, { name, channel }).catch((reason: unknown) =>
+          settle(asError(reason)),
+        );
       });
     },
 

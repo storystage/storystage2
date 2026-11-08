@@ -109,15 +109,61 @@ describe('speech models over the native commands', () => {
     await expect(done).rejects.toMatchObject({ code: 'check_failed' });
   });
 
-  it('cancels through the native layer when aborted', async () => {
+  it('cancels at once when aborted, through the native layer, whatever comes next', async () => {
+    const { speech, channels, calls } = fakeTauri(() => null);
+    const stop = new AbortController();
+    const progress: number[] = [];
+    const done = speech.download('tiny.en', (received) => progress.push(received), stop.signal);
+    await Promise.resolve();
+    stop.abort();
+    await expect(done).rejects.toMatchObject({ code: 'cancelled' });
+    expect(calls.map((call) => call.command)).toContain('speech_model_cancel');
+    channels[0]!.onmessage({ type: 'progress', received: 5, total: 10 });
+    channels[0]!.onmessage({ type: 'end' });
+    expect(progress).toEqual([]);
+  });
+
+  it('doesn’t leave a failed cancel unhandled', async () => {
+    const speech = tauriSpeech(
+      (command) =>
+        command === 'speech_model_cancel' ? Promise.reject('gone') : new Promise(() => {}),
+      class {
+        onmessage = () => {};
+      },
+    );
+    const stop = new AbortController();
+    const done = speech.download('tiny.en', undefined, stop.signal);
+    stop.abort();
+    await expect(done).rejects.toMatchObject({ code: 'cancelled' });
+  });
+
+  it('settles as internal on a message it doesn’t understand', async () => {
+    const { speech, channels } = fakeTauri(() => null);
+    const done = speech.download('tiny.en');
+    await Promise.resolve();
+    channels[0]!.onmessage({ type: 'unexpected' });
+    await expect(done).rejects.toMatchObject({ code: 'internal' });
+  });
+
+  it('settles if the command itself fails', async () => {
+    const speech = tauriSpeech(
+      () => Promise.reject('offline'),
+      class {
+        onmessage = () => {};
+      },
+    );
+    await expect(speech.download('tiny.en')).rejects.toMatchObject({ code: 'offline' });
+  });
+
+  it('sends no cancel for a download that has already finished', async () => {
     const { speech, channels, calls } = fakeTauri(() => null);
     const stop = new AbortController();
     const done = speech.download('tiny.en', undefined, stop.signal);
     await Promise.resolve();
+    channels[0]!.onmessage({ type: 'end' });
+    await done;
     stop.abort();
-    channels[0]!.onmessage({ type: 'error', code: 'cancelled' });
-    await expect(done).rejects.toMatchObject({ code: 'cancelled' });
-    expect(calls.map((call) => call.command)).toContain('speech_model_cancel');
+    expect(calls.map((call) => call.command)).not.toContain('speech_model_cancel');
   });
 
   it('starts nothing if already aborted', async () => {
