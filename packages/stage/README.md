@@ -72,7 +72,7 @@ A clip made once plays on any humanoid, as Unity's Mecanim Humanoid does.
   - They're kept to a hundredth of a degree in about 170 kB, which loads only when a scene first has a humanoid in it (`loadHumanLibrary`).
 - **Walking speed:** a walk's and a run's speed is measured from their feet: about 1.9 and 3.7 hips' heights a second.
 - **VRM 0.x avatars face -Z** (spec 17, section 3), so the stage turns them to face +Z when it places them. It knows one from its file.
-- **Rest poses:** every model so far rests in a T-pose. A model that rests in an A-pose would hold its arms too low. MakeHuman's people may need a correction for that, once they can be looked at here.
+- **Rest poses:** a pose is measured from a T-pose, but not every model rests in one. MakeHuman's people rest in an A-pose, their arms 48° below level and their legs a little apart. So the stage works out, from where a model's joints rest, the turn that sets each arm and leg bone straight as a T-pose has it (`humanoid/rest.ts`); hands, feet and fingers turn with them. The rig and the body both use it, so a model posed from a T-pose looks the same whatever it rests in. KayKit's and 100Avatars' models need none.
 - **The gestures and the fall** are written in code (`humanoid/gestures.ts`): wave, nod, shrug, clap and point, and a fall onto the back that ends as KayKit's lying begins. A gesture turns only the bones it names, so it plays over whatever the legs are doing. The wave is in front of the shoulder, so it shows on a character whose head is wider than its arms are long, as KayKit's are.
 
 ## Character actions (4.5, 4.6)
@@ -95,7 +95,7 @@ The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`,
 - **Looking** turns the neck and head, half each, to face the target, by at most a fifth of a turn. It follows the target until the next `lookAt`; `null` stops looking.
 - **Faces** are a VRM's own (`faces.ts`): VRM 0.x's `joy`, `sorrow`, `angry`, `fun` and `blink` and VRM 1.0's presets, by their Story API names. An expression stays until the next, and the old face fades out as the new one comes in, over the block's duration. `neutral` is a plain face: the old one fades and nothing comes. `blink` shuts and opens the eyes. A model without that face shows no change (owner's decision of 8 Nov 2026); the 100Avatars VRMs have only a blink.
 - **Clips.** `play animation` plays the model's own clip of that name, or for a biped, a shared clip. Anything else is refused.
-- **Not yet:** visemes for speaking (waiting on S1's speak line design, WP14.3); turning the eyes as well as the head; correcting for a model that rests in an A-pose; and a walk round other characters, which aren't in the way.
+- **Not yet:** visemes for speaking (waiting on S1's speak line design, WP14.3); turning the eyes as well as the head; and a walk round other characters, which aren't in the way.
 
 ## How it fits together
 
