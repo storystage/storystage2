@@ -141,9 +141,11 @@ export async function startFakeClaude(options: FakeClaudeOptions = {}): Promise<
       system: canonical(body.system),
       tools: canonical(body.tools),
       first: canonical(messages[0]),
+      // A reply that isn't kept binds nothing new, and nothing after the last kept reply is bound:
+      // the client may take back the turns it sent after that (spec 04, section 1.6).
       prefix: isHistory(stopReason)
         ? [...messages, { role: 'assistant', content: echoOf(content) }]
-        : messages,
+        : messages.slice(0, messages.map((m) => m.role).lastIndexOf('assistant') + 1),
     });
     await stream(res, events, turn.cutAfter);
   };

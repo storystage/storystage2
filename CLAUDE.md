@@ -4,7 +4,7 @@ Read this first, every session. Then read your session brief in `handover/`, the
 
 ## What we're building
 
-StoryStage 2 lets young people in schools and clubs across the four UK nations (aged 6 to 13, provisionally: decision 0030) make 3D animated films the way the film industry does: **Storyboard** (logline, synopsis, scenes, script, sketch frames) → **Production stage** (set the scene from Backstage, then code it in blocks) → **Screening room** (rough cut, compare with the storyboard, export an MP4). An optional Claude assistant, **the Prompter**, coaches and builds on request, using the user's or school's own key. It never writes the learner's story.
+StoryStage 2 lets young people in schools and clubs across the four UK nations (aged 6 to 13: decision 0039) make 3D animated films the way the film industry does: **Storyboard** (logline, synopsis, scenes, script, sketch frames) → **Production stage** (set the scene from Backstage, then code it in blocks) → **Screening room** (rough cut, compare with the storyboard, export an MP4). An optional Claude assistant, **the Prompter**, coaches and builds on request, using the user's or school's own key. It never writes the learner's story.
 
 It is a rewrite on web technology. It contains **no Alice code**, but keeps Alice's vocabulary, program semantics, tile-editor design and (subject to licence) its models. StoryStage 1, the Java fork of Alice 3, stays in use until StoryStage 2 replaces it.
 
