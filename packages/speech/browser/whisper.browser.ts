@@ -42,7 +42,7 @@ async function resultOf(page: Page, run: string) {
     const handle = await page.waitForFunction(
       () => (window as unknown as { harnessResult?: unknown }).harnessResult,
       undefined,
-      { timeout: 240_000 },
+      { timeout: 150_000 },
     );
     return (await handle.jsonValue()) as Record<string, unknown>;
   } finally {
@@ -69,6 +69,19 @@ test('dictation hears a recorded clip through the real whisper worker', async ({
   expect(r.error).toBeUndefined();
   expect(wordErrorRate(KENNEDY, String(r.text))).toBeLessThan(0.25);
 });
+
+// Diagnosing a hang in the worker: the same clip on the page (as spike 1.3 ran it), and in the
+// worker with one thread. These report what happened, and fail nothing.
+for (const run of ['page', 'clip&threads=1']) {
+  test(`for comparison: ${run}`, async ({ page }) => {
+    test.setTimeout(300_000);
+    const r = await resultOf(page, run).catch((error: unknown) => ({ error: String(error) }));
+    console.log(`comparison ${run}:`, JSON.stringify(r));
+    test
+      .info()
+      .annotations.push({ type: 'comparison', description: `${run}: ${JSON.stringify(r)}` });
+  });
+}
 
 test('the browser microphone passes on samples, and stops when closed', async ({ page }) => {
   test.setTimeout(60_000);
