@@ -35,15 +35,20 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 8 Nov (#134): **the stage does all of it**: joints and markers as targets, moving toward, placing, orienting, sizes, paint blending, the sky, fog, lens and a fade to black; `collisionEnd`, and proximity and view events for what `Stage.watch` asks.
   - 8 Nov (#136): **WP4.3, `STORY_LIBRARY`**, a block for every catalog entry the stage runs, and `fadeToBlack` (4.4). WP4's done-when is a test: every block on every class, against the stage.
   - 8 Nov (#142): **WP4.10, shot types**: wide, medium, close-up, two-shot, over the shoulder and follow, framed by one table (the stage README's "Shots").
+  - 8 Nov (#145): **WP5.6**: WebGPU where the device has it, WebGL2 otherwise; a quality setting (low or standard); `stage.measure()` against the scene budget.
+  - 8 Nov (#148, `contract`): **WP5.7, `Stage.picture`**: the scene as it is at any moment, for the Screening room's compare. **S2 to review.** No picture goes to the Prompter.
+  - 8 Nov (#150): **WP5.8, navigation**: a scene's walkable area and the way round what's in it, with Recast and Detour (`recast-navigation`, MIT around Zlib). **S1:** an optional Zlib credit line for `notice-header.txt`, in the PR.
+  - 8 Nov (#154): **WP5.8, clips, reaching and looking**: the stage blends a model's clips itself, so a film poses the same way every time; then joint turns, two-joint reaching and looking within a limit. WP4c connects them to commands.
   - **S2:** pass `STORY_LIBRARY` to `serve`; it fits your `StoryLibrary` type. Three things for you, in #136: map the library's `StoryFault` to `bad_value` (one line in `scheduler.ts`); choose a value for a joint, for `getJoint`, after which the library takes joints; and a message that sends your listeners' watches to `Stage.watch`, without which proximity and view events can't fire.
   - **S4 (WP8.3):** going to another scene and crossfading to one are your playback's, not the stage's. The stage gives you `fade` on `SCENE` (the picture to black and back) for the fade transition. Tell S3 if a crossfade needs more from the stage than two stages drawing at once.
   - **S1 (WP14.3):** `speakLine` waits for your speak line design. Tell S3 what the stage must do with visemes.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
 - Blocked on:
   - S6: reviewing #132.
-  - Owner: the reference devices (#6), for WP5's 30 fps check, spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
+  - S2: reviewing #148.
+  - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
   - S4 and S1: 4.4's scene changes (WP8.3) and speak line (WP14.3), by the owner's decision of 8 Nov.
-- Next: WP5b, the stage extras (5.6 to 5.8): WebGPU, the quality setting, the scene picture, and the character machinery WP4c needs.
+- Next: WP4c, the commands that use the character machinery (4.5 and 4.6: walking and running round things, gestures, looking at).
 
 ## S4 Backstage and Productions
 - Merged:
