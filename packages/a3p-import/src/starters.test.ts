@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import manifest from '../starters.json' with { type: 'json' };
+import { decodeAlice, listProp, nodesOf, textProp } from './decode.ts';
 import { readA3p } from './read.ts';
 
 // WP9's done-when, for 9.1: Alice's 34 starter projects read with no errors. They're Carnegie
@@ -26,6 +27,12 @@ describe.skipIf(!folder)('Alice’s 34 starter projects', () => {
       expect(file.program.name).toBe('node');
       expect(file.program.attributes['type']).toBe('org.lgna.project.ast.NamedUserType');
       expect(file.thumbnail).not.toBeNull();
+      // Spec 19, section 2: every key resolves, into one graph holding Program and Scene.
+      const program = decodeAlice(file.program);
+      expect(textProp(program, 'name')).toBe('Program');
+      const types = [...nodesOf(program)].filter((n) => n.type === 'NamedUserType');
+      expect(types.map((t) => textProp(t, 'name'))).toContain('Scene');
+      expect(listProp(program, 'methods').length).toBeGreaterThan(0);
       for (const resource of file.resources)
         expect(resource.bytes, resource.entryName).not.toBeNull();
     });

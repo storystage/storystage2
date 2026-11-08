@@ -61,7 +61,9 @@ export type ImportProblemCode =
   | 'tooManyTriangles'
   | 'tooManyJoints'
   | 'tooManyNodes'
-  | 'tooManyPictures';
+  | 'tooManyPictures'
+  /** The import ran past its time limit (`IMPORT_TIME_LIMIT_MS`). */
+  | 'tooSlow';
 
 export interface ImportProblem {
   readonly code: ImportProblemCode;
