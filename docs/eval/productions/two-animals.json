@@ -1,0 +1,9 @@
+{
+  "title": "Two animals",
+  "backdrop": "grass",
+  "objects": [
+    { "name": "cat", "class": "Quadruped", "item": "example/Quadruped/cat", "position": { "x": -1, "y": 0, "z": 0 } },
+    { "name": "dog", "class": "Quadruped", "item": "example/Quadruped/dog", "position": { "x": 1, "y": 0, "z": 0 } }
+  ],
+  "program": []
+}

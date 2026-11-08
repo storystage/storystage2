@@ -47,11 +47,12 @@ Accounts and saving:
 9. Do pupils have school Google or Microsoft accounts? Can they save to Drive or OneDrive from an app?
 10. Where would you want pupils' work to live between lessons: on the device, in their school account, or on a shared drive?
 11. What happens to pupils' files at the end of the year?
+12. Does a pupil get the same device each lesson (numbered devices, handed out the same way), or any device? (Decision 0065 keeps work in pupil folders on the device; if pupils move between devices, moving work through files becomes the main route.)
 
 Policy and approval:
-12. What does the school need before it will approve a new app (a DPIA, a privacy notice, a data processing agreement)? Who signs it off?
-13. Would the school ever hold a Claude API key for a class? Who would own the account and pay?
-14. Are cameras allowed on pupils' devices (for AR, WP21)? Microphones?
+13. What does the school need before it will approve a new app (a DPIA, a privacy notice, a data processing agreement)? Who signs it off?
+14. Would the school ever hold a Claude API key for a class? Who would own the account and pay?
+15. Are cameras allowed on pupils' devices (for AR, WP21)? Microphones?
 
 ## Answers
 

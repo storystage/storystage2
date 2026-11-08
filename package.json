@@ -21,7 +21,8 @@
     "schedule:check": "node tools/plan/src/plan-cli.ts",
     "typecheck": "pnpm -r --workspace-concurrency=2 typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "backstage:fetch": "node tools/backstage-sources/src/bundle-cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

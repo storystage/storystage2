@@ -12,3 +12,7 @@ apps/desktop/src-tauri/gen/
 *.log
 .DS_Store
 Thumbs.db
+
+# The shipped Backstage, fetched by pnpm backstage:fetch (decision 0062)
+.backstage/
+.backstage.fetching/

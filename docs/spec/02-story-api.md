@@ -5,6 +5,8 @@
 - **Owner:** S6 (spec and types); S3 (procedures)
 - **Status:** written 1 Nov 2026. The tables are generated from the metadata in `packages/story-api/src/catalog/`; change them there and run `pnpm --filter @storystage/story-api spec`. A test fails if they differ.
 
+**Published:** the open specification for implementers outside StoryStage is generated from the same metadata into [`docs/story-api/`](../story-api/README.md) (WP4.8, decision 0055).
+
 ## 0. Decisions this spec relies on
 
 [0007 3D](../decisions/0007-3d.md), [0008 Models](../decisions/0008-models.md), [0009 Blocks](../decisions/0009-blocks.md), [0010 Language](../decisions/0010-language.md), [0013 Backstage](../decisions/0013-backstage.md), [0030 Age range](../decisions/0030-age-range.md), [0036 Languages](../decisions/0036-languages.md), [0051 Joint moves and optional events](../decisions/0051-joints-and-optional-events.md). `10-crosswalk.md` is the background to sections 7 and 10; `01-ast.md` fixes how a program refers to everything here; `17-backstage.md`, section 2a, is the joint map.

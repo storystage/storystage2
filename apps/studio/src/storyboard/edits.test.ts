@@ -1,18 +1,24 @@
 // @vitest-environment node
 import { checkReferences, exampleProduction, sceneId } from '@storystage/production';
 import { validateProgram } from '@storystage/ast';
+import { micros } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { ARC_TEMPLATES } from './arc.ts';
 import {
   LIMITS,
   canAddScene,
   newProduction,
+  framesOf,
   planLength,
+  sceneNumber,
+  sceneSeconds,
   setArc,
   setCardArcPart,
+  setCardHeading,
   setLogline,
   setSynopsis,
   setTitle,
+  setTransition,
 } from './edits.ts';
 
 const [free, threePart, fivePart] = ARC_TEMPLATES as [
@@ -110,5 +116,41 @@ describe('the arc (10.2)', () => {
   it('leaves the production sound', () => {
     const p = setCardArcPart(setArc(exampleProduction(), fivePart), sceneId('s3'), 'climax');
     expect(checkReferences(p)).toEqual([]);
+  });
+});
+
+describe('scene cards (10.3)', () => {
+  it('sets a scene’s heading, up to its limit', () => {
+    const p = setCardHeading(exampleProduction(), sceneId('s2'), 'Deep forest, midnight');
+    expect(p.storyboard.cards[1]!.heading).toBe('Deep forest, midnight');
+    expect(
+      setCardHeading(p, sceneId('s2'), 'x'.repeat(100)).storyboard.cards[1]!.heading,
+    ).toHaveLength(LIMITS.heading);
+  });
+
+  it('sets how a scene ends, with each transition’s length', () => {
+    let p = setTransition(exampleProduction(), sceneId('s1'), 'crossfade');
+    expect(p.manifest.runningOrder[0]!.transition).toEqual({
+      kind: 'crossfade',
+      duration: micros(0.5),
+    });
+    p = setTransition(p, sceneId('s1'), 'cut');
+    expect(p.manifest.runningOrder[0]!.transition).toEqual({ kind: 'cut', duration: 0 });
+    expect(checkReferences(p)).toEqual([]);
+  });
+
+  it('numbers scenes by the running order, and their frames from that', () => {
+    const p = exampleProduction();
+    expect(sceneNumber(p, sceneId('s3'))).toBe(3);
+    expect(framesOf(p, sceneId('s2')).map((f) => f.number)).toEqual(
+      p.frames.filter((f) => f.scene === 's2').map((_, i) => `2.${i + 1}`),
+    );
+  });
+
+  it('adds up a scene’s frames’ lengths', () => {
+    const p = exampleProduction();
+    expect(sceneSeconds(p, sceneId('s1'))).toBe(
+      p.frames.filter((f) => f.scene === 's1').reduce((s, f) => s + f.lengthSeconds, 0),
+    );
   });
 });

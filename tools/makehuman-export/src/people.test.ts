@@ -6,6 +6,7 @@ import { ageToMacro, peopleTable, skinFor, validatePeople, type Person } from '.
 const person = (over: Partial<Person> = {}): Person => ({
   id: 'p01',
   name: 'Alfie',
+  description: 'a boy of 6 with short brown hair, in a blue shirt and jeans',
   ageYears: 6,
   gender: 0.7,
   build: { weight: 0.5, muscle: 0.5, height: 0.5, proportions: 0.5 },
@@ -66,6 +67,22 @@ describe('validatePeople', () => {
   });
 });
 
+describe('descriptions', () => {
+  it('needs one, in plain words that never mention skin colour or ancestry', () => {
+    expect(validatePeople([person()]).ok).toBe(true);
+    const r = validatePeople([
+      person({ description: undefined as never }),
+      person({ id: 'p02', description: 'a Caucasian boy of 6' }),
+      person({ id: 'p03', description: 'a boy with fair skin' }),
+    ]);
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.errors[0]).toMatch(/p01.*needs a description/);
+    expect(r.errors[1]).toMatch(/p02.*never by skin colour or ancestry/);
+    expect(r.errors[2]).toMatch(/p03.*never by skin colour or ancestry/);
+  });
+});
+
 describe('clothes', () => {
   it('refuses a retired outfit and an unknown colour', () => {
     const r = validatePeople([
@@ -76,6 +93,14 @@ describe('clothes', () => {
     if (r.ok) return;
     expect(r.errors.join('\n')).toMatch(/retired/);
     expect(r.errors.join('\n')).toMatch(/clothesColour/);
+  });
+
+  it("refuses a colour on an outfit that can't take one", () => {
+    const r = validatePeople([person({ clothesColour: 'teal' })]);
+    expect(r).toMatchObject({ ok: false, errors: [expect.stringMatching(/can't be recoloured/)] });
+    expect(
+      validatePeople([person({ clothes: ['male_casualsuit03'], clothesColour: 'teal' })]).ok,
+    ).toBe(true);
   });
 
   it('shows the colour in the review table', () => {
