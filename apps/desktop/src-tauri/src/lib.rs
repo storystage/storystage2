@@ -4,6 +4,7 @@
 //! Prompter's requests (WP15.2, section 2) and keeps a desktop install up to date (WP15.7,
 //! section 4). No API key ever crosses into the webview.
 
+mod key_dialog;
 mod prompter;
 #[cfg(desktop)]
 mod updates;
@@ -42,7 +43,9 @@ fn read_policy(_app: &AppHandle) -> PolicyInForce {
 pub fn run() {
     let builder = tauri::Builder::default();
     #[cfg(target_os = "android")]
-    let builder = builder.plugin(tauri_plugin_managed_config::init());
+    let builder = builder
+        .plugin(tauri_plugin_managed_config::init())
+        .plugin(tauri_plugin_secure_key::init());
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     builder
@@ -63,6 +66,7 @@ pub fn run() {
             prompter::prompter_send,
             prompter::prompter_cancel,
             prompter::prompter_status,
+            prompter::key_add,
             prompter::key_status,
             prompter::key_remove,
         ])

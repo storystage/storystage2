@@ -12,12 +12,12 @@ use serde_json::{json, Value};
 use storystage_gate::caps::{day_level, used_today, Minute};
 use storystage_gate::{check, Code, Pins, PrompterEvent, PrompterRequest};
 use storystage_policy::{PolicyInForce, PrompterLevel};
-use storystage_transport::{send, Key};
+use storystage_transport::{add_key, send, Key};
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::watch;
 
-use crate::read_policy;
+use crate::{key_dialog, read_policy};
 
 /// The running request, so `prompter_cancel` can reach it.
 struct Running {
@@ -45,26 +45,43 @@ impl Default for Prompter {
 mod store {
     use storystage_transport::key;
     use storystage_transport::Key;
+    use tauri::AppHandle;
 
-    pub fn load() -> Option<Key> {
+    pub fn load(_app: &AppHandle) -> Option<Key> {
         key::load().ok().flatten()
     }
 
-    pub fn delete() {
+    pub fn save(_app: &AppHandle, key_to_save: &Key) -> bool {
+        key::save(key_to_save).is_ok()
+    }
+
+    pub fn delete(_app: &AppHandle) {
         let _ = key::delete();
     }
 }
 
-/// Android Keystore arrives with the key dialog. Until then there's no key, so no Prompter.
+/// Android Keystore, through the `secure-key` plugin.
 #[cfg(target_os = "android")]
 mod store {
     use storystage_transport::Key;
+    use tauri::{AppHandle, Manager, State, Wry};
+    use tauri_plugin_secure_key::SecureKey;
 
-    pub fn load() -> Option<Key> {
-        None
+    fn plugin(app: &AppHandle) -> State<'_, SecureKey<Wry>> {
+        app.state::<SecureKey<Wry>>()
     }
 
-    pub fn delete() {}
+    pub fn load(app: &AppHandle) -> Option<Key> {
+        plugin(app).load().ok().flatten().and_then(Key::new)
+    }
+
+    pub fn save(app: &AppHandle, key: &Key) -> bool {
+        plugin(app).save(key.for_android_store()).is_ok()
+    }
+
+    pub fn delete(app: &AppHandle) {
+        let _ = plugin(app).delete();
+    }
 }
 
 /// Only a test build can point somewhere else (spec 05 section 2.2).
@@ -118,7 +135,7 @@ fn begin(
         retry_after_seconds: Some(seconds),
     })?;
     // The key is read last, so a request that was refused never touches it.
-    let key = store::load().ok_or_else(|| refuse(Code::NoKey))?;
+    let key = store::load(app).ok_or_else(|| refuse(Code::NoKey))?;
 
     if let Some(path) = &file {
         let _ = fs::write(path, format!("{} {}", today(), count + 1));
@@ -170,10 +187,11 @@ fn status_of(policy: &PolicyInForce, key_present: bool) -> Value {
 }
 
 /// Reads the policy again, so a lock applied while the app is open shows at once (spec 05
-/// section 2.6). Never says anything about the key but whether there is one.
-#[tauri::command]
+/// section 2.6). Never says anything about the key but whether there is one. These commands run
+/// off the main thread because Android's store waits on a plugin.
+#[tauri::command(async)]
 pub fn prompter_status(app: AppHandle) -> Value {
-    status_of(&read_policy(&app), store::load().is_some())
+    status_of(&read_policy(&app), store::load(&app).is_some())
 }
 
 #[derive(Serialize)]
@@ -183,9 +201,9 @@ pub enum KeyStatus {
     Absent,
 }
 
-#[tauri::command]
-pub fn key_status() -> KeyStatus {
-    if store::load().is_some() {
+#[tauri::command(async)]
+pub fn key_status(app: AppHandle) -> KeyStatus {
+    if store::load(&app).is_some() {
         KeyStatus::Present
     } else {
         KeyStatus::Absent
@@ -193,9 +211,20 @@ pub fn key_status() -> KeyStatus {
 }
 
 /// Deletes the key, which switches the Prompter off (spec 05 section 1.3).
+#[tauri::command(async)]
+pub fn key_remove(app: AppHandle) {
+    store::delete(&app);
+}
+
+/// Opens the system dialog, checks what was typed, and stores it (spec 05 sections 1.2, 1.3).
+/// It takes nothing, and returns one word: the studio never touches the key.
 #[tauri::command]
-pub fn key_remove() {
-    store::delete();
+pub async fn key_add(app: AppHandle) -> &'static str {
+    if read_policy(&app).prompter.level == PrompterLevel::Off {
+        return "refusedByPolicy";
+    }
+    let typed = key_dialog::ask(&app).await;
+    add_key(&endpoint(), typed, |key| store::save(&app, key)).await.name()
 }
 
 #[cfg(test)]
