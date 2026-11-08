@@ -6,7 +6,9 @@ Session D keeps this folder (WP17). It holds the drafts the owner sends or signs
 
 | File | Workplan | What it is | Who finishes it |
 |---|---|---|---|
-| [cmu-ea-letter.md](cmu-ea-letter.md) | 17.1, 17.7 | The email to CMU's Alice team: may we convert and ship Alice's own models, the credit wording, and whether EA's permission for the Sims 2 assets can extend to StoryStage 2 | Owner sends |
+| [letters/cmu.md](letters/cmu.md) | 17.1, 17.7 | The one email to CMU's Alice team, with the two model spreadsheets: which of the 340 models are CMU's, may we convert and ship them, the tile editor and "inspired by Alice", credit, and the Sims 2 art (via EA) and StoryStage 1. Combines S4's draft from the licence audit with D's | Owner sends |
+| [letters/quaternius.md](letters/quaternius.md) | 3.1 | S4's request to Quaternius about including its models | Owner sends |
+| [licence-audit.md](licence-audit.md) | 3.1 | S4's licence audit: every Backstage source with its licence and verdict, and appendix A, the 435 Alice gallery models (340 Alice, 95 Sims 2) | S4 keeps it; owner signs off |
 | [correspondence.md](correspondence.md) | 17.1, 17.7 | The log of what was sent, when, and what came back (or that nothing did) | Owner files answers; D keeps it tidy |
 | [anthropic-terms-under-18s.md](anthropic-terms-under-18s.md) | 17.5 | What Anthropic's terms say about products used by under-18s, and what the set-up wizard and privacy notice must say because of it | Owner decides |
 | [trade-mark-storystage.md](trade-mark-storystage.md) | 17.6 | A clearance brief for a trade mark attorney: the classes, a first knock-out search, and the questions to ask | Owner |
