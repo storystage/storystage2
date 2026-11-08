@@ -742,7 +742,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 12.2 Design tokens (colour, type, spacing, sizes for touch and young users), light and dark themes, and an icon set. (C)
 - [x] 12.3 Component library on an accessible base (for example React Aria), with each component checked for keyboard access and contrast. (C)
 - [x] 12.4 Theatre vocabulary in the UI strings: Backstage (Cast, Props, Set, Backdrops), Rehearse, Storyboard, Production stage, Code editor (Blocks or Tiles), Screening room, Export for distribution, Projection stage. Wording follows StoryStage 1 spec 04 §5. All strings live in translation files. (C)
-- [ ] 12.5 Automated accessibility checks (axe) in Playwright. (C)
+- [x] 12.5 Automated accessibility checks (axe) in Playwright. (C)
 
 **Done when:** the owner approves the mock-ups, and axe reports no serious issues on any screen.
 
