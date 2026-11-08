@@ -204,6 +204,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7).
 - In review: **`ClassFolders.openDevice()`** (S5's ask, 07-ux §9.1): one folder for a device with no class list, outside the class list, never collected, with the Prompter counting against the device. A film removed there can still be restored from the bin. It waits for S5's and S4's review and the owner's merge.
+- In review: **removing a pupil can be undone** (S5's 07-ux §9.4): `binnedPupils()` and `restorePupil(id)`, with the pupil's record kept beside the bin until it's emptied. It waits for S5's review and the owner's merge.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 

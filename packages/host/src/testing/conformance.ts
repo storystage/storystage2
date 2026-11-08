@@ -167,6 +167,30 @@ export function describeClassFoldersContract(
       await failsWith('not_found', () => folders.restore(pupil.id, key));
     });
 
+    it('can undo removing a pupil, from the bin, with the same id', async () => {
+      const { folders, folder, pupil } = await withPupil();
+      const { key } = await folder.write(null, 'Film', bytes('x'));
+      await folders.addPupil('Ben');
+      await folders.removePupil(pupil.id);
+      await failsWith('not_found', () => folders.restore(pupil.id, key));
+      expect((await folders.binnedPupils()).map((entry) => entry.pupil)).toEqual([pupil]);
+
+      expect(await folders.restorePupil(pupil.id)).toEqual(pupil);
+      expect((await folders.pupils()).map((each) => each.id)).toContain(pupil.id);
+      expect(await folders.binnedPupils()).toEqual([]);
+      await folders.restore(pupil.id, key);
+      expect(text(await (await folders.open(pupil.id)).read(key))).toBe('x');
+      await failsWith('not_found', () => folders.restorePupil(pupil.id));
+    });
+
+    it('forgets removed pupils when the bin is emptied', async () => {
+      const { folders, pupil } = await withPupil();
+      await folders.removePupil(pupil.id);
+      await folders.emptyBin();
+      expect(await folders.binnedPupils()).toEqual([]);
+      await failsWith('not_found', () => folders.restorePupil(pupil.id));
+    });
+
     it('sends a removed pupil’s work to the bin, not away', async () => {
       const { folders, folder, pupil } = await withPupil();
       await folder.write(null, 'Film', bytes('x'));

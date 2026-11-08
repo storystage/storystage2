@@ -47,6 +47,12 @@ export interface BinnedProduction extends ProductionInfo {
 }
 
 /** How many earlier versions of each production are kept. */
+/** A pupil removed from the class, kept until the bin is emptied. */
+export interface BinnedPupil {
+  readonly pupil: Pupil;
+  readonly binnedAt: string;
+}
+
 export const BACKUPS_KEPT = 5;
 
 /**
@@ -220,7 +226,20 @@ export interface ClassFolders {
   close(): Promise<void>;
   /** For the teacher only (threat PS1): what pupils have deleted. */
   bin(): Promise<readonly BinnedProduction[]>;
+  /**
+   * Back from the bin. `not_found` while its pupil is out of the class list: `restorePupil`
+   * first.
+   */
   restore(pupil: PupilId, key: ProductionKey): Promise<void>;
+  /** For the teacher only: pupils removed from the class, newest first, until the bin is emptied. */
+  binnedPupils(): Promise<readonly BinnedPupil[]>;
+  /**
+   * Puts a removed pupil back in the class list, with the same id, name and picture, so their
+   * films can be restored. `not_found` for one who isn't in the bin. The films stay in the bin
+   * until each is restored.
+   */
+  restorePupil(id: PupilId): Promise<Pupil>;
+  /** Empties the bin: removed pupils' films, and their records. */
   emptyBin(): Promise<void>;
   /**
    * The class Backstage on this device (decision 0066). Removing a pupil sends their own items
