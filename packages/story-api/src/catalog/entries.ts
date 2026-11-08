@@ -282,21 +282,23 @@ export const ENTRIES: readonly ApiEntry[] = [
     runs: 'command:fog',
     unreal: FOG,
   }),
+  // The three scene changes end the scene in the runtime, and the production's player makes the
+  // transition (spec 18, 3.1; spec 03, 3.1).
   proc('Scene', 'goToScene', [param('scene', 'SceneId')], {
     task: '4.4',
-    runs: 'needs:sceneChange',
+    runs: 'runtime',
     unreal: 'Open Level, or level streaming',
   }),
   proc('Scene', 'fadeToBlack', [], {
     task: '4.4',
     details: ['duration'],
-    runs: 'command:fade',
+    runs: 'runtime',
     unreal: 'Fade track in Sequencer',
   }),
   proc('Scene', 'crossfade', [param('scene', 'SceneId')], {
     task: '4.4',
     details: ['duration'],
-    runs: 'needs:sceneChange',
+    runs: 'runtime',
     unreal: 'Shot blend in Sequencer',
   }),
 
@@ -484,7 +486,6 @@ export const ENTRIES: readonly ApiEntry[] = [
 export const STAGE_NEEDS: Readonly<Record<string, string>> = {
   audio: 'Play a sound at a scene time, for the export to mix (with WP11)',
   ask: 'Ask the learner for a value while a program runs (the runtime, not the stage)',
-  sceneChange: 'Going to another scene, and crossfading to one: the production’s playback (WP8.3)',
   speech: 'Speak a line with visemes (WP14)',
 };
 
