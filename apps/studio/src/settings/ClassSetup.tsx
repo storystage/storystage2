@@ -3,12 +3,13 @@
  * Collect and Hand back, the Prompter's use today and the bin. For the teacher, on the trust of
  * the name page (PS1); reached from the studio's header, or from the name page's corner.
  */
-import type { BinnedProduction, HostInterface, UsageToday } from '@storystage/host';
+import type { BinnedProduction, HostInterface, ProductionInfo, UsageToday } from '@storystage/host';
 import { collectClass, handBackClass, type HandBackReport } from '@storystage/production';
 import { Button, Dialog, NeutralNote } from '@storystage/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { sinceWords } from '../lesson/LessonPages.tsx';
 import { words } from '../strings.ts';
+import { DeviceFilmsCard } from './DeviceFilms.tsx';
 import { PupilsCard, type OpenNow, type PupilFilms } from './Pupils.tsx';
 
 const DEVICE = 'device';
@@ -28,7 +29,9 @@ export function ClassSetup({
   const [version, setVersion] = useState(0);
   const [pupils, setPupils] = useState<readonly PupilFilms[] | null>(null);
   const [bin, setBin] = useState<readonly BinnedProduction[]>([]);
+  const [deviceFilms, setDeviceFilms] = useState<readonly ProductionInfo[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
+  const [said, setSaid] = useState<string | null>(null);
 
   useEffect(() => {
     let gone = false;
@@ -41,7 +44,9 @@ export function ClassSetup({
         })),
       );
       const binned = await classes.bin();
+      const device = await classes.deviceFilms();
       if (gone) return;
+      setDeviceFilms(newestFirst(device));
       setPupils(withFilms.sort((a, b) => a.pupil.name.localeCompare(b.pupil.name, 'en-GB')));
       setBin([...binned].sort((a, b) => b.binnedAt.localeCompare(a.binnedAt)));
     })().catch(() => {
@@ -82,10 +87,23 @@ export function ClassSetup({
           {problem}
         </p>
       )}
+      <p role="status" className="st-status">
+        {said}
+      </p>
       {pupils && (
         <div className="st-grid">
           <PupilsCard classes={classes} pupils={pupils} open={open} act={act} />
           <div className="st-column">
+            {pupils.length > 0 && deviceFilms.length > 0 && (
+              <DeviceFilmsCard
+                films={deviceFilms}
+                pupils={pupils}
+                deviceOpen={open.pupil === DEVICE}
+                classes={classes}
+                act={act}
+                onMoved={setSaid}
+              />
+            )}
             <CollectCard
               host={host}
               hasPupils={pupils.length > 0}

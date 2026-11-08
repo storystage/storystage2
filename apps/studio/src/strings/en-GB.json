@@ -359,5 +359,11 @@
   "settings.usage.gone": "A pupil no longer in the class",
   "settings.usage.pupil": "Pupil",
   "settings.usage.requests": "Requests today",
-  "settings.problem": "That couldn’t be done. Try again, or ask for help."
+  "settings.problem": "That couldn’t be done. Try again, or ask for help.",
+  "settings.device.title": "Films kept from before the class list",
+  "settings.device.help": "These films were made on this device before it had names, so no pupil can open them. Move them to the pupil who made them.",
+  "settings.device.move": "Move these films to…",
+  "settings.device.moved.one": "Moved {count} film to {name}’s folder.",
+  "settings.device.moved.other": "Moved {count} films to {name}’s folder.",
+  "settings.device.open": "These films are open in the studio now. Close StoryStage and open it again, then move them."
 }

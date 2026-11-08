@@ -55,6 +55,7 @@ const pupilRows = async () =>
     .map((r) => r.querySelector('.st-row-name')?.textContent);
 
 const bin = () => screen.getByRole('region', { name: 'The bin' });
+const collectCard = () => screen.getByRole('region', { name: 'Collect and hand back' });
 
 describe('Pupils and folders (07-ux 9.4)', () => {
   it('lists the class with how many films each has', async () => {
@@ -161,6 +162,44 @@ describe('Pupils and folders (07-ux 9.4)', () => {
   });
 });
 
+describe('films kept from before the class list (07-ux 9.4)', () => {
+  it('lists the device’s films once the class has names, and moves them to a pupil', async () => {
+    const classes = memoryClassFolders();
+    const device = await classes.openDevice();
+    await new ProductionSaver(device, { key: null }).save(titled('Owl Night'), NO_FILES, 'asked');
+    await classes.close();
+    const sam = await classes.addPupil('Sam');
+    render(<ClassSetup host={hostWith(classes)} />);
+    const card = await screen.findByRole('region', {
+      name: 'Films kept from before the class list',
+    });
+    expect(within(card).getByText('Owl Night')).toBeTruthy();
+    await userEvent.click(within(card).getByRole('button', { name: 'Move these films to…' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'Sam' }));
+    await waitFor(() =>
+      expect(screen.getAllByRole('status')[0]!.textContent).toBe('Moved 1 film to Sam’s folder.'),
+    );
+    expect(
+      screen.queryByRole('region', { name: 'Films kept from before the class list' }),
+    ).toBeNull();
+    expect((await (await classes.folder(sam.id)).list()).map((i) => i.name)).toEqual(['Owl Night']);
+  });
+
+  it('leaves them while the device’s folder is open in the studio', async () => {
+    const classes = memoryClassFolders();
+    const device = await classes.openDevice();
+    await new ProductionSaver(device, { key: null }).save(titled('Owl Night'), NO_FILES, 'asked');
+    await classes.close();
+    await classes.addPupil('Sam');
+    render(<ClassSetup host={hostWith(classes)} open={{ pupil: 'device', film: null }} />);
+    const card = await screen.findByRole('region', {
+      name: 'Films kept from before the class list',
+    });
+    expect(within(card).getByText(/open in the studio now/)).toBeTruthy();
+    expect(within(card).queryByRole('button', { name: 'Move these films to…' })).toBeNull();
+  });
+});
+
 describe('Collect and Hand back (07-ux 9.4)', () => {
   it('collects every pupil’s films, and hands back what it can', async () => {
     const { classes, pupils } = await classOf('Sam', 'Ana');
@@ -174,14 +213,18 @@ describe('Collect and Hand back (07-ux 9.4)', () => {
     });
     render(<ClassSetup host={hostWith(classes, picker)} />);
     await userEvent.click(await screen.findByRole('button', { name: 'Collect…' }));
-    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Collected 2 films.'));
+    await waitFor(() =>
+      expect(within(collectCard()).getByRole('status').textContent).toBe('Collected 2 films.'),
+    );
     expect(picker.collected.map((f) => `${f.folder}/${f.file}`).sort()).toEqual([
       'Ana/Moon.storystage',
       'Sam/Kite.storystage',
     ]);
 
     await userEvent.click(screen.getByRole('button', { name: 'Hand back…' }));
-    await waitFor(() => expect(screen.getByRole('status').textContent).toBe('Handed back 1 film.'));
+    await waitFor(() =>
+      expect(within(collectCard()).getByRole('status').textContent).toBe('Handed back 1 film.'),
+    );
     expect(screen.getByText('Nobody / Owl.storystage')).toBeTruthy();
     expect(screen.getByText(/no pupil called Nobody in this class/)).toBeTruthy();
     expect(await screen.findByRole('row', { name: 'Open Sam’s folder' })).toHaveProperty(
