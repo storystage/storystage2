@@ -76,6 +76,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Backstage search | Poly Pizza CC0 search is on for teachers by default, hidden from learners; models with "gun" as a word or compound in their name, tags or category are screened out; a school can switch it off (`backstage.search=false`) (0058) | 8 Nov 2026 |
 | The optional speech model's host | The 78 MB model downloads from the speech-models-v1 GitHub release, the update host (0047); S8 merges #151, #152 and #155 when green (0061) | 8 Nov 2026 |
 | Where a pupil's work lives between lessons | Pupil folders in the app by default, inside the device user's data; Collect and Hand back through files to move work between devices; no signed-in cloud saving in the first release; to be confirmed after 1.11 (0065) | 8 Nov 2026 |
+| Playback and Screening room packages | `packages/playback` (the driver that plays a production: runtime worker, stage and the production's player; used by Rehearse, the Screening room and export) and `packages/screening` (the Screening room's screen, mounted by the studio), both S2's (0066) | 8 Nov 2026 |
 | The shipped Backstage is bundled | The apps carry the whole shipped Backstage folder (about 85 MB today), so it works offline from the first launch; the browser version serves it from its own origin; `backstage.lock.json` pins the catalogue a release ships (0062) | 8 Nov 2026 |
 
 ## Still to decide (owner)

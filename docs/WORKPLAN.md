@@ -102,6 +102,8 @@ packages/
   production/      .storystage format, scenes, running order, transitions, storyboard data, links, Fountain import/export
   prompter/        Tool schemas, context builders, conversation loop, modes; transport-agnostic (talks to the native layer)
   speech/          whisper.cpp WASM input, speech synthesis output, narration queue
+  playback/        Plays a production on the page: the runtime worker, the stage and the production's player; used by Rehearse, the Screening room and export (decision 0066)
+  screening/       The Screening room's screen: rough cut, compare, retake notes, export (decision 0066)
   export/          Frame-by-frame render to MP4 (WebCodecs + muxer), captions (WebVTT/SRT), title and credits; AR pack (baker, GLB, USDZ, page, QR)
   ar/              AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording
   host/            The host interface (decision 0028): what the build hands the studio (policy in force, Prompter transport, files)
@@ -186,7 +188,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 18 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 19 more started:
 
 - **Release candidate:** week 13.5 (21 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 19.5 (4 Mar 2027). The plan says week 24.5 (9 Apr 2027).
@@ -272,7 +274,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | started 8 Nov; ends about 7 Dec |
 | WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | forecast: 30 Nov to 21 Dec |
-| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | forecast: 30 Nov to 21 Dec |
+| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
 | WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 1 Jan |
 | WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP13b, WP4b | 1 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 18 Dec |
