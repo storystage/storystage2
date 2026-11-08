@@ -211,4 +211,102 @@ export function describeClassFoldersContract(
       expect(folders.current()).toBeNull();
     });
   });
+
+  describe(`${name} meets the class Backstage contract (decision 0066)`, () => {
+    const model = (path = 'models/robot/model.glb', data = 'glb') => ({ path, bytes: bytes(data) });
+    const robot = [model(), model('thumbnail.webp', 'webp'), model('sketches/front.svg', '<svg/>')];
+    const record = { id: 'class/Cast/robot', name: 'Robot', origin: 'imported' };
+
+    it('keeps an item’s record exactly, and each of its files', async () => {
+      const backstage = (await make()).backstage();
+      const added = await backstage.add('class', 'class/Cast/robot', record, robot);
+      expect(added).toMatchObject({ id: 'class/Cast/robot', owner: 'class', record });
+      expect(added.files).toEqual([
+        { path: 'models/robot/model.glb', bytes: 3 },
+        { path: 'thumbnail.webp', bytes: 4 },
+        { path: 'sketches/front.svg', bytes: 6 },
+      ]);
+      expect(await backstage.list()).toEqual([added]);
+      expect(text(await backstage.read('class/Cast/robot', 'sketches/front.svg'))).toBe('<svg/>');
+      await failsWith('not_found', () => backstage.read('class/Cast/robot', 'other.glb'));
+      await failsWith('not_found', () => backstage.read('class/Cast/nobody', 'thumbnail.webp'));
+    });
+
+    it('belongs to the class or one pupil, and the teacher can promote it', async () => {
+      const folders = await make();
+      const ava = await folders.addPupil('Ava');
+      const backstage = folders.backstage();
+      await backstage.add(ava.id, 'class/Cast/ava-robot', record, robot);
+      expect((await backstage.list())[0]?.owner).toBe(ava.id);
+      await backstage.promote('class/Cast/ava-robot');
+      expect((await backstage.list())[0]?.owner).toBe('class');
+      await failsWith('not_found', () =>
+        backstage.add('pupil-nobody', 'class/Cast/x', record, robot),
+      );
+    });
+
+    it('never uses an id twice, even after the bin is emptied', async () => {
+      const backstage = (await make()).backstage();
+      await backstage.add('class', 'class/Cast/robot', record, robot);
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/robot', record, robot));
+      await backstage.remove('class/Cast/robot');
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/robot', record, robot));
+      await backstage.emptyBin();
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/robot', record, robot));
+    });
+
+    it('refuses paths that aren’t plain and relative, and a path twice, adding nothing', async () => {
+      const backstage = (await make()).backstage();
+      for (const path of [
+        '../model.glb',
+        '/model.glb',
+        'models//model.glb',
+        'a\\b.glb',
+        '',
+        './x',
+      ]) {
+        await failsWith('invalid', () =>
+          backstage.add('class', 'class/Cast/x', record, [model(path)]),
+        );
+      }
+      await failsWith('invalid', () =>
+        backstage.add('class', 'class/Cast/x', record, [model('a.glb'), model('a.glb')]),
+      );
+      await failsWith('invalid', () => backstage.add('class', '', record, robot));
+      expect(await backstage.list()).toEqual([]);
+    });
+
+    it('sends an item to the bin, and back, as a production goes', async () => {
+      const backstage = (await make()).backstage();
+      await backstage.add('class', 'class/Cast/robot', record, robot);
+      await backstage.remove('class/Cast/robot');
+      expect(await backstage.list()).toEqual([]);
+      expect((await backstage.bin()).map((item) => item.id)).toEqual(['class/Cast/robot']);
+      await backstage.restore('class/Cast/robot');
+      expect(text(await backstage.read('class/Cast/robot', 'models/robot/model.glb'))).toBe('glb');
+      expect(await backstage.bin()).toEqual([]);
+    });
+
+    it('sends a removed pupil’s own items to the bin, and brings them back as the class’s', async () => {
+      const folders = await make();
+      const ava = await folders.addPupil('Ava');
+      const backstage = folders.backstage();
+      await backstage.add(ava.id, 'class/Cast/ava-robot', record, robot);
+      await backstage.add('class', 'class/Cast/robot', record, robot);
+      await folders.removePupil(ava.id);
+      expect((await backstage.list()).map((item) => item.id)).toEqual(['class/Cast/robot']);
+      await backstage.restore('class/Cast/ava-robot');
+      expect(
+        (await backstage.list()).find((item) => item.id === 'class/Cast/ava-robot')?.owner,
+      ).toBe('class');
+    });
+
+    it('refuses a record it can’t keep as JSON', async () => {
+      const backstage = (await make()).backstage();
+      const looped: Record<string, unknown> = {};
+      looped.self = looped;
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/x', looped, robot));
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/y', undefined, robot));
+    });
+  });
 }
