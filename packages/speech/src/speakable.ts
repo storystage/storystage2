@@ -6,10 +6,45 @@
 /** Some engines stop a long utterance part way (Chrome's at about 15 seconds). */
 export const MAX_UTTERANCE = 300;
 
+/**
+ * Tags become a space. One pass, with no regular expression: text from the Prompter or a learner
+ * could hold thousands of unclosed `<`, and `/<[^>]*>/` rescans to the end from each one.
+ */
+function withoutTags(text: string): string {
+  let out = '';
+  let i = 0;
+  for (;;) {
+    const open = text.indexOf('<', i);
+    const close = open < 0 ? -1 : text.indexOf('>', open + 1);
+    if (close < 0) return out + text.slice(i);
+    out += `${text.slice(i, open)} `;
+    i = close + 1;
+  }
+}
+
+/** Markdown links keep their words, `[this](url)` becoming `this`. One pass, as above. */
+function withoutLinks(text: string): string {
+  let out = '';
+  let i = 0;
+  for (;;) {
+    const open = text.indexOf('[', i);
+    const close = open < 0 ? -1 : text.indexOf(']', open + 1);
+    if (close < 0) break;
+    if (text[close + 1] !== '(') {
+      out += text.slice(i, close + 1);
+      i = close + 1;
+      continue;
+    }
+    const end = text.indexOf(')', close + 2);
+    if (end < 0) break;
+    out += text.slice(i, open) + text.slice(open + 1, close);
+    i = end + 1;
+  }
+  return out + text.slice(i);
+}
+
 function plain(text: string): string {
-  return text
-    .replace(/<[^>]*>/g, ' ')
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+  return withoutLinks(withoutTags(text))
     .replace(/^[ \t]*(#+|>)[ \t]*/gm, '')
     .replace(/[*`~]/g, '')
     .replace(/\p{Cc}/gu, ' ')

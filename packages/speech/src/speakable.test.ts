@@ -14,6 +14,21 @@ describe('speakable (spec 06, section 2.2)', () => {
     ).toEqual(['Done! The move block moves the cat. Try this']);
   });
 
+  it('keeps text after a "<" or "[" that never closes', () => {
+    expect(speakable('Cats < dogs. See [this')).toEqual(['Cats < dogs. See [this']);
+    expect(speakable('A [link] (not quite) and [one](x).')).toEqual([
+      'A [link] (not quite) and one.',
+    ]);
+  });
+
+  it('stays quick on text built to slow it down (CodeQL, polynomial regex)', () => {
+    const started = performance.now();
+    speakable('<'.repeat(60_000));
+    speakable('['.repeat(30_000) + ']'.repeat(30_000));
+    speakable('[a]'.repeat(20_000));
+    expect(performance.now() - started).toBeLessThan(250);
+  });
+
   it('keeps punctuation that is part of the words', () => {
     expect(speakable("It's 2.5 metres - not 3!")).toEqual(["It's 2.5 metres - not 3!"]);
   });
