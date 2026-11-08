@@ -5,9 +5,14 @@
   "description": "AST types, JSON schema, node ids, validation, edit operations (undo/redo), migrations.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0",
+    "fast-check": "^4.10.2"
   }
 }

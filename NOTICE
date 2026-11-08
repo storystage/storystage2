@@ -28,10 +28,15 @@ tauri-plugin-updater  2  Apache-2.0 OR MIT
 hex  0.4  MIT OR Apache-2.0
 sha2  0.10  MIT OR Apache-2.0
 
-== Linked into the app (22) ==
+== Linked into the app (40) ==
 
+@babylonjs/core  9.31.1  Apache-2.0
+@babylonjs/loaders  9.31.3  Apache-2.0
 @fontsource-variable/bricolage-grotesque  5.3.0  OFL-1.1
 @fontsource/atkinson-hyperlegible  5.3.0  OFL-1.1
+@gltf-transform/core  4.5.1  MIT
+@gltf-transform/extensions  4.5.1  MIT
+@gltf-transform/functions  4.5.1  MIT
 @internationalized/date  3.12.4  Apache-2.0
 @internationalized/number  3.6.9  Apache-2.0
 @internationalized/string  3.2.10  Apache-2.0
@@ -40,10 +45,22 @@ sha2  0.10  MIT OR Apache-2.0
 @swc/helpers  0.5.23  Apache-2.0
 @types/dom-mediacapture-transform  0.1.12  MIT
 @types/dom-webcodecs  0.1.13  MIT
+@types/ndarray  1.1.0  MIT
 aria-hidden  1.2.6  MIT
+babylonjs-gltf2interface  9.31.3  Apache-2.0
 client-only  0.0.1  MIT
 clsx  2.1.1  MIT
+cwise-compiler  1.1.3  MIT
+iota-array  1.0.0  MIT
+is-buffer  1.1.6  MIT
+ktx-parse  1.1.0  MIT
 mediabunny  1.62.0  MPL-2.0
+meshoptimizer  1.3.0  MIT
+ndarray  1.1.1  MIT
+ndarray-lanczos  0.3.0  MIT
+ndarray-ops  1.2.2  MIT
+ndarray-pixels  5.2.0  MIT
+property-graph  4.1.0  MIT
 react  19.3.1  MIT
 react-aria  3.53.1  Apache-2.0
 react-aria-components  1.22.1  Apache-2.0
@@ -51,12 +68,14 @@ react-dom  19.3.1  MIT
 react-stately  3.51.0  Apache-2.0
 scheduler  0.28.0  MIT
 tslib  2.8.1  0BSD
+uniq  1.0.1  MIT
 use-sync-external-store  1.7.0  MIT
 
-== Build and test tools, not shipped (230) ==
+== Build and test tools, not shipped (234) ==
 
 @asamuzakjp/css-color  7.1.7  MIT
 @asamuzakjp/dom-selector  10.0.4  MIT
+@axe-core/playwright  4.14.0  MPL-2.0
 @babel/code-frame  7.29.7  MIT
 @babel/compat-data  7.29.7  MIT
 @babel/core  7.29.7  MIT
@@ -74,8 +93,6 @@ use-sync-external-store  1.7.0  MIT
 @babel/template  7.29.7  MIT
 @babel/traverse  7.29.10  MIT
 @babel/types  7.29.8  MIT
-@babylonjs/core  9.31.1  Apache-2.0
-@babylonjs/loaders  9.31.3  Apache-2.0
 @bramus/specificity  2.4.3  MIT
 @cacheable/memory  2.2.0  MIT
 @cacheable/utils  2.5.0  MIT
@@ -99,6 +116,7 @@ use-sync-external-store  1.7.0  MIT
 @humanfs/types  0.15.0  Apache-2.0
 @humanwhocodes/module-importer  1.0.1  Apache-2.0
 @humanwhocodes/retry  0.4.3  Apache-2.0
+@img/colour  1.1.0  MIT
 @jridgewell/gen-mapping  0.3.13  MIT
 @jridgewell/remapping  2.3.5  MIT
 @jridgewell/resolve-uri  3.1.2  MIT
@@ -140,12 +158,12 @@ use-sync-external-store  1.7.0  MIT
 @vitest/spy  5.0.5  MIT
 acorn  8.19.0  MIT
 acorn-jsx  5.3.2  MIT
-ajv  6.15.0  MIT
+ajv  6.15.0, 8.20.0  MIT
 ansi-regex  5.0.1  MIT
 ansi-styles  5.2.0  MIT
 aria-query  5.3.0  Apache-2.0
 assertion-error  2.0.1  MIT
-babylonjs-gltf2interface  9.31.3  Apache-2.0
+axe-core  4.14.0  MPL-2.0
 balanced-match  4.0.4  MIT
 baseline-browser-mapping  2.11.30  Apache-2.0
 bidi-js  1.1.0  MIT
@@ -184,9 +202,11 @@ estraverse  5.3.0  BSD-2-Clause
 estree-walker  3.0.3  MIT
 esutils  2.0.3  BSD-2-Clause
 expect-type  1.4.0  Apache-2.0
+fast-check  4.10.2  MIT
 fast-deep-equal  3.1.3  MIT
 fast-json-stable-stringify  2.1.0  MIT
 fast-levenshtein  2.0.6  MIT
+fast-uri  3.1.9  BSD-3-Clause
 fdir  6.5.0  MIT
 file-entry-cache  11.1.5  MIT
 find-up  5.0.0  MIT
@@ -210,7 +230,7 @@ isexe  2.0.0  ISC
 js-tokens  4.0.0  MIT
 jsdom  30.1.3  MIT
 jsesc  3.1.0  MIT
-json-schema-traverse  0.4.1  MIT
+json-schema-traverse  0.4.1, 1.0.0  MIT
 json-stable-stringify-without-jsonify  1.0.1  MIT
 json5  2.2.3  MIT
 keyv  5.6.0  MIT
@@ -243,12 +263,14 @@ prelude-ls  1.2.1  MIT
 prettier  3.9.10  MIT
 pretty-format  27.5.1  MIT
 punycode  2.3.1  MIT
+pure-rand  8.4.2  MIT
 qified  0.10.1  MIT
 react-is  17.0.2  MIT
 require-from-string  2.0.2  MIT
 rolldown  1.2.14  MIT
 saxes  6.0.0  ISC
 semver  6.3.1, 7.8.5  ISC
+sharp  0.35.5  Apache-2.0
 shebang-command  2.0.0  MIT
 shebang-regex  3.0.0  MIT
 source-map-js  1.2.2  BSD-3-Clause

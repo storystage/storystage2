@@ -5,12 +5,20 @@
   "description": "Backstage: model manifest (ids, sections, classes, joints, licences), loader, thumbnails.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./optimize": "./src/optimize.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
-    "@storystage/story-api": "workspace:*"
+    "@gltf-transform/core": "^4.5.1",
+    "@gltf-transform/extensions": "^4.5.1",
+    "@gltf-transform/functions": "^4.5.1",
+    "@storystage/story-api": "workspace:*",
+    "meshoptimizer": "^1.3.0"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
   }
 }

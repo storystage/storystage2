@@ -1,0 +1,246 @@
+/*
+  The Storyboard (docs/spec/07-ux.md section 6; Direction A screen 01). Tokens only: every colour is
+  a var(--ss-*) from ThemeRoot (shell.test.ts checks).
+*/
+
+.sb {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.sb-main {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  overflow-y: auto;
+}
+.sb-toolbar {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+/* The script header card: title, plan size, logline, synopsis and arc. */
+.sb-header {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px 16px;
+  border-radius: 14px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.sb-header-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sb-title {
+  flex: 1;
+  min-width: 0;
+}
+.sb-title .ss-input {
+  font-family: var(--ss-font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.sb-pill {
+  flex: none;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 14px;
+  color: var(--ss-text-2);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  white-space: nowrap;
+}
+
+/* Logline and synopsis: a 78 px label column, the text, then the mic (Direction A). */
+.sb-row .ss-field {
+  display: grid;
+  grid-template-columns: 78px 1fr;
+  column-gap: 12px;
+  align-items: start;
+}
+.sb-row .ss-field-label {
+  padding-top: 12px;
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-row .ss-field-description {
+  grid-column: 2;
+}
+
+.sb-arc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.sb-arc-label {
+  width: 78px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.sb-arc-parts {
+  color: var(--ss-muted);
+}
+
+/* Scene strip (Direction A screen 01): cards in running order, then Add a scene. */
+.sb-scene-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+.sb-scene-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  outline: none;
+}
+.sb-scene-card {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 180px;
+  padding: 6px 10px 8px 4px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: pointer;
+  outline: none;
+}
+.sb-scene-card[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sb-scene-card[data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 2px var(--ss-amber-line),
+    0 0 0 2px var(--ss-stage-0),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-scene-card[data-dragging] {
+  opacity: 0.6;
+}
+.sb-scene-card[data-drop-target] {
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sb-scene-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ss-muted);
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-scene-handle[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.sb-scene-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.sb-scene-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.sb-scene-title {
+  font-weight: 700;
+}
+.sb-scene-length,
+.sb-scene-part {
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.sb-scene-frames {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sb-scene-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+}
+.sb-scene-add {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  max-width: 240px;
+}
+.sb-scene-add-why {
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+
+/* The chosen scene in full. */
+.sb-details {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px 16px;
+  border-radius: 14px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.sb-details-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 19px;
+  font-weight: 700;
+}
+.sb-details-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.sb-details-label {
+  width: 120px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.sb-details-cast,
+.sb-details-hint {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.sb-details-hint {
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-dialog-text {
+  margin: 0;
+}
+.sb-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}

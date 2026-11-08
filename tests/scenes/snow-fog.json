@@ -1,0 +1,63 @@
+{
+  "name": "Snow in fog, with a fade and a change of paint",
+  "seconds": 3,
+  "setup": {
+    "backdrop": {
+      "ground": "storystage/Ground/snow",
+      "sky": "storystage/Sky/snow",
+      "lighting": "storystage/Lighting/snow",
+      "fog": 0.22
+    },
+    "objects": [
+      {
+        "id": "near",
+        "model": { "standIn": "near" },
+        "class": "Prop",
+        "transform": {
+          "position": { "x": 1.5, "y": 0, "z": 0 },
+          "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+          "scale": { "x": 1, "y": 1, "z": 1 }
+        }
+      },
+      {
+        "id": "far",
+        "model": { "standIn": "far" },
+        "class": "Prop",
+        "paint": "#336699",
+        "transform": {
+          "position": { "x": -2, "y": 0, "z": 30 },
+          "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+          "scale": { "x": 1, "y": 1, "z": 1 }
+        }
+      }
+    ],
+    "camera": {
+      "transform": {
+        "position": { "x": 0, "y": 1.5, "z": -9 },
+        "rotation": { "x": 0, "y": 0, "z": 0, "w": 1 },
+        "scale": { "x": 1, "y": 1, "z": 1 }
+      }
+    },
+    "markers": []
+  },
+  "commands": [
+    {
+      "seq": 1,
+      "object": "near",
+      "start": 0,
+      "duration": 2000000,
+      "style": "beginAndEndGently",
+      "kind": "opacity",
+      "to": 0.3
+    },
+    {
+      "seq": 2,
+      "object": "near",
+      "start": 1500000,
+      "duration": 0,
+      "style": "beginAndEndGently",
+      "kind": "paint",
+      "paint": "orange"
+    }
+  ]
+}
