@@ -107,6 +107,29 @@ describe('collectClass', () => {
     expect(`${collected[0]!.folder}/${collected[0]!.file}`).toBe('CON_/a b c.storystage');
   });
 
+  // The host's Collect refuses a name `safeFileName` would cut at 80 characters (#211).
+  it('keeps every name, with its "(2)" and its extension, within 80 characters', async () => {
+    const long = 'A very long title about a penguin who drifts away on the ice and finds a fox';
+    const { classes } = fakeClass([
+      { id: 'a', name: 'x'.repeat(100), films: [long, long, `${'y'.repeat(79)} z`] },
+      { id: 'b', name: 'x'.repeat(100), films: [] },
+    ]);
+    const { picker, collected } = fakePicker();
+    await collectClass(classes, picker);
+    const names = collected.flatMap((f) => [f.folder, f.file]);
+    for (const name of names) {
+      expect(name.length).toBeLessThanOrEqual(80);
+      expect(plainName(name, 'x')).toBe(name); // what safeFileName would leave as it is
+    }
+    expect(collected[1]!.file).toMatch(/ \(2\)\.storystage$/);
+    const handedBack = await handBackClass(
+      classes,
+      fakePicker([{ folder: collected[0]!.folder, file: collected[0]!.file, bytes: film('Back') }])
+        .picker,
+    );
+    expect(handedBack).toMatchObject({ written: 1 });
+  });
+
   it("gives the host's error code back", async () => {
     const { classes } = fakeClass([{ id: 'a', name: 'Amara', films: ['x'] }]);
     const picker: CollectPicker = {

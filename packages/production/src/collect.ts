@@ -46,12 +46,25 @@ export interface CollectPicker {
 
 const EXTENSION = '.storystage';
 
-/** `name`, or `name (2)`, `name (3)`, … whichever `taken` doesn't have yet, ignoring case. */
-function unique(name: string, taken: Set<string>): string {
-  let candidate = name;
-  for (let n = 2; taken.has(candidate.toLowerCase()); n++) candidate = `${name} (${n})`;
-  taken.add(candidate.toLowerCase());
-  return candidate;
+/** The longest name the host's `safeFileName` leaves as it is. */
+const NAME_LIMIT = 80;
+
+/**
+ * `name`, or `name (2)`, `name (3)`, … whichever `taken` doesn't have yet, ignoring case, with
+ * `ending` (a file's extension) after it. The whole, ending included, fits `NAME_LIMIT`: the name
+ * is shortened to make room, so the host's Collect never finds one it would have cut.
+ */
+function unique(name: string, taken: Set<string>, ending = ''): string {
+  for (let n = 1; ; n++) {
+    const suffix = n === 1 ? '' : ` (${n})`;
+    let stem = name.slice(0, NAME_LIMIT - suffix.length - ending.length);
+    while (stem.endsWith(' ') || stem.endsWith('.')) stem = stem.slice(0, -1);
+    const candidate = `${stem}${suffix}${ending}`;
+    if (!taken.has(candidate.toLowerCase())) {
+      taken.add(candidate.toLowerCase());
+      return candidate;
+    }
+  }
 }
 
 /** Each pupil's folder name, in class-list order: the same list always gives the same names. */
@@ -77,7 +90,7 @@ export async function collectClass(
       const pupil = await classes.folder(id);
       const taken = new Set<string>();
       for (const { key, name } of await pupil.list()) {
-        const file = `${unique(plainName(name, 'My film'), taken)}${EXTENSION}`;
+        const file = unique(plainName(name, 'My film'), taken, EXTENSION);
         files.push({ folder, file, bytes: await pupil.read(key) });
       }
     }
