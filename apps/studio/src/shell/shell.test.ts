@@ -4,7 +4,12 @@ import { COLOR_TOKENS } from '@storystage/ui';
 import { describe, expect, it } from 'vitest';
 
 /** Every stylesheet in the studio. Each new one joins this list. */
-const STYLESHEETS = ['./shell.css', '../storyboard/storyboard.css', '../production/production.css'];
+const STYLESHEETS = [
+  './shell.css',
+  '../storyboard/storyboard.css',
+  '../production/production.css',
+  '../lesson/lesson.css',
+];
 
 const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');

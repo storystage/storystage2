@@ -32,6 +32,7 @@ recommended_lanes: 8
 
 bases:
   first plan: The owner's estimate in the workplan of 17 Oct 2026, before anything was measured.
+  bundled voices: Decision 0068 (8 Nov 2026) adds a bundled speech engine, chosen by a spike, to WP14b's one-week speak line block.
 
 items:
   - id: WP0
@@ -423,9 +424,10 @@ items:
     label: Speak line and narration (14.3)
     lane: Prompter and speech
     who: C
-    weeks: 1
-    basis: first plan
-    after: [WP14a, WP13b, WP4b]
+    weeks: 3
+    basis: bundled voices
+    after: [WP14a, WP4b]
+    started: 2026-11-08
   - id: WP24a
     label: Teacher journey, Prompter access model, relay spike (24.1–24.3)
     lane: Apps

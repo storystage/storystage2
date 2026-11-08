@@ -231,3 +231,13 @@ body,
     padding: 0 12px;
   }
 }
+
+/* A note across every mode, above the working area (07-ux 9.2): a failed save, a read-only film. */
+.studio-notice {
+  display: flex;
+  flex: none;
+  padding: 8px 14px 0;
+}
+.studio-notice > * {
+  flex: 1;
+}
