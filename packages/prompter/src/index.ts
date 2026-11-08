@@ -10,6 +10,7 @@
  * (`outcomes.ts`); the tools' runner over the program, with the plan checks (`runner.ts`,
  * `plans.ts`, `values.ts`, `script-check.ts`).
  */
+export * from './context.ts';
 export * from './data.ts';
 export * from './levels.ts';
 export * from './models.ts';

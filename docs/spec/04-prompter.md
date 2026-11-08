@@ -169,6 +169,25 @@ Each piece goes in its own block, as JSON, inside a named tag:
 8. **Words:** rule 9's words, and narration.
 9. The Story API catalog and the Backstage catalogue.
 
+### 2.6 The data blocks, exactly
+
+`packages/prompter/src/context.ts` makes both blocks from the open production. `read_project` returns the same two blocks. Numbers are rounded to two decimal places. A rotation that is the identity and a scale of 1 are left out.
+
+`<production_data>`:
+
+| Field | What |
+|---|---|
+| `scene` | The scene the learner is in |
+| `scenes` | Every scene in running order: `id` and `method`, the id of its script method |
+| `setup` | The current scene's set-up: `backdrop`; `objects`, each with `id`, `model` (a Backstage id or `{"standIn": …}`), `class`, `position` `[x, y, z]` in metres, and `rotation` `[x, y, z, w]` and `scale` `[x, y, z]` where they aren't the default; `camera`; `markers` |
+| `imported` | This production's class-imported models: `id`, `name`, `section`, `class`, and `description` where there is one |
+| `program` | The program as text (section 2.2) |
+| `open` | The method open in the editor, if any |
+
+**Ids in the program text.** Each line that starts a type, field, method, listener or statement ends with `  # [id]`, the id of the innermost of those that starts on the line. Tools name blocks by these ids. Above 20,000 tokens, each method other than the open one and the current scene's keeps its first line and loses its body to one line: `... N lines not shown`. `read_project` with the method open shows it.
+
+`<storyboard_data>`: `logline`, `synopsis`, `arc` and `cards` as stored; `script`, each line with `id`, `scene`, `kind`, `character` for dialogue, `text` and `frame` if pinned; and `frames`, each with `id`, `scene`, `order`, `caption`, `shot`, `seconds`, `links` and `sketches`, each sketch with `id`, `item`, `facing`, `x`, `y`, and `pose`, `scale`, `flipped` and `layer` where they aren't the default (`null`, 1, `false`, 0). Above 8,000 tokens, scenes other than the current one lose their script lines and their frames' sketches, keeping cards and captions.
+
 ## 3. Tools
 
 The definitions are in `packages/prompter/src/tools.ts`, and the tables below describe them. All inputs are JSON objects with `additionalProperties: false`, and every field listed is required unless marked optional. An optional field is left out of `required`, not made nullable: strict mode limits how many optional fields and union types a request's tools may have, so there are no unions at all, and at most 20 optional fields across every tool.
