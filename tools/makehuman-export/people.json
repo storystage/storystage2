@@ -25,7 +25,7 @@
   {
     "id": "p02",
     "name": "Amara",
-    "description": "a girl of 7 with short curly black hair, in a yellow T-shirt and jeans",
+    "description": "a girl of 7 with short curly black hair, in a yellow jacket and jeans",
     "ageYears": 7,
     "gender": 0.3,
     "build": {
@@ -49,7 +49,7 @@
   {
     "id": "p03",
     "name": "Kai",
-    "description": "a child of 8 with a brown side fringe, in a teal T-shirt and jeans",
+    "description": "a child of 8 with a brown side fringe, in a teal striped shirt and jeans",
     "ageYears": 8,
     "gender": 0.5,
     "build": {
@@ -120,7 +120,7 @@
   {
     "id": "p06",
     "name": "Niamh",
-    "description": "a tall girl of 11 with short light brown hair, in a green T-shirt and jeans",
+    "description": "a tall girl of 11 with short light brown hair, in a green jacket and jeans",
     "ageYears": 11,
     "gender": 0.3,
     "build": {
@@ -168,7 +168,7 @@
   {
     "id": "p08",
     "name": "Mei",
-    "description": "a girl of 6 with a black bob and a long fringe, in a coral T-shirt and jeans",
+    "description": "a girl of 6 with a black bob and a long fringe, in a coral striped shirt and jeans",
     "ageYears": 6,
     "gender": 0.3,
     "build": {
@@ -239,7 +239,7 @@
   {
     "id": "p11",
     "name": "Jayden",
-    "description": "a tall boy of 14 with short brown hair, in a white T-shirt and jeans",
+    "description": "a tall boy of 14 with short brown hair, in a coral jacket and jeans",
     "ageYears": 14,
     "gender": 0.75,
     "build": {
@@ -310,7 +310,7 @@
   {
     "id": "p14",
     "name": "Leah",
-    "description": "a girl of 16 with short brown hair, in an orange T-shirt and jeans",
+    "description": "a girl of 16 with short brown hair, in a pink striped shirt and jeans",
     "ageYears": 16,
     "gender": 0.25,
     "build": {
@@ -546,7 +546,7 @@
   {
     "id": "p24",
     "name": "Morgan",
-    "description": "an adult of 26 with short dark hair, in a white T-shirt and jeans",
+    "description": "an adult of 26 with short dark hair, in a purple striped shirt and jeans",
     "ageYears": 26,
     "gender": 0.5,
     "build": {
