@@ -20,6 +20,7 @@
 | `id` | The Alice gallery path where there is one (`Quadruped/Cat/AbyssinianCat`), else `source/Class/name` (`kaykit/Biped/knight`). Unique, and never reused for another model |
 | `section`, `class` | Its one home section (section 2) and its Story API class |
 | `displayName`, `themes` | The name learners see, and words to browse by |
+| `description` | Optional. What it looks like in plain words, one line of at most 120 characters, for the Prompter's catalogue, search and screen readers (rule 5) |
 | `files.model` | Binary glTF (`.glb`), or VRM (`.vrm`, kept byte for byte) |
 | `files.thumbnail` | A colour picture of its front (WebP), or its front sketch until one is made |
 | `vrm` | For a VRM file, its version: `"0"` or `"1"` |
@@ -35,7 +36,8 @@
 1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` has a source URL; a `permission` licence names its record in `docs/legal/`.
 2. **Shipped items carry only CC0, CC BY 3.0 or 4.0, or `permission`** (`SHIPPED_LICENCES`; licence audit, section 2, rule 1). A class may import share-alike, non-commercial, own-work or "not sure" models (3.12); `mayDistribute` then keeps films that use them in school.
 3. **Every model faces +Z.** The pipelines turn models that don't (Alice's, section 3), except VRM files, which are kept byte for byte: **a VRM 0.x avatar faces -Z, and whatever shows it (the stage, sketches, the AR baker) turns it half a turn.** `vrm` says which files need it.
-4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule.
+4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule; 2.1.0 added `description`.
+5. **Descriptions say what a learner would see.** A person is described by age, hair, glasses, clothes and anything they use, such as a wheelchair: "a child of 7 with an afro, in a mustard suit". **Never by skin colour or ancestry** (owner, 8 Nov 2026). A shipped item's description comes from its source list and is reviewed with it. An imported item's is typed by the learner or teacher, so the Prompter reads it as data in the user turn, never in `system` (spec 04, section 2.1).
 
 ## 2. Sections
 
@@ -218,7 +220,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 3, pipelines: the Blender script | Run in the assets repository's CI; every person's render reviewed by eye, then by the owner | CI, manual |
 | 3, pipelines: Alice's output turned to face +Z once, however often the step runs; class, section, triangles, textures and skeleton reported; prop only with the missing joints | `tools/convert-alice-models/src/finish.test.ts` | Unit (Vitest) |
 | 3: the gallery list in the audit's appendix A comes from Alice's jars (the converter's `--list`) and StoryStage 1's names, with Sims 2 models and variants marked | `tools/convert-alice-models/src/gallery.test.ts` | Unit (Vitest) |
-| 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
+| 1 and 3.1–3.3: every item has a section, licence, credit, source and budget; shipped items carry only `SHIPPED_LICENCES`; `vrm` is "0" or "1"; a `description` is one line of at most 120 characters; the version must match | `validateManifest` (`packages/backstage/src/manifest.test.ts`) | Unit (Vitest) |
 | 1: the shipped catalogue's builder writes each item's budget and VRM version | `tools/backstage-sources/src/sources.test.ts` | Unit (Vitest) |
 | 4: the figures in one place and provisional; the scene check, counting every copy, estimating picture memory, warning in plain words | `packages/backstage/src/budget.test.ts` | Unit (Vitest) |
 | 4.2–4.4: reduction to the budget keeping shape; skinned characters keep joints and weights; within budget left alone; textures shrunk to WebP with the encoder given, reported as not fitting without one; unused data dropped | `packages/backstage/src/optimize.test.ts` | Unit (Vitest) |

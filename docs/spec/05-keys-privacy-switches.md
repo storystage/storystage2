@@ -8,7 +8,7 @@
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
 
 ## 1. Wizard
 
@@ -180,7 +180,8 @@ Every platform uses these key names. Names are case-sensitive.
 | `prompter.enabled` | `true`, `false` | `true` | `false` | No |
 | `prompter.explainOnly` | `true`, `false` | `false` | n/a, the Prompter is off | No |
 | `prompter.planOnly` | `true`, `false` | `false` | n/a, the Prompter is off | No |
-| `prompter.voiceInput` | `true`, `false` | `true` | `false` | No |
+| `prompter.voiceInput` | `true`, `false`: speaking a request to the Prompter, one use of dictation | `true` | `false` | No |
+| `speech.dictation` | `true`, `false`: dictation into any text field, on the device, with or without the Prompter (decision 0060) | `true` | `false` | Yes, for `true` |
 | `prompter.dailyCap` | A whole number from 0 to 100000: requests per pupil per day. 0 allows no requests | no limit | n/a, the Prompter is off | No |
 | `prompter.capAction` | `explainOnly`, `off` | `explainOnly` | n/a, the Prompter is off | No |
 | `storyboard.allowImportedWithoutStoryboard` | `true`, `false` | `false` | `false` | Yes, for `true` |
@@ -262,6 +263,7 @@ The policy in force reaches the studio through the host interface as one object,
   "storyboard": { "allowImportedWithoutStoryboard": false },
   "editor": { "default": "blocks", "locked": true },
   "study": { "enabled": false },
+  "speech": { "dictation": true },
   "backstage": { "import": "teacher", "search": false },
   "update": { "channel": "stable", "pin": null }
 }
@@ -388,11 +390,11 @@ Through the host interface (`HostInterface.speech`, `null` in the browser versio
 | `speech_model_cancel` | `{ name }` | Nothing |
 | `speech_model_remove` | `{ name }` | Nothing. The bundled model can't be removed |
 
-A name that isn't pinned is refused. So is any command, apart from `speech_models`, when the Prompter's level is Off or `prompter.voiceInput` is false (spec 06 section 1.1).
+A name that isn't pinned is refused. So is any command, apart from `speech_models`, when `speech.dictation` is false (decision 0060). Dictation doesn't depend on the Prompter, so the Prompter's level doesn't matter here; `prompter.voiceInput` only decides whether the Prompter's Hold to talk is shown (spec 06 section 1.1).
 
 | Error | When | Spec 06's message (1.10) |
 |---|---|---|
-| `refused_by_policy` | The level is Off, or voice input is off | The button isn't shown |
+| `refused_by_policy` | `speech.dictation` is false | No mic is shown |
 | `not_downloaded` | Loading a model that isn't there | The consent step |
 | `check_failed` | The SHA-256 or size didn't match | "The download didn't arrive whole. Try again." |
 | `offline` | No connection, or the download stopped | "The download didn't arrive whole. Try again." |
@@ -443,6 +445,6 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Every load checks the model again (5.4) | A tampered file, bundled and downloaded, refused, and the downloaded one deleted | Rust unit |
 | The download stops at the pin's size, and keeps nothing that doesn't match (5.3) | A local server sending too much, the wrong size and the wrong bytes | Rust integration |
 | Only pinned names (5.5) | A path, an unknown name, an empty name | Rust unit |
-| Refused when voice input is off (5.5) | Each command, at level Off and with `prompter.voiceInput=false` | Rust unit |
+| Refused when dictation is off (5.5) | Each command with `speech.dictation=false`, and still allowed at Prompter level Off | Rust unit |
 | Cross-origin isolation (5.6) | The shipped config has both headers | Rust unit, on `tauri.conf.json` |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |
