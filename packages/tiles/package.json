@@ -5,7 +5,8 @@
   "description": "Option C: Alice-style tile editor in React (rows, drop targets, cascading menus, add detail).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./cascade": "./src/cascade.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",

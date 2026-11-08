@@ -7,6 +7,8 @@ Option C: Alice-style tile editor in React (rows, drop targets, cascading menus,
 - **Spec:** `docs/spec/14-editors.md`, section 3
 - **Status:** draws a method as tiles and edits it: values, details, switching off, deleting, duplicating, copy and paste, and moving by pointer or keyboard. The methods panel (object picker, Actions and Questions, the palette in categories), a tab for each method and event with "add event ▾", and the control bar put new blocks in, asking for each value in turn. Highlights: Rehearse's outline moves (still for reduced motion), and the Prompter's highlight wears the AI badge. A method of 500 statements answers a keystroke or drop within 100 ms (3h): `e2e/performance.e2e.ts` times it on the production build (`pnpm --filter @storystage/tiles harness:production`, port 4184); `TILES_CPU_SLOWDOWN=4` slows the CPU fourfold as a stand-in for the Chromebook. Variable and assign tiles come next.
 
+**`@storystage/tiles/cascade`** gives the cascade menus on their own (`ValueMenu`, `AskValue`, `DetailMenu`, with their props types), so Blocks draws its values-on-drop with the same component (spec 14, §3i.6). Each opens from an `anchor` element, in a portal, with the tile colours.
+
 The studio mounts it through the WP0.8 editor contract:
 
 ```ts
