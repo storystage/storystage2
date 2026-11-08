@@ -109,7 +109,7 @@ The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`,
 - **Sizes.** `load` gives the timeline each object's box and its joints' resting places (`Shape`). A stand-in is the same block on both stages (`STAND_IN_BOX`), and `FakeStage` gives every object that block, so the two agree.
 - **The scene and the camera.** The sky, light and fog are `SCENE`'s, and only it takes `atmosphere`, `light` and `fog`; only the camera takes `lens`. `SCENE` isn't in `objects()`.
 - **Good view.** `moveAndOrientTo` with `goodView` puts the camera in front of its target, a little above, at two and a half times its largest size, looking at its middle.
-- **Fading.** `fade` on `SCENE` darkens the whole picture, sky included, to black and back. Loading a scene clears it. Going to another scene and crossfading are the production's playback (WP8.3).
+- **Fading.** `fade` on `SCENE` darkens the whole picture, sky included, to black and back. Loading a scene clears it. Which scene comes next, and how, is the production's playback (WP8.3); the stage draws it ("Scene after scene", below).
 - **Not yet:** smooth paths, folding and spreading wings, and the size of a joint. The stage refuses them with `bad_argument`.
 - **Touching.** Alice's rule, in `hull.ts`: each object has a footprint and a height from its box in the scene. Proximity is the same test with a margin, so it measures the gap between two things, not between their centres.
 - **Backdrops.** `backdrops.ts` holds Alice's 20 starting templates, with her numbers. Her fog value is cubed to give the density. Ground surfaces are flat colours until WP3's textures arrive.
@@ -117,6 +117,19 @@ The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`,
 - **Events.** Each fires once, at the change: two things start or stop touching, a watched pair comes within or goes beyond its distance, a watched object comes into or leaves the picture. Nothing fires for what was already so when listening or watching starts, and rewinding fires nothing. An object faded to nothing is out of the picture.
 - **Hashes.** What only the newer commands set (paint part-way through a blend, back paint, words, the lens, the sky) is in `stateHash` only once something sets it, so older scenes hash as they did.
 - **Budgets.** Spike 1.2 is waiting for its device runs, so nothing here is held to a budget yet.
+
+## Scene after scene (8.2, 8.3)
+
+A production plays its scenes in running order (spec 03 section 3.1). The player decides what comes next; the stage gets it ready and draws the change.
+
+- **Preloading.** `stage.preload(setup)` gets a scene that will probably come next ready while this one plays: it makes its Babylon.js scene and fetches and reads its models. Nothing changes on screen, and it never rejects. The next `load` takes that scene and whatever it has loaded, whether or not it's the scene preloaded, so models the two share load at once. A second `preload` replaces the first.
+- **Crossfading.** `stage.load(setup, { crossfade })` keeps the old scene and draws it over the new one, fading out over `crossfade` microseconds of the new scene's time. Each frame the old scene is drawn into a picture of its own, laid over the new one.
+  - It moves on as far as the new scene has come, from where it was when the new one began. A stage drawing live at "low" quality holds it still, which costs one scene's drawing rather than two (spec 03 section 3.1, rule 7). An export always shows it moving.
+  - It fires no events and answers nothing. Its objects aren't in `objects()`.
+  - It goes once the crossfade is over, at the next `seek` past it, or at a `reset` or another `load`. Rewinding doesn't bring it back.
+  - A `picture` (5.7) is of the new scene alone.
+- **Fade to black** is the `fade` command, at the end of one scene and the start of the next.
+- **Not measured:** what two scenes cost to draw at once on the reference Chromebook (#6).
 
 ## Shots (4.10)
 

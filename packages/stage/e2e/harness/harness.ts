@@ -501,6 +501,34 @@ async function scenePictures(
   return out;
 }
 
+/**
+ * WP8.3: the sky's colour, top left, through a one-second crossfade from the grass template's
+ * light blue sky to the moon's near black: at its start, half way and at its end.
+ */
+async function crossfadeSky() {
+  const stage = await offscreenStage();
+  const setup = (template: string): SceneSetup => ({
+    backdrop: BACKDROP_TEMPLATES.find((t) => t.id === template)!.backdrop,
+    objects: [],
+    camera: redCat.camera,
+    markers: [],
+  });
+  await stage.load(setup('grass'));
+  const pixel = async () => {
+    const frame = await stage.renderFrame();
+    const p = (5 * W + 5) * 4;
+    return [frame.data[p]!, frame.data[p + 1]!, frame.data[p + 2]!];
+  };
+  const out: number[][] = [await pixel()];
+  await stage.load(setup('moon'), { crossfade: micros(1) });
+  for (const t of [0, 0.5, 1]) {
+    stage.seek(micros(t));
+    out.push(await pixel());
+  }
+  stage.dispose();
+  return out;
+}
+
 /** What the page loaded, in bytes before compression, in order. */
 function scripts() {
   return performance
@@ -526,6 +554,7 @@ Object.assign(window, {
     picture,
     humanPicture,
     scenePictures,
+    crossfadeSky,
     goLive,
     scripts,
   },

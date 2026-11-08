@@ -89,7 +89,7 @@ export async function createBabylonStage(options: BabylonStageOptions): Promise<
   });
   // An export is drawn full size, so its frames are the size it asked for.
   engine.setHardwareScalingLevel(offscreen ? 1 : settings.scale);
-  const stage = new BabylonStage(engine, { models, renderer: used, quality });
+  const stage = new BabylonStage(engine, { models, renderer: used, quality, offscreen });
   if (!offscreen && 'addEventListener' in canvas && 'clientWidth' in canvas)
     listenTo(canvas, stage);
   return stage;

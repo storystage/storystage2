@@ -23,7 +23,7 @@ import {
   type Watch,
   jointName,
 } from '@storystage/story-api';
-import type { FrameImage, Speech, Stage } from '../contract.ts';
+import type { FrameImage, Speech, Stage, LoadOptions } from '../contract.ts';
 import { length, sub } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
@@ -66,8 +66,14 @@ export class FakeStage implements Stage {
     this.calls.push({ method, args: structuredClone(args) });
   }
 
-  async load(setup: SceneSetup): Promise<void> {
-    this.record('load', [setup]);
+  /** Records preloading; there's nothing to get ready. */
+  async preload(setup: SceneSetup): Promise<void> {
+    this.record('preload', [setup]);
+  }
+
+  /** A crossfade is recorded; the fake stage draws nothing, so the old scene simply goes. */
+  async load(setup: SceneSetup, options?: LoadOptions): Promise<void> {
+    this.record('load', options ? [setup, options] : [setup]);
     const known = this.options.knownModels;
     for (const o of setup.objects) {
       if (known && typeof o.model === 'string' && !known.includes(o.model))
