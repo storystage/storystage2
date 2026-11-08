@@ -9,6 +9,10 @@ Bringing a model into the class Backstage (WP3i; decision 0066; spec 17, section
 
 - `import.ts`: `importModel`, the whole pipeline: the checks, reading (OBJ, glTF, `.glb` and VRM, a VRM 0.x avatar turned to face +Z), `reduceModel` to the section's budget, the skeleton, sketches and thumbnail, the record and the report. The browser's picture encoder and decoder are passed in (`ImportTools`). `classModelId` makes the record's id.
 
-Still to come: the browser's tools and worker, and the model pack.
+- `browser.ts`: `browserImageTools`, the picture tools from the browser's own canvas (`OffscreenCanvas`): textures and the thumbnail as WebP, or PNG where WebP can't be made (Safari), and pictures decoded for the thumbnail.
+- `worker.ts` and `import-worker.ts` (`@storystage/backstage-import/worker`): the import in a Web Worker of its own. `importInWorker` starts a fresh worker for each import and stops it after `IMPORT_TIME_LIMIT_MS` (60 seconds).
+- `pack.ts`: `packModels`, which brings a production's packed models up to date before it's saved (decision 0049): class models it uses are packed from the class Backstage, ones it stopped using are dropped, and packed ones stay even if the class Backstage lost them.
+
+Still to come: the model pack.
 
 Everything here is pure and runs in the import worker. The caller saves into the class Backstage (`ClassFolders.backstage()`, `@storystage/host`).

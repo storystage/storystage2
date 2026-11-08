@@ -204,7 +204,7 @@ How the app gets its models (workplan 3.9). The code is `packages/backstage/src/
 
 ## 5. The import pipeline
 
-Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is `learners` (spec 05, section 3.3), brings a model into the class Backstage. Everything runs on the device, in the import worker (`00-architecture.md`, section 3): with no network, refused after 60 seconds, and never trusting the file (`15-security.md`, sections 3 and 3.4). The code is the new package `@storystage/backstage-import`, which uses `@storystage/backstage` (reduction, budgets, joints, the manifest) and `@storystage/sketches` (sketches, thumbnails).
+Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is `learners` (spec 05, section 3.3), brings a model into the class Backstage. Everything runs on the device, in the import worker (`00-architecture.md`, section 3; `importInWorker`, a fresh worker for each import): with no network, stopped after 60 seconds (`IMPORT_TIME_LIMIT_MS`) with a refusal in plain words, and never trusting the file (`15-security.md`, sections 3 and 3.4). The code is the new package `@storystage/backstage-import`, which uses `@storystage/backstage` (reduction, budgets, joints, the manifest) and `@storystage/sketches` (sketches, thumbnails).
 
 ### What can be imported
 
