@@ -19,7 +19,7 @@ export interface HostInterface {
   readonly version: string | null;
   /**
    * The speech models (spec 05 section 5). `null` in the browser version, and whenever the policy
-   * in force doesn't allow voice input (spec 06 section 1.1).
+   * in force doesn't allow dictation (`speech.dictation`, decision 0060), whatever the Prompter's level.
    */
   readonly speech: SpeechModels | null;
 }
@@ -60,7 +60,6 @@ export async function tauriHost(
 ): Promise<HostInterface> {
   const [policy, version] = await Promise.all([readPolicy(invoke), readVersion(invoke)]);
   const reachable = policy.source === 'unreadable' ? offTransport : prompter;
-  const voice = policy.prompter.level !== 'off' && policy.prompter.voiceInput;
-  const speech = voice && Channel ? tauriSpeech(invoke, Channel) : null;
+  const speech = policy.speech.dictation && Channel ? tauriSpeech(invoke, Channel) : null;
   return { policy, prompter: reachable, version, speech };
 }

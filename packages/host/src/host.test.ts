@@ -51,22 +51,27 @@ describe('speech models in the Tauri host', () => {
     onmessage = () => {};
   };
   const withPolicy =
-    (changes: Record<string, unknown>) =>
+    (prompter: Record<string, unknown>, dictation = true) =>
     async (command: string): Promise<unknown> =>
       command === POLICY_COMMAND
-        ? { ...fixture, prompter: { ...fixture.prompter, ...changes } }
+        ? { ...fixture, prompter: { ...fixture.prompter, ...prompter }, speech: { dictation } }
         : '1.4.2';
 
-  it('are there when voice input is allowed', async () => {
+  it('are there when dictation is allowed', async () => {
     const host = await tauriHost(answering('1.4.2'), native, Channel);
     expect(host.speech).not.toBeNull();
   });
 
+  // Decision 0060: dictation doesn't depend on the Prompter.
   it.each([
-    ['the level is Off', { level: 'off' }],
-    ['voice input is off', { voiceInput: false }],
-  ])('are absent when %s', async (_name, changes) => {
-    expect((await tauriHost(withPolicy(changes), native, Channel)).speech).toBeNull();
+    ['the Prompter is Off', { level: 'off' }],
+    ['the Prompter has no voice input', { voiceInput: false }],
+  ])('are still there when %s', async (_name, prompter) => {
+    expect((await tauriHost(withPolicy(prompter), native, Channel)).speech).not.toBeNull();
+  });
+
+  it('are absent when the school turns dictation off', async () => {
+    expect((await tauriHost(withPolicy({}, false), native, Channel)).speech).toBeNull();
   });
 
   it('are absent when the policy is unreadable', async () => {

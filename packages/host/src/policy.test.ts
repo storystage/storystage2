@@ -31,6 +31,7 @@ describe('the policy in force', () => {
     ['a missing section', { ...fixture, study: undefined }],
     ['a set that is not a list', { ...fixture, set: 'prompter.enabled' }],
     ['a pin that is not text', { ...fixture, update: { ...fixture.update, pin: 1 } }],
+    ['no speech section', { ...fixture, speech: undefined }],
   ])('rejects %s', (_name, value) => {
     expect(isPolicyInForce(value)).toBe(false);
   });
@@ -39,6 +40,7 @@ describe('the policy in force', () => {
     expect(browserHost.policy).toBe(BROWSER_POLICY);
     expect(BROWSER_POLICY.prompter.level).toBe('off');
     expect(BROWSER_POLICY.prompter.voiceInput).toBe(false);
+    expect(BROWSER_POLICY.speech.dictation).toBe(false);
     expect(await browserHost.prompter.status()).toEqual({
       available: false,
       reason: 'prompter_off',
@@ -57,6 +59,7 @@ describe('the policy in force', () => {
       prompter: { level: 'off', voiceInput: false },
       backstage: { import: 'off', search: false },
       study: { enabled: false },
+      speech: { dictation: false },
       update: { channel: 'off', pin: null },
     });
   });
