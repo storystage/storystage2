@@ -66,4 +66,5 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0058](0058-backstage-search.md) | Backstage search: on for teachers, with weapons screened | 8 Nov 2026 |
 | [0060](0060-dictation-in-every-field.md) | Dictation in every field | 8 Nov 2026 |
 | [0061](0061-speech-model-host.md) | The optional speech model's host | 8 Nov 2026 |
+| [0064](0064-no-loose-blocks.md) | No loose blocks: a block dropped outside a method goes back | 8 Nov 2026 |
 | [0065](0065-pupil-work-between-lessons.md) | Where a pupil's work lives between lessons | 8 Nov 2026 |
