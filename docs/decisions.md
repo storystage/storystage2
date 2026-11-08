@@ -73,6 +73,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Mock-ups approved | The Direction A mock-ups, the three window sizes, screen 02c and the light theme are approved (12.1); 11b and the Tiles artwork stay open as the handoff says (0044) | 25 Oct 2026 |
 | Website and guide licence | The website and teacher guide text (`website/`) are published under CC BY 4.0, like the curriculum material; the StoryStage name and logo are not covered (0045) | 25 Oct 2026 |
 | Website and browser version | The website is **storystage.org**, on the existing Bluehost WordPress site (Elementor), updated through WPVibe; the browser version is static files at **app.storystage.org**, a separate origin. storystage.org.uk is not used (0046) | 25 Oct 2026 |
+| Backstage search | Poly Pizza CC0 search is on for teachers by default, hidden from learners; models with "gun" as a word or compound in their name, tags or category are screened out; a school can switch it off (`backstage.search=false`) (0058) | 8 Nov 2026 |
 
 ## Still to decide (owner)
 
@@ -88,7 +89,6 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Whether Quaternius's current licence allows shipping in Backstage | With the licence audit | WP3.1 |
 | Budget for the storybook cast commission | M2 | WP3.6 |
 | Record review hours for two weeks; confirm how many parallel sessions you can review | End of week 2 | WP1.12 |
-| Default for `backstage.search` (Poly Pizza CC0-only search) | After the DPIA | WP3.12, WP17 |
 | Approve the editor study design, co-designed with pilot teachers; look for a university partner | M2–M7 | WP19.5, 19.6 |
 | Arrange a human security review of the key handling | Before the pilot | WP15.2 |
 | Buy code-signing certificates; open Apple and Google developer accounts | M6 | WP15.4, 15.5 |
