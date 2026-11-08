@@ -79,6 +79,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Playback and Screening room packages | `packages/playback` (the driver that plays a production: runtime worker, stage and the production's player; used by Rehearse, the Screening room and export) and `packages/screening` (the Screening room's screen, mounted by the studio), both S2's (0067) | 8 Nov 2026 |
 | The shipped Backstage is bundled | The apps carry the whole shipped Backstage folder (about 85 MB today), so it works offline from the first launch; the browser version serves it from its own origin; `backstage.lock.json` pins the catalogue a release ships (0062) | 8 Nov 2026 |
 | Where imported models live, and OBJ | A class Backstage on each device beside the pupil folders (a learner's import is theirs until the teacher promotes it); a model pack file between devices; productions still carry the models they use (0049); OBJ read in the app by a reader of our own (0066) | 8 Nov 2026 |
+| Bundled voices | Speak line uses an open-source speech engine bundled with StoryStage, on every platform including the browser, with voices for adults and children, men and women, and animals; engine chosen by a spike after a licence and size check (0068) | 8 Nov 2026 |
 
 ## Still to decide (owner)
 
