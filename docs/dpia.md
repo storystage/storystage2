@@ -33,7 +33,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | F6 | **Speech output** | Text to be read aloud | The device's own voices only (voices marked `localService`) | When text is read aloud | Specified (14.2) |
 | F7 | **Recorded lines** | The learner's recorded voice, for lines they choose to record | Inside the production file (spec 03 §1) | Release 1.2 (14.4), not the first release | Later |
 | F8 | **Study logs** | A random id per session; which editor, switches, time per study task, errors, undos, help requests, and answers to two short questions per task. No names, program content, camera or voice | On the device until the teacher exports them as a file, then to the study team | Pilot schools only, when a school switches the study on (`study.enabled`) | Specified (7.13); spec 14 §5 not yet written |
-| F9 | **Report a problem** | Scrubbed logs, the self-test result, versions, the policy in force | A file on the device that the teacher may attach to the feedback form | When a teacher asks | Specified (18.5); the form is open (19.4) |
+| F9 | **Report a problem** | Scrubbed logs, the self-test result, versions, the policy in force | A file on the device that the teacher may attach to an email to the feedback address; the triager files an anonymised GitHub issue (decision 0063, `docs/feedback.md`) | When a teacher asks | Specified (18.5); the address and its mail host: **open** (owner) |
 | F10 | **Settings, policy and counters** | The class's settings, the policy in force, the day's Prompter count, the update rollout bucket | The device only | Always | Specified (spec 05) |
 | F11 | **Update checks** | None about the learner. The request reveals the device's IP address | **Leaves the device:** GitHub Releases (decision 0047), once a day at most | Desktop apps, unless the school sets `update.channel=off` | Specified (spec 05 §4) |
 | F12 | **App stores** | What Apple and Google collect as stores | Apple and Google, under their own terms | When the app is installed or updated | Outside StoryStage's control |
@@ -89,7 +89,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | **The adult who holds the Claude key** (a teacher, club leader or, if Anthropic confirms, a parent) | Anthropic's customer; for a school's key, acting for the school | The Prompter requests sent under their key (F2) |
 | **Anthropic** | Processor for the key holder's organisation, under Anthropic's Commercial Terms and data processing addendum | F2 |
 | **A parent** using StoryStage at home | Likely within the household exemption | Their own family's use |
-| **The StoryStage project** (today the owner, trading as StoryStage; who runs it after the pilot is open) | Controller | The website (F13), update checks (F11), the feedback form (F9), and the editor study's data once received (F8) |
+| **The StoryStage project** (today the owner, trading as StoryStage; who runs it after the pilot is open) | Controller | The website (F13), update checks (F11), the feedback mailbox (F9), and the editor study's data once received (F8) |
 | **The StoryStage project** | Designer and provider | The design of everything else. It receives none of that data, but it decides what the app does with it, so it carries the duty to build privacy in: this DPIA |
 | **Bluehost (Newfold Digital), GitHub (Microsoft)** | Processors or independent controllers of their own logs, per their terms | GitHub: F5 (the optional model) and F11; Bluehost: F13 |
 | **Apple, Google** | Independent controllers | F12 |
@@ -143,7 +143,7 @@ The Prompter can be wrong. It never decides anything about a learner: no marks, 
 | Daily Prompter counts | The current day, on the device |
 | Study logs on the device | Until exported. **Proposed:** the app deletes them from the device when the teacher confirms the export, and offers to delete unexported logs at the end of the study (to add to 7.13) |
 | Study logs with the study team | **Open:** set by the study protocol (19.6). Proposed: pseudonymous logs kept until the editor decision (19.8) plus 12 months, then deleted |
-| Diagnostic bundles | Until the teacher deletes the file. Feedback received: **open** (19.4); proposed: until the issue is closed, plus 12 months |
+| Diagnostic bundles | Until the teacher deletes the file. Feedback emails: until the issue is closed, plus 12 months (decision 0063) |
 | Data sent to Anthropic | Anthropic's retention under the key holder's terms. **To check** (Q7) |
 | Website and update-check logs | The host's own retention. **To check** with Bluehost and GitHub (Q8) |
 
@@ -277,7 +277,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | 12 | **Profiling:** off by default | None at all | None |
 | 13 | **Nudge techniques:** don't nudge children to give more data or weaken protections | No dark patterns; "Skip" is always offered in set-up; nothing rewards using the Prompter | S5 to keep the set-up's Skip as visible as Continue |
 | 14 | **Connected toys and devices** | Not applicable | None |
-| 15 | **Online tools:** help children exercise their rights and report concerns | Report a problem (18.5); the teacher guide's safeguarding steps; a contact address (**open**) | Owner: contact address; the feedback form (19.4) |
+| 15 | **Online tools:** help children exercise their rights and report concerns | Report a problem (18.5); the teacher guide's safeguarding steps; a contact address (**open**) | Owner: set up the feedback address (decision 0063) |
 
 ## Annex B: the United States (decision 0043)
 
@@ -298,4 +298,4 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 - **No Linux,** so no Secret Service key store; no DPAPI fallback file (spec 05 §2.1).
 - **New flows:** update checks (GitHub), the browser version on its own origin, study logs, Drive and OneDrive, Backstage import and search, and later AR.
 - **Speech:** StoryStage 1 downloaded its model from Hugging Face; StoryStage 2 ships the default model in the app (0057), and the optional larger one comes from the update host on GitHub (0061). Voice input now works in every text field, not only for the Prompter (0060).
-- **Problem reports:** StoryStage 1 opened a GitHub issue in the browser; StoryStage 2 builds a local bundle for a feedback form (18.5).
+- **Problem reports:** StoryStage 1 opened a GitHub issue in the browser; StoryStage 2 builds a local file a teacher may attach to an email (18.5, decision 0063); issues are filed anonymised.
