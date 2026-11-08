@@ -1,6 +1,14 @@
 import { DirectionalLight } from '@babylonjs/core/Lights/directionalLight.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import { CAMERA, IDENTITY, backstageId, micros, objectId } from '@storystage/story-api';
+import {
+  CAMERA,
+  IDENTITY,
+  SCENE,
+  backstageId,
+  jointName,
+  micros,
+  objectId,
+} from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../backdrops.ts';
 import { SETUP, cmd, describeStageContract } from '../testing/conformance.ts';
@@ -107,6 +115,47 @@ describe('BabylonStage', () => {
     ]);
     expect(touching(1)).toBe(true);
     expect(stage.answer({ kind: 'isColliding', a: cat, b: CAMERA, at: 0 }).value).toBe(false);
+  });
+
+  it('shows a program’s sky, light, fog and lens as they change', async () => {
+    const stage = new BabylonStage(headlessEngine());
+    await stage.load(SETUP);
+    const scene = (stage as unknown as { scene: Scene }).scene;
+    const below = scene.getLightByName('below') as DirectionalLight;
+    stage.schedule([
+      cmd(0, 1, { object: SCENE, kind: 'atmosphere', colour: '#000000' }),
+      cmd(0, 0, { object: SCENE, kind: 'light', from: 'below', colour: 'red' }),
+      cmd(0, 1, { object: SCENE, kind: 'fog', density: 0.5 }),
+      cmd(0, 1, { object: CAMERA, kind: 'lens', verticalAngle: 0.1 }),
+    ]);
+    stage.seek(micros(1));
+    expect(scene.clearColor.r).toBe(0);
+    expect(below.diffuse.r).toBe(1);
+    expect(scene.fogMode).toBe(Scene.FOGMODE_EXP);
+    expect(scene.fogDensity).toBeCloseTo(0.125, 6);
+    expect(scene.activeCamera!.fov).toBeCloseTo(0.1 * 2 * Math.PI, 6);
+    stage.seek(0);
+    expect(scene.fogMode).toBe(Scene.FOGMODE_NONE);
+    expect(scene.activeCamera!.fov).toBeCloseTo(0.5, 6);
+  });
+
+  it('agrees with the fake stage on stand-ins’ sizes and joints', async () => {
+    const real = new BabylonStage(headlessEngine());
+    const fake = new FakeStage();
+    const commands = [
+      cmd(0, 1, { object: cat, kind: 'place', relation: 'behind', target: dog, gap: 1 }),
+      cmd(1, 1, { object: CAMERA, kind: 'moveAndOrientTo', target: cat, goodView: true }),
+      cmd(2, 1, { object: dog, kind: 'moveTo', target: { object: cat, joint: jointName('head') } }),
+    ];
+    for (const stage of [real, fake]) {
+      await stage.load(SETUP);
+      stage.schedule(commands);
+    }
+    for (const t of [0.5, 1.5, 3]) {
+      real.seek(micros(t));
+      fake.seek(micros(t));
+      expect(real.stateHash()).toBe(fake.stateHash());
+    }
   });
 });
 
