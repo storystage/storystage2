@@ -14,6 +14,7 @@ export * from './data.ts';
 export * from './levels.ts';
 export * from './models.ts';
 export * from './outcomes.ts';
+export * from './pins.ts';
 export * from './plans.ts';
 export * from './request.ts';
 export * from './runner.ts';
