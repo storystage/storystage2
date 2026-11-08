@@ -677,7 +677,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp9 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP9a after WP0, WP0s; WP9b after WP9a, WP2, WP4a, WP3c.
 <!-- /schedule:wp9 -->
-- [ ] 9.1 Read `.a3p` (zip, `programType.xml`, `type.xml`, `resources.xml`, `version.txt`; XML encoded UTF-8 before 3.7, UTF-16 from 3.7), with the same import hardening as 8.4. (C)
+- [x] 9.1 Read `.a3p` (zip, `programType.xml`, `type.xml`, `resources.xml`, `version.txt`; XML encoded UTF-8 before 3.7, UTF-16 from 3.7), with the same import hardening as 8.4. (C)
 - [ ] 9.2 Map Alice types, fields, methods, statements and events onto the StoryStage 2 AST. Map Alice gallery fields onto the converted models in Backstage. Report anything that can't be mapped (for example Sims models) in plain words. (C)
 - [ ] 9.3 Imported worlds are marked "imported", so the teacher's switch can relax the storyboard rule for them (WP10.8). (C)
 

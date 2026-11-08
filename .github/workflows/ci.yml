@@ -30,7 +30,11 @@ jobs:
       - name: Schedule matches the workplan (WP0.10)
         run: pnpm schedule:check
       - run: pnpm typecheck
+      - name: Alice's starter projects for WP9's test (fetched at a pinned commit, not kept here)
+        run: node packages/a3p-import/scripts/fetch-starters.ts "$RUNNER_TEMP/alice-starters"
       - run: pnpm test
+        env:
+          ALICE_STARTERS: ${{ runner.temp }}/alice-starters
 
   e2e:
     name: e2e
