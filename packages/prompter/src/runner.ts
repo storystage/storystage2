@@ -14,7 +14,6 @@ import {
   defaultLabel,
   idMinter,
   indexProgram,
-  programText,
   type Args,
   type EditOperation,
   type EditSession,
@@ -39,6 +38,7 @@ import {
   type ApiClass,
   type TypeName,
 } from '@storystage/story-api';
+import { productionData, storyboardData } from './context.ts';
 import { dataBlock } from './data.ts';
 import { checkPlan, mismatch, type NameValue, type PlanStep, type PlanWorld } from './plans.ts';
 import { scriptFacts } from './script-check.ts';
@@ -58,6 +58,8 @@ export interface RunnerSetup {
   readonly production: () => Production;
   /** The scene the learner is in. */
   readonly scene: () => SceneId;
+  /** The method open in the editor, kept whole when the program is over its budget. */
+  readonly openMethod?: () => NodeId | null;
   readonly isBackstageItem: (id: string) => boolean;
   /** The automatic check's latest result for a frame (11.6), or null if it hasn't run. */
   readonly checkResult?: (frame: FrameId) => Json | null;
@@ -141,7 +143,7 @@ export class PrompterRunner implements ToolRunner {
       case 'explain':
         return ok('Shown to the learner.');
       case 'read_project':
-        return ok(dataBlock('production_data', this.#projectData()));
+        return ok(this.#projectData());
       case 'check_frame':
         return this.#checkFrame(text(input.frame));
       case 'script_check':
@@ -186,32 +188,14 @@ export class PrompterRunner implements ToolRunner {
     return { type, classOf: (field: FieldDecl) => classOf(field.type) };
   }
 
-  /** The program as text, and each block in the scene with its id, for tools to name. */
-  #projectData(): Json {
-    const program = this.#setup.session.program();
-    const type = this.#sceneType(program);
-    const view = programText(program);
-    const index = indexProgram(program);
-    const blocks: Json[] = [];
-    if (type)
-      for (const span of view.spans) {
-        const node = index.get(span.node)?.node;
-        const shown =
-          node && (CONTAINERS.has(node.kind) || ['if', 'call', 'comment'].includes(node.kind));
-        if (!shown) continue;
-        if (!this.#inside(index, span.node, type.id)) continue;
-        blocks.push({
-          id: span.node,
-          text: view.text.slice(span.start, span.end).split('\n')[0]!.trim(),
-        });
-      }
-    return {
-      scene: this.#setup.scene(),
-      objects: type ? type.fields.map((f) => f.name) : [],
-      methods: type ? type.methods.map((m) => m.name) : [],
-      program: view.text,
-      blocks,
-    };
+  /** The production and the storyboard as a turn sends them (spec 04, section 2.6). */
+  #projectData(): string {
+    const production = { ...this.#setup.production(), program: this.#setup.session.program() };
+    const place = { scene: this.#setup.scene(), open: this.#setup.openMethod?.() ?? null };
+    return [
+      dataBlock('production_data', productionData(production, place)),
+      dataBlock('storyboard_data', storyboardData(production, place)),
+    ].join('\n');
   }
 
   #inside(index: ReturnType<typeof indexProgram>, node: NodeId, ancestor: NodeId): boolean {

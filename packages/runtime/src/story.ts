@@ -4,7 +4,8 @@
  */
 import type { NodeId } from '@storystage/ast';
 import { micros, type Micros, type StageCommand } from '@storystage/story-api';
-import { RuntimeFault, type Task } from './scheduler.ts';
+import type { RuntimeSceneEnding } from './messages.ts';
+import { EndRun, RuntimeFault, type Task } from './scheduler.ts';
 import type { Value } from './values.ts';
 
 export interface StoryCall {
@@ -41,3 +42,35 @@ export const RUNTIME_LIBRARY: StoryLibrary = {
     return null;
   },
 };
+
+/** The catalog's default for `duration`. */
+const DEFAULT_SECONDS = 1;
+
+/**
+ * `goToScene`, `crossfade` and `fadeToBlack` (WP8.3): each ends the whole run at once, so no
+ * more of this scene's code runs, and `serve` tells the player which one ran. They throw rather
+ * than yield, so nothing else gets a turn first.
+ */
+export function sceneLibrary(scenes: readonly string[]): StoryLibrary {
+  const known = new Set(scenes);
+  const scene = (call: StoryCall): string => {
+    const value = call.args.scene;
+    if (typeof value !== 'string' || !known.has(value))
+      throw new RuntimeFault('bad_value', call.node, 'There is no such scene.');
+    return value;
+  };
+  const duration = (call: StoryCall) => {
+    const seconds = call.details.duration ?? DEFAULT_SECONDS;
+    if (typeof seconds !== 'number' || seconds < 0)
+      throw new RuntimeFault('bad_value', call.node, 'A duration is zero or more.');
+    return micros(seconds);
+  };
+  const end = (ending: RuntimeSceneEnding): never => {
+    throw new EndRun(ending);
+  };
+  return {
+    goToScene: (call) => end({ kind: 'goToScene', scene: scene(call) }),
+    crossfade: (call) => end({ kind: 'crossfade', scene: scene(call), duration: duration(call) }),
+    fadeToBlack: (call) => end({ kind: 'fadeToBlack', duration: duration(call) }),
+  };
+}

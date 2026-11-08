@@ -71,9 +71,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: apps/desktop/src-tauri -> target
-      - name: Test the policy, the gate, the transport and the speech models
+      - name: Test the policy, the gate, the transport, the speech models and the pupil folders
         working-directory: apps/desktop/src-tauri
-        run: cargo test -p storystage-policy -p storystage-gate -p storystage-transport -p storystage-speech --features storystage-transport/test-endpoint --locked
+        run: cargo test -p storystage-policy -p storystage-classes -p storystage-gate -p storystage-transport -p storystage-speech --features storystage-transport/test-endpoint --locked
 
   # Proves the key can't be found in anything the webview can see (spec 05 section 2.7). Spike
   # 1.6's check, on the real app: see apps/desktop/leak-scan/README.md. Windows, where WebView2

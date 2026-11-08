@@ -186,6 +186,25 @@ export function describeClassFoldersContract(
       expect(folders.current()).toBeNull();
     });
 
+    it('reaches a pupil’s folder without making it current, for Collect and Hand back', async () => {
+      const folders = await make();
+      const ava = await folders.open((await folders.addPupil('Ava')).id);
+      const ben = await folders.addPupil('Ben');
+      const reached = await folders.folder(ben.id);
+      const { key } = await reached.write(null, 'Handed back', bytes('x'));
+      expect(folders.current()?.pupil.id).toBe(ava.pupil.id);
+      expect((await (await folders.open(ben.id)).list()).map((info) => info.key)).toEqual([key]);
+      expect(await ava.list()).toEqual([]);
+      await failsWith('not_found', () => folders.folder('nobody'));
+    });
+
+    it('won’t write into the folder of a pupil who has been removed', async () => {
+      const { folders, folder, pupil } = await withPupil();
+      await folders.removePupil(pupil.id);
+      await failsWith('not_found', () => folder.write(null, 'Film', bytes('x')));
+      expect(await folders.bin()).toEqual([]);
+    });
+
     it('closes a pupil’s folder when the pupil is removed', async () => {
       const { folders, pupil } = await withPupil();
       await folders.removePupil(pupil.id);
