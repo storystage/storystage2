@@ -57,7 +57,8 @@ export type KeyAction =
   | 'cancel';
 
 export interface ViewHandlers {
-  readonly onFocus: (key: FocusKey) => void;
+  /** Focus moved: to a value pill (`pill` is it), or to a row, button or empty list. */
+  readonly onFocus: (key: FocusKey, pill?: ValuePill) => void;
   readonly onAction: (action: KeyAction, key: FocusKey) => void;
   readonly onOpenValue: (pill: ValuePill, anchor: Element) => void;
   readonly onOpenDetails: (node: NodeId, anchor: Element) => void;
@@ -319,9 +320,14 @@ function editKey(e: KeyboardEvent): KeyAction | null {
 /** The box a row draws: the row itself, or a container's whole box. */
 const boxOf = (el: Element) => (el.closest('li') ?? el) as HTMLElement;
 
-/** Where in the program the pointer is over, from the rows under it. */
-function placeAt(tree: HTMLElement, x: number, y: number, dragged: NodeId): StatementPlace | null {
-  const draggedBox = tree.querySelector(`[data-key="${CSS.escape(dragged)}"]`);
+/** Where in the program the pointer is over; `dragged` is left out, being what moves. */
+export function placeAt(
+  tree: HTMLElement,
+  x: number,
+  y: number,
+  dragged: NodeId | null,
+): StatementPlace | null {
+  const draggedBox = dragged ? tree.querySelector(`[data-key="${CSS.escape(dragged)}"]`) : null;
   const lifted = draggedBox ? boxOf(draggedBox) : null;
   let best: { el: HTMLElement; box: DOMRect } | null = null;
   for (const el of tree.querySelectorAll<HTMLElement>('[data-parent]')) {
@@ -393,7 +399,7 @@ export function TilesView(props: ViewProps) {
       const m = type.methods.find((x) => x.id === method);
       if (m) return { body: m.body, title: t('method', { type: type.name, method: m.name }) };
       const l = type.listeners.find((x) => x.id === method);
-      if (l) return { body: l.body, title: describe(l) };
+      if (l) return { body: l.body, title: describe(l), listener: l };
     }
     return null;
   }, [program, method, describe]);
@@ -466,7 +472,7 @@ export function TilesView(props: ViewProps) {
 
   const go = (key: FocusKey | undefined) => {
     if (!key) return;
-    props.onFocus(key);
+    props.onFocus(key, drawn.values.get(key));
     tree.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus();
   };
   const rowOf = (key: FocusKey) =>
@@ -534,7 +540,7 @@ export function TilesView(props: ViewProps) {
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-pill],[data-detail]');
     if (!target || dragging.current) return;
     const key = target.dataset['key']!;
-    props.onFocus(key);
+    props.onFocus(key, drawn.values.get(key));
     const value = drawn.values.get(key);
     if (value) props.onOpenValue(value, target);
     else if (target.dataset['detail'])
@@ -554,11 +560,29 @@ export function TilesView(props: ViewProps) {
     pending.current = { node, x: e.clientX, y: e.clientY, words: describe(statementNode) };
   };
 
+  /** An event's header: its words, with a pill to fill for each thing it needs. */
+  const header = (listener: AstNode) =>
+    partsOf(listener, describe).flatMap((part, i) => [
+      i > 0 ? ' ' : null,
+      part.kind === 'value' ? (
+        <button
+          key={i}
+          type="button"
+          className={part.empty ? 'tl-pill tl-pill-empty' : 'tl-pill'}
+          aria-label={`${part.text}, ${part.label}`}
+          onClick={(e) => props.onOpenValue(part, e.currentTarget)}
+        >
+          {part.text}
+        </button>
+      ) : (
+        <span key={i}>{part.text}</span>
+      ),
+    ]);
   const titleId = `tl-title-${method}`;
   return (
     <div className="tl-code" ref={code}>
       <div className="tl-title" id={titleId}>
-        {found.title}
+        {'listener' in found && found.listener ? header(found.listener) : found.title}
       </div>
       <ul
         ref={tree}
@@ -570,7 +594,7 @@ export function TilesView(props: ViewProps) {
         onPointerDown={onPointerDown}
         onFocus={(e) => {
           const key = (e.target as HTMLElement).dataset['key'];
-          if (key && key !== current) props.onFocus(key);
+          if (key && key !== current) props.onFocus(key, drawn.values.get(key));
         }}
       >
         {items}

@@ -4,9 +4,12 @@
  * hands back where the learner was when it's unmounted, so switching editors keeps their place.
  *
  * Every edit (spec 14, 3c–3e) comes from the shared model through `actions.ts`, goes to the host
- * as one labelled step, and is announced in the same words as its undo label.
+ * as one labelled step, and is announced in the same words as its undo label. A new block from
+ * the palette or the control bar (3a) is filled in a preview first (`insert.ts`), so it reaches
+ * the host as one step, or not at all.
  */
 import {
+  idMinter,
   indexProgram,
   isStatement,
   type NodeId,
@@ -24,8 +27,14 @@ import {
 import {
   canDrop,
   describer,
+  newCall,
+  newControl,
   type Ask,
   type CascadeOptions,
+  type ControlKind,
+  type PaletteItem,
+  type PaletteTab,
+  type Place,
   type StatementPlace,
   type ValuePlace,
   word,
@@ -44,10 +53,23 @@ import {
   toggleEnabled,
   type Change,
 } from './actions.ts';
+import { ControlBar } from './controls.tsx';
+import {
+  addListener,
+  answerSlot,
+  beginInsert,
+  insertionPlace,
+  isPending,
+  targets,
+  type Pending,
+} from './insert.ts';
 import { AskValue, DetailMenu, ValueMenu } from './menus.tsx';
+import { MethodsPanel } from './panel.tsx';
+import { MethodTabs } from './tabs.tsx';
 import { isWhereItIs, place, placeKey, placesIn, whereIs } from './places.ts';
 import { tileVariables } from './tokens.ts';
 import {
+  placeAt,
   TilesView,
   type FocusKey,
   type Highlights,
@@ -82,6 +104,8 @@ type Menu =
       readonly detail?: string;
       /** The words of the value there now, for the menu to mark. */
       readonly current?: string;
+      /** It asks for a value of a block being put in (`pending`). */
+      readonly pending?: true;
     }
   | {
       readonly kind: 'ask';
@@ -89,6 +113,7 @@ type Menu =
       readonly label: string;
       readonly anchor: Element;
       readonly ask: Ask;
+      readonly pending?: true;
     }
   | { readonly kind: 'details'; readonly node: NodeId; readonly anchor: Element };
 
@@ -114,6 +139,15 @@ export class TileEditor implements CodeEditor {
   private moving: MovingState | null = null;
   private clipboard: Statement | null = null;
   private refocus = false;
+  /** The palette's object (a field's id, or `this`) and tab. */
+  private target = 'this';
+  private tab: PaletteTab = 'actions';
+  /** A new block being filled before it goes in. */
+  private pending: Pending | null = null;
+  /** The value pill last in focus, where a question from the palette goes. */
+  private pill: ValuePill | null = null;
+  /** A new block being dragged from the palette or the control bar. */
+  private fresh: Statement | null = null;
 
   private readonly options: TileEditorOptions;
 
@@ -141,14 +175,15 @@ export class TileEditor implements CodeEditor {
     this.stop?.();
     this.root?.unmount();
     this.host = this.root = this.element = this.stop = null;
-    this.menu = this.moving = null;
+    this.menu = this.moving = this.pending = this.fresh = null;
     return view;
   }
 
   openMethod(method: NodeId): void {
     this.method = method;
     this.focusKey = null;
-    this.menu = this.moving = null;
+    this.pill = null;
+    this.menu = this.moving = this.pending = null;
     this.render();
   }
 
@@ -352,6 +387,150 @@ export class TileEditor implements CodeEditor {
     return true;
   }
 
+  // ---- New blocks ---------------------------------------------------------------------------
+
+  /** The type the open method belongs to: what `this` is, and where new events go. */
+  private ownerType(program: Program): NodeId | null {
+    const index = indexProgram(program);
+    for (
+      let at = this.method ? index.get(this.method) : undefined;
+      at;
+      at = at.parent ? index.get(at.parent) : undefined
+    )
+      if (at.node.kind === 'type') return at.node.id;
+    return null;
+  }
+
+  private targetExpression(program: Program, mint: () => NodeId) {
+    const type = this.ownerType(program);
+    if (!type) return null;
+    const all = targets(program, type);
+    return (all.find((x) => x.key === this.target) ?? all[0])?.make(mint) ?? null;
+  }
+
+  /** Starts putting in a block: straight in if it needs nothing, else the cascade asks first. */
+  private begin(node: Statement | Expression, at: Place): void {
+    const program = this.host!.program();
+    const started = beginInsert(program, at, node);
+    if (!isPending(started)) {
+      this.apply(started);
+      return;
+    }
+    this.pending = started;
+    this.render();
+  }
+
+  private insertFromPalette(item: PaletteItem): void {
+    const program = this.host!.program();
+    const mint = idMinter(program);
+    const target = this.targetExpression(program, mint);
+    if (!target || this.method === null) return;
+    const question = item.tab === 'questions';
+    const node = newCall(program, target, item.callee, question, mint);
+    if (question) {
+      if (!this.pill) {
+        this.host!.announce(t('needsValue'));
+        return;
+      }
+      this.begin(node, this.pill.place);
+      return;
+    }
+    this.begin(node, insertionPlace(program, this.method, this.focusKey));
+  }
+
+  private insertControl(kind: ControlKind): void {
+    const program = this.host!.program();
+    if (this.method === null) return;
+    this.begin(
+      newControl(kind, idMinter(program)),
+      insertionPlace(program, this.method, this.focusKey),
+    );
+  }
+
+  /** The value being asked for is chosen: ask the next, or put the finished block in. */
+  private answerPending(value: Expression): void {
+    const pending = this.pending;
+    this.menu = null;
+    if (!pending) return;
+    const next = answerSlot(pending, value);
+    if (isPending(next)) {
+      this.pending = next;
+      this.render();
+      return;
+    }
+    this.pending = null;
+    this.apply(next);
+  }
+
+  private cancelPending(): void {
+    this.pending = null;
+    this.menu = null;
+    this.host?.announce(t('nothingAdded'));
+    this.refocus = true;
+    this.render();
+  }
+
+  /** Opens the cascade for the value a pending block is waiting for, on its pill. */
+  private askPending(): void {
+    const pending = this.pending;
+    if (!pending || this.menu || !this.element) return;
+    const slot = pending.slots[pending.step]!;
+    const holder = pending.node as unknown as Record<string, unknown>;
+    const values = holder[slot.slot] as Record<string, { id: string }> | { id: string } | undefined;
+    const value = (
+      slot.param === undefined ? values : (values as Record<string, { id: string }>)?.[slot.param]
+    ) as { id: string } | undefined;
+    const find = (id?: string) =>
+      id ? this.element!.querySelector<HTMLElement>(`[data-key="${CSS.escape(id)}"]`) : null;
+    const anchor =
+      find(value?.id) ?? find(pending.node.id) ?? this.element.querySelector('.tl-tree');
+    if (!anchor) return;
+    anchor.scrollIntoView({ block: 'nearest' });
+    const label = slot.param !== undefined ? word(`param.${slot.param}`) : t(`slot.${slot.slot}`);
+    this.menu = { kind: 'value', place: slot, label, anchor, pending: true };
+    this.render();
+  }
+
+  private addEvent(event: string): void {
+    const program = this.host!.program();
+    const type = this.ownerType(program);
+    if (!type) return;
+    const change = addListener(program, type, event);
+    if (this.apply(change) && change.ok && change.focus) this.openMethod(change.focus);
+  }
+
+  /** A drag from the palette or the control bar: where it would go, and putting it there. */
+  private freshDrag() {
+    return {
+      onOver: (x: number, y: number) => {
+        const tree = this.element?.querySelector<HTMLElement>('.tl-tree');
+        const node = this.fresh;
+        if (!tree || !node) return;
+        const program = this.host!.program();
+        const at = placeAt(tree, x, y, null);
+        const next = at && canDrop(program, at, node).ok ? at : null;
+        const now = this.moving?.at;
+        if ((next && placeKey(next)) === (now && placeKey(now))) return;
+        this.moving = { node: node.id, at: next, stops: [] };
+        this.render();
+      },
+      onEnd: (drop: boolean) => {
+        const node = this.fresh;
+        const at = this.moving?.at;
+        this.fresh = null;
+        this.moving = null;
+        if (drop && node && at) this.begin(node, at);
+        else this.render();
+      },
+    };
+  }
+
+  private startFresh(node: Statement): void {
+    this.fresh = node;
+    this.moving = { node: node.id, at: null, stops: [] };
+    this.render();
+  }
+
   // ---- Menus --------------------------------------------------------------------------------
 
   private openValue(pill: ValuePill, anchor: Element): void {
@@ -400,28 +579,44 @@ export class TileEditor implements CodeEditor {
           }}
         />
       );
+    const pending = menu.pending ? this.pending : null;
+    const shown = pending ? pending.preview : program;
+    const chosen = (value: Expression) =>
+      pending
+        ? this.answerPending(value)
+        : this.chose(value, (menu as { place: ValuePlace }).place);
+    // React Aria closes a menu after its action, by which time the next one may be open: a close
+    // counts only while this menu is still the one showing.
+    const closed = () => {
+      if (this.menu !== menu) return;
+      if (pending) this.cancelPending();
+      else close();
+    };
     if (menu.kind === 'ask')
       return (
         <AskValue
-          program={program}
+          program={shown}
           place={menu.place}
           ask={menu.ask}
           label={menu.label}
           anchor={menu.anchor}
-          onClose={close}
-          onAnswer={(value) => this.chose(value, menu.place)}
+          onClose={closed}
+          onAnswer={chosen}
         />
       );
+    // Keyed by the place, so the next question is a fresh menu that opens on its own suggestion.
+    const key = [menu.place.node, menu.place.slot, menu.place.param ?? ''].join('/');
     return (
       <ValueMenu
-        program={program}
+        key={key}
+        program={shown}
         place={menu.place}
         label={menu.label}
         anchor={menu.anchor}
         options={this.options}
         {...(menu.current === undefined ? {} : { current: menu.current })}
-        onClose={close}
-        onChoose={(value) => this.chose(value, menu.place)}
+        onClose={closed}
+        onChoose={chosen}
         onAsk={(ask) => {
           this.menu = {
             kind: 'ask',
@@ -429,6 +624,7 @@ export class TileEditor implements CodeEditor {
             label: menu.label,
             anchor: menu.anchor,
             ask,
+            ...(pending ? { pending: true as const } : {}),
           };
           this.render();
         }}
@@ -451,46 +647,105 @@ export class TileEditor implements CodeEditor {
     const host = this.host;
     if (!host || !this.root) return;
     const program = host.program();
+    const type = this.ownerType(program);
+    const shown = this.pending?.preview ?? program;
+    const drag = this.freshDrag();
     flushSync(() =>
       this.root!.render(
-        <div className="tl-root" style={tileVariables()}>
-          <TilesView
-            program={program}
-            method={this.method}
-            focus={this.focusKey}
-            highlights={this.highlights}
-            moving={this.moving}
-            onFocus={(key) => {
-              this.focusKey = key;
-              this.render();
-            }}
-            onAction={(action, key) => void this.act(action, key)}
-            onOpenValue={(pill, anchor) => this.openValue(pill, anchor)}
-            onOpenDetails={(node, anchor) => {
-              this.menu = { kind: 'details', node, anchor };
-              this.render();
-            }}
-            onDragStart={(node) => {
-              this.moving = { node, at: null, stops: [] };
-              this.render();
-            }}
-            onDragOver={(at) => {
-              if (!this.moving) return;
-              const ok =
-                at &&
-                (isWhereItIs(program, this.moving.node, at) ||
-                  canDrop(program, at, { existing: this.moving.node }).ok);
-              const next = ok ? at : null;
-              if ((next && placeKey(next)) === (this.moving.at && placeKey(this.moving.at))) return;
-              this.moving = { ...this.moving, at: next };
-              this.render();
-            }}
-            onDragEnd={(drop) => void (drop ? this.putDown() : this.cancelMove())}
-          />
+        <div className="tl-root tl-layout" style={tileVariables()}>
+          {type ? (
+            <MethodsPanel
+              program={program}
+              type={type}
+              targets={targets(program, type)}
+              target={this.target}
+              tab={this.tab}
+              onTarget={(key) => {
+                this.target = key;
+                this.render();
+              }}
+              onTab={(tab) => {
+                this.tab = tab;
+                this.render();
+              }}
+              onInsert={(item) => this.insertFromPalette(item)}
+              drag={{
+                ...drag,
+                onStart: () => undefined,
+                item: (item) => {
+                  const mint = idMinter(program);
+                  const target = this.targetExpression(program, mint);
+                  if (target)
+                    this.startFresh(
+                      newCall(program, target, item.callee, false, mint) as Statement,
+                    );
+                },
+              }}
+            />
+          ) : null}
+          <div className="tl-main">
+            <MethodTabs
+              program={program}
+              method={this.method}
+              onOpen={(method) => this.openMethod(method)}
+              onAddEvent={(event) => this.addEvent(event)}
+            >
+              <ControlBar
+                onInsert={(kind) => this.insertControl(kind)}
+                drag={{
+                  ...drag,
+                  onStart: (kind) =>
+                    this.startFresh(newControl(kind as ControlKind, idMinter(program))),
+                }}
+              />
+              <TilesView
+                program={shown}
+                method={this.method}
+                focus={this.focusKey}
+                highlights={this.highlights}
+                moving={this.moving}
+                onFocus={(key, pill) => {
+                  this.focusKey = key;
+                  this.pill = pill ?? null;
+                  this.render();
+                }}
+                onAction={(action, key) => void this.act(action, key)}
+                onOpenValue={(pill, anchor) => this.openValue(pill, anchor)}
+                onOpenDetails={(node, anchor) => {
+                  this.menu = { kind: 'details', node, anchor };
+                  this.render();
+                }}
+                onDragStart={(node) => {
+                  this.moving = { node, at: null, stops: [] };
+                  this.render();
+                }}
+                onDragOver={(at) => {
+                  if (!this.moving) return;
+                  const ok =
+                    at &&
+                    (isWhereItIs(program, this.moving.node, at) ||
+                      canDrop(program, at, { existing: this.moving.node }).ok);
+                  const next = ok ? at : null;
+                  if ((next && placeKey(next)) === (this.moving.at && placeKey(this.moving.at)))
+                    return;
+                  this.moving = { ...this.moving, at: next };
+                  this.render();
+                }}
+                onDragEnd={(drop) => void (drop ? this.putDown() : this.cancelMove())}
+              />
+            </MethodTabs>
+          </div>
           {this.renderMenu(program)}
         </div>,
       ),
     );
+    // A block being put in shows first, so its menu can open on the pill it asks about. It opens a
+    // frame later, once the last menu has handed focus back: opened at once, the new menu would
+    // keep focus on itself rather than on its suggestion.
+    if (this.pending && !this.menu) {
+      requestAnimationFrame(() => this.askPending());
+      return;
+    }
     if (this.refocus && !this.menu) {
       this.refocus = false;
       const key = this.focusKey;

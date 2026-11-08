@@ -6,6 +6,13 @@
  */
 export const TILE_COLOURS = {
   surround: '#F6F6F6',
+  // The methods panel's object bar and its tabs (screen 04)
+  'object-bar': '#D3E7F8',
+  'actions-tab': '#E7E6F7',
+  'questions-tab': '#DDF5DF',
+  'questions-tab-line': '#8CC394',
+  'questions-tab-text': '#1C6B2E',
+  'tab-inactive': '#ECECEC',
   panel: '#E7E6F7',
   'panel-line': '#A9A7C9',
   program: '#FFFFFF',
@@ -60,6 +67,10 @@ export const TEXT_PAIRS: readonly (readonly [TileColour, TileColour])[] = [
   ['comment-text', 'comment'],
   ['add-detail-text', 'add-detail'],
   ['ink', 'empty'],
+  ['ink', 'object-bar'],
+  ['ink', 'actions-tab'],
+  ['questions-tab-text', 'questions-tab'],
+  ['ink-2', 'tab-inactive'],
   ['program', 'rehearse'],
   ['error', 'program'],
   ['ink', 'panel'],
