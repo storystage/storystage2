@@ -171,6 +171,29 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       expect(stage.speech(cat)).toBeNull();
     });
 
+    it("carries a speak line's caption and its script line, for the studio to draw and voice", async () => {
+      const caption = (line?: string) =>
+        cmd(1, 2, {
+          object: cat,
+          kind: 'say',
+          text: 'Here is the key.',
+          bubble: 'caption',
+          ...(line === undefined ? {} : { line }),
+        });
+      const a = await loaded();
+      a.schedule([caption('2.3')]);
+      a.seek(micros(2));
+      expect(a.speech(cat)).toEqual({ text: 'Here is the key.', bubble: 'caption', line: '2.3' });
+      // In the state hash, as bubbles are, and told apart by its line.
+      const b = await loaded();
+      b.schedule([caption()]);
+      b.seek(micros(2));
+      expect(b.speech(cat)).toEqual({ text: 'Here is the key.', bubble: 'caption' });
+      expect(a.stateHash()).not.toBe(b.stateHash());
+      a.seek(micros(3.5));
+      expect(a.speech(cat)).toBeNull();
+    });
+
     it('refuses a command for an unknown object and adds none of the batch', async () => {
       const stage = await loaded();
       const before = stage.stateHash();

@@ -156,12 +156,17 @@ export type StageCommand =
   | (Timed & { readonly kind: 'backPaint'; readonly paint: string })
   /** Change a 3D text model's words (instant). */
   | (Timed & { readonly kind: 'text'; readonly text: string })
-  /** Show a speech or thought bubble for the duration. Without `look`, Alice's defaults. */
+  /**
+   * Show a speech or thought bubble for the duration. Without `look`, Alice's defaults. A
+   * `caption` is a speak line's (WP14.3, spec 06 section 4.7): a film subtitle that the studio
+   * draws and voices, not a bubble; `line` is the script line's id (the production's `LineId`).
+   */
   | (Timed & {
       readonly kind: 'say';
       readonly text: string;
-      readonly bubble: 'say' | 'think';
+      readonly bubble: 'say' | 'think' | 'caption';
       readonly look?: BubbleLook;
+      readonly line?: string;
     })
   /** Ride on another object, or on the scene again (instant). */
   | (Timed & { readonly kind: 'vehicle'; readonly vehicle: ObjectId | null })

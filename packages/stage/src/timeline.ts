@@ -629,7 +629,14 @@ export class Timeline {
         case 'text':
           return { kind: 'text', text: c.text };
         case 'say':
-          return { kind: 'say', speech: { text: c.text, bubble: c.bubble } };
+          return {
+            kind: 'say',
+            speech: {
+              text: c.text,
+              bubble: c.bubble,
+              ...(c.line === undefined ? {} : { line: c.line }),
+            },
+          };
         case 'vehicle':
           return boarding(before, c.object, c.vehicle, carrier);
         case 'shot': {
@@ -1310,7 +1317,9 @@ export function hashState(state: SceneState): number {
           vec(s.scale),
           n(s.opacity),
           s.paint ?? '',
-          s.speech ? `${s.speech.bubble}:${s.speech.text}` : '',
+          s.speech
+            ? `${s.speech.bubble}:${s.speech.text}${s.speech.line === undefined ? '' : `#${s.speech.line}`}`
+            : '',
           s.vehicle ?? '',
           s.shot ?? '',
           joints.join(';'),
