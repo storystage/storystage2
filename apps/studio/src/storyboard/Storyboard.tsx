@@ -1,13 +1,14 @@
-import type { FrameId, LineId, Production, SceneId } from '@storystage/production';
+import type { FrameId, LineId, Production } from '@storystage/production';
+import type { Studio } from '../studio.ts';
 import { addSketch } from '@storystage/sketches';
 import { Button, useThemeStyle } from '@storystage/ui';
-import { useEffect, useState, type Dispatch } from 'react';
+import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { words } from '../strings.ts';
-import { nextRedo, nextUndo, type History, type HistoryAction } from './history.ts';
 import { FramePanel } from './FramePanel.tsx';
 import { sceneNumber } from './edits.ts';
 import { sceneFrames, updateFrame } from './frames.ts';
+import { NOWHERE, currentPlace, type Place } from './place.ts';
 import { sketchName, type SketchItem } from './SketchArt.tsx';
 import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
@@ -17,8 +18,11 @@ import { PrintStoryboard } from './PrintStoryboard.tsx';
 import { ScriptPane } from './ScriptPane.tsx';
 
 export interface StoryboardProps {
-  history: History<Production>;
-  dispatch: Dispatch<HistoryAction<Production>>;
+  /** The production and its one undo history (`studio.ts`). */
+  studio: Studio;
+  /** What the learner chose, shared with the other tabs. */
+  place: Place;
+  onPlaceChange: (place: Place) => void;
 }
 
 /** A CSS string, for the page foot's `content`. */
@@ -35,22 +39,15 @@ const isTextEntry = (target: EventTarget | null) =>
  * the scene cards (10.3), the sketch library and the frames with their sketches (10.6), with the
  * Storyboard's undo history (6.8), and the script pane (10.4).
  */
-export function Storyboard({ history, dispatch }: StoryboardProps) {
+export function Storyboard({ studio, place, onPlaceChange }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
   // Each press of Print storyboard, until the print dialog closes; 0 when not printing.
   const [printing, setPrinting] = useState(0);
   const themeStyle = useThemeStyle();
-  const [chosen, setChosen] = useState<SceneId | null>(null);
-  const p = history.present;
-  // The chosen scene, or the first one if it has gone (deleted, or undone).
-  const order = p.manifest.runningOrder.map((r) => r.scene);
-  const current = chosen !== null && order.includes(chosen) ? chosen : (order[0] ?? null);
-  const [chosenFrame, setChosenFrame] = useState<FrameId | null>(null);
-  // The chosen frame if it's in the current scene, or the scene's first frame.
+  const p = studio.production;
+  // Where the learner is, shared with the other tabs (the App keeps it).
+  const { scene: current, frame: currentFrame } = currentPlace(p, place);
   const frames = current ? sceneFrames(p, current) : [];
-  const currentFrame = frames.some((f) => f.id === chosenFrame)
-    ? chosenFrame
-    : (frames[0]?.id ?? null);
   const frameNumber =
     current && currentFrame
       ? `${sceneNumber(p, current)}.${frames.findIndex((f) => f.id === currentFrame) + 1}`
@@ -61,8 +58,7 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
   // The chosen line, while it's in the current scene.
   const [chosenLine, setChosenLine] = useState<LineId | null>(null);
   const line = p.script.some((l) => l.id === chosenLine && l.scene === current) ? chosenLine : null;
-  const commit = (label: string, next: Production, key?: string) =>
-    dispatch({ type: 'commit', label, next, key });
+  const commit = (label: string, next: Production, key?: string) => studio.commit(label, next, key);
 
   const addToFrame = (item: SketchItem, x?: number, y?: number) => {
     const frame = p.frames.find((f) => f.id === currentFrame);
@@ -76,17 +72,16 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
     setChosenSketch({ frame: frame.id, id: added.id });
     setAnnouncement(words.t('storyboard.canvas.added', { name, number: frameNumber }));
   };
-  const undoLabel = nextUndo(history);
-  const redoLabel = nextRedo(history);
+  const { undoLabel, redoLabel } = studio;
 
   const undo = () => {
     if (!undoLabel) return;
-    dispatch({ type: 'undo' });
+    studio.undo();
     setAnnouncement(words.t('history.undone', { step: undoLabel }));
   };
   const redo = () => {
     if (!redoLabel) return;
-    dispatch({ type: 'redo' });
+    studio.redo();
     setAnnouncement(words.t('history.redone', { step: redoLabel }));
   };
 
@@ -143,20 +138,21 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             {redoLabel && <span className="ss-visually-hidden">: {redoLabel}</span>}
           </Button>
         </div>
-        <ScriptHeader production={p} onChange={commit} onLeave={() => dispatch({ type: 'seal' })} />
+        <ScriptHeader production={p} onChange={commit} onLeave={studio.seal} />
         <SceneStrip
           production={p}
           current={current}
-          onCurrentChange={setChosen}
-          onChange={commit}
+          onCurrentChange={(scene) => onPlaceChange({ scene, frame: null })}
+          onStep={(step) => studio.step(step)}
         />
         {current && (
           <SceneDetails
             production={p}
             scene={current}
             onChange={commit}
-            onLeave={() => dispatch({ type: 'seal' })}
-            onDeleted={() => setChosen(null)}
+            onStep={(step) => studio.step(step)}
+            onLeave={studio.seal}
+            onDeleted={() => onPlaceChange(NOWHERE)}
           />
         )}
         {current && (
@@ -164,9 +160,9 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             production={p}
             scene={current}
             current={currentFrame}
-            onCurrentChange={setChosenFrame}
+            onCurrentChange={(frame) => onPlaceChange({ scene: current, frame })}
             onChange={commit}
-            onLeave={() => dispatch({ type: 'seal' })}
+            onLeave={studio.seal}
             sketch={sketch}
             onSketchChange={(id) =>
               setChosenSketch(id && currentFrame ? { frame: currentFrame, id } : null)
@@ -183,7 +179,7 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
         chosen={line}
         onChosenChange={setChosenLine}
         onChange={commit}
-        onLeave={() => dispatch({ type: 'seal' })}
+        onLeave={studio.seal}
         onAnnounce={setAnnouncement}
       />
       {printing > 0 &&

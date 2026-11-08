@@ -1,0 +1,620 @@
+/*
+  @storystage/tiles styles (spec 14, section 3b). Colours only from var(--tl-*), which the editor's
+  root sets from tokens.ts (tiles.test.ts fails on a colour value here). Tiles look the same in
+  both themes, so nothing here reads the theme's tokens except the fonts.
+*/
+
+.tl-root {
+  font-family: var(--ss-font-body, system-ui, sans-serif);
+  color: var(--tl-ink);
+  background: var(--tl-surround);
+  padding: 12px;
+}
+
+.tl-code {
+  position: relative;
+  background: var(--tl-program);
+  border: 1px solid var(--tl-program-line);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.tl-title {
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.tl-note {
+  color: var(--tl-ink-2);
+  margin: 0;
+}
+
+.tl-tree {
+  user-select: none;
+}
+
+/*
+ * Spec 14, 3h: the browser skips styling and laying out the top-level rows out of sight, so a long
+ * method costs what's on screen. They stay in the accessibility tree, and each keeps the size it
+ * last had, so the page doesn't jump as they come into view.
+ */
+.tl-tree > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
+
+.tl-tree,
+.tl-group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tl-group {
+  padding: 6px 0 6px 18px;
+}
+
+/* A row: a statement tile, or a control box's header. */
+.tl-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.tl-tile {
+  background: var(--tl-action);
+  border: 1.5px solid var(--tl-action-line);
+  color: var(--tl-action-text);
+  padding: 4px 10px 4px 0;
+}
+
+.tl-box,
+.tl-box-row {
+  display: block;
+  background: var(--tl-control);
+  border: 1px solid var(--tl-control-line);
+  border-radius: 6px;
+  color: var(--tl-ink);
+  padding: 4px 10px 4px 0;
+}
+
+.tl-box-row {
+  display: flex;
+}
+
+.tl-box-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.tl-comment {
+  background: var(--tl-comment);
+  border: 1px solid var(--tl-comment-line);
+  color: var(--tl-comment-text);
+  padding: 4px 10px 4px 0;
+  font-style: italic;
+}
+
+.tl-else {
+  font-weight: 700;
+  padding-left: 18px;
+}
+
+.tl-grip {
+  touch-action: none;
+  cursor: grab;
+  align-self: stretch;
+  width: 12px;
+  border-radius: 6px 0 0 6px;
+  background-image: radial-gradient(var(--tl-control-dots) 1px, transparent 1.5px);
+  background-size: 4px 4px;
+}
+
+.tl-tile > .tl-grip {
+  background-color: var(--tl-action-grip);
+  background-image: radial-gradient(var(--tl-action-dots) 1px, transparent 1.5px);
+}
+
+.tl-part {
+  display: inline-flex;
+}
+
+.tl-words {
+  white-space: nowrap;
+}
+
+.tl-name {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.tl-object,
+.tl-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  background: var(--tl-pill);
+  border: 1px solid var(--tl-pill-line);
+  color: var(--tl-pill-text);
+  font-weight: 700;
+}
+
+.tl-object {
+  border-radius: 14px 6px 6px 14px;
+}
+
+.tl-pill {
+  border-radius: 6px;
+  outline: none;
+  cursor: pointer;
+}
+
+.tl-add-detail {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 8px;
+  border-radius: 4px;
+  background: var(--tl-add-detail);
+  color: var(--tl-add-detail-text);
+  cursor: pointer;
+  outline: none;
+}
+
+.tl-pill-question {
+  background: var(--tl-question);
+  border: 1.5px solid var(--tl-question-line);
+  color: var(--tl-question-text);
+  border-radius: 20px 6px 6px 20px;
+}
+
+.tl-pill-empty {
+  background: var(--tl-empty);
+  border-color: var(--tl-slot);
+  color: var(--tl-ink);
+}
+
+.tl-empty {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px dashed var(--tl-slot);
+  border-radius: 7px;
+  color: var(--tl-ink);
+  font-weight: 700;
+  outline: none;
+}
+
+/*
+  A switched-off statement, still saved: greyed with a dashed outline. Not Direction A's 45%
+  opacity, which takes its words below 4.5:1 (spec 14, 3b).
+*/
+.tl-tile.tl-off,
+.tl-box.tl-off,
+.tl-box-row.tl-off,
+.tl-comment.tl-off {
+  background: var(--tl-empty);
+  border: 1.5px dashed var(--tl-slot);
+  color: var(--tl-ink);
+}
+
+.tl-tile.tl-off > .tl-grip {
+  background-color: var(--tl-empty);
+  background-image: radial-gradient(var(--tl-control-dots) 1px, transparent 1.5px);
+}
+
+/* For screen readers only. */
+.tl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Focus: Direction A's ring on light Tiles surfaces, always visible. */
+.tl-row:focus-visible,
+.tl-box-header:focus-visible,
+.tl-pill:focus-visible,
+.tl-add-detail:focus-visible,
+.tl-empty:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-focus);
+}
+
+/* Highlights (spec 14, 3g). Several can show at once. */
+.tl-hl-rehearse {
+  box-shadow: 0 0 0 3px var(--tl-rehearse);
+  animation: tl-running 0.9s ease-in-out infinite alternate;
+}
+
+/* The running statement's outline breathes, so the eye finds it; still for reduced motion. */
+@keyframes tl-running {
+  to {
+    box-shadow: 0 0 0 6px var(--tl-rehearse);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tl-hl-rehearse {
+    animation: none;
+  }
+}
+
+/*
+ * An error's words beside its statement (spec 14, 3g): a chip in the program's own colour, so the
+ * stop colour reads at 4.5:1 on any tile, blue, green or grey.
+ */
+.tl-error-words {
+  display: inline-flex;
+  padding: 1px 6px;
+  border: 2px solid var(--tl-error);
+  border-radius: 6px;
+  font-weight: 700;
+  color: var(--tl-error);
+  background: var(--tl-program);
+}
+
+.tl-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--tl-program);
+  background: var(--tl-prompter);
+}
+
+.tl-hl-error {
+  border-color: var(--tl-error);
+  border-width: 3px;
+}
+
+.tl-hl-prompter {
+  outline: 3px dashed var(--tl-prompter);
+  outline-offset: 2px;
+}
+
+/* Moving: the row being moved, the drop line over the program, and the ghost (spec 14, 3c). */
+.tl-lifted {
+  outline: 2px dashed var(--tl-rehearse);
+  outline-offset: 2px;
+}
+
+.tl-drop-line {
+  position: absolute;
+  height: 5px;
+  background: var(--tl-rehearse);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+.tl-drop-line::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: -4px;
+  border-top: 6.5px solid transparent;
+  border-bottom: 6.5px solid transparent;
+  border-left: 13px solid var(--tl-rehearse);
+}
+
+.tl-drop-label {
+  position: absolute;
+  right: 0;
+  top: -12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tl-rehearse);
+  color: var(--tl-program);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tl-ghost {
+  position: fixed;
+  z-index: 10;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--tl-action);
+  color: var(--tl-action-text);
+  opacity: 0.6;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Menus and the typed value open in a portal, with the tile colours set on them (menus.tsx). */
+.tl-popover {
+  font-family: var(--ss-font-body, system-ui, sans-serif);
+  background: var(--tl-program);
+  border: 1px solid var(--tl-program-line);
+  border-radius: 6px;
+  padding: 4px;
+  min-width: 200px;
+  max-height: 60vh;
+  overflow: auto;
+}
+
+.tl-popover [role='menu'] {
+  outline: none;
+}
+
+.tl-menu-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 4px;
+  color: var(--tl-ink);
+  cursor: pointer;
+  outline: none;
+}
+
+.tl-menu-item[data-focused] {
+  background: var(--tl-panel);
+}
+
+.tl-menu-item[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--tl-focus);
+}
+
+.tl-menu-item[data-selected] {
+  font-weight: 700;
+}
+
+.tl-menu-item[data-selected]::before {
+  /* aria-checked already says it's the one chosen, so the mark stays out of the item's name. */
+  content: '✓';
+  content: '✓' / '';
+  margin-right: 8px;
+}
+
+.tl-menu-item[data-has-submenu]::after {
+  content: '▸';
+  margin-left: auto;
+  padding-left: 12px;
+}
+
+.tl-menu-remove {
+  border-top: 1px solid var(--tl-control-divider);
+}
+
+.tl-ask {
+  padding: 8px;
+  outline: none;
+}
+
+.tl-ask form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-ask-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-ask-label {
+  font-weight: 700;
+  color: var(--tl-ink);
+}
+
+.tl-ask-input {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--tl-program-line);
+  border-radius: 6px;
+  font: inherit;
+  color: var(--tl-ink);
+}
+
+.tl-ask-input:focus-visible,
+.tl-ask-ok:focus-visible {
+  outline: 3px solid var(--tl-focus);
+  outline-offset: 2px;
+}
+
+.tl-ask-problem {
+  margin: 0;
+  color: var(--tl-error);
+  font-weight: 700;
+}
+
+.tl-ask-ok {
+  min-height: 44px;
+  border: none;
+  border-radius: 6px;
+  background: var(--tl-action);
+  color: var(--tl-action-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* The layout (spec 14, 3a): the methods panel, then the method tabs holding the control bar and the code. */
+.tl-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.tl-main {
+  min-width: 0;
+}
+
+.tl-panel {
+  background: var(--tl-panel);
+  border: 1px solid var(--tl-panel-line);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--tl-object-bar);
+}
+
+.tl-picker-label {
+  font-weight: 700;
+  color: var(--tl-ink);
+}
+
+.tl-picker-button {
+  min-height: 44px;
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.tl-picker-button[data-focus-visible],
+.tl-tab[data-focus-visible],
+.tl-control[data-focus-visible],
+.tl-add-event[data-focus-visible],
+.tl-palette-item[data-focus-visible] {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-focus);
+}
+
+.tl-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tl-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px 22px 0 0;
+  background: var(--tl-tab-inactive);
+  color: var(--tl-ink-2);
+  cursor: pointer;
+  outline: none;
+}
+
+.tl-tab[data-selected] {
+  font-weight: 700;
+  color: var(--tl-ink);
+}
+
+.tl-tab-actions[data-selected],
+.tl-method-tab[data-selected] {
+  background: var(--tl-actions-tab);
+}
+
+.tl-tab-questions[data-selected] {
+  background: var(--tl-questions-tab);
+  border: 1px solid var(--tl-questions-tab-line);
+  color: var(--tl-questions-tab-text);
+}
+
+.tl-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 70vh;
+  overflow: auto;
+  outline: none;
+  padding: 4px;
+}
+
+.tl-palette-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-palette-heading {
+  font-style: italic;
+  color: var(--tl-ink-2);
+  margin: 6px 0 2px;
+}
+
+.tl-palette-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 6px;
+  cursor: grab;
+  outline: none;
+}
+
+.tl-palette-item.tl-question {
+  background: var(--tl-question);
+  border: 1.5px solid var(--tl-question-line);
+  color: var(--tl-question-text);
+  border-radius: 20px 6px 6px 20px;
+}
+
+.tl-method-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tl-add-event,
+.tl-control {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--tl-control-line);
+  border-radius: 6px;
+  background: var(--tl-control);
+  color: var(--tl-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tl-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.tl-control-comment {
+  background: var(--tl-comment);
+  border-color: var(--tl-comment-line);
+  color: var(--tl-comment-text);
+}
+
+.tl-method-panel {
+  outline: none;
+}
+
+.tl-title .tl-pill {
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

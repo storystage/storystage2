@@ -19,14 +19,19 @@ export type Overlay = 'learn' | 'settings';
 
 export interface ShellProps {
   /** The production's title and a sub-line ("Scene 2 · Frame 2.3"), once a production is open. */
-  title?: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   /** The working area of each mode. WP10a, WP7 and WP11b build them. */
   panels: Readonly<Record<Mode, ReactNode>>;
   /** What Learn and Settings show while open. */
   learn?: ReactNode;
   settings?: ReactNode;
   initialMode?: Mode;
+  /** The mode, when the App needs to change it ("Go to the Storyboard"); the shell keeps it otherwise. */
+  mode?: Mode;
+  onModeChange?: (mode: Mode) => void;
+  /** A note across every mode, above the working area: a failed save, a film opened read-only. */
+  notice?: ReactNode;
 }
 
 /**
@@ -41,13 +46,18 @@ export function Shell({
   learn,
   settings,
   initialMode = 'storyboard',
+  mode: controlled,
+  onModeChange,
+  notice,
 }: ShellProps) {
-  const [mode, setMode] = useState<Mode>(initialMode);
+  const [own, setOwn] = useState<Mode>(initialMode);
+  const mode = controlled ?? own;
   const [overlay, setOverlay] = useState<Overlay | null>(null);
   const modeName = messages.t(`mode.${mode}`);
   const toggle = (which: Overlay) => (on: boolean) => setOverlay(on ? which : null);
   const changeMode = (next: Mode) => {
-    setMode(next);
+    setOwn(next);
+    onModeChange?.(next);
     setOverlay(null);
   };
 
@@ -94,6 +104,7 @@ export function Shell({
             </div>
           </header>
           <main className="studio-frame">
+            {notice && <div className="studio-notice">{notice}</div>}
             <div className="studio-panels" hidden={overlay !== null}>
               {MODES.map((m) => (
                 <ModePanel key={m} mode={m}>
@@ -102,19 +113,24 @@ export function Shell({
                 </ModePanel>
               ))}
             </div>
-            {overlay && (
-              <section className="studio-overlay" aria-labelledby="studio-overlay-title">
-                <h1 id="studio-overlay-title" className="studio-overlay-title">
-                  {words.t(overlay === 'learn' ? 'shell.learn.title' : 'shell.settings.title')}
-                </h1>
-                <Button variant="quiet" icon="chevron_left" onPress={() => setOverlay(null)}>
-                  {words.t('shell.back', { mode: modeName })}
-                </Button>
-                {overlay === 'learn' ? learn : settings}
-              </section>
-            )}
           </main>
         </ModeTabs>
+        {/*
+          Learn and Settings lie over the working area, outside the mode tabs: React Aria's Tabs
+          renders everything inside it while building its collection, except tab panels, and a
+          list or grid in there would find no state.
+        */}
+        {overlay && (
+          <section className="studio-overlay" aria-labelledby="studio-overlay-title">
+            <h1 id="studio-overlay-title" className="studio-overlay-title">
+              {words.t(overlay === 'learn' ? 'shell.learn.title' : 'shell.settings.title')}
+            </h1>
+            <Button variant="quiet" icon="chevron_left" onPress={() => setOverlay(null)}>
+              {words.t('shell.back', { mode: modeName })}
+            </Button>
+            {overlay === 'learn' ? learn : settings}
+          </section>
+        )}
       </div>
       <div className="studio-too-narrow">
         <LogoMark />

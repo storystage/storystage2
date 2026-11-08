@@ -304,6 +304,21 @@ describe('choices', () => {
     expect(checkProgram(programWith(body()), { jointExists: () => true })).toEqual([]);
     expect(checkProgram(programWith(body()))).toEqual([]);
   });
+
+  it('asks the production about scenes, when it’s given', () => {
+    const body = () => [
+      call(self(), 'goToScene', { scene: text('Beach') }),
+      call(self(), 'crossfade', { scene: text('Night') }),
+    ];
+    const sceneExists = (scene: string) => scene === 'Night';
+    const problems = checkProgram(programWith(body()), { sceneExists });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      name: 'scene',
+      reason: 'There’s no scene called Beach. Choose another one.'.replace('’', "'"),
+    });
+    expect(checkProgram(programWith(body()))).toEqual([]);
+  });
 });
 
 describe('types', () => {

@@ -12,6 +12,7 @@ import {
   setLineText,
   setSpeaker,
   speakers,
+  tidyLine,
 } from './lines.ts';
 
 const s1 = sceneId('s1');
@@ -58,6 +59,18 @@ describe('script lines (10.4)', () => {
     const line = long.production.script.find((l) => l.id === long.line)!;
     expect(line.text).toHaveLength(LIMITS.line);
     expect(line.character).toHaveLength(LIMITS.speaker);
+  });
+
+  it('stores a new line as the script file keeps it, and tidies a rewritten one', () => {
+    const p = exampleProduction();
+    const added = addLine(p, s1, '  The ice cracks.  \n\n\n  Pip runs.  ', null)!;
+    const line = added.production.script.find((l) => l.id === added.line)!;
+    expect(line.text).toBe('The ice cracks.\n  Pip runs.');
+    const typed = setLineText(added.production, added.line, 'Wait ');
+    expect(typed.script.find((l) => l.id === added.line)!.text).toBe('Wait ');
+    const tidy = tidyLine(typed, added.line);
+    expect(tidy.script.find((l) => l.id === added.line)!.text).toBe('Wait');
+    expect(tidyLine(tidy, added.line)).toBe(tidy);
   });
 
   it('rewrites a line, and changes who says it', () => {

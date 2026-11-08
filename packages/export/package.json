@@ -12,6 +12,9 @@
     "harness": "vite build --config e2e/harness/vite.config.ts && vite preview --config e2e/harness/vite.config.ts"
   },
   "dependencies": {
+    "@storystage/backstage": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/story-api": "workspace:*",
     "mediabunny": "^1.62.0"
   },
   "devDependencies": {

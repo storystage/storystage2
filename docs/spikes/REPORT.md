@@ -11,6 +11,8 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | **go**, 21 Oct 2026 ([record](../decisions/spike-1.6-key-path.md)) |
 | **1.7 Tauri Android on a Chromebook** | **built and passing in CI** (Android 14 emulator, 4 GB); Chromebook run pending (#6) | The APK (ARM and x86_64) installs and starts; Babylon.js scene with WebGL2 at 20.9 fps in software; Blockly draws all its blocks; 33 MB of JS memory | decide after the Chromebook run and the school-policy question | pending |
 | **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | **go for video**; audio after the Chromebook check, 21 Oct 2026 ([record](../decisions/spike-1.8-mp4.md)) |
+| **23.1 Projection bake** (WP23, may run before the release candidate) | **passed in CI** (Chromium, SwiftShader) | Box and building front: from the sweet spot, 99% of projector-lit pixels match the show (mean error 1.5–2.4 of 255); off to one side, 73–78%, as expected; hidden faces left unbaked; about 15 ms a frame | **go**, with the findings below | **go**, 8 Nov 2026 ([record](../decisions/spike-23.1-projection-bake.md)) |
+| **24.3 Classroom relay** (option B; decided at M1) | **probe built, passing in CI over loopback**; the school-network test needs the owner | Loopback only so far, on Linux, Windows and macOS: a right code finishes and a wrong one is turned away; 226–406 Mbit/s, round trips under 0.1 ms (`docs/spikes/24.3-classroom-relay.md`) | **A** for the pilot; run the probe at the 1.11 visits; **C** ruled out | |
 | 1.9 AR | not started; **iPad-first** (decision 0042), needs the reference iPad (#6) | | | |
 
 ## 1.4 Interpreter and scheduler
@@ -215,3 +217,33 @@ The first transcription after loading took longer (13.4 s for the quantised mode
 4. The emulator in CI needed time limits on every wait, and `ANDROID_AVD_HOME` set, or it hung. That's noted in the workflow for whoever builds WP15's Android tests.
 
 **Not covered:** the reference Chromebook (#6), and an ARM Chromebook; whether the school policy allows the install (#24); a release build's size.
+
+## 23.1 Projection mapping: the surface bake renderer
+
+**Task:** for each frame, render the scene from the audience's sweet spot, project that image onto the surface model, and unroll it into the surface's UV layout, giving one UV-space frame per surface. Prove it on a box and on a simple building front, and check the illusion from the sweet spot in a projector preview (WP23.1). Code: `spikes/23.1-projection/`. Run: `.github/workflows/spikes.yml`; the page is also on the spike site.
+
+**How it works.** Each surface is a set of flat faces in metres. Its texture layout gives every face its own space in 0–1, in proportion to its real size, with a gap around each face (Pixera's rules, workplan WP23; unit-tested). Each frame:
+1. **Show:** render the scene (the surface's own paint, plus a ball and a ring floating in front of it) from the sweet spot.
+2. **Bake:** draw the surface flat in its texture layout. Each texel looks up its world point in the show picture, unless that point faces away from the audience or another part of the surface hides it (checked against a depth picture from the sweet spot).
+3. **Check, once:** a virtual projector, standing somewhere else, sends out the surface wearing its baked texture (what Pixera or the classroom output plays). That light falls on a plain white model of the surface. The result is compared, pixel by pixel, with the show, from the sweet spot and from off to one side.
+
+**Results (8 Nov 2026; Edge with software rendering on the owner's PC; CI keeps its own run as the `spike-23.1-results` artifact):**
+
+| | Box (5 faces) | Building front (wall, porch, roof: 6 faces) |
+|---|---|---|
+| Texture | 1024², 310 texels per metre | 1024², 177 texels per metre |
+| Bake one frame and read it back | 13 ms median | 16 ms median |
+| From the sweet spot: projector-lit pixels that match (mean error out of 255) | 99.4% (1.5) | 99.2% (2.4) |
+| From off to one side: pixels that match | 73% (21.1) | 78% (19.6) |
+| Faces baked | front, right side, top: all; back and left side: none (the audience can't see them) | wall 84% (the porch hides the rest), porch front and roof 100%, porch top 100% |
+
+**Findings for WP23 (S3, 23.3–23.9):**
+1. **The bake works and is cheap.** One render plus one flat draw per surface per frame, about 15 ms in software. A 30-second show is well under a minute of baking, so 23.6's export can bake on the fly, frame by frame, as WP11's export already renders.
+2. **The illusion holds only from the sweet spot.** Off to one side, things floating in front of the surface no longer line up (a quarter of the pixels differ). The Projection stage (23.4) should show the sweet spot and let learners walk the preview camera away from it.
+3. **Faces the audience can't see are left empty** (the box's back, the wall behind the porch), and the export should say so rather than fill them. A second sweet spot, or a fill colour, is a later choice.
+4. **One projector lights only what it sees.** The box's right side and a strip beside the porch stay dark in the preview. 23.4 should show projector shadows (the workplan already asks for them) and suggest a second projector, or one near the audience.
+5. **Grazing faces need a slope-scaled depth bias.** The porch's top, seen almost edge on, first baked as stripes; dividing the bias by how squarely a face meets the camera fixed it (100% baked).
+6. **The baked texture can't be sharper than the audience's picture.** The 512-pixel show picture gives stepped edges on a 1024 texture. Render the show at least as many pixels as the surface has texels where it's seen.
+7. **The packing wastes space on cubes:** the box uses under half of its texture. A better packer, or a cross-shaped layout for boxes, belongs in 23.3.
+
+**Not covered:** real projectors and real models (23.5); curved surfaces (only flat faces here); Babylon.js projection textures on spotlights for the preview, which 23.4 plans (this spike projects in its own shader); the Pixera build script (23.2, which needs a Windows PC with an NVIDIA graphics card and Pixera Creator).

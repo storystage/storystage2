@@ -14,6 +14,7 @@ body,
 }
 
 .studio-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -183,14 +184,21 @@ body,
 .studio-panels[hidden] {
   display: none;
 }
+/* Over the working area, inside the frame: below the 64 px header and the 3 px amber border. */
 .studio-overlay {
   --ss-surface: var(--ss-panel-2);
+  position: absolute;
+  top: 67px;
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 0 0 5px 5px;
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: flex-start;
   gap: 14px;
   padding: 18px 22px;
+  overflow-y: auto;
   background: var(--ss-panel-2);
 }
 .studio-overlay-title {
@@ -230,4 +238,14 @@ body,
   .studio-modes .ss-mode-tab {
     padding: 0 12px;
   }
+}
+
+/* A note across every mode, above the working area (07-ux 9.2): a failed save, a read-only film. */
+.studio-notice {
+  display: flex;
+  flex: none;
+  padding: 8px 14px 0;
+}
+.studio-notice > * {
+  flex: 1;
 }

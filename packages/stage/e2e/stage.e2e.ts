@@ -36,7 +36,7 @@ interface Determinism {
   rewindIdentical: boolean;
 }
 
-for (const scene of ['grass-cast', 'snow-fog', 'room-camera', 'fade-out']) {
+for (const scene of ['grass-cast', 'snow-fog', 'room-camera', 'fade-out', 'shots']) {
   test(`renders ${scene} the same twice, frame for frame`, async ({ page }) => {
     test.setTimeout(120_000);
     const problems = await open(page);
@@ -112,6 +112,63 @@ test('fades the whole picture to black, the sky included', async ({ page }) => {
   expect(Math.max(...(await ground(3)))).toBeLessThanOrEqual(2);
 });
 
+test('fills more of the picture with its subject, the closer the shot', async ({ page }) => {
+  await open(page);
+  const share = (t: number) => call<number>(page, 'subjectShare', 'shots', t);
+  const [wide, medium, closeUp] = [await share(0.9), await share(1.9), await share(2.9)];
+  console.log(JSON.stringify({ wide, medium, closeUp }));
+  expect(wide).toBeGreaterThan(0.02);
+  expect(medium).toBeGreaterThan(wide * 2);
+  expect(closeUp).toBeGreaterThan(medium);
+});
+
+interface Rendering {
+  renderer: string;
+  gpu: boolean;
+  width: number;
+  height: number;
+  lit: number;
+}
+
+test('draws with WebGPU where the browser has it, and WebGL2 otherwise', async ({ page }) => {
+  const problems = await open(page);
+  const r = await call<Rendering>(page, 'rendering', 'auto', 'standard');
+  console.log(JSON.stringify(r));
+  // Which one this browser gives is its own business; what matters is a picture either way.
+  expect(r.renderer).toBe(r.gpu ? r.renderer : 'webgl2');
+  expect(['webgpu', 'webgl2']).toContain(r.renderer);
+  expect(r.width).toBe(640);
+  expect(r.lit).toBeGreaterThan(0.5);
+  expect(problems).toEqual([]);
+});
+
+test('draws at two thirds of the size at low quality, for the reference devices', async ({
+  page,
+}) => {
+  await open(page);
+  const low = await call<Rendering>(page, 'rendering', 'webgl2', 'low');
+  // Whole pixels, rounded down.
+  expect(low.width).toBe(Math.floor(640 / 1.5));
+  expect(low.height).toBe(Math.floor(360 / 1.5));
+  expect(low.lit).toBeGreaterThan(0.5);
+});
+
+test('takes a picture of another moment without moving the scene (5.7)', async ({ page }) => {
+  const problems = await open(page);
+  const r = await call<{ time: number; differ: number; top: number[]; bottom: number[] }>(
+    page,
+    'pictureCheck',
+  );
+  console.log(JSON.stringify(r));
+  expect(r.time).toBe(500_000);
+  // The same moment drawn twice: only the smoothing at edges may differ.
+  expect(r.differ).toBeLessThan(0.02);
+  // The right way up: the grass template's sky above and its ground below.
+  expect(r.top[2]).toBeGreaterThan(200);
+  expect(r.bottom[1]).toBeGreaterThan(r.bottom[2]!);
+  expect(problems).toEqual([]);
+});
+
 test('measures what view and occlusion events would cost (decision 0051)', async ({ page }) => {
   await open(page);
   const r = await call<{ objects: number; pairs: number; view: number; occlusion: number }>(
@@ -180,4 +237,16 @@ test('keeps pictures of the scenes for people to look at', async ({ page }, info
       contentType: 'image/png',
     });
   }
+});
+
+test('crossfades from one scene to the next (8.3)', async ({ page }) => {
+  await open(page);
+  const [before, start, middle, end] = await call<number[][]>(page, 'crossfadeSky');
+  // At the start, the old sky; half way, half of each; at the end, the new sky alone.
+  for (let i = 0; i < 3; i++) {
+    expect(Math.abs(start![i]! - before![i]!)).toBeLessThan(6);
+    expect(Math.abs(middle![i]! - (before![i]! + end![i]!) / 2)).toBeLessThan(12);
+  }
+  expect(end![2]!).toBeLessThan(80);
+  expect(before![2]!).toBeGreaterThan(200);
 });

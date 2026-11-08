@@ -3,7 +3,7 @@
  * implementation runs it: the memory one here, and the Tauri and browser ones in WP24.4.
  */
 import { describe, expect, it } from 'vitest';
-import { BACKUPS_KEPT, FileError, type ClassFolders } from '../files.ts';
+import { BACKUPS_KEPT, DEVICE_PUPIL, FileError, type ClassFolders } from '../files.ts';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 const text = (data: Uint8Array) => new TextDecoder().decode(data);
@@ -167,6 +167,30 @@ export function describeClassFoldersContract(
       await failsWith('not_found', () => folders.restore(pupil.id, key));
     });
 
+    it('can undo removing a pupil, from the bin, with the same id', async () => {
+      const { folders, folder, pupil } = await withPupil();
+      const { key } = await folder.write(null, 'Film', bytes('x'));
+      await folders.addPupil('Ben');
+      await folders.removePupil(pupil.id);
+      await failsWith('not_found', () => folders.restore(pupil.id, key));
+      expect((await folders.binnedPupils()).map((entry) => entry.pupil)).toEqual([pupil]);
+
+      expect(await folders.restorePupil(pupil.id)).toEqual(pupil);
+      expect((await folders.pupils()).map((each) => each.id)).toContain(pupil.id);
+      expect(await folders.binnedPupils()).toEqual([]);
+      await folders.restore(pupil.id, key);
+      expect(text(await (await folders.open(pupil.id)).read(key))).toBe('x');
+      await failsWith('not_found', () => folders.restorePupil(pupil.id));
+    });
+
+    it('forgets removed pupils when the bin is emptied', async () => {
+      const { folders, pupil } = await withPupil();
+      await folders.removePupil(pupil.id);
+      await folders.emptyBin();
+      expect(await folders.binnedPupils()).toEqual([]);
+      await failsWith('not_found', () => folders.restorePupil(pupil.id));
+    });
+
     it('sends a removed pupil’s work to the bin, not away', async () => {
       const { folders, folder, pupil } = await withPupil();
       await folder.write(null, 'Film', bytes('x'));
@@ -186,10 +210,182 @@ export function describeClassFoldersContract(
       expect(folders.current()).toBeNull();
     });
 
+    it('reaches a pupil’s folder without making it current, for Collect and Hand back', async () => {
+      const folders = await make();
+      const ava = await folders.open((await folders.addPupil('Ava')).id);
+      const ben = await folders.addPupil('Ben');
+      const reached = await folders.folder(ben.id);
+      const { key } = await reached.write(null, 'Handed back', bytes('x'));
+      expect(folders.current()?.pupil.id).toBe(ava.pupil.id);
+      expect((await (await folders.open(ben.id)).list()).map((info) => info.key)).toEqual([key]);
+      expect(await ava.list()).toEqual([]);
+      await failsWith('not_found', () => folders.folder('nobody'));
+    });
+
+    it('won’t write into the folder of a pupil who has been removed', async () => {
+      const { folders, folder, pupil } = await withPupil();
+      await folders.removePupil(pupil.id);
+      await failsWith('not_found', () => folder.write(null, 'Film', bytes('x')));
+      expect(await folders.bin()).toEqual([]);
+    });
+
+    it('keeps a folder for a device with no class list, outside the class list', async () => {
+      const folders = await make();
+      const device = await folders.openDevice();
+      expect(device.pupil).toEqual(DEVICE_PUPIL);
+      expect(folders.current()?.pupil.id).toBe('device');
+      const { key } = await device.write(null, 'At home', bytes('x'));
+      expect(await folders.pupils()).toEqual([]);
+      await failsWith('not_found', () => folders.folder('device'));
+      await failsWith('not_found', () => folders.open('device'));
+      await failsWith('not_found', () => folders.removePupil('device'));
+
+      const again = await folders.openDevice();
+      expect(text(await again.read(key))).toBe('x');
+      await again.remove(key);
+      expect((await folders.bin()).map((entry) => entry.pupil)).toEqual(['device']);
+      await folders.restore('device', key);
+      expect((await again.list()).map((info) => info.key)).toEqual([key]);
+    });
+
+    it('keeps the device’s folder apart from every pupil’s', async () => {
+      const folders = await make();
+      await (await folders.openDevice()).write(null, 'At home', bytes('x'));
+      const ava = await folders.addPupil('Ava');
+      expect(await (await folders.open(ava.id)).list()).toEqual([]);
+    });
+
+    it('moves the device’s films into a pupil’s folder once there’s a class list', async () => {
+      const folders = await make();
+      const device = await folders.openDevice();
+      const { key } = await device.write(null, 'At home', bytes('one'));
+      await device.write(key, 'At home', bytes('two'));
+      await device.write(null, 'Another', bytes('x'));
+      await folders.close();
+      const ava = await folders.addPupil('Ava');
+      expect((await folders.deviceFilms()).map((info) => info.name).sort()).toEqual([
+        'Another',
+        'At home',
+      ]);
+      await failsWith('not_found', () => folders.moveDeviceFilms('nobody'));
+      await failsWith('not_found', () => folders.moveDeviceFilms('device'));
+      expect(await folders.moveDeviceFilms(ava.id)).toBe(2);
+      expect(await folders.deviceFilms()).toEqual([]);
+      const moved = await folders.open(ava.id);
+      expect(text(await moved.read(key))).toBe('two');
+      expect((await moved.backups(key)).length).toBe(1);
+      expect(await folders.moveDeviceFilms(ava.id)).toBe(0);
+    });
+
+    it('won’t open the device’s folder once there’s a class list', async () => {
+      const folders = await make();
+      await folders.addPupil('Ava');
+      await failsWith('invalid', () => folders.openDevice());
+      expect(folders.current()).toBeNull();
+    });
+
     it('closes a pupil’s folder when the pupil is removed', async () => {
       const { folders, pupil } = await withPupil();
       await folders.removePupil(pupil.id);
       expect(folders.current()).toBeNull();
+    });
+  });
+
+  describe(`${name} meets the class Backstage contract (decision 0066)`, () => {
+    const model = (path = 'models/robot/model.glb', data = 'glb') => ({ path, bytes: bytes(data) });
+    const robot = [model(), model('thumbnail.webp', 'webp'), model('sketches/front.svg', '<svg/>')];
+    const record = { id: 'class/Cast/robot', name: 'Robot', origin: 'imported' };
+
+    it('keeps an item’s record exactly, and each of its files', async () => {
+      const backstage = (await make()).backstage();
+      const added = await backstage.add('class', 'class/Cast/robot', record, robot);
+      expect(added).toMatchObject({ id: 'class/Cast/robot', owner: 'class', record });
+      expect(added.files).toEqual([
+        { path: 'models/robot/model.glb', bytes: 3 },
+        { path: 'thumbnail.webp', bytes: 4 },
+        { path: 'sketches/front.svg', bytes: 6 },
+      ]);
+      expect(await backstage.list()).toEqual([added]);
+      expect(text(await backstage.read('class/Cast/robot', 'sketches/front.svg'))).toBe('<svg/>');
+      await failsWith('not_found', () => backstage.read('class/Cast/robot', 'other.glb'));
+      await failsWith('not_found', () => backstage.read('class/Cast/nobody', 'thumbnail.webp'));
+    });
+
+    it('belongs to the class or one pupil, and the teacher can promote it', async () => {
+      const folders = await make();
+      const ava = await folders.addPupil('Ava');
+      const backstage = folders.backstage();
+      await backstage.add(ava.id, 'class/Cast/ava-robot', record, robot);
+      expect((await backstage.list())[0]?.owner).toBe(ava.id);
+      await backstage.promote('class/Cast/ava-robot');
+      expect((await backstage.list())[0]?.owner).toBe('class');
+      await failsWith('not_found', () =>
+        backstage.add('pupil-nobody', 'class/Cast/x', record, robot),
+      );
+    });
+
+    it('never uses an id twice, even after the bin is emptied', async () => {
+      const backstage = (await make()).backstage();
+      await backstage.add('class', 'class/Cast/robot', record, robot);
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/robot', record, robot));
+      await backstage.remove('class/Cast/robot');
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/robot', record, robot));
+      await backstage.emptyBin();
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/robot', record, robot));
+    });
+
+    it('refuses paths that aren’t plain and relative, and a path twice, adding nothing', async () => {
+      const backstage = (await make()).backstage();
+      for (const path of [
+        '../model.glb',
+        '/model.glb',
+        'models//model.glb',
+        'a\\b.glb',
+        '',
+        './x',
+      ]) {
+        await failsWith('invalid', () =>
+          backstage.add('class', 'class/Cast/x', record, [model(path)]),
+        );
+      }
+      await failsWith('invalid', () =>
+        backstage.add('class', 'class/Cast/x', record, [model('a.glb'), model('a.glb')]),
+      );
+      await failsWith('invalid', () => backstage.add('class', '', record, robot));
+      expect(await backstage.list()).toEqual([]);
+    });
+
+    it('sends an item to the bin, and back, as a production goes', async () => {
+      const backstage = (await make()).backstage();
+      await backstage.add('class', 'class/Cast/robot', record, robot);
+      await backstage.remove('class/Cast/robot');
+      expect(await backstage.list()).toEqual([]);
+      expect((await backstage.bin()).map((item) => item.id)).toEqual(['class/Cast/robot']);
+      await backstage.restore('class/Cast/robot');
+      expect(text(await backstage.read('class/Cast/robot', 'models/robot/model.glb'))).toBe('glb');
+      expect(await backstage.bin()).toEqual([]);
+    });
+
+    it('sends a removed pupil’s own items to the bin, and brings them back as the class’s', async () => {
+      const folders = await make();
+      const ava = await folders.addPupil('Ava');
+      const backstage = folders.backstage();
+      await backstage.add(ava.id, 'class/Cast/ava-robot', record, robot);
+      await backstage.add('class', 'class/Cast/robot', record, robot);
+      await folders.removePupil(ava.id);
+      expect((await backstage.list()).map((item) => item.id)).toEqual(['class/Cast/robot']);
+      await backstage.restore('class/Cast/ava-robot');
+      expect(
+        (await backstage.list()).find((item) => item.id === 'class/Cast/ava-robot')?.owner,
+      ).toBe('class');
+    });
+
+    it('refuses a record it can’t keep as JSON', async () => {
+      const backstage = (await make()).backstage();
+      const looped: Record<string, unknown> = {};
+      looped.self = looped;
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/x', looped, robot));
+      await failsWith('invalid', () => backstage.add('class', 'class/Cast/y', undefined, robot));
     });
   });
 }

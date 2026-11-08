@@ -3,7 +3,7 @@
 - **Covers:** dictation (whisper WASM), voices, narration, speak line (from StoryStage 1 spec 03)
 - **Work package:** WP14
 - **Owner:** S7 (S1 for speak line, 14.3)
-- **Status:** written for 14.1 and 14.2 (WP14a); section 1 widened to dictation in every field (decision 0060). Section 4, the speak line, is S1's to write (14.3). Numbers marked *to measure* are set at the M1 device runs.
+- **Status:** written for 14.1 and 14.2 (WP14a); section 1 widened to dictation in every field (decision 0060). Section 4, the speak line (14.3), proposed by S1 on 8 Nov 2026; its section 4.6 waits for the owner. Numbers marked *to measure* are set at the M1 device runs.
 - **Carried over from:** StoryStage 1 spec 03 (speech); see `docs/carried-over/` and its note on what changes. Section 6 lists every difference.
 
 ## 0. Decisions this spec relies on
@@ -12,7 +12,8 @@
 - [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md): the default model ships in the apps; the optional one downloads on request.
 - [0061 The optional speech model's host](../decisions/0061-speech-model-host.md): GitHub Releases, the update host.
 - [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md): dictation into any text field, not only Prompter requests, and not tied to the Prompter.
-- [0021 Speech out](../decisions/0021-speech-out.md): browser speech synthesis with on-device voices only; captions always shown.
+- [0021 Speech out](../decisions/0021-speech-out.md): browser speech synthesis with on-device voices only; captions always shown. It governs narration (section 3).
+- [0068 Bundled voices](../decisions/0068-bundled-voices.md): speak line uses an open-source engine bundled with StoryStage, on every platform (section 4).
 - [Spike 1.3](../decisions/spike-1.3-whisper.md): go, on the CI evidence, 8 Nov 2026.
 - [0022 Off switches](../decisions/0022-off-switches.md): the policy keys `speech.dictation` (dictation anywhere) and `prompter.voiceInput` (talking to the Prompter).
 - [0056 Key entry](../decisions/0056-key-entry.md): the Claude key is entered in a system dialog, so it is never dictated.
@@ -42,6 +43,7 @@ A field's mic button is shown when all of these are true:
 
 - **whisper.cpp v1.9.5**, built to WebAssembly with **Emscripten 6.0.13**, the versions spike 1.3 measured. The build runs in CI from pinned sources, like the spike's, and its output is pinned by SHA-256.
 - It runs in its own **Web Worker**, so the studio never waits on it.
+- **Its threads load whisper's script, not the worker's.** The build adds `mainScriptUrlOrBlob` to Emscripten's own list of module settings (`INCOMING_MODULE_JS_API`), and the worker sets it. The rest of the list stays as Emscripten has it: a shorter list hung whisper's threads in CI.
 - **Language:** English (`en`), greedy decoding, `min(navigator.hardwareConcurrency, 4)` threads.
 - **The spike's build reserved 512 MB at start.** This build starts smaller and grows as needed (`INITIAL_MEMORY` 64 MB, `ALLOW_MEMORY_GROWTH`, `MAXIMUM_MEMORY` 1 GB). *To measure:* peak memory on the reference Chromebook.
 
@@ -144,7 +146,8 @@ class DictationError extends Error {
 - `createDictation` returns `null` when `speech` is `null`, so a field with no `onSpeak` has no mic.
 - `start` takes nothing about the field: the studio knows which field it is for. One `Dictation` serves the whole studio, one take at a time.
 - `state` can be read and subscribed to, so the button shows "Listening…" and the meter without polling. `level` runs from 0 to 1.
-- `options` holds the microphone, the recogniser (whisper in its worker), the learner's model choice, a clock, and what tells it the window lost focus. Until the browser's microphone and worker are built (WP14.1's next part), the studio passes them in; after that they have defaults.
+- `options` holds the microphone, the recogniser (whisper in its worker), the learner's model choice, a clock, and what tells it the window lost focus, so tests pass fakes.
+- **In the app, the studio calls `createBrowserDictation(host.speech, { whisperScript, model })`**, which gives the browser's microphone (an `AudioWorklet`, `mic-worklet.js`), the whisper worker and the page's focus. `whisperScript` is the address of `whisper.js`, which the app serves itself: it is built from pinned sources by `scripts/build-whisper.sh`, with section 1.2's memory settings, and kept with its SHA-256 by the `speech` workflow for the apps to bundle (S8, section 7). It returns `null` where there is no speech or no microphone.
 - **A take can stop listening by itself:** at 30 seconds, or when the window loses focus or the page is hidden. `state` then goes from `listening` to `working`, and the studio calls `stop` to collect the words, as after a tap. A new `start` drops words nobody collected.
 
 The words come back from `stop`, and the studio inserts them (section 1.7).
@@ -193,7 +196,70 @@ The Prompter panel (S5, WP13c) shows the captions; the speak line block (S1, 14.
 
 ## 4. Speak line (14.3)
 
-S1 writes this section (14.3): characters speak script dialogue through the same voices, captioned.
+**Speak line** is the block that makes a character say a line of the script out loud, with a caption, as in a film. `say` and `think` show a bubble and make no sound; speak line makes a sound and shows a caption instead of a bubble. The block is `Model.speakLine` in the Story API (spec 02, section 7), on the Actions tab beside `say` and `think`.
+
+Status: proposed by S1, 8 Nov 2026. The voices come from a speech engine bundled with StoryStage (decision 0068), chosen by a spike (`docs/spikes/tts-engines.md`); the numbers marked *to measure* come from it.
+
+### 4.1 The line
+
+- The block's argument is the **words** (`text: Text`), so both editors show what is said, and a learner can type or dictate them like any other text.
+- When the block is made from a script line (dragged from the script pane, or built by the Prompter from a pinned line), it also carries the line's id, `line: LineId` (`03-production-format.md`), as a detail the learner doesn't edit. Its words are copied from the line when it's made.
+- **If the script line changes later,** the block keeps its words. The automatic check (11.6) then reports "Line 2.3 has changed since this block was made", with **Use the new words** and **Keep these**. The script stays the learner's to write (rule 4), and code never changes behind their back.
+- A block without a line id is allowed: it's dialogue the script doesn't have. The check says so ("The owl says words that aren't in the script"), as advice, not an error.
+
+### 4.2 How long it takes
+
+Rehearse and export must take exactly the same time (6.5), but how long a voice takes to say something isn't known in advance and differs by device. So the length comes from the words, not from the voice:
+
+- **Duration** = 0.4 s + 0.4 s for each word, at least 1.5 s, rounded up to the next 0.1 s. That's 150 words a minute, a calm speaking pace for children's listening. The `duration` detail, as on `say`, overrides it.
+- The block takes that long, and the program moves on after it, whatever the voice does. The caption shows for exactly that long.
+- **The voice is fitted to the time.** The engine makes the line's sound first, so its length is known. If it is longer than the duration it is sped up, to 1.25× at most, keeping its pitch; anything still longer is faded out over 0.2 s at the end. Shorter lines are left as they are. Words a minute for each voice are *to measure* in the spike; if the voices run long, the 0.4 s a word changes, in one place.
+
+### 4.3 Which voice
+
+- Speak line's voices come from the **bundled engine** (decision 0068), not the device, so a production sounds the same on every device and in its exported film. Narration (section 3) still uses the device's voices (section 2.1). The text goes through the same sanitiser (section 2.2).
+- **Each character keeps one voice for the whole production.** The production stores a voice for each cast member, `voice: { preset, base, pitch, formant, speed }` (`03-production-format.md`, a field to add).
+- **Presets** for Settings › Cast: Woman, Man, Girl, Boy, and animal sizes (small, middle-sized, big). A preset is one of the engine's voices, with pitch, formant (the size of the voice) and speed changed. Children's and animals' voices are made this way from adult voices: no openly licensed children's voice model exists (`docs/spikes/tts-engines.md`, section 4).
+- By default each cast member gets a preset from its Backstage class, with people alternating woman and man, and no two characters with the same voice while the engine has voices to spare. The learner can change it, and play a sample line.
+- The engine and its voices are part of StoryStage, so a production sounds the same wherever it's opened.
+
+### 4.4 Captions
+
+- While the line is spoken, its words show as a **caption**: a film subtitle at the bottom of the frame, with the speaker's name ("OWL: Here is the key."). It is not a bubble on the character.
+- Captions show whether or not a voice exists, the sound is on, or the device can speak (rule 7, section 2.3).
+- They are part of the scene's state, like bubbles. So the automatic check (11.6) sees "Line 2.3 was spoken", scrubbing the timeline shows them, and the export's captions file (11.4: WebVTT and SRT) is written from them.
+
+### 4.5 In Rehearse
+
+- The voice starts when the block starts, and stops on **Stop**, on pause, and when the learner leaves the Production stage.
+- Scrubbing or seeking shows captions without sound. Playing on from the middle of a line speaks nothing until the next line starts.
+- One line sounds at a time. A new speak line cuts the one before it, as two people talking over each other would be unreadable as captions.
+
+### 4.6 The engine (decision 0068)
+
+The browser's own speech synthesis can't be recorded into a film, and its voices differ by device. So speak line uses an **open-source speech engine bundled with StoryStage**, the same on every platform, the browser version included (decision 0068). It runs in WebAssembly in a worker, on the device, and sends nothing anywhere.
+
+- **Licence:** the engine, its pronunciation component and every voice pass rule 8. Most open engines take their pronunciation from eSpeak NG (GPL-3), so the engine must use a GPL-free one, such as the CMU Pronouncing Dictionary (BSD) with letter-to-sound rules and a British override list. Every voice's licence and credit goes in `NOTICE` and the film's credits (11.4).
+- **Size and memory:** *to measure*. The candidates are 75–95 MB. The apps bundle it; the browser version downloads it once, on first use of speak line, with consent and a progress bar, like the optional speech model (section 1.4). It is unloaded when not in use, so it never sits in memory beside whisper on a 4 GB Chromebook.
+- **Speed:** *to measure*. Each line's sound is made **as the code changes**, in the background, and kept with the production's cache (not in the saved file). So Rehearse plays lines without waiting, and export uses the same sound. A line not ready yet shows its caption and stays silent rather than holding up Rehearse.
+- **Export** mixes each line's sound into the soundtrack at its start time (spec 08), so films keep their voices.
+- **Which engine:** the spike measures Kokoro-82M and Piper's British multi-speaker voice, each with a GPL-free phonemiser. It checks licence, size, memory, speed, and intelligibility (whisper's word error rate on the spoken lines). Then the owner chooses.
+
+### 4.7 How it runs
+
+No new mechanism: a speak line is a `say` command with a caption instead of a bubble.
+
+- **Story API** (S6): `speakLine` runs as `command:say`, not `needs:speech`, and its details are `duration` and `line`.
+- **Stage contract** (S3): `say` gains `bubble: 'caption'` beside `'say'` and `'think'`, and an optional `line: LineId`; `Speech` carries both. The stage draws no bubble for a caption. The studio's frame overlay draws it, as the camera-frame overlay is drawn (Direction A, screen 02). The scene-state hash includes it, as it does bubbles.
+- **Runtime** (S2): nothing new. The duration is worked out in the Story API's procedure, like every other block's.
+- **Studio** (S5): during Rehearse it watches the stage's speech for objects whose bubble is `caption`. When one starts, it plays that line's prepared sound (section 4.6) and draws the caption.
+- **Speech** (S7's package; S1 adds the code for 14.3): `lineDuration(words)` (section 4.2), `castVoices(cast)` (section 4.3), the engine in a worker with its line cache (section 4.6), and a `LinePlayer` that plays a line's sound fitted to its duration and stops on cue. It is tested with a fake engine and clock.
+- **Export** (S2, WP11): captions from the stage's speech timeline, and each line's sound from the cache, mixed in at its start time.
+- **Apps** (S8): the engine's files bundled in each app and served from the app itself, checked like the speech model (section 1.4).
+
+### 4.8 Not in the first release
+
+Recording the learner's own voice for a line, and lip sync driving the mouth (14.4).
 
 ## 5. Tests
 
@@ -214,6 +280,13 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Only on-device voices; en-GB first (2.1) | Unit, fake voice lists | `packages/speech` |
 | The sanitiser (2.2) | Unit | `packages/speech` |
 | The queue: order, Stop, shortening, captions without a voice (3.1) | Unit, fake speaker | `packages/speech` |
+| A speak line's duration from its words, and the `duration` detail (4.2) | Unit | `packages/speech`, `packages/story-api` |
+| The sound fitted to the duration, faded at the end, cut by the next line and by Stop (4.2, 4.5) | Unit, fake engine and clock | `packages/speech` |
+| Presets given to the cast by class, no two characters alike while voices remain (4.3) | Unit | `packages/speech` |
+| A line's sound made when its code changes, reused by Rehearse and export, silent with a caption while not ready (4.6) | Unit, fake engine | `packages/speech` |
+| Every spoken test line understood: whisper's word error rate on the engine's output (4.6) | End-to-end in CI | the spike, then `packages/speech` |
+| A speak line is the same in Rehearse and export: same duration, same captions, same scene-state hash (4.2, 4.4) | Unit (fixed step) | `packages/stage`, `packages/runtime` |
+| The captions file has every speak line, at its time, with the speaker's name (4.4) | Unit | `packages/export` (S2) |
 | No network traffic but the download (WP14 done-when) | Device run, with the network watched | M1 script (S1) |
 | Memory and speed on the reference devices (1.9) | Device run | M1 script (S1) |
 
@@ -232,7 +305,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Browser version | n/a | No speech in | 15.6 |
 | Speech out | PowerShell, `say`, `spd-say`, Flite | Browser speech synthesis, on-device voices only | No processes; decision 0021 |
 | Narration queue | Carried over | The same, plus a new request clears the old one | |
-| Speak line | None | Section 4 (S1) | 14.3 |
+| Speak line | None | A block that speaks a script line with a caption, for a time worked out from its words; one voice per character (section 4) | 14.3 |
 
 ## 7. Open points for other sessions
 
@@ -243,6 +316,16 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | The bundled model in the app's resources, the optional download, the check on every load, and their rows in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
 | Running the `Speech models` workflow once, before the first build that offers the optional model (decision 0061) | Owner | Section 1.4 |
 | The mic button beside every field (`TextField`'s `onSpeak`), inserting the words as one undo step, and the Talk to type and model Settings | S5 (WP12) | Sections 1.5, 1.7, 1.11 |
+| Bundling `whisper.js` (the `speech` workflow's `whisper-wasm` artifact, with its SHA-256) in the Tauri apps, served from the app itself so the content security policy needs nothing new | S8 (WP15) | Section 1.11 |
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |
 | Speech in the DPIA: on-device only, the one download | D (WP17.3) | Sections 1.4, 1.6 |
+| `speakLine` runs as `command:say`, with the `line` detail | S6 (WP4) | Section 4.7 |
+| `say`'s `bubble: 'caption'` and `line`, in the stage contract and `Speech`; no bubble drawn for a caption | S3 (WP4.4, contract PR) | Section 4.7 |
+| A `voice` for each cast member in the production format | S4 (WP8) | Section 4.3 |
+| Captions drawn over the scene view, the voice played during Rehearse, and Settings › Cast's voices | S5 (WP7) | Sections 4.3–4.5 |
+| Line changed, line never spoken, and words not in the script, in the automatic check | S2 (WP11.6) | Section 4.1 |
+| The captions file from the speech timeline, and each line's sound mixed into the soundtrack | S2 (WP11.4) | Sections 4.4, 4.6 |
+| The speech engine's files bundled in the apps, served from the app and checked like the speech model | S8 (WP15) | Section 4.6 |
+| Choosing the engine after the spike; the licence and provenance of its voices | Owner; D (WP17) | Section 4.6 |
+| The engine spike: licence, size, memory, speed and word error rate (`docs/spikes/tts-engines.md`) | S1 | Sections 4.2, 4.6 |

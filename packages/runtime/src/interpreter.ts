@@ -19,9 +19,16 @@ import {
   type Statement,
   type TypeRef,
 } from '@storystage/ast';
-import type { StageCommand } from '@storystage/story-api';
+import { StoryFault, type Micros, type StageCommand } from '@storystage/story-api';
 import { RuntimeFault, type Scheduler, type Task, type Thread } from './scheduler.ts';
-import { RUNTIME_LIBRARY, sceneLibrary, type StoryContext, type StoryLibrary } from './story.ts';
+import {
+  JOINT_LIBRARY,
+  RUNTIME_LIBRARY,
+  sceneLibrary,
+  type StoryCall,
+  type StoryContext,
+  type StoryLibrary,
+} from './story.ts';
 import { isObjectValue, sameValue, valueText, type ObjectValue, type Value } from './values.ts';
 
 /** What a program may do before StoryStage stops it (WP6.3, threat F7). */
@@ -49,6 +56,8 @@ export interface InterpreterOptions {
   readonly seed: number;
   /** The production's scene ids, for the blocks that end a scene. */
   readonly scenes?: readonly string[];
+  /** Called as each block (a call statement) starts, at the scene time it starts. */
+  readonly onBlock?: (node: NodeId, at: Micros) => void;
 }
 
 /** Variables, with an enclosing frame for each-in-together's own copy of its item. */
@@ -128,6 +137,7 @@ export class Interpreter {
   private readonly scheduler: Scheduler;
   private readonly library: StoryLibrary;
   private readonly emitCommand: (command: StageCommand) => void;
+  private readonly onBlock: ((node: NodeId, at: Micros) => void) | undefined;
   private readonly disabled: ReadonlySet<NodeId>;
   private readonly random: () => number;
   /** Fields with a value of their own, by object and field. */
@@ -142,9 +152,11 @@ export class Interpreter {
     this.library = {
       ...RUNTIME_LIBRARY,
       ...options.library,
+      ...JOINT_LIBRARY,
       ...sceneLibrary(options.scenes ?? []),
     };
     this.emitCommand = options.emit;
+    this.onBlock = options.onBlock;
     this.disabled = new Set(options.disabled);
     this.random = seededRandom(options.seed);
   }
@@ -183,7 +195,7 @@ export class Interpreter {
     if (target === null) throw bad(node, 'The call is on nothing.');
     if (!Object.hasOwn(this.library, name))
       throw new RuntimeFault('internal', node, `Nothing runs ${name} yet.`);
-    yield* this.library[name]!({ node, target, name, args, details }, this.context());
+    yield* this.story({ node, target, name, args, details });
   }
 
   /** The scene object of this name, as the stage's events call it. */
@@ -319,6 +331,7 @@ export class Interpreter {
       case 'comment':
         return;
       case 'call':
+        this.onBlock?.(s.id, this.scheduler.now);
         this.thread.running = s.id;
         yield* this.call(s, frame);
         this.thread.running = null;
@@ -395,10 +408,17 @@ export class Interpreter {
       throw new RuntimeFault('internal', node.id, `Nothing runs ${name} yet.`);
     const args = yield* this.values(node.args, frame);
     const details = yield* this.values(node.details, frame);
-    return yield* this.library[name]!(
-      { node: node.id, target, name, args, details },
-      this.context(),
-    );
+    return yield* this.story({ node: node.id, target, name, args, details });
+  }
+
+  /** A Story API block. Its own refusals (`StoryFault`) are bad values at the block (WP6.3). */
+  private *story(call: StoryCall): Task<Value> {
+    try {
+      return yield* this.library[call.name]!(call, this.context());
+    } catch (e) {
+      if (e instanceof StoryFault) throw new RuntimeFault('bad_value', call.node, e.message);
+      throw e;
+    }
   }
 
   private *callMethod(

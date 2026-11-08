@@ -83,6 +83,21 @@ describe('the script pane (10.4)', () => {
     expect(rows()).toHaveLength(2);
   });
 
+  it('tidies a rewritten line when the learner leaves it, in the same undo step', async () => {
+    const user = userEvent.setup();
+    render(<App start={exampleProduction()} />);
+    await user.click(rows()[1]!);
+    const text = within(pane()).getByRole('textbox', { name: 'Line 2' });
+    await user.clear(text);
+    await user.type(text, 'Run!   {Enter}{Enter}  Now.  ');
+    expect((text as HTMLTextAreaElement).value).toBe('Run!   \n\n  Now.  ');
+    await user.tab();
+    expect(lineTexts()[1]).toBe('PIP: Run!\n  Now.');
+    expect(undo().textContent).toBe('Undo: Write line 2');
+    await user.click(undo());
+    expect(lineTexts()[1]).toBe('PIP: Oh no, the ice is moving!');
+  });
+
   it('pins a line to the current frame or another of the scene’s frames, and unpins it', async () => {
     const user = userEvent.setup();
     render(<App start={exampleProduction()} />);

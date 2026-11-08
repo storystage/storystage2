@@ -18,11 +18,13 @@
 - A thread is a strand of the program. The entry method is one, each child of a `doTogether` or `eachTogether` is one, and each run of a listener is one. Children start in list order at the moment their parent reaches them. `doTogether` ends when its last child ends.
 - Time passes only when a thread sleeps, in a Story API call. Everything else takes no scene time.
 - **Asking the stage stops everything.** When a thread asks a question ("distance to"), no thread runs until the answer comes. It's slower than letting others run on, but the answer can't then depend on the order of messages, so runs repeat.
+- **Which blocks are running.** `highlight` says which blocks are running whenever that changes, as of the end of an advance, for highlighting. It misses a block that starts and ends between two frames. For measuring (spec 08, section 1), a fixed-step run started with `trace` also sends `ran`: every block (call statement) that started since the last message, at the scene time it started, before that advance's `commands`.
 
 ## 2. Values
 
-A value is a number, text, true or false, nothing (`none`), an object, an enum value, or a list. Objects are equal if they're the same object; enum values if type and value match; lists only if they're the same list.
+A value is a number, text, true or false, nothing (`none`), an object, an enum value, a joint, or a list. Objects are equal if they're the same object; enum values if type and value match; joints if they're the same joint of the same object; lists only if they're the same list.
 
+- **A joint** (`02-story-api.md` section 5) is an object and one of its joints, `{ kind: 'joint', object, joint }`. The Story API's blocks turn, roll and point it, but it doesn't move (decision 0051). `getJoint` makes one from a `JointId` without asking the stage, so a joint the model hasn't got is the stage's `unknown_joint` when a block uses it (the editor says `noSuchJoint` before that). `getJointChain` asks the stage (`jointChain`) and gives the chain's joints from the root out, or an empty list. Both are the runtime's (`runs: 'runtime'`), in `JOINT_LIBRARY`; anything else is a `bad_value` fault at the block, and an answer to another question a `protocol` fault.
 - **A field with `initial: null`** is the scene object of that name, until something is assigned to it. Assigning changes which object the field holds, as in Alice.
 - **A field with a value** is worked out the first time it's read, on each object separately.
 - **`and` and `or` stop early,** as in Alice.
@@ -32,7 +34,7 @@ A value is a number, text, true or false, nothing (`none`), an object, an enum v
 
 - **A parameter left out** gets its default, worked out in the called method.
 - **Arguments** are worked out in sorted order, so the order doesn't depend on how the program was built.
-- **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. WP4.3 supplies it (S3). The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
+- **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. A question (`yield { kind: 'ask', query }`) resumes with the stage's whole answer, a `StageQueryResult` such as `{ kind: 'distance', value: 2.5 }`, not its `value` alone. WP4.3 supplies it (S3): `STORY_LIBRARY` in `@storystage/story-api`, which fits the runtime's type as it is. A block refuses a value it can't use by throwing `StoryFault`, and the runtime reports that as a `bad_value` fault at the block, with the block's own words in `detail`, whether it refuses straight away or after waiting. The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
 - **Random numbers** come from the run's seed, so deterministic runs repeat (WP6.5).
 
 ### 3.1 Ending a scene (WP8.3)
@@ -67,18 +69,19 @@ Listeners are those of the scene's type (`02-story-api.md` section 6). Their `ar
 
 - **`sceneStart`** listeners and **timers** start with the entry method. A timer waits its seconds, fires, and repeats. It must be above zero.
 - **Stage events** are handled at the worker's present, not at their `at`, which may be slightly behind it because the worker runs ahead of the clock.
-- **A click** runs `clickOnScreen` first, then `clickOnObject`, if it hit an object in `setOfVisuals` (or any object, if there's no `setOfVisuals`).
-- **An arrow key** runs `keyPress`, then `arrowKeyPress`, then `moveWithArrowKeys`. Under `moveWithArrowKeys`, up and down move the object 0.25 m and left and right turn it a sixteenth of a turn, each over 0.25 seconds.
+- **A click** runs `clickOnScreen` first, then `clickOnObject`, if it hit an object in `setOfVisuals` (or any object, if there's no `setOfVisuals`). Both get the click's `x` and `y`: fractions of the picture from its left and bottom edges, as the stage gives them.
+- **A key** runs `keyPress`, then `numberKeyPress` or `arrowKeyPress` if it's a digit or an arrow, then `moveWithArrowKeys` for an arrow. Under `moveWithArrowKeys`, up and down move the object 0.25 m and left and right turn it a sixteenth of a turn, each over 0.25 seconds. Holding an arrow keeps it going, because the browser repeats the key.
+- **`heldKeyPolicy`.** The browser repeats a held key, so the stage sends `key` again and again, then `keyRelease`. A key's first `key` since its release is a press, and the rest are repeats. `fireMultiple` (the default) fires on the press and every repeat, `fireOnceOnPress` on the press only, and `fireOnceOnRelease` on the release only. Each key is followed separately.
 - **`multipleEventPolicy`:** `ignore` drops a firing while the last run is going, `enqueue` runs it afterwards, and `combine` runs it at once alongside.
-- **`collisionStart` and `proximityEnter`** match their sets either way round, and hand over `a` from `setA` and `b` from `setB`.
+- **`collisionStart`, `collisionEnd`, `proximityEnter` and `proximityExit`** match their sets either way round, and hand over `a` from `setA` and `b` from `setB`. A proximity listener fires only for the stage events at its own `distance`.
+- **`viewEnter` and `viewExit`** fire for an object in their `set`, handing it over as `model` (decision 0051).
 
-**What the stage contract doesn't have yet,** for the `contract` pull request of `02-story-api.md` section 9 (S3, S6):
+**What the stage watches.** Proximity and view tests cost something on every frame, so the stage tests only what it's told (`Stage.watch`). As the run starts, once the listeners' arguments are read, the worker sends `watch`, before any commands:
 
-| Gap | Until then |
-|---|---|
-| A click's `x` and `y` | Handlers get 0 |
-| A key's release, for `heldKeyPolicy` | Each `key` event fires, as `fireMultiple` does |
-| `collisionEnd`, `proximityExit`, `viewEnter`, `viewExit` (decision 0051) | Nothing fires them |
+- one proximity watch (`a`, `b`, `distance`) for each `proximityEnter` or `proximityExit` listener;
+- one view watch (`objects`) for each `viewEnter` or `viewExit` listener.
+
+It's sent even when it's empty, so the main thread can always hand it on. A distance below zero, or a set that isn't a list of objects, is a `bad_value` fault at the listener. Collisions need no watch.
 
 ## 6. What spike 1.4 left open
 
@@ -94,7 +97,9 @@ Listeners are those of the scene's type (`02-story-api.md` section 6). Their `ar
 |---|---|---|
 | Time, order, asking, faults, stop | `scheduler.test.ts` | Unit |
 | Every statement and expression kind, values, calls, limits, determinism, highlighting | `interpreter.test.ts`: small programs, each run and checked | Unit (the semantics suite) |
-| The worker's protocol, both modes, pause, speed, and every event kind the contract can fire | `serve.test.ts`, over `inMemoryPorts` | Unit |
+| `STORY_LIBRARY` fits, runs, and its refusals are bad values at the block (section 3) | `story-faults.test.ts` | Unit |
+| The worker's protocol, both modes, pause, speed, every event kind, `heldKeyPolicy`, the `watch` message (section 5) and `trace` | `serve.test.ts`, over `inMemoryPorts` | Unit |
 | Ending a scene: the message, stopping every strand, defaults, faults, and loading the next scene into the same worker (section 3.1) | `serve.test.ts`, "ending a scene" | Unit |
-| The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when) | With WP4.3, once the blocks they use run | Unit |
+| The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when): the 21 rows of `docs/eval/requests.jsonl` that build code, and the `penguin-animated` start. Each passes its row's code checks, is valid, and runs on `STORY_LIBRARY` sending the commands it should, `anim-06`'s head turn included | `tr1.test.ts` | Unit |
+| Joints: `getJoint` and `getJointChain` through `serve`, on the Story API's blocks | `joints.test.ts` | Unit |
 | Fast-forward to a block (WP6.4) | With WP7.4, which drives it through fixed-step `advance` | Unit |

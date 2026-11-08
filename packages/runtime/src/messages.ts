@@ -22,6 +22,7 @@ import type {
   StageEvent,
   StageQuery,
   StageQueryResult,
+  Watch,
 } from '@storystage/story-api';
 
 /** Bumped on any change that an older main thread or worker couldn't read. */
@@ -38,8 +39,11 @@ export type RunMode =
       readonly lookahead: Micros;
       readonly speed: number;
     }
-  /** Not paced: the main thread calls `advance` for each frame (export, tests, the self-test). */
-  | { readonly kind: 'fixed' };
+  /**
+   * Not paced: the main thread calls `advance` for each frame (export, tests, the self-test).
+   * With `trace`, the worker also says when each block starts (`ran`), for measuring.
+   */
+  | { readonly kind: 'fixed'; readonly trace?: boolean };
 
 /** Main thread to worker. */
 export type ToRuntime =
@@ -92,6 +96,15 @@ export type FromRuntime =
   | { readonly type: 'ask'; readonly id: number; readonly query: StageQuery }
   /** The blocks running now, for highlighting during Rehearse (WP7.9). Sent when it changes. */
   | { readonly type: 'highlight'; readonly running: readonly NodeId[]; readonly at: Micros }
+  /**
+   * With `trace` (fixed mode): each block that started since the last message, at the scene time
+   * it started, in order. Sent before the `commands` of the same advance. A block that starts
+   * and ends between frames is here, as it isn't in `highlight`.
+   */
+  | {
+      readonly type: 'ran';
+      readonly blocks: readonly { readonly node: NodeId; readonly at: Micros }[];
+    }
   | { readonly type: 'error'; readonly error: RuntimeError }
   /** The entry method has finished. Event handlers can still run until `stop`. */
   | { readonly type: 'finished'; readonly at: Micros }
@@ -101,7 +114,13 @@ export type FromRuntime =
    * already sent. Nothing more comes from this run; the player asks the production what plays
    * next (WP8.3, `docs/spec/03-production-format.md` section 3.1) and sends a new `load`.
    */
-  | { readonly type: 'sceneChange'; readonly at: Micros; readonly ending: RuntimeSceneEnding };
+  | { readonly type: 'sceneChange'; readonly at: Micros; readonly ending: RuntimeSceneEnding }
+  /**
+   * What the stage must watch for this scene's proximity and view listeners: hand it to
+   * `Stage.watch`. Sent once, as the run starts, before any commands, and empty if there's
+   * nothing to watch (WP6.2).
+   */
+  | { readonly type: 'watch'; readonly watches: readonly Watch[] };
 
 /**
  * Which block ended the scene. The production's `SceneEnding` without `finished`, which the
@@ -155,10 +174,12 @@ const FROM_TYPES = new Set<string>([
   'commands',
   'ask',
   'highlight',
+  'ran',
   'error',
   'finished',
   'stopped',
   'sceneChange',
+  'watch',
 ]);
 
 const hasType = (m: unknown, types: Set<string>): boolean =>
@@ -210,4 +231,23 @@ export function inMemoryPorts(): {
     },
   });
   return { main: port(toWorker, toMain), worker: port(toMain, toWorker) };
+}
+
+/** Either end of a real worker: the `Worker` on the page, or `self` inside it. */
+export interface MessageEnd {
+  postMessage(message: unknown): void;
+  addEventListener(type: 'message', listener: (event: MessageEvent) => void): void;
+  removeEventListener(type: 'message', listener: (event: MessageEvent) => void): void;
+}
+
+/** A port on a real worker's end: the page's `new Worker(…)`, or the worker's own `self`. */
+export function messagePort<Out, In>(end: MessageEnd): Port<Out, In> {
+  return {
+    post: (message) => end.postMessage(message),
+    listen: (listener) => {
+      const onMessage = (event: MessageEvent) => listener(event.data as In);
+      end.addEventListener('message', onMessage);
+      return () => end.removeEventListener('message', onMessage);
+    },
+  };
 }

@@ -1,13 +1,22 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { actual, blocks, fill, roundHalfEven, sectionOf } from './render.ts';
-import { criticalPath, readPlan, schedule, simulateCap, simulateRoster } from './schedule.ts';
+import {
+  criticalPath,
+  forecast,
+  readPlan,
+  schedule,
+  simulateCap,
+  simulateRoster,
+  weeksTo,
+} from './schedule.ts';
 
 const real = readFileSync(new URL('../schedule.yaml', import.meta.url), 'utf8');
 
 /** A small plan: A then B and C together, then the release candidate and the pilot. */
 const small = (extra = '') => `
 week0: 2026-10-19
+as_of: 2026-10-19
 later_lanes: [Later]
 lane_caps: [1, 2]
 recommended_lanes: 2
@@ -45,10 +54,12 @@ describe('the real schedule', () => {
     );
   });
 
-  it('gives what each lane cap costs, as section 5a says', () => {
-    expect(simulateCap(s, 8)).toMatchObject({ rc: 18.5, pilotEnd: 24.5 });
-    expect(simulateCap(s, 6)).toMatchObject({ rc: 22.5, pilotEnd: 28.5 });
-    expect(simulateCap(s, 4)).toMatchObject({ rc: 31.5, pilotEnd: 38 });
+  // The numbers themselves change with every estimate; `pnpm schedule:check` keeps section 5a's
+  // table in step with them. These are the rules that always hold.
+  it('reaches the shortest schedule with eight lanes, and never sooner with fewer', () => {
+    expect(simulateCap(s, 8)).toMatchObject({ rc: s.rc, pilotEnd: s.pilotEnd });
+    const caps = [8, 6, 5, 4].map((cap) => simulateCap(s, cap).rc);
+    for (let i = 1; i < caps.length; i++) expect(caps[i]).toBeGreaterThanOrEqual(caps[i - 1]!);
   });
 
   it('puts every item except the release candidate under a section 6 heading', () => {
@@ -122,6 +133,57 @@ describe('schedule', () => {
   it('runs a session’s items one at a time, in its order', () => {
     const { start } = simulateRoster(s);
     expect([start.get('A'), start.get('B'), start.get('C')]).toEqual([0, 1, 3]);
+  });
+});
+
+describe('forecast', () => {
+  /** Two weeks in: A finished in its first week, B started in week 1, C not started. */
+  const dated = (b = 'started: 2026-10-26') =>
+    plan(
+      small()
+        .replace('as_of: 2026-10-19', 'as_of: 2026-11-02')
+        .replace('after: [] }', 'after: [], started: 2026-10-19, finished: 2026-10-25 }')
+        .replace(
+          'weeks: 2, basis: guess, after: [A] }',
+          `weeks: 2, basis: guess, after: [A], ${b} }`,
+        ),
+    );
+
+  it('counts weeks from week 0 to the nearest half week', () => {
+    const p = dated();
+    expect(weeksTo(p, '2026-10-19')).toBe(0);
+    expect(weeksTo(p, '2026-10-25', true)).toBe(1);
+    expect(weeksTo(p, '2026-11-08')).toBe(3);
+  });
+
+  it('keeps actual dates, runs started items for their estimate, and starts the rest from as_of', () => {
+    const f = forecast(dated());
+    expect(f.asOf).toBe(2);
+    expect(f.items.get('A')).toEqual({ es: 0, ef: 1, state: 'finished' });
+    expect(f.items.get('B')).toEqual({ es: 1, ef: 3, state: 'started' });
+    // C could have started after A, in week 1, but nothing starts before as_of.
+    expect(f.items.get('C')).toEqual({ es: 2, ef: 3, state: 'not started' });
+    expect(f).toMatchObject({ rc: 3, pilotEnd: 4, critical: ['B', 'RC', 'WP19'] });
+  });
+
+  it('ends an overdue item half a week after as_of', () => {
+    expect(forecast(dated('started: 2026-10-19')).items.get('B')).toEqual({
+      es: 0,
+      ef: 2.5,
+      state: 'started',
+    });
+  });
+
+  it('matches the plan when nothing has happened yet', () => {
+    const f = forecast(plan(small()));
+    const s = schedule(plan(small()));
+    expect([f.rc, f.pilotEnd]).toEqual([s.rc, s.pilotEnd]);
+  });
+
+  it('needs as_of', () => {
+    expect(readPlan(small().replace('as_of: 2026-10-19\n', '')).errors).toContain(
+      'as_of should be a date, YYYY-MM-DD.',
+    );
   });
 });
 

@@ -204,11 +204,79 @@ How the app gets its models (workplan 3.9). The code is `packages/backstage/src/
 
 ## 5. The import pipeline
 
-_To be written._
+Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is `learners` (spec 05, section 3.3), brings a model into the class Backstage. Everything runs on the device, in the import worker (`00-architecture.md`, section 3; `importInWorker`, a fresh worker for each import): with no network, stopped after 60 seconds (`IMPORT_TIME_LIMIT_MS`) with a refusal in plain words, and never trusting the file (`15-security.md`, sections 3 and 3.4). The code is the new package `@storystage/backstage-import`, which uses `@storystage/backstage` (reduction, budgets, joints, the manifest) and `@storystage/sketches` (sketches, thumbnails).
+
+### What can be imported
+
+- **One `.glb` or `.vrm` file.**
+- **A `.gltf` file with its `.bin` and pictures,** picked together. Each `uri` must be embedded data or one of the picked files, by plain name (F9): no paths, no addresses.
+- **An `.obj` file with its `.mtl` and pictures,** read by our own reader (decision 0066): geometry, normals, texture coordinates, basic materials (colour, picture, see-through) and their pictures. Groups and objects become nodes, and polygons become triangles, as a fan from the first corner. Anything else in the file is left out, and the report says so (`readObj`'s `leftOut`). A picture is found among the picked files by the last part of the name the `.mtl` gives, since exporters often write a path there (`texturesskin.png`); so still nothing but a picked file is read. The reader stops as soon as the file passes the triangle or node ceiling.
+- **Not FBX.** The teacher guide shows how to convert it with Blender. Anything else is refused in plain words.
+
+### Steps
+
+1. **Read and check, before anything heavy** (`15-security.md`, section 3.4):
+    - the file sizes (`FILE_LIMIT`);
+    - each picture's width and height from its header, before it's decoded: 8,192 pixels on a side and 40 million pixels at most;
+    - any **required** glTF extension the stage doesn't use refuses the file. `IMPORT_EXTENSIONS` are the ones accepted: `EXT_meshopt_compression`, `EXT_texture_webp`, `KHR_materials_emissive_strength`, `KHR_materials_unlit`, `KHR_mesh_quantization` and `KHR_texture_transform`. Extensions that are only used, not required, are dropped on reading. Draco compression is refused in its own plain words, which say how to export again from Blender without it;
+    - every accessor inside its buffer view, and every view inside its buffer, so a count the file claims falsely can't read past its own data (F8);
+    - ceilings that keep the worker safe before it reduces anything: 2,000,000 triangles, 256 joints, 10,000 nodes and 64 pictures. Over any of them, the file is refused, with which limit in plain words.
+2. **A VRM avatar** has its bones named from its own VRM table, as the sketch reader does. A 0.x avatar is turned to face +Z in the file itself. So what's saved is an ordinary glTF facing +Z, and the item has no `vrm` field.
+3. **Reduce it to its section's budget** (section 4) with `reduceModel`, the same code the shipped build uses. Pictures are shrunk with the browser's own canvas (`OffscreenCanvas`): as WebP where the browser can encode it, and otherwise as PNG, which Safari makes. The texture encoder therefore says which it made.
+4. **Map its skeleton** for a class that has one (`mapSkeleton`). If the required joints aren't all there, it's **prop only**: it can move and turn, but not walk or gesture.
+5. **Draw its sketches and thumbnail** (sections 7 and 7a), with the browser's picture decoder.
+6. **Make its record:**
+    - its id is `class/<Class>/<name>`, made from its name (lower case, hyphens, at most 40 characters; `model` if nothing is left) and unique in the class Backstage, with `-2`, `-3` and so on (`classModelId`). The caller passes the ids the class Backstage has had, live and in the bin;
+    - the section, class, name and an optional description, as the person chose;
+    - the licence, credit and source from section 6;
+    - `origin: "imported"`, its measured `budget` and its height.
+7. **The report, in plain words, before anything is saved.** For example: "Reduced from 180,000 to 12,000 triangles; textures from 4K to 1K; skeleton mapped (20 of 22 joints); credit: 'Robot by A. Maker, CC BY 4.0, changed for StoryStage'". The person saves or cancels.
+
+A model that still doesn't fit its budget after the gentlest simplifying that reaches it, or whose pictures can't be shrunk, is refused in plain words: it would slow every scene it's in (`CLAUDE.md` rule 6).
+
+**The files** sit at paths relative to the item, as a packed model's do (`03-production-format.md`, section 1.3): `model.glb`, `thumbnail.webp` (or `.png`) and `sketches/<facing>[-<pose>].svg`.
+
+`importModel` returns the record, its files (model, thumbnail and sketches) and the report, or a refusal. The licence step is checked first, before anything is read, so the person can fix it straight away. It's pure: the caller saves into the class Backstage.
+
+### The class Backstage (decision 0066)
+
+- **On each device,** beside the pupil folders. Its storage is the host's (S8, `@storystage/host`).
+- Each item records **who it belongs to:** the class (a teacher's import, or a promoted one) or one pupil (a learner's own import). A pupil sees the class's items and their own. On a device with no class list (`ClassFolders.openDevice`), the person imports as the class: they are their own teacher (spec 05, section 6.2).
+- **Promote:** the teacher moves a pupil's item to the class.
+- **Remove:** to the bin, like a production (decision 0065).
+- **Opening the Backstage** is the loader's `backstageFrom`, with the shipped Backstage first (`combineBackstages`, section 4b). A class item can't stand in for a shipped id, and an id is never reused.
+- **A production carries every imported model it uses** (decision 0049, `03-production-format.md` section 1.3). Opening a production on a device whose class Backstage lacks the model still shows it, from the production.
+
+### The model pack
+
+The teacher saves the class's models to one file, and opens it on another device, through the system's file picker (decision 0066).
+- **It's a zip,** read and written by the archive reader and writer (`03-production-format.md`, section 1), with the same layout as a production's packed models: `backstage.json` (a manifest of the items) and each item's files under `models/<folder>/`.
+- **It holds the class's own models,** not pupils' own imports (`modelPackFromClass`). `backstage.json` says `format: "storystage-models"` and its `formatVersion` (1.0.0), and lists each model's `folder` and record. A pack from a newer major version is refused in plain words.
+- **Opening a pack checks every model as an import** (`openModelPack`, through `buildModel`): the steps in section 5, except that a model already within budget isn't reduced again. Its sketches and thumbnail are drawn again from the model, never taken from the pack: a pack is a file anyone could have made, and the studio shows sketches. Each record keeps its id, name, section, class, licence, credit and source.
+- **A model is left out, with the reason in plain words,** if it fails a check, if its record isn't a class's imported model, or if the class Backstage already has its id (ids are never reused, and it's most likely the same model).
 
 ## 6. Licence capture
 
-_To be written._
+Workplan 3.12. Licences and credits are part of what learners learn, as they are in industry.
+
+1. **On import, the person picks the licence** from a short list:
+    - CC0;
+    - CC BY, with its version: 4.0 by default, or 3.0;
+    - CC BY-SA;
+    - CC BY-NC;
+    - I made it;
+    - not sure.
+
+   These are the manifest's `LICENCES`, plus `permission`, which only shipped items have.
+2. **They give where it came from:** the model's own page (`source.url`), required except for "I made it". For any CC BY licence, they also give **who made it**, for the credit.
+3. **The credit line is made from these.**
+    - CC0: "<Name> by <maker> (CC0)", or "<Name> (CC0)" with no maker.
+    - CC BY, BY-SA and BY-NC: "<Name> by <maker>, CC BY 4.0", for example. The import changes the model, so `creditFor` adds ", changed for StoryStage" (section 3a, rule 4).
+    - I made it: "<Name>, made by our class". A learner's name is never put in a credit by default (WP11.4 lets learners choose their names).
+    - Not sure: "<Name>, source not checked".
+4. **"Not sure" and CC BY-NC stay in the class and are flagged.** Films that use them can be shown in school, but not shared outside it, and they can't go into the pathway exports (WP20). `mayDistribute` gives the reason in plain words.
+5. **CC BY credits go into the film's credits automatically** (`creditsBySection`, section 3a; WP11.4).
+6. **No in-app browsing of open galleries.** Backstage search (decision 0058) is Poly Pizza's CC0 models only, for teachers. It screens out models about guns, and every result still goes through the import report.
 
 ## 7. Sketches
 

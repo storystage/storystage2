@@ -114,6 +114,28 @@ jobs:
             spikes/1.5-editors/test-results/
           retention-days: 30
 
+  spike-23-1:
+    name: spike 23.1 (projection bake)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: spikes/23.1-projection
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - run: pnpm exec vitest run
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Bake the box and the building front, and check the illusion (software rendering)
+        run: pnpm exec playwright test
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: spike-23.1-results
+          path: spikes/23.1-projection/test-results/
+          retention-days: 30
+
   spike-1-8:
     name: spike 1.8 (MP4 export, browsers)
     runs-on: ubuntu-latest
@@ -262,3 +284,48 @@ jobs:
             ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate,nb_frames:format=duration,size -of json "$f"
             ffmpeg -v error -i "$f" -f null - && echo "decodes: yes"
           done
+
+  # Spike 24.3 (option B, the classroom relay): the network probe the owner runs on a school
+  # network. Tests, a trial over loopback, and binaries for Windows and macOS to download.
+  spike-24-3:
+    name: spike 24.3 (relay probe, ${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+        working-directory: spikes/24.3-relay
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - name: Tests (the code, the handshake, a wrong code turned away)
+        run: cargo test
+      - name: Build
+        run: cargo build --release
+      - name: A trial over loopback, as the owner will run it across two devices
+        run: |
+          ./target/release/relay-probe listen --ip 127.0.0.1 > listen.log 2>&1 &
+          for i in $(seq 1 20); do grep -q "Class code:" listen.log && break; sleep 0.5; done
+          code=$(grep "Class code:" listen.log | awk '{print $3}')
+          ./target/release/relay-probe connect "$code"
+          # The second-to-last character is part of the secret: it connects, and is turned away.
+          c=${code:22:1}; if [ "$c" = Z ]; then r=Y; else r=Z; fi
+          if ./target/release/relay-probe connect "${code:0:22}$r${code:23}"; then exit 1; fi
+          sleep 1
+          cat listen.log
+          grep -q "proved the code, and finished the test" listen.log
+          grep -q "had the wrong code, and was turned away" listen.log
+      - if: matrix.os != 'ubuntu-latest'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: relay-probe-${{ runner.os }}
+          path: |
+            spikes/24.3-relay/target/release/relay-probe
+            spikes/24.3-relay/target/release/relay-probe.exe
+          retention-days: 90

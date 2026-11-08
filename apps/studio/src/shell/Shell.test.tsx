@@ -57,7 +57,7 @@ describe('Shell', () => {
     await user.click(settings);
     expect(settings.getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeTruthy();
-    expect(screen.getByRole('main').textContent).toContain('Class set-up');
+    expect(screen.getByRole('region', { name: 'Settings' }).textContent).toContain('Class set-up');
     // The mode underneath is hidden, so the keyboard can't reach it.
     expect(screen.getByText('Build and code').closest('[hidden]')).not.toBeNull();
     await user.click(screen.getByRole('button', { name: 'Back to Production stage' }));
@@ -73,7 +73,7 @@ describe('Shell', () => {
     expect(screen.getByRole('button', { name: 'Learn' }).getAttribute('aria-pressed')).toBe(
       'false',
     );
-    expect(screen.getByRole('main').textContent).toContain('Class set-up');
+    expect(screen.getByRole('region', { name: 'Settings' }).textContent).toContain('Class set-up');
     await user.click(screen.getByRole('tab', { name: 'Screening room' }));
     expect(screen.getByRole('button', { name: 'Settings' }).getAttribute('aria-pressed')).toBe(
       'false',
