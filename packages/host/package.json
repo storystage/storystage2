@@ -2,10 +2,11 @@
   "name": "@storystage/host",
   "version": "0.0.0",
   "private": true,
-  "description": "The host interface: what the build hands the studio at start-up (the policy in force, the Prompter transport, files).",
+  "description": "The host interface: what the build hands the studio at start-up (the policy in force, the Prompter transport, speech models, pupil folders and files).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."

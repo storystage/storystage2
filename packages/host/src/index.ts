@@ -3,6 +3,7 @@
  *
  * Owners: S8 and S5. Workplan: WP15.3, and WP15 for WP14.1. Decision 0028.
  */
+export * from './files.ts';
 export * from './host.ts';
 export * from './policy.ts';
 export * from './speech.ts';
