@@ -132,6 +132,10 @@ export async function buildSources(
     const triangles = countTriangles(doc);
     const textureMaxPx = largestTexture(doc);
     const fitsBudget = triangles <= budget.triangles && textureMaxPx <= budget.textureMaxPx;
+    // A kept model (`fetch.ts`) is rebuilt from what we shipped: what was first fetched, when,
+    // and how big it was then all stay as the first build recorded them.
+    const first = fetched[0]?.url.startsWith('kept:') ? provenance[item.id] : undefined;
+    const retrieved = first?.retrieved ?? today;
 
     built.set(item.id, {
       id: backstageId(item.id),
@@ -147,22 +151,23 @@ export async function buildSources(
       budget: { triangles, textureMaxPx },
       licence: item.licence,
       credit: item.credit,
-      source: { url: item.page, retrieved: today },
+      source: { url: item.page, retrieved },
       origin: 'shipped',
       sketches: [],
     });
     provenance[item.id] = {
       source,
-      fetched,
-      retrieved: today,
+      fetched: first?.fetched ?? fetched,
+      retrieved,
       vrm,
       triangles,
       textureMaxPx,
-      fetchedSize,
+      // Builds before budgets (WP3.9) didn't record it; then the kept model is as first fetched.
+      fetchedSize: first?.fetchedSize ?? fetchedSize,
       fitsBudget,
       skeleton: mapping ? mapping.status : 'none',
       missingJoints: mapping ? mapping.missingRequired : [],
-      excluded: trimmed.removed,
+      excluded: first?.excluded ?? trimmed.removed,
     };
   }
 
