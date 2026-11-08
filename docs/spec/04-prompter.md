@@ -112,6 +112,18 @@ For S8. Each item is something this spec makes checkable.
 - No top-level `thinking`, `tool_choice` or sampling field, no image content, and no key (`containsSecret`). Thinking blocks in the history are expected.
 - The per-minute and per-day caps (24.5), retried at most twice with backoff and jitter.
 
+### 1.9 Pins
+
+The native layer pins `system`, `tools` and the mode messages (section 1.8; spec 05, section 2.3). `packages/prompter/src/pins.ts` makes them:
+
+- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the shipped Backstage catalogue. That catalogue is kept in `src/shipped-catalogue.ts`, an exact copy of `prompter-catalogue.txt` at the commit `backstage.lock.json` pins; a test fails if its SHA-256 differs from the lock's.
+- `tools` is `TOOLS`, and the mode messages are `pinnedSystemMessages()`.
+- **The studio sends `releaseSystem()` and `releaseTools()` as they are.** It never rebuilds a catalogue at run time, not even from the fetched `.backstage/`, so what it sends can't drift from what is pinned by a byte.
+- **A class's imported models never go in `system`** (section 2.1). They travel in `<production_data>` as `imported` (section 2.6), so a teacher importing a model (`backstage.import`) never changes the pin, and the gate never refuses that class's requests for it.
+- `system` and `tools` are hashed as JSON with keys sorted and no spaces (`canonicalJson`); mode messages as their text. A test hashes S8's `gate/fixtures/hash.json` the same way and gets its `sha256`.
+
+`pnpm prompter:pins` writes `apps/desktop/src-tauri/gate/pins.json`, and `gate/fixtures/release-request.json`: a real Build it request made by `buildRequest` with the release's `system` and `tools` and a mode message, which the gate's own test passes through the shipped pins. With `--fetch` it first fetches the catalogue for the locked commit and checks it. A test fails when either file is out of date, so a change to the prompt, a tool, a mode's model or the Backstage lock shows up in CI with the command that fixes it.
+
 ## 2. Context
 
 ### 2.1 What goes where
@@ -168,6 +180,25 @@ Each piece goes in its own block, as JSON, inside a named tag:
 7. **Audience and safety.**
 8. **Words:** rule 9's words, and narration.
 9. The Story API catalog and the Backstage catalogue.
+
+### 2.6 The data blocks, exactly
+
+`packages/prompter/src/context.ts` makes both blocks from the open production. `read_project` returns the same two blocks. Numbers are rounded to two decimal places. A rotation that is the identity and a scale of 1 are left out.
+
+`<production_data>`:
+
+| Field | What |
+|---|---|
+| `scene` | The scene the learner is in |
+| `scenes` | Every scene in running order: `id` and `method`, the id of its script method |
+| `setup` | The current scene's set-up: `backdrop`; `objects`, each with `id`, `model` (a Backstage id or `{"standIn": …}`), `class`, `position` `[x, y, z]` in metres, and `rotation` `[x, y, z, w]` and `scale` `[x, y, z]` where they aren't the default; `camera`; `markers` |
+| `imported` | This production's class-imported models: `id`, `name`, `section`, `class`, and `description` where there is one |
+| `program` | The program as text (section 2.2) |
+| `open` | The method open in the editor, if any |
+
+**Ids in the program text.** Each line that starts a type, field, method, listener or statement ends with `  # [id]`, the id of the innermost of those that starts on the line. Tools name blocks by these ids. Above 20,000 tokens, each method other than the open one and the current scene's keeps its first line and loses its body to one line: `... N lines not shown`. `read_project` with the method open shows it.
+
+`<storyboard_data>`: `logline`, `synopsis`, `arc` and `cards` as stored; `script`, each line with `id`, `scene`, `kind`, `character` for dialogue, `text` and `frame` if pinned; and `frames`, each with `id`, `scene`, `order`, `caption`, `shot`, `seconds`, `links` and `sketches`, each sketch with `id`, `item`, `facing`, `x`, `y`, and `pose`, `scale`, `flipped` and `layer` where they aren't the default (`null`, 1, `false`, 0). Above 8,000 tokens, scenes other than the current one lose their script lines and their frames' sketches, keeping cards and captions.
 
 ## 3. Tools
 
@@ -281,7 +312,7 @@ Changes nothing.
 
 #### `read_project`
 
-Changes nothing. Returns the latest production and storyboard data (sections 2.2, 2.3) when the Prompter needs them after several changes. Takes no fields.
+Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` blocks, exactly as a turn sends them (section 2.6), when the Prompter needs them after several changes. Takes no fields.
 
 ### 3.2 Storyboard tools
 

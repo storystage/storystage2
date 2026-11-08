@@ -8,14 +8,7 @@
  * the palette or the control bar (3a) is filled in a preview first (`insert.ts`), so it reaches
  * the host as one step, or not at all.
  */
-import {
-  idMinter,
-  indexProgram,
-  isStatement,
-  type NodeId,
-  type Program,
-  type Statement,
-} from '@storystage/ast';
+import { idMinter, isStatement, type NodeId, type Program, type Statement } from '@storystage/ast';
 import {
   EMPTY_VIEW,
   type CodeEditor,
@@ -66,7 +59,7 @@ import {
 import { AskValue, DetailMenu, ValueMenu } from './menus.tsx';
 import { MethodsPanel } from './panel.tsx';
 import { MethodTabs } from './tabs.tsx';
-import { isWhereItIs, place, placeKey, placesIn, whereIs } from './places.ts';
+import { indexOf, isWhereItIs, place, placeKey, placesIn, whereIs } from './places.ts';
 import { tileVariables } from './tokens.ts';
 import {
   placeAt,
@@ -91,9 +84,12 @@ function firstMethod(program: Program): NodeId | null {
   return null;
 }
 
+/** How long the pointer stays on a place during a drag before the place is checked. */
+const SETTLE_MS = 60;
+
 /** Whether a focus key is a node (not an empty list) still in the program. */
 const isNode = (program: Program, key: FocusKey | null): key is NodeId =>
-  key !== null && indexProgram(program).has(key as NodeId);
+  key !== null && indexOf(program).has(key as NodeId);
 
 type Menu =
   | {
@@ -118,11 +114,18 @@ type Menu =
   | { readonly kind: 'details'; readonly node: NodeId; readonly anchor: Element };
 
 interface MovingState extends Moving {
-  /** The places a keyboard move steps through, each one it may go. */
+  /**
+   * Every place in the method, in reading order, that a keyboard move steps through, skipping
+   * those it may not go. Each is checked only when a step reaches it, so picking a statement up
+   * in a long method costs one walk, not a check of every place (spec 14, 3h).
+   */
   readonly stops: readonly StatementPlace[];
 }
 
-export type TileEditorOptions = CascadeOptions;
+export interface TileEditorOptions extends CascadeOptions {
+  /** Told each time a row is drawn, not when one is skipped: for measuring spec 14, 3h. */
+  readonly onRowDrawn?: (node: NodeId) => void;
+}
 
 export class TileEditor implements CodeEditor {
   readonly id = 'tiles' as const;
@@ -148,6 +151,11 @@ export class TileEditor implements CodeEditor {
   private pill: ValuePill | null = null;
   /** A new block being dragged from the palette or the control bar. */
   private fresh: Statement | null = null;
+  /** During a drag: the place the pointer is over, and what each place checked so far said. */
+  private over: string | null = null;
+  private verdicts = new Map<string, boolean>();
+  /** A check waiting for the frame to be drawn. */
+  private checking: (() => void) | null = null;
 
   private readonly options: TileEditorOptions;
 
@@ -245,14 +253,17 @@ export class TileEditor implements CodeEditor {
     }
     if (change.focus) this.focusKey = change.focus;
     this.refocus = true;
+    const before = host.program();
     const result = host.apply(change.edits, change.label, this.id);
     host.announce(result.ok ? change.label : result.reason);
-    this.render();
+    // A change reaches the editor as the host's notice, which draws it; drawing again here would
+    // draw a long method twice for one edit (spec 14, 3h). Only a refusal is drawn here.
+    if (host.program() === before) this.render();
     return result.ok;
   }
 
   private statementAt(key: FocusKey): Statement | null {
-    const node = this.host && indexProgram(this.host.program()).get(key as NodeId)?.node;
+    const node = this.host && indexOf(this.host.program()).get(key as NodeId)?.node;
     return node && isStatement(node) ? node : null;
   }
 
@@ -304,30 +315,27 @@ export class TileEditor implements CodeEditor {
 
   // ---- Moving -------------------------------------------------------------------------------
 
-  /** The places a statement may go, with where it is now as a stop too. */
-  private stopsFor(program: Program, node: NodeId): StatementPlace[] {
+  /** Whether a statement may stop at `p`: where it is now, or anywhere it may go. */
+  private canStop(program: Program, node: NodeId, p: StatementPlace): boolean {
     const where = whereIs(program, node);
-    if (this.method === null || !where) return [];
-    const here = placeKey(place(where.parent, where.slot, where.index));
+    if (!where) return false;
+    const key = placeKey(p);
+    if (key === placeKey(place(where.parent, where.slot, where.index))) return true;
     // Just below itself is the same position, so it isn't a stop of its own.
-    const below = placeKey(place(where.parent, where.slot, where.index + 1));
-    return placesIn(program, this.method).filter((p) => {
-      const key = placeKey(p);
-      return key === here || (key !== below && canDrop(program, p, { existing: node }).ok);
-    });
+    if (key === placeKey(place(where.parent, where.slot, where.index + 1))) return false;
+    return canDrop(program, p, { existing: node }).ok;
   }
 
   private pickUp(node: NodeId): boolean {
     const program = this.host!.program();
     const where = whereIs(program, node);
-    if (!where) return false;
-    const stops = this.stopsFor(program, node);
-    const at =
-      stops.find((p) => placeKey(p) === placeKey(place(where.parent, where.slot, where.index))) ??
-      null;
+    if (!where || this.method === null) return false;
+    const stops = placesIn(program, this.method);
+    const here = placeKey(place(where.parent, where.slot, where.index));
+    const at = stops.find((p) => placeKey(p) === here) ?? null;
     this.moving = { node, at, stops };
     this.host!.announce(
-      t('moving', { what: describer(program)(indexProgram(program).get(node)!.node) }),
+      t('moving', { what: describer(program)(indexOf(program).get(node)!.node) }),
     );
     this.render();
     return true;
@@ -336,8 +344,11 @@ export class TileEditor implements CodeEditor {
   private step(delta: 1 | -1): boolean {
     const moving = this.moving;
     if (!moving?.at) return false;
-    const i = moving.stops.findIndex((p) => placeKey(p) === placeKey(moving.at!));
-    const at = moving.stops[i + delta];
+    const program = this.host!.program();
+    const now = placeKey(moving.at);
+    let i = moving.stops.findIndex((p) => placeKey(p) === now) + delta;
+    while (moving.stops[i] && !this.canStop(program, moving.node, moving.stops[i]!)) i += delta;
+    const at = moving.stops[i];
     if (!at) return false;
     this.moving = { ...moving, at };
     this.host!.announce(this.placeWords(at));
@@ -347,12 +358,12 @@ export class TileEditor implements CodeEditor {
 
   private placeWords(at: StatementPlace): string {
     const program = this.host!.program();
-    const parent = indexProgram(program).get(at.parent)?.node;
+    const parent = indexOf(program).get(at.parent)?.node;
     const describe = describer(program);
     const holder = parent as unknown as Record<string, readonly Statement[]> | undefined;
     const total = (holder?.[at.slot]?.length ?? 0) + 1;
     const owner = describe.ownerOf(at.parent);
-    const type = owner ? indexProgram(program).get(owner)?.node : undefined;
+    const type = owner ? indexOf(program).get(owner)?.node : undefined;
     const where = !parent
       ? ''
       : parent.kind === 'method' && type && 'name' in type
@@ -391,7 +402,7 @@ export class TileEditor implements CodeEditor {
 
   /** The type the open method belongs to: what `this` is, and where new events go. */
   private ownerType(program: Program): NodeId | null {
-    const index = indexProgram(program);
+    const index = indexOf(program);
     for (
       let at = this.method ? index.get(this.method) : undefined;
       at;
@@ -506,15 +517,13 @@ export class TileEditor implements CodeEditor {
         const tree = this.element?.querySelector<HTMLElement>('.tl-tree');
         const node = this.fresh;
         if (!tree || !node) return;
-        const program = this.host!.program();
-        const at = placeAt(tree, x, y, null);
-        const next = at && canDrop(program, at, node).ok ? at : null;
-        const now = this.moving?.at;
-        if ((next && placeKey(next)) === (now && placeKey(now))) return;
-        this.moving = { node: node.id, at: next, stops: [] };
-        this.render();
+        this.dragOver(
+          placeAt(tree, x, y, null),
+          (at) => canDrop(this.host!.program(), at, node).ok,
+        );
       },
       onEnd: (drop: boolean) => {
+        this.settle();
         const node = this.fresh;
         const at = this.moving?.at;
         this.fresh = null;
@@ -527,7 +536,53 @@ export class TileEditor implements CodeEditor {
 
   private startFresh(node: Statement): void {
     this.fresh = node;
-    this.moving = { node: node.id, at: null, stops: [] };
+    this.startDrag(node.id);
+  }
+
+  private startDrag(node: NodeId): void {
+    this.moving = { node, at: null, stops: [] };
+    this.over = null;
+    this.verdicts = new Map();
+    this.checking = null;
+    this.render();
+  }
+
+  /**
+   * The pointer is over `at` during a drag. Each place is checked once, when the pointer has
+   * stayed on it for a moment (`SETTLE_MS`), so sweeping across rows checks nothing and the ghost
+   * keeps up with the pointer: in a long method a check takes most of a frame (spec 14, 3h).
+   * Until a place has passed, it doesn't light up (3c.4).
+   */
+  private dragOver(at: StatementPlace | null, fits: (at: StatementPlace) => boolean): void {
+    if (!this.moving) return;
+    const key = at && placeKey(at);
+    if (key === this.over) return;
+    this.over = key;
+    this.checking = null;
+    const known = key === null ? false : this.verdicts.get(key);
+    if (known !== undefined || !at || key === null) return this.showDrop(known ? at : null);
+    this.showDrop(null);
+    const check = () => {
+      if (this.checking !== check) return;
+      this.checking = null;
+      const ok = fits(at);
+      this.verdicts.set(key, ok);
+      if (this.over === key) this.showDrop(ok ? at : null);
+    };
+    this.checking = check;
+    setTimeout(check, SETTLE_MS);
+  }
+
+  /** A drop can't wait: a check still waiting is done now. */
+  private settle(): void {
+    this.checking?.();
+  }
+
+  private showDrop(at: StatementPlace | null): void {
+    const moving = this.moving;
+    if (!moving) return;
+    if ((at && placeKey(at)) === (moving.at && placeKey(moving.at))) return;
+    this.moving = { ...moving, at };
     this.render();
   }
 
@@ -643,13 +698,55 @@ export class TileEditor implements CodeEditor {
 
   // ---- Drawing ------------------------------------------------------------------------------
 
+  /**
+   * The methods panel's and the control bar's handlers, made once. They read the editor's state
+   * when called, so they never go stale, and the panel and the bar, being memoised, aren't drawn
+   * again when only the code changes (spec 14, 3h).
+   */
+  private readonly handlers = (() => {
+    const drag = this.freshDrag();
+    const program = () => this.host!.program();
+    return {
+      panel: {
+        onTarget: (key: string) => {
+          this.target = key;
+          this.render();
+        },
+        onTab: (tab: PaletteTab) => {
+          this.tab = tab;
+          this.render();
+        },
+        onInsert: (item: PaletteItem) => this.insertFromPalette(item),
+        drag: {
+          ...drag,
+          onStart: () => undefined,
+          item: (item: PaletteItem) => {
+            const now = program();
+            const mint = idMinter(now);
+            const target = this.targetExpression(now, mint);
+            if (target)
+              this.startFresh(newCall(now, target, item.callee, false, mint) as Statement);
+          },
+        },
+      },
+      bar: {
+        onInsert: (kind: ControlKind) => this.insertControl(kind),
+        drag: {
+          ...drag,
+          onStart: (kind: string) =>
+            this.startFresh(newControl(kind as ControlKind, idMinter(program()))),
+        },
+      },
+    };
+  })();
+
   private render(): void {
     const host = this.host;
     if (!host || !this.root) return;
     const program = host.program();
     const type = this.ownerType(program);
     const shown = this.pending?.preview ?? program;
-    const drag = this.freshDrag();
+    const { panel, bar } = this.handlers;
     flushSync(() =>
       this.root!.render(
         <div className="tl-root tl-layout" style={tileVariables()}>
@@ -660,27 +757,7 @@ export class TileEditor implements CodeEditor {
               targets={targets(program, type)}
               target={this.target}
               tab={this.tab}
-              onTarget={(key) => {
-                this.target = key;
-                this.render();
-              }}
-              onTab={(tab) => {
-                this.tab = tab;
-                this.render();
-              }}
-              onInsert={(item) => this.insertFromPalette(item)}
-              drag={{
-                ...drag,
-                onStart: () => undefined,
-                item: (item) => {
-                  const mint = idMinter(program);
-                  const target = this.targetExpression(program, mint);
-                  if (target)
-                    this.startFresh(
-                      newCall(program, target, item.callee, false, mint) as Statement,
-                    );
-                },
-              }}
+              {...panel}
             />
           ) : null}
           <div className="tl-main">
@@ -690,19 +767,13 @@ export class TileEditor implements CodeEditor {
               onOpen={(method) => this.openMethod(method)}
               onAddEvent={(event) => this.addEvent(event)}
             >
-              <ControlBar
-                onInsert={(kind) => this.insertControl(kind)}
-                drag={{
-                  ...drag,
-                  onStart: (kind) =>
-                    this.startFresh(newControl(kind as ControlKind, idMinter(program))),
-                }}
-              />
+              <ControlBar {...bar} />
               <TilesView
                 program={shown}
                 method={this.method}
                 focus={this.focusKey}
                 highlights={this.highlights}
+                {...(this.options.onRowDrawn ? { onRowDrawn: this.options.onRowDrawn } : {})}
                 moving={this.moving}
                 onFocus={(key, pill) => {
                   this.focusKey = key;
@@ -715,23 +786,20 @@ export class TileEditor implements CodeEditor {
                   this.menu = { kind: 'details', node, anchor };
                   this.render();
                 }}
-                onDragStart={(node) => {
-                  this.moving = { node, at: null, stops: [] };
-                  this.render();
-                }}
+                onDragStart={(node) => this.startDrag(node)}
                 onDragOver={(at) => {
-                  if (!this.moving) return;
-                  const ok =
-                    at &&
-                    (isWhereItIs(program, this.moving.node, at) ||
-                      canDrop(program, at, { existing: this.moving.node }).ok);
-                  const next = ok ? at : null;
-                  if ((next && placeKey(next)) === (this.moving.at && placeKey(this.moving.at)))
-                    return;
-                  this.moving = { ...this.moving, at: next };
-                  this.render();
+                  const node = this.moving?.node;
+                  if (!node) return;
+                  this.dragOver(
+                    at,
+                    (p) =>
+                      isWhereItIs(program, node, p) || canDrop(program, p, { existing: node }).ok,
+                  );
                 }}
-                onDragEnd={(drop) => void (drop ? this.putDown() : this.cancelMove())}
+                onDragEnd={(drop) => {
+                  this.settle();
+                  void (drop ? this.putDown() : this.cancelMove());
+                }}
               />
             </MethodTabs>
           </div>

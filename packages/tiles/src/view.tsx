@@ -8,7 +8,7 @@
  * an ARIA tree with roving focus: one row or pill has `tabIndex` 0, and the arrow keys move it.
  * The drop line is an overlay, so nothing moves under the pointer while dragging (finding 5).
  */
-import { indexProgram } from '@storystage/ast';
+import { walkProgram } from '@storystage/ast';
 import type { AstNode, NodeId, Program, Statement, StatementSlot } from '@storystage/ast';
 import type { HighlightKind } from '@storystage/editor-contract';
 import {
@@ -18,6 +18,7 @@ import {
   type StatementPlace,
 } from '@storystage/story-api/editing';
 import {
+  memo,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -29,7 +30,7 @@ import {
   type ReactNode,
 } from 'react';
 import { partsOf, type Part } from './parts.ts';
-import { place } from './places.ts';
+import { indexOf, place } from './places.ts';
 import { t } from './words.ts';
 
 /** Where keyboard focus can be: a statement, a value pill, "add detail", or an empty list. */
@@ -81,6 +82,8 @@ export interface ViewProps extends ViewHandlers {
   readonly focus: FocusKey | null;
   readonly highlights: Highlights;
   readonly moving: Moving | null;
+  /** Told each time a row is drawn, not when one is skipped (spec 14, 3h). */
+  readonly onRowDrawn?: (node: NodeId) => void;
 }
 
 const CONTAINERS = new Set([
@@ -93,32 +96,172 @@ const CONTAINERS = new Set([
   'if',
 ]);
 
-interface Context {
+/** What every row shares: the program, its words, and a key that changes when any name does. */
+interface Shared {
   readonly program: Program;
   readonly describe: Describer;
+  /** The program's declarations, as text: a row's words depend on these beyond its own node. */
+  readonly names: string;
+}
+
+/**
+ * The focus order, the pills of each row and what each is for, worked out before drawing, so a
+ * row that's skipped (spec 14, 3h) still has its pills known to the keyboard.
+ */
+interface Layout {
+  /** Where focus is: the one tab stop. */
   readonly focus: FocusKey | null;
-  readonly highlights: Highlights;
-  readonly moving: NodeId | null;
-  /** Every focusable row in reading order, filled as the rows are drawn. */
+  /** Every focusable row in reading order. */
   readonly order: FocusKey[];
   /** The pills and buttons of each row, in order. */
   readonly pills: Map<FocusKey, FocusKey[]>;
+  /** The row each pill and button is on. */
+  readonly rows: Map<FocusKey, FocusKey>;
   readonly values: Map<FocusKey, ValuePill>;
   /** What each pill is for ("amount"), referred to by `aria-describedby`. */
   readonly descriptions: { id: string; text: string }[];
+  /**
+   * For each statement, what its drawing depends on beyond its node, for it and everything
+   * inside it: focus, being lifted, highlights. A row whose node and marks are the same as last
+   * time isn't drawn again.
+   */
+  readonly marks: Map<NodeId, string>;
 }
 
-const tab = (ctx: Context, key: FocusKey) => (ctx.focus === key ? 0 : -1);
+interface Drawing {
+  readonly shared: Shared;
+  readonly layout: Layout;
+  readonly highlights: Highlights;
+  /** The statement being moved, drawn lifted. */
+  readonly moving: NodeId | null;
+  readonly onRowDrawn: ((node: NodeId) => void) | undefined;
+}
 
-function pill(part: Part, ctx: Context, row: FocusKey): ReactNode {
+const DECLARATIONS = new Set(['type', 'field', 'method', 'parameter', 'local', 'loopItem']);
+const namesKept = new WeakMap<Program, string>();
+
+/** Every declaration's id, name and type, so a rename redraws the rows that show it. */
+export function namesOf(program: Program): string {
+  const kept = namesKept.get(program);
+  if (kept !== undefined) return kept;
+  const names: string[] = [];
+  walkProgram(program, (node) => {
+    if (!DECLARATIONS.has(node.kind)) return;
+    const { id, name, type, returns } = node as {
+      id: NodeId;
+      name?: string;
+      type?: unknown;
+      returns?: unknown;
+    };
+    names.push(`${id}:${name ?? ''}:${JSON.stringify(type ?? returns ?? null)}`);
+  });
+  const made = names.join('|');
+  namesKept.set(program, made);
+  return made;
+}
+
+interface RowParts {
+  readonly names: string;
+  readonly parts: readonly Part[];
+  /** Whether the row has an "add detail ▾" button. */
+  readonly detail: boolean;
+}
+const partsKept = new WeakMap<AstNode, RowParts>();
+
+/** A row's parts, kept with its node while the program's names stay the same. */
+function rowParts(node: AstNode, shared: Shared): RowParts {
+  const kept = partsKept.get(node);
+  if (kept && kept.names === shared.names) return kept;
+  const made = {
+    names: shared.names,
+    parts: partsOf(node, shared.describe),
+    detail: node.kind === 'call' && detailsToAdd(shared.program, node.id).length > 0,
+  };
+  partsKept.set(node, made);
+  return made;
+}
+
+/** The statement lists inside a statement, in reading order. */
+function listsIn(s: Statement): { slot: StatementSlot; list: readonly Statement[] }[] {
+  if (!CONTAINERS.has(s.kind)) return [];
+  if (s.kind === 'if')
+    return [
+      { slot: 'then', list: s.then },
+      { slot: 'else', list: s.else },
+    ];
+  return [{ slot: 'body', list: (s as { body: readonly Statement[] }).body }];
+}
+
+function highlightClasses(id: NodeId, highlights: Highlights): string {
+  return (['rehearse', 'error', 'prompter'] as const)
+    .filter((kind) => highlights[kind].has(id))
+    .map((kind) => ` tl-hl-${kind}`)
+    .join('');
+}
+
+function layOut(
+  body: readonly Statement[],
+  method: NodeId,
+  shared: Shared,
+  focus: FocusKey | null,
+  highlights: Highlights,
+  moving: NodeId | null,
+): Layout {
+  const layout: Layout = {
+    focus,
+    order: [],
+    pills: new Map(),
+    rows: new Map(),
+    values: new Map(),
+    descriptions: [],
+    marks: new Map(),
+  };
+  const list = (statements: readonly Statement[], parent: NodeId, slot: StatementSlot) => {
+    if (statements.length === 0) {
+      const key = emptyKey(parent, slot);
+      layout.order.push(key);
+      return focus === key ? `|${key}` : '';
+    }
+    let marks = '';
+    for (const s of statements) marks += statement(s);
+    return marks;
+  };
+  const statement = (s: Statement): string => {
+    layout.order.push(s.id);
+    const keys: FocusKey[] = [];
+    layout.pills.set(s.id, keys);
+    const { parts, detail } = rowParts(s, shared);
+    for (const part of parts) {
+      if (part.kind !== 'value') continue;
+      keys.push(part.node);
+      layout.rows.set(part.node, s.id);
+      layout.values.set(part.node, part);
+      layout.descriptions.push({ id: `tl-for-${part.node}`, text: part.label });
+    }
+    if (detail) {
+      const key = detailKey(s.id);
+      keys.push(key);
+      layout.rows.set(key, s.id);
+    }
+    let marks = '';
+    if (focus === s.id || (focus !== null && layout.rows.get(focus) === s.id)) marks += `|${focus}`;
+    if (moving === s.id) marks += '|lifted';
+    marks += highlightClasses(s.id, highlights);
+    for (const inner of listsIn(s)) marks += list(inner.list, s.id, inner.slot);
+    layout.marks.set(s.id, marks);
+    return marks;
+  };
+  list(body, method, 'body');
+  return layout;
+}
+
+const tab = (layout: Layout, key: FocusKey) => (layout.focus === key ? 0 : -1);
+
+function pill(part: Part, layout: Layout): ReactNode {
   if (part.kind === 'text') return <span className="tl-words">{part.text}</span>;
   if (part.kind === 'name') return <span className="tl-name">{part.text}</span>;
   if (part.kind === 'object') return <span className="tl-object">{part.text}</span>;
   const key = part.node;
-  ctx.pills.get(row)?.push(key);
-  ctx.values.set(key, part);
-  const described = `tl-for-${key}`;
-  ctx.descriptions.push({ id: described, text: part.label });
   const kind = part.empty
     ? 'tl-pill tl-pill-empty'
     : part.question
@@ -133,18 +276,16 @@ function pill(part: Part, ctx: Context, row: FocusKey): ReactNode {
       className={kind}
       data-key={key}
       data-pill=""
-      tabIndex={tab(ctx, key)}
-      aria-describedby={described}
+      tabIndex={tab(layout, key)}
+      aria-describedby={`tl-for-${key}`}
     >
       {part.text}
     </span>
   );
 }
 
-function addDetail(node: AstNode, ctx: Context, row: FocusKey): ReactNode {
-  if (node.kind !== 'call' || detailsToAdd(ctx.program, node.id).length === 0) return null;
+function addDetail(node: AstNode, layout: Layout): ReactNode {
   const key = detailKey(node.id);
-  ctx.pills.get(row)?.push(key);
   return (
     <span
       role="button"
@@ -152,7 +293,7 @@ function addDetail(node: AstNode, ctx: Context, row: FocusKey): ReactNode {
       className="tl-add-detail"
       data-key={key}
       data-detail={node.id}
-      tabIndex={tab(ctx, key)}
+      tabIndex={tab(layout, key)}
     >
       {t('addDetail')}
       <span aria-hidden="true"> ▾</span>
@@ -160,12 +301,12 @@ function addDetail(node: AstNode, ctx: Context, row: FocusKey): ReactNode {
   );
 }
 
-function row(node: AstNode, ctx: Context, key: FocusKey, off = false): ReactNode {
-  ctx.pills.set(key, []);
-  const parts = partsOf(node, ctx.describe).flatMap((part, i) => [
+function row(node: AstNode, drawing: Drawing, off: boolean): ReactNode {
+  const { parts, detail } = rowParts(node, drawing.shared);
+  const words = parts.flatMap((part, i) => [
     i > 0 ? ' ' : null,
     <span key={i} className="tl-part">
-      {pill(part, ctx, key)}
+      {pill(part, drawing.layout)}
     </span>,
   ]);
   const note = off
@@ -176,29 +317,35 @@ function row(node: AstNode, ctx: Context, key: FocusKey, off = false): ReactNode
         </span>,
       ]
     : [];
-  const detail = addDetail(node, ctx, key);
   return detail
     ? [
-        ...parts,
+        ...words,
         ...note,
         ' ',
         <span key="detail" className="tl-part">
-          {detail}
+          {addDetail(node, drawing.layout)}
         </span>,
       ]
-    : [...parts, ...note];
+    : [...words, ...note];
 }
 
-function highlightClasses(id: NodeId, ctx: Context): string {
-  return (['rehearse', 'error', 'prompter'] as const)
-    .filter((kind) => ctx.highlights[kind].has(id))
-    .map((kind) => ` tl-hl-${kind}`)
-    .join('');
+/**
+ * The AI badge on a row the Prompter points at (spec 14, 3g): the Prompter always wears it, and
+ * nothing else may. Its word is part of the row's name, so a screen reader hears it too.
+ */
+function badge(id: NodeId, drawing: Drawing): ReactNode {
+  if (!drawing.highlights.prompter.has(id)) return null;
+  return (
+    <>
+      {' '}
+      <span className="tl-ai-badge">{t('aiBadge')}</span>
+    </>
+  );
 }
 
 function statementList(
   list: readonly Statement[],
-  ctx: Context,
+  drawing: Drawing,
   level: number,
   parent: NodeId,
   slot: StatementSlot,
@@ -206,7 +353,6 @@ function statementList(
 ): ReactNode {
   if (list.length === 0) {
     const key = emptyKey(parent, slot);
-    ctx.order.push(key);
     return (
       <li
         key={key}
@@ -214,55 +360,90 @@ function statementList(
         aria-level={level}
         aria-setsize={1}
         aria-posinset={1}
-        aria-selected={ctx.focus === key}
+        aria-selected={drawing.layout.focus === key}
         aria-label={where ? t('emptyIn', { where }) : t('empty')}
         className="tl-empty"
         data-key={key}
         data-parent={parent}
         data-slot={slot}
         data-index={0}
-        tabIndex={tab(ctx, key)}
+        tabIndex={tab(drawing.layout, key)}
       >
         {t('empty')}
       </li>
     );
   }
-  return list.map((s, i) => statement(s, ctx, level, i, list.length, parent, slot));
+  return list.map((s, index) => (
+    <Row
+      key={s.id}
+      s={s}
+      level={level}
+      index={index}
+      size={list.length}
+      parent={parent}
+      slot={slot}
+      marks={drawing.layout.marks.get(s.id) ?? ''}
+      names={drawing.shared.names}
+      drawing={drawing}
+    />
+  ));
 }
 
-function statement(
-  s: Statement,
-  ctx: Context,
-  level: number,
-  index: number,
-  size: number,
-  parent: NodeId,
-  slot: StatementSlot,
-): ReactNode {
+interface RowProps {
+  readonly s: Statement;
+  readonly level: number;
+  readonly index: number;
+  readonly size: number;
+  readonly parent: NodeId;
+  readonly slot: StatementSlot;
+  readonly marks: string;
+  readonly names: string;
+  /** Not compared: everything in it that this row shows is in `s`, `marks` or `names`. */
+  readonly drawing: Drawing;
+}
+
+const sameRow = (a: RowProps, b: RowProps) =>
+  a.s === b.s &&
+  a.level === b.level &&
+  a.index === b.index &&
+  a.size === b.size &&
+  a.parent === b.parent &&
+  a.slot === b.slot &&
+  a.marks === b.marks &&
+  a.names === b.names;
+
+/**
+ * One statement, and for a container everything inside it. Defined once, here, and keyed by
+ * node id, so an update never remounts a row and loses focus (spike 1.5, finding 7); and skipped
+ * when its node and marks are unchanged, so an edit redraws only what changed (spec 14, 3h).
+ */
+const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: RowProps) {
+  drawing.onRowDrawn?.(s.id);
+  const { layout, shared } = drawing;
   const key = s.id;
-  ctx.order.push(key);
   const off = s.enabled === false;
   const common = {
     role: 'treeitem',
     'aria-level': level,
     'aria-setsize': size,
     'aria-posinset': index + 1,
-    'aria-selected': ctx.focus === key,
+    'aria-selected': layout.focus === key,
     'data-key': key,
     'data-parent': parent,
     'data-slot': slot,
     'data-index': index,
     'data-statement': '',
-    tabIndex: tab(ctx, key),
+    tabIndex: tab(layout, key),
   } as const;
-  const marks = `${off ? ' tl-off' : ''}${ctx.moving === key ? ' tl-lifted' : ''}${highlightClasses(s.id, ctx)}`;
+  const marks = `${off ? ' tl-off' : ''}${drawing.moving === key ? ' tl-lifted' : ''}${highlightClasses(s.id, drawing.highlights)}`;
 
   if (!CONTAINERS.has(s.kind)) {
     const kind = s.kind === 'comment' ? 'tl-comment' : s.kind === 'call' ? 'tl-tile' : 'tl-box-row';
     return (
-      <li key={key} {...common} className={`tl-row ${kind}${marks}`}>
+      <li {...common} className={`tl-row ${kind}${marks}`}>
         <span className="tl-grip" aria-hidden="true" data-grip="" />
-        {row(s, ctx, key, off)}
+        {row(s, drawing, off)}
+        {badge(s.id, drawing)}
       </li>
     );
   }
@@ -270,22 +451,20 @@ function statement(
   // The box is only drawing: its header row is the tree item, so the item's name is the words it
   // shows and not its children's too (WCAG 2.5.3). The children's group sits beside the header,
   // and `aria-level` says how deep each row is.
-  const inner = ctx.describe.short(s);
+  const inner = shared.describe.short(s);
   const firstSlot: StatementSlot = s.kind === 'if' ? 'then' : 'body';
-  const header = (
-    <div {...common} data-into={firstSlot} aria-expanded={true} className="tl-row tl-box-header">
-      <span className="tl-grip" aria-hidden="true" data-grip="" />
-      {row(s, ctx, key, off)}
-    </div>
-  );
   const group = (list: readonly Statement[], groupSlot: StatementSlot, label: string) => (
     <ul role="group" className="tl-group" aria-label={label}>
-      {statementList(list, ctx, level + 1, s.id, groupSlot, inner)}
+      {statementList(list, drawing, level + 1, s.id, groupSlot, inner)}
     </ul>
   );
   return (
-    <li key={key} role="none" className={`tl-box${marks}`}>
-      {header}
+    <li role="none" className={`tl-box${marks}`}>
+      <div {...common} data-into={firstSlot} aria-expanded={true} className="tl-row tl-box-header">
+        <span className="tl-grip" aria-hidden="true" data-grip="" />
+        {row(s, drawing, off)}
+        {badge(s.id, drawing)}
+      </div>
       {s.kind === 'if' ? (
         <>
           {group(s.then, 'then', inner)}
@@ -299,7 +478,25 @@ function statement(
       )}
     </li>
   );
-}
+}, sameRow);
+
+/** The hidden words each pill is described by: redrawn only when they change. */
+const Descriptions = memo(
+  function Descriptions({ list }: { readonly list: readonly { id: string; text: string }[] }) {
+    return (
+      <div hidden>
+        {list.map((d) => (
+          <span key={d.id} id={d.id}>
+            {d.text}
+          </span>
+        ))}
+      </div>
+    );
+  },
+  (a, b) =>
+    a.list.length === b.list.length &&
+    a.list.every((d, i) => d.id === b.list[i]!.id && d.text === b.list[i]!.text),
+);
 
 const ARROWS = new Set(['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
 
@@ -383,6 +580,10 @@ interface Pending {
 export function TilesView(props: ViewProps) {
   const { program, method, focus, highlights, moving } = props;
   const describe = useMemo(() => describer(program), [program]);
+  const shared = useMemo(
+    (): Shared => ({ program, describe, names: namesOf(program) }),
+    [program, describe],
+  );
   const tree = useRef<HTMLUListElement>(null);
   const code = useRef<HTMLDivElement>(null);
   const [line, setLine] = useState<{ top: number; left: number; width: number } | null>(null);
@@ -450,33 +651,28 @@ export function TilesView(props: ViewProps) {
 
   if (!found || method === null) return <p className="tl-note">{t('noMethod')}</p>;
 
-  const fresh = (focusKey: FocusKey | null): Context => ({
-    program,
-    describe,
-    focus: focusKey,
-    highlights,
-    moving: moving?.node ?? null,
-    order: [],
-    pills: new Map(),
-    values: new Map(),
-    descriptions: [],
-  });
-  // Draw once to learn the order, so a missing focus can fall back to the first row.
-  const first = fresh(null);
-  statementList(found.body, first, 1, method, 'body', '');
-  const known = (key: FocusKey) =>
-    first.order.includes(key) || [...first.pills.values()].some((p) => p.includes(key));
-  const current = focus !== null && known(focus) ? focus : (first.order[0] ?? null);
-  const drawn = fresh(current);
-  const items = statementList(found.body, drawn, 1, method, 'body', '');
+  const movingNode = moving?.node ?? null;
+  // Laid out with the focus asked for; if that's gone (deleted, or in another method), laid out
+  // again with the first row taking it, so there's always one tab stop.
+  let layout = layOut(found.body, method, shared, focus, highlights, movingNode);
+  if (focus === null || !(layout.rows.has(focus) || layout.order.includes(focus)))
+    layout = layOut(found.body, method, shared, layout.order[0] ?? null, highlights, movingNode);
+  const items = statementList(
+    found.body,
+    { shared, layout, highlights, moving: movingNode, onRowDrawn: props.onRowDrawn },
+    1,
+    method,
+    'body',
+    '',
+  );
+  const current = layout.focus;
 
   const go = (key: FocusKey | undefined) => {
     if (!key) return;
-    props.onFocus(key, drawn.values.get(key));
+    props.onFocus(key, layout.values.get(key));
     tree.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`)?.focus();
   };
-  const rowOf = (key: FocusKey) =>
-    [...drawn.pills.entries()].find(([, p]) => p.includes(key))?.[0] ?? key;
+  const rowOf = (key: FocusKey) => layout.rows.get(key) ?? key;
 
   const onKeyDown = (e: KeyboardEvent) => {
     if (current === null) return;
@@ -499,7 +695,7 @@ export function TilesView(props: ViewProps) {
     }
     const target = e.target as HTMLElement;
     if (e.key === 'Enter' || (e.key === ' ' && target !== null && 'pill' in target.dataset)) {
-      const value = drawn.values.get(current);
+      const value = layout.values.get(current);
       if (value) {
         e.preventDefault();
         return props.onOpenValue(value, target);
@@ -518,17 +714,17 @@ export function TilesView(props: ViewProps) {
     if (!ARROWS.has(e.key)) return;
     e.preventDefault();
     const rowKey = rowOf(current);
-    const pills = drawn.pills.get(rowKey) ?? [];
-    const i = drawn.order.indexOf(rowKey);
+    const pills = layout.pills.get(rowKey) ?? [];
+    const i = layout.order.indexOf(rowKey);
     switch (e.key) {
       case 'ArrowDown':
-        return go(drawn.order[i + 1]);
+        return go(layout.order[i + 1]);
       case 'ArrowUp':
-        return go(drawn.order[i - 1]);
+        return go(layout.order[i - 1]);
       case 'Home':
-        return go(drawn.order[0]);
+        return go(layout.order[0]);
       case 'End':
-        return go(drawn.order.at(-1));
+        return go(layout.order.at(-1));
       case 'ArrowRight':
         return go(current === rowKey ? pills[0] : pills[pills.indexOf(current) + 1]);
       case 'ArrowLeft':
@@ -540,8 +736,8 @@ export function TilesView(props: ViewProps) {
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-pill],[data-detail]');
     if (!target || dragging.current) return;
     const key = target.dataset['key']!;
-    props.onFocus(key, drawn.values.get(key));
-    const value = drawn.values.get(key);
+    props.onFocus(key, layout.values.get(key));
+    const value = layout.values.get(key);
     if (value) props.onOpenValue(value, target);
     else if (target.dataset['detail'])
       props.onOpenDetails(target.dataset['detail'] as NodeId, target);
@@ -555,7 +751,7 @@ export function TilesView(props: ViewProps) {
     const rowEl = el.closest<HTMLElement>('[data-statement]');
     if (!rowEl) return;
     const node = rowEl.dataset['key'] as NodeId;
-    const statementNode = indexProgram(program).get(node)?.node;
+    const statementNode = indexOf(program).get(node)?.node;
     if (!statementNode) return;
     pending.current = { node, x: e.clientX, y: e.clientY, words: describe(statementNode) };
   };
@@ -594,7 +790,7 @@ export function TilesView(props: ViewProps) {
         onPointerDown={onPointerDown}
         onFocus={(e) => {
           const key = (e.target as HTMLElement).dataset['key'];
-          if (key && key !== current) props.onFocus(key, drawn.values.get(key));
+          if (key && key !== current) props.onFocus(key, layout.values.get(key));
         }}
       >
         {items}
@@ -617,13 +813,7 @@ export function TilesView(props: ViewProps) {
           {ghost.words}
         </div>
       ) : null}
-      <div hidden>
-        {drawn.descriptions.map((d) => (
-          <span key={d.id} id={d.id}>
-            {d.text}
-          </span>
-        ))}
-      </div>
+      <Descriptions list={layout.descriptions} />
     </div>
   );
 }

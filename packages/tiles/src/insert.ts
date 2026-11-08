@@ -4,7 +4,7 @@
  * host, as one step. So Escape at any point changes nothing. Until then the block lives in a
  * preview program, never the host's.
  */
-import { applyAll, EditRefused, idMinter, indexProgram } from '@storystage/ast';
+import { applyAll, EditRefused, idMinter } from '@storystage/ast';
 import type {
   Expression,
   ListenerDecl,
@@ -23,7 +23,7 @@ import {
   type ValuePlace,
 } from '@storystage/story-api/editing';
 import type { Change } from './actions.ts';
-import { place, whereIs } from './places.ts';
+import { indexOf, place, whereIs } from './places.ts';
 import { t } from './words.ts';
 
 export interface Pending {
@@ -82,7 +82,7 @@ export function insertionPlace(
   method: NodeId,
   focus: string | null,
 ): StatementPlace {
-  const index = indexProgram(program);
+  const index = indexOf(program);
   const end = () => {
     const owner = index.get(method)?.node as { body?: readonly unknown[] } | undefined;
     return place(method, 'body', owner?.body?.length ?? 0);
@@ -107,10 +107,25 @@ export interface Target {
   readonly make: (mint: () => NodeId) => Expression;
 }
 
+const targetsKept = new WeakMap<Program, Map<NodeId, readonly Target[]>>();
+
 /** What the palette can act on from a method of `type`: the type itself, then its objects. */
 export function targets(program: Program, type: NodeId): readonly Target[] {
+  let byType = targetsKept.get(program);
+  if (!byType) {
+    byType = new Map();
+    targetsKept.set(program, byType);
+  }
+  const kept = byType.get(type);
+  if (kept) return kept;
+  const made = targetsOf(program, type);
+  byType.set(type, made);
+  return made;
+}
+
+function targetsOf(program: Program, type: NodeId): readonly Target[] {
   const describe = describer(program);
-  const decl = indexProgram(program).get(type)?.node;
+  const decl = indexOf(program).get(type)?.node;
   if (!decl || decl.kind !== 'type') return [];
   const self = (mint: () => NodeId): Expression => ({ id: mint(), kind: 'this' });
   const list: Target[] = [
@@ -140,7 +155,7 @@ const story = (name: string): TypeRef =>
 /** A new event handler on `type`, with an empty value for each thing the event needs. */
 export function addListener(program: Program, type: NodeId, event: string): Change {
   const found = findEvent(event);
-  const decl = indexProgram(program).get(type)?.node;
+  const decl = indexOf(program).get(type)?.node;
   if (!found || !decl || decl.kind !== 'type') return { ok: false, reason: t('gone') };
   const mint = idMinter(program);
   const node: ListenerDecl = {

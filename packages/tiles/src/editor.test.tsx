@@ -194,10 +194,14 @@ describe('the contract (spec 14, 1)', () => {
     const { editor: e } = mountEditor();
     act(() => e.highlight([IDS.say], 'rehearse'));
     act(() => e.highlight([IDS.say], 'prompter'));
-    expect(item('cat say Hello').className).toContain('tl-hl-rehearse');
-    expect(item('cat say Hello').className).toContain('tl-hl-prompter');
+    // The Prompter's highlight wears the AI badge, which is part of the row's name.
+    const row = screen.getByRole('treeitem', { name: 'cat say Hello add detail AI' });
+    expect(row.className).toContain('tl-hl-rehearse');
+    expect(row.className).toContain('tl-hl-prompter');
     act(() => e.highlight([], 'rehearse'));
+    act(() => e.highlight([], 'prompter'));
     expect(item('cat say Hello').className).not.toContain('tl-hl-rehearse');
+    expect(item('cat say Hello').textContent).not.toContain('AI');
   });
 
   it('highlights a container’s whole box', () => {

@@ -3,11 +3,13 @@
  * puts them between their markers: `<!-- schedule:NAME -->` … `<!-- /schedule:NAME -->`.
  */
 import {
+  forecast,
   peak,
   simulateCap,
   simulateRoster,
   type Plan,
   type Schedule,
+  type Forecast,
   type Scheduled,
 } from './schedule.ts';
 
@@ -39,11 +41,15 @@ function byStart(s: Schedule): Scheduled[] {
   );
 }
 
-/** What actually happened: "0.3 (20–21 Oct)", "started 21 Oct", or nothing yet. */
-export function actual(it: Scheduled): string {
-  if (!it.started) return '';
+/** What actually happened, or the forecast: "0.3 (20–21 Oct)", "started 21 Oct; ends about
+ * 16 Nov", or "forecast: 30 Nov to 14 Dec". */
+export function actual(it: Scheduled, f?: Forecast): string {
+  const when = f?.items.get(it.id);
+  const at = (weeks: number) => (f ? short(dateOf(f.plan, weeks)) : '');
+  if (!it.started) return when ? `forecast: ${at(when.es)} to ${at(when.ef)}` : '';
   const from = parseDate(it.started);
-  if (!it.finished) return `started ${short(from)}`;
+  if (!it.finished)
+    return when ? `started ${short(from)}; ends about ${at(when.ef)}` : `started ${short(from)}`;
   const to = parseDate(it.finished);
   const weeks = Math.round(((to.getTime() - from.getTime()) / DAY_MS + 1) / 0.7) / 10;
   const span =
@@ -56,6 +62,7 @@ export function actual(it: Scheduled): string {
 }
 
 export function dependencyTable(s: Schedule): string {
+  const f = forecast(s.plan);
   const rows = byStart(s)
     .filter((it) => it.weeks > 0)
     .map((it) =>
@@ -67,11 +74,11 @@ export function dependencyTable(s: Schedule): string {
         it.weeks,
         `wk ${weekDate(s.plan, it.es)}`,
         it.slack === 0 ? '**0 (critical)**' : it.slack,
-        actual(it),
+        actual(it, f),
       ].join(' | '),
     );
   return [
-    '| Item | Work | Lane | Depends on | Weeks (est.) | Earliest start | Slack (weeks) | Actual (weeks) |',
+    '| Item | Work | Lane | Depends on | Weeks (est.) | Planned start | Slack (weeks) | Actual (weeks), or forecast |',
     '|---|---|---|---|---|---|---|---|',
     ...rows.map((r) => `| ${r} |`),
   ].join('\n');
@@ -117,6 +124,24 @@ export function lanesTable(s: Schedule): string {
   return ['| Parallel lanes | Release candidate | Pilot ends |', '|---|---|---|', ...rows].join(
     '\n',
   );
+}
+
+/** Workplan 5a's forecast: the plan's end dates again, from what actually happened. */
+export function forecastSummary(s: Schedule): string {
+  const f = forecast(s.plan);
+  const states = [...f.items.entries()].filter(([id]) => s.items.get(id)!.weeks > 0);
+  const count = (state: string) => states.filter(([, x]) => x.state === state).length;
+  const asOf = long(parseDate(s.plan.asOf));
+  return [
+    `**As of ${asOf}** (\`as_of\` in \`tools/plan/schedule.yaml\`), with ${count('finished')} of ${states.length} items finished and ${count('started')} more started:`,
+    '',
+    `- **Release candidate:** week ${weekDate(s.plan, f.rc)}. The plan above says week ${weekDate(s.plan, s.rc)}.`,
+    `- **Pilot ends:** week ${weekDate(s.plan, f.pilotEnd)}. The plan says week ${weekDate(s.plan, s.pilotEnd)}.`,
+    `- **Later strands done:** week ${weekDate(s.plan, f.end)}. The plan says week ${weekDate(s.plan, s.end)}.`,
+    `- **What now sets the pilot's end:** ${f.critical.join(' → ')}.`,
+    '',
+    "Finished items keep their actual dates; started ones run for their estimate from their start, but end no sooner than half a week after the as-of date; the rest start when what they wait for has finished. The estimates themselves are still the first plan's: they're recalibrated at M1 (WP1.12), and dates the sessions haven't recorded aren't counted.",
+  ].join('\n');
 }
 
 /** The section 6 numbers that items belong to: WP11a, WP11b → 11; WP1.1 → 1; RC → none. */
@@ -167,6 +192,7 @@ export function blocks(s: Schedule): Record<string, Record<string, string>> {
   return {
     'docs/WORKPLAN.md': {
       lanes: spaced(lanesTable(s)),
+      forecast: spaced(forecastSummary(s)),
       'dependency-table': spaced(dependencyTable(s)),
       chart: spaced(chart(s)),
       ...Object.fromEntries(sections.map((n) => [`wp${n}`, inline(sectionLine(s, n))])),

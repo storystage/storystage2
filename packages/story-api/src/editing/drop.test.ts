@@ -53,6 +53,35 @@ describe('statement places', () => {
     if (result.ok) expect(result.edits[0]).toMatchObject({ kind: 'move', node: ID.say });
   });
 
+  // A place counts the list as it's drawn, with the statement still in it; the AST's `move`
+  // counts after it has left. `canDrop` turns one into the other (S5's review of #167).
+  const order = (p: typeof program) => p.types[0]!.methods[0]!.body.map((s) => s.id);
+
+  it('move a statement down its own list, to a place counted as the list is drawn', () => {
+    // [say, together]: the end of the list is place 2, below together.
+    const result = canDrop(program, end, { existing: ID.say });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.edits[0]).toMatchObject({ kind: 'move', node: ID.say, index: 1 });
+    expect(order(result.program)).toEqual([ID.together, ID.say]);
+  });
+
+  it('move a statement up its own list, where the counts agree', () => {
+    const top = { kind: 'statement', parent: ID.main, slot: 'body', index: 0 } as const;
+    const result = canDrop(program, top, { existing: ID.together });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(order(result.program)).toEqual([ID.together, ID.say]);
+  });
+
+  it('leave a statement where it is, above or below itself', () => {
+    for (const index of [0, 1]) {
+      const here = { kind: 'statement', parent: ID.main, slot: 'body', index } as const;
+      const result = canDrop(program, here, { existing: ID.say });
+      expect(result.ok).toBe(true);
+      if (result.ok) expect(order(result.program)).toEqual([ID.say, ID.together]);
+    }
+  });
+
   it('refuse to put a block inside itself, with S2’s words', () => {
     const into = { kind: 'statement', parent: ID.together, slot: 'body', index: 0 } as const;
     expect(canDrop(program, into, { existing: ID.together })).toEqual({
