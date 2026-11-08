@@ -9,8 +9,6 @@ Option C: Alice-style tile editor in React (rows, drop targets, cascading menus,
 
 **`@storystage/tiles/cascade`** gives the cascade menus on their own (`ValueMenu`, `AskValue`, `DetailMenu`, with their props types), so Blocks draws its values-on-drop with the same component (spec 14, §3i.6). Each opens from an `anchor` element, in a portal, with the tile colours.
 
-**`@storystage/tiles/cascade`** gives the cascade menus on their own (`ValueMenu`, `AskValue`, `DetailMenu`, with their props types), so Blocks draws its values-on-drop with the same component (spec 14, §3i.6). Each opens from an `anchor` element, in a portal, with the tile colours.
-
 The studio mounts it through the WP0.8 editor contract:
 
 ```ts
