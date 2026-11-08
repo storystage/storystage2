@@ -189,6 +189,7 @@ export interface ClassBackstage {
   emptyBin(): Promise<void>;
 }
 
+/** The class on this device: its pupils, their folders, the bin and the class Backstage. */
 export interface ClassFolders {
   pupils(): Promise<readonly Pupil[]>;
   addPupil(name: string, picture?: string | null): Promise<Pupil>;

@@ -497,7 +497,7 @@ backstage/retired.json             ids emptied from the bin
 - **All or nothing:** an add writes its files first and `item.json` last, so an item is listed only once it's whole. An add that never finished is swept away at a later add, once its files are a minute old.
 - **Ids are never reused,** live, binned or emptied from the bin, because productions carry imported models by id (decision 0049). The ids emptied are written to `retired.json` before the bin is emptied.
 - **Paths** are the import's own, plain and relative: `/` between parts, none empty, `.` or `..`, no backslash, at most 255 characters. On disk each file has a name made here, so a path never reaches the file system.
-- **Limits:** `FILE_LIMIT` for each file (`too_big`), `BACKSTAGE_RECORD_LIMIT` (1 MiB) for a record (`too_big`), and `CLASS_BACKSTAGE_LIMIT` (2 GiB) for every item's files together, the bin's included (`full`).
+- **Limits:** `FILE_LIMIT` for each file (`too_big`), `BACKSTAGE_RECORD_LIMIT` (1 MiB) for a record (`too_big`), and `CLASS_BACKSTAGE_LIMIT` (2 GiB) for every item's files together, the bin's included (`full`). Records don't count towards it.
 - Changes run through the pupil folders' queue, one at a time.
 
 ## 7. Tests
