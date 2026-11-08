@@ -1,5 +1,5 @@
 /**
- * Adding, deleting and moving scenes, each as one step across everything a scene touches: its
+ * Adding, deleting, moving, renaming and duplicating scenes, each as one step across everything a scene touches: its
  * type in the program, its set-up, its storyboard card, its frames and lines, and its place in
  * the running order (spec section 2). Written by S5 for the Storyboard (WP10a), from WP8.2.
  *
@@ -10,13 +10,24 @@
 import {
   EditRefused,
   applyAll,
+  copyNode,
   idMinter,
   newSceneType,
+  walk,
   type EditOperation,
+  type NodeId,
   type TypeDecl,
 } from '@storystage/ast';
 import { IDENTITY, type SceneSetup } from '@storystage/story-api';
-import { SAFE_ID, sceneId, type Production, type SceneId } from './types.ts';
+import {
+  SAFE_ID,
+  frameId,
+  lineId,
+  sceneId,
+  type FrameId,
+  type Production,
+  type SceneId,
+} from './types.ts';
 
 /** The most scenes a production holds (`docs/spec/07-ux.md`, section 6.9). */
 export const SCENE_LIMIT = 50;
@@ -196,6 +207,128 @@ export function moveScene(p: Production, id: SceneId, to: number, label: string)
       edits: [],
       inverses: [],
       production: { ...p, manifest: { ...p.manifest, runningOrder } },
+    },
+  };
+}
+
+/** Renames a scene: its card's heading, which the Storyboard, the script and the running order show. */
+export function renameScene(
+  p: Production,
+  id: SceneId,
+  heading: string,
+  label: string,
+): SceneStepResult {
+  if (!p.storyboard.cards.some((c) => c.id === id)) return refuse({ code: 'noSuchScene' });
+  return {
+    ok: true,
+    step: {
+      label,
+      edits: [],
+      inverses: [],
+      production: {
+        ...p,
+        storyboard: {
+          ...p.storyboard,
+          cards: p.storyboard.cards.map((c) => (c.id === id ? { ...c, heading } : c)),
+        },
+      },
+    },
+  };
+}
+
+/** The first of `<prefix>1`, `<prefix>2`, … not in `taken`, which it then takes. */
+function freeId(prefix: string, taken: Set<string>): string {
+  for (let n = 1; ; n++) {
+    const id = `${prefix}${n}`;
+    if (!taken.has(id) && SAFE_ID.test(id)) {
+      taken.add(id);
+      return id;
+    }
+  }
+}
+
+/**
+ * Duplicates a scene, placed straight after it in the running order with the same transition:
+ * a copy of its type (fields, methods and listeners, with new ids), its set-up, its card with
+ * `heading`, and its frames and lines with new ids. The copies' frame links follow the copied
+ * blocks, and its lines stay pinned to the copied frames. Recordings aren't copied.
+ */
+export function duplicateScene(
+  p: Production,
+  id: SceneId,
+  options: { readonly heading: string; readonly label: string },
+  random: () => number = Math.random,
+): SceneStepResult {
+  const scene = p.scenes.find((s) => s.id === id);
+  const card = p.storyboard.cards.find((c) => c.id === id);
+  const place = p.manifest.runningOrder.findIndex((r) => r.scene === id);
+  const original = p.program.types.find((t) => t.methods.some((m) => m.id === scene?.method));
+  if (!scene || !card || place === -1 || !original) return refuse({ code: 'noSuchScene' });
+  if (p.scenes.length >= SCENE_LIMIT) return refuse({ code: 'tooManyScenes', limit: SCENE_LIMIT });
+
+  const newId = freeSceneId(p);
+  const copy: TypeDecl = {
+    ...copyNode(original, idMinter(p.program, random)),
+    name: freeTypeName(p),
+  };
+  const copied = new Map<NodeId, NodeId>();
+  walk(copy, (node) => {
+    if (node.copiedFrom) copied.set(node.copiedFrom, node.id);
+  });
+  const edits: EditOperation[] = [
+    {
+      kind: 'declare',
+      label: options.label,
+      parent: null,
+      index: p.program.types.length,
+      node: copy,
+    },
+  ];
+  const applied = edit(p, edits);
+  if ('code' in applied) return refuse(applied);
+
+  const frameIds = new Set<string>(p.frames.map((f) => f.id));
+  const frameMap = new Map<string, FrameId>();
+  const frames = p.frames
+    .filter((f) => f.scene === id)
+    .map((f) => {
+      const fresh = frameId(freeId('f', frameIds));
+      frameMap.set(f.id, fresh);
+      return { ...f, id: fresh, scene: newId, links: f.links.map((l) => copied.get(l) ?? l) };
+    });
+  const lineIds = new Set<string>(p.script.map((l) => l.id));
+  const lines = p.script
+    .filter((l) => l.scene === id)
+    .map((l) => ({
+      ...l,
+      id: lineId(freeId('l', lineIds)),
+      scene: newId,
+      pinnedFrame: l.pinnedFrame === null ? null : (frameMap.get(l.pinnedFrame) ?? null),
+    }));
+
+  const runningOrder = [...p.manifest.runningOrder];
+  runningOrder.splice(place + 1, 0, {
+    scene: newId,
+    transition: p.manifest.runningOrder[place]!.transition,
+  });
+  return {
+    ok: true,
+    step: {
+      label: options.label,
+      edits,
+      inverses: applied.inverses,
+      production: {
+        ...p,
+        manifest: { ...p.manifest, runningOrder },
+        program: applied.program,
+        scenes: [...p.scenes, { id: newId, setup: scene.setup, method: copied.get(scene.method)! }],
+        storyboard: {
+          ...p.storyboard,
+          cards: [...p.storyboard.cards, { ...card, id: newId, heading: options.heading }],
+        },
+        frames: [...p.frames, ...frames],
+        script: [...p.script, ...lines],
+      },
     },
   };
 }
