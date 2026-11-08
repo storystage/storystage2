@@ -666,9 +666,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - what is never stored (keys, Prompter conversations).
 
     (C)
-- [ ] 8.2 Scenes as separate types, each with its own backdrop, cast, camera, markers and script method. Add, duplicate, rename, reorder and delete scenes. Load only the active scene, preloading the next. (C)
-- [ ] 8.3 Running order with transitions (cut, fade to black, crossfade) and the go to scene block for branching stories. (C)
-- [ ] 8.4 Local save and open (File System Access API in Chromium, Tauri file dialogs, download/upload fallback in Safari), autosave and backups, in the place decided in 24.2. **Import hardening** (from 0.9): normalise paths and reject `..` and absolute entries; cap file, entry and texture sizes; validate against the schema before loading. **Browser version:** a banner while work isn't saved to a file, a prompt to download at the end of a session, and a request for persistent storage, because Safari can delete site data after a period without use. (C)
+- [x] 8.2 Scenes as separate types, each with its own backdrop, cast, camera, markers and script method. Add, duplicate, rename, reorder and delete scenes. Load only the active scene, preloading the next. (C)
+- [x] 8.3 Running order with transitions (cut, fade to black, crossfade) and the go to scene block for branching stories. (C)
+- [ ] 8.4 Local save and open (File System Access API in Chromium, Tauri file dialogs, download/upload fallback in Safari), autosave and backups, in the place decided in 24.2. **Import hardening** (from 0.9): normalise paths and reject `..` and absolute entries; cap file, entry and texture sizes; validate against the schema before loading. **Browser version:** a note, the first time a folder opens, that films are kept in this browser on this device, with Save a copy to keep one elsewhere (07-ux §9.2; the owner decided on 8 Nov 2026 that no download prompt at the end of a session is needed), and a request for persistent storage, because browsers can clear site data under storage pressure and Safari after a period without use. (C)
 - [ ] 8.5 Optional Google Drive and OneDrive save and open, behind a setting that is off by default. Use the narrowest scopes (Drive `drive.file`). (C; U registers the apps in WP15) **Not in the first release (0065):** on the roadmap (section 6b).
 
 **Done when:** a three-scene production saves, reopens identically (round-trip test) and plays through with each transition type.
