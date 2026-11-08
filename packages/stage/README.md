@@ -75,7 +75,7 @@ These are the parts WP4.5–4.6's commands will use. No command drives them yet;
 - **The scene and the camera.** The sky, light and fog are `SCENE`'s, and only it takes `atmosphere`, `light` and `fog`; only the camera takes `lens`. `SCENE` isn't in `objects()`.
 - **Good view.** `moveAndOrientTo` with `goodView` puts the camera in front of its target, a little above, at two and a half times its largest size, looking at its middle.
 - **Fading.** `fade` on `SCENE` darkens the whole picture, sky included, to black and back. Loading a scene clears it. Going to another scene and crossfading are the production's playback (WP8.3).
-- **Not yet:** smooth paths, folding and spreading wings, and the size of a joint. The stage refuses them with `bad_argument`.
+- **Not yet:** smooth paths, folding and spreading wings, the size of a joint, and the character actions and faces in the contract (`walk` to `lookAt`, WP4c). The stage refuses them with `bad_argument`, and refuses to say how long they take.
 - **Touching.** Alice's rule, in `hull.ts`: each object has a footprint and a height from its box in the scene. Proximity is the same test with a margin, so it measures the gap between two things, not between their centres.
 - **Backdrops.** `backdrops.ts` holds Alice's 20 starting templates, with her numbers. Her fog value is cubed to give the density. Ground surfaces are flat colours until WP3's textures arrive.
 - **Facing the camera.** A camera with no rotation and a model with no rotation both face +Z, so the camera sees the model's back. To face the camera, a model needs half a turn.

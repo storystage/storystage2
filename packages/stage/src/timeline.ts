@@ -174,6 +174,21 @@ const badPaint = (paint: string) => bad(`There is no paint called ${paint}.`);
 /** For what the contract has and this stage doesn't do yet. */
 const notYet = (what: string) => bad(`The stage can't do ${what} yet.`);
 
+/** The character actions and faces in the contract (WP4c), which this stage doesn't do yet. */
+const ACTIONS_TO_COME = [
+  'walk',
+  'enter',
+  'posture',
+  'reach',
+  'pickUp',
+  'putDown',
+  'clip',
+  'gesture',
+  'expression',
+  'lookAt',
+] as const;
+const toCome = (kind: string): boolean => (ACTIONS_TO_COME as readonly string[]).includes(kind);
+
 /** Where an object is in the scene: its own pose, carried by its vehicles. */
 function scenePose(state: SceneState, id: ObjectId): Pose {
   const self = state.get(id)!;
@@ -376,6 +391,10 @@ export class Timeline {
       }
       case 'lens':
         return { kind: 'lens', value: state.get(CAMERA)!.lens ?? this.baseLens };
+      case 'naturalDuration':
+        // Everything this stage does takes the time it's given.
+        if (toCome(query.action.kind)) throw notYet(`${query.action.kind} at its own pace`);
+        return { kind: 'naturalDuration', value: 0 };
     }
   }
 
@@ -547,6 +566,7 @@ export class Timeline {
         case 'fade':
           return { kind: 'fade', from: self.fade ?? 0, to: c.to };
       }
+      throw notYet(c.kind);
     };
     const r = resolved();
     this.resolved.set(c.seq, r);
@@ -764,6 +784,7 @@ export class Timeline {
     const classIs = (cls: StoryClass, what: string) => {
       if (this.classes.get(c.object) !== cls) throw bad(`Only ${what} has that.`);
     };
+    if (toCome(c.kind)) throw notYet(c.kind);
     switch (c.kind) {
       case 'translate':
         finite(c.by.x, c.by.y, c.by.z);
