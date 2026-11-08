@@ -116,7 +116,14 @@ export class ModelLibrary {
       }),
     );
     return {
-      view: new ObjectView({ root, meshes, box, paintable, joints }),
+      view: new ObjectView({
+        root,
+        meshes,
+        box,
+        paintable,
+        joints,
+        animations: copy.animationGroups,
+      }),
       shape: { joints: file.joints === 'prop-only' ? [] : file.joints, box, jointPlaces },
     };
   }

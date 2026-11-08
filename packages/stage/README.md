@@ -44,6 +44,24 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 
 **Budget.** `stage.measure()` counts the triangles the loaded scene draws, against Backstage's scene budget (`SCENE_BUDGET`, WP3.9). The budget is provisional until the reference devices have been measured (#6).
 
+## Character machinery (5.8)
+
+These are the parts WP4.5–4.6's commands will use. No command drives them yet; WP4c connects them to the timeline.
+
+- **Ways round things.** `buildNavigation(timeline.navigationArea())` makes a scene's walkable area with Recast and Detour, through `recast-navigation`, which loads only when it's first asked for. `path(from, to)` gives the corners of the shortest way, or null if there isn't one. It has no graphics, so both stages find the same way.
+- **Clips.** The stage blends a model's own animations itself, not through Babylon.js's scene, so a film is posed the same way at the same moment. `ObjectView.show(state, where, motion)` takes the clips:
+  - `name`;
+  - `time`, in seconds;
+  - `weight`;
+  - `loop`, which is on unless it's turned off.
+
+  Weights under 1 leave the rest to the model's resting pose, and weights over 1 are scaled down to 1.
+- **Order.** The clips come first, then each joint's own turn on top of them, then reaching, then looking.
+- **Reaching** (`ik.ts`) bends a limb of three joints so that its end is at a point, with the middle joint bending towards a pole. When the point is out of reach, the limb points at it.
+- **Looking** turns a joint to face a point, by no more than its limit. The limit is a fifth of a turn unless told otherwise, counted from where the clips left the joint.
+- **Why not Babylon.js's own controllers?** They move a skeleton's bones, but a glTF model's bones follow their nodes, so the stage turns the nodes with its own arithmetic.
+- **Not measured:** what any of this costs on the reference devices (#6).
+
 ## How it fits together
 
 `timeline.ts` works the scene out, with no graphics: the scene at any time is a pure function of the set-up and the commands so far. `FakeStage` and `BabylonStage` both wrap it, so they agree exactly. `BabylonStage` copies the timeline's state onto Babylon.js objects on each `seek`, and nothing else moves them.
