@@ -40,7 +40,7 @@ const ERRORS: Readonly<Record<TransportErrorCode, OutcomeMessage | null>> = {
     text: "You're offline, so the Prompter can't help right now. Everything else in StoryStage still works.",
   },
   cap_reached: {
-    text: "Your class has used the Prompter's time for today. You can carry on without it.",
+    text: "You've used the Prompter's time for today. You can carry on without it.",
   },
   refused_by_policy: { text: 'Your school has turned this off.' },
   refused_by_allowlist: {
