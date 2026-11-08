@@ -49,6 +49,13 @@ export interface BinnedProduction extends ProductionInfo {
 /** How many earlier versions of each production are kept. */
 export const BACKUPS_KEPT = 5;
 
+/**
+ * The largest file kept or read: spec 15 section 3.1, and `ARCHIVE_LIMITS.fileBytes` in
+ * `@storystage/production`, which a test there keeps equal. Anything larger is `too_big`, refused
+ * before it is read.
+ */
+export const FILE_LIMIT = 512 * 1024 * 1024;
+
 /** One code per cause, each with a plain message in the studio's words. */
 export const FILE_ERROR_CODES = [
   /** The device or the folder is full. */
@@ -59,8 +66,10 @@ export const FILE_ERROR_CODES = [
   'locked',
   /** No such pupil or production. */
   'not_found',
-  /** A name that can't be used: empty, or too long. */
+  /** A name that can't be used: empty, too long, or the same as another in a Collect. */
   'invalid',
+  /** Larger than `FILE_LIMIT`. Nothing is read or written. */
+  'too_big',
   /** The person closed the system's file picker. */
   'cancelled',
   'internal',
@@ -77,17 +86,35 @@ export class FileError extends Error {
   }
 }
 
-/** One pupil's productions (threat PS1: a folder shows only its own pupil's work). */
+export interface WriteOptions {
+  /**
+   * Whether the version being replaced becomes a backup. `true` (the default) for the first save
+   * after a production is opened, a save the learner asks for, and Collect. `false` for autosaves
+   * within a session, so the backups are of sessions, not of the last few minutes (S4, #191).
+   */
+  readonly backup?: boolean;
+}
+
+/**
+ * One pupil's productions (threat PS1: a folder shows only its own pupil's work). If two windows
+ * write the same production, the last write wins.
+ */
 export interface PupilFolder {
   readonly pupil: Pupil;
   list(): Promise<readonly ProductionInfo[]>;
   read(key: ProductionKey): Promise<Uint8Array>;
   /**
    * Saves a production. `key` is `null` for a new one, which gets a key. The write is atomic: a
-   * crash or power cut leaves the last whole version, never half a file (threat PS4). The
-   * version it replaces becomes the newest backup, and only `BACKUPS_KEPT` are kept.
+   * crash or power cut leaves the last whole version, never half a file (threat PS4). Unless
+   * `backup` is false, the version it replaces becomes the newest backup, and only
+   * `BACKUPS_KEPT` are kept.
    */
-  write(key: ProductionKey | null, name: string, bytes: Uint8Array): Promise<ProductionInfo>;
+  write(
+    key: ProductionKey | null,
+    name: string,
+    bytes: Uint8Array,
+    options?: WriteOptions,
+  ): Promise<ProductionInfo>;
   /** Newest first. */
   backups(key: ProductionKey): Promise<readonly BackupInfo[]>;
   readBackup(key: ProductionKey, index: number): Promise<Uint8Array>;
@@ -109,8 +136,8 @@ export interface ClassFolders {
   open(id: PupilId): Promise<PupilFolder>;
   /** The folder in use, if a pupil has chosen their name. */
   current(): PupilFolder | null;
-  /** At the end of a lesson: nobody's folder is open. */
-  close(): void;
+  /** At the end of a lesson: waits for writes in progress, then nobody's folder is open. */
+  close(): Promise<void>;
   /** For the teacher only (threat PS1): what pupils have deleted. */
   bin(): Promise<readonly BinnedProduction[]>;
   restore(pupil: PupilId, key: ProductionKey): Promise<void>;
@@ -134,11 +161,18 @@ export interface CollectedFile {
 export interface FilePicker {
   /** Save a copy: the person picks where. */
   saveCopy(suggestedName: string, bytes: Uint8Array): Promise<void>;
-  /** Open a file the person picks. */
+  /** Open a file the person picks. One over `FILE_LIMIT` is `too_big`, and isn't read. */
   open(): Promise<{ readonly name: string; readonly bytes: Uint8Array }>;
-  /** Collect: the teacher picks a folder, and every file is written into it. Gives the count. */
+  /**
+   * Collect: the teacher picks a folder, and every file is written into it. Gives the count. The
+   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file` are
+   * `invalid`, and nothing is written.
+   */
   collect(files: readonly CollectedFile[]): Promise<number>;
-  /** Hand back: the teacher picks a folder, and every `.storystage` one level down is read. */
+  /**
+   * Hand back: the teacher picks a folder, and every `.storystage` one level down is read. Any
+   * over `FILE_LIMIT` is `too_big`, and nothing is read.
+   */
   handBack(): Promise<readonly CollectedFile[]>;
 }
 

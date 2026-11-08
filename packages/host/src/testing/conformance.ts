@@ -101,6 +101,28 @@ export function describeClassFoldersContract(
       expect((await folder.list())[0]?.backups).toBe(BACKUPS_KEPT);
     });
 
+    it('keeps no backup for an autosave, so backups are of sessions (S4, #191)', async () => {
+      const { folder } = await withPupil();
+      const { key } = await folder.write(null, 'Film', bytes('opened'));
+      await folder.write(key, 'Film', bytes('autosave 1'), { backup: false });
+      await folder.write(key, 'Film', bytes('autosave 2'), { backup: false });
+      expect(await folder.backups(key)).toEqual([]);
+      expect(text(await folder.read(key))).toBe('autosave 2');
+
+      await folder.write(key, 'Film', bytes('next session'));
+      expect((await folder.backups(key)).length).toBe(1);
+      expect(text(await folder.readBackup(key, 0))).toBe('autosave 2');
+    });
+
+    it('finishes writes in progress before closing', async () => {
+      const { folders, folder, pupil } = await withPupil();
+      const pending = folder.write(null, 'Film', bytes('last words'));
+      await folders.close();
+      const { key } = await pending;
+      const reopened = await folders.open(pupil.id);
+      expect(text(await reopened.read(key))).toBe('last words');
+    });
+
     it('takes a new name with a new version', async () => {
       const { folder } = await withPupil();
       const { key } = await folder.write(null, 'Draft', bytes('a'));
@@ -160,7 +182,7 @@ export function describeClassFoldersContract(
       const opened = await folders.open(pupil.id);
       expect(folders.current()?.pupil.id).toBe(pupil.id);
       expect(opened.pupil.id).toBe(pupil.id);
-      folders.close();
+      await folders.close();
       expect(folders.current()).toBeNull();
     });
 

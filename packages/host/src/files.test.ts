@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { FILE_ERROR_CODES, safeFileName } from './files.ts';
+import { FILE_ERROR_CODES, FILE_LIMIT, safeFileName } from './files.ts';
 
 describe('safeFileName', () => {
   it.each([
@@ -43,7 +43,12 @@ it('has one code per cause, including the two S4 shows', () => {
     'locked',
     'not_found',
     'invalid',
+    'too_big',
     'cancelled',
     'internal',
   ]);
+});
+
+it('limits files to 512 MiB, as spec 15 section 3.1 does', () => {
+  expect(FILE_LIMIT).toBe(512 * 1024 * 1024);
 });

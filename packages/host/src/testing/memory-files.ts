@@ -5,6 +5,7 @@
  */
 import {
   BACKUPS_KEPT,
+  FILE_LIMIT,
   FileError,
   type BackupInfo,
   type BinnedProduction,
@@ -40,13 +41,24 @@ function checkName(name: string): string {
 
 const copy = (bytes: Uint8Array) => new Uint8Array(bytes);
 
+/** Refuses anything over the limit before keeping it. `limit` is lowered in tests only. */
+const within = (bytes: Uint8Array, limit: number) => {
+  if (bytes.length > limit) throw new FileError('too_big');
+  return bytes;
+};
+
 /** `clock` gives each write its time, so tests can see the order. */
-export function memoryClassFolders(clock: () => Date = () => new Date()): ClassFolders {
+/** `limit` stands in for `FILE_LIMIT`, so a test can reach it without 512 MiB. */
+export function memoryClassFolders(
+  clock: () => Date = () => new Date(),
+  limit = FILE_LIMIT,
+): ClassFolders {
   const pupils = new Map<PupilId, Pupil>();
   const folders = new Map<PupilId, Map<ProductionKey, Stored>>();
   const binned: { pupil: PupilId; key: ProductionKey; stored: Stored; binnedAt: string }[] = [];
   let next = 0;
   let current: PupilFolder | null = null;
+  let writing = Promise.resolve();
   const now = () => clock().toISOString();
 
   const info = (key: ProductionKey, stored: Stored): ProductionInfo => ({
@@ -78,22 +90,33 @@ export function memoryClassFolders(clock: () => Date = () => new Date()): ClassF
       async read(key) {
         return copy(found(key).current.bytes);
       },
-      async write(key, name, bytes) {
-        const title = checkName(name);
-        const version = { bytes: copy(bytes), savedAt: now() };
-        const folder = folderOf(pupil.id);
-        if (key === null) {
-          next += 1;
-          const made = `production-${next}`;
-          const stored = { name: title, current: version, backups: [], original: null };
-          folder.set(made, stored);
-          return info(made, stored);
-        }
-        const stored = found(key);
-        stored.backups = [stored.current, ...stored.backups].slice(0, BACKUPS_KEPT);
-        stored.current = version;
-        stored.name = title;
-        return info(key, stored);
+      write(key, name, bytes, options = {}) {
+        const done = (async () => {
+          const title = checkName(name);
+          const version = { bytes: copy(within(bytes, limit)), savedAt: now() };
+          const folder = folderOf(pupil.id);
+          if (key === null) {
+            next += 1;
+            const made = `production-${next}`;
+            const stored = { name: title, current: version, backups: [], original: null };
+            folder.set(made, stored);
+            return info(made, stored);
+          }
+          const stored = found(key);
+          if (options.backup !== false) {
+            stored.backups = [stored.current, ...stored.backups].slice(0, BACKUPS_KEPT);
+          }
+          stored.current = version;
+          stored.name = title;
+          return info(key, stored);
+        })();
+        writing = writing.then(() =>
+          done.then(
+            () => undefined,
+            () => undefined,
+          ),
+        );
+        return done;
       },
       async backups(key): Promise<readonly BackupInfo[]> {
         return found(key).backups.map((version, index) => ({
@@ -159,7 +182,8 @@ export function memoryClassFolders(clock: () => Date = () => new Date()): ClassF
       return current;
     },
     current: () => current,
-    close() {
+    async close() {
+      await writing;
       current = null;
     },
     async bin(): Promise<readonly BinnedProduction[]> {
@@ -185,13 +209,14 @@ export function memoryClassFolders(clock: () => Date = () => new Date()): ClassF
 
 /**
  * A file picker that plays scripted answers, for tests. `null` for an answer means the person
- * closed the picker.
+ * closed the picker. `limit` stands in for `FILE_LIMIT`, as for `memoryClassFolders`.
  */
 export function memoryFilePicker(
   answers: {
     open?: () => { name: string; bytes: Uint8Array } | null;
     handBack?: () => readonly CollectedFile[] | null;
   } = {},
+  limit = FILE_LIMIT,
 ): FilePicker & {
   readonly saved: { name: string; bytes: Uint8Array }[];
   readonly collected: CollectedFile[];
@@ -209,14 +234,20 @@ export function memoryFilePicker(
       saved.push({ name, bytes: copy(bytes) });
     },
     async open() {
-      return answer(answers.open?.());
+      const file = answer(answers.open?.());
+      within(file.bytes, limit);
+      return file;
     },
     async collect(files) {
+      const names = new Set(files.map((file) => `${file.folder}/${file.file}`));
+      if (names.size !== files.length) throw new FileError('invalid');
       collected.push(...files.map((file) => ({ ...file, bytes: copy(file.bytes) })));
       return files.length;
     },
     async handBack() {
-      return answer(answers.handBack?.());
+      const files = answer(answers.handBack?.());
+      for (const file of files) within(file.bytes, limit);
+      return files;
     },
   };
 }
