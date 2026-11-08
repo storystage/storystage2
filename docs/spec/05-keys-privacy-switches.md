@@ -1,14 +1,14 @@
 # 05 Keys privacy switches
 
-- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels (from StoryStage 1 spec 02)
-- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4)
+- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels, speech models (from StoryStage 1 spec 02)
+- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4); WP15 for WP14.1 (section 5)
 - **Owner:** S8
-- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026.
+- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026, section 5 on 8 Nov 2026.
 - **Carried over from:** StoryStage 1 spec 02 (keys, privacy, switches); see `docs/carried-over/` and its note on what changes.
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` section 2.1 (W1 to W10).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
 
 ## 1. Wizard
 
@@ -341,7 +341,70 @@ WP15's done-when. On the pilot channel:
 
 The time from step 3 to step 4 is recorded in `docs/lanes.md`.
 
-## 5. Tests
+## 5. Speech models
+
+Speech input (spec 06 section 1) runs whisper in a worker in the webview. The worker gets its model from the native layer, already checked. The webview never fetches it and the content security policy gains no remote host (threat W4). Tauri apps only: the browser version has no speech input.
+
+### 5.1 The models
+
+`apps/desktop/src-tauri/speech-models.json` pins each one. Nothing else may be loaded.
+
+| Name | File | Bytes | SHA-256 | Where it comes from |
+|---|---|---|---|---|
+| `tiny.en-q5_1` | `ggml-tiny.en-q5_1.bin` | 32,166,155 | `c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b` | Bundled in the app (decision 0057) |
+| `tiny.en` | `ggml-tiny.en.bin` | 77,704,715 | `921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f` | Downloaded on request, into the app's data folder |
+
+The byte counts are the files' sizes, checked by the build. A pin that doesn't match the bytes stops the build.
+
+### 5.2 Bundled
+
+Before each build, `apps/desktop/scripts/fetch-models.mjs` fetches the bundled model from whisper.cpp's model repository (`huggingface.co/ggerganov/whisper.cpp`). It checks the file against the pin, and fails the build if it doesn't match, so a changed upstream file never reaches the app. The model goes into the app's resources (`bundle.resources`). It isn't kept in the repository.
+
+On Windows, macOS and iPad the native layer reads it from the resource folder. On Android, resources live inside the APK, so it reads them through Tauri's file system plugin, from Rust only. The webview is given no permission for that plugin.
+
+### 5.3 Downloaded
+
+*Proposed, for the owner to decide:* the optional model is published as a file on a GitHub release, `speech-models-v1`, by the same CI that checks its pin. Decision 0047 already names GitHub Releases as the host for static files, so this adds no new third party. Spec 06 had StoryStage's website, which is uploaded by hand (0046).
+
+- Only after the learner agrees in Settings (spec 06 section 1.4). Nothing downloads at start-up.
+- Over HTTPS, to a temporary file in the app's data folder, never into memory whole.
+- It stops once more bytes arrive than the pin allows, or a different `Content-Length` is announced.
+- The file is kept only if its SHA-256 matches: renamed into place if so, deleted if not.
+- **Cancel** stops the download and deletes the temporary file.
+
+### 5.4 Loading
+
+Every load reads the file and checks its SHA-256 against the pin again, then hands over the bytes. A file that fails the check is deleted if it was downloaded, and refused if it's the bundled one. So a model changed on disk is never used, and a downloaded one can be fetched again.
+
+### 5.5 What the studio can do
+
+Through the host interface (`HostInterface.speech`, `null` in the browser version):
+
+| Command | Takes | Returns |
+|---|---|---|
+| `speech_models` | Nothing | Each model's name, bytes, whether it's bundled, and whether it's ready |
+| `speech_model_load` | `{ name }` | The checked bytes, as a raw reply rather than JSON |
+| `speech_model_download` | `{ name, channel }` | Progress on the channel (`received`, `total`), then `end` or one error |
+| `speech_model_cancel` | `{ name }` | Nothing |
+| `speech_model_remove` | `{ name }` | Nothing. The bundled model can't be removed |
+
+A name that isn't pinned is refused. So is any command, apart from `speech_models`, when the Prompter's level is Off or `prompter.voiceInput` is false (spec 06 section 1.1).
+
+| Error | When | Spec 06's message (1.10) |
+|---|---|---|
+| `refused_by_policy` | The level is Off, or voice input is off | The button isn't shown |
+| `not_downloaded` | Loading a model that isn't there | The consent step |
+| `check_failed` | The SHA-256 or size didn't match | "The download didn't arrive whole. Try again." |
+| `offline` | No connection, or the download stopped | "The download didn't arrive whole. Try again." |
+| `no_space` | The data folder is full | "Voice input stopped working. You can still type." |
+| `cancelled` | Cancel was pressed | Nothing |
+| `internal` | Anything else | "Voice input stopped working. You can still type." |
+
+### 5.6 Cross-origin isolation
+
+whisper's threads need `crossOriginIsolated` (spec 06 section 1.1). The Tauri apps send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on every response (`app.security.headers` in `tauri.conf.json`). Everything the studio loads is its own, so nothing breaks under `require-corp`.
+
+## 6. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
 
@@ -376,3 +439,10 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Manifests, rollouts and rollbacks (4.2 to 4.4) | Building and changing a manifest | Vitest |
 | The lock holds in the app (WP15 done-when) | With the file set, `prompter_status` reports `prompter_off` | WP15k, then device (owner) |
 | Rollback (4.7) | The drill | CI, then a device (owner) |
+| The pins match the files (5.1) | `fetch-models.mjs` fails the build on any mismatch | Every app build |
+| Every load checks the model again (5.4) | A tampered file, bundled and downloaded, refused, and the downloaded one deleted | Rust unit |
+| The download stops at the pin's size, and keeps nothing that doesn't match (5.3) | A local server sending too much, the wrong size and the wrong bytes | Rust integration |
+| Only pinned names (5.5) | A path, an unknown name, an empty name | Rust unit |
+| Refused when voice input is off (5.5) | Each command, at level Off and with `prompter.voiceInput=false` | Rust unit |
+| Cross-origin isolation (5.6) | The shipped config has both headers | Rust unit, on `tauri.conf.json` |
+| The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |
