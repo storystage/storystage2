@@ -3190,6 +3190,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "storystage-gate"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2",
+ "storystage-policy",
+]
+
+[[package]]
 name = "storystage-policy"
 version = "0.1.0"
 dependencies = [
