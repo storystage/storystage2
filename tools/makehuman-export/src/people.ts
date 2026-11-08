@@ -65,6 +65,8 @@ export const RETIRED_CLOTHES = [
   'female_casualsuit02',
   'male_casualsuit02',
   'male_casualsuit04',
+  // Its T-shirt carries MakeHuman's logo too, faint once recoloured (found in the renders, 8 Nov).
+  'male_casualsuit06',
 ] as const;
 
 /**
