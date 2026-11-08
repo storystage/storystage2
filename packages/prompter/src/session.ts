@@ -32,10 +32,16 @@ export const CONVERSATION_LIMIT = 100_000;
 /** Runs the tools. The real one (WP13b) works through the program's edit operations. */
 export interface ToolRunner {
   /** Before the first call of a learner request: everything until `end` is one undo step. */
-  begin?(request: string): void;
+  begin?(request: string, context: RequestContext): void;
   run(name: ToolName, input: JsonObject): Promise<ToolOutcome> | ToolOutcome;
   /** When the request ends, however it ends. */
   end?(): void;
+}
+
+/** What the runner needs to know about the request it is running. */
+export interface RequestContext {
+  /** The plan the learner agreed, if this request builds one. */
+  readonly agreedPlan?: Json;
 }
 
 export type SessionEvent =
@@ -143,7 +149,10 @@ export class PrompterSession {
     }
     const before = this.#mark();
     this.#addLearnerTurn(request, options);
-    this.#setup.runner.begin?.(request);
+    this.#setup.runner.begin?.(
+      request,
+      options.agreedPlan === undefined ? {} : { agreedPlan: options.agreedPlan },
+    );
     try {
       const outcome = await this.#loop(options, fresh);
       if (!outcome.kept) this.#restore(before);
