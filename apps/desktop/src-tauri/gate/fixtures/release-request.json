@@ -328,7 +328,7 @@
           "properties": {
             "object": {
               "type": "string",
-              "description": "A name in the scene: \"cat\", \"camera\", \"ground\"."
+              "description": "A name in the scene: \"cat\", or \"camera\"."
             },
             "property": {
               "type": "string",

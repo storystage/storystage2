@@ -13,6 +13,7 @@ import { storedClassFolders } from './class-folders.ts';
 import type { ClassFolders, FilePicker } from './files.ts';
 import { readPickerKind, tauriPicker } from './tauri-picker.ts';
 import { tauriStore } from './tauri-store.ts';
+import { countingFor, tauriUsage, type PrompterUsage } from './usage.ts';
 import { BROWSER_POLICY, readPolicy, type PolicyInForce } from './policy.ts';
 import { tauriSpeech, type ChannelClass, type Invoke, type SpeechModels } from './speech.ts';
 
@@ -39,6 +40,11 @@ export interface HostInterface {
    * opened by the native layer; on iPad and Android, the webview's own, for now.
    */
   readonly picker: FilePicker;
+  /**
+   * The Prompter's use today on this device, per pupil, for the teacher (24.5, spec 05 section
+   * 2.4). `null` in the browser version, which has no Prompter.
+   */
+  readonly prompterUsage: PrompterUsage | null;
 }
 
 /** The browser version's host (0022, 15.6): the Prompter has no way to reach anything. */
@@ -49,6 +55,7 @@ export const browserHost: HostInterface = {
   speech: null,
   classes: storedClassFolders(browserStore()),
   picker: browserPicker(),
+  prompterUsage: null,
 };
 
 /** The Tauri command that returns the installed version. It takes no arguments. */
@@ -89,7 +96,9 @@ export async function tauriHost(
     prompter: reachable,
     version,
     speech,
-    classes: storedClassFolders(tauriStore(invoke)),
+    // Requests count against whoever's folder is open (24.5).
+    classes: countingFor(storedClassFolders(tauriStore(invoke)), invoke),
     picker: pickerKind === 'native' ? tauriPicker(invoke) : browserPicker(),
+    prompterUsage: tauriUsage(invoke),
   };
 }

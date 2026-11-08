@@ -1,0 +1,177 @@
+{
+  "repository": "storystage/storystage",
+  "commit": "325c73d07c8e43516783849255feb8f3f392cc94",
+  "folder": "core/resources/src/application/resources/starter-projects",
+  "files": [
+    {
+      "name": "AfricaFull.a3p",
+      "bytes": 105489,
+      "sha256": "28b0d490bbf10518b897f0a0e3879a3da543d4c373d723bb357f03f7dc1ded84"
+    },
+    {
+      "name": "africa.a3p",
+      "bytes": 105489,
+      "sha256": "0f17e2936cc837452c5903db984b2edf5b909d684fee036a4045ddf301fc2038"
+    },
+    {
+      "name": "africaMinimum.a3p",
+      "bytes": 59722,
+      "sha256": "a60bdf1a4cd00694ec165eb003b541d8cf36026d85ec3accdeb17a63255d51b7"
+    },
+    {
+      "name": "amazon.a3p",
+      "bytes": 209060,
+      "sha256": "cbdd871b215e8c10b34dbce88a545cbd54d9b22a6f98008984b709a212b7c2c0"
+    },
+    {
+      "name": "amazonFull.a3p",
+      "bytes": 130454,
+      "sha256": "53452e2fab7a933a0f55230577e595524ee491c38b8686a1a834f85c17cbd864"
+    },
+    {
+      "name": "amazonMinimum.a3p",
+      "bytes": 92178,
+      "sha256": "8bec000374c0fd9b27ec64b68b27af5b60829b4242765527272428a1a23b1131"
+    },
+    {
+      "name": "chinaFull.a3p",
+      "bytes": 124336,
+      "sha256": "afb542194c5f3ae99a88094d187213e0523cce01de80573455eb96b91193f2cb"
+    },
+    {
+      "name": "chinaMinimum.a3p",
+      "bytes": 97420,
+      "sha256": "65fcc7779487d5cd893d4df555ee6ce71971136d4409e0e390f9c9ba66814200"
+    },
+    {
+      "name": "cloudforest.a3p",
+      "bytes": 481858,
+      "sha256": "a22234cd491364490ebf995463c948dbaf70c6abdc326ea2f35f50e99682937f"
+    },
+    {
+      "name": "iceFull.a3p",
+      "bytes": 117349,
+      "sha256": "984e1513f4b6bd83a6ae11ae3fbc797e3ffc4b41b4b1fb07b215d4193e811be9"
+    },
+    {
+      "name": "india.a3p",
+      "bytes": 287399,
+      "sha256": "b6d28908310effe4af368b9998b647c49ef9cd8fdfd24c9ef8d35b197f53dbf3"
+    },
+    {
+      "name": "indiaFull.a3p",
+      "bytes": 120308,
+      "sha256": "32c715fdb6f26915634e7330ee24d1903ffe75dceeae295322e22c06d7d8059a"
+    },
+    {
+      "name": "indiaMinimum.a3p",
+      "bytes": 53475,
+      "sha256": "6fe298656937fa76c90710e333ca04b24aa240fedc6c4a805fe4560cb2f36387"
+    },
+    {
+      "name": "lagoon.a3p",
+      "bytes": 415916,
+      "sha256": "eeec9af89d386bb3b2621502c2af003ef1c2d9a3b3f2d734ac7e9dd74156461c"
+    },
+    {
+      "name": "lagoonFull.a3p",
+      "bytes": 214311,
+      "sha256": "4f88b3ba1284b142d3c7769e3faa4041dfd609485c419ce0b989a5a38e9e39be"
+    },
+    {
+      "name": "lagoonMinimum.a3p",
+      "bytes": 194887,
+      "sha256": "c5397c8b5e1cc6173f8b032f774f10285f042a8f393d3bda43e9d9550260f0c2"
+    },
+    {
+      "name": "magic2.a3p",
+      "bytes": 278520,
+      "sha256": "ca77da6e667924dc5f5adb78ac65aeda29114ae51a84faad1fb8894375387c8f"
+    },
+    {
+      "name": "magicFull.a3p",
+      "bytes": 130395,
+      "sha256": "8508545608705efb1f29881ba7d09ca52fcb6c6735fc7e3d67c031876e6eed3f"
+    },
+    {
+      "name": "magicMinimum.a3p",
+      "bytes": 108178,
+      "sha256": "7d5d1ef49d6a039803943bfa1f4bbdc5580c2ed610f33f6dc86041b34df9c7ad"
+    },
+    {
+      "name": "mars.a3p",
+      "bytes": 221066,
+      "sha256": "71b774dd5e99ce4d3a82135af7e69be3b6fd1dc544072a18a012458f1ac59591"
+    },
+    {
+      "name": "marsFull.a3p",
+      "bytes": 121613,
+      "sha256": "7c465c2832e2405cb3133d8b280e2474fc1eab997c8f82ea5c69fb3d9dbea831"
+    },
+    {
+      "name": "marsMinimum.a3p",
+      "bytes": 90978,
+      "sha256": "d98a2a003e55fc2a2f3d28361056f1351bb9f715764ec0a1ab84214f9edcb904"
+    },
+    {
+      "name": "moon.a3p",
+      "bytes": 116420,
+      "sha256": "1682b743e60c668336c325fb43ae22ad243817e0a008aa1642c9f11660a64a08"
+    },
+    {
+      "name": "northwest.a3p",
+      "bytes": 465445,
+      "sha256": "78efa0d5e41bc7939000932a71aba98ebb4c74a8567d86c3fcbd479f60c30e60"
+    },
+    {
+      "name": "pacificnorthwest.a3p",
+      "bytes": 160276,
+      "sha256": "c051928c837abb846b2d448590a63081ba437a499b02fe3a270229450b470cfc"
+    },
+    {
+      "name": "snow.a3p",
+      "bytes": 193167,
+      "sha256": "3a02dd248d2cdd0ee03a802e201a3e230c50bbd5feb2538df33f90488ea1347a"
+    },
+    {
+      "name": "snowFull.a3p",
+      "bytes": 127606,
+      "sha256": "d7779627cfc6695cbdb3dd8f1b77ab4ff5c6515f0b53ef53dd5557decb7599d7"
+    },
+    {
+      "name": "snowMinimum.a3p",
+      "bytes": 109437,
+      "sha256": "bc6313ce017fd80b1b309e3d4fe8573642c1f69eb7ef6c37f949b1c362c38923"
+    },
+    {
+      "name": "southwest.a3p",
+      "bytes": 311561,
+      "sha256": "79082a9d2178af77f50c13780225ea739b4df115254a7140e3e8efa485e641ab"
+    },
+    {
+      "name": "southwestFull.a3p",
+      "bytes": 128019,
+      "sha256": "97a45d8112543d9cdd9346ac7dfcc5db3809f705f81995cad919d4e204bb2af5"
+    },
+    {
+      "name": "southwestMinimum.a3p",
+      "bytes": 111355,
+      "sha256": "b6db6260317570e89628add59d9cad2b81d4c17fc79676c13bf1d054f34c528e"
+    },
+    {
+      "name": "wonderland.a3p",
+      "bytes": 662471,
+      "sha256": "f3d482c54c0fa5058d45ed721e0f603a16424b13fed0ede906daab159988c6cd"
+    },
+    {
+      "name": "wonderlandFull.a3p",
+      "bytes": 407093,
+      "sha256": "317734aeec3d2e580f505785caf0cc1474db32b4819ebd21bc29a3907ba6db21"
+    },
+    {
+      "name": "wonderlandMinimum.a3p",
+      "bytes": 253123,
+      "sha256": "cca648005efeca3accf5141d628cc411ab8e2bd58342427578a0afb9f7f89dee"
+    }
+  ]
+}

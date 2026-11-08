@@ -3,6 +3,7 @@ import {
   type Production,
   type SceneId,
   type Transition,
+  type SceneStep,
 } from '@storystage/production';
 import type { StandIn } from '@storystage/story-api';
 import { Button, Dialog, NeutralNote, Segmented, TextField } from '@storystage/ui';
@@ -22,6 +23,8 @@ export interface SceneDetailsProps {
   production: Production;
   scene: SceneId;
   onChange: (label: string, next: Production, key?: string) => void;
+  /** A scene step (delete): the program and the rest of the production, one undo step. */
+  onStep: (step: SceneStep) => void;
   onLeave: () => void;
   /** After a delete, the strip chooses another scene. */
   onDeleted: () => void;
@@ -45,6 +48,7 @@ export function SceneDetails({
   production: p,
   scene,
   onChange,
+  onStep,
   onLeave,
   onDeleted,
 }: SceneDetailsProps) {
@@ -65,7 +69,7 @@ export function SceneDetails({
       return;
     }
     setConfirming(false);
-    onChange(result.step.label, result.step.production);
+    onStep(result.step);
     onDeleted();
   };
 

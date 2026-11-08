@@ -236,16 +236,35 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
 
+One step, joined to the rest of the request's (section 1.7): a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
+
+- The model must be in the shipped catalogue or the production's imported models, or the answer is `unknown_object`.
+- The name is made into a name the program accepts ("Abyssinian cat" becomes `abyssinianCat`), and given a number if the scene's type already uses it (`cat2`). The result says the final name.
+- `turn_degrees` turns it about the vertical axis. A `scale` outside 0.05 to 20, or a position that isn't three numbers, is `bad_argument`.
+
 #### `set_property`
 
 Changes how an object starts in the scene.
 
 | Field | Type | Notes |
 |---|---|---|
-| `object` | string | A name in the scene (`cat`, `camera`, `ground`) |
+| `object` | string | A name in the scene (`cat`), or `camera` |
 | `property` | enum `position`, `turn_degrees`, `scale`, `paint`, `opacity`, `vehicle` | |
 | `value` | string | A position as `"x, y, z"`, a number, a paint name or `#rrggbb`, opacity 0 to 1, or the object it rides on; checked per property |
 | `narration`, `plan_step` | | |
+
+It changes only the scene's set-up, never the program, as one step joined to the rest of the request's.
+
+| Property | Value | Objects |
+|---|---|---|
+| `position` | `"x, y, z"` in metres | Any object, and `camera` |
+| `turn_degrees` | Degrees about the vertical axis, replacing any other turn | Any object, and `camera` |
+| `scale` | 0.05 to 20, the same in every direction | Objects |
+| `paint` | A `Color` from the catalog, or `#rrggbb` | Objects |
+| `opacity` | 0 (invisible) to 1 | Objects |
+| `vehicle` | Another object's name, or `scene` to ride on nothing. A vehicle can't end up carrying itself | Objects |
+
+An object that isn't in the scene is `unknown_object`; a value that doesn't fit, or a property the object can't have, is `bad_argument`.
 
 #### `insert_statement`
 
@@ -581,7 +600,7 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Needs | From | For |
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
-| The production's undo session, holding program edits and scene set-ups in one step. Until it exists, `add_model`, `set_property` and `stage_scene` answer `not_allowed_here` | S4, S2 (WP8.2, spec 03 section 2.1) | Section 3.1, 3.2 |
+| Set the stage from the storyboard (10.10), for `stage_scene` to reuse. Until it exists, `stage_scene` answers `not_allowed_here`. The production's undo session it needed is done (`ProductionSession`, #186), and `add_model` and `set_property` use it | S5 (WP10c) | Section 3.2 |
 | Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |

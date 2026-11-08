@@ -9,6 +9,8 @@
     "allow-prompter-send",
     "allow-prompter-cancel",
     "allow-prompter-status",
+    "allow-prompter-pupil",
+    "allow-prompter-usage",
     "allow-key-add",
     "allow-key-status",
     "allow-key-remove",
