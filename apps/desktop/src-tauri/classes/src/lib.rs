@@ -6,6 +6,10 @@
 //! - A write goes to a temporary file in the same folder, is flushed, then renamed over the old
 //!   one, so a file is whole or untouched (PS4).
 //! - Symbolic links, and junctions on Windows, are never followed.
+//!
+//! `picked` is the same care for the files and folders a person picks in the system's dialog.
+
+pub mod picked;
 
 use std::fs;
 use std::io::{self, Write};
@@ -23,6 +27,7 @@ pub enum Code {
     Locked,
     Unreadable,
     NotFound,
+    Invalid,
     TooBig,
     Internal,
 }
@@ -34,6 +39,7 @@ impl Code {
             Code::Locked => "locked",
             Code::Unreadable => "unreadable",
             Code::NotFound => "not_found",
+            Code::Invalid => "invalid",
             Code::TooBig => "too_big",
             Code::Internal => "internal",
         }
@@ -42,7 +48,7 @@ impl Code {
 
 /// The operating system's errors as codes: a full disk is `full`, a file another program holds
 /// is `locked`, and anything else is `unreadable`.
-fn code_of(error: &io::Error) -> Code {
+pub(crate) fn code_of(error: &io::Error) -> Code {
     match error.raw_os_error() {
         // ERROR_HANDLE_DISK_FULL, ERROR_DISK_FULL
         #[cfg(windows)]
@@ -85,7 +91,7 @@ pub fn is_safe_part(part: &str) -> bool {
 
 /// A unique temporary name in a folder. It starts with a dot, so it's never a safe part and
 /// `list` never shows it.
-fn temporary_name() -> String {
+pub(crate) fn temporary_name() -> String {
     static COUNT: AtomicU64 = AtomicU64::new(0);
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     format!(".tmp-{}-{}-{}", std::process::id(), nanos, COUNT.fetch_add(1, Ordering::Relaxed))
@@ -96,14 +102,14 @@ fn is_link(meta: &fs::Metadata) -> bool {
 }
 
 /// What is at a path, without following a link there.
-enum Entry {
+pub(crate) enum Entry {
     Missing,
     File,
     Folder,
     Link,
 }
 
-fn entry(path: &Path) -> Result<Entry, Code> {
+pub(crate) fn entry(path: &Path) -> Result<Entry, Code> {
     match fs::symlink_metadata(path) {
         Ok(meta) if is_link(&meta) => Ok(Entry::Link),
         Ok(meta) if meta.is_dir() => Ok(Entry::Folder),
@@ -115,7 +121,7 @@ fn entry(path: &Path) -> Result<Entry, Code> {
 
 /// Writes `bytes` to a new file at `temporary`, flushes it to disk, then renames it over `path`,
 /// which replaces the old file in one step, on Windows too.
-fn write_whole(temporary: &Path, path: &Path, bytes: &[u8]) -> io::Result<()> {
+pub(crate) fn write_whole(temporary: &Path, path: &Path, bytes: &[u8]) -> io::Result<()> {
     let mut file = fs::OpenOptions::new().write(true).create_new(true).open(temporary)?;
     file.write_all(bytes)?;
     file.sync_all()?;

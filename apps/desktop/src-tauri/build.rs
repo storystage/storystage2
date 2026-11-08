@@ -20,6 +20,14 @@ fn main() {
         "classes_remove",
         "classes_list",
         "classes_move",
+        "picker_kind",
+        "picker_save",
+        "picker_open",
+        "picker_collect_start",
+        "picker_collect_write",
+        "picker_hand_back_start",
+        "picker_hand_back_read",
+        "picker_end",
     ]);
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(manifest))
         .expect("failed to prepare the StoryStage 2 build");
