@@ -13,6 +13,7 @@ import {
   type Port,
   type RunMode,
   type RuntimeError,
+  type RuntimeSceneEnding,
   type ToRuntime,
 } from './messages.ts';
 import { RuntimeFault, Scheduler } from './scheduler.ts';
@@ -132,6 +133,19 @@ export function serve(
       post({ type: 'error', error: fault('protocol', problems[0]?.message ?? 'No such method.') });
       return;
     }
+    if (!Array.isArray(message.scenes)) {
+      post({ type: 'error', error: fault('protocol', 'The load has no scenes.') });
+      return;
+    }
+    // A new scene: whatever the last run left goes (WP8.3: the player loads scene after scene).
+    halt();
+    if (run && !run.scheduler.stopped) run.scheduler.stop();
+    pace = null;
+    target = 0;
+    asked = null;
+    finished = false;
+    entryDone = false;
+    highlighted = '[]';
     const scheduler = new Scheduler({
       onFault: (f: RuntimeFault) => {
         halt();
@@ -147,6 +161,11 @@ export function serve(
           },
         });
       },
+      onEnd: (ending) => {
+        halt();
+        flush();
+        post({ type: 'sceneChange', at: scheduler.now, ending: ending as RuntimeSceneEnding });
+      },
     });
     const out: StageCommand[] = [];
     const interpreter = new Interpreter(message.program, {
@@ -155,9 +174,12 @@ export function serve(
       emit: (command) => out.push(command),
       disabled: message.disabled,
       seed: message.seed,
+      scenes: message.scenes,
     });
     const type = indexProgram(message.program).get(owner.parent)!.node as TypeDecl;
-    const router = new EventRouter(scheduler, interpreter, type);
+    const router = new EventRouter(scheduler, interpreter, type, (watches) =>
+      post({ type: 'watch', watches }),
+    );
     run = { scheduler, interpreter, router, entry: message.entry, out };
     post({ type: 'loaded' });
   };

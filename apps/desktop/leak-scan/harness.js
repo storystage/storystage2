@@ -79,6 +79,29 @@ async function main() {
   );
   report.crossOriginIsolated = window.crossOriginIsolated;
 
+  // The pupil folders' native store (spec 05 section 6.4): a film's bytes go in as a raw body and
+  // come back whole, and no path leaves the folder.
+  const film = new Uint8Array(3 * 1024 * 1024).map((_, index) => index % 251);
+  const folder = ['pupils', 'pupil-scan', 'production-scan'];
+  await invoke('classes_write', film, {
+    headers: { 'x-storystage-path': [...folder, 'v-1.storystage'].join('/') },
+  });
+  const back = new Uint8Array(
+    await invoke('classes_read', { path: [...folder, 'v-1.storystage'] }),
+  );
+  const failure = (promise) =>
+    promise.then(
+      () => 'answered',
+      (error) => String(error),
+    );
+  report.classes = {
+    whole: back.length === film.length && back.every((byte, index) => byte === film[index]),
+    listed: await invoke('classes_list', { path: folder }),
+    escape: await failure(invoke('classes_read', { path: ['..', 'tauri.conf.json'] })),
+    missing: await failure(invoke('classes_read', { path: ['pupils', 'pupil-none', 'meta.json'] })),
+  };
+  await invoke('classes_remove', { path: ['pupils', 'pupil-scan'] });
+
   report.visible = {
     replies,
     html: document.documentElement.outerHTML,

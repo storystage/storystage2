@@ -182,6 +182,9 @@ function worker() {
   };
 }
 
+/** The production's scenes, as the player hands them to `load`. */
+const SCENES = ['s1', 's2'];
+
 const load = (p: Program, disabled: readonly NodeId[] = []): ToRuntime => ({
   type: 'load',
   protocol: RUNTIME_PROTOCOL,
@@ -190,6 +193,7 @@ const load = (p: Program, disabled: readonly NodeId[] = []): ToRuntime => ({
   entry: MAIN,
   seed: 1,
   disabled,
+  scenes: SCENES,
 });
 
 const FIXED: RunMode = { kind: 'fixed' };
@@ -593,6 +597,342 @@ describe('events', () => {
       await w.send(click(null));
       await w.send({ type: 'advance', until: micros(2) });
       expect(said(w.heard)).toEqual(['0:cat run', '1:cat run']);
+    });
+  });
+});
+
+describe('ending a scene (WP8.3)', () => {
+  const block = (name: string, args: Args = {}, details: Args = {}): Statement => ({
+    id: id(),
+    kind: 'call',
+    target: self(),
+    callee: { kind: 'story', name },
+    args,
+    details,
+  });
+  const goTo = (scene: string) => block('goToScene', { scene: text(scene) });
+  const ending = (heard: readonly FromRuntime[]) => of_(heard, 'sceneChange');
+
+  async function ran(
+    body: readonly Statement[],
+    listeners: readonly ListenerDecl[] = [],
+    until = 5,
+  ) {
+    const w = await started(program(body, listeners));
+    await w.send({ type: 'advance', until: micros(until) });
+    return w;
+  }
+
+  it('goToScene sends the commands so far, then the ending, and runs nothing after it', async () => {
+    const w = await ran([say(of(CAT), text('a')), goTo('s2'), say(of(CAT), text('never'))]);
+    expect(said(w.heard)).toEqual(['0:cat a']);
+    expect(ending(w.heard)).toEqual([
+      { type: 'sceneChange', at: micros(1), ending: { kind: 'goToScene', scene: 's2' } },
+    ]);
+    const types = w.heard.map((m) => m.type);
+    expect(types.indexOf('sceneChange')).toBeGreaterThan(types.lastIndexOf('commands'));
+    expect(types).not.toContain('finished');
+    expect(types).not.toContain('stopped');
+  });
+
+  it('stops the blocks running alongside it in a do together', async () => {
+    const together: Statement = {
+      id: id(),
+      kind: 'doTogether',
+      body: [
+        {
+          id: id(),
+          kind: 'doInOrder',
+          body: [say(of(DOG), text('a'), 0.5), say(of(DOG), text('cut off'))],
+        },
+        { id: id(), kind: 'doInOrder', body: [say(of(CAT), text('b')), goTo('s2')] },
+      ],
+    };
+    const w = await ran([together]);
+    expect(said(w.heard)).toEqual(['0:dog a', '0:cat b', '0.5:dog cut off']);
+    expect(ending(w.heard)[0]?.at).toBe(micros(1));
+    await w.send({ type: 'advance', until: micros(10) });
+    expect(said(w.heard)).toHaveLength(3);
+  });
+
+  it('crossfade carries its scene and duration, one second by default', async () => {
+    const w = await ran([block('crossfade', { scene: text('s1') }, { duration: num(2.5) })]);
+    expect(ending(w.heard)[0]?.ending).toEqual({
+      kind: 'crossfade',
+      scene: 's1',
+      duration: micros(2.5),
+    });
+    const v = await ran([block('crossfade', { scene: text('s1') })]);
+    expect(ending(v.heard)[0]?.ending).toEqual({
+      kind: 'crossfade',
+      scene: 's1',
+      duration: micros(1),
+    });
+  });
+
+  it('fadeToBlack ends the scene too, with its duration', async () => {
+    const w = await ran([block('fadeToBlack', {}, { duration: num(0.5) })]);
+    expect(ending(w.heard)[0]?.ending).toEqual({ kind: 'fadeToBlack', duration: micros(0.5) });
+    const v = await ran([block('fadeToBlack')]);
+    expect(ending(v.heard)[0]?.ending).toEqual({ kind: 'fadeToBlack', duration: micros(1) });
+  });
+
+  it('can come from a listener: a branching story', async () => {
+    const l = listener('clickOnScreen', [goTo('s1')]);
+    const w = await started(program([say(of(CAT), text('waiting'), 100)], [l]));
+    await w.send({ type: 'advance', until: micros(1) });
+    await w.send(click(null, micros(1)));
+    await w.send({ type: 'advance', until: micros(2) });
+    expect(ending(w.heard)).toEqual([
+      { type: 'sceneChange', at: micros(1), ending: { kind: 'goToScene', scene: 's1' } },
+    ]);
+  });
+
+  it('works in live mode', async () => {
+    const live: RunMode = { kind: 'live', t0: 0, lookahead: micros(0.1), speed: 1 };
+    const w = await started(program([say(of(CAT), text('a')), goTo('s2')]), live);
+    await w.clock(950);
+    expect(ending(w.heard)).toHaveLength(1);
+    expect(w.ticking()).toBe(false);
+  });
+
+  it.each([
+    ['a scene the production does not have', [goTo('s9')]],
+    ['a scene that is not text', [block('goToScene', { scene: num(2) })]],
+    ['a crossfade to nowhere', [block('crossfade', { scene: text('nope') })]],
+    ['a negative duration', [block('fadeToBlack', {}, { duration: num(-1) })]],
+  ])('refuses %s at that block', async (_, body) => {
+    const w = await ran(body);
+    expect(ending(w.heard)).toEqual([]);
+    expect(of_(w.heard, 'error')[0]?.error).toMatchObject({ code: 'bad_value', node: body[0]!.id });
+  });
+
+  describe('loading the next scene into the same worker', () => {
+    it('starts afresh at scene time 0, and can finish', async () => {
+      const w = await ran([say(of(CAT), text('one')), goTo('s2')]);
+      const before = w.heard.length;
+      await w.send(load(program([say(of(DOG), text('two'))])));
+      await w.send({ type: 'start', mode: FIXED });
+      await w.send({ type: 'advance', until: micros(1) });
+      const after = w.heard.slice(before);
+      expect(after[0]).toEqual({ type: 'loaded' });
+      expect(said(after)).toEqual(['0:dog two']);
+      expect(of_(after, 'finished')).toEqual([{ type: 'finished', at: micros(1) }]);
+    });
+
+    it('works after a stop or a fault, too', async () => {
+      const loop: Statement = {
+        id: id(),
+        kind: 'while',
+        condition: { id: id(), kind: 'boolean', value: true },
+        body: [],
+      };
+      for (const first of [[loop], [say(of(CAT), text('long'), 50)]]) {
+        const w = await ran(first, [], 1);
+        await w.send({ type: 'stop' });
+        const before = w.heard.length;
+        await w.send(load(program([say(of(DOG), text('next'))])));
+        await w.send({ type: 'start', mode: FIXED });
+        await w.send({ type: 'advance', until: 0 });
+        expect(said(w.heard.slice(before))).toEqual(['0:dog next']);
+      }
+    });
+
+    it('still runs only one scene when the old one is never stopped', async () => {
+      const w = await started(
+        program([say(of(CAT), text('old'), 1), say(of(CAT), text('old again'))]),
+      );
+      await w.send({ type: 'advance', until: 0 });
+      await w.send(load(program([say(of(DOG), text('new'))])));
+      await w.send({ type: 'start', mode: FIXED });
+      await w.send({ type: 'advance', until: micros(2) });
+      expect(said(w.heard)).toEqual(['0:cat old', '0:dog new']);
+    });
+  });
+
+  it('refuses a load without its scenes', async () => {
+    const w = worker();
+    const old: Record<string, unknown> = { ...load(program([])) };
+    delete old.scenes;
+    await w.send(old as ToRuntime);
+    expect(of_(w.heard, 'error')[0]?.error.code).toBe('protocol');
+  });
+});
+
+describe('the events #132 added (WP6.2)', () => {
+  const run = async (listeners: readonly ListenerDecl[], events: readonly ToRuntime[]) => {
+    const w = await started(program([], listeners));
+    await w.send({ type: 'advance', until: 0 });
+    for (const e of events) await w.send(e);
+    await w.send({ type: 'advance', until: micros(5) });
+    return w;
+  };
+  const event = (e: Record<string, unknown>): ToRuntime =>
+    ({ type: 'event', event: { at: 0, ...e } }) as ToRuntime;
+  const release = (k: string) => event({ kind: 'keyRelease', key: k });
+
+  it('gives a click its place on the picture', async () => {
+    const x = param('x');
+    const y = param('y');
+    const l = listener('clickOnScreen', [say(of(CAT), ref(x)), say(of(CAT), ref(y))], {
+      params: [x, y],
+    });
+    const w = await run([l], [event({ kind: 'click', object: null, x: 0.25, y: 0.75 })]);
+    expect(said(w.heard)).toEqual(['0:cat 0.25', '1:cat 0.75']);
+  });
+
+  describe('heldKeyPolicy', () => {
+    const combine = (): Args => ({
+      multipleEventPolicy: {
+        id: id(),
+        kind: 'enum',
+        type: 'MultipleEventPolicy',
+        value: 'combine',
+      },
+    });
+    const policy = (value: string): Args => ({
+      ...combine(),
+      heldKeyPolicy: { id: id(), kind: 'enum', type: 'HeldKeyPolicy', value },
+    });
+    /** A key held down: the browser repeats it twice, then it's let go. */
+    const holding = [key('a'), key('a'), key('a'), release('a')];
+    const times = async (details: Args) => {
+      const l = listener('keyPress', [say(of(CAT), text('fired'))], { details });
+      return said((await run([l], holding)).heard).length;
+    };
+
+    it('fires on every press and repeat by default, and for fireMultiple', async () => {
+      expect(await times(combine())).toBe(3);
+      expect(await times(policy('fireMultiple'))).toBe(3);
+    });
+
+    it('fires once for fireOnceOnPress, and again after the key is let go', async () => {
+      expect(await times(policy('fireOnceOnPress'))).toBe(1);
+      const l = listener('keyPress', [say(of(CAT), text('fired'))], {
+        details: policy('fireOnceOnPress'),
+      });
+      const w = await run([l], [...holding, ...holding]);
+      expect(said(w.heard)).toHaveLength(2);
+    });
+
+    it('fires once, on release, for fireOnceOnRelease', async () => {
+      expect(await times(policy('fireOnceOnRelease'))).toBe(1);
+      const l = listener('keyPress', [say(of(CAT), text('fired'))], {
+        details: policy('fireOnceOnRelease'),
+      });
+      const w = await run([l], [key('a'), key('a')]);
+      expect(said(w.heard)).toEqual([]);
+    });
+
+    it('keeps each key apart', async () => {
+      const k = param('key');
+      const l = listener('keyPress', [say(of(CAT), ref(k), 0.1)], {
+        details: policy('fireOnceOnPress'),
+        params: [k],
+      });
+      const w = await run([l], [key('a'), key('b'), key('a'), release('a'), key('a')]);
+      expect(said(w.heard).map((s) => s.split(' ')[1])).toEqual(['a', 'b', 'a']);
+    });
+
+    it('applies to arrow and number keys too', async () => {
+      const arrow = listener('arrowKeyPress', [say(of(CAT), text('arrow'))], {
+        details: policy('fireOnceOnPress'),
+      });
+      const number = listener('numberKeyPress', [say(of(DOG), text('number'))], {
+        details: policy('fireOnceOnRelease'),
+      });
+      const w = await run(
+        [arrow, number],
+        [key('up'), key('up'), key('digit3'), key('digit3'), release('digit3')],
+      );
+      expect(said(w.heard)).toEqual(['0:cat arrow', '0:dog number']);
+    });
+  });
+
+  it('fires collisionEnd with the pair in set order', async () => {
+    const a = param('a');
+    const l = listener('collisionEnd', [say(ref(a), text('apart'))], {
+      args: { setA: list(of(CAT)), setB: list(of(DOG)) },
+      params: [a],
+    });
+    const w = await run([l], [event({ kind: 'collisionEnd', a: 'dog', b: 'cat' })]);
+    expect(said(w.heard)).toEqual(['0:cat apart']);
+  });
+
+  it('fires proximityExit for its own distance only', async () => {
+    const l = listener('proximityExit', [say(of(CAT), text('far'))], {
+      args: { setA: list(of(CAT)), setB: list(of(DOG)), distance: num(3) },
+    });
+    const away = (distance: number) =>
+      event({ kind: 'proximityExit', a: 'cat', b: 'dog', distance });
+    expect(said((await run([l], [away(2)])).heard)).toEqual([]);
+    expect(said((await run([l], [away(3)])).heard)).toEqual(['0:cat far']);
+  });
+
+  it('fires viewEnter and viewExit for objects in their set, giving the model', async () => {
+    const model = param('model');
+    const enter = listener('viewEnter', [say(ref(model), text('in shot'))], {
+      args: { set: list(of(CAT)) },
+      params: [model],
+    });
+    const exit = listener('viewExit', [say(of(DOG), text('gone'))], {
+      args: { set: list(of(CAT)) },
+    });
+    const w = await run(
+      [enter, exit],
+      [
+        event({ kind: 'viewEnter', object: 'dog' }),
+        event({ kind: 'viewEnter', object: 'cat' }),
+        event({ kind: 'viewExit', object: 'cat' }),
+      ],
+    );
+    expect(said(w.heard)).toEqual(['0:cat in shot', '0:dog gone']);
+  });
+
+  describe('the watch message', () => {
+    const watches = (heard: readonly FromRuntime[]) => of_(heard, 'watch');
+
+    it('tells the stage what the proximity and view listeners need, before any commands', async () => {
+      const ls = [
+        listener('proximityEnter', [], {
+          args: { setA: list(of(CAT)), setB: list(of(DOG), of(CAT)), distance: num(2) },
+        }),
+        listener('proximityExit', [], {
+          args: { setA: list(of(DOG)), setB: list(of(CAT)), distance: num(0) },
+        }),
+        listener('viewExit', [], { args: { set: list(of(DOG)) } }),
+        listener('collisionStart', [], { args: { setA: list(of(CAT)), setB: list(of(DOG)) } }),
+        listener('sceneStart', [say(of(CAT), text('hi'))]),
+      ];
+      const w = await run(ls, []);
+      expect(watches(w.heard)).toEqual([
+        {
+          type: 'watch',
+          watches: [
+            { kind: 'proximity', a: ['cat'], b: ['dog', 'cat'], distance: 2 },
+            { kind: 'proximity', a: ['dog'], b: ['cat'], distance: 0 },
+            { kind: 'view', objects: ['dog'] },
+          ],
+        },
+      ]);
+      const types = w.heard.map((m) => m.type);
+      expect(types.indexOf('watch')).toBeLessThan(types.indexOf('commands'));
+    });
+
+    it('is sent, empty, for a scene that watches nothing', async () => {
+      const w = await run([], []);
+      expect(watches(w.heard)).toEqual([{ type: 'watch', watches: [] }]);
+    });
+
+    it.each([
+      ['a negative distance', { setA: list(of(CAT)), setB: list(of(DOG)), distance: num(-1) }],
+      ['a set that is not a list', { setA: of(CAT), setB: list(of(DOG)), distance: num(1) }],
+      ['a set holding a number', { setA: list(num(1)), setB: list(of(DOG)), distance: num(1) }],
+    ])('refuses %s at the listener', async (_, args) => {
+      const l = listener('proximityEnter', [], { args });
+      const w = await run([l], []);
+      expect(watches(w.heard)).toEqual([]);
+      expect(of_(w.heard, 'error')[0]?.error).toMatchObject({ code: 'bad_value', node: l.id });
     });
   });
 });

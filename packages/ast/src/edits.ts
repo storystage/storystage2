@@ -6,7 +6,16 @@
 import type { NodeId } from './ids.ts';
 import type { AstNode, Declaration, Expression, Program, Statement, TypeDecl } from './nodes.ts';
 import { isStatement } from './nodes.ts';
-import { nameOf, validateProgram, type Problem, type ValidateOptions } from './validate.ts';
+import { isTooDeep, validateSchemaPart } from './schema.ts';
+import {
+  TOO_DEEP,
+  nameOf,
+  shapeProblems,
+  validateProgram,
+  validateRules,
+  type Problem,
+  type ValidateOptions,
+} from './validate.ts';
 import { indexProgram, shapeOf, walk, withChild, type Location } from './walk.ts';
 
 export type StatementSlot = 'body' | 'then' | 'else';
@@ -381,8 +390,7 @@ function setComment(program: Program, index: Index, edit: SetComment) {
   };
 }
 
-function perform(program: Program, edit: EditOperation) {
-  const index = indexProgram(program);
+function perform(program: Program, index: Index, edit: EditOperation) {
   switch (edit.kind) {
     case 'insert':
       return insert(program, index, edit);
@@ -410,14 +418,73 @@ export interface Applied {
   readonly inverse: EditOperation;
 }
 
-/** Applies one edit and returns the new program with the edit that undoes it. */
+export interface ApplyOptions extends ValidateOptions {
+  /**
+   * Check the whole program's shape after the edit, not only what the edit adds. The two agree
+   * (a property test holds them to it); this is for that test.
+   */
+  readonly checkWholeShape?: boolean;
+}
+
+/** What an edit adds, each with the part of the schema it must match. */
+function newParts(edit: EditOperation, index: Index): [unknown, string, string?][] {
+  switch (edit.kind) {
+    case 'insert':
+      return [[edit.node, 'statement']];
+    case 'declare':
+      return [[edit.node, edit.node.kind]];
+    case 'setArgument': {
+      const { node } = index.get(edit.node)!;
+      if (!shapeOf(node.kind).maps?.includes(edit.slot))
+        return [[edit.value, node.kind, edit.slot]];
+      return edit.value === null
+        ? []
+        : [
+            [edit.param, 'name'],
+            [edit.value, 'expression'],
+          ];
+    }
+    case 'rename':
+      return [[edit.name, 'name']];
+    case 'setComment':
+      return [[edit.text, 'textValue']];
+    default:
+      return [];
+  }
+}
+
+/**
+ * The program after an edit, checked as `validateProgram` checks it, but with the schema applied
+ * only to what the edit adds: the rest is the same objects, which were valid (spec section 4.2).
+ * The depth and the rules a schema can't state are still checked over the whole program.
+ */
+function validateEdited(
+  program: Program,
+  edit: EditOperation,
+  index: Index,
+  options: ValidateOptions,
+): Problem[] {
+  if (isTooDeep(program)) return [TOO_DEEP];
+  const shape = newParts(edit, index).flatMap(([value, def, property]) =>
+    validateSchemaPart(value, def, property),
+  );
+  return shape.length > 0 ? shapeProblems(shape) : validateRules(program, options);
+}
+
+/**
+ * Applies one edit and returns the new program with the edit that undoes it. `program` must be
+ * valid, as every program a session holds is.
+ */
 export function applyEdit(
   program: Program,
   edit: EditOperation,
-  options: ValidateOptions = {},
+  options: ApplyOptions = {},
 ): Applied {
-  const result = perform(program, edit);
-  const problems = validateProgram(result.program, options);
+  const index = indexProgram(program);
+  const result = perform(program, index, edit);
+  const problems = options.checkWholeShape
+    ? validateProgram(result.program, options)
+    : validateEdited(result.program, edit, index, options);
   if (problems.length > 0) throw refusalFor(edit, problems, program);
   return result;
 }

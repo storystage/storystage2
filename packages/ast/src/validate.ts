@@ -3,7 +3,7 @@
  * section 2). Every load and every edit comes through here.
  */
 import type { NodeId } from './ids.ts';
-import { isTooDeep, validateSchema } from './schema.ts';
+import { isTooDeep, validateSchema, type SchemaProblem } from './schema.ts';
 import type {
   AstNode,
   Args,
@@ -284,20 +284,32 @@ function checkRules(program: Program): Problem[] {
 }
 
 /** Everything wrong with `value` as a program. An empty list means it's valid. */
-export function validateProgram(value: unknown, options: ValidateOptions = {}): Problem[] {
-  if (isTooDeep(value))
-    return [{ code: 'too_deep', message: 'The program is nested too deeply.', node: null }];
-  const shape = validateSchema(value, options.lenient ?? false);
-  if (shape.length > 0)
-    return shape.map(({ at, message, tooLong }) => ({
-      code: tooLong ? 'too_long' : 'shape',
-      message: `${at || 'The program'} ${message}.`,
-      node: null,
-    }));
-  if (options.lenient) return [];
-  const program = value as Program;
+export const TOO_DEEP: Problem = {
+  code: 'too_deep',
+  message: 'The program is nested too deeply.',
+  node: null,
+};
+
+/** The schema's problems, as `validateProgram` reports them. */
+export const shapeProblems = (shape: readonly SchemaProblem[]): Problem[] =>
+  shape.map(({ at, message, tooLong }) => ({
+    code: tooLong ? 'too_long' : 'shape',
+    message: `${at || 'The program'} ${message}.`,
+    node: null,
+  }));
+
+/** The rules a schema can't state, then the check from outside: for a program whose shape is right. */
+export function validateRules(program: Program, options: ValidateOptions = {}): Problem[] {
   const problems = checkRules(program);
   return problems.length > 0 ? problems : [...(options.check?.(program) ?? [])];
+}
+
+export function validateProgram(value: unknown, options: ValidateOptions = {}): Problem[] {
+  if (isTooDeep(value)) return [TOO_DEEP];
+  const shape = validateSchema(value, options.lenient ?? false);
+  if (shape.length > 0) return shapeProblems(shape);
+  if (options.lenient) return [];
+  return validateRules(value as Program, options);
 }
 
 /** The node's name, if it has one: a declaration, a local or a loop item. */

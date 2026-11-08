@@ -404,3 +404,37 @@ describe('any sequence of edits', () => {
     ]);
   });
 });
+
+/** What applying an edit did: the bytes it gave, or the code it was refused with. */
+function outcome(program: Program, edit: EditOperation, checkWholeShape: boolean) {
+  try {
+    return { bytes: serializeProgram(applyEdit(program, edit, { checkWholeShape }).program) };
+  } catch (e) {
+    if (e instanceof EditRefused) return { refused: e.code };
+    throw e;
+  }
+}
+
+describe('checking only what an edit adds (spec section 4.2)', () => {
+  it('agrees with checking the whole program: same edits made, same refusals', () => {
+    let refused = 0;
+    let made = 0;
+    fc.assert(
+      fc.property(starts, steps, (start, s) => {
+        let program = start();
+        for (const numbers of s) {
+          const edit = editFrom(program, numbers);
+          const fast = outcome(program, edit, false);
+          expect(fast).toEqual(outcome(program, edit, true));
+          if ('bytes' in fast) {
+            made++;
+            program = applyEdit(program, edit).program;
+          } else refused++;
+        }
+      }),
+      { numRuns: 150 },
+    );
+    expect(made).toBeGreaterThan(100);
+    expect(refused).toBeGreaterThan(100);
+  });
+});
