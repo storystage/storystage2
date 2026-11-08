@@ -26,5 +26,6 @@
   "block.op.or": "or",
   "editor.name": "Blocks",
   "editor.looseBlock": "Blocks go inside a method.",
-  "editor.workspace": "{method}: blocks"
+  "editor.workspace": "{method}: blocks",
+  "palette.control": "control"
 }

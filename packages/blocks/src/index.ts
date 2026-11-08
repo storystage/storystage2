@@ -10,11 +10,21 @@
  */
 export { ALL_TYPES, inputCheck, outputCheck, targetCheck } from './checks.ts';
 export { blockTypes, defineBlocks, shapeOf } from './definitions.ts';
-export { createBlocksEditor } from './editor.ts';
+export { createBlocksEditor, type BlocksEditor, type BlocksEditorOptions } from './editor.ts';
+export {
+  dropFromPalette,
+  freshIn,
+  type Ask,
+  type AskRequest,
+  type DropOutcome,
+  type Fresh,
+} from './drops.ts';
+export { toolboxFor, type ToolboxDefinition } from './toolbox.ts';
 export { editsFor, type GestureEdits } from './gestures.ts';
 export {
   BlocksMismatch,
   SWITCHED_OFF,
+  blockStateOf,
   fromBlocks,
   namesOf,
   toBlocks,
