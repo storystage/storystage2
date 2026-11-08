@@ -3,6 +3,7 @@ import { exampleProduction } from './example.ts';
 import {
   FOUNTAIN_LIMITS,
   readFountain,
+  scriptLineText,
   writeFountain,
   type FountainIds,
   type ReadFountainResult,
@@ -132,10 +133,38 @@ describe('reading what writeFountain wrote', () => {
     });
   });
 
-  it('writes speakers in capitals and reads them back in capitals', () => {
-    const p = withLines([{ id: lineId('d'), kind: 'dialogue', character: 'Pip', text: 'Hi.' }]);
-    expect(writeFountain(p)).toContain('\nPIP\nHi. [[line:d]]');
-    expect(read(writeFountain(p)).lines[0]!.character).toBe('PIP');
+  it('keeps a speaker’s case: capitals as they are, any other name forced with @', () => {
+    const p = withLines([
+      { id: lineId('d'), kind: 'dialogue', character: 'Pip', text: 'Hi.' },
+      { id: lineId('e'), kind: 'dialogue', character: 'FOX', text: 'Hello.' },
+      { id: lineId('f'), kind: 'dialogue', character: 'Mr Owl', text: 'Hoo.' },
+    ]);
+    const text = writeFountain(p);
+    expect(text).toContain('\n@Pip\nHi. [[line:d]]');
+    expect(text).toContain('\nFOX\nHello. [[line:e]]');
+    expect(read(text).lines.map((l) => l.character)).toEqual(['Pip', 'FOX', 'Mr Owl']);
+  });
+
+  it.each([
+    ['an action', 'action' as const, null],
+    ['a dialogue', 'dialogue' as const, 'PIP'],
+  ])(
+    'keeps %s line whose later line starts a boneyard, and everything after it',
+    (_, kind, character) => {
+      const text = 'The ice cracks.\n/* typed by a learner';
+      const p = exampleProduction();
+      const first = p.script[0]!;
+      const script = [{ ...first, kind, character, text }, ...p.script.slice(1)];
+      const back = read(writeFountain({ ...p, script }));
+      expect(back.lines).toEqual(script);
+      expect(back.lines).toHaveLength(p.script.length);
+    },
+  );
+
+  it('reopens text stored through scriptLineText exactly', () => {
+    const text = scriptLineText('  One.  \n\n\n  Two.\t\n\n');
+    const p = withLines([{ id: lineId('a'), kind: 'action', character: null, text }]);
+    expect(read(writeFountain(p)).lines[0]!.text).toBe(text);
   });
 
   it('keeps dialogue that starts with a bracket', () => {
@@ -251,6 +280,39 @@ describe('reading a script from another Fountain tool', () => {
   it('gives every line a new id, and pins nothing', () => {
     expect(new Set(script.lines.map((l) => l.id)).size).toBe(script.lines.length);
     expect(script.lines.every((l) => l.pinnedFrame === null)).toBe(true);
+  });
+});
+
+describe('scriptLineText', () => {
+  it('drops blank lines and spaces at the ends, and keeps the line breaks between', () => {
+    expect(scriptLineText('  One.  \n\n\n  Two.\t\n\n')).toBe('One.\n  Two.');
+    expect(scriptLineText('\r\nA\r\n\r\nB\r')).toBe('A\nB');
+    expect(scriptLineText('   ')).toBe('');
+  });
+});
+
+describe('the boneyard and the title page, from another tool', () => {
+  it('keeps everything after a boneyard that never closes', () => {
+    const script = read('.Forest\n\n/* a note never closed\n\nThe fox waits.\n\nFOX\nHello.\n');
+    expect(script.lines.map((l) => l.text)).toEqual([
+      '/* a note never closed',
+      'The fox waits.',
+      'Hello.',
+    ]);
+  });
+
+  it('leaves out a boneyard that starts a block, over several lines or one', () => {
+    const script = read('.Forest\n\n/* hidden\nstill hidden */\n\n/* one line */\n\nShown.\n');
+    expect(script.lines.map((l) => l.text)).toEqual(['Shown.']);
+  });
+
+  it('reads a first line shaped like Key: as action unless the key is a title page’s', () => {
+    expect(
+      read('Morning: the sun rises over the ice.\n\nThe fox waits.\n').lines.map((l) => l.text),
+    ).toEqual(['Morning: the sun rises over the ice.', 'The fox waits.']);
+    expect(
+      read('Draft date: 8 Nov\nAuthor: Pip\n\nThe fox waits.\n').lines.map((l) => l.text),
+    ).toEqual(['The fox waits.']);
   });
 });
 

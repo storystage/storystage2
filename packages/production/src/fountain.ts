@@ -4,8 +4,9 @@
  * which other Fountain tools ignore.
  *
  * Text that another tool could read as something else (a line in capitals, or one starting with a
- * full stop) is written as Fountain's forced action (`!`) or forced character (`@`), so every line
- * reads back as it was written. Reading also takes scripts written elsewhere, within the limits in
+ * full stop) is written as Fountain's forced action (`!`), and a speaker not written in capitals as
+ * Fountain's forced character (`@`), so every line reads back as it was written. Text stored through
+ * `scriptLineText` reopens exactly. Reading also takes scripts written elsewhere, within the limits in
  * `FOUNTAIN_LIMITS`, and is pure: no file access, nothing outside the text.
  */
 import {
@@ -82,8 +83,9 @@ export function writeFountain(p: Production): string {
       const note = `[[line:${line.id}${line.pinnedFrame ? ` frame:${line.pinnedFrame}` : ''}]]`;
       const text = paragraph(line.text);
       if (line.kind === 'dialogue') {
-        const name = oneLine(line.character ?? '').toUpperCase();
-        out.push(nameMightBeMisread(name) ? `@${name}` : name);
+        // A name in capitals reads back as a speaker; any other keeps its case through `@`.
+        const name = oneLine(line.character ?? '');
+        out.push(isCapitals(name) && !nameMightBeMisread(name) ? name : `@${name}`);
         out.push(`${text} ${note}`, '');
       } else {
         out.push(`${actionMightBeMisread(text) ? '!' : ''}${text} ${note}`, '');
@@ -92,6 +94,19 @@ export function writeFountain(p: Production): string {
   }
   return out.join('\n');
 }
+
+/**
+ * A script line's text as it should be stored (spec section 5): no blank lines, which would end it
+ * in Fountain, no spaces at the end of a line, and none at the start or end of the text. Text
+ * stored through this reopens exactly as it was saved.
+ */
+export const scriptLineText = (text: string): string =>
+  text
+    .split(/\r\n?|\n/)
+    .map((l) => l.trimEnd())
+    .filter((l) => l.trim() !== '')
+    .join('\n')
+    .trim();
 
 const oneLine = (text: string) => text.replace(/\s*[\r\n]+\s*/g, ' ').trim();
 
@@ -119,7 +134,7 @@ function actionMightBeMisread(text: string): boolean {
   );
 }
 
-/** Would this speaker's name, in capitals, read back as something other than a speaker? */
+/** Would this speaker's name read back as something other than a speaker? */
 const nameMightBeMisread = (name: string) =>
   !hasLetter(name) ||
   HEADING.test(name) ||
@@ -260,29 +275,61 @@ export function readFountain(text: string, ids: FountainIds): ReadFountainResult
 /** A speaker's name, without dual dialogue's caret. */
 const speaker = (line: string) => line.replace(/\s*\^\s*$/, '').trim();
 
-/** The title page is `Key: value` lines at the very start, up to the first blank line. */
+/** The keys a Fountain title page starts with, and the two this writes. */
+const TITLE_KEYS = new Set([
+  'title',
+  'credit',
+  'author',
+  'authors',
+  'source',
+  'draft date',
+  'date',
+  'contact',
+  'copyright',
+  'notes',
+  'revision',
+  'logline',
+  'synopsis',
+]);
+
+/**
+ * The title page is `Key: value` lines at the very start, up to the first blank line, when the
+ * first key is a title page's: "Morning: the sun rises." is action, not a title page.
+ */
 function withoutTitlePage(text: string): string[] {
   const all = text.replace(/^\uFEFF/, '').split(/\r\n?|\n/);
-  if (!/^[A-Za-z][A-Za-z ]*:/.test(all[0] ?? '')) return all;
+  const key = /^([A-Za-z][A-Za-z ]*):/.exec(all[0] ?? '');
+  if (!key || !TITLE_KEYS.has(key[1]!.trim().toLowerCase())) return all;
   const end = all.findIndex((l) => l.trim() === '');
   return end === -1 ? [] : all.slice(end + 1);
 }
 
-/** Drops `/* … *\/` comments that begin a line. A forced line (`!`) never starts one. */
+/**
+ * Drops `/* … *\/` comments that start a block (the first line after a blank line). A later line
+ * of a block that starts with `/*` is the learner's text, and the writer forces a block's first
+ * line with `!` when it starts with one. A comment that never closes isn't one: its lines are kept,
+ * so nothing after it is lost.
+ */
 function withoutBoneyard(lines: string[]): string[] {
   const out: string[] = [];
-  let inside = false;
-  for (const line of lines) {
-    if (!inside && line.trimStart().startsWith('/*')) inside = true;
-    if (inside) {
-      const end = line.indexOf('*/');
-      if (end === -1) continue;
-      inside = false;
-      const rest = line.slice(end + 2);
-      if (rest.trim() !== '') out.push(rest);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const startsBlock = i === 0 || lines[i - 1]!.trim() === '';
+    if (!startsBlock || !line.trimStart().startsWith('/*')) {
+      out.push(line);
       continue;
     }
-    out.push(line);
+    // Where it closes: on this line after its `/*`, or on a later line.
+    const end = (j: number) => lines[j]!.indexOf('*/', j === i ? line.indexOf('/*') + 2 : 0);
+    let close = i;
+    while (close < lines.length && end(close) === -1) close++;
+    if (close === lines.length) {
+      out.push(line);
+      continue;
+    }
+    const rest = lines[close]!.slice(end(close) + 2);
+    if (rest.trim() !== '') out.push(rest);
+    i = close;
   }
   return out;
 }
