@@ -22,7 +22,7 @@ StoryStage is free on every device. The apps include the optional Prompter; the 
 
 - **A screen at least 1024 pixels wide.** That means a laptop, a Chromebook, or an iPad held sideways. On a narrower window StoryStage asks you to turn the iPad or widen the window.
 - **3D graphics (WebGL 2),** which every recent laptop, Chromebook and iPad has. StoryStage is tested on a 4 GB Chromebook and a standard iPad, not just fast computers.
-- **The internet only for some things:** the apps work offline, except the Prompter, and the one-off download of the speech model the first time voice input is used. The browser version needs the internet to open.
+- **The internet only for some things:** the apps work offline, except the Prompter and the daily update check. Voice input works offline too: its speech model is built into the app. The browser version needs the internet to open.
 
 ## The browser version
 

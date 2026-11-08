@@ -83,7 +83,7 @@ IT managers can fix the settings so they can't be changed on the device: with a 
 | `prompter.explainOnly` | Explain only: explanations and the story coach, no plans |
 | `prompter.planOnly` | Plan only: plans, but pupils build every block themselves |
 | `prompter.dailyCap`, `prompter.capAction` | The daily limit, and what happens when it is reached |
-| `prompter.voiceInput` | Voice input to the Prompter on or off |
+| `prompter.voiceInput` | Voice input on or off, in every text box |
 | `editor.default`, `editor.locked` | The default code editor, and whether pupils can switch |
 | `backstage.import` | Who may import models: off, teacher, learners |
 | `backstage.search` | An optional search of free (CC0) models; off |
