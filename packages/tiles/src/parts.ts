@@ -126,6 +126,10 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
       );
     case 'comment':
       return [{ kind: 'text', text: node.text }];
+    case 'listener':
+      return phraseParts(word(`event.${node.event}`), (name) =>
+        value(node.args[name], at('args', name), word(`param.${name}`)),
+      );
     case 'return':
       return node.value
         ? phraseParts(word('control.return'), () =>

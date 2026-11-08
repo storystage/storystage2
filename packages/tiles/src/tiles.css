@@ -330,7 +330,9 @@
 }
 
 .tl-menu-item[data-selected]::before {
+  /* aria-checked already says it's the one chosen, so the mark stays out of the item's name. */
   content: '✓';
+  content: '✓' / '';
   margin-right: 8px;
 }
 
@@ -393,6 +395,175 @@
   border-radius: 6px;
   background: var(--tl-action);
   color: var(--tl-action-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* The layout (spec 14, 3a): the methods panel, then the method tabs holding the control bar and the code. */
+.tl-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.tl-main {
+  min-width: 0;
+}
+
+.tl-panel {
+  background: var(--tl-panel);
+  border: 1px solid var(--tl-panel-line);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--tl-object-bar);
+}
+
+.tl-picker-label {
+  font-weight: 700;
+  color: var(--tl-ink);
+}
+
+.tl-picker-button {
+  min-height: 44px;
+  font: inherit;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.tl-picker-button[data-focus-visible],
+.tl-tab[data-focus-visible],
+.tl-control[data-focus-visible],
+.tl-add-event[data-focus-visible],
+.tl-palette-item[data-focus-visible] {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-focus);
+}
+
+.tl-tab-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tl-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px 22px 0 0;
+  background: var(--tl-tab-inactive);
+  color: var(--tl-ink-2);
+  cursor: pointer;
+  outline: none;
+}
+
+.tl-tab[data-selected] {
+  font-weight: 700;
+  color: var(--tl-ink);
+}
+
+.tl-tab-actions[data-selected],
+.tl-method-tab[data-selected] {
+  background: var(--tl-actions-tab);
+}
+
+.tl-tab-questions[data-selected] {
+  background: var(--tl-questions-tab);
+  border: 1px solid var(--tl-questions-tab-line);
+  color: var(--tl-questions-tab-text);
+}
+
+.tl-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 70vh;
+  overflow: auto;
+  outline: none;
+  padding: 4px;
+}
+
+.tl-palette-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tl-palette-heading {
+  font-style: italic;
+  color: var(--tl-ink-2);
+  margin: 6px 0 2px;
+}
+
+.tl-palette-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 6px;
+  cursor: grab;
+  outline: none;
+}
+
+.tl-palette-item.tl-question {
+  background: var(--tl-question);
+  border: 1.5px solid var(--tl-question-line);
+  color: var(--tl-question-text);
+  border-radius: 20px 6px 6px 20px;
+}
+
+.tl-method-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tl-add-event,
+.tl-control {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--tl-control-line);
+  border-radius: 6px;
+  background: var(--tl-control);
+  color: var(--tl-ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.tl-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.tl-control-comment {
+  background: var(--tl-comment);
+  border-color: var(--tl-comment-line);
+  color: var(--tl-comment-text);
+}
+
+.tl-method-panel {
+  outline: none;
+}
+
+.tl-title .tl-pill {
   font: inherit;
   font-weight: 700;
   cursor: pointer;

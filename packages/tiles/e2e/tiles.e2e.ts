@@ -41,7 +41,7 @@ test('every row and empty list is 44 px high or more', async ({ page }) => {
 
 test('the keyboard reaches every row and pill, with focus always visible', async ({ page }) => {
   await open(page);
-  await page.keyboard.press('Tab');
+  await item(page, 'cat say Hello add detail').focus();
   await expect(item(page, 'cat say Hello add detail')).toBeFocused();
   await page.keyboard.press('ArrowDown');
   await page.keyboard.press('ArrowDown');
@@ -116,7 +116,7 @@ test('a drag let go somewhere nothing can go changes nothing', async ({ page }) 
 
 test('moving by keyboard: Space, ↓, Space', async ({ page }) => {
   await open(page);
-  await page.keyboard.press('Tab');
+  await item(page, 'cat say Hello add detail').focus();
   await page.keyboard.press('Space');
   await page.keyboard.press('ArrowDown');
   await expect(page.locator('.tl-drop-line')).toBeVisible();
@@ -152,4 +152,111 @@ test('a typed number is checked before it goes in', async ({ page }) => {
   await field.fill('3');
   await page.keyboard.press('Enter');
   await expect(item(page, 'cat move forward 3 how long 2 add detail')).toBeVisible();
+});
+
+// The palette and the control bar (spec 14, 3a and 2.3).
+
+async function chooseObject(page: Page, name: string) {
+  await page.getByRole('button', { name: /Blocks for/ }).click();
+  await page.getByRole('option', { name, exact: true }).click();
+}
+
+const last = (page: Page) =>
+  page.evaluate(() =>
+    (
+      window as unknown as { tiles: { host: { announcements: string[] } } }
+    ).tiles.host.announcements.at(-1),
+  );
+
+test('a block from the palette asks for each value, Enter taking the suggestion each time', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  await page.getByRole('option', { name: 'cat move ??? ???' }).click();
+  const direction = page.getByRole('menu', { name: 'direction' });
+  await expect(direction.getByRole('menuitemradio', { name: 'forward' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(
+    page
+      .getByRole('menu', { name: 'amount' })
+      .getByRole('menuitemradio', { name: '1', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await last(page)).toBe('Make cat move forward 1');
+  await expect(page.getByRole('treeitem', { name: 'cat move forward 1 add detail' })).toBeVisible();
+});
+
+test('Escape part way through leaves the program as it was', async ({ page }) => {
+  await open(page);
+  const before = await page.locator('[data-statement]').count();
+  await chooseObject(page, 'cat');
+  await page.getByRole('option', { name: 'cat move ??? ???' }).click();
+  await expect(page.getByRole('menu', { name: 'direction' })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menu', { name: 'amount' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(await last(page)).toBe('Nothing added');
+  await expect(page.locator('[data-statement]')).toHaveCount(before);
+});
+
+test('dragging a control block onto an empty list puts it there', async ({ page }) => {
+  await open(page);
+  const source = (await page.getByRole('button', { name: 'do together' }).first().boundingBox())!;
+  const empty = (await page
+    .getByRole('treeitem', { name: 'drop statement here, in if' })
+    .boundingBox())!;
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 40, source.y + 40, { steps: 5 });
+  await page.mouse.move(empty.x + 40, empty.y + empty.height / 2, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+  expect(await last(page)).toBe('Add do together');
+  await expect(page.getByRole('treeitem', { name: 'drop statement here, in if' })).toHaveCount(0);
+});
+
+test('dragging a block from the palette puts it where it is let go, after its values', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  const source = (await page.getByRole('option', { name: 'cat move ??? ???' }).boundingBox())!;
+  const count = (await page.getByRole('treeitem', { name: 'count up to 2' }).boundingBox())!;
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 60, source.y + 20, { steps: 5 });
+  await page.mouse.move(count.x + 100, count.y + 4, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+  await expect(
+    page.getByRole('menu', { name: 'direction' }).getByRole('menuitemradio', { name: 'forward' }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(
+    page
+      .getByRole('menu', { name: 'amount' })
+      .getByRole('menuitemradio', { name: '1', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await last(page)).toBe('Make cat move forward 1');
+  const rows = await page
+    .locator('[data-statement][aria-level="1"]')
+    .evaluateAll((els) =>
+      els.map((e) => e.getAttribute('aria-label') ?? e.textContent?.replace(/\s+/g, ' ').trim()),
+    );
+  expect(rows.findIndex((r) => r?.startsWith('cat move forward 1'))).toBe(
+    rows.findIndex((r) => r?.startsWith('count up to 2')) - 1,
+  );
+});
+
+test('adding an event opens it in a tab of its own', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: 'add event' }).click();
+  await page.getByRole('menuitem', { name: 'when the scene starts' }).click();
+  await expect(page.getByRole('tab', { name: 'when the scene starts' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('tree', { name: 'when the scene starts' })).toBeVisible();
 });

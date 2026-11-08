@@ -75,7 +75,10 @@ export function ValueMenu(props: ValueMenuProps) {
     [program, place, options],
   );
 
-  const chosen = choices.findIndex((c) => c.value && c.words === props.current);
+  // The value there now; for an empty slot, the one the cascade suggests (Alice's default).
+  const now = choices.findIndex((c) => c.value && c.words === props.current);
+  const chosen =
+    now >= 0 || props.current !== undefined ? now : choices.findIndex((c) => c.suggested);
 
   const pick = (key: string) => {
     if (key === REMOVE) return props.onRemoveDetail?.();

@@ -119,7 +119,7 @@ describe('drawing (spec 14, 3b, 3f)', () => {
 describe('the keyboard (spec 14, 3d)', () => {
   it('gives one row the tab stop, the first by default', () => {
     mountEditor();
-    const stops = [...document.querySelectorAll('[tabindex="0"]')];
+    const stops = [...screen.getByRole('tree').querySelectorAll('[tabindex="0"]')];
     expect(stops.map((e) => e.getAttribute('data-key'))).toEqual([IDS.say]);
   });
 
