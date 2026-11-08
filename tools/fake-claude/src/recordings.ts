@@ -18,8 +18,6 @@ const addCat = {
   backstage_item: 'Quadruped/Cat/AbyssinianCat',
   name: 'cat',
   position: { x: 0, y: 0, z: 0 },
-  turn_degrees: null,
-  scale: null,
   narration: 'A cat appears in the middle of your scene.',
   plan_step: 1,
 };
