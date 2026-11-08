@@ -490,7 +490,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - animals (quadruped, flyer, swimmer, slitherer), which no standard covers, use Alice's joint sets, published as StoryStage's open extension.
 
     Every model from every source is mapped onto it, including MakeHuman, Kenney and commissioned rigs. (C)
-- [ ] 3.4 **Manifest** `backstage.json`:
+- [x] 3.4 **Manifest** `backstage.json`:
     - per model: id (Alice gallery path where one exists, for example `Quadruped/Cat/AbyssinianCat`; otherwise `source/class/name`), **section** (cast, props, set or backdrops), class, display name, joints, default size, thumbnail, licence, credit line, source;
     - a catalog generator for the Prompter;
     - credits generated from it for the About screen and exported films (WP11.4).
