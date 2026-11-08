@@ -4,6 +4,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S1 Platform and quality
 - Merged:
+  - 8 Nov: **the forecast from actual dates (WP1.12)**: `schedule.yaml` has `as_of` and every session's start and finish dates to 8 Nov, taken from the merged pull requests; workplan 5a now has a generated forecast beside the plan. On actual dates: **release candidate 21 Jan 2027 (plan: 26 Feb), pilot ends 4 Mar 2027 (plan: 9 Apr)**. What sets it now is S6's tile editor (WP7c) and the editor switch (WP7t). Estimates are still the first plan's until M1. **All sessions: record `started` and `finished` for your items in `schedule.yaml` as you go.**
+  - 8 Nov (#208): Dependabot #3 fixed: minimatch 11 for ESLint and typescript-eslint. No open alerts.
   - 8 Nov (#141): **the Prompter's Backstage catalogue (13.3)**: `catalogueText(manifest)` in `@storystage/backstage`, shipped models only, by section and class, with joint sets listed once; the build writes it as `prompter-catalogue.txt` and stops above 12,000 tokens (spec 17, section 4a). Descriptions for the 30 MakeHuman people. **S7: pass `catalogueText(manifest)` as `SystemCatalogs.backstage`.** Today's 50 models take about 2,800 tokens.
   - 25 Oct: **the M1 device-run checklist** (#69, `docs/test/M1-device-checklist.md`): preparing the reference devices, the order of the runs (1.7 last: undoing its developer settings erases the Chromebook), a results template, and what each run decides. **AR is iPad-first** (decision 0042, #74): spike 1.9 and WP21 on the reference iPad; no Android tablet unless the IT managers (1.11) show schools have them.
   - 25 Oct: **Rust security advisories check** (#48): `cargo deny check advisories` in `desktop.yml` on the platforms we ship, and weekly (Mondays). Its first run found tokio 1.54.0 (RUSTSEC-2026-0384, yanked), updated to 1.54.1. Dependabot's glib alert is Linux-only, so it doesn't reach the app (`docs/github-settings.md`). CodeQL on `main` is green again without Python.
@@ -18,7 +20,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: the reference iPad, not yet chosen (#6), and the reference Chromebook (Acer Spin 314, N100, 4 GB, ordered), for the M1 device runs of 1.2, 1.3, 1.4, 1.5, 1.7 and 1.8 (steps: `docs/test/M1-device-checklist.md`), and for spike 1.9; then the export audio choice (does the Chromebook encode AAC?).
   - S4: the Alice converter (WP3b) for the Alice half of spike 1.2.
-- Next: spike 1.9 (AR) on the reference iPad, once it's chosen (0042); WP23a waits for WP5a (S3) and WP6 (S2); WP14b waits for S7. Until those land, S1 helps the M1 device runs and keeps CI healthy.
+- Next: spike 1.9 (AR) on the reference iPad, once it's chosen (0042). WP23a's 23.1 (surface bake renderer) can start now: WP5a and 6.5 are done; it's planned for late December, after the release candidate's work. 23.2 needs a Windows PC with an NVIDIA card and Pixera Creator (owner or partner). WP14b waits for S7's WP13b and S3's WP4b. Spike 1.3 has its go (owner, 8 Nov). Until then S1 keeps CI healthy and the schedule current.
 
 ## S2 Language, runtime and Screening room
 - In review:
