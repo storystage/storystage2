@@ -71,9 +71,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: apps/desktop/src-tauri -> target
-      - name: Test the policy, the gate and the transport
+      - name: Test the policy, the gate, the transport and the speech models
         working-directory: apps/desktop/src-tauri
-        run: cargo test -p storystage-policy -p storystage-gate -p storystage-transport --features storystage-transport/test-endpoint --locked
+        run: cargo test -p storystage-policy -p storystage-gate -p storystage-transport -p storystage-speech --features storystage-transport/test-endpoint --locked
 
   # Proves the key can't be found in anything the webview can see (spec 05 section 2.7). Spike
   # 1.6's check, on the real app: see apps/desktop/leak-scan/README.md. Windows, where WebView2
@@ -96,6 +96,8 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
       - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node scripts/fetch-models.mjs
       - name: The shipped config has no debugging port
         run: '! grep -q remote-debugging src-tauri/tauri.conf.json'
       - name: Build the test app
@@ -154,6 +156,8 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
       - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
       - name: Build the app
         run: pnpm --filter @storystage/desktop tauri build ${{ matrix.args }} -- --locked
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

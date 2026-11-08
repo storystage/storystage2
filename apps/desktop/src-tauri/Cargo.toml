@@ -8,7 +8,7 @@ rust-version = "1.80"
 publish = false
 
 [workspace]
-members = ["gate", "policy", "plugins/managed-config", "plugins/secure-key", "transport"]
+members = ["gate", "policy", "plugins/managed-config", "plugins/secure-key", "speech", "transport"]
 
 [lib]
 # The mobile targets load the app as a library.
@@ -29,12 +29,15 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 storystage-gate = { path = "gate" }
 storystage-policy = { path = "policy" }
+storystage-speech = { path = "speech" }
 storystage-transport = { path = "transport" }
 tokio = { version = "1", features = ["sync"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-managed-config = { path = "plugins/managed-config" }
 tauri-plugin-secure-key = { path = "plugins/secure-key" }
+# Reads the bundled speech model from the APK, from Rust only (spec 05 section 5.2).
+tauri-plugin-fs = "2"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

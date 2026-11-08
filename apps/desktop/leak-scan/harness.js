@@ -65,6 +65,20 @@ async function main() {
     (error) => String(error),
   );
 
+  // The bundled speech model arrives whole (spec 05 section 5.4), and only by a pinned name.
+  // Only its size and hash are kept, so the snapshot doesn't hold 32 MB.
+  const model = await invoke('speech_model_load', { name: 'tiny.en-q5_1' });
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', model));
+  report.speechModel = {
+    bytes: model.byteLength,
+    sha256: [...digest].map((byte) => byte.toString(16).padStart(2, '0')).join(''),
+  };
+  report.speechByPath = await invoke('speech_model_load', { name: '../tauri.conf.json' }).then(
+    () => 'answered',
+    (error) => String(error),
+  );
+  report.crossOriginIsolated = window.crossOriginIsolated;
+
   report.visible = {
     replies,
     html: document.documentElement.outerHTML,

@@ -59,6 +59,11 @@
         android:restrictionType="bool"
         android:defaultValue="false" />
     <restriction
+        android:key="speech.dictation"
+        android:title="@string/policy_speech_dictation"
+        android:restrictionType="bool"
+        android:defaultValue="true" />
+    <restriction
         android:key="backstage.import"
         android:title="@string/policy_backstage_import"
         android:restrictionType="choice"

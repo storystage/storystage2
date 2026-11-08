@@ -13,6 +13,7 @@
   "dependencies": {
     "@storystage/ast": "workspace:*",
     "@storystage/backstage": "workspace:*",
-    "@storystage/story-api": "workspace:*"
+    "@storystage/story-api": "workspace:*",
+    "fflate": "^0.8.3"
   }
 }

@@ -246,6 +246,30 @@ describe('the append-only rule (spec 04, section 1.5)', () => {
   it('checks nothing on a first request', () => {
     expect(checkAppendOnly(bodyOf([opening]), null)).toBeNull();
   });
+
+  it('lets a client take back turns it sent after the last kept reply, and nothing before', async () => {
+    server.use({
+      ...recording('refusal-mid-stream'),
+      turns: [
+        { events: reply([{ type: 'text', text: 'One.' }]) },
+        ...recording('refusal-mid-stream').turns,
+      ],
+    });
+    const one = assemble(reply([{ type: 'text', text: 'One.' }])).content;
+    await send([opening]);
+    const kept = { role: 'assistant', content: one };
+    // Refused: what came after the kept reply may change.
+    await send([opening, kept, user('tell me a gory story')]);
+    expect((await send([opening, kept, user('a chase instead')])).at(-1)).toEqual({ type: 'end' });
+  });
+
+  it('still refuses a history that changes a kept reply', async () => {
+    await send([opening]);
+    const changed = { ...assistant('tool-loop', 0), content: [{ type: 'text', text: 'edited' }] };
+    expect(await send([opening, changed, answer('toolu_1')])).toEqual([
+      { type: 'error', code: 'internal' },
+    ]);
+  });
 });
 
 describe('what the server refuses', () => {

@@ -110,6 +110,17 @@ describe('validateManifest', () => {
     ).toBe(true);
   });
 
+  it('takes a short one-line description, or none', () => {
+    const described = (description: unknown) =>
+      validateManifest(manifest({ ...cat, description })).ok;
+    expect(described('a ginger cat with a white chest')).toBe(true);
+    expect(validateManifest(manifest(cat)).ok).toBe(true);
+    expect(described('')).toBe(false);
+    expect(described('two\nlines')).toBe(false);
+    expect(described('x'.repeat(121))).toBe(false);
+    expect(described(7)).toBe(false);
+  });
+
   it("records a VRM file's version, and nothing else there", () => {
     expect(validateManifest(manifest({ ...cat, vrm: '0' })).ok).toBe(true);
     expect(validateManifest(manifest({ ...cat, vrm: '1' })).ok).toBe(true);
@@ -117,7 +128,7 @@ describe('validateManifest', () => {
   });
 
   it('refuses the wrong version and junk', () => {
-    expect(MANIFEST_VERSION).toBe('2.0.0');
+    expect(MANIFEST_VERSION).toBe('2.1.0');
     expect(validateManifest({ manifestVersion: '1.0.0', items: [] }).ok).toBe(false);
     expect(validateManifest({ manifestVersion: '0.1', items: [] }).ok).toBe(false);
     expect(validateManifest(null).ok).toBe(false);

@@ -1,11 +1,13 @@
 //! StoryStage 2 native shell.
 //!
 //! Opens the studio in a window, reads the school lock (WP15.3, spec 05 section 3), carries the
-//! Prompter's requests (WP15.2, section 2) and keeps a desktop install up to date (WP15.7,
-//! section 4). No API key ever crosses into the webview.
+//! Prompter's requests (WP15.2, section 2), keeps a desktop install up to date (WP15.7,
+//! section 4) and hands speech input its checked model (section 5). No API key ever crosses
+//! into the webview.
 
 mod key_dialog;
 mod prompter;
+mod speech;
 #[cfg(desktop)]
 mod updates;
 
@@ -45,7 +47,9 @@ pub fn run() {
     #[cfg(target_os = "android")]
     let builder = builder
         .plugin(tauri_plugin_managed_config::init())
-        .plugin(tauri_plugin_secure_key::init());
+        .plugin(tauri_plugin_secure_key::init())
+        // For the bundled speech model inside the APK, from Rust only (spec 05 section 5.2).
+        .plugin(tauri_plugin_fs::init());
     #[cfg(desktop)]
     let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
     builder
@@ -53,6 +57,7 @@ pub fn run() {
             let policy = read_policy(app.handle());
             app.manage(policy);
             app.manage(prompter::Prompter::default());
+            app.manage(speech::Speech::default());
             #[cfg(desktop)]
             {
                 app.manage(updates::Pending::default());
@@ -69,6 +74,11 @@ pub fn run() {
             prompter::key_add,
             prompter::key_status,
             prompter::key_remove,
+            speech::speech_models,
+            speech::speech_model_load,
+            speech::speech_model_download,
+            speech::speech_model_cancel,
+            speech::speech_model_remove,
         ])
         .build(tauri::generate_context!())
         .expect("error while running StoryStage 2")
