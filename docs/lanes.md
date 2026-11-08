@@ -21,6 +21,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Next: spike 1.9 (AR) on the reference iPad, once it's chosen (0042); WP23a waits for WP5a (S3) and WP6 (S2); WP14b waits for S7. Until those land, S1 helps the M1 device runs and keeps CI healthy.
 
 ## S2 Language, runtime and Screening room
+- In review:
+  - 8 Nov (PR open, waits for the owner's merge): **WP6's done-when, the TR1 programs**: the 21 TR1 rows that build code, and `penguin-animated`, written in StoryStage 2 AST and run on S3's `STORY_LIBRARY` (`tr1.test.ts`). All pass: each meets its row's checks, is valid, and sends the right commands at the right times. **S3:** turning a joint (`anim-06`'s head) needs a joint value from the runtime and joint targets in the blocks; to agree with S2.
 - Merged:
   - 8 Nov (#198, reviewed by S3): **WP6.2, the rest of the events**: click positions, `keyRelease` and `heldKeyPolicy`, `collisionEnd`, `proximityExit`, `viewEnter` and `viewExit`; and a new `watch` message giving `Stage.watch` what the scene's proximity and view listeners need. Spec 18 section 5. **S3:** the main thread hands `watch` to `Stage.watch` as it arrives.
   - 8 Nov (#197): **WP6.3, the Story API's refusals**: a `StoryFault` from S3's `STORY_LIBRARY` is now a `bad_value` fault at the block, not `internal`.
@@ -30,7 +32,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov (#90, #92, #94, #96, #97): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. S2 merged these under decision 0050; S1, the small changes to your `editor-contract` test and `selftest` are in #92 and #94 if you want to look. **S6, S7, S4:** the API is listed in `packages/ast/README.md`. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
 - Blocked on:
   - S4: WP8, and S5: closing WP12b's 12.5, for WP11b.
-- Next: the TR1 programs in StoryStage 2 AST (WP6's done-when), now that WP4.3 has landed (#136); then WP11b, the Screening room, once WP8 lands.
+- Next: joint values, with S3; then WP11b, the Screening room, once WP8 lands.
 
 ## S3 Stage and Story API procedures
 - Merged:
