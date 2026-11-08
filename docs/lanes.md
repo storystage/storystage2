@@ -89,7 +89,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S7 Prompter and speech
 - Merged:
-  - 8 Nov: **WP14a: spec 06 for dictation in every field** (decision 0060; this pull request): tap to start and stop, the words given back for the studio to insert, and `createDictation` for S5. **S5:** section 1.11 has the interface you asked for. **S8:** section 1.1 follows `speech.dictation`.
+  - 8 Nov: **WP14a: spec 06 for dictation in every field** (decision 0060; #164): tap to start and stop, the words given back for the studio to insert, and `createDictation` for S5. **S5:** section 1.11 has the interface you asked for. **S8:** section 1.1 follows `speech.dictation`.
   - 8 Nov: **WP13.4, the tool runner** (#161): plans checked before they're shown, each change held to its agreed step, a character's words from the script or the learner, and the program tools through `EditSession`, one undo step per request. **S4, S2:** `add_model`, `set_property` and `stage_scene` wait for the production's undo session (WP8.2). **S2:** naming an undo group when it closes would let a request's label say all it changed.
   - 8 Nov: **WP13.2, the conversation and its tool loop** (#158), tested end to end against the fake server.
   - 8 Nov: **WP13.4, the tool definitions** (#153): all 16 tools, strict and streamed, with the input check and the result format. They use the AST's and the Story API's names (`doTogether`, `clickOnObject`), and spec 04 and the evaluation set follow.
