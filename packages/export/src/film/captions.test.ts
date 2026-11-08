@@ -56,6 +56,14 @@ describe('captionsFor', () => {
     expect(caption!.text).toBe('HOOT: here is the KEY');
   });
 
+  it('takes no time over a long run of marks that is not at the end', () => {
+    const long = '!'.repeat(100_000) + 'a';
+    const started = performance.now();
+    const [caption] = captionsFor([line({ text: long })], [dialogue(S1, 'Hoot', long + '!')]);
+    expect(caption!.text.startsWith('HOOT: ')).toBe(true);
+    expect(performance.now() - started).toBeLessThan(1000);
+  });
+
   it('leaves out thoughts, and empty words', () => {
     const captions = captionsFor(
       [line({ text: 'Hmm…', kind: 'think' }), line({ text: '   ' }), line({ text: 'Hi.' })],

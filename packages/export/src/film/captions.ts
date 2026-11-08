@@ -35,11 +35,19 @@ export const CAPTIONS_AT_ONCE = 2;
 /** One line of words: runs of spaces and line breaks become one space. */
 const oneLine = (text: string) => text.replace(/\s+/g, ' ').trim();
 
-/** Words as a script and a block might each write them: case, spaces and end marks aside. */
-const sameWords = (text: string) =>
-  oneLine(text)
-    .toLowerCase()
-    .replace(/[.!?…,;:]+$/u, '');
+const END_MARKS = new Set(['.', '!', '?', '…', ',', ';', ':']);
+
+/**
+ * Words as a script and a block might each write them: case, spaces and end marks aside. The
+ * marks come off in a loop from the end, not with a regular expression, so a learner's long run
+ * of "!!!" takes no longer than its length (CodeQL, polynomial regular expression).
+ */
+function sameWords(text: string): string {
+  const words = oneLine(text).toLowerCase();
+  let end = words.length;
+  while (end > 0 && END_MARKS.has(words[end - 1]!)) end--;
+  return words.slice(0, end);
+}
 
 export interface CaptionOptions {
   /** Added to every time: the title card's length, as times count from the film's start. */
