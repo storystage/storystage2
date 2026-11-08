@@ -650,7 +650,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 8.2 Scenes as separate types, each with its own backdrop, cast, camera, markers and script method. Add, duplicate, rename, reorder and delete scenes. Load only the active scene, preloading the next. (C)
 - [ ] 8.3 Running order with transitions (cut, fade to black, crossfade) and the go to scene block for branching stories. (C)
 - [ ] 8.4 Local save and open (File System Access API in Chromium, Tauri file dialogs, download/upload fallback in Safari), autosave and backups, in the place decided in 24.2. **Import hardening** (from 0.9): normalise paths and reject `..` and absolute entries; cap file, entry and texture sizes; validate against the schema before loading. **Browser version:** a banner while work isn't saved to a file, a prompt to download at the end of a session, and a request for persistent storage, because Safari can delete site data after a period without use. (C)
-- [ ] 8.5 Optional Google Drive and OneDrive save and open, behind a setting that is off by default. Use the narrowest scopes (Drive `drive.file`). (C; U registers the apps in WP15)
+- [ ] 8.5 Optional Google Drive and OneDrive save and open, behind a setting that is off by default. Use the narrowest scopes (Drive `drive.file`). (C; U registers the apps in WP15) **Not in the first release (0065):** on the roadmap (section 6b).
 
 **Done when:** a three-scene production saves, reopens identically (round-trip test) and plays through with each transition type.
 
@@ -1026,7 +1026,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 **Schedule items** (`tools/plan/schedule.yaml`): WP24a after WP1g, WP15a, WP8f; WP24b after WP24a, WP8, WP15k, WP13b.
 <!-- /schedule:wp24 -->
 - [ ] 24.1 **The teacher's journey**, written into `docs/spec/07-ux.md` and the doc: install through device management → set the school lock → start a class → pupils return to their work next lesson → collect films → export study logs → mark. Each step has an owner task. (C drafts; U reviews with a pilot teacher)
-- [ ] 24.2 **Where a pupil's work lives between lessons** (decide before WP8.4 is built). Options: in-app class and pupil folders on a shared device, a device-management profile per class, or school Google or Microsoft accounts. Record the choice in the DPIA. (C proposes; U decides)
+- [x] 24.2 **Where a pupil's work lives between lessons** (decide before WP8.4 is built). Options: in-app class and pupil folders on a shared device, a device-management profile per class, or school Google or Microsoft accounts. Record the choice in the DPIA. (C proposes; U decides) **Decided 8 Nov 2026 (0065):** pupil folders in the app, with Collect and Hand back through files; to be confirmed after 1.11.
 - [ ] 24.3 **How the Prompter reaches a group** (decide at M1, after 1.11):
     - **A. Clubs, small groups and home:** the Prompter runs where an adult (club leader, teacher with a small group, or parent) owns the key. This fits the adult-account rule, and is the default for the pilot.
     - **B. Classroom relay:** the teacher's StoryStage app holds the one key; pupils' devices connect to it over the school network with a class code. Caps and monitoring sit on the teacher's device. No StoryStage server. Needs a spike: many school Wi-Fi networks isolate devices from each other.
@@ -1053,6 +1053,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | AR design mode, AR for audiences, projection mapping, pathway | Held until after the release candidate | WP20 to WP23 | Release 1.1 |
 | Linux desktop app | Dropped from the first release | WP15.1 | If schools ask for it |
 | Classroom relay for the Prompter | If option A or C is chosen first (24.3) | WP24.3 | Release 1.1 |
+| Signed-in cloud saving | Google Drive and OneDrive save and open, signed in from StoryStage (8.5) | 0065; files in the school's own storage already reach both | If schools ask, and the DPIA can carry it |
 | Multi-projector projection | Several projectors with blending, run from StoryStage rather than Pixera | WP23 | Release 2, if schools ask for it |
 | **AR trails** | Productions pinned to places: a history trail round the school grounds, a museum or heritage-site trail, a literacy trail for an open evening. Visitors find a printed marker (poster, plaque or QR code) or reach a location, and the scene plays there in AR. A trail editor maps scenes to markers or places; trails download as offline packs | WP22 player and AR pack; museum scans (WP3.7); curriculum use cases (WP16) | Release 2 |
 | Headset viewing | Watch productions in Quest's browser or on Vision Pro through WebXR | WP22.5 | Release 2 |
