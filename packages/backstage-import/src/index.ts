@@ -6,3 +6,6 @@ export * from './licence.ts';
 export * from './checks.ts';
 export * from './obj.ts';
 export * from './import.ts';
+export * from './browser.ts';
+export * from './worker.ts';
+export * from './pack.ts';
