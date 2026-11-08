@@ -5,14 +5,16 @@
  */
 import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
-import type { JointName, Quat } from '@storystage/story-api';
+import type { JointName, Quat, Vec3 } from '@storystage/story-api';
 import { conjugate, IDENTITY_Q, mul, v } from '../math.ts';
 import { fromModelTurns, HUMAN_BONES, modelTurns, type HumanPose } from '../humanoid/pose.ts';
+import { restCorrections } from '../humanoid/rest.ts';
 import { setRotation } from './view.ts';
 
 const HIPS = 'hips' as JointName;
 
 const quat = (q: Quaternion): Quat => ({ x: q.x, y: q.y, z: q.z, w: q.w });
+const vec = (p: Vector3): Vec3 => ({ x: p.x, y: p.y, z: p.z });
 
 interface Bone {
   readonly joint: JointName;
@@ -40,10 +42,17 @@ export class HumanoidRig {
     this.root = root;
     for (const n of [root, ...root.getDescendants(false)])
       (n as TransformNode).computeWorldMatrix?.(true);
+    // A model resting in an A-pose is posed as if it rested in a T-pose (`rest.ts`).
+    const places = new Map<JointName, Vec3>();
+    for (const [joint, node] of joints) places.set(joint, vec(this.modelPosition(node)));
+    const corrections = restCorrections(places);
     const bones: Bone[] = [];
     for (const { joint } of HUMAN_BONES) {
       const node = joints.get(joint);
-      if (node) bones.push({ joint, node, rest: this.modelTurn(node) });
+      if (!node) continue;
+      const turn = corrections.get(joint);
+      const rest = this.modelTurn(node);
+      bones.push({ joint, node, rest: turn ? mul(turn, rest) : rest });
     }
     // Parents first, so a bone's parent is posed before it.
     const depth = (n: TransformNode) => {
