@@ -1,14 +1,14 @@
 # 05 Keys privacy switches
 
-- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels, speech models (from StoryStage 1 spec 02)
-- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4); WP15 for WP14.1 (section 5)
+- **Covers:** Wizard, key store per platform, the gate and transport, policy and managed configuration, updates and channels, speech models, pupil folders on the device (from StoryStage 1 spec 02)
+- **Work package:** WP15.2 (sections 1 and 2); WP15.3, WP15.7 (sections 3 and 4); WP15 for WP14.1 (section 5); WP24.4 (section 6)
 - **Owner:** S8
-- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026, section 5 on 8 Nov 2026.
+- **Status:** all sections written, each before the code it governs: sections 3 and 4 on 31 Oct 2026, sections 1 and 2 on 1 Nov 2026, sections 5 and 6 on 8 Nov 2026.
 - **Carried over from:** StoryStage 1 spec 02 (keys, privacy, switches); see `docs/carried-over/` and its note on what changes.
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [0061 The optional speech model's host](../decisions/0061-speech-model-host.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10) and 2.9 (M1 to M6).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md), [0060 Dictation in every field](../decisions/0060-dictation-in-every-field.md), [0061 The optional speech model's host](../decisions/0061-speech-model-host.md), [0065 Where a pupil's work lives between lessons](../decisions/0065-pupil-work-between-lessons.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` sections 2.1 (W1 to W10), 2.9 (M1 to M6) and 2.10 (PS1 to PS6).
 
 ## 1. Wizard
 
@@ -406,7 +406,53 @@ A name that isn't pinned is refused. So is any command, apart from `speech_model
 
 whisper's threads need `crossOriginIsolated` (spec 06 section 1.1). The Tauri apps send `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp` on every response (`app.security.headers` in `tauri.conf.json`). Everything the studio loads is its own, so nothing breaks under `require-corp`.
 
-## 6. Tests
+## 6. Pupil folders on the device
+
+Decision 0065. The contract is `ClassFolders` and `PupilFolder` in `packages/host/src/files.ts`, reached through the host interface as `HostInterface.classes`. Every implementation passes `describeClassFoldersContract`.
+
+### 6.1 One set of rules, over a small store
+
+The rules are written once, in `storedClassFolders` in `packages/host`: backups, the original, the bin and keys. They run over a **file store** that each host provides:
+
+| Host | Store | Where |
+|---|---|---|
+| Tauri apps | The native layer, through a few commands confined to one folder (6.4) | `<local app data>/classes/`, inside the device user's own data |
+| Browser version | The Origin Private File System | The site's own storage, on `app.storystage.org` only (0046) |
+| Tests | Memory | |
+
+A store does five things, on paths made of **safe parts**: `read`, an atomic `write`, `remove` (a file or a folder), `list` and `move`. A safe part is 1 to 64 characters from `a-z`, `0-9`, `.`, `_` and `-`, starting with a letter or digit. It never ends in a dot, which Windows drops, and is never one of Windows' device names (`con`, `prn`, `aux`, `nul`, `com1` to `com9`, `lpt1` to `lpt9`, with or without an extension). Every path is checked against that before a store touches anything, so no path can leave the store's folder (threat F1).
+
+The Tauri apps use the native store, not the browser's. WebKit deletes script-written storage in Safari after a period without use (the board review's OPS4), and whether that ever reaches an app's own webview on iPad isn't something pupils' work should depend on. The rule for safe parts is the same on both sides: `apps/desktop/src-tauri/classes/fixtures/parts.json` is tested from each.
+
+### 6.2 What's on disk
+
+```
+class.json                                    the class list: { "version": 1, "pupils": [...] }
+pupils/<pupil id>/<key>/meta.json             { "name", "current", "backups": [...], "original" }
+pupils/<pupil id>/<key>/v-<time>-<random>.storystage  the current version, and each backup
+pupils/<pupil id>/<key>/original.storystage    the untouched original of a migrated production
+bin/<pupil id>/<key>/...                       the same, with "binnedAt" in meta.json
+```
+
+`current` and each backup are `{ "file", "savedAt", "bytes" }`. Pupil ids and keys are random (`pupil-` or `production-`, then 12 letters and digits), so two windows never pick the same one. Names are only ever in `class.json` and `meta.json`, never in a path. A name can't be unsafe on disk, and the class list stays on the device (threat PS3).
+
+### 6.3 A save is atomic
+
+1. The new version is written to a new `v-<time>-<random>.storystage`, where `<time>` is when, in milliseconds in base 36.
+2. `meta.json` is replaced, atomically, to point at it. With `backup` (the default), the version it replaces is listed first among the backups and only `BACKUPS_KEPT` stay. Without it, the replaced version is dropped.
+3. Files the new `meta.json` doesn't list are deleted.
+
+A crash before step 2 leaves the last whole version and a stray file, which the next save deletes. A first save that crashes there leaves a folder with no `meta.json`. It isn't listed, and opening the pupil's folder removes it once its files are a minute old, so a save still going on in another window is left alone. Reads wait for saves in progress, so a read never finds a file a save has just tidied away. A crash after step 2 leaves the new version. So a production is never half-written (threat PS4). A store's `write` is itself atomic: a temporary file then a rename on the native side, and `createWritable`, which commits on close, in the browser.
+
+### 6.4 The native store's commands
+
+`classes_read`, `classes_write`, `classes_remove`, `classes_list` and `classes_move` each take paths of safe parts, under `<local app data>/classes/` only, and each has its own permission. The rules are in the `storystage-classes` crate, which has no Tauri in it. Local app data is used rather than roaming, so a roaming profile doesn't carry every film at each sign-in.
+
+Writes carry raw bytes, not JSON, with the path in an `x-storystage-path` header as its parts joined by `/`, which no safe part contains. They're refused over `FILE_LIMIT` before anything is written. A write goes to a temporary file in the same folder, whose name starts with a dot so it's never listed, is flushed to disk, then renamed over the old file. Reads come back as raw bytes too, and nothing there is `not_found`, which the studio reads as no file. Symbolic links, and junctions on Windows, are never followed: one on the way is `unreadable`, one in a folder isn't listed, and removing a folder removes the links in it, never what they point at. Errors are `FileError` codes: `full` when the disk is full, `locked` when another program holds the file, and `unreadable` otherwise.
+
+The webview can reach every pupil's folder through these commands, as it can in the browser. Pupils are kept apart by the app (threat PS1), and the operating system adds to it where a school has per-pupil sign-in (PS2).
+
+## 7. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
 
@@ -447,4 +493,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Only pinned names (5.5) | A path, an unknown name, an empty name | Rust unit |
 | Refused when dictation is off (5.5) | Each command with `speech.dictation=false`, and still allowed at Prompter level Off | Rust unit |
 | Cross-origin isolation (5.6) | The shipped config has both headers | Rust unit, on `tauri.conf.json` |
+| Every rule of the folders, on every store (6.1 to 6.3) | `describeClassFoldersContract` over the memory store, the browser store (with a stand-in for its handles) and the native store's commands (over a stand-in for the native side) | Vitest |
+| Safe path parts only (6.1, 6.4) | One fixture of safe and unsafe parts (`classes/fixtures/parts.json`), tested in TypeScript and in Rust, so the two rules stay the same | Vitest, Rust unit |
+| A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
+| The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |

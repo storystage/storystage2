@@ -259,7 +259,8 @@ class DictationTake implements Dictation {
       if (text === '') throw new DictationError('nothing_heard');
       return { text };
     } finally {
-      audio.fill(0);
+      // A worker recogniser takes the audio (it is transferred), and wipes it there.
+      if (audio.byteLength > 0) audio.fill(0);
       if (take === this.#take) {
         this.#set({ phase: 'idle', level: 0 });
         this.#scheduleEnd();

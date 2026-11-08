@@ -1,0 +1,58 @@
+# Dictation in a real browser (docs/spec/06-speech.md section 5): builds whisper.cpp to
+# WebAssembly from pinned sources with spec 06's memory settings, then transcribes a recorded
+# clip through the real whisper worker, and opens a fake microphone through the real worklet.
+# Keeps the built whisper.js and its SHA-256 as an artifact, for the apps to bundle (WP15).
+name: speech
+
+on:
+  pull_request:
+    paths:
+      - 'packages/speech/**'
+      - '.github/workflows/speech.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'packages/speech/**'
+      - '.github/workflows/speech.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: speech-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  whisper:
+    name: dictation in Chromium (whisper.cpp in WebAssembly)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      # The build and the model change only when the scripts do.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/whisper-work
+          key: speech-whisper-${{ hashFiles('packages/speech/scripts/*.sh') }}
+      - name: Build whisper.cpp
+        run: bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" packages/speech/browser/harness/public
+      - name: Fetch and check the model, and the test clip
+        run: bash packages/speech/scripts/fetch-test-assets.sh "$RUNNER_TEMP/whisper-work" packages/speech/browser/harness/public
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Dictate in Chromium
+        working-directory: packages/speech
+        run: pnpm exec playwright test -c playwright.whisper.config.ts
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: whisper-wasm
+          path: |
+            packages/speech/browser/harness/public/whisper.js
+            packages/speech/browser/harness/public/SHA256SUMS
+            packages/speech/browser/harness/public/VERSION.txt
+            packages/speech/browser/harness/public/LICENSE-whisper.cpp.txt
+            packages/speech/test-results/
+          retention-days: 30
