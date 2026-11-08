@@ -182,6 +182,9 @@ function worker() {
   };
 }
 
+/** The production's scenes, as the player hands them to `load`. */
+const SCENES = ['s1', 's2'];
+
 const load = (p: Program, disabled: readonly NodeId[] = []): ToRuntime => ({
   type: 'load',
   protocol: RUNTIME_PROTOCOL,
@@ -190,6 +193,7 @@ const load = (p: Program, disabled: readonly NodeId[] = []): ToRuntime => ({
   entry: MAIN,
   seed: 1,
   disabled,
+  scenes: SCENES,
 });
 
 const FIXED: RunMode = { kind: 'fixed' };
@@ -594,5 +598,163 @@ describe('events', () => {
       await w.send({ type: 'advance', until: micros(2) });
       expect(said(w.heard)).toEqual(['0:cat run', '1:cat run']);
     });
+  });
+});
+
+describe('ending a scene (WP8.3)', () => {
+  const block = (name: string, args: Args = {}, details: Args = {}): Statement => ({
+    id: id(),
+    kind: 'call',
+    target: self(),
+    callee: { kind: 'story', name },
+    args,
+    details,
+  });
+  const goTo = (scene: string) => block('goToScene', { scene: text(scene) });
+  const ending = (heard: readonly FromRuntime[]) => of_(heard, 'sceneChange');
+
+  async function ran(
+    body: readonly Statement[],
+    listeners: readonly ListenerDecl[] = [],
+    until = 5,
+  ) {
+    const w = await started(program(body, listeners));
+    await w.send({ type: 'advance', until: micros(until) });
+    return w;
+  }
+
+  it('goToScene sends the commands so far, then the ending, and runs nothing after it', async () => {
+    const w = await ran([say(of(CAT), text('a')), goTo('s2'), say(of(CAT), text('never'))]);
+    expect(said(w.heard)).toEqual(['0:cat a']);
+    expect(ending(w.heard)).toEqual([
+      { type: 'sceneChange', at: micros(1), ending: { kind: 'goToScene', scene: 's2' } },
+    ]);
+    const types = w.heard.map((m) => m.type);
+    expect(types.indexOf('sceneChange')).toBeGreaterThan(types.lastIndexOf('commands'));
+    expect(types).not.toContain('finished');
+    expect(types).not.toContain('stopped');
+  });
+
+  it('stops the blocks running alongside it in a do together', async () => {
+    const together: Statement = {
+      id: id(),
+      kind: 'doTogether',
+      body: [
+        {
+          id: id(),
+          kind: 'doInOrder',
+          body: [say(of(DOG), text('a'), 0.5), say(of(DOG), text('cut off'))],
+        },
+        { id: id(), kind: 'doInOrder', body: [say(of(CAT), text('b')), goTo('s2')] },
+      ],
+    };
+    const w = await ran([together]);
+    expect(said(w.heard)).toEqual(['0:dog a', '0:cat b', '0.5:dog cut off']);
+    expect(ending(w.heard)[0]?.at).toBe(micros(1));
+    await w.send({ type: 'advance', until: micros(10) });
+    expect(said(w.heard)).toHaveLength(3);
+  });
+
+  it('crossfade carries its scene and duration, one second by default', async () => {
+    const w = await ran([block('crossfade', { scene: text('s1') }, { duration: num(2.5) })]);
+    expect(ending(w.heard)[0]?.ending).toEqual({
+      kind: 'crossfade',
+      scene: 's1',
+      duration: micros(2.5),
+    });
+    const v = await ran([block('crossfade', { scene: text('s1') })]);
+    expect(ending(v.heard)[0]?.ending).toEqual({
+      kind: 'crossfade',
+      scene: 's1',
+      duration: micros(1),
+    });
+  });
+
+  it('fadeToBlack ends the scene too, with its duration', async () => {
+    const w = await ran([block('fadeToBlack', {}, { duration: num(0.5) })]);
+    expect(ending(w.heard)[0]?.ending).toEqual({ kind: 'fadeToBlack', duration: micros(0.5) });
+    const v = await ran([block('fadeToBlack')]);
+    expect(ending(v.heard)[0]?.ending).toEqual({ kind: 'fadeToBlack', duration: micros(1) });
+  });
+
+  it('can come from a listener: a branching story', async () => {
+    const l = listener('clickOnScreen', [goTo('s1')]);
+    const w = await started(program([say(of(CAT), text('waiting'), 100)], [l]));
+    await w.send({ type: 'advance', until: micros(1) });
+    await w.send(click(null, micros(1)));
+    await w.send({ type: 'advance', until: micros(2) });
+    expect(ending(w.heard)).toEqual([
+      { type: 'sceneChange', at: micros(1), ending: { kind: 'goToScene', scene: 's1' } },
+    ]);
+  });
+
+  it('works in live mode', async () => {
+    const live: RunMode = { kind: 'live', t0: 0, lookahead: micros(0.1), speed: 1 };
+    const w = await started(program([say(of(CAT), text('a')), goTo('s2')]), live);
+    await w.clock(950);
+    expect(ending(w.heard)).toHaveLength(1);
+    expect(w.ticking()).toBe(false);
+  });
+
+  it.each([
+    ['a scene the production does not have', [goTo('s9')]],
+    ['a scene that is not text', [block('goToScene', { scene: num(2) })]],
+    ['a crossfade to nowhere', [block('crossfade', { scene: text('nope') })]],
+    ['a negative duration', [block('fadeToBlack', {}, { duration: num(-1) })]],
+  ])('refuses %s at that block', async (_, body) => {
+    const w = await ran(body);
+    expect(ending(w.heard)).toEqual([]);
+    expect(of_(w.heard, 'error')[0]?.error).toMatchObject({ code: 'bad_value', node: body[0]!.id });
+  });
+
+  describe('loading the next scene into the same worker', () => {
+    it('starts afresh at scene time 0, and can finish', async () => {
+      const w = await ran([say(of(CAT), text('one')), goTo('s2')]);
+      const before = w.heard.length;
+      await w.send(load(program([say(of(DOG), text('two'))])));
+      await w.send({ type: 'start', mode: FIXED });
+      await w.send({ type: 'advance', until: micros(1) });
+      const after = w.heard.slice(before);
+      expect(after[0]).toEqual({ type: 'loaded' });
+      expect(said(after)).toEqual(['0:dog two']);
+      expect(of_(after, 'finished')).toEqual([{ type: 'finished', at: micros(1) }]);
+    });
+
+    it('works after a stop or a fault, too', async () => {
+      const loop: Statement = {
+        id: id(),
+        kind: 'while',
+        condition: { id: id(), kind: 'boolean', value: true },
+        body: [],
+      };
+      for (const first of [[loop], [say(of(CAT), text('long'), 50)]]) {
+        const w = await ran(first, [], 1);
+        await w.send({ type: 'stop' });
+        const before = w.heard.length;
+        await w.send(load(program([say(of(DOG), text('next'))])));
+        await w.send({ type: 'start', mode: FIXED });
+        await w.send({ type: 'advance', until: 0 });
+        expect(said(w.heard.slice(before))).toEqual(['0:dog next']);
+      }
+    });
+
+    it('still runs only one scene when the old one is never stopped', async () => {
+      const w = await started(
+        program([say(of(CAT), text('old'), 1), say(of(CAT), text('old again'))]),
+      );
+      await w.send({ type: 'advance', until: 0 });
+      await w.send(load(program([say(of(DOG), text('new'))])));
+      await w.send({ type: 'start', mode: FIXED });
+      await w.send({ type: 'advance', until: micros(2) });
+      expect(said(w.heard)).toEqual(['0:cat old', '0:dog new']);
+    });
+  });
+
+  it('refuses a load without its scenes', async () => {
+    const w = worker();
+    const old: Record<string, unknown> = { ...load(program([])) };
+    delete old.scenes;
+    await w.send(old as ToRuntime);
+    expect(of_(w.heard, 'error')[0]?.error.code).toBe('protocol');
   });
 });

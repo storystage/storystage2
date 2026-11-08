@@ -21,7 +21,7 @@ import {
 } from '@storystage/ast';
 import type { StageCommand } from '@storystage/story-api';
 import { RuntimeFault, type Scheduler, type Task, type Thread } from './scheduler.ts';
-import { RUNTIME_LIBRARY, type StoryContext, type StoryLibrary } from './story.ts';
+import { RUNTIME_LIBRARY, sceneLibrary, type StoryContext, type StoryLibrary } from './story.ts';
 import { isObjectValue, sameValue, valueText, type ObjectValue, type Value } from './values.ts';
 
 /** What a program may do before StoryStage stops it (WP6.3, threat F7). */
@@ -47,6 +47,8 @@ export interface InterpreterOptions {
   /** Blocks switched off for this rehearsal (WP6.4), as well as those off in the program. */
   readonly disabled: readonly NodeId[];
   readonly seed: number;
+  /** The production's scene ids, for the blocks that end a scene. */
+  readonly scenes?: readonly string[];
 }
 
 /** Variables, with an enclosing frame for each-in-together's own copy of its item. */
@@ -137,7 +139,11 @@ export class Interpreter {
   constructor(program: Program, options: InterpreterOptions) {
     this.nodes = indexProgram(program);
     this.scheduler = options.scheduler;
-    this.library = { ...RUNTIME_LIBRARY, ...options.library };
+    this.library = {
+      ...RUNTIME_LIBRARY,
+      ...options.library,
+      ...sceneLibrary(options.scenes ?? []),
+    };
     this.emitCommand = options.emit;
     this.disabled = new Set(options.disabled);
     this.random = seededRandom(options.seed);
