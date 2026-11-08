@@ -40,10 +40,10 @@ Turning it on says, in plain words, that what the learner says stays on this dev
 
 | Model | Size | SHA-256 | Use |
 |---|---|---|---|
-| `ggml-tiny.en-q5_1.bin` | 32 MB | `c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b` | The default, **bundled in the app** (decision 0057). Less memory |
-| `ggml-tiny.en.bin` | 78 MB | `921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f` | Offered in Settings as "More accurate, uses more memory". Downloaded on request |
+| `ggml-tiny.en-q5_1.bin` (`tiny.en-q5_1`) | 32 MB | `c77c5766f1cef09b6b7d47f21b546cbddd4157886b3b5d6d4f709e91e66c7c2b` | The default, **bundled in the app** (decision 0057). Less memory |
+| `ggml-tiny.en.bin` (`tiny.en`) | 78 MB | `921e4cf8686fdd993dcd081a5da5b6c365bfde1162e72b08d75ac75289920b1f` | Offered in Settings as "More accurate, uses more memory". Downloaded on request |
 
-Both are from whisper.cpp's model repository, as measured in spike 1.3. The base model isn't offered in the first release: the workplan makes it optional, and memory is already the risk. English only, because the interface is English in the first release; Welsh and Gaelic wait for a model that handles them.
+Both are from whisper.cpp's model repository, as measured in spike 1.3. The names in brackets are the ones the host interface uses (`@storystage/host`, `SPEECH_MODEL_NAMES`); the native layer is only ever asked for a model by those names, never by a path. The base model isn't offered in the first release: the workplan makes it optional, and memory is already the risk. English only, because the interface is English in the first release; Welsh and Gaelic wait for a model that handles them.
 
 *To measure:* whether the default stays the quantised model, from the owner's own voice at M1 (it got more words wrong on the robotic test voice, and none wrong on real speech).
 
