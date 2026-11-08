@@ -7,6 +7,8 @@ fn main() {
         "prompter_send",
         "prompter_cancel",
         "prompter_status",
+        "prompter_pupil",
+        "prompter_usage",
         "key_add",
         "key_status",
         "key_remove",

@@ -204,7 +204,7 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
     ['turn_degrees', 'scale'],
   ),
   set_property: tool('set_property', `Change how an object starts in the scene. ${BUILDING}`, {
-    object: text('A name in the scene: "cat", "camera", "ground".'),
+    object: text('A name in the scene: "cat", or "camera".'),
     property: oneOf(
       ['position', 'turn_degrees', 'scale', 'paint', 'opacity', 'vehicle'],
       'Which property.',
