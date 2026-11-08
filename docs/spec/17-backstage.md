@@ -218,7 +218,7 @@ Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is
 1. **Read and check, before anything heavy** (`15-security.md`, section 3.4):
     - the file sizes (`FILE_LIMIT`);
     - each picture's width and height from its header, before it's decoded: 8,192 pixels on a side and 40 million pixels at most;
-    - any **required** glTF extension the stage doesn't use refuses the file (`IMPORT_EXTENSIONS`);
+    - any **required** glTF extension the stage doesn't use refuses the file. `IMPORT_EXTENSIONS` are the ones accepted: `EXT_meshopt_compression`, `EXT_texture_webp`, `KHR_materials_emissive_strength`, `KHR_materials_unlit`, `KHR_mesh_quantization` and `KHR_texture_transform`. Extensions that are only used, not required, are dropped on reading. Draco compression is refused in its own plain words, which say how to export again from Blender without it;
     - ceilings that keep the worker safe before it reduces anything: 2,000,000 triangles, 256 joints, 10,000 nodes and 64 pictures. Over any of them, the file is refused, with which limit in plain words.
 2. **A VRM avatar** has its bones named from its own VRM table, as the sketch reader does. A 0.x avatar is turned to face +Z in the file itself. So what's saved is an ordinary glTF facing +Z, and the item has no `vrm` field.
 3. **Reduce it to its section's budget** (section 4) with `reduceModel`, the same code the shipped build uses. Pictures are shrunk with the browser's own canvas (`OffscreenCanvas`): as WebP where the browser can encode it, and otherwise as PNG, which Safari makes. The texture encoder therefore says which it made.
@@ -236,7 +236,7 @@ Workplan 3.11, decision 0066. A teacher, or a learner when `backstage.import` is
 ### The class Backstage (decision 0066)
 
 - **On each device,** beside the pupil folders. Its storage is the host's (S8, `@storystage/host`).
-- Each item records **who it belongs to:** the class (a teacher's import, or a promoted one) or one pupil (a learner's own import). A pupil sees the class's items and their own.
+- Each item records **who it belongs to:** the class (a teacher's import, or a promoted one) or one pupil (a learner's own import). A pupil sees the class's items and their own. On a device with no class list (`ClassFolders.openDevice`), the person imports as the class: they are their own teacher (spec 05, section 6.2).
 - **Promote:** the teacher moves a pupil's item to the class.
 - **Remove:** to the bin, like a production (decision 0065).
 - **Opening the Backstage** is the loader's `backstageFrom`, with the shipped Backstage first (`combineBackstages`, section 4b). A class item can't stand in for a shipped id, and an id is never reused.
