@@ -49,9 +49,9 @@ fn data_dir(app: &AppHandle) -> Result<PathBuf, Code> {
     Ok(folder.join("speech"))
 }
 
-/// A pinned model, if voice input is allowed now. The policy is read again each time.
+/// A pinned model, if dictation is allowed now. The policy is read again each time.
 fn pinned<'a>(app: &AppHandle, speech: &'a Speech, name: &str) -> Result<&'a Model, Code> {
-    if !allowed(&read_policy(app).prompter) {
+    if !allowed(&read_policy(app)) {
         return Err(Code::RefusedByPolicy);
     }
     speech.pins.model(name).ok_or(Code::Internal)

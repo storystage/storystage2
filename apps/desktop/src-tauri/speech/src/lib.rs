@@ -10,7 +10,7 @@ use std::time::Duration;
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use storystage_policy::{PrompterLevel, PrompterPolicy};
+use storystage_policy::PolicyInForce;
 use tokio::sync::watch;
 use tokio::time::timeout;
 
@@ -77,9 +77,9 @@ impl Code {
     }
 }
 
-/// Speech input exists only where the Prompter does and voice input is on (spec 06 1.1).
-pub fn allowed(policy: &PrompterPolicy) -> bool {
-    policy.level != PrompterLevel::Off && policy.voice_input
+/// Dictation follows its own key, with or without the Prompter (decision 0060).
+pub fn allowed(policy: &PolicyInForce) -> bool {
+    policy.speech.dictation
 }
 
 /// True if the bytes are exactly the pinned model (threat M1).
@@ -286,13 +286,13 @@ mod tests {
     }
 
     #[test]
-    fn speech_follows_the_level_and_voice_input() {
-        use storystage_policy::CapAction;
-        let policy = |level, voice_input| PrompterPolicy { level, voice_input, daily_cap: None, cap_action: CapAction::Off };
-        assert!(allowed(&policy(PrompterLevel::Full, true)));
-        assert!(allowed(&policy(PrompterLevel::ExplainOnly, true)));
-        assert!(!allowed(&policy(PrompterLevel::Off, true)));
-        assert!(!allowed(&policy(PrompterLevel::Full, false)));
+    fn dictation_follows_its_own_key_not_the_prompter() {
+        let policy = |text: &str| PolicyInForce::from_text(text, true);
+        assert!(allowed(&PolicyInForce::no_policy()));
+        assert!(allowed(&policy("prompter.enabled=false\n")));
+        assert!(allowed(&policy("prompter.voiceInput=false\n")));
+        assert!(!allowed(&policy("speech.dictation=false\n")));
+        assert!(!allowed(&PolicyInForce::unreadable("broken")));
     }
 
     #[test]
