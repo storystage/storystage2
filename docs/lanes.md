@@ -83,14 +83,17 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S7 Prompter and speech
 - Merged:
-  - 31 Oct: **13.1** the Prompter spec (#89) and **13.8** the system prompt (#93). The owner has said S7 merges WP13a pull requests when green.
-- Waiting for review: **the transport contract** gains `betas` (#91): **S8 to review**, as WP15.2 must send them. **13.7** the fake Claude server and the evaluation set, 85 requests (#95), stacked on #91. **S8: the fake server is ready for the Rust transport's tests** once it merges. 13.7's box stays open until there are real recordings and a score.
+  - 8 Nov: **WP14a:** spec 06, speech in and out, and the owner's go on spike 1.3 (#137).
+  - 8 Nov: **WP13b, 13.2:** building a request (#133): per-mode settings, learner text as data, what each level allows.
+  - 8 Nov: **13.7** the fake Claude server and the evaluation set, 85 requests (#95). **S8: the fake server is on `main` for the Rust transport's tests.** 13.7's box stays open until there are real recordings and a score.
+  - 8 Nov: **the transport contract** gains `betas` (#91), reviewed by S8.
+  - 31 Oct: **13.1** the Prompter spec (#89) and **13.8** the system prompt (#93). The owner has said S7 merges its WP13a, WP13b and WP14a pull requests when green.
 - Blocked on:
-  - Owner: the go on spike 1.3, which needs the device runs (#6), for WP14a.
   - Owner: reading the evaluation set before the first paid live run.
-  - S2 (WP2), S6 (WP4a) and S8 (WP15k) for WP13b. Spec 04, section 11 lists what each needs to settle.
-- For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3.
-- Next: WP14a when 1.3 is go; WP13b when its three dependencies land.
+  - S8 (WP15k, merging now) for 13.2's native wiring, the `pins.json` hashes and the set-up wizard (13.6).
+- For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer fetches and checks the model, so the webview loads nothing remote.
+- For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3. Spec 06, section 7 also asks for speech in the DPIA and the model weights in `NOTICE`.
+- Next: WP13b (tool schemas, then the conversation loop) and WP14a (voices and narration, then whisper) side by side. The owner gave spike 1.3 its go on 8 Nov, before the device runs.
 
 ## S8 Apps, security and class set-up
 - Merged:
