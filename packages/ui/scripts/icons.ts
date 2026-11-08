@@ -50,6 +50,7 @@ export const ICON_NAMES = [
   'lock',
   'mic',
   'movie',
+  'pause',
   'person',
   'photo_camera',
   'play_arrow',
