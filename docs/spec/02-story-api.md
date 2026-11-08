@@ -201,7 +201,7 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | `Key` | a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, digit0, digit1, digit2, digit3, digit4, digit5, digit6, digit7, digit8, digit9, left, right, up, down, space, enter, tab, backSpace, escape, shift, control, alt, comma, period, minus, equals, slash, semicolon, quote | Alice |
 | `ShotType` | wide, medium, closeUp, overTheShoulder, follow, twoShot | StoryStage |
 | `Gesture` | wave, nod, shrug, clap, point | StoryStage |
-| `Expression` | happy, sad, angry, surprised, relaxed, blink | StoryStage |
+| `Expression` | neutral, happy, sad, angry, surprised, relaxed, blink | StoryStage |
 | `SceneEdge` | left, right, back, front | StoryStage |
 | `JointChain` | neck, tail | StoryStage |
 <!-- /catalog:values -->

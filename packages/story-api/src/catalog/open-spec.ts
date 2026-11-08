@@ -25,7 +25,7 @@ import type { ApiClass, ParamDef } from './types.ts';
 import words from '../strings/en-GB.json' with { type: 'json' };
 
 /** The specification's own version. 0.x is a draft: anything may change (decision 0055). */
-export const STORY_API_VERSION = '0.9.0';
+export const STORY_API_VERSION = '0.10.0';
 export const STORY_API_STATUS = 'draft';
 
 const [major, minor] = STORY_API_VERSION.split('.');

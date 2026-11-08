@@ -418,6 +418,7 @@
   "value.Gesture.shrug": "shrug",
   "value.Gesture.clap": "clap",
   "value.Gesture.point": "point",
+  "value.Expression.neutral": "plain",
   "value.Expression.happy": "happy",
   "value.Expression.sad": "sad",
   "value.Expression.angry": "angry",
