@@ -35,6 +35,19 @@ A value is a number, text, true or false, nothing (`none`), an object, an enum v
 - **Story API calls** go to a `StoryLibrary`: one function per block, which emits stage commands, sleeps, asks the stage and returns a value. WP4.3 supplies it (S3). The runtime holds only what the catalog marks `runs: 'runtime'`. A block nothing runs yet is an `internal` fault at that block.
 - **Random numbers** come from the run's seed, so deterministic runs repeat (WP6.5).
 
+### 3.1 Ending a scene (WP8.3)
+
+Agreed with S4 on 8 Nov 2026. The player's side, which decides what plays next and how, is `03-production-format.md` section 3.1 (`playback.ts`). The runtime only reports which block ran.
+
+- **`load` names the production's scenes,** in `scenes`. A scene in code is text (`02-story-api.md` section 3a), so the runtime can check it against this list.
+- **`goToScene(scene)`, `crossfade(scene; duration)` and `fadeToBlack(; duration)`** each end the run at once: every strand stops, including blocks alongside in a do together, and no more of the scene's code runs. A block in a listener does the same, which is how a story branches.
+- **The worker** sends the commands so far, then `sceneChange` with the scene time and a `RuntimeSceneEnding`. Nothing follows it: no `finished`, no `stopped`. `RuntimeSceneEnding` is the production's `SceneEnding` without `finished`, declared here because the runtime can't depend on `production`.
+- **Defaults and faults.** `duration` defaults to 1 second. An unknown scene, a scene that isn't text, or a negative duration is a `bad_value` fault at that block.
+- **The next scene** comes in a new `load`, which the same worker accepts after a scene change, a stop or a fault. It starts afresh, at scene time 0. Nothing carries over between scenes: each is its own type.
+- **A scene that ends by itself** is the player's to see, from `finished`. The runtime sends nothing more.
+
+The catalog still marks the three blocks `runs: 'needs:sceneChange'`. They're the runtime's now, so S6 can mark them `runs: 'runtime'`.
+
 ## 4. Limits
 
 So that a program can't hang the app (WP6.3, F7). Each is a fault at the block concerned, and Stop always works, by ending the worker.
@@ -82,5 +95,6 @@ Listeners are those of the scene's type (`02-story-api.md` section 6). Their `ar
 | Time, order, asking, faults, stop | `scheduler.test.ts` | Unit |
 | Every statement and expression kind, values, calls, limits, determinism, highlighting | `interpreter.test.ts`: small programs, each run and checked | Unit (the semantics suite) |
 | The worker's protocol, both modes, pause, speed, and every event kind the contract can fire | `serve.test.ts`, over `inMemoryPorts` | Unit |
+| Ending a scene: the message, stopping every strand, defaults, faults, and loading the next scene into the same worker (section 3.1) | `serve.test.ts`, "ending a scene" | Unit |
 | The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when) | With WP4.3, once the blocks they use run | Unit |
 | Fast-forward to a block (WP6.4) | With WP7.4, which drives it through fixed-step `advance` | Unit |
