@@ -11,7 +11,7 @@ Bringing a model into the class Backstage (WP3i; decision 0066; spec 17, section
 
 - `browser.ts`: `browserImageTools`, the picture tools from the browser's own canvas (`OffscreenCanvas`): textures and the thumbnail as WebP, or PNG where WebP can't be made (Safari), and pictures decoded for the thumbnail.
 - `worker.ts` and `import-worker.ts` (`@storystage/backstage-import/worker`): the import in a Web Worker of its own. `importInWorker` starts a fresh worker for each import and stops it after `IMPORT_TIME_LIMIT_MS` (60 seconds).
-- `pack.ts`: `packModels`, which brings a production's packed models up to date before it's saved (decision 0049): class models it uses are packed from the class Backstage, ones it stopped using are dropped, and packed ones stay even if the class Backstage lost them.
+- `pack.ts` (also `@storystage/backstage-import/pack`, light enough for the studio to load on every save): `packModels`, which brings a production's packed models up to date before it's saved (decision 0049): class models it uses are packed from the class Backstage, ones it stopped using are dropped, and packed ones stay even if the class Backstage lost them.
 
 - `model-pack.ts`: the model pack, a class's models in one file for another device. `writeModelPack` and `modelPackFromClass` (the class's own models, not pupils') write it; `openModelPack` checks every model as an import (`buildModel`), reducing only one over its budget and drawing new sketches and a new thumbnail, and leaves out, with the reason, any that fail or that the class Backstage already has.
 
