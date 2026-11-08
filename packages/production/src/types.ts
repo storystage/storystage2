@@ -21,7 +21,7 @@ import {
 import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.0.0';
+export const FORMAT_VERSION = '1.1.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -87,6 +87,11 @@ export interface ProductionManifest {
   }[];
   /** Every class-imported model the production uses. Shipped models are never here. */
   readonly models: readonly PackedModel[];
+  /**
+   * Names the learners chose for the film's end credits (WP11.4), in their order. Optional. The
+   * learners' own words, in a film they'll share (spec section 1.1). Format 1.1.0.
+   */
+  readonly credits?: { readonly names: readonly string[] };
 }
 
 /** Arc templates (WP10.2): free, 3-part, 5-part, or a curriculum template by id (WP16). */
@@ -100,6 +105,11 @@ export interface SceneCard {
   readonly cast: readonly (BackstageId | StandIn)[];
   /** Which part of the arc it belongs to, by the template's part name. */
   readonly arcPart: string | null;
+  /**
+   * Notes for retakes, written in the Screening room (WP11.2) and shown there again. Optional; the
+   * learner's own words, up to a caption's length. Format 1.1.0.
+   */
+  readonly retakeNotes?: string;
 }
 
 /** `storyboard.json`. */
