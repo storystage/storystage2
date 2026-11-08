@@ -9,7 +9,7 @@
 
 1. The owner fills in the **[bracketed]** items: the name and contact details, and the effective date.
 2. The answers to the DPIA's legal questions (`docs/dpia.md` §8) are reflected, especially Anthropic's retention and transfer terms (Q7) and Bluehost's and GitHub's logs (Q8).
-3. A test confirms each claim marked ✔ on the release build: that the apps make no network connections with the Prompter off, other than the update check (as StoryStage 1's TR1 test N1 did), and that the browser version makes no third-party requests (threat B2).
+3. A test confirms each claim marked ✔ on the release build: that the apps make no network connections with the Prompter off, other than the update check and, only if someone asks for it, the larger speech model (as StoryStage 1's TR1 test N1 did), and that the browser version makes no third-party requests (threat B2).
 4. The website passes `website/README.md`'s pre-publish check (no tracking).
 
 ---
@@ -70,7 +70,7 @@ The Prompter is an AI helper in the apps (not the browser version). It explains,
 
 Learners can speak instead of typing, in any text box in the apps (the Claude key's box excepted), with or without the Prompter. The microphone is used only while the learner holds the microphone button, for at most 30 seconds, and the device's microphone light shows when it's on. The sound is turned into text on the device, kept only in memory, and then deleted. It is never saved or sent anywhere. ✔ The text goes into the box for the learner to check, and nothing goes to the Prompter until they press Send. The device asks for permission to use the microphone the first time. A school can turn voice input off.
 
-The speech model is built into the app, so voice input downloads nothing and works without the internet. ✔
+The speech model is built into the app, so voice input works without the internet. ✔ If you want a larger, more accurate model, Settings can download it once from storystage.org; as with any download, the website's host (Bluehost) sees the device's IP address.
 
 Reading aloud uses the device's own voices. Nothing is sent anywhere to read text aloud.
 
@@ -212,7 +212,7 @@ On a school device where the school manages the Prompter, 10b and 10c are replac
 | Linux Secret Service key store | No Linux in the first release; iPad and Android stores added |
 | Problem reports opened a GitHub issue | A local file for the feedback form; nothing sent automatically |
 | No updates, study, browser version or Drive | Update checks (GitHub), the editor study, the browser version, optional Drive and OneDrive |
-| Speech model downloaded from Hugging Face; voice input only for the Prompter | The model is in the app, so speech makes no network traffic (0058); voice input in every text box (0059) |
+| Speech model downloaded from Hugging Face; voice input only for the Prompter | The default model is in the app (0057); a larger one downloads from storystage.org only on request; voice input in every text box (0059) |
 | Policy file keys: 3 | 14 keys, and managed configuration on iPad and Android (spec 05 §3) |
 | Learner wording: none | Part 2, for ages 6 to 9 and 10 to 13 |
 | One consent tick | Two: the adult's age and responsibility, and consent (the Anthropic note, R1) |
