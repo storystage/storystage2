@@ -9,12 +9,14 @@
  */
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera.js';
 import '@babylonjs/core/Culling/ray.js';
+import '@babylonjs/core/Engines/Extensions/engine.readTexture.js';
+import { RenderTargetTexture } from '@babylonjs/core/Materials/Textures/renderTargetTexture.js';
 import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine.js';
 import { Frustum } from '@babylonjs/core/Maths/math.frustum.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import { jointsOf, skeletonOf } from '@storystage/backstage';
+import { SCENE_BUDGET, jointsOf, skeletonOf } from '@storystage/backstage';
 import {
   CAMERA,
   StageError,
@@ -35,9 +37,12 @@ import { resolveBackdrop } from '../backdrops.ts';
 import type { FrameImage, Speech, Stage } from '../contract.ts';
 import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
+import { checkPictureSize } from '../picture.ts';
 import { Timeline, standInShape, type Touching } from '../timeline.ts';
+import { humanoidsFor } from '../humanoid/library.ts';
 import { buildBackdrop, type ShowSky } from './backdrop.ts';
 import { buildFade } from './fade.ts';
+import type { Quality, Renderer } from './quality.ts';
 import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
 import { buildStandIn } from './stand-in.ts';
 import { setRotation, type ObjectView } from './view.ts';
@@ -60,6 +65,16 @@ const NO_MODELS: ModelSource = { find: () => null };
 
 export interface BabylonStageParts {
   readonly models?: ModelSource;
+  /** Which renderer the engine is (`createBabylonStage` chose it). */
+  readonly renderer?: Renderer;
+  readonly quality?: Quality;
+}
+
+/** How much the scene asks of the device, against Backstage's scene budget (WP3.9). */
+export interface SceneMeasure {
+  readonly triangles: number;
+  readonly budget: number;
+  readonly fits: boolean;
 }
 
 /** WebGL's rows start at the bottom; a `FrameImage`'s start at the top. */
@@ -90,9 +105,29 @@ export class BabylonStage implements Stage {
   private inView = new Set<ObjectId>();
   private drawing: (() => void) | null = null;
 
-  constructor(engine: AbstractEngine, { models = NO_MODELS }: BabylonStageParts = {}) {
+  readonly renderer: Renderer;
+  readonly quality: Quality;
+
+  constructor(
+    engine: AbstractEngine,
+    { models = NO_MODELS, renderer = 'webgl2', quality = 'standard' }: BabylonStageParts = {},
+  ) {
     this.engine = engine;
     this.models = models;
+    this.renderer = renderer;
+    this.quality = quality;
+  }
+
+  /**
+   * The triangles the loaded scene draws, everything included, against the scene budget. The
+   * budget is provisional until the reference devices have been measured (#6).
+   */
+  measure(): SceneMeasure {
+    const scene = this.loaded();
+    let triangles = 0;
+    for (const mesh of scene.meshes) if (mesh.isEnabled()) triangles += mesh.getTotalIndices() / 3;
+    const budget = SCENE_BUDGET.triangles;
+    return { triangles, budget, fits: triangles <= budget };
   }
 
   async load(setup: SceneSetup): Promise<void> {
@@ -108,6 +143,8 @@ export class BabylonStage implements Stage {
       const placed = await Promise.all(setup.objects.map((o) => place(o, library, scene)));
       const objects = new Map(setup.objects.map((o, i) => [o.id, placed[i]!]));
       this.timeline.load(setup, (o) => objects.get(o.id)!.shape);
+      const humanoids = await humanoidsFor(setup);
+      this.timeline.useHumanoids(humanoids.library, humanoids.navigation);
       this.library?.dispose();
       this.scene?.dispose();
       this.scene = scene;
@@ -253,6 +290,41 @@ export class BabylonStage implements Stage {
     return { width, height, data: topRowFirst(pixels as Uint8Array, width, height) };
   }
 
+  /**
+   * WP5.7: the scene at `at`, drawn into a picture of its own. The scene goes back to its last
+   * `seek` before the picture is read, so a live frame drawn meanwhile shows the right time, and
+   * no events fire.
+   */
+  async picture(at: Micros, width: number, height: number): Promise<FrameImage> {
+    const scene = this.loaded();
+    checkPictureSize(width, height);
+    await scene.whenReadyAsync();
+    const target = new RenderTargetTexture('picture', { width, height }, scene, {
+      generateMipMaps: false,
+      // Smoothed edges, as a frame on screen has.
+      samples: 4,
+    });
+    try {
+      target.renderList = scene.meshes.slice();
+      target.activeCamera = this.camera;
+      const now = this.timeline.time();
+      try {
+        this.timeline.seek(at);
+        this.show();
+        target.render();
+      } finally {
+        this.timeline.seek(now);
+        this.show();
+      }
+      const pixels = await target.readPixels();
+      if (!pixels) throw new StageError('bad_argument', 'The picture could not be read back.');
+      const bytes = new Uint8Array(pixels.buffer, pixels.byteOffset, width * height * 4);
+      return { width, height, data: topRowFirst(bytes, width, height) };
+    } finally {
+      target.dispose();
+    }
+  }
+
   dispose(): void {
     this.stopLive();
     this.listeners.clear();
@@ -349,7 +421,16 @@ export class BabylonStage implements Stage {
   /** Copies the timeline's state onto the scene. */
   private show(): void {
     const state = this.timeline.current();
-    for (const [id, view] of this.views) view.show(state.get(id)!, this.timeline.transform(id));
+    for (const [id, view] of this.views) {
+      const shown = this.timeline.shown(id);
+      view.show(state.get(id)!, this.timeline.transform(id), {
+        ...(shown.human ? { human: shown.human } : {}),
+        clips: shown.own,
+        face: shown.face,
+        fading: shown.fading,
+        blink: shown.blink,
+      });
+    }
     this.showSky?.(this.timeline.sky());
     this.showFade?.(this.timeline.fade());
     if (this.camera) {

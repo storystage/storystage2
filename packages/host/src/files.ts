@@ -171,8 +171,8 @@ export interface FilePicker {
   open(): Promise<{ readonly name: string; readonly bytes: Uint8Array }>;
   /**
    * Collect: the teacher picks a folder, and every file is written into it. Gives the count. The
-   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file` are
-   * `invalid`, and nothing is written.
+   * caller makes names unique ("The Owl (2)"): two files with the same `folder/file`, ignoring
+   * case as Windows and macOS do (`collectedPath`), are `invalid`, and nothing is written.
    */
   collect(files: readonly CollectedFile[]): Promise<number>;
   /**
@@ -180,6 +180,14 @@ export interface FilePicker {
    * over `FILE_LIMIT` is `too_big`, and nothing is read.
    */
   handBack(): Promise<readonly CollectedFile[]>;
+}
+
+/**
+ * Where a collected file lands, as a folder on Windows or macOS sees it: case and Unicode form
+ * don't count, so "Sam/Pip" and "sam/pip" are the same file (S4's review of #211).
+ */
+export function collectedPath(file: Pick<CollectedFile, 'folder' | 'file'>): string {
+  return `${file.folder}/${file.file}`.normalize('NFC').toLowerCase();
 }
 
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
@@ -210,5 +218,11 @@ export function safeFileName(text: string): string {
     .slice(0, NAME_LIMIT)
     .replace(/[. ]+$/, '');
   if (cleaned === '') return 'file';
-  return RESERVED.test(cleaned.split('.')[0] ?? '') ? `${cleaned}_` : cleaned;
+  const stem = cleaned.split('.')[0] ?? '';
+  if (!RESERVED.test(stem.trimEnd())) return cleaned;
+  // Windows takes any name whose stem is a device as the device, whatever follows the dot, so
+  // the mark goes after the stem: "con.txt" becomes "con_.txt" (S4's review of #218).
+  return `${stem.trimEnd()}_${cleaned.slice(stem.length)}`
+    .slice(0, NAME_LIMIT)
+    .replace(/[. ]+$/, '');
 }

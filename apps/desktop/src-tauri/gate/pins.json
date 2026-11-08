@@ -1,13 +1,21 @@
 {
   "modes": {
     "explain": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
-    "storyCoach": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
-    "scriptCheck": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
     "showMeHow": { "models": ["claude-opus-5-5"], "maxTokens": 32000 },
-    "buildIt": { "models": ["claude-opus-5-5"], "maxTokens": 32000 }
+    "buildIt": { "models": ["claude-opus-5-5"], "maxTokens": 32000 },
+    "storyCoach": { "models": ["claude-opus-5-5"], "maxTokens": 16000 },
+    "scriptCheck": { "models": ["claude-opus-5-5"], "maxTokens": 16000 }
   },
   "betas": ["server-side-fallback-2026-07-01"],
-  "system": null,
-  "tools": null,
-  "modeMessages": []
+  "system": "fe678a7fc3a410ad7ba03f7f1fb57276122055bef429fd967e79e304521d5a91",
+  "tools": "3060e9dc09db8a2e07e11acbc545b404b64c7559638ac051ea36b99b15a0d35b",
+  "modeMessages": [
+    "53c2943ab2619afc981506aada2d79fdd8aaa1a86c36e1b07bd2754c72dfa93a",
+    "59d9ec6f0ccb86eeb1a3e581e9746650cc3c1c27af8e72434004d7dc08024c3b",
+    "ea78aaae31d842e122b421d99451acb9a1883a0ff05e7b7be5be63104994aed7",
+    "c8e890023f71d4b0a84fe4c98bf2e66f475dbf11c56eb7023097fc7a454b4205",
+    "46df70eb556e7675e9252d01e079c7ccf5a1b60f3b0fbb18223cb66cb0794af7",
+    "8151086449b1e4927d8d52d9684653276146cafdb0a37a0e1f845c96b065f79b",
+    "0fed5fa7a6cd8befb5bd0eabc9c505f262b3381fb60712e844b8d5ff9ed374a2"
+  ]
 }

@@ -28,11 +28,24 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 | `audio/` | Lines and narration the learner chose to record | Files named in the manifest |
 | `models/<folder>/` | Each class-imported model the production uses (section 1.3) | `PackedModel`, named in the manifest |
 
-**The same production gives the same bytes.** JSON is written with sorted keys (`serializeProgram` for the program, the same rule for the rest), entries go in the order above and then by name, and each entry has a fixed date. So a save with no changes is identical, and the round-trip test (WP8) can compare bytes.
+**The same production gives the same bytes.** JSON is written with sorted keys (`serializeProgram` for the program, the same rule for the rest), entries go in the order above and then by name, and each entry has a fixed date. So a save with no changes is identical, and the round-trip test (WP8) can compare bytes. `saveProduction` and `openProduction` (`file.ts`) do this. **Reopening gives the same production,** except that `scenes` and `frames` come back in order of their ids: their order in memory carries no meaning (the running order and each frame's `order` do), and saving doesn't depend on it.
 
 **File names from ids.** A scene or frame id, or a model's folder, becomes part of a path, so it must match `SAFE_ID` (lowercase letters, digits and hyphens, 1 to 32 characters, starting with a letter or digit). An audio file is a plain name in `audio/`. `checkReferences` refuses anything else.
 
 **Reading a file** follows `15-security.md` section 3: one archive reader, in this package (`archive.ts`: `readArchive`, `writeArchive`, `readJson`), with its limits on sizes and names, and the whole file checked before anything loads (WP8.4). The reader parses the zip itself, so it refuses links and devices, encrypted, split and ZIP64 archives, and unknown packing methods; it unpacks only the entries the format names, counting bytes as they come; and it refuses the whole file on any problem, in plain words that never quote the file. `.a3p` files and model packs use the same reader. The writer gives the same bytes for the same entries: deflated at level 6 (or stored, when that is smaller), names in UTF-8, every entry dated 1 January 1980.
+
+### 1.0 Opening a file
+
+`openProduction` opens nothing until the whole file has passed, in this order:
+
+1. **The archive reader** (`archive.ts`; `15-security.md`, sections 3.1 and 3.2), unpacking only the entries this section names. Anything else is ignored, and never written back.
+2. **The manifest,** which must say `format: "storystage"` and give its version (section 1.2).
+3. **Every part's shape** (`validate.ts`): the manifest, each scene, the storyboard and each frame, with every number finite and in range. A scene or frame's `id` must match its file name. **In a file of this version, a part may hold only the fields its type names,** so nothing outside this spec (section 1.1) can ride through a save. A newer file, opened read-only, may hold fields this version doesn't know.
+4. **The program,** with `openProgram` (`01-ast.md`, section 7).
+5. **The script,** with `readFountain` and its limits (section 5).
+6. **`checkReferences`,** and every audio and packed model file the manifest names.
+
+It returns `ok`, `migrated` (with the `original` bytes to keep), `readOnly` (with the plain-words reason for the session), or `broken` (a plain-words message that never quotes the file, and problems for developers). `saveProduction` refuses a production that `checkReferences` faults, or whose audio or packed model files it isn't given, so a saved file always opens.
 
 ### 1.1 What is never stored
 
@@ -49,7 +62,7 @@ A production gets shared between pupils and schools, so anything in it should be
 `manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.0.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
-- **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, until the learner deletes it (where it goes: WP24.2).
+- **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
 - **An older app opens a newer file read-only,** with a plain message. It never writes back to that file.
 - **Deprecated parts stay readable for two major versions.**
 - **A changelog,** in `packages/production/CHANGELOG.md`.
@@ -68,6 +81,28 @@ Decision [0049](../decisions/0049-models-in-the-production-file.md): a film look
 - **If a model can't be found,** because a shipped model is in a later catalogue than this copy, the object shows as a labelled outline, as a `StandIn` does (WP10.9). The code still runs and nothing is lost.
 
 Models are the largest thing in the file. They're already reduced to the device budget on import (WP3.9), and the limits in `15-security.md` section 3.1 apply to the whole file. If a file is too big to save, WP8.4 says so in plain words.
+
+### 1.4 Saving in a pupil's folder
+
+Decision 0065: work lives in pupil folders in the app, and moves between devices as files. The folders and the system's file picker are the host's (`@storystage/host`, S8). This package can't depend on the host, so `saving.ts` says what it needs from them (`SaveFolder`, `CopyPicker`), and the host's `PupilFolder` and `FilePicker` fit those as they are.
+
+A `ProductionSaver` holds one open production's saves:
+
+1. **Backups are working sessions.** The host keeps five backups of each production. The first save after a production is opened keeps the version it replaces as a backup, and so does a save the learner asks for. Autosaves in between don't, so the five backups go back five sessions, not five minutes.
+2. **A migrated production keeps its original,** with `keepOriginal`, before its first save (section 1.2).
+3. **A read-only production is never written.** Saving it says, in plain words, to save a copy instead.
+4. **Saves run one at a time.** Autosaves asked for while a save is running wait, and only the latest of them runs. A save the learner asks for always runs. Each caller gets its outcome.
+5. **Problems come back in plain words,** never thrown: the host's codes (`full`, `locked`, `too_big` and so on), a read-only production, or a production `saveProduction` refuses.
+
+**Open** reads from the pupil's folder (`openFromFolder`) or from a file the learner picks (`openFromPicker`). Either way the bytes go through `openProduction` (section 1.0): a picked file is untrusted (threat PS5). **Save a copy** (`saveCopy`) suggests a name made from the title that works on every system.
+
+### 1.5 Collect and Hand back
+
+At the end of a unit, the teacher **collects** every pupil's productions into a folder they pick, one folder per pupil, and later **hands back** marked work from the same layout (decision 0065; `collect.ts`). They read each pupil's folder with `ClassFolders.folder(id)`, which doesn't change the current pupil, so autosave keeps writing where it was.
+
+1. **Names the teacher sees:** each pupil's folder is their name, made safe for every system (`plainName`, the host's `safeFileName` rules). Two pupils with the same name get "Sam" and "Sam (2)", in class-list order, ignoring case, so Hand back finds the same pupil again. Productions with the same title in one folder get "Pip" and "Pip (2)".
+2. **Collect copies each production as saved,** byte for byte.
+3. **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5). It writes each good one into its pupil's folder as a new production called "<title> (handed back)", so it never overwrites the pupil's own work. A file that fails, or whose folder names no pupil, is skipped, and the teacher sees why in plain words.
 
 ## 2. Scenes
 
@@ -104,7 +139,66 @@ A scene's script method can't be removed by an edit: `sceneMethodCheck` is the `
 
 `manifest.runningOrder` is the one place that says what order the scenes play in. Every scene appears in it exactly once. The Storyboard shows cards in this order, whatever order `storyboard.cards` happens to be in; reordering cards reorders this list.
 
-Each entry has a `Transition`, which says how that scene ends: `cut`, `fadeToBlack` or `crossfade`, with a `duration` ignored for a cut. The last scene's transition is ignored. **Go to scene** jumps to a scene and carries on from there in running order (WP8.3).
+Each entry has a `Transition`, which says how that scene ends: `cut`, `fadeToBlack` or `crossfade`, with a `duration` ignored for a cut. The last scene's transition is ignored.
+
+### 3.1 Playing a production
+
+Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playback.ts` holds the rules below (`firstScene`, `nextScene`, `waitsForViewer`). The player (Storyboard play, the Screening room, the export) asks it what comes next.
+
+1. **Play starts with the first scene in running order.** Each scene starts fresh, from its own set-up and fields. It's its own type, so nothing carries over from the scene before.
+2. **A scene ends on its own** when its script method has finished and its last stage command has ended, unless it **waits on the viewer**, with a listener for `clickOnScreen`, `clickOnObject`, `keyPress` or `arrowKeyPress` (`VIEWER_EVENTS`).
+    - A scene that waits ends only at `goToScene`, `crossfade` or `fadeToBlack`, or when play is stopped.
+    - Other listeners (timers, collisions, proximity, view) don't keep a scene going, and they stop when it ends.
+3. **When a scene ends on its own,** the next scene in running order plays, and the ended scene's transition leads into it. After the last scene, the film ends.
+4. **`goToScene(scene)`** ends this scene at once. No more of its code runs, including blocks running alongside it in a do together. Its transition leads into `scene`, and play carries on in running order from there.
+5. **`crossfade(scene; duration)`** does the same, with a crossfade over `duration` (the catalog's default, 1 second), whatever the running order says.
+6. **`fadeToBlack(; duration)`** fades to black and ends the scene, and the next scene in running order fades in. After the last scene, the film ends in black.
+7. **How transitions look.** A transition's `duration` is the whole transition.
+    - **Cut:** the next scene's first frame follows this scene's last frame.
+    - **Fade to black:** the picture fades to black over the first half, then the next scene fades in over the second half. It uses the stage's `fade` command on the scene, so the export renders it frame by frame:
+        - `to: 1` over the first half;
+        - then, on the next scene, `to: 1` at time 0 with no duration, before its first frame;
+        - then `to: 0` over the second half.
+    - **Crossfade:** both scenes are on screen, the old one fading out over the new, for the whole duration. It's the stage's job (S3, `packages/stage`), with the next scene preloaded (WP8.2). On a slow device the old scene may be shown still rather than moving. An export always shows both scenes moving: it draws frame by frame at its own pace, at full size, whatever the device, so a film exports the same on a Chromebook as on a fast PC.
+8. **Going back is allowed,** so a film might never end. Play stops after 200 scene starts (`SCENE_START_LIMIT`), or at the export's length cap, with a plain-words message.
+9. **Rehearse** (one scene, from the code editor) doesn't jump. At `goToScene`, `crossfade` or `fadeToBlack` it ends and shows "Next: <the scene's heading>".
+10. **A scene that isn't there:** a scene in code is text (spec 02, section 3a), so deleting a scene can leave a stale value. `checkProgram` flags it before play (`sceneExists`, S6). If play reaches it anyway, it stops with "There's no scene called …" (`noSuchScene`).
+11. **The export** has no viewer, so a scene that waits on the viewer runs to the length cap. The Screening room says so in plain words before exporting (`waitsForViewer`).
+
+**The runtime's part** (agreed with S2 on 8 Nov 2026; the messages are spec 18's, `packages/runtime/src/messages.ts`, `RUNTIME_PROTOCOL` 2):
+- `load` carries the production's scene ids (`scenes`), so an unknown scene, a scene that isn't text, or a negative duration is a `bad_value` fault at the block, with the block highlighted.
+- The three blocks run in the runtime, from the script method or any listener. Each flushes the commands so far, sends `{ type: 'sceneChange', at, ending }` at that scene time, and stops every strand at once. `ending` is the runtime's `RuntimeSceneEnding`, which is `SceneEnding` (`playback.ts`) without `finished`. No `finished` or `stopped` follows.
+- **The player** passes the ending to `nextScene`. It also derives `{ kind: 'finished' }` itself, from the runtime's `finished` message (the script method has ended): unless the scene waits on the viewer (`waitsForViewer`), it waits for the last stage command to end, sends `stop`, and asks `nextScene`.
+- The same worker takes a fresh `load` for the next scene, from scene time 0 with that scene's own seed. Going to the scene already playing restarts it.
+
+### 3.2 The player
+
+`ProductionPlayer` (`player.ts`) is the player's controller, agreed with S2 on 8 Nov 2026. It's a pure state machine: it has no worker, stage or clock of its own. The one-scene driver (S2, WP6.4) and the Screening room (WP11.1) tell it what happens, and do what it says.
+
+- **In:**
+  - `start()`;
+  - every message from the runtime (`runtime()`);
+  - the picture's scene time (`now()`): every frame live, and at each `advance` when fixed. It's the picture's time, not the worker's, which runs ahead by its lookahead, so a scene ends when the screen gets there;
+  - the learner's Stop (`stop()`).
+- **Out:** actions, in the order to do them:
+  - `load`, which is self-contained: the scene, its script method, its set-up, its seed, the scene ids for the runtime, how it came in, and any commands to schedule before its first seek;
+  - `stageCommands`, a fade on the scene that's ending;
+  - `crossfade`: keep the old scene's picture playing, its timeline carrying on with the commands it already has, while the next one loads. Only one runtime runs;
+  - `stop`, for the worker;
+  - `next`, Rehearse's "Next: <heading>";
+  - `fault`, the scene start limit or a missing scene, in plain words;
+  - `end`.
+- **Rules:**
+  - **Seeds:** each scene's seed is the run's seed plus its start number, so a rerun repeats (WP6.5).
+  - **A runtime error** stops play; the driver shows the error with its block highlighted.
+  - **The last command's end** is worked out from the `commands` the worker sends.
+  - **The player's fade commands** take sequence numbers from 2^30 up, after anything the runtime sends at the same moment.
+
+**WP8's done-when** ("plays through with each transition type") is `playthrough.test.ts`. A four-scene film plays through the real runtime (`serve`, fixed steps) with the stage's fake:
+1. a goToScene and the cut it leads into;
+2. a scene that ends on its own into a fade to black;
+3. another into a crossfade;
+4. a last scene that waits for a click, whose listener fades the film to black.
 
 ## 4. Storyboard
 
@@ -164,9 +258,16 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
 | One undo step for program edits, scene steps and stage changes, alone or grouped; cancel; renaming or removing an object's field in code keeps its set-up in step; read-only; listeners; load (section 2.1) | `session.test.ts` | Unit |
 | Renaming and duplicating a scene: the copy's type, set-up, card, place, new ids, links and pins (section 2.1) | `session.test.ts` | Unit |
+| Playing a production: the running order, each scene's transition, the end; go to scene, crossfade and fade to black; scenes that aren't there; the scene start limit; scenes that wait on the viewer (section 3.1) | `playback.test.ts` | Unit |
+| The player: a self-contained load with its seed; endings judged on the picture's time; waiting on the viewer; fade out then in; crossfade; the end, in black; the start limit; missing scenes; Rehearse; errors and Stop; reruns repeat (section 3.2) | `player.test.ts` | Unit |
+| WP8 done-when: a film plays through every transition, a goToScene and a scene that waits for a click, through the real runtime and the stage's fake (section 3.2) | `playthrough.test.ts` | Integration |
 | Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
-| A production saves and reopens identically (section 1) | With WP8.4: the WP8 round-trip test | Unit |
-| A newer file opens read-only and is never written (section 1.2) | With WP8.4 | Unit |
-| Nothing in section 1.1 reaches a file | With WP8.4 | Unit |
+| A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
+| A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
+| A read-only file is never written (section 1.2) | `saving.test.ts` | Unit |
+| Collect and Hand back: one folder per pupil, names made safe and unique as the teacher sees them, files copied as saved; handed-back files checked and written as new productions, the rest skipped with reasons (section 1.5) | `collect.test.ts` | Unit |
+| Saving in a pupil's folder: a key for a new production, backups on a session's first save and saves asked for, the original kept once, plain-words problems, one save at a time with waiting autosaves merged; opening from the folder and the picker through `openProduction`; a copy's name (section 1.4) | `saving.test.ts` | Unit |
+| Nothing in section 1.1 reaches a file: a field the types don't name is refused (section 1.0) | `file.test.ts`, `validate.test.ts` | Unit |
+| Opening checks the archive, every part's shape, the script's limits and the references before anything loads; unknown entries are ignored and never written back (section 1.0) | `file.test.ts`, `validate.test.ts` | Unit |
 | Adding, deleting and moving a scene keep the production sound, and their inverses restore the program (section 2.1) | `scenes.test.ts` | Unit |
 | One undo step covers the program and the set-up (section 2.1) | With WP8.2 | Unit |

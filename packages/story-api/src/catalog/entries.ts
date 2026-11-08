@@ -373,7 +373,7 @@ export const ENTRIES: readonly ApiEntry[] = [
   }),
   proc('JointedModel', 'playAnimation', [param('clip', 'AnimationClip')], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:clip',
     unreal: 'Play Animation or Montage',
   }),
 
@@ -392,86 +392,86 @@ export const ENTRIES: readonly ApiEntry[] = [
   // Biped: character actions (4.5) and faces (4.6)
   proc('Biped', 'walkTo', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:walk',
     bml: 'locomotion',
     unreal: 'AI MoveTo with a navigation mesh',
   }),
   proc('Biped', 'runTo', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:walk',
     bml: 'locomotion',
     unreal: 'AI MoveTo with a navigation mesh',
   }),
   proc('Biped', 'sitOn', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Montage with Attach To Component',
   }),
   proc('Biped', 'standUp', [], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'lieDown', [], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'fall', [], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'touch', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:reach',
     unreal: 'Control Rig IK',
   }),
   proc('Biped', 'reachFor', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:reach',
     bml: 'pointing',
     unreal: 'Control Rig IK',
   }),
   proc('Biped', 'pickUp', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:pickUp',
     unreal: 'Control Rig IK with Attach To Component',
   }),
   proc('Biped', 'putDown', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:putDown',
     unreal: 'Detach From Actor',
   }),
   proc('Biped', 'enterFrom', [param('edge', 'SceneEdge')], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:enter',
     unreal: 'Spawn Actor',
   }),
   proc('Biped', 'exitTo', [param('edge', 'SceneEdge')], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:walk',
     unreal: 'Destroy Actor',
   }),
   proc('Biped', 'gesture', [param('gesture', 'Gesture')], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:gesture',
     bml: 'gesture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'showExpression', [param('expression', 'Expression')], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:expression',
     bml: 'faceLexeme',
     unreal: 'Morph targets or pose assets',
   }),
   proc('Biped', 'lookAt', [target], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:lookAt',
     bml: 'gaze',
     unreal: 'Look At in Control Rig or an Animation Blueprint',
   }),
@@ -486,8 +486,6 @@ export const STAGE_NEEDS: Readonly<Record<string, string>> = {
   ask: 'Ask the learner for a value while a program runs (the runtime, not the stage)',
   sceneChange: 'Going to another scene, and crossfading to one: the production’s playback (WP8.3)',
   speech: 'Speak a line with visemes (WP14)',
-  character: 'Navigation, posture and hand contact (WP5b)',
-  animation: 'Clips, gestures, expressions and head turning (WP5b)',
 };
 
 /** Changes to commands the contract already has, still to make. */

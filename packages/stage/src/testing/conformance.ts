@@ -15,13 +15,14 @@ import {
   type ObjectId,
   type SceneLook,
   type SceneSetup,
+  type ShotType,
   type StageCommand,
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import type { Stage } from '../contract.ts';
-import { heading } from '../math.ts';
+import { heading, rotate } from '../math.ts';
 
 const cat = objectId('cat');
 const dog = objectId('dog');
@@ -239,6 +240,114 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       expect(stage.stateHash()).toBe(before);
       const joint = { object: cat, joint: head };
       expect(() => stage.answer({ kind: 'size', object: joint, at: 0 })).toThrow(/yet/);
+    });
+
+    describe('character actions (WP4c)', () => {
+      const where = (stage: Stage, id = cat) =>
+        stage.answer({ kind: 'transform', object: id, at: stage.time() }).value as Transform;
+      const natural = (
+        stage: Stage,
+        action: Parameters<typeof stage.answer>[0] & { kind: 'naturalDuration' },
+      ) => stage.answer(action).value as number;
+
+      it('take their own time: a walk by its length, anything else instantly', async () => {
+        const stage = await loaded();
+        const walk = { object: cat, kind: 'walk', to: dog, gait: 'walk' } as const;
+        const run = { ...walk, gait: 'run' } as const;
+        const slow = natural(stage, { kind: 'naturalDuration', action: walk, at: 0 });
+        expect(slow).toBeGreaterThan(micros(0.5));
+        expect(natural(stage, { kind: 'naturalDuration', action: run, at: 0 })).toBeLessThan(slow);
+        const turn = { object: cat, kind: 'turnToFace', target: dog } as const;
+        expect(natural(stage, { kind: 'naturalDuration', action: turn, at: 0 })).toBe(0);
+      });
+
+      it('walk to a thing and stop in front of it, facing it', async () => {
+        const stage = await loaded();
+        stage.schedule([cmd(0, 2, { object: cat, kind: 'walk', to: dog, gait: 'walk' })]);
+        stage.seek(micros(2));
+        const { position, rotation } = where(stage);
+        // The dog's block starts 0.25 m to the side of it; the cat stops a step from that.
+        expect(position.x).toBeCloseTo(1 - 0.25 - 0.35, 5);
+        expect(heading(rotation)).toBeCloseTo(0.25, 3);
+        stage.seek(micros(1));
+        expect(where(stage).position.x).toBeGreaterThan(-0.9);
+        expect(where(stage).position.x).toBeLessThan(0.35);
+      });
+
+      it('walk out of the picture past an edge, and in again from another', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 3, { object: cat, kind: 'walk', to: { edge: 'left' }, gait: 'run' }),
+          cmd(4, 3, { object: dog, kind: 'enter', from: 'right', gait: 'walk' }),
+        ]);
+        stage.seek(micros(3));
+        // +X is the picture's left, and the camera sees about 3 m each side at this distance.
+        expect(where(stage).position.x).toBeGreaterThan(4);
+        stage.seek(micros(4));
+        expect(where(stage, dog).position.x).toBeLessThan(-4);
+        stage.seek(micros(7));
+        expect(where(stage, dog).position.x).toBeCloseTo(1, 5);
+      });
+
+      it('pick a thing up, carry it, and put it down', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, { object: cat, kind: 'pickUp', target: dog }),
+          cmd(1, 1, { object: cat, kind: 'translate', by: { x: 0, y: 0, z: 3 }, space: 'scene' }),
+          cmd(2, 1, { object: cat, kind: 'putDown', target: dog }),
+        ]);
+        stage.seek(micros(0.25));
+        expect(stage.answer({ kind: 'vehicle', object: dog, at: stage.time() }).value).toBeNull();
+        stage.seek(micros(1));
+        expect(stage.answer({ kind: 'vehicle', object: dog, at: stage.time() }).value).toBe(cat);
+        stage.seek(micros(2));
+        expect(where(stage, dog).position.z).toBeGreaterThan(2.5);
+        stage.seek(micros(3));
+        expect(stage.answer({ kind: 'vehicle', object: dog, at: stage.time() }).value).toBeNull();
+        expect(where(stage, dog).position.y).toBeCloseTo(0, 5);
+        expect(where(stage, dog).position.z).toBeGreaterThan(3);
+      });
+
+      it('sit on a thing, and get off it again', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 1, { object: cat, kind: 'posture', posture: 'sit', on: dog }),
+          cmd(2, 1, { object: cat, kind: 'posture', posture: 'stand' }),
+        ]);
+        stage.seek(micros(1));
+        // A block has no hips, so it sits where the seat is. Something taller than 0.7 m is
+        // taken to be a chair, with its seat a little under half way up.
+        expect(where(stage).position.y).toBeCloseTo(0.45, 5);
+        stage.seek(micros(3));
+        expect(where(stage).position.y).toBeCloseTo(0, 5);
+      });
+
+      it('change only what they say, and the same way every time', async () => {
+        const a = await loaded();
+        const b = await loaded();
+        const before = a.stateHash();
+        const batch = () => [
+          cmd(0, 1, { object: cat, kind: 'lookAt', target: dog }),
+          cmd(0, 0.3, { object: cat, kind: 'expression', expression: 'happy' }),
+          cmd(1, 1, { object: cat, kind: 'reach', target: dog, then: 'stay' }),
+        ];
+        a.schedule(batch());
+        b.schedule(batch());
+        for (const s of [a, b]) s.seek(micros(2));
+        expect(a.stateHash()).not.toBe(before);
+        expect(a.stateHash()).toBe(b.stateHash());
+        expect(where(a).position.x).toBeCloseTo(-1, 9);
+      });
+
+      it('refuse a clip the model and the library do not have, or holding itself', async () => {
+        const stage = await loaded();
+        expect(() =>
+          stage.schedule([cmd(0, 1, { object: cat, kind: 'clip', clip: 'tango' })]),
+        ).toThrow(/tango/);
+        expect(() =>
+          stage.schedule([cmd(0, 1, { object: cat, kind: 'pickUp', target: cat })]),
+        ).toThrow(/hold/);
+      });
     });
 
     describe('targets', () => {
@@ -462,6 +571,131 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
         ).toThrow(StageError);
         expect(() =>
           stage.schedule([cmd(0, 0, { object: cat, kind: 'text', text: 'Hi' })]),
+        ).toThrow(StageError);
+      });
+    });
+
+    describe('pictures', () => {
+      it('are the size asked for, and leave the scene where it was', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          cmd(0, 2, { object: cat, kind: 'translate', by: { x: 3, y: 0, z: 0 }, space: 'scene' }),
+        ]);
+        stage.seek(micros(0.5));
+        const before = stage.stateHash();
+        const heard: string[] = [];
+        stage.onEvent((e) => heard.push(e.kind));
+        const picture = await stage.picture(micros(2), 160, 90);
+        expect([picture.width, picture.height, picture.data.length]).toEqual([
+          160,
+          90,
+          160 * 90 * 4,
+        ]);
+        expect(stage.time()).toBe(micros(0.5));
+        expect(stage.stateHash()).toBe(before);
+        expect(heard).toEqual([]);
+      });
+
+      it('are the same for the same moment', async () => {
+        const stage = await loaded();
+        const a = await stage.picture(micros(1), 8, 8);
+        const b = await stage.picture(micros(1), 8, 8);
+        expect(Array.from(b.data)).toEqual(Array.from(a.data));
+      });
+
+      it('refuse a size they cannot draw', async () => {
+        const stage = await loaded();
+        for (const [w, h] of [
+          [0, 90],
+          [160, 4097],
+          [1.5, 90],
+        ] as const)
+          await expect(stage.picture(0, w, h)).rejects.toMatchObject({ code: 'bad_argument' });
+      });
+    });
+
+    describe('shots', () => {
+      const shot = (name: ShotType, ...targets: ObjectId[]) =>
+        cmd(0, 1, { object: CAMERA, kind: 'shot', shot: name, targets });
+      const frame = async (name: ShotType, ...targets: ObjectId[]) => {
+        const stage = await loaded();
+        stage.schedule([shot(name, ...targets)]);
+        stage.seek(micros(1));
+        return { stage, camera: stage.transform(CAMERA) };
+      };
+      /** Where a point is as the camera sees it: +Z is straight ahead. */
+      const seen = (camera: Transform, point: Vec3) => {
+        const d = {
+          x: point.x - camera.position.x,
+          y: point.y - camera.position.y,
+          z: point.z - camera.position.z,
+        };
+        const q = camera.rotation;
+        return rotate({ x: -q.x, y: -q.y, z: -q.z, w: q.w }, d);
+      };
+
+      it('look at the front of their target, nearer for a closer shot', async () => {
+        const distances: number[] = [];
+        for (const name of ['wide', 'medium', 'closeUp'] as const) {
+          const { camera } = await frame(name, dog);
+          // The dog faces +Z, so the camera is in front of it, looking back at it.
+          expect(camera.position.z).toBeGreaterThan(0.5);
+          const there = seen(camera, { x: 1, y: 0.5, z: 0 });
+          close(there.x, 0);
+          expect(there.z).toBeGreaterThan(0);
+          distances.push(camera.position.z);
+        }
+        expect(distances[0]).toBeGreaterThan(distances[1]!);
+        expect(distances[1]).toBeGreaterThan(distances[2]!);
+      });
+
+      it('aim a close-up nearer the top than a wide shot', async () => {
+        const wide = (await frame('wide', dog)).camera.position.y;
+        const closeUp = (await frame('closeUp', dog)).camera.position.y;
+        expect(closeUp).toBeGreaterThan(wide);
+      });
+
+      it('put both of a two-shot in front of the camera, seen side by side', async () => {
+        const { camera } = await frame('twoShot', cat, dog);
+        const a = seen(camera, { x: -1, y: 0.5, z: 0 });
+        const b = seen(camera, { x: 1, y: 0.5, z: 0 });
+        expect(a.z).toBeGreaterThan(0);
+        close(a.z, b.z);
+        expect(Math.sign(a.x)).toBe(-Math.sign(b.x));
+      });
+
+      it('look over the first target’s shoulder at the second', async () => {
+        const { camera } = await frame('overTheShoulder', cat, dog);
+        const cats = seen(camera, { x: -1, y: 0.5, z: 0 });
+        const dogs = seen(camera, { x: 1, y: 0.85, z: 0 });
+        expect(dogs.z).toBeGreaterThan(cats.z);
+        expect(cats.z).toBeGreaterThan(0);
+        expect(Math.abs(dogs.x / dogs.z)).toBeLessThan(0.1);
+      });
+
+      it('follow a target as it moves on after the shot', async () => {
+        const stage = await loaded();
+        stage.schedule([
+          shot('follow', dog),
+          cmd(1, 1, { object: dog, kind: 'translate', by: { x: 0, y: 0, z: 3 }, space: 'scene' }),
+        ]);
+        stage.seek(micros(1));
+        const before = stage.transform(CAMERA).position;
+        // Behind the dog, which faces +Z.
+        expect(before.z).toBeLessThan(0);
+        stage.seek(micros(2));
+        close(stage.transform(CAMERA).position.z - before.z, 3);
+      });
+
+      it('are only the camera’s, and a two-shot needs two', async () => {
+        const stage = await loaded();
+        expect(() =>
+          stage.schedule([cmd(0, 1, { object: cat, kind: 'shot', shot: 'wide', targets: [dog] })]),
+        ).toThrow(StageError);
+        expect(() =>
+          stage.schedule([
+            cmd(0, 1, { object: CAMERA, kind: 'shot', shot: 'twoShot', targets: [dog] }),
+          ]),
         ).toThrow(StageError);
       });
     });

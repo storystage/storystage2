@@ -13,7 +13,7 @@ import type { Material } from '@babylonjs/core/Materials/material.js';
 import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
-import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { registerBuiltInLoaders } from '@babylonjs/loaders/dynamic.js';
@@ -33,6 +33,7 @@ import {
 import type { Box } from '../hull.ts';
 import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
+import { faceTargets, facesOf } from './faces.ts';
 import { ObjectView } from './view.ts';
 
 registerBuiltInLoaders();
@@ -87,8 +88,15 @@ export class ModelLibrary {
     const file = await this.source.find(id);
     if (!file) throw noModel(id);
     try {
-      const options = { pluginExtension: '.glb' };
-      return { file, container: await LoadAssetContainerAsync(file.url, this.scene, options) };
+      let json: GltfJson = {};
+      const options = {
+        pluginExtension: '.glb',
+        pluginOptions: {
+          gltf: { onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson) },
+        },
+      };
+      const container = await LoadAssetContainerAsync(file.url, this.scene, options);
+      return { file, container, json };
     } catch {
       throw noModel(id);
     }
@@ -96,13 +104,19 @@ export class ModelLibrary {
 
   /** An object's own copy of a model. Rejects with `unknown_model` if it can't be had. */
   async place(object: ObjectId, id: BackstageId, cls: StoryClass): Promise<PlacedModel> {
-    const { file, container } = await this.load(id);
+    const { file, container, json } = await this.load(id);
     const copy = container.instantiateModelsToScene((name) => name, false, {
       doNotInstantiate: true,
     });
     const root = new TransformNode(object, this.scene);
     root.rotationQuaternion = Quaternion.Identity();
-    for (const node of copy.rootNodes) node.parent = root;
+    // VRM 0.x avatars face -Z (spec 17, section 3); everything on the stage faces +Z.
+    const facing = json.extensions?.VRM ? new TransformNode(`${object} facing`, this.scene) : root;
+    if (facing !== root) {
+      facing.parent = root;
+      facing.rotationQuaternion = Quaternion.RotationAxis(Vector3.Up(), Math.PI);
+    }
+    for (const node of copy.rootNodes) node.parent = facing;
     const meshes = root.getChildMeshes().filter((m) => m.getTotalVertices() > 0);
     const paintable = plainSurfaces(object, meshes, this.scene);
     const box = boxOf(root);
@@ -116,8 +130,27 @@ export class ModelLibrary {
       }),
     );
     return {
-      view: new ObjectView({ root, meshes, box, paintable, joints }),
-      shape: { joints: file.joints === 'prop-only' ? [] : file.joints, box, jointPlaces },
+      view: new ObjectView({
+        root,
+        meshes,
+        box,
+        paintable,
+        joints,
+        animations: copy.animationGroups,
+        faces: faceTargets(facesOf(json), root.getChildMeshes()),
+      }),
+      shape: {
+        joints: file.joints === 'prop-only' ? [] : file.joints,
+        box,
+        jointPlaces,
+        // Its own clips, which the play animation block can name, and how long each is.
+        clips: new Map(
+          copy.animationGroups.map((g) => {
+            const fps = g.targetedAnimations[0]?.animation.framePerSecond ?? 60;
+            return [g.name, (g.to - g.from) / fps] as const;
+          }),
+        ),
+      },
     };
   }
 
@@ -130,9 +163,15 @@ export class ModelLibrary {
   }
 }
 
+/** What the stage reads from a model's glTF itself: a VRM's own extension. */
+interface GltfJson {
+  readonly extensions?: { readonly VRM?: unknown; readonly VRMC_vrm?: unknown };
+}
+
 interface LoadedModel {
   readonly file: ModelFile;
   readonly container: AssetContainer;
+  readonly json: GltfJson;
 }
 
 export interface PlacedModel {

@@ -23,6 +23,7 @@ import {
   type Quat,
   type SceneObjectSetup,
   type SceneSetup,
+  type ShotType,
   type Space,
   type StageCommand,
   type StageQuery,
@@ -32,14 +33,29 @@ import {
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
-import { resolveBackdrop, type Colour } from './backdrops.ts';
+import { ROOM, resolveBackdrop, type Colour } from './backdrops.ts';
 import type { Speech } from './contract.ts';
 import type { Box } from './hull.ts';
+import type { Navigation, NavigationArea, NavigationMaker } from './navigation.ts';
+import {
+  applyAction,
+  bodyPose,
+  isAction,
+  naturalLength,
+  resolveAction,
+  type Action,
+  type BodyState,
+  type Shown,
+  type World,
+} from './actions.ts';
+import { Body } from './humanoid/body.ts';
+import type { HumanLibrary } from './humanoid/library.ts';
 import {
   IDENTITY_Q,
   add,
   axisTurns,
   conjugate,
+  cross,
   dot,
   heading,
   length,
@@ -63,6 +79,8 @@ export interface Shape {
   readonly box: Box;
   /** Where each joint rests, in the object's own space at scale 1. */
   readonly jointPlaces: ReadonlyMap<JointName, Vec3>;
+  /** The model's own clips, by name, and how long each is in seconds. */
+  readonly clips?: ReadonlyMap<string, number>;
 }
 
 /** A stand-in's block: half a metre square and a metre tall, standing on its origin. */
@@ -110,6 +128,8 @@ export interface ObjectState {
   sky: Sky | null;
   /** `SCENE`'s fade to black, 0 (clear) to 1 (black), once a program fades. */
   fade: number | null;
+  /** What a character's body is doing (WP4c), once an action sets it. */
+  body: BodyState | null;
 }
 
 export type SceneState = ReadonlyMap<ObjectId, ObjectState>;
@@ -136,11 +156,20 @@ type Resolved =
   | { kind: 'text'; text: string }
   | { kind: 'say'; speech: Speech }
   | { kind: 'vehicle'; vehicle: ObjectId | null; shift: Vec3; turn: Quat }
-  | { kind: 'shot'; shot: string }
+  | {
+      kind: 'shot';
+      shot: string;
+      delta: Vec3;
+      axis: Vec3;
+      turns: number;
+      /** A follow shot ends riding on its target, keeping this pose relative to it. */
+      follow: { vehicle: ObjectId; position: Vec3; rotation: Quat } | null;
+    }
   | { kind: 'lens'; from: number; to: number }
   | { kind: 'skyColour'; part: SkyPart; base: Sky; from: Colour; to: Colour }
   | { kind: 'fog'; base: Sky; from: number; to: number }
-  | { kind: 'fade'; from: number; to: number };
+  | { kind: 'fade'; from: number; to: number }
+  | { kind: 'action'; action: Action };
 
 const ORIGIN: Pose = { position: v(0, 0, 0), rotation: IDENTITY_Q };
 interface Pose {
@@ -208,10 +237,69 @@ export class Timeline {
   private classes = new Map<ObjectId, StoryClass>();
   private baseSky: Sky = skyOf({});
   private baseLens = ALICE_LENS;
+  /** A room's floor, which its walls stop; null for open ground. */
+  private floor: Box | null = null;
   private commands: StageCommand[] = [];
   private resolved = new Map<number, Resolved>();
   private now: Micros = 0;
   private state: SceneState = new Map();
+  /** The shared humanoid clips and walkable areas, once the stage has loaded them (WP4c). */
+  private library: HumanLibrary | null = null;
+  private makeNavigation: NavigationMaker | null = null;
+  private walkable = new Map<string, Navigation | null>();
+  private bodies = new Map<ObjectId, Body | null>();
+  private readonly world: World = this.makeWorld();
+
+  /**
+   * Gives the timeline the shared humanoid clips and a maker of walkable areas, which the stage
+   * loads for a scene with characters in it. Without them a walk goes straight, and nothing is
+   * posed.
+   */
+  useHumanoids(library: HumanLibrary | null, navigation: NavigationMaker | null): void {
+    this.library = library;
+    this.makeNavigation = navigation;
+    this.walkable.clear();
+  }
+
+  /** What a character shows after the last `seek`: its pose, its own clips and its face. */
+  shown(object: ObjectId): Shown {
+    const s = this.need(object);
+    return bodyPose(this.world, this.state, object, s, this.now);
+  }
+
+  private makeWorld(): World {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const timeline = this;
+    return {
+      get library() {
+        return timeline.library;
+      },
+      body: (object) => this.bodies.get(object) ?? null,
+      scale: (state, object) => (state as SceneState).get(object)?.scale ?? v(1, 1, 1),
+      ownClip: (object, clip) => this.shapes.get(object)?.clips?.get(clip) ?? null,
+      pose: (state, object) => scenePose(state as SceneState, object),
+      targetPose: (state, target) => this.targetPose(state as SceneState, target),
+      box: (state, target) => this.subject(state as SceneState, [target]),
+      ownBox: (object) => this.shapes.get(object)?.box ?? null,
+      lens: (state) => (state as SceneState).get(CAMERA)?.lens ?? this.baseLens,
+      navigation: (state) => this.navigationAt(state as SceneState),
+      ground: () => (this.floor ? this.floor.max.y : 0),
+      isObject: (target) => typeof target === 'string' && this.start.has(target),
+    };
+  }
+
+  /** The walkable area round what stays put where it is in `state`, built once for each layout. */
+  private navigationAt(state: SceneState): Navigation | null {
+    if (!this.makeNavigation) return null;
+    const area = this.areaOf(state);
+    const key = area.obstacles
+      .map((b) =>
+        [b.min.x, b.min.y, b.min.z, b.max.x, b.max.y, b.max.z].map((n) => n.toFixed(2)).join(','),
+      )
+      .join(';');
+    if (!this.walkable.has(key)) this.walkable.set(key, this.makeNavigation(area));
+    return this.walkable.get(key)!;
+  }
 
   /** Replaces the scene and forgets every command. Throws if a vehicle can't be right. */
   load(setup: SceneSetup, shapeFor: (object: SceneObjectSetup) => Shape): void {
@@ -219,7 +307,12 @@ export class Timeline {
     this.markers = new Map(setup.markers.map((m) => [m.id, m.transform]));
     this.shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
+    this.bodies = new Map(
+      [...this.shapes].map(([id, shape]) => [id, Body.of(shape.jointPlaces)] as const),
+    );
+    this.walkable.clear();
     this.baseSky = skyOf(setup.backdrop);
+    this.floor = isRoom(setup.backdrop) ? ROOM_FLOOR : null;
     const degrees = setup.camera.fieldOfViewDegrees;
     this.baseLens = degrees === undefined ? ALICE_LENS : degrees / 360;
     this.reset();
@@ -253,6 +346,26 @@ export class Timeline {
 
   time(): Micros {
     return this.now;
+  }
+
+  /**
+   * What the scene's walkable area is built from (5.8): the boxes of everything that stays put,
+   * where it starts, and where everyone stands. Characters move, so they aren't in the way.
+   */
+  navigationArea(): NavigationArea {
+    return this.areaOf(this.start);
+  }
+
+  /** The same, from where things are in `state`. A thing being carried isn't in the way. */
+  private areaOf(state: SceneState): NavigationArea {
+    const obstacles: Box[] = [];
+    const include: Vec3[] = [];
+    for (const [id, cls] of this.classes) {
+      include.push(scenePose(state, id).position);
+      if (!ACTORS.includes(cls) && state.get(id)!.vehicle === null)
+        obstacles.push(this.subject(state, [id]));
+    }
+    return this.floor ? { obstacles, include, bounds: this.floor } : { obstacles, include };
   }
 
   /** The objects, the camera included; not `SCENE`. */
@@ -348,6 +461,29 @@ export class Timeline {
       }
       case 'lens':
         return { kind: 'lens', value: state.get(CAMERA)!.lens ?? this.baseLens };
+      case 'jointChain': {
+        // The joint map numbers a chain from its root (`tail`, `tail2`…) and ends a tail at its tip.
+        const joints = this.shapes.get(this.require(state, query.object))?.joints ?? [];
+        const chain = query.chain === 'neck' ? /^neck\d*$/ : /^tail(\d*|Tip)$/;
+        const place = (j: string) =>
+          j.endsWith('Tip') ? Infinity : Number(j.replace(/\D/g, '') || 1);
+        const value = joints.filter((j) => chain.test(j)).sort((a, b) => place(a) - place(b));
+        return { kind: 'jointChain', value };
+      }
+      case 'naturalDuration': {
+        const c = {
+          ...query.action,
+          seq: -1,
+          start: query.at,
+          duration: 0,
+          style: 'beginAndEndGently',
+        } as StageCommand;
+        this.validate(c);
+        if (!isAction(c)) return { kind: 'naturalDuration', value: 0 };
+        const here = scenePose(state, c.object);
+        const seconds = naturalLength(resolveAction(this.world, c, state, here));
+        return { kind: 'naturalDuration', value: Math.round(seconds * 1_000_000) };
+      }
     }
   }
 
@@ -380,7 +516,7 @@ export class Timeline {
       if (c.start > t) break;
       const r = this.resolve(i);
       const p = c.duration === 0 ? 1 : ease(c.style, (t - c.start) / c.duration);
-      apply(state.get(c.object)!, r, p, t, c);
+      apply(state.get(c.object)!, r, p, t, c, state);
     }
     return state;
   }
@@ -496,8 +632,18 @@ export class Timeline {
           return { kind: 'say', speech: { text: c.text, bubble: c.bubble } };
         case 'vehicle':
           return boarding(before, c.object, c.vehicle, carrier);
-        case 'shot':
-          return { kind: 'shot', shot: `${c.shot}:${c.targets.map(targetName).join(',')}` };
+        case 'shot': {
+          const lens = self.lens ?? this.baseLens;
+          const { pose, follow } = this.shotPose(before, here, c.shot, c.targets, lens);
+          const riding = follow ? relativeTo(scenePose(before, follow), pose) : null;
+          return {
+            kind: 'shot',
+            shot: `${c.shot}:${c.targets.map(targetName).join(',')}`,
+            delta: carried(sub(pose.position, here.position)),
+            ...turnTo(pose.rotation),
+            follow: follow && riding ? { vehicle: follow, ...riding } : null,
+          };
+        }
         case 'lens':
           return { kind: 'lens', from: self.lens ?? this.baseLens, to: c.verticalAngle };
         case 'atmosphere':
@@ -509,10 +655,108 @@ export class Timeline {
         case 'fade':
           return { kind: 'fade', from: self.fade ?? 0, to: c.to };
       }
+      // Only the character actions are left (WP4c).
+      return { kind: 'action', action: resolveAction(this.world, c, before, here) };
     };
     const r = resolved();
     this.resolved.set(c.seq, r);
     return r;
+  }
+
+  /** The box round some targets, in the scene's axes. A marker or a joint is a 30 cm cube. */
+  private subject(state: SceneState, targets: readonly Target[]): Box {
+    const corners: Vec3[] = [];
+    for (const target of targets) {
+      const pose = this.targetPose(state, target);
+      const box = typeof target === 'string' ? this.shapes.get(target)?.box : undefined;
+      const s = box ? state.get(target as ObjectId)!.scale : v(1, 1, 1);
+      const { min, max } = box ?? { min: v(-0.15, -0.15, -0.15), max: v(0.15, 0.15, 0.15) };
+      for (const x of [min.x, max.x])
+        for (const y of [min.y, max.y])
+          for (const z of [min.z, max.z])
+            corners.push(add(pose.position, rotate(pose.rotation, times(v(x, y, z), s))));
+    }
+    const low = (k: keyof Vec3) => Math.min(...corners.map((p) => p[k]));
+    const high = (k: keyof Vec3) => Math.max(...corners.map((p) => p[k]));
+    return { min: v(low('x'), low('y'), low('z')), max: v(high('x'), high('y'), high('z')) };
+  }
+
+  /**
+   * Where the camera goes for a shot (4.10), worked out when it starts. Every shot but
+   * over-the-shoulder looks level at the front of its subject: the box round its targets. With
+   * one target, the front is the way it faces; with more, it is across the line between the
+   * first two, on the side they face, or the camera's side if they face each other.
+   * How much of the subject fills the picture's height is the shot's (`SHOTS`); a wide shot and
+   * a two-shot also make room for the subject's width, in a 16:9 picture.
+   */
+  private shotPose(
+    state: SceneState,
+    here: Pose,
+    shot: ShotType,
+    targets: readonly Target[],
+    lens: number,
+  ): { pose: Pose; follow: ObjectId | null } {
+    const tan = Math.tan(lens * Math.PI);
+    const level = (a: Vec3) => unit(v(a.x, 0, a.z));
+    const at = (t: Target) => this.targetPose(state, t);
+    const facing = (t: Target) => level(rotate(at(t).rotation, FORWARD));
+    const box = this.subject(state, targets);
+    const height = Math.max(box.max.y - box.min.y, 0.1);
+    const middle = centre(box);
+    if (shot === 'overTheShoulder') {
+      // Behind the first target's shoulder, looking at the second's face.
+      const [a, b] = [this.subject(state, [targets[0]!]), this.subject(state, [targets[1]!])];
+      const ahead = level(sub(centre(b), centre(a))) ?? FORWARD;
+      const tall = a.max.y - a.min.y;
+      const shoulder = v(centre(a).x, a.max.y - 0.1 * tall, centre(a).z);
+      const side = unit(cross(UP, ahead)) ?? v(1, 0, 0);
+      // Far enough back and to the side to see past them, as a person would be.
+      const position = add(shoulder, add(scale(ahead, -0.6 * tall), scale(side, 0.5 * tall)));
+      const face = v(centre(b).x, b.max.y - 0.15 * (b.max.y - b.min.y), centre(b).z);
+      return {
+        pose: { position, rotation: lookRotation(sub(face, position), UP) ?? here.rotation },
+        follow: null,
+      };
+    }
+    // Which way from the subject the camera is.
+    let toward = facing(targets[0]!) ?? level(rotate(here.rotation, v(0, 0, -1))) ?? FORWARD;
+    // A shot of more than one sees them side by side, as a two-shot does.
+    if (targets.length > 1) {
+      const across = level(sub(at(targets[1]!).position, at(targets[0]!).position));
+      const side = across ? unit(cross(UP, across)) : null;
+      if (side) {
+        const both = add(facing(targets[0]!) ?? v(0, 0, 0), facing(targets[1]!) ?? v(0, 0, 0));
+        const front = length(both) > 1e-6 ? dot(side, both) : dot(side, sub(here.position, middle));
+        toward = front >= 0 ? side : scale(side, -1);
+      }
+    }
+    if (shot === 'follow') toward = scale(toward, -1);
+    const { fill, aim, wide } = SHOTS[shot];
+    const across = unit(cross(UP, toward)) ?? v(1, 0, 0);
+    /** How far the subject's footprint reaches along a level direction. */
+    const spread = (k: Vec3) => {
+      const values = [box.min.x, box.max.x].flatMap((x) =>
+        [box.min.z, box.max.z].map((z) => dot(v(x, 0, z), k)),
+      );
+      return Math.max(...values) - Math.min(...values);
+    };
+    let distance = (height * fill) / 2 / tan;
+    if (wide) distance = Math.max(distance, (spread(across) * wide) / 2 / (tan * ASPECT));
+    distance = Math.max(distance, 0.5) + spread(toward) / 2;
+    const target = v(middle.x, box.max.y - aim * height, middle.z);
+    const lift = shot === 'follow' ? height * 0.4 : 0;
+    const position = add(add(target, scale(toward, distance)), v(0, lift, 0));
+    const rotation = lookRotation(sub(target, position), UP) ?? here.rotation;
+    const first = targets[0]!;
+    const follow =
+      shot !== 'follow'
+        ? null
+        : typeof first === 'string'
+          ? this.start.has(first)
+            ? first
+            : null
+          : first.object;
+    return { pose: { position, rotation }, follow };
   }
 
   /** Where the camera sees a target well: in front of it, a little above, looking at its middle. */
@@ -630,6 +874,37 @@ export class Timeline {
     const classIs = (cls: StoryClass, what: string) => {
       if (this.classes.get(c.object) !== cls) throw bad(`Only ${what} has that.`);
     };
+    if (isAction(c)) {
+      if (c.object === CAMERA) throw bad("The camera can't do that.");
+      switch (c.kind) {
+        case 'walk':
+          if (typeof c.to !== 'object' || !('edge' in c.to)) this.checkTarget(c.to);
+          break;
+        case 'posture':
+          if (c.on !== undefined) this.checkTarget(c.on);
+          break;
+        case 'reach':
+          this.checkTarget(c.target);
+          break;
+        case 'pickUp':
+        case 'putDown':
+          exists(c.target);
+          if (c.target === c.object || c.target === CAMERA) throw bad("It can't hold that.");
+          break;
+        case 'clip':
+          // The shared clips are humanoid ones; anything else plays only its own.
+          if (
+            !this.shapes.get(c.object)?.clips?.has(c.clip) &&
+            !(this.classes.get(c.object) === 'Biped' && this.library?.has(c.clip))
+          )
+            throw bad(`${c.object} has no clip called ${c.clip}.`);
+          break;
+        case 'lookAt':
+          if (c.target !== null) this.checkTarget(c.target);
+          break;
+      }
+      return;
+    }
     switch (c.kind) {
       case 'translate':
         finite(c.by.x, c.by.y, c.by.z);
@@ -690,9 +965,14 @@ export class Timeline {
           if (c.vehicle === c.object) throw bad(`${c.object} can't ride on itself.`);
         }
         break;
-      case 'shot':
+      case 'shot': {
+        if (c.object !== CAMERA) throw bad('Only the camera frames a shot.');
+        const needs = c.shot === 'twoShot' || c.shot === 'overTheShoulder' ? 2 : 1;
+        if (c.targets.length < needs)
+          throw bad(`That shot needs ${needs === 2 ? 'two things' : 'something'} to frame.`);
         c.targets.forEach((t) => this.checkTarget(t));
         break;
+      }
       case 'paint':
         colour(c.paint);
         break;
@@ -723,6 +1003,46 @@ export class Timeline {
     }
   }
 }
+
+/** Classes that act, and so move about: a walking character isn't in another's way. */
+const ACTORS: readonly StoryClass[] = ['Biped', 'Quadruped', 'Flyer', 'Swimmer', 'Slitherer'];
+
+const ROOM_FLOOR: Box = {
+  min: v(-ROOM.width / 2, -0.05, -ROOM.depth / 2),
+  max: v(ROOM.width / 2, 0, ROOM.depth / 2),
+};
+
+/** Whether a backdrop's ground is a room. A ground Babylon.js doesn't know is open ground. */
+function isRoom(backdrop: SceneSetup['backdrop']): boolean {
+  try {
+    return resolveBackdrop(backdrop).ground?.room !== undefined;
+  } catch {
+    return false;
+  }
+}
+
+/** The picture's width over its height, for fitting a subject's width: the export's 16:9. */
+const ASPECT = 16 / 9;
+
+/**
+ * How each shot frames its subject (4.10). `fill` is how much of the subject's height the
+ * picture's height takes in; `aim` is how far down from the top of the subject the camera
+ * looks, as a part of its height; `wide`, where set, makes the picture that much wider than
+ * the subject. Over-the-shoulder is placed by its own rule.
+ */
+export const SHOTS: Readonly<Record<ShotType, { fill: number; aim: number; wide?: number }>> = {
+  /** All of it, with room round it. */
+  wide: { fill: 2.2, aim: 0.5, wide: 1.6 },
+  /** From the top down to the waist, with a little room above. */
+  medium: { fill: 0.7, aim: 0.3 },
+  /** Head and shoulders, with a little room above. */
+  closeUp: { fill: 0.38, aim: 0.15 },
+  /** Two targets side by side, from the waist up, from the side they face. */
+  twoShot: { fill: 0.7, aim: 0.3, wide: 1.3 },
+  /** Behind and a little above the target, riding with it. */
+  follow: { fill: 1.4, aim: 0.4 },
+  overTheShoulder: { fill: 0, aim: 0 },
+};
 
 /** Which of the target's axes each relation goes along, and which way (spec 02, Directions). */
 const RELATIONS = {
@@ -783,6 +1103,7 @@ function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
     lens: null,
     sky: null,
     fade: null,
+    body: null,
   });
   const place = (id: ObjectId, o?: SceneObjectSetup) => {
     if (id === SCENE) throw bad('Nothing in a scene can be called scene.');
@@ -832,8 +1153,23 @@ function boarding(
 const blendOf = (from: string | null, p: number): Blend | null =>
   p >= 1 ? null : { from, amount: p };
 
-function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageCommand): void {
+function apply(
+  s: ObjectState,
+  r: Resolved,
+  p: number,
+  t: Micros,
+  c: StageCommand,
+  state: ReadonlyMap<ObjectId, ObjectState>,
+): void {
+  // Straightening up also lets go of a reach and a look (WP4c).
+  if (c.kind === 'pose' && s.body && p >= 1) {
+    s.body.reach = null;
+    s.body.look = null;
+  }
   switch (r.kind) {
+    case 'action':
+      applyAction(s, r.action, p, t, c, state);
+      return;
     case 'translate':
       s.position = add(s.position, scale(r.delta, p));
       return;
@@ -882,6 +1218,14 @@ function apply(s: ObjectState, r: Resolved, p: number, t: Micros, c: StageComman
       return;
     case 'shot':
       s.shot = r.shot;
+      if (r.follow && p >= 1) {
+        s.vehicle = r.follow.vehicle;
+        s.position = r.follow.position;
+        s.rotation = r.follow.rotation;
+        return;
+      }
+      s.position = add(s.position, scale(r.delta, p));
+      s.rotation = mul(axisTurns(r.axis, r.turns * p), s.rotation);
       return;
     case 'lens':
       s.lens = lerp(r.from, r.to, p);
@@ -907,6 +1251,24 @@ function sceneTransform(state: SceneState, id: ObjectId): Transform {
  * What only later commands can set is added only once set, so a scene that doesn't use it
  * hashes as it always has.
  */
+/** What a body is doing, for `hashState`. */
+function bodyHash(b: BodyState, n: (x: number) => string): string {
+  const target = (t: Target | Vec3) =>
+    typeof t === 'object' && 'x' in t ? `${n(t.x)},${n(t.y)},${n(t.z)}` : targetName(t);
+  return [
+    b.rest,
+    b.restSince,
+    b.seated ? 'seated' : '',
+    b.layers.map((l) => `${l.clip}@${n(l.time)}x${n(l.weight)}`).join(','),
+    b.reach ? `reach:${target(b.reach.target)}:${b.reach.hand ?? ''}:${n(b.reach.weight)}` : '',
+    b.holding.map((h) => h.object).join(','),
+    b.look ? `look:${targetName(b.look.target)}:${n(b.look.weight)}` : '',
+    b.face ? `face:${b.face.expression}:${n(b.face.amount)}` : '',
+    b.fading ? `fading:${b.fading.expression}:${n(b.fading.amount)}` : '',
+    n(b.blink),
+  ].join('/');
+}
+
 export function hashState(state: SceneState): number {
   const n = (x: number) => (Math.abs(x) < 5e-7 ? 0 : x).toFixed(6);
   const vec = (a: Vec3) => `${n(a.x)},${n(a.y)},${n(a.z)}`;
@@ -938,6 +1300,7 @@ export function hashState(state: SceneState): number {
         blend(s.backPaintBlend),
         s.text === null ? null : `text:${s.text}`,
         s.lens === null ? null : `lens:${n(s.lens)}`,
+        s.body ? `body:${bodyHash(s.body, n)}` : null,
       ].filter((x) => x !== null);
       return [
         [
