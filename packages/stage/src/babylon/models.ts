@@ -75,6 +75,14 @@ export class ModelLibrary {
     this.source = source;
   }
 
+  /** Starts fetching and reading a model, for a scene that may come next. Never rejects. */
+  prefetch(id: BackstageId): Promise<void> {
+    return this.load(id).then(
+      () => {},
+      () => {},
+    );
+  }
+
   private load(id: BackstageId): Promise<LoadedModel> {
     let model = this.loaded.get(id);
     if (!model) {

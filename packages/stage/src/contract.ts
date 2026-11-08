@@ -35,13 +35,34 @@ export interface FrameImage {
   readonly data: Uint8ClampedArray;
 }
 
+/** How a scene replaces the one before (WP8.3, spec 03 section 3.1). */
+export interface LoadOptions {
+  /**
+   * Crossfade from the scene before over this much of the new scene's time, in microseconds:
+   * the old scene is drawn over the new one, fading out. It keeps moving, as if its clock went on,
+   * except that a stage drawing at "low" quality, live, may hold it still; an export always
+   * shows it moving. It fires no events and answers nothing. With no scene before, there's
+   * nothing to fade.
+   */
+  readonly crossfade?: Micros;
+}
+
 export interface Stage {
   /**
    * Replaces the scene with `setup` and forgets every command. Resolves when every model has
    * loaded **and the scene is ready to draw** (shaders compiled), so the first frame is the same
    * every time (spike 1.4, rule 5). Rejects with a `StageError` (`unknown_model`).
    */
-  load(setup: SceneSetup): Promise<void>;
+  load(setup: SceneSetup, options?: LoadOptions): Promise<void>;
+
+  /**
+   * WP8.2: gets a scene that will probably come next ready to load, while this one plays: its
+   * models are fetched and read, and nothing changes on screen or in this scene. The `load`
+   * that follows uses what's ready, whether or not it's this scene, so a scene that shares
+   * models with it loads faster too. Never rejects; a model that can't be had is `load`'s to
+   * report.
+   */
+  preload(setup: SceneSetup): Promise<void>;
 
   /** The objects in the scene, the camera included, in setup order. */
   objects(): readonly ObjectId[];
