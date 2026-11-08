@@ -6,12 +6,19 @@
  * WP14.2: voices (`voices.ts`), the sanitiser (`speakable.ts`), the narration queue
  * (`narration.ts`) and the browser's speaker (`browser-speaker.ts`). WP14.1: dictation
  * (`dictation.ts`), with audio for whisper (`resample.ts`) and cleaning what it hears
- * (`transcript.ts`). The browser's microphone and the whisper worker come next.
+ * (`transcript.ts`); the browser's microphone (`microphone.ts`), the whisper worker
+ * (`whisper-core.ts`, `whisper-worker.ts`, `worker-recogniser.ts`) and dictation in the app
+ * (`browser.ts`).
  */
 export * from './browser-speaker.ts';
+export * from './browser.ts';
 export * from './dictation.ts';
+export * from './microphone.ts';
 export * from './narration.ts';
 export * from './resample.ts';
 export * from './speakable.ts';
 export * from './transcript.ts';
 export * from './voices.ts';
+export * from './whisper-core.ts';
+export type * from './whisper-protocol.ts';
+export * from './worker-recogniser.ts';

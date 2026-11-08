@@ -143,6 +143,17 @@ describe('createDictation (spec 06, section 1.11)', () => {
     expect(heard[0]!.length).toBe(RATE);
     expect(heard[0]!.every((s) => s === 0)).toBe(true);
   });
+
+  it('gives back the words when the recogniser took the audio away, as a worker does', async () => {
+    const { dictation, mic, setTranscribe } = setUp();
+    setTranscribe(async (audio) => {
+      structuredClone(audio.buffer, { transfer: [audio.buffer] });
+      return 'hello there';
+    });
+    await dictation.start();
+    mic.feed(1);
+    await expect(dictation.stop()).resolves.toEqual({ text: 'hello there' });
+  });
 });
 
 describe('takes (spec 06, section 1.5)', () => {

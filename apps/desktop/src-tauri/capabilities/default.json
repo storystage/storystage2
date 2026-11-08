@@ -16,6 +16,11 @@
     "allow-speech-model-load",
     "allow-speech-model-download",
     "allow-speech-model-cancel",
-    "allow-speech-model-remove"
+    "allow-speech-model-remove",
+    "allow-classes-read",
+    "allow-classes-write",
+    "allow-classes-remove",
+    "allow-classes-list",
+    "allow-classes-move"
   ]
 }

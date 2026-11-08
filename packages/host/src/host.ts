@@ -3,13 +3,15 @@
  * the studio at start-up, so the browser build and the Tauri build differ only in what they
  * pass. The studio never asks which host it is in.
  *
- * Owners: S8 and S5, and S7 for `speech`. `classes` is S4's to use (8.4) and S8's to provide.
+ * Owners: S8 and S5, and S7 for `speech`. `classes` and `picker` are S4's to use (8.4) and S8's to provide.
  */
 
 import { offTransport, type PrompterTransport } from '@storystage/prompter';
+import { browserPicker } from './browser-picker.ts';
 import { browserStore } from './browser-store.ts';
 import { storedClassFolders } from './class-folders.ts';
-import type { ClassFolders } from './files.ts';
+import type { ClassFolders, FilePicker } from './files.ts';
+import { tauriStore } from './tauri-store.ts';
 import { BROWSER_POLICY, readPolicy, type PolicyInForce } from './policy.ts';
 import { tauriSpeech, type ChannelClass, type Invoke, type SpeechModels } from './speech.ts';
 
@@ -27,9 +29,14 @@ export interface HostInterface {
   readonly speech: SpeechModels | null;
   /**
    * The pupil folders (spec 05 section 6, decision 0065). The Origin Private File System in the
-   * browser version, and for now in the Tauri apps too, until their native store lands (6.1).
+   * browser version, and the native store in the Tauri apps (6.4).
    */
   readonly classes: ClassFolders;
+  /**
+   * The system's own file picker, for Save a copy, Open, Collect and Hand back (spec 05 section
+   * 6.5). The browser's pickers for now in the Tauri apps too, until the native one lands.
+   */
+  readonly picker: FilePicker;
 }
 
 /** The browser version's host (0022, 15.6): the Prompter has no way to reach anything. */
@@ -39,6 +46,7 @@ export const browserHost: HostInterface = {
   version: null,
   speech: null,
   classes: storedClassFolders(browserStore()),
+  picker: browserPicker(),
 };
 
 /** The Tauri command that returns the installed version. It takes no arguments. */
@@ -75,6 +83,7 @@ export async function tauriHost(
     prompter: reachable,
     version,
     speech,
-    classes: storedClassFolders(browserStore()),
+    classes: storedClassFolders(tauriStore(invoke)),
+    picker: browserPicker(),
   };
 }
