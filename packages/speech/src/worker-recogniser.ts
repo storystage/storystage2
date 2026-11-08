@@ -21,6 +21,8 @@ export interface WhisperWorkerOptions {
   readonly makeWorker?: () => WorkerLike;
   /** Default: the device's cores, at most 4 (section 1.2). */
   readonly threads?: number;
+  /** Hears each stage and whisper's printed lines, for diagnosing a build. */
+  readonly onLog?: (line: string) => void;
 }
 
 const defaultWorker = (): WorkerLike =>
@@ -57,7 +59,9 @@ export function whisperRecogniser(
       worker.onerror = (event) =>
         fail(/memory|oom|alloc/i.test(event.message ?? '') ? 'out_of_memory' : 'internal');
       worker.onmessage = ({ data }) => {
-        if (data.type === 'ready') {
+        if (data.type === 'log') {
+          options.onLog?.(data.line);
+        } else if (data.type === 'ready') {
           loaded = true;
           resolveLoad(recogniser);
         } else if (data.type === 'text') {
@@ -98,6 +102,7 @@ export function whisperRecogniser(
           script: options.script,
           model,
           threads: options.threads ?? defaultThreads(),
+          ...(options.onLog ? { verbose: true } : {}),
         },
         [model],
       );

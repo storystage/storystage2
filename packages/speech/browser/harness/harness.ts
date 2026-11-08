@@ -10,13 +10,21 @@ import { browserMicrophone, defaultMicrophoneBrowser } from '../../src/microphon
 import { whisperRecogniser } from '../../src/worker-recogniser.ts';
 
 const out = document.getElementById('out')!;
+const stages: string[] = [];
+const stage = (s: string) => {
+  stages.push(`${Math.round(performance.now())} ms: ${s}`);
+  (window as unknown as { harnessStages: string[] }).harnessStages = stages;
+  console.log(s);
+};
 const finish = (result: unknown) => {
   (window as unknown as { harnessResult: unknown }).harnessResult = result;
   out.textContent = JSON.stringify(result);
 };
 
 async function clip() {
+  stage(`isolated: ${String(crossOriginIsolated)}`);
   const model = await (await fetch('/model.bin')).arrayBuffer();
+  stage(`model fetched, ${model.byteLength} bytes`);
   const decoded = await new AudioContext().decodeAudioData(
     await (await fetch('/jfk.wav')).arrayBuffer(),
   );
@@ -37,11 +45,16 @@ async function clip() {
   const speech = { load: async () => model.slice(0) } as unknown as SpeechModels;
   const dictation = createDictation(speech, {
     microphone,
-    recogniser: whisperRecogniser({ script: new URL('/whisper.js', location.href).href }),
+    recogniser: whisperRecogniser({
+      script: new URL('/whisper.js', location.href).href,
+      onLog: (line) => stage(`worker: ${line}`),
+    }),
   })!;
   const started = performance.now();
   await dictation.start();
+  stage('listened');
   const { text } = await dictation.stop();
+  stage('heard');
   return { text, ms: Math.round(performance.now() - started), rate: decoded.sampleRate };
 }
 

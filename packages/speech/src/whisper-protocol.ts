@@ -7,6 +7,8 @@ export type ToWhisper =
       readonly script: string;
       readonly model: ArrayBuffer;
       readonly threads: number;
+      /** Post each stage and whisper's printed lines back, for diagnosing a build. */
+      readonly verbose?: boolean;
     }
   /** The audio is transferred too, so no copy stays on the studio's side. */
   | {
@@ -18,6 +20,8 @@ export type ToWhisper =
 
 export type FromWhisper =
   | { readonly type: 'ready' }
+  /** Only with `verbose`. */
+  | { readonly type: 'log'; readonly line: string }
   | { readonly type: 'text'; readonly id: number; readonly text: string }
   | {
       readonly type: 'error';

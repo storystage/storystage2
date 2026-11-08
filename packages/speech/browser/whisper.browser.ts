@@ -32,16 +32,32 @@ const KENNEDY =
   'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.';
 
 async function resultOf(page: Page, run: string) {
-  page.on('console', (m) => {
-    if (m.type() === 'error') console.log('page error:', m.text());
-  });
-  await page.goto(`/?run=${run}`);
-  const handle = await page.waitForFunction(
-    () => (window as unknown as { harnessResult?: unknown }).harnessResult,
-    undefined,
-    { timeout: 280_000 },
+  page.on('console', (m) => console.log(`page ${m.type()}: ${m.text()}`));
+  page.on('worker', (worker) =>
+    worker.on('console', (m) => console.log(`worker ${m.type()}: ${m.text()}`)),
   );
-  return (await handle.jsonValue()) as Record<string, unknown>;
+  page.on('pageerror', (error) => console.log('page error:', error.message));
+  await page.goto(`/?run=${run}`);
+  try {
+    const handle = await page.waitForFunction(
+      () => (window as unknown as { harnessResult?: unknown }).harnessResult,
+      undefined,
+      { timeout: 240_000 },
+    );
+    return (await handle.jsonValue()) as Record<string, unknown>;
+  } finally {
+    // How far it got, for a run that hangs.
+    console.log(
+      'stages:',
+      JSON.stringify(
+        await page.evaluate(
+          () => (window as unknown as { harnessStages?: string[] }).harnessStages,
+        ),
+        null,
+        2,
+      ),
+    );
+  }
 }
 
 test('dictation hears a recorded clip through the real whisper worker', async ({ page }) => {

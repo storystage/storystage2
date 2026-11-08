@@ -11,24 +11,38 @@ interface WorkerScope {
   Module?: Record<string, unknown>;
   importScripts(...urls: string[]): void;
   postMessage(message: FromWhisper): void;
-  onmessage: ((event: { data: ToWhisper }) => void) | null;
+  addEventListener(type: 'message', listener: (event: { data: ToWhisper }) => void): void;
 }
 
 const scope = globalThis as unknown as WorkerScope;
 let core: WhisperCore | null = null;
 let current: number | null = null;
+let verbose = false;
+const log = (line: string) => {
+  if (verbose) scope.postMessage({ type: 'log', line });
+};
 
 const outOfMemory = (what: unknown) => /memory|oom|alloc/i.test(String(what));
 
 function loadModule(script: string): Promise<WhisperModule> {
   return new Promise((resolve, reject) => {
     const Module: Record<string, unknown> = {
-      print: (line: string) => core?.print(line),
-      printErr: (line: string) => core?.print(line),
+      print: (line: string) => {
+        log(line);
+        core?.print(line);
+      },
+      printErr: (line: string) => {
+        log(line);
+        core?.print(line);
+      },
       mainScriptUrlOrBlob: script,
       locateFile: (path: string) => new URL(path, script).href,
-      onRuntimeInitialized: () => resolve(Module as unknown as WhisperModule),
+      onRuntimeInitialized: () => {
+        log('whisper runtime ready');
+        resolve(Module as unknown as WhisperModule);
+      },
       onAbort: (what: unknown) => {
+        log(`whisper aborted: ${String(what)}`);
         scope.postMessage({
           type: 'error',
           id: current,
@@ -39,27 +53,35 @@ function loadModule(script: string): Promise<WhisperModule> {
     };
     scope.Module = Module;
     try {
+      log(`loading ${script}`);
       scope.importScripts(script);
-    } catch {
+      log('script loaded');
+    } catch (error) {
+      log(`script failed: ${String(error)}`);
       reject(new WhisperError('model_failed'));
     }
   });
 }
 
-scope.onmessage = ({ data }) => {
+// A listener, not `onmessage`: whisper's script may set `self.onmessage` for itself.
+scope.addEventListener('message', ({ data }) => {
   void (async () => {
     if (data.type === 'load') {
+      verbose = data.verbose === true;
       try {
         const module = await loadModule(data.script);
         core = new WhisperCore(module, data.threads);
         core.load(new Uint8Array(data.model));
+        log('model loaded');
         scope.postMessage({ type: 'ready' });
-      } catch {
+      } catch (error) {
+        log(`load failed: ${String(error)}`);
         scope.postMessage({ type: 'error', id: null, code: 'model_failed' });
       }
       return;
     }
     current = data.id;
+    log(`transcribing ${data.audio.length} samples at ${data.rate} Hz`);
     try {
       if (!core) throw new WhisperError('model_failed');
       const text = await core.transcribe(data.audio, data.rate);
@@ -76,4 +98,4 @@ scope.onmessage = ({ data }) => {
       current = null;
     }
   })();
-};
+});
