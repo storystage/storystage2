@@ -19,8 +19,8 @@ export type Overlay = 'learn' | 'settings';
 
 export interface ShellProps {
   /** The production's title and a sub-line ("Scene 2 · Frame 2.3"), once a production is open. */
-  title?: string;
-  subtitle?: string;
+  title?: ReactNode;
+  subtitle?: ReactNode;
   /** The working area of each mode. WP10a, WP7 and WP11b build them. */
   panels: Readonly<Record<Mode, ReactNode>>;
   /** What Learn and Settings show while open. */
@@ -30,6 +30,8 @@ export interface ShellProps {
   /** The mode, when the App needs to change it ("Go to the Storyboard"); the shell keeps it otherwise. */
   mode?: Mode;
   onModeChange?: (mode: Mode) => void;
+  /** A note across every mode, above the working area: a failed save, a film opened read-only. */
+  notice?: ReactNode;
 }
 
 /**
@@ -46,6 +48,7 @@ export function Shell({
   initialMode = 'storyboard',
   mode: controlled,
   onModeChange,
+  notice,
 }: ShellProps) {
   const [own, setOwn] = useState<Mode>(initialMode);
   const mode = controlled ?? own;
@@ -101,6 +104,7 @@ export function Shell({
             </div>
           </header>
           <main className="studio-frame">
+            {notice && <div className="studio-notice">{notice}</div>}
             <div className="studio-panels" hidden={overlay !== null}>
               {MODES.map((m) => (
                 <ModePanel key={m} mode={m}>

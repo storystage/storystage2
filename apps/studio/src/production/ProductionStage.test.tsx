@@ -4,6 +4,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.tsx';
+import { newProduction } from '../storyboard/edits.ts';
 
 // Blockly can't draw in a test DOM: a stand-in Blocks editor records what it is given. The real
 // one is checked in a browser (e2e/production.e2e.ts).
@@ -91,7 +92,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
 
   it('asks for a scene when there is none', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await openStage(user);
     expect(screen.getByText('Add a scene in the Storyboard to start coding it.')).toBeTruthy();
   });

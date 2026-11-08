@@ -3,7 +3,7 @@
  * implementation runs it: the memory one here, and the Tauri and browser ones in WP24.4.
  */
 import { describe, expect, it } from 'vitest';
-import { BACKUPS_KEPT, FileError, type ClassFolders } from '../files.ts';
+import { BACKUPS_KEPT, DEVICE_PUPIL, FileError, type ClassFolders } from '../files.ts';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 const text = (data: Uint8Array) => new TextDecoder().decode(data);
@@ -203,6 +203,39 @@ export function describeClassFoldersContract(
       await folders.removePupil(pupil.id);
       await failsWith('not_found', () => folder.write(null, 'Film', bytes('x')));
       expect(await folders.bin()).toEqual([]);
+    });
+
+    it('keeps a folder for a device with no class list, outside the class list', async () => {
+      const folders = await make();
+      const device = await folders.openDevice();
+      expect(device.pupil).toEqual(DEVICE_PUPIL);
+      expect(folders.current()?.pupil.id).toBe('device');
+      const { key } = await device.write(null, 'At home', bytes('x'));
+      expect(await folders.pupils()).toEqual([]);
+      await failsWith('not_found', () => folders.folder('device'));
+      await failsWith('not_found', () => folders.open('device'));
+      await failsWith('not_found', () => folders.removePupil('device'));
+
+      const again = await folders.openDevice();
+      expect(text(await again.read(key))).toBe('x');
+      await again.remove(key);
+      expect((await folders.bin()).map((entry) => entry.pupil)).toEqual(['device']);
+      await folders.restore('device', key);
+      expect((await again.list()).map((info) => info.key)).toEqual([key]);
+    });
+
+    it('keeps the device’s folder apart from every pupil’s', async () => {
+      const folders = await make();
+      await (await folders.openDevice()).write(null, 'At home', bytes('x'));
+      const ava = await folders.addPupil('Ava');
+      expect(await (await folders.open(ava.id)).list()).toEqual([]);
+    });
+
+    it('won’t open the device’s folder once there’s a class list', async () => {
+      const folders = await make();
+      await folders.addPupil('Ava');
+      await failsWith('invalid', () => folders.openDevice());
+      expect(folders.current()).toBeNull();
     });
 
     it('closes a pupil’s folder when the pupil is removed', async () => {
