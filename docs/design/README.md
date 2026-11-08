@@ -19,5 +19,6 @@ The first-release interface design, handed over by the owner on 22 Oct 2026: 20 
 - **Light theme:** yes, drawn as mock-ups and approved before it is built (decision 0032). Drawn on 25 Oct 2026: open `sizes/index.html?theme=light`; PNGs in `screenshots/light/`; the values are tabled in the handoff README ("Colour, light theme"). **Approved by the owner on 25 Oct 2026** (decision 0038).
 - **Narrow windows:** nothing below 1024 px wide; a note asks to turn the iPad or widen the window (decision 0033).
 - **Teacher Prompter levels (screen 11):** Off, Explain only, Plan only and Full, as drawn. Full allows Show me how and Build it; the story coach is on at every level except Off (decision 0034).
+- **Mic beside every text field:** kept as Direction A draws it, for dictation whether or not the Prompter is on (decision 0060).
 
 **Still open for the owner:** approving the mock-ups, which 12.1 says comes after the teacher interviews (16.7) and the first use cases (16.6).
