@@ -1,108 +1,59 @@
 /**
- * The code editors' host (`14-editors.md` section 1), on the studio's history: a step made in
- * the Code editor is one undo step in the same history as the Storyboard's (`07-ux.md` section
- * 7.5). Edits are checked as the AST checks every edit, with the Story API's whole-program check
- * (`checkProgram`, WP4a), and a refused step changes nothing.
- *
- * When the production's own undo session (WP8.2, `ProductionSession`) takes over the studio's
- * history, this host moves onto it without the editors noticing.
+ * The code editors' host (`14-editors.md` section 1), on the production's own session
+ * (`studio.ts`): a step made in a code editor is one undo step in the same history as the
+ * Storyboard's and the stage's (`07-ux.md` section 7.5), and the session checks it with the
+ * Story API's rules (`checkProgram`). A refused step changes nothing.
  */
-import { EditRefused, applyAll, type EditOperation, type Program } from '@storystage/ast';
-import type {
-  ChangeSource,
-  EditResult,
-  EditorHost,
-  EditorId,
-  ProgramChange,
-} from '@storystage/editor-contract';
-import type { Production } from '@storystage/production';
-import { checkProgram } from '@storystage/story-api/program-check';
-import { useEffect, useLayoutEffect, useMemo, useRef, type Dispatch } from 'react';
-import { nextRedo, nextUndo, type History, type HistoryAction } from '../storyboard/history.ts';
+import type { Program } from '@storystage/ast';
+import type { ChangeSource, EditorHost, ProgramChange } from '@storystage/editor-contract';
+import type { ProductionSession } from '@storystage/production';
+import { useMemo } from 'react';
+import type { StudioSource } from '../studio.ts';
 
-/** Applies an editor's edits, all or nothing, with the Story API's rules. */
-export function applyCode(program: Program, edits: readonly EditOperation[]): Program {
-  return applyAll(program, edits, { check: (p) => checkProgram(p) }).program;
+/** How the session's sources read to an editor: the Storyboard's and the stage's changes are loads. */
+function sourceOf(source: StudioSource | 'undo' | 'redo' | 'load'): ChangeSource {
+  return source === 'storyboard' ? 'load' : source;
 }
 
-interface Pending {
-  readonly source: ChangeSource;
-  readonly edits: readonly EditOperation[];
-  readonly label: string;
-}
-
-export function useEditorHost(
-  history: History<Production>,
-  dispatch: Dispatch<HistoryAction<Production>>,
+export function editorHost(
+  session: ProductionSession<StudioSource>,
   announce: (text: string) => void,
 ): EditorHost {
-  const latest = useRef(history);
-  const say = useRef(announce);
-  // The host reads the latest history and live region when an editor calls it, after rendering.
-  useLayoutEffect(() => {
-    latest.current = history;
-    say.current = announce;
-  });
-  const listeners = useRef(new Set<(change: ProgramChange) => void>());
-  const pending = useRef<Pending | null>(null);
-  const told = useRef(history.present.program);
+  return {
+    program: () => session.program(),
+    apply: (edits, label, source) => session.apply(edits, label, source),
+    subscribe(listener) {
+      let last: Program = session.program();
+      return session.subscribe((change) => {
+        const program = change.production.program;
+        // Editors redraw from the program: a change elsewhere (a caption, a frame) isn't theirs.
+        if (program === last) return;
+        last = program;
+        const told: ProgramChange = {
+          program,
+          edits: change.edits,
+          label: change.label,
+          source: sourceOf(change.source),
+        };
+        listener(told);
+      });
+    },
+    undo: () => session.undo(),
+    redo: () => session.redo(),
+    undoLabel: () => session.undoLabel(),
+    redoLabel: () => session.redoLabel(),
+    announce,
+    policy: { editorLocked: false },
+  };
+}
 
-  const host = useMemo<EditorHost>(
-    () => ({
-      program: () => latest.current.present.program,
-      apply(edits: readonly EditOperation[], label: string, source: EditorId): EditResult {
-        const present = latest.current.present;
-        let next: Program;
-        try {
-          next = applyCode(present.program, edits);
-        } catch (e) {
-          if (e instanceof EditRefused) return { ok: false, reason: e.reason };
-          throw e;
-        }
-        pending.current = { source, edits, label };
-        dispatch({ type: 'commit', label, next: { ...present, program: next } });
-        return { ok: true };
-      },
-      subscribe(listener) {
-        listeners.current.add(listener);
-        return () => listeners.current.delete(listener);
-      },
-      undo() {
-        const label = nextUndo(latest.current);
-        if (!label) return;
-        pending.current = { source: 'undo', edits: [], label };
-        dispatch({ type: 'undo' });
-      },
-      redo() {
-        const label = nextRedo(latest.current);
-        if (!label) return;
-        pending.current = { source: 'redo', edits: [], label };
-        dispatch({ type: 'redo' });
-      },
-      undoLabel: () => nextUndo(latest.current),
-      redoLabel: () => nextRedo(latest.current),
-      announce: (text) => say.current(text),
-      policy: { editorLocked: false },
-    }),
-    [dispatch],
-  );
-
-  // Every change to the program, whatever made it, reaches the editor showing (section 1.1).
-  const program = history.present.program;
-  useEffect(() => {
-    if (program === told.current) return;
-    told.current = program;
-    const why = pending.current;
-    pending.current = null;
-    const change: ProgramChange = {
-      program,
-      edits: why?.edits ?? [],
-      label: why?.label ?? '',
-      // A change from the Storyboard (a scene added, deleted or undone there) counts as a load.
-      source: why?.source ?? 'load',
-    };
-    for (const listener of listeners.current) listener(change);
-  }, [program]);
-
-  return host;
+/**
+ * The host for the studio's session, the same object for as long as the session lives.
+ * `announce` should be stable (a state setter).
+ */
+export function useEditorHost(
+  session: ProductionSession<StudioSource>,
+  announce: (text: string) => void,
+): EditorHost {
+  return useMemo(() => editorHost(session, announce), [session, announce]);
 }
