@@ -3,7 +3,7 @@
 - **Covers:** dictation (whisper WASM), voices, narration, speak line (from StoryStage 1 spec 03)
 - **Work package:** WP14
 - **Owner:** S7 (S1 for speak line, 14.3)
-- **Status:** written for 14.1 and 14.2 (WP14a); section 1 widened to dictation in every field (decision 0060). Section 4, the speak line, is S1's to write (14.3). Numbers marked *to measure* are set at the M1 device runs.
+- **Status:** written for 14.1 and 14.2 (WP14a); section 1 widened to dictation in every field (decision 0060). Section 4, the speak line (14.3), proposed by S1 on 8 Nov 2026; its section 4.6 waits for the owner. Numbers marked *to measure* are set at the M1 device runs.
 - **Carried over from:** StoryStage 1 spec 03 (speech); see `docs/carried-over/` and its note on what changes. Section 6 lists every difference.
 
 ## 0. Decisions this spec relies on
@@ -195,7 +195,73 @@ The Prompter panel (S5, WP13c) shows the captions; the speak line block (S1, 14.
 
 ## 4. Speak line (14.3)
 
-S1 writes this section (14.3): characters speak script dialogue through the same voices, captioned.
+**Speak line** is the block that makes a character say a line of the script out loud, with a caption, as in a film. `say` and `think` show a bubble and make no sound; speak line makes a sound and shows a caption instead of a bubble. The block is `Model.speakLine` in the Story API (spec 02, section 7), on the Actions tab beside `say` and `think`.
+
+Status: proposed by S1, 8 Nov 2026. Section 4.6 waits for the owner's decision on voices in exported films.
+
+### 4.1 The line
+
+- The block's argument is the **words** (`text: Text`), so both editors show what is said, and a learner can type or dictate them like any other text.
+- When the block is made from a script line (dragged from the script pane, or built by the Prompter from a pinned line), it also carries the line's id, `line: LineId` (`03-production-format.md`), as a detail the learner doesn't edit. Its words are copied from the line when it's made.
+- **If the script line changes later,** the block keeps its words. The automatic check (11.6) then reports "Line 2.3 has changed since this block was made", with **Use the new words** and **Keep these**. The script stays the learner's to write (rule 4), and code never changes behind their back.
+- A block without a line id is allowed: it's dialogue the script doesn't have. The check says so ("The owl says words that aren't in the script"), as advice, not an error.
+
+### 4.2 How long it takes
+
+Rehearse and export must take exactly the same time (6.5), but how long a voice takes to say something isn't known in advance and differs by device. So the length comes from the words, not from the voice:
+
+- **Duration** = 0.4 s + 0.4 s for each word, at least 1.5 s, rounded up to the next 0.1 s. That's 150 words a minute, a calm speaking pace for children's listening. The `duration` detail, as on `say`, overrides it.
+- The block takes that long, and the program moves on after it, whatever the voice does. The caption shows for exactly that long.
+- **The voice is fitted to the time.** The speaking rate is set so the line should finish within the duration, between 0.8× and 1.25×. A voice still speaking at the end is faded out over 0.2 s. Words a minute for each voice are *to measure* at the M1 device runs. If the reference voices run long, the 0.4 s a word changes, in one place.
+
+### 4.3 Which voice
+
+- The same on-device English voices as narration (section 2.1), through the same sanitiser (2.2).
+- **Each character keeps one voice for the whole production.** The production stores a voice for each cast member, `voice: { name, pitch }` (`03-production-format.md`, a field to add). By default the cast is given the device's English voices in turn, in cast order. With fewer voices than characters, the pitch varies, from 0.8 to 1.2, so characters still sound different.
+- Settings › Cast lets the learner choose each character's voice and pitch, and play a sample line.
+- A production opened on a device without that voice uses the default for that character, and says so once: "The owl's voice isn't on this device, so it uses another." Nothing is lost: the stored choice comes back on a device that has it.
+
+### 4.4 Captions
+
+- While the line is spoken, its words show as a **caption**: a film subtitle at the bottom of the frame, with the speaker's name ("OWL: Here is the key."). It is not a bubble on the character.
+- Captions show whether or not a voice exists, the sound is on, or the device can speak (rule 7, section 2.3).
+- They are part of the scene's state, like bubbles. So the automatic check (11.6) sees "Line 2.3 was spoken", scrubbing the timeline shows them, and the export's captions file (11.4: WebVTT and SRT) is written from them.
+
+### 4.5 In Rehearse
+
+- The voice starts when the block starts, and stops on **Stop**, on pause, and when the learner leaves the Production stage.
+- Scrubbing or seeking shows captions without sound. Playing on from the middle of a line speaks nothing until the next line starts.
+- One line sounds at a time. A new speak line cuts the one before it, as two people talking over each other would be unreadable as captions. Speech synthesis also speaks one utterance at a time.
+
+### 4.6 In exported films (owner decision pending)
+
+The browser's speech synthesis can't be recorded: it plays to the speakers and gives the page no audio. So without something more, an exported film has the **captions but not the voices**. The options, for the owner:
+
+- **A. Captions only,** on every device. This is the simplest option. Films are silent apart from any music.
+- **B. The device's own voices rendered to audio in the apps** (recommended). Each operating system can write the speech it would say into audio:
+  - Windows: `SpeechSynthesizer.SynthesizeTextToStreamAsync`;
+  - macOS and iPad: `AVSpeechSynthesizer.write`;
+  - Android and the Chromebook's Android app: `TextToSpeech.synthesizeToFile`, with a voice that needs no network.
+
+  Export mixes each line into the soundtrack at its start time, fitted as in section 4.2. They are the same voices Rehearse uses on that device, on the device, with nothing sent anywhere. The browser version falls back to A and says so on the Export dialog: "Voices aren't saved in films made in the browser version; the captions are."
+- **C. An open-source speech engine bundled with StoryStage,** the same voice on every device, the browser version included. Licence and size need a check first: many open engines take their pronunciation from eSpeak NG, which is GPL-3 and can't be linked into the app (`CLAUDE.md` rule 8). A candidate for later, not the first release.
+
+Until the owner decides, the block, the timing, Rehearse and the captions are built, and export writes captions only.
+
+### 4.7 How it runs
+
+No new mechanism: a speak line is a `say` command with a caption instead of a bubble.
+
+- **Story API** (S6): `speakLine` runs as `command:say`, not `needs:speech`, and its details are `duration` and `line`.
+- **Stage contract** (S3): `say` gains `bubble: 'caption'` beside `'say'` and `'think'`, and an optional `line: LineId`; `Speech` carries both. The stage draws no bubble for a caption. The studio's frame overlay draws it, as the camera-frame overlay is drawn (Direction A, screen 02). The scene-state hash includes it, as it does bubbles.
+- **Runtime** (S2): nothing new. The duration is worked out in the Story API's procedure, like every other block's.
+- **Studio** (S5): during Rehearse it watches the stage's speech for objects whose bubble is `caption`. When one starts, it speaks it through `packages/speech` with the character's voice (section 4.3), and draws the caption.
+- **Speech** (S7's package; S1 adds the code for 14.3): `lineDuration(words)` (section 4.2), `castVoices(cast, voices)` (section 4.3), and a `LinePlayer` that speaks a line fitted to a duration and stops on cue. It is tested with a fake `Speaker`, as the narration queue is.
+- **Export** (S2, WP11): captions from the stage's speech timeline. The voices come under option B (`host.speech.render`, S8's native layer), once the owner decides.
+
+### 4.8 Not in the first release
+
+Recording the learner's own voice for a line, and lip sync driving the mouth (14.4).
 
 ## 5. Tests
 
@@ -216,6 +282,11 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Only on-device voices; en-GB first (2.1) | Unit, fake voice lists | `packages/speech` |
 | The sanitiser (2.2) | Unit | `packages/speech` |
 | The queue: order, Stop, shortening, captions without a voice (3.1) | Unit, fake speaker | `packages/speech` |
+| A speak line's duration from its words, and the `duration` detail (4.2) | Unit | `packages/speech`, `packages/story-api` |
+| The voice fitted to the duration, faded at the end, cut by the next line and by Stop (4.2, 4.5) | Unit, fake speaker and clock | `packages/speech` |
+| Voices given to the cast in turn, pitch varied when voices run out, a missing voice replaced and kept (4.3) | Unit, fake voice lists | `packages/speech` |
+| A speak line is the same in Rehearse and export: same duration, same captions, same scene-state hash (4.2, 4.4) | Unit (fixed step) | `packages/stage`, `packages/runtime` |
+| The captions file has every speak line, at its time, with the speaker's name (4.4) | Unit | `packages/export` (S2) |
 | No network traffic but the download (WP14 done-when) | Device run, with the network watched | M1 script (S1) |
 | Memory and speed on the reference devices (1.9) | Device run | M1 script (S1) |
 
@@ -234,7 +305,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | Browser version | n/a | No speech in | 15.6 |
 | Speech out | PowerShell, `say`, `spd-say`, Flite | Browser speech synthesis, on-device voices only | No processes; decision 0021 |
 | Narration queue | Carried over | The same, plus a new request clears the old one | |
-| Speak line | None | Section 4 (S1) | 14.3 |
+| Speak line | None | A block that speaks a script line with a caption, for a time worked out from its words; one voice per character (section 4) | 14.3 |
 
 ## 7. Open points for other sessions
 
@@ -249,3 +320,12 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |
 | Speech in the DPIA: on-device only, the one download | D (WP17.3) | Sections 1.4, 1.6 |
+| `speakLine` runs as `command:say`, with the `line` detail | S6 (WP4) | Section 4.7 |
+| `say`'s `bubble: 'caption'` and `line`, in the stage contract and `Speech`; no bubble drawn for a caption | S3 (WP4.4, contract PR) | Section 4.7 |
+| A `voice` for each cast member in the production format | S4 (WP8) | Section 4.3 |
+| Captions drawn over the scene view, the voice played during Rehearse, and Settings › Cast's voices | S5 (WP7) | Sections 4.3–4.5 |
+| Line changed, line never spoken, and words not in the script, in the automatic check | S2 (WP11.6) | Section 4.1 |
+| The captions file from the speech timeline; voices in the soundtrack under option B | S2 (WP11.4) | Sections 4.4, 4.6 |
+| `host.speech.render(text, voice)` in the native layer, under option B | S8 (WP15) | Section 4.6 |
+| Voices in exported films: option A, B or C | Owner | Section 4.6 |
+| Words a minute for each reference device's voices | S1 (M1 device runs) | Section 4.2 |

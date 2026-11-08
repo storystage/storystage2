@@ -425,7 +425,8 @@ items:
     who: C
     weeks: 1
     basis: first plan
-    after: [WP14a, WP13b, WP4b]
+    after: [WP14a, WP4b]
+    started: 2026-11-08
   - id: WP24a
     label: Teacher journey, Prompter access model, relay spike (24.1–24.3)
     lane: Apps

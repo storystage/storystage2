@@ -272,12 +272,12 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | started 8 Nov; ends about 30 Nov |
 | WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | started 8 Nov; ends about 23 Nov |
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
+| WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP4b | 1 | wk 10.5 (1 Jan 2027) | 5 | started 8 Nov; ends about 16 Nov |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | started 8 Nov; ends about 7 Dec |
 | WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | forecast: 30 Nov to 21 Dec |
 | WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
 | WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 1 Jan |
-| WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP13b, WP4b | 1 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 18 Dec |
 | WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 7 Dec to 21 Dec |
 | WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 21 Dec to 1 Jan |
 | WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 10 Dec to 24 Dec |
@@ -354,7 +354,7 @@ gantt
     WP13a Prompter spec, fake Claude, system prompt, eval set :WP13a, 2026-10-29, 21d
     WP14a Speech engines - whisper WASM, voices :WP14a, 2026-11-20, 21d
     WP13b Prompter core - transport, context, AST tools, modes, plan before change, wizard :WP13b, 2026-12-10, 32d
-    WP14b Speak line and narration :WP14b, 2027-01-11, 7d
+    WP14b Speak line and narration :WP14b, 2027-01-01, 7d
     WP13c Prompter panel, storyboard tools, story coach, live eval :crit, WP13c, 2027-01-29, 14d
     section Productions
     WP9a .a3p reader :WP9a, 2026-11-09, 7d
@@ -788,9 +788,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
 ### WP14: Speech
 **Objective:** voice in and out, on the device.
-**Depends on:** WP1.3 (go) for the speech engines (14.1, 14.2), which don't need the Prompter; WP13 core and WP4.3 for narration tied to Prompter steps and the speak line block (14.3).
+**Depends on:** WP1.3 (go) for the speech engines (14.1, 14.2), which don't need the Prompter; WP4.3 and the speech engines for the speak line block (14.3); WP13 core only for narration tied to Prompter steps (spec 06, section 3), which isn't the block (8 Nov 2026).
 <!-- schedule:wp14 -->
-**Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP13b, WP4b.
+**Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP4b.
 <!-- /schedule:wp14 -->
 - [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). The default model is bundled in the apps (decision 0057); the optional, more accurate one downloads on request after consent, with a checksum. Dictation into every text field, with or without the Prompter (decision 0060): a mic beside each field, tap to start and stop; the words go into the field for the learner to edit; audio is discarded after transcription. (C)
 - [ ] 14.2 Speech output with speech synthesis, filtered to voices marked `localService`, preferring en-GB. A narration queue tied to Prompter steps, stop, and captions always shown. (C)
