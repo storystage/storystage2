@@ -5,6 +5,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { validateManifest } from '@storystage/backstage';
 import {
   box,
@@ -20,6 +21,21 @@ import { validateSources } from './sources.ts';
 const COMMIT = 'a'.repeat(40);
 const RAW = `https://raw.githubusercontent.com/kaykit/pack/${COMMIT}/`;
 const sha = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
+
+/** A box whose texture is WebP, so the file requires `EXT_texture_webp`, as reduced models do. */
+function webpModel() {
+  const doc = documentFromMesh(box([0, 0, 0], [1, 1, 1]));
+  doc.createExtension(EXTTextureWebP).setRequired(true);
+  const texture = doc
+    .createTexture('paint')
+    .setImage(new Uint8Array([0x52, 0x49, 0x46, 0x46]))
+    .setMimeType('image/webp')
+    .setURI('paint.webp');
+  const material = doc.createMaterial('paint').setBaseColorTexture(texture);
+  for (const mesh of doc.getRoot().listMeshes())
+    for (const prim of mesh.listPrimitives()) prim.setMaterial(material);
+  return doc;
+}
 
 const item = (over: Record<string, unknown>) => ({
   id: 'kaykit/Biped/knight',
@@ -116,6 +132,21 @@ describe('fetchModel', () => {
     expect(got.ext).toBe('glb');
     expect(got.fetched).toHaveLength(2);
     expect(new TextDecoder().decode(got.bytes.slice(0, 4))).toBe('glTF');
+  });
+
+  it('packs a .gltf that needs a glTF extension, keeping it', async () => {
+    const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+    const { json, resources } = await io.writeJSON(webpModel());
+    files.set(`${RAW}props/painted.gltf`, new TextEncoder().encode(JSON.stringify(json)));
+    for (const [name, bytes] of Object.entries(resources)) files.set(`${RAW}props/${name}`, bytes);
+    const got = await fetchModel(
+      item({
+        fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'props/painted.gltf' },
+      }) as never,
+      fetcher,
+    );
+    const packed = await io.binaryToJSON(got.bytes);
+    expect(packed.json.extensionsRequired).toEqual(['EXT_texture_webp']);
   });
 
   it('checks a downloaded file against its sha256', async () => {
