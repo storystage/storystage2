@@ -212,7 +212,7 @@ On a school device where the school manages the Prompter, 10b and 10c are replac
 | Linux Secret Service key store | No Linux in the first release; iPad and Android stores added |
 | Problem reports opened a GitHub issue | A local file for the feedback form; nothing sent automatically |
 | No updates, study, browser version or Drive | Update checks (GitHub), the editor study, the browser version, optional Drive and OneDrive |
-| Speech model downloaded from Hugging Face; voice input only for the Prompter | The default model is in the app (0057); a larger one downloads from storystage.org only on request; voice input in every text box (0059) |
+| Speech model downloaded from Hugging Face; voice input only for the Prompter | The default model is in the app (0057); a larger one downloads from storystage.org only on request; voice input in every text box (0060) |
 | Policy file keys: 3 | 14 keys, and managed configuration on iPad and Android (spec 05 §3) |
 | Learner wording: none | Part 2, for ages 6 to 9 and 10 to 13 |
 | One consent tick | Two: the adult's age and responsibility, and consent (the Anthropic note, R1) |
