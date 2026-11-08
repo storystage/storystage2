@@ -48,6 +48,9 @@ Each session keeps its own section current. Newest entries first. One line each.
     - 4.6's retargeting and KayKit's shared clips (#189).
 
     **Owner:** one merge to `main` brings them all.
+  - 8 Nov (#207, on #142): **the rest of WP4c (4.5, 4.6)**: the character actions on both stages, the five gestures and the fall written in code, faces from VRMs, and the 16 blocks. Looked at in pictures on a 100Avatars VRM and a KayKit knight. 4.5 is ticked; 4.6 waits for visemes (S1, WP14.3), turning the eyes, and A-pose models.
+  - 8 Nov (#210, `contract`, on #207): **joint values**, agreed with S2 for TR1's anim-06: a `JointValue` in both `Value` copies, the library taking joints, and a `jointChain` question. **S2** reviews the runtime line, **S6** the question.
+  - 8 Nov (#199, against `main`): **a fix**: one proximity event for a pair, however many watches find it (found reviewing S2's #198).
   - **S2:** pass `STORY_LIBRARY` to `serve`; it fits your `StoryLibrary` type. Three things for you, from #136: map the library's `StoryFault` to `bad_value` (one line in `scheduler.ts`); choose a value for a joint, for `getJoint`, after which the library takes joints; and a message that sends your listeners' watches to `Stage.watch`, without which proximity and view events can't fire.
   - **S4 (WP8.3):** agreed on 8 Nov, in spec 03 section 3.1 (#190): fade to black uses the stage's `fade`; a crossfade is the stage's job, with the next scene preloaded, and S3 adds it to the stage contract when WP8.3 needs it.
   - **S1 (WP14.3):** `speakLine` waits for your speak line design. Tell S3 what the stage must do with visemes. Also, from #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
@@ -56,13 +59,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
   - S4 and S1: 4.4's scene changes (WP8.3) and speak line (WP14.3), by the owner's decision of 8 Nov.
-- Next: the rest of **WP4c** (4.5 and 4.6), by the owner's decisions of 8 Nov (KayKit's clips plus gestures written in code; the library in the stage package; a model's own faces):
-  - keeping postures on the ground;
-  - the actions on both stages: walking round things, postures, reaching and holding, and looking at;
-  - the gestures and the fall;
-  - expressions from VRM files;
-  - the 16 blocks;
-  - pictures of each action for the owner.
+- Next: after WP4c, **WP23b** (the projection stage) waits for the release candidate, WP23a (S1), WP8 (S4) and WP12b (S5). Until then: the A-pose correction once MakeHuman's people are in Backstage, and visemes once S1's speak line design is ready.
 
 ## S4 Backstage and Productions
 - In review:
