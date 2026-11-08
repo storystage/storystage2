@@ -89,7 +89,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: reading the evaluation set before the first paid live run.
   - S8 (WP15k, merging now) for 13.2's native wiring, the `pins.json` hashes and the set-up wizard (13.6).
-- For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the content security policy must allow the model's address.
+- For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer fetches and checks the model, so the webview loads nothing remote.
 - For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3. Spec 06, section 7 also asks for speech in the DPIA and the model weights in `NOTICE`.
 - Next: WP13b (tool schemas, then the conversation loop) and WP14a (voices and narration, then whisper) side by side. The owner gave spike 1.3 its go on 8 Nov, before the device runs.
 

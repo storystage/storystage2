@@ -49,9 +49,11 @@ Both are from whisper.cpp's model repository, as measured in spike 1.3. The base
 ### 1.4 Getting the model
 
 - **After consent.** Turning on **Talk to the Prompter** shows what is about to happen, in plain words: the size, that it downloads once, where it comes from, and that what the learner says stays on this device. Nothing downloads until they press **Download**.
-- **From where.** From StoryStage's own website, where it sits beside the browser version (15.6), so no new third party sees the device. The build copies it there from whisper.cpp's repository and checks it against the pins above. The address is set at build time.
-- **Checked.** The download is refused unless its SHA-256 matches the pin. A mismatch keeps nothing and says "The download didn't arrive whole. Try again."
-- **Kept.** In the app's own storage (Cache Storage, keyed by the SHA-256), and checked again each time it is loaded. Settings shows its size and has **Remove**.
+- **By the native layer, not the webview.** The webview loads no remote content (threat model, spec 15). The native layer (S8, WP15) fetches the file, checks it, keeps it, and hands the checked bytes to the worker. The webview's content security policy gains no remote host.
+- **From where.** From StoryStage's own website, where it sits beside the browser version (15.6), so no new third party sees the device. The build copies it there from whisper.cpp's repository and checks it against the pins above. The address is pinned in the native layer at build time.
+- **Checked.** The download is refused unless its SHA-256 matches the pin, so a file swapped on the website can't be used. A mismatch keeps nothing and says "The download didn't arrive whole. Try again."
+- **Kept.** In the app's own data folder, and checked again each time it is loaded. Settings shows its size and has **Remove**.
+- **Or bundled.** Shipping the default model inside the app (32 MB) would remove the download, the host and the consent step altogether, at the cost of a larger app. Workplan 14.1 says download, so that stands unless the owner changes it (section 7).
 - **Progress** is shown, with **Cancel**. A failed download can be tried again, and voice input stays off until one succeeds.
 
 This download is the only network traffic speech ever makes (WP14's done-when).
@@ -146,7 +148,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 
 | Rule | Level | Where |
 |---|---|---|
-| The model is refused unless its SHA-256 matches (1.4) | Unit, with a tampered file | `packages/speech` |
+| The model is refused unless its SHA-256 matches (1.4) | Unit, with a tampered file | `packages/speech`; the native layer (S8) |
 | Nothing downloads without consent (1.4) | Unit | `packages/speech` |
 | Resampling to 16 kHz mono (1.6) | Unit, known signals | `packages/speech` |
 | Audio buffers are zeroed after transcription, and nothing is written or sent (1.6) | Unit; the leak scan (15.2) checks storage | `packages/speech`, `apps/desktop` |
@@ -166,7 +168,7 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 |---|---|---|---|
 | Speech in | whisper-jni in Java | whisper.cpp in WebAssembly, in a worker | No Java; decision 0020 |
 | Models | Multilingual tiny (default) and base | English tiny, quantised by default; full tiny optional; no base | Memory on 4 GB devices (spike 1.3) |
-| Download from | Hugging Face | StoryStage's own website, copied from whisper.cpp's repository and pinned | No new third party for the device to reach |
+| Download from | Hugging Face | StoryStage's own website, fetched and checked by the native layer, pinned | No new third party; the webview loads no remote content |
 | Capture | Java sound, 16 kHz | `AudioWorklet` at the device's rate, resampled to 16 kHz | Browsers choose the rate |
 | Shortcut | Ctrl+Space | Space on the focused button; any global shortcut is S5's | Ctrl+Space switches input languages on some systems |
 | Worker life | Model loaded once | Worker ended after 30 seconds idle | Gives memory back on 4 GB devices |
@@ -179,8 +181,10 @@ S1 writes this section (14.3): characters speak script dialogue through the same
 
 | Needs | From | For |
 |---|---|---|
-| COOP and COEP headers in the Tauri apps, and the model's address allowed by the content security policy | S8 (WP15) | Sections 1.1, 1.4 |
-| The model files on StoryStage's website, beside the browser version | Owner (U hosts, 15.6) | Section 1.4 |
+| COOP and COEP headers in the Tauri apps | S8 (WP15) | Section 1.1 |
+| The model download, check and store in the native layer, and its row in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
+| Download on first use, or ship the default model in the app (32 MB) | Owner, with S8 | Section 1.4 |
+| The model files on StoryStage's website, beside the browser version, if downloaded | Owner (U hosts, 15.6) | Section 1.4 |
 | A shortcut for Hold to talk, if wanted, and the consent and Settings screens | S5 (WP12) | Sections 1.4, 1.5 |
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |
