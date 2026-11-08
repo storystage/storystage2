@@ -162,6 +162,8 @@ describe('the browser picker, with the system pickers (Chromium)', () => {
     const picker = browserPicker(() => page, 3);
     for (const files of [
       [film('Ava'), film('Ava')],
+      [film('Sam', 'Pip.storystage'), film('sam', 'pip.storystage')],
+      [film('Zoe\u0308'), film('Zo\u00eb')],
       [film('../Ava')],
       [film('Ava', 'Film.txt')],
       [film('Ava', 'a/b.storystage')],

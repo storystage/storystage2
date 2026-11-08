@@ -9,6 +9,7 @@ import type { WritableLike } from './browser-store.ts';
 import {
   FILE_LIMIT,
   FileError,
+  collectedPath,
   safeFileName,
   type CollectedFile,
   type FilePicker,
@@ -93,7 +94,7 @@ const isCollectName = (file: CollectedFile) =>
   file.file.length > EXTENSION.length;
 
 function checkCollect(files: readonly CollectedFile[], limit: number) {
-  const names = new Set(files.map((file) => `${file.folder}/${file.file}`));
+  const names = new Set(files.map(collectedPath));
   if (names.size !== files.length || !files.every(isCollectName)) throw new FileError('invalid');
   if (files.some((file) => file.bytes.length > limit)) throw new FileError('too_big');
 }
