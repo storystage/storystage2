@@ -13,3 +13,4 @@ export * from './speech.ts';
 export * from './store.ts';
 export * from './tauri-picker.ts';
 export * from './tauri-store.ts';
+export * from './usage.ts';

@@ -106,11 +106,15 @@ A request refused by any check above doesn't count towards the caps.
 | Cap | Value | Counted | Reached |
 |---|---|---|---|
 | Per minute | 10 requests, on one device | In memory | `rate_limited`, with the seconds until a slot frees |
-| Per day | `prompter.dailyCap` (3.3), or no limit | On the device, by local date, in the app's data folder | `prompter.capAction` |
+| Per day | `prompter.dailyCap` (3.3), or no limit | Per pupil on the device: whoever's folder is open, or the device when nobody's is. By local date, in the app's data folder | `prompter.capAction` |
 
 When the day's cap is reached and `capAction` is `explainOnly`, the level drops to Explain only for the rest of the day, and requests in other modes get `cap_reached`. With `off`, every request gets `cap_reached`. A further 50% of the cap in Explain only is allowed, and then every request gets `cap_reached`: the graduated limit in 24.5.
 
-Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7). Class-wide counts follow in WP24b.
+Only requests that reach the network count. A learner who can edit the app's data folder can reset the count on that device, so the Console's spending limit is the real ceiling (threat L7).
+
+**Whom a request counts against.** When a pupil's folder opens (`ClassFolders.open`), the host tells the native layer with `prompter_pupil`, and `null` when it closes. `folder(id)`, for Collect and Hand back, doesn't change it. The day's file holds the date, then one `<who> <count>` line per pupil and one for `device`. Choosing another pupil's name would count against them instead, which the name picker's trust model already accepts (PS1), and the spending limit still holds (L7).
+
+**Usage for the teacher (24.5).** `prompter_usage` gives the date, the policy's level, `dailyCap`, `capAction`, and for each pupil with a request today their count and their level now. Ids only: the studio has the names. It reaches the studio as `HostInterface.prompterUsage`. Class-wide totals across devices wait for the route chosen in 24.3 (owner, 8 Nov): the classroom relay would give them live, and an adult's own key is usually on one device.
 
 ### 2.5 Transport
 
