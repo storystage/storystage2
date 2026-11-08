@@ -151,6 +151,8 @@ export class ObjectView {
   /** Its humanoid bones, if it has them. */
   private readonly rig: HumanoidRig | null;
   private humanPosed = false;
+  /** The model's own clips moved its nodes last time. */
+  private clipsPosed = false;
   private posed = false;
   private opacity = 1;
   /** The paint and blend last shown, so an unchanged paint costs nothing. */
@@ -237,11 +239,16 @@ export class ObjectView {
    * clips, a joint's turn is on top of the pose it has in the model.
    */
   private pose(state: ObjectState, motion: Motion, moving: boolean): void {
+    // Each frame starts from rest: the model's own clips leave their nodes, and the humanoid pose
+    // its bones, wherever they last put them.
+    if (this.clipsPosed) this.restore();
     if (this.humanPosed && !motion.human) this.rig!.rest();
-    const animated = this.blend(motion.clips ?? []);
+    const animated = new Map<TransformNode, Quat>();
     this.humanPosed = !!(motion.human && this.rig);
     if (motion.human && this.rig)
       for (const [node, turn] of this.rig.apply(motion.human)) animated.set(node, turn);
+    // The model's own clips over that, by their weights.
+    for (const [node, turn] of this.blend(motion.clips ?? [])) animated.set(node, turn);
     for (const { joint, node, rest } of this.bones) {
       const base = animated.get(node) ?? rest;
       const turn = state.joints.get(joint);
@@ -252,10 +259,20 @@ export class ObjectView {
     this.posed = state.joints.size > 0 || moving;
   }
 
+  /** Puts every node a clip moves back where it rests. */
+  private restore(): void {
+    for (const [node, rest] of this.rests) {
+      node.position.copyFrom(rest.position);
+      node.scaling.copyFrom(rest.scaling);
+      setRotation(node, quat(rest.rotation));
+    }
+    this.clipsPosed = false;
+  }
+
   /**
    * Sets every node a clip moves to the clips' blend, and gives the turns it set. Each clip counts
-   * for its weight. If the weights come to less than 1 the model's rest pose makes up the rest,
-   * and if to more, they're scaled down to 1.
+   * for its weight. If the weights come to less than 1, the node as it is (at rest, or as the
+   * humanoid pose put it) makes up the rest; if to more, they're scaled down to 1.
    */
   private blend(poses: readonly ClipPose[]): Map<TransformNode, Quat> {
     const turns = new Map<TransformNode, Quat>();
@@ -264,6 +281,8 @@ export class ObjectView {
       const clip = this.clipsByName.get(pose.name);
       return clip && pose.weight > 0 ? [{ clip, pose }] : [];
     });
+    if (playing.length === 0) return turns;
+    this.clipsPosed = true;
     const total = Math.max(
       1,
       playing.reduce((sum, p) => sum + p.pose.weight, 0),
@@ -293,11 +312,13 @@ export class ObjectView {
         } else sum[track.property].addInPlace((value as Vector3).scale(w));
       }
     }
-    for (const [node, rest] of this.rests) {
+    for (const node of this.rests.keys()) {
       const { position, rotation, scaling, weights } = sums.get(node)!;
-      node.position.copyFrom(position.addInPlace(rest.position.scale(1 - weights.position)));
-      node.scaling.copyFrom(scaling.addInPlace(rest.scaling.scale(1 - weights.scaling)));
-      rotation.addInPlace(rest.rotation.scale(1 - weights.rotationQuaternion)).normalize();
+      const now = node.rotationQuaternion ?? Quaternion.FromEulerVector(node.rotation);
+      node.position.copyFrom(position.addInPlace(node.position.scale(1 - weights.position)));
+      node.scaling.copyFrom(scaling.addInPlace(node.scaling.scale(1 - weights.scaling)));
+      const k = Quaternion.Dot(now, rotation) < 0 ? -1 : 1;
+      rotation.addInPlace(now.scale(k * (1 - weights.rotationQuaternion))).normalize();
       setRotation(node, quat(rotation));
       turns.set(node, quat(rotation));
     }

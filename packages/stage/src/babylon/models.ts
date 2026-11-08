@@ -137,7 +137,18 @@ export class ModelLibrary {
         joints,
         animations: copy.animationGroups,
       }),
-      shape: { joints: file.joints === 'prop-only' ? [] : file.joints, box, jointPlaces },
+      shape: {
+        joints: file.joints === 'prop-only' ? [] : file.joints,
+        box,
+        jointPlaces,
+        // Its own clips, which the play animation block can name, and how long each is.
+        clips: new Map(
+          copy.animationGroups.map((g) => {
+            const fps = g.targetedAnimations[0]?.animation.framePerSecond ?? 60;
+            return [g.name, (g.to - g.from) / fps] as const;
+          }),
+        ),
+      },
     };
   }
 

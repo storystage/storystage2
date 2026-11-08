@@ -27,6 +27,7 @@ import type { FrameImage, Speech, Stage } from '../contract.ts';
 import { length, sub } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
+import { humanoidsFor } from '../humanoid/library.ts';
 
 export { hashState };
 
@@ -75,6 +76,8 @@ export class FakeStage implements Stage {
     const jointsFor = this.options.jointsFor ?? defaultJoints;
     // Every object is the size of a stand-in, so the fake and the real stage agree on them.
     this.timeline.load(setup, (o) => standInShape(jointsFor(o.class, o.model)));
+    const { library, navigation } = await humanoidsFor(setup);
+    this.timeline.useHumanoids(library, navigation);
   }
 
   objects(): readonly ObjectId[] {

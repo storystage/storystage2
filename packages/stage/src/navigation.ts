@@ -8,6 +8,8 @@
  * so a page that never walks anyone doesn't download it.
  */
 import type { Vec3 } from '@storystage/story-api';
+import type * as Core from '@recast-navigation/core';
+import type * as Generators from '@recast-navigation/generators';
 import type { Box } from './hull.ts';
 
 /** How much room a walker needs, in metres: a child-sized person, as most of the cast are. */
@@ -42,8 +44,16 @@ export interface Navigation {
    * included, each on the ground. Null if there's no way, or either end is off the ground.
    */
   path(from: Vec3, to: Vec3): Vec3[] | null;
+  /**
+   * The way towards `to` as far as the walkable area goes, then straight on to it: for walking
+   * out of the picture, or to somewhere there's no way to. Both ends are included.
+   */
+  toward(from: Vec3, to: Vec3): Vec3[];
   dispose(): void;
 }
+
+/** Builds walkable areas at once, once the library is loaded (`loadNavigation`). */
+export type NavigationMaker = (area: NavigationArea, walker?: Walker) => Navigation | null;
 
 /** A box's eight corners and twelve triangles, wound so its outside faces out. */
 function boxGeometry(box: Box, positions: number[], indices: number[]): void {
@@ -87,16 +97,34 @@ function groundOf(area: NavigationArea): Box {
   return { min: { x: x0, y: -0.05, z: z0 }, max: { x: x1, y: 0, z: z1 } };
 }
 
+let loading: Promise<NavigationMaker> | null = null;
+
+/** Loads Recast and Detour, once, and gives a maker of walkable areas. */
+export function loadNavigation(): Promise<NavigationMaker> {
+  loading ??= Promise.all([
+    import('@recast-navigation/core'),
+    import('@recast-navigation/generators'),
+  ]).then(async ([core, generators]) => {
+    await core.init();
+    return (area, walker = WALKER) => make(core, generators, area, walker);
+  });
+  return loading;
+}
+
 /** Builds the walkable area. Resolves to null if Recast can't make one (an empty scene can). */
 export async function buildNavigation(
   area: NavigationArea,
   walker: Walker = WALKER,
 ): Promise<Navigation | null> {
-  const [{ init, NavMeshQuery }, { generateSoloNavMesh }] = await Promise.all([
-    import('@recast-navigation/core'),
-    import('@recast-navigation/generators'),
-  ]);
-  await init();
+  return (await loadNavigation())(area, walker);
+}
+
+function make(
+  { NavMeshQuery }: typeof Core,
+  { generateSoloNavMesh }: typeof Generators,
+  area: NavigationArea,
+  walker: Walker,
+): Navigation | null {
   const positions: number[] = [];
   const indices: number[] = [];
   boxGeometry(groundOf(area), positions, indices);
@@ -119,6 +147,14 @@ export async function buildNavigation(
       // Detour stops at the nearest reachable point; a way that doesn't get there isn't one.
       if (Math.hypot(end.x - to.x, end.z - to.z) > walker.radius * 2) return null;
       return found.path.map(({ x, y, z }) => ({ x, y, z }));
+    },
+    toward(from, to) {
+      const found = query.computePath(from, to);
+      const way = found.success ? found.path.map(({ x, y, z }) => ({ x, y, z })) : [];
+      if (way.length === 0) return [from, to];
+      const end = way[way.length - 1]!;
+      if (Math.hypot(end.x - to.x, end.z - to.z) > walker.radius) way.push(to);
+      return [from, ...way.slice(1)];
     },
     dispose() {
       query.destroy();
