@@ -195,6 +195,8 @@ items:
     weeks: 1
     basis: first plan
     after: [WP4a]
+    started: 2026-11-08
+    finished: 2026-11-08
   - id: WP8f
     label: Production format spec and data model (8.1)
     lane: Productions

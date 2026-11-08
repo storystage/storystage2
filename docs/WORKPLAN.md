@@ -233,7 +233,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 |  |
 | WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 |  |
 | WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |  |
-| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
+| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 | 0.1 (8 Nov) |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
 | WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | started 1 Nov |
 | WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | 0.3 (31 Oct–1 Nov) |
@@ -557,7 +557,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
     (C)
 - [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
-- [ ] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
+- [x] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)
 - [ ] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
 

@@ -17,11 +17,13 @@ The StoryStage 2 Story API: classes, procedures, functions, details and joints, 
 | `src/alice/palette.json` | What Alice's palette offers, the list the catalog is checked against. Tests only; it never ships |
 | `src/alice/inventory.ts` | Reads that list from Alice's Java source |
 | `src/alice/compiled-alice.json` | The same list from a compiled Alice, from one CI run, which a test compares. Tests only |
+| `src/catalog/open-spec.ts`, `open-spec-reference.ts` | The open specification (WP4.8): `story-api.json`, its schema, and the reference tables in `docs/story-api/` |
 | `scripts/` | Node tools, outside this package's `tsconfig` because the package runs in a worker |
 
 ## Commands
 
 ```
+pnpm --filter @storystage/story-api open-spec     # rewrite docs/story-api/ from the metadata
 pnpm --filter @storystage/story-api spec          # rewrite the spec's tables from the metadata
 node packages/story-api/scripts/inventory-cli.ts <checkout>   # rewrite palette.json, by hand
 ```
