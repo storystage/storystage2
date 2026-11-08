@@ -18,6 +18,7 @@
 - A thread is a strand of the program. The entry method is one, each child of a `doTogether` or `eachTogether` is one, and each run of a listener is one. Children start in list order at the moment their parent reaches them. `doTogether` ends when its last child ends.
 - Time passes only when a thread sleeps, in a Story API call. Everything else takes no scene time.
 - **Asking the stage stops everything.** When a thread asks a question ("distance to"), no thread runs until the answer comes. It's slower than letting others run on, but the answer can't then depend on the order of messages, so runs repeat.
+- **Which blocks are running.** `highlight` says which blocks are running whenever that changes, as of the end of an advance, for highlighting. It misses a block that starts and ends between two frames. For measuring (spec 08, section 1), a fixed-step run started with `trace` also sends `ran`: every block (call statement) that started since the last message, at the scene time it started, before that advance's `commands`.
 
 ## 2. Values
 
@@ -96,7 +97,7 @@ It's sent even when it's empty, so the main thread can always hand it on. A dist
 | Time, order, asking, faults, stop | `scheduler.test.ts` | Unit |
 | Every statement and expression kind, values, calls, limits, determinism, highlighting | `interpreter.test.ts`: small programs, each run and checked | Unit (the semantics suite) |
 | `STORY_LIBRARY` fits, runs, and its refusals are bad values at the block (section 3) | `story-faults.test.ts` | Unit |
-| The worker's protocol, both modes, pause, speed, every event kind, `heldKeyPolicy` and the `watch` message (section 5) | `serve.test.ts`, over `inMemoryPorts` | Unit |
+| The worker's protocol, both modes, pause, speed, every event kind, `heldKeyPolicy`, the `watch` message (section 5) and `trace` | `serve.test.ts`, over `inMemoryPorts` | Unit |
 | Ending a scene: the message, stopping every strand, defaults, faults, and loading the next scene into the same worker (section 3.1) | `serve.test.ts`, "ending a scene" | Unit |
 | The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when): the 21 rows of `docs/eval/requests.jsonl` that build code, and the `penguin-animated` start. Each passes its row's code checks, is valid, and runs on `STORY_LIBRARY` sending the commands it should. Turning a joint (`anim-06`'s head) waits for joint values in the runtime and joint targets in the blocks | `tr1.test.ts` | Unit |
 | Fast-forward to a block (WP6.4) | With WP7.4, which drives it through fixed-step `advance` | Unit |

@@ -81,6 +81,8 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
 
     The rough cut and the export start with one. A deterministic run (6.5) gives the same timeline every time.
 
+    It's `measure` in `packages/playback`: the driver in fixed steps at 30 a second, with the runtime's `trace`, so a block's time is when it started, even one that starts and ends between frames (spec 18, section 1). A scene that waits on the viewer is measured with `viewerWait` of 0, so it ends after its last stage command and the run goes on; it's marked `waits`. A line a scene change cuts short is cut short in the timeline too. The run stops at the 10-minute cap, or at an error, which the timeline gives in plain words.
+
 **Rehearse (WP7.4)** is the driver with one scene, live, on the scene view's own stage, from the scene's set-up. A block that ends the scene (`goToScene`, `crossfade`, `fadeToBlack`) ends the rehearsal and says what would play next (spec 03 section 3.1, rule 9).
 
 The worker's own file is `packages/runtime/src/worker.ts`: `serve(self, STORY_LIBRARY)`. The driver starts it with `new Worker(new URL(…), { type: 'module' })`.

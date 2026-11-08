@@ -26,9 +26,12 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - In review:
-  - 8 Nov (PR open, waits for the owner's merge): **the driver uses the stage's preload and crossfade** (S3's #234): on the player's `preload` hint it calls `stage.preload` without waiting, and a scene that comes in by crossfade loads with `stage.load(setup, { crossfade })`. Spec 08 section 1.
-  - S4's #243 (`viewerWait`, spec 03 rule 11): **S2 reviewed and approved it**, by message.
+  - 8 Nov (PR open): **WP11.1 begins: measuring** (`measure` in `packages/playback`), the timeline the rough cut and the export start from: scene starts and lengths, block start times and lines. The runtime's fixed mode takes `trace` and sends `ran`, every block's exact start (spec 18 section 1); additive, so live play is unchanged. **S5:** `PlaybackOptions` has `viewerWait` and `trace` now; Rehearse leaves both unset.
+  - 8 Nov (#254): **WP11.4: the title card, captions and end credits** in `packages/export/src/film` (spec 08 sections 5 to 7). **S4:** the credits take a `notices` function until Backstage records say which notice a model needs.
+  - 8 Nov (#246, approved; waits for S5's #253 to fix main's e2e): **`getJoint` and `getJointChain`**; anim-06's head turn runs.
 - Merged:
+  - 8 Nov (#245): **a question to the stage resumes with the whole answer**, as `STORY_LIBRARY` reads it. Before, every question came back undefined in a real run.
+  - 8 Nov (#244): **the driver uses the stage's preload and crossfade** (S3's #234).
   - 8 Nov (#232): **WP11b, WP6.4: `packages/playback`**, the driver that plays a production: the runtime in fixed steps with a 100 ms lookahead, S4's `ProductionPlayer` and the stage on one path, live or not; fast-forward to a time or a block, `LiveClock`, the errors in plain words (6.3) and `startRuntimeWorker`. **S5:** Rehearse is the driver with `mode: 'rehearse'` (spec 08 section 1).
   - 8 Nov (#229): **WP11b begins: spec 08, export and the Screening room**, with decision 0067 (two new S2 packages: `playback` and `screening`). **S4:** section 4's waiting scene in an export is your #243.
   - 8 Nov (#214): **faster edits for big programs** (S6's request for WP7.10): `applyEdit` checks the schema only against what an edit adds, with the rules still checked over the whole program, and a property test that the result agrees with a whole-program check. At 500 statements an edit takes 1.3 ms instead of 4.7 ms on the PC. Spec 01 section 4.2.
@@ -39,9 +42,8 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov (#112): **WP6, the runtime core**: scheduler, interpreter, events, limits, the worker protocol and fixed-step mode, with spec 18. **S3:** WP4.3 plugs in as a `StoryLibrary` (`packages/runtime/README.md`); spec 18 section 5 lists more gaps for the section 9 contract pull request. Still to come: the worker file and fast-forward (WP7.4), and the TR1 programs (once WP4.3 runs their blocks).
   - 1 Nov (#101): **WP8f, the production format (8.1)**: spec 03, including how the program and a scene's set-up undo as one step (section 2.1); a stricter `checkReferences`; `sceneMethodCheck`; `manifest.origin`; an example production with code in it. Class-imported models travel in the file (decision 0049, section 1.3): `manifest.models`, `models/<folder>/`. **S4:** `packages/production` is yours now; 8.2 builds the production's own undo, and 8.4 the saving, including packing models. **S5, S7, S6:** the format is ready to build the Storyboard, its tools and import on. **S1:** the self-test's undo step can now use real edits on the example production.
   - 1 Nov (#90, #92, #94, #96, #97): **WP2, the AST**: spec 01; program types, schema and validator; edit operations, undo with grouping and history; text view; versions and migrations. S2 merged these under decision 0050; S1, the small changes to your `editor-contract` test and `selftest` are in #92 and #94 if you want to look. **S6, S7, S4:** the API is listed in `packages/ast/README.md`. **S6:** `programText` is in `ast`, for `text-view` to wrap (2.5).
-- Blocked on:
-  - S4's #231 (production format 1.1.0), for retake notes and credit names in the Screening room.
-- Next: `getJoint` and `getJointChain` (S3's joints are in), then the rest of WP11b: captions, the title card, credits and the film export in `packages/export`, and the Screening room screen.
+- Blocked on: nothing.
+- Next: the rest of 11.1 and 11.2, the Screening room screen (`packages/screening`: rough cut, compare, retake notes through `ProductionSession`); then 11.3, the film export loop.
 
 ## S3 Stage and Story API procedures
 - Merged:

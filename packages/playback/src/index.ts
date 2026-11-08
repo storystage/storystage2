@@ -6,6 +6,7 @@
  */
 export * from './clock.ts';
 export * from './fast-forward.ts';
+export * from './measure.ts';
 export * from './playback.ts';
 export * from './words.ts';
 export * from './worker.ts';
