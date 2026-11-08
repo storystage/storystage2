@@ -233,7 +233,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 |  |
 | WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 |  |
 | WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 |  |
-| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 |  |
+| WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 | 0.1 (8 Nov) |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 |  |
 | WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | started 1 Nov |
 | WP8f | Production format spec and data model (8.1) | Productions | WP2 | 1.5 | wk 4.5 (20 Nov 2026) | 4.5 | 0.3 (31 Oct–1 Nov) |
@@ -490,7 +490,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - animals (quadruped, flyer, swimmer, slitherer), which no standard covers, use Alice's joint sets, published as StoryStage's open extension.
 
     Every model from every source is mapped onto it, including MakeHuman, Kenney and commissioned rigs. (C)
-- [ ] 3.4 **Manifest** `backstage.json`:
+- [x] 3.4 **Manifest** `backstage.json`:
     - per model: id (Alice gallery path where one exists, for example `Quadruped/Cat/AbyssinianCat`; otherwise `source/class/name`), **section** (cast, props, set or backdrops), class, display name, joints, default size, thumbnail, licence, credit line, source;
     - a catalog generator for the Prompter;
     - credits generated from it for the About screen and exported films (WP11.4).
@@ -557,7 +557,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
     (C)
 - [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
-- [ ] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
+- [x] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)
 - [ ] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
 
@@ -609,7 +609,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. (C)
 - [ ] 7.6 **Option B made Alice-like:**
     - a custom Blockly renderer with text-like statement rows rather than jigsaw shapes;
-    - loose blocks disabled automatically, and no empty slots (default values in every slot);
+    - no loose blocks: a block dropped outside a method goes back where it came from (decision 0064), and no empty slots (default values in every slot);
     - arguments asked for when a block is dropped, as Alice's cascading menus do;
     - "add detail" for optional arguments (duration, animation style, as seen by);
     - switch a statement off and on;
@@ -650,7 +650,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 8.2 Scenes as separate types, each with its own backdrop, cast, camera, markers and script method. Add, duplicate, rename, reorder and delete scenes. Load only the active scene, preloading the next. (C)
 - [ ] 8.3 Running order with transitions (cut, fade to black, crossfade) and the go to scene block for branching stories. (C)
 - [ ] 8.4 Local save and open (File System Access API in Chromium, Tauri file dialogs, download/upload fallback in Safari), autosave and backups, in the place decided in 24.2. **Import hardening** (from 0.9): normalise paths and reject `..` and absolute entries; cap file, entry and texture sizes; validate against the schema before loading. **Browser version:** a banner while work isn't saved to a file, a prompt to download at the end of a session, and a request for persistent storage, because Safari can delete site data after a period without use. (C)
-- [ ] 8.5 Optional Google Drive and OneDrive save and open, behind a setting that is off by default. Use the narrowest scopes (Drive `drive.file`). (C; U registers the apps in WP15)
+- [ ] 8.5 Optional Google Drive and OneDrive save and open, behind a setting that is off by default. Use the narrowest scopes (Drive `drive.file`). (C; U registers the apps in WP15) **Not in the first release (0065):** on the roadmap (section 6b).
 
 **Done when:** a three-scene production saves, reopens identically (round-trip test) and plays through with each transition type.
 
@@ -672,13 +672,13 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp10 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP10s after WP0, WP3a; WP10a after WP8f, WP12b, WP10s; WP10b after WP10a, WP7, WP8; WP10c after WP10a, WP3i, WP8, WP5b.
 <!-- /schedule:wp10 -->
-- [ ] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
-- [ ] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
+- [x] 10.1 Script header: title, **logline** (one sentence) and **synopsis** (a short paragraph). Both are required before scenes can be added. (C)
+- [x] 10.2 Arc templates: free, 3-part (beginning, middle, end) and 5-part (setup, conflict, challenge, climax, resolution). The template format allows curriculum templates later (WP16). (C)
 - [ ] 10.3 Scene cards: heading (place and time), cast, arc part and transition. Cards are reordered by drag and by keyboard. (C)
 - [ ] 10.4 **Script against scenes:** a script pane beside the boards. Action and dialogue lines sit under each scene heading, and dialogue carries the character's name. Each line can be pinned to a frame. Fountain import and export, with size limits. (C)
 - [x] 10.5 **Sketch library:** `tools/make-sketches` renders every shipped model as a black outline on white in four facings (front, three-quarter, side, back) and, for characters, two or three standard poses, grouped in the same Cast, Props, Set and Backdrops sections as Backstage, with backdrop sketches and a small hand-made set of storyboard marks (speech bubble, movement arrow, camera arrow, text). Each sketch carries the model's Backstage id. Include a manual touch-up list for unreadable sketches. The same renderer (a CPU line renderer in TypeScript: outline and edge lines, no colour; it replaced Babylon offscreen by the owner's decision of 25 Oct 2026, `docs/spec/17-backstage.md` section 7) is packaged to run in the app, so models imported through 3.11 get sketches too. Outside drawings are not imported (decided); a missing item comes in as a model through Backstage (10.9) or as a stand-in. (C)
-- [ ] 10.6 **Frame canvas:** drag sketches onto a frame; move, scale, flip, layer and delete; caption, **shot type** (WP4.10) and rough length in seconds; 3–9 frames per scene suggested. (C)
-- [ ] 10.7 Storyboard PDF print for display and marking. (C)
+- [x] 10.6 **Frame canvas:** drag sketches onto a frame; move, scale, flip, layer and delete; caption, **shot type** (WP4.10) and rough length in seconds; 3–9 frames per scene suggested. (C)
+- [x] 10.7 Storyboard PDF print for display and marking. (C)
 - [ ] 10.9 **Backstage from the Storyboard:** the sketch library has an "Open Backstage" side panel with the same four sections and search across the whole catalogue (shipped and the class's). Choosing a model adds it to the scene's cast list and its sketches to the library. "Can't find it?" leads to import (3.11) when `backstage.import` allows; otherwise to a **stand-in**: a labelled outline (for example "dragon") that can go on frames and on the stage, keeps its name in code so the real model can replace it without changing any blocks, and is listed for the teacher in the class's Backstage (24.4). (C)
 - [ ] 10.10 **Set the stage from the storyboard:** the first time a scene is opened in the Production stage, offer "Set up this scene from your storyboard?", listing the cast, props, set and backdrop it found, with **Place everything**, **Choose what to place** and **Not now** (a "Set up from storyboard" button stays in the toolbar).
     - **Placement:** each sketch on the scene's first frame becomes its model; left-to-right position and size on the frame become position and depth on the stage relative to the camera; a flipped sketch sets the facing; cast who appear only in later frames are placed just off stage, ready to enter; stand-ins are placed as outlines.
@@ -773,7 +773,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp14 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP14a after WP1; WP14b after WP14a, WP13b, WP4b.
 <!-- /schedule:wp14 -->
-- [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). Download on first use after consent, with a checksum. Hold to talk; an editable transcript; audio is discarded after transcription. (C)
+- [ ] 14.1 whisper.cpp WebAssembly with the tiny model (base optional). The default model is bundled in the apps (decision 0057); the optional, more accurate one downloads on request after consent, with a checksum. Dictation into every text field, with or without the Prompter (decision 0060): a mic beside each field, tap to start and stop; the words go into the field for the learner to edit; audio is discarded after transcription. (C)
 - [ ] 14.2 Speech output with speech synthesis, filtered to voices marked `localService`, preferring en-GB. A narration queue tied to Prompter steps, stop, and captions always shown. (C)
 - [ ] 14.3 **Speak line** block: characters speak script dialogue through the same voices, captioned. (C)
 - [ ] 14.4 **Later** (not in the first release): a voice-over recorder per script line, and Rhubarb Lip Sync (MIT) as a desktop sidecar driving the mouth joint. (C)
@@ -800,13 +800,13 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 15.3 **Policy and the school lock** (from StoryStage 1 spec 02 §4):
     - a policy file on desktop;
     - managed app configuration on iPad and Android, so schools set it through their device management;
-    - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
+    - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `speech.dictation` (decision 0060), `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
     - a malformed policy means the Prompter is off.
 
     (C)
 - [ ] 15.4 Code signing: Windows (certificate), macOS (notarisation). (C sets up CI; U buys certificate)
 - [ ] 15.5 Apple developer account and App Store listing; Google Play listing with managed Play for schools. (U; C prepares listings and privacy labels)
-- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files on `storystage.org.uk`, with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
+- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files at `app.storystage.org` (decision 0046), with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
 - [ ] 15.7 **Updates and rollback:** a pilot channel and a stable channel, chosen by policy (`update.channel`), with version pinning (`update.pin`) so a school can hold a version through a term; staged rollout; desktop auto-update only within the chosen channel; version shown in About. A rollback drill: push a broken build to the pilot channel and roll it back. (C)
 
 **Done when:** signed builds install on each target, the key survives restart, with the policy lock set the Prompter can't be switched on, a request with an unlisted model or system prompt is refused, 30 simulated clients hitting rate limits back off without a retry storm, and the rollback drill passes.
@@ -817,11 +817,11 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp16 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP16a needs nothing first; WP16b after WP16a.
 <!-- /schedule:wp16 -->
-- [ ] 16.1 **England:** the national curriculum programmes of study for computing (KS1–KS3), English (writing narrative, drafting, spoken language and drama, KS1–KS3), art and design, and other subjects where storytelling or modelling fits (for example history and science explanations). (C)
-- [ ] 16.2 **Scotland:** Curriculum for Excellence experiences and outcomes and benchmarks, for technologies (computing science), literacy and English, and expressive arts (drama). (C)
-- [ ] 16.3 **Wales:** Curriculum for Wales areas of learning and experience (science and technology; languages, literacy and communication; expressive arts) and the cross-curricular digital competence framework. (C)
-- [ ] 16.4 **Northern Ireland:** the Northern Ireland Curriculum, covering language and literacy, the arts, and the cross-curricular skill Using ICT. (C)
-- [ ] 16.5 **Mapping table:** for each statement, the StoryStage feature, the activity, the arc template and the age range. Highlight the statements with the most touch points. (C)
+- [x] 16.1 **England:** the national curriculum programmes of study for computing (KS1–KS3), English (writing narrative, drafting, spoken language and drama, KS1–KS3), art and design, and other subjects where storytelling or modelling fits (for example history and science explanations). (C)
+- [x] 16.2 **Scotland:** Curriculum for Excellence experiences and outcomes and benchmarks, for technologies (computing science), literacy and English, and expressive arts (drama). (C)
+- [x] 16.3 **Wales:** Curriculum for Wales areas of learning and experience (science and technology; languages, literacy and communication; expressive arts) and the cross-curricular digital competence framework. (C)
+- [x] 16.4 **Northern Ireland:** the Northern Ireland Curriculum, covering language and literacy, the arts, and the cross-curricular skill Using ICT. (C)
+- [x] 16.5 **Mapping table:** for each statement, the StoryStage feature, the activity, the arc template and the age range. Highlight the statements with the most touch points. (C)
 - [ ] 16.6 Curriculum arc templates and 6–10 classroom use cases with lesson outlines. (C drafts; U reviews with teachers)
 - [ ] 16.7 **The teacher's job:** five interviews (computing, English, drama or media teachers, and a club leader) on what a teacher would hire StoryStage to do, in their words and circumstances; written into the doc's purpose section before the mock-ups (12.1) are approved. (U interviews; C prepares questions and writes up)
 - [ ] 16.8 **The pathway's first rung:** map the text view to KS3 text programming and GCSE computer science (commonly Python), so the pathway guide (20.4) starts there, before Unreal and Unity. (C)
@@ -870,7 +870,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp19 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP19a after WP12a; WP19 after RC, WP16b, WP17b, WP19a.
 <!-- /schedule:wp19 -->
-- [ ] 19.1 Website pages on `storystage.org.uk`: download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
+- [ ] 19.1 Website pages on `storystage.org` (the WordPress site, decision 0046): download links per device, the browser version, a set-up guide for keys and the school lock, privacy, credits. (C drafts; U publishes)
 - [ ] 19.2 Teacher guide: the three tabs, the storyboard rule, the Prompter modes, the curriculum use cases. (C)
 - [ ] 19.3 Recruit 2–3 schools across at least two UK nations, plus at least one after-school club. Ask each whether it would fund a Prompter key, and which Prompter route (24.3) suits it. (U)
 - [ ] 19.4 Feedback form, issue templates, and triage into the next release. (C)
@@ -1026,7 +1026,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 **Schedule items** (`tools/plan/schedule.yaml`): WP24a after WP1g, WP15a, WP8f; WP24b after WP24a, WP8, WP15k, WP13b.
 <!-- /schedule:wp24 -->
 - [ ] 24.1 **The teacher's journey**, written into `docs/spec/07-ux.md` and the doc: install through device management → set the school lock → start a class → pupils return to their work next lesson → collect films → export study logs → mark. Each step has an owner task. (C drafts; U reviews with a pilot teacher)
-- [ ] 24.2 **Where a pupil's work lives between lessons** (decide before WP8.4 is built). Options: in-app class and pupil folders on a shared device, a device-management profile per class, or school Google or Microsoft accounts. Record the choice in the DPIA. (C proposes; U decides)
+- [x] 24.2 **Where a pupil's work lives between lessons** (decide before WP8.4 is built). Options: in-app class and pupil folders on a shared device, a device-management profile per class, or school Google or Microsoft accounts. Record the choice in the DPIA. (C proposes; U decides) **Decided 8 Nov 2026 (0065):** pupil folders in the app, with Collect and Hand back through files; to be confirmed after 1.11.
 - [ ] 24.3 **How the Prompter reaches a group** (decide at M1, after 1.11):
     - **A. Clubs, small groups and home:** the Prompter runs where an adult (club leader, teacher with a small group, or parent) owns the key. This fits the adult-account rule, and is the default for the pilot.
     - **B. Classroom relay:** the teacher's StoryStage app holds the one key; pupils' devices connect to it over the school network with a class code. Caps and monitoring sit on the teacher's device. No StoryStage server. Needs a spike: many school Wi-Fi networks isolate devices from each other.
@@ -1053,6 +1053,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | AR design mode, AR for audiences, projection mapping, pathway | Held until after the release candidate | WP20 to WP23 | Release 1.1 |
 | Linux desktop app | Dropped from the first release | WP15.1 | If schools ask for it |
 | Classroom relay for the Prompter | If option A or C is chosen first (24.3) | WP24.3 | Release 1.1 |
+| Signed-in cloud saving | Google Drive and OneDrive save and open, signed in from StoryStage (8.5) | 0065; files in the school's own storage already reach both | If schools ask, and the DPIA can carry it |
 | Multi-projector projection | Several projectors with blending, run from StoryStage rather than Pixera | WP23 | Release 2, if schools ask for it |
 | **AR trails** | Productions pinned to places: a history trail round the school grounds, a museum or heritage-site trail, a literacy trail for an open evening. Visitors find a printed marker (poster, plaque or QR code) or reach a location, and the scene plays there in AR. A trail editor maps scenes to markers or places; trails download as offline packs | WP22 player and AR pack; museum scans (WP3.7); curriculum use cases (WP16) | Release 2 |
 | Headset viewing | Watch productions in Quest's browser or on Vision Pro through WebXR | WP22.5 | Release 2 |

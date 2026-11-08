@@ -1,0 +1,78 @@
+# Moves a channel (WP15.7, spec 05 sections 4.3, 4.4, 4.7). No build: only a channel's
+# latest.json changes, so a rollback takes effect as soon as this finishes.
+# Runs through the `release` environment, so its approval rules apply here too.
+name: Channel
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: promote to stable, change the rollout, or roll back
+        type: choice
+        required: true
+        options: [promote, rollout, rollback]
+      channel:
+        description: The channel to change (promote always changes stable)
+        type: choice
+        required: true
+        options: [pilot, stable]
+      version:
+        description: promote, the version to promote. rollback, the last good version
+        required: false
+      rollout:
+        description: promote and rollout, the percentage of devices
+        required: false
+        default: '10'
+      withdraw:
+        description: rollback, the bad versions, separated by spaces
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+
+jobs:
+  move:
+    name: ${{ inputs.action }} ${{ inputs.channel }}
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: ${{ inputs.action }}
+      CHANNEL: ${{ inputs.channel }}
+      VERSION: ${{ inputs.version }}
+      ROLLOUT: ${{ inputs.rollout }}
+      WITHDRAW: ${{ inputs.withdraw }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Write the channel's manifest
+        run: |
+          manifest=apps/desktop/scripts/update-manifest.mjs
+          mkdir channel
+          case "$ACTION" in
+            promote)
+              CHANNEL=stable
+              gh release download "v$VERSION" --pattern latest.json --dir channel
+              node "$manifest" rollout channel/latest.json "$ROLLOUT"
+              ;;
+            rollout)
+              gh release download "channel-$CHANNEL" --pattern latest.json --dir channel
+              node "$manifest" rollout channel/latest.json "$ROLLOUT"
+              ;;
+            rollback)
+              gh release download "v$VERSION" --pattern latest.json --dir channel
+              # shellcheck disable=SC2086
+              node "$manifest" rollback channel/latest.json $WITHDRAW
+              ;;
+          esac
+          echo "CHANNEL=$CHANNEL" >> "$GITHUB_ENV"
+      - name: Replace it
+        run: |
+          gh release view "channel-$CHANNEL" > /dev/null 2>&1 || gh release create "channel-$CHANNEL" \
+            --title "Channel: $CHANNEL" --notes "Holds only this channel's manifest."
+          gh release upload "channel-$CHANNEL" channel/latest.json --clobber

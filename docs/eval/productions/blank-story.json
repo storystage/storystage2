@@ -1,0 +1,14 @@
+{
+  "title": "My film",
+  "backdrop": "grass",
+  "objects": [],
+  "program": [],
+  "storyboard": {
+    "logline": "",
+    "synopsis": "",
+    "arc": { "template": "threePart", "parts": ["beginning", "middle", "end"] }
+  },
+  "scenes": [],
+  "script": [],
+  "frames": []
+}

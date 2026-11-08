@@ -3,6 +3,8 @@ node_modules/
 dist/
 dist-harness/
 coverage/
+.backstage/
+.backstage.fetching/
 apps/desktop/src-tauri/target/
 apps/desktop/src-tauri/gen/
 # The handover pack and the workplan are prose kept as written.

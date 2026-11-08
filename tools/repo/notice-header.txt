@@ -21,3 +21,22 @@ tauri-build  2  Apache-2.0 OR MIT
 serde  1  MIT OR Apache-2.0
 serde_json  1  MIT OR Apache-2.0
 windows-sys  0.61  MIT OR Apache-2.0
+objc2  0.6  MIT
+objc2-foundation  0.3  MIT
+objc2-app-kit  0.3  MIT
+tauri-plugin  2  Apache-2.0 OR MIT
+tauri-plugin-updater  2  Apache-2.0 OR MIT
+hex  0.4  MIT OR Apache-2.0
+sha2  0.10  MIT OR Apache-2.0
+chrono  0.4  MIT OR Apache-2.0
+futures-util  0.3  MIT OR Apache-2.0
+keyring  3  MIT OR Apache-2.0
+reqwest  0.13  MIT OR Apache-2.0
+rustls  0.23  Apache-2.0 OR ISC OR MIT
+tokio  1  MIT
+zeroize  1  Apache-2.0 OR MIT
+tauri-plugin-fs  2  Apache-2.0 OR MIT
+
+== Bundled files (apps/desktop/src-tauri/speech-models.json) ==
+
+ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cpp  MIT

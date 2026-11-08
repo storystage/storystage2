@@ -1,0 +1,35 @@
+# Publishes the optional speech model where the app downloads it from (spec 05 section 5.3,
+# proposed: the `speech-models-v1` release). It's fetched from whisper.cpp's repository and
+# checked against its pin first, so only the pinned file can be published. By hand only, and
+# through the `release` environment, so its approval rules apply.
+name: Speech models
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: publish
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Fetch every model and check its pin
+        run: node apps/desktop/scripts/fetch-models.mjs models
+      - name: Publish the downloadable ones
+        run: |
+          files=$(node -e "
+            const pins = require('./apps/desktop/src-tauri/speech-models.json');
+            console.log(pins.models.filter((m) => !m.bundled).map((m) => 'models/' + m.file).join(' '));")
+          gh release view speech-models-v1 > /dev/null 2>&1 || gh release create speech-models-v1 \
+            --title "Speech models" --notes "The optional speech models, checked against their pins in speech-models.json."
+          # shellcheck disable=SC2086
+          gh release upload speech-models-v1 $files --clobber

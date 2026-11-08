@@ -5,5 +5,6 @@ export * from './details.ts';
 export * from './dropped.ts';
 export * from './entries.ts';
 export * from './events.ts';
+export * from './open-spec.ts';
 export * from './types.ts';
 export { default as STORY_WORDS } from '../strings/en-GB.json' with { type: 'json' };

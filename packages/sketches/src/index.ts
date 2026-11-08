@@ -9,7 +9,7 @@
  * gets. `tools/make-sketches` runs it over the shipped catalogue; imports (3.11) run it in a
  * Web Worker. Test meshes are in `@storystage/sketches/testing`.
  */
-export type { SketchMesh, SketchNode } from './mesh.ts';
+export type { SketchMaterial, SketchMesh, SketchNode, SketchSurface } from './mesh.ts';
 export { renderSketch, viewOf } from './render.ts';
 export type { Sketch, SketchMetrics, SketchOptions, View } from './render.ts';
 export { POSES, POSE_TARGETS, canPose, poseMesh } from './pose.ts';
@@ -25,3 +25,23 @@ export { sketchFile, sketchPlan, sketchTitle } from './library.ts';
 export type { PlannedSketch } from './library.ts';
 export { makeItemSketches } from './make.ts';
 export type { MadeSketch } from './make.ts';
+export { THUMBNAIL_SIZE, renderThumbnail } from './thumbnail.ts';
+export type { ImageDecoder, Picture, ThumbnailOptions } from './thumbnail.ts';
+
+// WP10.6, the frame canvas model (S5).
+export {
+  NUDGE,
+  SCALE,
+  SKETCH_LIMIT,
+  across,
+  addSketch,
+  flipSketch,
+  inLayerOrder,
+  layerSketch,
+  moveSketch,
+  nudgeSketch,
+  removeSketch,
+  resizeSketch,
+  scaleSketch,
+} from './canvas.ts';
+export type { NewSketch } from './canvas.ts';
