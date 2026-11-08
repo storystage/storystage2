@@ -11,6 +11,7 @@ import { browserPicker } from './browser-picker.ts';
 import { browserStore } from './browser-store.ts';
 import { storedClassFolders } from './class-folders.ts';
 import type { ClassFolders, FilePicker } from './files.ts';
+import { readPickerKind, tauriPicker } from './tauri-picker.ts';
 import { tauriStore } from './tauri-store.ts';
 import { BROWSER_POLICY, readPolicy, type PolicyInForce } from './policy.ts';
 import { tauriSpeech, type ChannelClass, type Invoke, type SpeechModels } from './speech.ts';
@@ -34,7 +35,8 @@ export interface HostInterface {
   readonly classes: ClassFolders;
   /**
    * The system's own file picker, for Save a copy, Open, Collect and Hand back (spec 05 section
-   * 6.5). The browser's pickers for now in the Tauri apps too, until the native one lands.
+   * 6.5). In the Tauri desktop apps, the system's dialog
+   * opened by the native layer; on iPad and Android, the webview's own, for now.
    */
   readonly picker: FilePicker;
 }
@@ -75,7 +77,11 @@ export async function tauriHost(
   prompter: PrompterTransport,
   Channel?: ChannelClass,
 ): Promise<HostInterface> {
-  const [policy, version] = await Promise.all([readPolicy(invoke), readVersion(invoke)]);
+  const [policy, version, pickerKind] = await Promise.all([
+    readPolicy(invoke),
+    readVersion(invoke),
+    readPickerKind(invoke),
+  ]);
   const reachable = policy.source === 'unreadable' ? offTransport : prompter;
   const speech = policy.speech.dictation && Channel ? tauriSpeech(invoke, Channel) : null;
   return {
@@ -84,6 +90,6 @@ export async function tauriHost(
     version,
     speech,
     classes: storedClassFolders(tauriStore(invoke)),
-    picker: browserPicker(),
+    picker: pickerKind === 'native' ? tauriPicker(invoke) : browserPicker(),
   };
 }

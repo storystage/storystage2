@@ -1,0 +1,166 @@
+{
+  "name": "Two people side by side, every shot in turn, turning to talk before over the shoulder",
+  "seconds": 6,
+  "setup": {
+    "backdrop": {
+      "ground": "storystage/Ground/grass",
+      "sky": "storystage/Sky/grass",
+      "lighting": "storystage/Lighting/grass"
+    },
+    "objects": [
+      {
+        "id": "ann",
+        "model": {
+          "standIn": "ann"
+        },
+        "class": "Biped",
+        "paint": "orange",
+        "transform": {
+          "position": {
+            "x": 0.6,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 1,
+            "z": 0,
+            "w": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1.7,
+            "z": 1
+          }
+        }
+      },
+      {
+        "id": "bob",
+        "model": {
+          "standIn": "bob"
+        },
+        "class": "Biped",
+        "paint": "#336699",
+        "transform": {
+          "position": {
+            "x": -0.6,
+            "y": 0,
+            "z": 0
+          },
+          "rotation": {
+            "x": 0,
+            "y": 1,
+            "z": 0,
+            "w": 0
+          },
+          "scale": {
+            "x": 1,
+            "y": 1.6,
+            "z": 1
+          }
+        }
+      }
+    ],
+    "camera": {
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 1.5,
+          "z": -8
+        },
+        "rotation": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "scale": {
+          "x": 1,
+          "y": 1,
+          "z": 1
+        }
+      }
+    },
+    "markers": []
+  },
+  "commands": [
+    {
+      "seq": 1,
+      "object": "camera",
+      "start": 0,
+      "duration": 500000,
+      "style": "beginAndEndGently",
+      "kind": "shot",
+      "shot": "wide",
+      "targets": ["ann", "bob"]
+    },
+    {
+      "seq": 2,
+      "object": "camera",
+      "start": 1000000,
+      "duration": 500000,
+      "style": "beginAndEndGently",
+      "kind": "shot",
+      "shot": "medium",
+      "targets": ["ann"]
+    },
+    {
+      "seq": 3,
+      "object": "camera",
+      "start": 2000000,
+      "duration": 500000,
+      "style": "beginAndEndGently",
+      "kind": "shot",
+      "shot": "closeUp",
+      "targets": ["ann"]
+    },
+    {
+      "seq": 4,
+      "object": "camera",
+      "start": 3000000,
+      "duration": 500000,
+      "style": "beginAndEndGently",
+      "kind": "shot",
+      "shot": "twoShot",
+      "targets": ["ann", "bob"]
+    },
+    {
+      "seq": 41,
+      "object": "ann",
+      "start": 3600000,
+      "duration": 300000,
+      "style": "beginAndEndGently",
+      "kind": "turnToFace",
+      "target": "bob"
+    },
+    {
+      "seq": 42,
+      "object": "bob",
+      "start": 3600000,
+      "duration": 300000,
+      "style": "beginAndEndGently",
+      "kind": "turnToFace",
+      "target": "ann"
+    },
+    {
+      "seq": 5,
+      "object": "camera",
+      "start": 4000000,
+      "duration": 500000,
+      "style": "beginAndEndGently",
+      "kind": "shot",
+      "shot": "overTheShoulder",
+      "targets": ["ann", "bob"]
+    },
+    {
+      "seq": 6,
+      "object": "camera",
+      "start": 5000000,
+      "duration": 500000,
+      "style": "beginAndEndGently",
+      "kind": "shot",
+      "shot": "follow",
+      "targets": ["bob"]
+    }
+  ]
+}

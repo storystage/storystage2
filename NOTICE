@@ -41,7 +41,7 @@ tauri-plugin-fs  2  Apache-2.0 OR MIT
 
 ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cpp  MIT
 
-== Linked into the app (78) ==
+== Linked into the app (81) ==
 
 @asamuzakjp/css-color  7.1.7  MIT
 @asamuzakjp/dom-selector  10.0.4  MIT
@@ -65,6 +65,9 @@ ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cp
 @internationalized/string  3.2.10  Apache-2.0
 @material-symbols/svg-400  0.48.1  Apache-2.0
 @react-types/shared  3.37.0  Apache-2.0
+@recast-navigation/core  0.43.1  MIT
+@recast-navigation/generators  0.43.1  MIT
+@recast-navigation/wasm  0.43.1  MIT
 @swc/helpers  0.5.23  Apache-2.0
 @types/dom-mediacapture-transform  0.1.12  MIT
 @types/dom-webcodecs  0.1.13  MIT

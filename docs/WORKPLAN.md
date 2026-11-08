@@ -556,7 +556,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
     Anything dropped or added is listed. (C)
 - [x] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
-- [ ] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
+- [x] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
 - [ ] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). (C)
 - [ ] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
     - walk to and run to, round obstacles, using a navigation mesh (Babylon.js navigation plugin, Recast/Detour);
@@ -576,7 +576,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
 - [x] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)
-- [ ] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
+- [x] 4.10 **Smart-camera shot types:** camera blocks for shot types (wide, medium, close-up, over-the-shoulder, follow, two-shot) that frame their targets automatically, like Unity's Cinemachine. The same shot types are a field on storyboard frames (WP10.6). (C)
 
 **Done when:** a conformance test runs every procedure on every model class and checks the end state against expected transforms.
 
@@ -592,7 +592,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 5.4 Camera, camera markers and camera moves; picking for mouse-click events. (C)
 - [x] 5.5 Live mode (real time) and **fixed-time-step offscreen mode** for export (WP11). (C)
 - [ ] 5.6 WebGPU when available, WebGL2 otherwise; a performance budget per reference device; a quality setting (low/standard). (C)
-- [ ] 5.7 Scene picture capture (for the Prompter's "let the Prompter see the scene" and the Screening room compare). (C)
+- [x] 5.7 Scene picture capture (for the Screening room compare; no picture goes to the Prompter, by the owner's decision of 31 Oct 2026). (C)
 - [ ] 5.8 **Character machinery:**
     - navigation meshes built per scene (Babylon.js navigation plugin; check the licence of the Recast/Detour build used);
     - AnimationGroup blending;

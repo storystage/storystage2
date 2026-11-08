@@ -94,5 +94,13 @@ export interface Stage {
   /** Draws the scene as it is after the last `seek`. Used offscreen for export (WP11.3). */
   renderFrame(): Promise<FrameImage>;
 
+  /**
+   * A picture of the scene as it is at time `at`, `width` × `height` pixels (up to 4096 each
+   * way), for the Screening room's compare with the storyboard (WP5.7, WP11.6). It leaves the
+   * scene where its last `seek` put it, and fires no events. Pictures never go to the Prompter
+   * (CLAUDE.md rule 3). Rejects with `bad_argument` for a size it can't draw.
+   */
+  picture(at: Micros, width: number, height: number): Promise<FrameImage>;
+
   dispose(): void;
 }

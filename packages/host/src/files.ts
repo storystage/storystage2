@@ -218,5 +218,11 @@ export function safeFileName(text: string): string {
     .slice(0, NAME_LIMIT)
     .replace(/[. ]+$/, '');
   if (cleaned === '') return 'file';
-  return RESERVED.test(cleaned.split('.')[0] ?? '') ? `${cleaned}_` : cleaned;
+  const stem = cleaned.split('.')[0] ?? '';
+  if (!RESERVED.test(stem.trimEnd())) return cleaned;
+  // Windows takes any name whose stem is a device as the device, whatever follows the dot, so
+  // the mark goes after the stem: "con.txt" becomes "con_.txt" (S4's review of #218).
+  return `${stem.trimEnd()}_${cleaned.slice(stem.length)}`
+    .slice(0, NAME_LIMIT)
+    .replace(/[. ]+$/, '');
 }

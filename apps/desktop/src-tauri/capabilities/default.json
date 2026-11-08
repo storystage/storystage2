@@ -21,6 +21,14 @@
     "allow-classes-write",
     "allow-classes-remove",
     "allow-classes-list",
-    "allow-classes-move"
+    "allow-classes-move",
+    "allow-picker-kind",
+    "allow-picker-save",
+    "allow-picker-open",
+    "allow-picker-collect-start",
+    "allow-picker-collect-write",
+    "allow-picker-hand-back-start",
+    "allow-picker-hand-back-read",
+    "allow-picker-end"
   ]
 }
