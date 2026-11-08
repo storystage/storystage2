@@ -8,9 +8,14 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "harness": "vite build --config browser/harness/vite.config.ts && vite preview --config browser/harness/vite.config.ts",
+    "test:whisper": "playwright test -c playwright.whisper.config.ts"
   },
   "dependencies": {
     "@storystage/host": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
   }
 }

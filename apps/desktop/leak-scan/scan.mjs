@@ -92,6 +92,13 @@ const checks = [
   ],
   ['a path instead of a model name is refused', report.speechByPath === 'internal'],
   ['the page is cross-origin isolated, for whisper', report.crossOriginIsolated === true],
+  ['a film went through the pupil folders whole, as raw bytes', report.classes?.whole === true],
+  [
+    'a pupil folder lists only what was written',
+    JSON.stringify(report.classes?.listed) === '["v-1.storystage"]',
+  ],
+  ['a path out of the pupil folders is refused', report.classes?.escape === 'internal'],
+  ['a file that isn’t there reads as not found', report.classes?.missing === 'not_found'],
   ['only one request reached the network', requests.length === 1],
   ['the fake server received the stored key', requests.every((line) => line.keyMatched)],
 ];

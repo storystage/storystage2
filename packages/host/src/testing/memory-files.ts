@@ -5,6 +5,7 @@
  */
 import { storedClassFolders } from '../class-folders.ts';
 import {
+  collectedPath,
   FILE_LIMIT,
   FileError,
   type ClassFolders,
@@ -107,7 +108,7 @@ export function memoryFilePicker(
       return file;
     },
     async collect(files) {
-      const names = new Set(files.map((file) => `${file.folder}/${file.file}`));
+      const names = new Set(files.map(collectedPath));
       if (names.size !== files.length) throw new FileError('invalid');
       collected.push(...files.map((file) => ({ ...file, bytes: copy(file.bytes) })));
       return files.length;
