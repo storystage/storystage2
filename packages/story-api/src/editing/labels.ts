@@ -2,8 +2,9 @@
  * Spec 14, section 2.4: an undo label for each edit, from the Story API's words, naming what
  * changed: "Make cat say Hello", "Change 1 to 2 in cat move". S2's `defaultLabel` is the fallback.
  */
-import { defaultLabel, indexProgram } from '@storystage/ast';
+import { defaultLabel } from '@storystage/ast';
 import type { EditOperation, Expression, Program } from '@storystage/ast';
+import { indexOf } from './cache.ts';
 import { describer, fill, word, type WordsOptions } from './words.ts';
 
 /** Plain words for one edit, about to be made to `program`. */
@@ -13,7 +14,7 @@ export function labelFor(
   options: WordsOptions = {},
 ): string {
   const describe = describer(program, options);
-  const index = indexProgram(program);
+  const index = indexOf(program);
   const node = (id: string) => index.get(id as never)?.node;
 
   switch (edit.kind) {

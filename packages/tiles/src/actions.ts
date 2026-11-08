@@ -3,14 +3,7 @@
  * so a refusal and a label read the same in both editors. Nothing here touches the host: the
  * editor sends a change with `host.apply`, which validates it again.
  */
-import {
-  applyAll,
-  copyNode,
-  EditRefused,
-  idMinter,
-  indexProgram,
-  isStatement,
-} from '@storystage/ast';
+import { applyAll, copyNode, EditRefused, idMinter, isStatement } from '@storystage/ast';
 import type { EditOperation, Expression, NodeId, Program, Statement } from '@storystage/ast';
 import {
   canDrop,
@@ -18,7 +11,7 @@ import {
   type StatementPlace,
   type ValuePlace,
 } from '@storystage/story-api/editing';
-import { place, whereIs } from './places.ts';
+import { indexOf, place, whereIs } from './places.ts';
 import { t } from './words.ts';
 
 export type Change =
@@ -54,7 +47,7 @@ function single(program: Program, edit: Unlabelled, focus?: NodeId): Change {
 }
 
 const statementOf = (program: Program, id: NodeId): Statement | undefined => {
-  const node = indexProgram(program).get(id)?.node;
+  const node = indexOf(program).get(id)?.node;
   return node && isStatement(node) ? node : undefined;
 };
 
@@ -64,10 +57,7 @@ const gone = () => refused(t('gone'));
 function after(program: Program, id: NodeId): NodeId | undefined {
   const where = whereIs(program, id);
   if (!where) return undefined;
-  const holder = indexProgram(program).get(where.parent)?.node as unknown as Record<
-    string,
-    Statement[]
-  >;
+  const holder = indexOf(program).get(where.parent)?.node as unknown as Record<string, Statement[]>;
   const list = holder[where.slot] ?? [];
   return (list[where.index + 1] ?? list[where.index - 1])?.id ?? where.parent;
 }
@@ -109,10 +99,7 @@ export function duplicate(program: Program, id: NodeId): Change {
 export function moveBy(program: Program, id: NodeId, delta: -1 | 1): Change {
   const where = whereIs(program, id);
   if (!where) return gone();
-  const holder = indexProgram(program).get(where.parent)?.node as unknown as Record<
-    string,
-    Statement[]
-  >;
+  const holder = indexOf(program).get(where.parent)?.node as unknown as Record<string, Statement[]>;
   const length = holder[where.slot]?.length ?? 0;
   const index = where.index + delta;
   if (index < 0) return refused(t('top'));

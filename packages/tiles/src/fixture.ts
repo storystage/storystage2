@@ -130,3 +130,63 @@ export function fixture(): Program {
     ],
   };
 }
+
+/**
+ * The same scene with its method grown to `size` statements, counting those inside containers,
+ * for spec 14, 3h: a method of 500 statements stays responsive. Its first rows are the fixture's,
+ * so the ids in `IDS` still work; the rest cycle through say, move, a count with two rows inside,
+ * and a note.
+ */
+export function large(size: number): Program {
+  const program = fixture();
+  const method = program.types[0]!.methods[0]!;
+  const body: Statement[] = [...method.body];
+  let count = 0;
+  const walk = (list: readonly Statement[]): void => {
+    for (const s of list) {
+      count++;
+      if ('body' in s) walk(s.body);
+      if (s.kind === 'if') {
+        walk(s.then);
+        walk(s.else);
+      }
+    }
+  };
+  walk(body);
+  const move = (): Statement => ({
+    id: id(),
+    kind: 'call',
+    target: field(IDS.cat),
+    callee: { kind: 'story', name: 'move' },
+    args: {
+      direction: choice('MoveDirection', 'forward'),
+      amount: { id: id(), kind: 'number', value: 1 },
+    },
+    details: {},
+  });
+  for (let i = 0; count < size; i++) {
+    const left = size - count;
+    if (i % 4 === 2 && left >= 3) {
+      body.push({
+        id: id(),
+        kind: 'count',
+        times: { id: id(), kind: 'wholeNumber', value: 2 },
+        body: [say(id(), `Hop ${i}`), move()],
+      });
+      count += 3;
+    } else {
+      body.push(
+        i % 4 === 0
+          ? say(id(), `Line ${i}`)
+          : i % 4 === 1
+            ? move()
+            : { id: id(), kind: 'comment', text: `Note ${i}` },
+      );
+      count++;
+    }
+  }
+  return {
+    ...program,
+    types: [{ ...program.types[0]!, methods: [{ ...method, body }] }],
+  };
+}

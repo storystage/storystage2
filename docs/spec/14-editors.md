@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3g are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails, and the control bar's **variable** and **assign** tiles (see 2.3). 3h comes next. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails; the control bar's **variable** and **assign** tiles (see 2.3); an error's words beside its statement (3g), which the contract doesn't carry yet; and the Chromebook run of 3h.3 (7.10). Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -167,11 +167,16 @@ Enter or a click on a pill opens its cascade (section 2.3), upward if there's no
 
 Through the contract (7.9): Rehearse outlines the running statement (a still outline when the learner has asked for reduced motion); an error marks the statement in the stop colour with the error's words beside it; the Prompter's highlight carries its AI badge. Several kinds can show at once.
 
+**Not yet:** the error's words. `highlight(nodes, kind)` (WP0.8) gives the nodes and not the words, so showing them needs the contract to carry a message for each error node. Until then an error is marked by colour and border.
+
 ### 3h. Performance
 
-1. **Rows are render functions keyed by node id,** never components defined inside the editor, so an update doesn't remount them and lose focus (spike finding 7).
-2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object is skipped.
-3. **A method of 500 statements** stays responsive: a keystroke or drop draws within 100 ms. It's tested in CI, then on the reference Chromebook (7.10).
+1. **A row is one memoised component, defined once and keyed by node id,** never a component defined inside the editor's render, so an update doesn't remount it and lose focus (spike finding 7).
+2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object, with the same focus, highlights and names, is skipped. A pass before drawing works out the focus order and each row's pills, so a skipped row is still known to the keyboard. The palette and the control bar are drawn again only when what they show changes.
+3. **A method of 500 statements** stays responsive: a keystroke or drop draws within 100 ms. It's tested in CI, then on the reference Chromebook (7.10). The test times each input to the next frame drawn (Event Timing), on the production build.
+4. **Whole-program work is done once for each program:** the shared model keeps its index, types, describer and the problems a program already has with the program (`editing/cache.ts`), since a long method asks for them on every row.
+5. **A keyboard move checks a place only when a step reaches it,** not every place when the statement is picked up. **A drag checks a place once,** when the pointer has stayed on it for 60 ms, so sweeping across rows checks nothing. A drop checks at once.
+6. **Top-level rows off screen** aren't styled or laid out (`content-visibility: auto`). They stay in the accessibility tree.
 
 ### 3i. Option B, Blocks
 

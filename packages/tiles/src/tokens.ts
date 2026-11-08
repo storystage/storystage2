@@ -74,6 +74,8 @@ export const TEXT_PAIRS: readonly (readonly [TileColour, TileColour])[] = [
   ['program', 'rehearse'],
   ['error', 'program'],
   ['ink', 'panel'],
+  // The AI badge.
+  ['program', 'prompter'],
 ];
 
 /** Outlines and focus rings, each needing 3:1 against what's next to them (1.4.11). */

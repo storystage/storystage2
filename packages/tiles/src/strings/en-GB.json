@@ -18,6 +18,7 @@
   "tiles.partsOf": "{name}’s joints",
   "tiles.removeDetail": "Take {detail} out",
   "tiles.use": "Use it",
+  "tiles.aiBadge": "AI",
   "tiles.addDetail": "add detail",
   "tiles.moving": "Moving {what}. Use the up and down arrows, then Space to put it down, or Escape to leave it where it was.",
   "tiles.dropsAt": "Drops at {n} of {total} in {where}",

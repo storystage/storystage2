@@ -16,6 +16,7 @@ import type {
   StatementSlot,
 } from '@storystage/ast';
 import { checkProgram, type ProgramCheckOptions } from '../catalog/program-check.ts';
+import { perProgram } from './cache.ts';
 import { labelFor } from './labels.ts';
 import { word, type WordsOptions } from './words.ts';
 
@@ -92,6 +93,11 @@ function editFor(program: Program, place: Place, candidate: Candidate, options: 
 const key = (p: { readonly node: NodeId | null; readonly message: string }) =>
   `${p.node}|${p.message}`;
 
+/** The problems a program already has, worked out once for each program checked without options. */
+const problemsIn = perProgram((program) => new Set(checkProgram(program).map(key)));
+
+const hasOptions = (options: ProgramCheckOptions) => options.jointExists !== undefined;
+
 /** Whether `candidate` may go at `place`, and if so, the edits and their label. */
 export function canDrop(
   program: Program,
@@ -109,7 +115,9 @@ export function canDrop(
     if (e instanceof EditRefused) return refuse(e.reason);
     throw e;
   }
-  const before = new Set(checkProgram(program, options).map(key));
+  const before = hasOptions(options)
+    ? new Set(checkProgram(program, options).map(key))
+    : problemsIn(program);
   const made = checkProgram(after, options).find((p) => !before.has(key(p)));
   if (made) return refuse(made.reason ?? word('drop.blocksOnly'));
   return { ok: true, edits: [edit], label: edit.label, program: after };

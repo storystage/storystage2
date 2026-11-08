@@ -4,7 +4,8 @@
  */
 import type { Args, Callee, Expression, NodeId, Program, Statement } from '@storystage/ast';
 import { findEntry } from '../catalog/catalog.ts';
-import { programTypes, storyType, type ProgramTypes } from '../catalog/program-types.ts';
+import { storyType, type ProgramTypes } from '../catalog/program-types.ts';
+import { typesOf } from './cache.ts';
 
 const none = (mint: () => NodeId): Expression => ({ id: mint(), kind: 'none' });
 
@@ -15,7 +16,7 @@ export function newCall(
   callee: Callee,
   isFunction: boolean,
   mint: () => NodeId,
-  types: ProgramTypes = programTypes(program),
+  types: ProgramTypes = typesOf(program),
   self?: NodeId,
 ): (Statement & { kind: 'call' }) | (Expression & { kind: 'functionCall' }) {
   const args: Record<string, Expression> = {};
