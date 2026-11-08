@@ -102,8 +102,8 @@ packages/
   production/      .storystage format, scenes, running order, transitions, storyboard data, links, Fountain import/export
   prompter/        Tool schemas, context builders, conversation loop, modes; transport-agnostic (talks to the native layer)
   speech/          whisper.cpp WASM input, speech synthesis output, narration queue
-  playback/        Plays a production on the page: the runtime worker, the stage and the production's player; used by Rehearse, the Screening room and export (decision 0066)
-  screening/       The Screening room's screen: rough cut, compare, retake notes, export (decision 0066)
+  playback/        Plays a production on the page: the runtime worker, the stage and the production's player; used by Rehearse, the Screening room and export (decision 0067)
+  screening/       The Screening room's screen: rough cut, compare, retake notes, export (decision 0067)
   export/          Frame-by-frame render to MP4 (WebCodecs + muxer), captions (WebVTT/SRT), title and credits; AR pack (baker, GLB, USDZ, page, QR)
   ar/              AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording
   host/            The host interface (decision 0028): what the build hands the studio (policy in force, Prompter transport, files)

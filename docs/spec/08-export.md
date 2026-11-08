@@ -8,7 +8,7 @@
 ## 0. Decisions this spec relies on
 
 - [0017 Export](../decisions/0017-export.md): MP4 export in the first release.
-- [0066 Playback and Screening room packages](../decisions/0066-playback-and-screening-packages.md): where this code lives.
+- [0067 Playback and Screening room packages](../decisions/0067-playback-and-screening-packages.md): where this code lives.
 - [0049 Models in the production file](../decisions/0049-models-in-the-production-file.md): packed models carry their credits.
 - [Spike 1.8](../decisions/spike-1.8-mp4.md): the encoder, WebCodecs first.
 - `03-production-format.md` section 3.1: how a production plays, scene by scene (`packages/production`, `player.ts`).
@@ -25,10 +25,15 @@ The driver plays a production, or one scene, on the page. It joins three things 
 
 The driver owns only the wiring. The rough cut, Rehearse (WP7.4) and the export all use it.
 
-**Two ways to run.**
+**One path, live or not.** The runtime always runs in fixed steps. Each frame (`frame(t)`, with `t` the film's time), the driver:
 
-- **Live:** paced by the clock, with the runtime running about 100 ms ahead (spike 1.4). Each frame, the driver calls `stage.seek(t)` and gives the player the picture's time, `now(t)`.
-- **Fixed:** frame by frame, for the export, measuring and tests. For each frame the driver sends `advance` to the frame's time, waits for the runtime to answer, then seeks.
+1. advances the runtime to the scene's time plus a lookahead of about 100 ms, and waits for its answer, so the runtime runs ahead of the picture (spike 1.4, rule 1);
+2. seeks the stage to the scene's time;
+3. gives the player the scene's time, `now(t)`, which it keeps calling after the runtime has finished, until the player says `end`.
+
+The scene's time starts at 0 on each `load`. Live play calls `frame` every frame with a clock's time (`LiveClock`). The export, measuring and tests call it once per frame at a fixed rate. So pause and speed belong to the clock, and live play and the export take the same path.
+
+Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the driver stops advancing the runtime, which would never answer. The picture and the player carry on alone, through a fade out or the rest of a crossfade, until the next scene loads.
 
 **What the driver does with each runtime message.**
 
@@ -50,8 +55,10 @@ The driver owns only the wiring. The rough cut, Rehearse (WP7.4) and the export 
 | `stageCommands` | Hands them to `stage.schedule` |
 | `crossfade` | Tells the stage to fade the old picture out over the new one |
 | `stop` | Sends the runtime `stop` |
+| `preload` | Hands the next scene's set-up to the stage's `preload` (S3), so a cut or crossfade doesn't wait. Ignored until the stage has one |
 | `next` | Ends a Rehearse run and tells its listeners "Next: <heading>" |
-| `end`, `fault` | Ends play, and tells its listeners |
+| `fault` | Tells its listeners. The player sends `end` straight after |
+| `end` | Ends play, and tells its listeners once, however play ended. Its `fadeOut` is always empty: the player sends any fade first |
 
 **Rules.**
 
@@ -60,9 +67,8 @@ The driver owns only the wiring. The rough cut, Rehearse (WP7.4) and the export 
 - **Stage events** (clicks, keys, collisions, proximity, view) go to the runtime as `event`, at the worker's present.
 - **Listeners.** Callers subscribe to the driver's events rather than asking it: running blocks, scene started, finished, next, error, ended. Each subscription returns a function that stops it.
 - **Controls (6.4):**
-    - **Pause** stops the clock and sends `pause`; resume sends `resume` with the new time origin.
-    - **Speed** is ½×, 1× or 2×, and sends `speed`.
-    - **Restart** replays the same scene or production from the start, with the same seed.
+    - **Pause** and **speed** (½×, 1×, 2×) are the clock's: the driver isn't called while paused.
+    - **Restart** starts a new driver, and with it a new player, with the same seed and the same first scene. Each scene's seed is the run's seed plus its start number, so a player that has already run would give different seeds.
     - **Stop** works from outside at any moment: the studio stops a rehearsal when the code changes. It reloads the scene's set-up, so the stage is exactly as it started, rather than undoing anything.
 - **Fast-forward.** The driver plays in fixed steps without drawing, then carries on live. It goes:
     - **to a time,** for the rough cut's jumps within a scene;
@@ -103,7 +109,7 @@ The right column, as on screen 03.
     - **Your sketch:** the frame's layout, drawn as the Storyboard draws it.
     - **Film still:** the stage's picture (`Stage.picture`, 5.7) at the moment the frame stands for. That's when its linked blocks first ran in the measuring run, or else the end of its planned span.
 - **No still is ever sent anywhere.** It's drawn on the device and thrown away. The Prompter never sees it (owner, 31 Oct 2026).
-- **Retake notes:** each scene has a note, in the learner's own words, kept with the production. Where it's stored is S4's to decide in the format (spec 03). It's typed, or dictated (decision 0060).
+- **Retake notes:** each scene has a note, in the learner's own words, kept with the production on its storyboard card (`SceneCard.retakeNotes`, spec 03, S4's #231). It's typed, or dictated (decision 0060), and written through the production's session, so it has undo like everything else. Its length limit is spec 07's (section 6.9).
 - **The automatic check** (11.6) sits under Compare. It's WP11c. Until then its panel says "Coming soon".
 
 ## 4. Export for distribution (11.3)
@@ -123,7 +129,7 @@ The right column, as on screen 03.
     - S1's `exportMp4` encodes it.
 - **Waiting for the scene.** Each new scene waits for its stage to be ready before its first frame (spike 1.4, rule 5).
 - **Sound:** the learner's recorded lines and narration, mixed at their scene times. Speak line's voices come with WP14. AAC first, Opus if AAC can't be encoded (the export audio choice still open with S1 and the owner).
-- **A scene that waits on the viewer** can't be exported as it plays, because there's no viewer. The dialog says so first, in plain words, and the export plays such a scene until 5 seconds after its last stage command ends, then moves on. **This differs from spec 03 section 3.1 rule 11, which says it runs to the length cap. To agree with S4.**
+- **A scene that waits on the viewer** can't be exported as it plays, because there's no viewer. The dialog says so first, in plain words. The export gives the player `viewerWait` of 5 seconds (`PlayerOptions`, S4): such a scene ends as if it had finished 5 seconds after its last stage command, and goes on with its transition. A later command (a timer, a collision) moves that moment later. Agreed with S4, who changes spec 03 rule 11 to match. The rough cut and Rehearse leave it unset, so there a scene waits for the viewer.
 - **Length cap:** 10 minutes. A longer film stops at the cap with a plain message.
 - **Licences (3.12).** If the production uses a model whose licence is non-commercial or "not sure", **Export for distribution** is refused before it starts, with the reason and the models named. Watching the rough cut is never refused.
 - **Before exporting,** the whole-production check runs and lists its flags, and the learner can export anyway (11.6, with WP11c).
@@ -157,7 +163,7 @@ It's written as "OWL: Here is the key." in capitals, as a script writes names.
 
 The credits roll after the last scene, upwards at a steady pace, about 3 seconds a screenful, with lines in this order:
 
-1. **Story and code:** the names the learner chose, from the production (S4's format). Left out if there are none.
+1. **Story and code:** the names the learner chose, from the production's manifest (`manifest.credits.names`, spec 03, S4's #231). Left out if there are none. The title card's byline is written from them too.
 2. **Cast, Props, Set and Backdrops:** each model the production uses, its credit line from Backstage, grouped by S4's `creditsBySection`. A packed model (decision 0049) is marked "Imported". Shipped models from one source are grouped, as "Owl, Cat and Robot from the StoryStage Cast".
 3. **Sound:** each recording's label, if there are any.
 4. **Notices** a licence requires, such as Carnegie Mellon University's acknowledgement for models made from Alice's. Each model's record says which notice it needs.
