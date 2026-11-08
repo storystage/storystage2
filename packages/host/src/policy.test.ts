@@ -1,3 +1,4 @@
+import { PROMPTER_LEVELS as PROMPTERS_LEVELS } from '@storystage/prompter';
 import { describe, expect, it } from 'vitest';
 import fixture from '../../../apps/desktop/src-tauri/policy/fixtures/policy-in-force.json';
 import { browserHost } from './host.ts';
@@ -5,9 +6,15 @@ import {
   BROWSER_POLICY,
   isPolicyInForce,
   POLICY_COMMAND,
+  PROMPTER_LEVELS,
   readPolicy,
   unreadablePolicy,
 } from './policy.ts';
+
+// `@storystage/prompter` keeps its own copy, because it can't import this package.
+it('has the same four levels, in the same order, as the Prompter', () => {
+  expect(PROMPTER_LEVELS).toEqual(PROMPTERS_LEVELS);
+});
 
 describe('the policy in force', () => {
   // The other half of this test is in Rust: `the_shared_fixture_matches`.
@@ -24,6 +31,7 @@ describe('the policy in force', () => {
     ['a missing section', { ...fixture, study: undefined }],
     ['a set that is not a list', { ...fixture, set: 'prompter.enabled' }],
     ['a pin that is not text', { ...fixture, update: { ...fixture.update, pin: 1 } }],
+    ['no speech section', { ...fixture, speech: undefined }],
   ])('rejects %s', (_name, value) => {
     expect(isPolicyInForce(value)).toBe(false);
   });
@@ -32,6 +40,7 @@ describe('the policy in force', () => {
     expect(browserHost.policy).toBe(BROWSER_POLICY);
     expect(BROWSER_POLICY.prompter.level).toBe('off');
     expect(BROWSER_POLICY.prompter.voiceInput).toBe(false);
+    expect(BROWSER_POLICY.speech.dictation).toBe(false);
     expect(await browserHost.prompter.status()).toEqual({
       available: false,
       reason: 'prompter_off',
@@ -50,6 +59,7 @@ describe('the policy in force', () => {
       prompter: { level: 'off', voiceInput: false },
       backstage: { import: 'off', search: false },
       study: { enabled: false },
+      speech: { dictation: false },
       update: { channel: 'off', pin: null },
     });
   });

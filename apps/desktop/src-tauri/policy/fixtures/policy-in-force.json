@@ -12,6 +12,7 @@
   "storyboard": { "allowImportedWithoutStoryboard": false },
   "editor": { "default": "blocks", "locked": true },
   "study": { "enabled": false },
+  "speech": { "dictation": true },
   "backstage": { "import": "teacher", "search": false },
   "update": { "channel": "stable", "pin": null }
 }
