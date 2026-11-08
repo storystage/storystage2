@@ -31,25 +31,32 @@ Each session keeps its own section current. Newest entries first. One line each.
 ## S3 Stage and Story API procedures
 - Merged:
   - 1 Nov (#114, #115, #117, #118, #119): **WP5a, the stage core (5.1 to 5.5)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. The stage README says how to use it.
-- Open (a stack, each on the one before; critical path):
-  - 8 Nov (#132, `contract`): **the stage contract for WP4.3 and 4.4**, spec 02 section 9. **S6 to review first**; nothing above it can merge until it does. **S2:** one line of `serve.test.ts`, and see below.
-  - 8 Nov (#134): **the stage does all of it**: joints and markers as targets, moving toward, placing, orienting, sizes, paint blending, the sky, fog, lens and a fade to black; `collisionEnd`, and proximity and view events for what `Stage.watch` asks.
-  - 8 Nov (#136): **WP4.3, `STORY_LIBRARY`**, a block for every catalog entry the stage runs, and `fadeToBlack` (4.4). WP4's done-when is a test: every block on every class, against the stage.
-  - 8 Nov (#142): **WP4.10, shot types**: wide, medium, close-up, two-shot, over the shoulder and follow, framed by one table (the stage README's "Shots").
-  - 8 Nov (#145): **WP5.6**: WebGPU where the device has it, WebGL2 otherwise; a quality setting (low or standard); `stage.measure()` against the scene budget.
-  - 8 Nov (#148, `contract`): **WP5.7, `Stage.picture`**: the scene as it is at any moment, for the Screening room's compare. **S2 to review.** No picture goes to the Prompter.
-  - 8 Nov (#150): **WP5.8, navigation**: a scene's walkable area and the way round what's in it, with Recast and Detour (`recast-navigation`, MIT around Zlib). **S1:** an optional Zlib credit line for `notice-header.txt`, in the PR.
-  - 8 Nov (#154): **WP5.8, clips, reaching and looking**: the stage blends a model's clips itself, so a film poses the same way every time; then joint turns, two-joint reaching and looking within a limit. WP4c connects them to commands.
-  - **S2:** pass `STORY_LIBRARY` to `serve`; it fits your `StoryLibrary` type. Three things for you, in #136: map the library's `StoryFault` to `bad_value` (one line in `scheduler.ts`); choose a value for a joint, for `getJoint`, after which the library takes joints; and a message that sends your listeners' watches to `Stage.watch`, without which proximity and view events can't fire.
-  - **S4 (WP8.3):** going to another scene and crossfading to one are your playback's, not the stage's. The stage gives you `fade` on `SCENE` (the picture to black and back) for the fade transition. Tell S3 if a crossfade needs more from the stage than two stages drawing at once.
-  - **S1 (WP14.3):** `speakLine` waits for your speak line design. Tell S3 what the stage must do with visemes.
+  - 8 Nov (#132, #134, #136): **WP4b, the Story API on the stage (4.3, and 4.4's fade to black)**: the stage contract for WP4.3 (spec 02 section 9), the stage doing all of it, and `STORY_LIBRARY`, a block for every catalog entry the stage runs. WP4's done-when is a test: every block on every class, against the stage.
+- Open:
+  - 8 Nov (#142): **WP4.10, shot types, with WP5b and WP4c's start stacked into it**. It now holds:
+    - 4.10's shots;
+    - 5.6, WebGPU, quality and the scene budget (#145);
+    - 5.7, `Stage.picture` (#148);
+    - 5.8, navigation, clips, reaching and looking (#150, #154);
+    - WP4c's contract (#188): stage commands for the character actions and faces, and `naturalDuration`;
+    - 4.6's retargeting and KayKit's shared clips (#189).
+
+    **Owner:** one merge to `main` brings them all.
+  - **S2:** pass `STORY_LIBRARY` to `serve`; it fits your `StoryLibrary` type. Three things for you, from #136: map the library's `StoryFault` to `bad_value` (one line in `scheduler.ts`); choose a value for a joint, for `getJoint`, after which the library takes joints; and a message that sends your listeners' watches to `Stage.watch`, without which proximity and view events can't fire.
+  - **S4 (WP8.3):** agreed on 8 Nov, in spec 03 section 3.1 (#190): fade to black uses the stage's `fade`; a crossfade is the stage's job, with the next scene preloaded, and S3 adds it to the stage contract when WP8.3 needs it.
+  - **S1 (WP14.3):** `speakLine` waits for your speak line design. Tell S3 what the stage must do with visemes. Also, from #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
+  - **S6:** `Expression` has no neutral, so no block takes a face back to plain (#188). Would you add `neutral`?
 - Blocked on:
-  - S6: reviewing #132.
-  - S2: reviewing #148.
   - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
   - S4 and S1: 4.4's scene changes (WP8.3) and speak line (WP14.3), by the owner's decision of 8 Nov.
-- Next: WP4c, the commands that use the character machinery (4.5 and 4.6: walking and running round things, gestures, looking at).
+- Next: the rest of **WP4c** (4.5 and 4.6), by the owner's decisions of 8 Nov (KayKit's clips plus gestures written in code; the library in the stage package; a model's own faces):
+  - keeping postures on the ground;
+  - the actions on both stages: walking round things, postures, reaching and holding, and looking at;
+  - the gestures and the fall;
+  - expressions from VRM files;
+  - the 16 blocks;
+  - pictures of each action for the owner.
 
 ## S4 Backstage and Productions
 - In review:
