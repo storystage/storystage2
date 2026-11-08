@@ -4,7 +4,7 @@
  * Screening room, the export) asks, and the runtime and the stage do the playing.
  *
  * Agreed with S6 (the Story API's `goToScene`, `crossfade` and `fadeToBlack`) and S3 (the stage
- * draws fades and crossfades) on 8 Nov 2026; the runtime's part is S2's.
+ * draws fades and crossfades) on 8 Nov 2026, and with S2 (the runtime's `sceneChange` message).
  */
 import type { Program } from '@storystage/ast';
 import type { Micros } from '@storystage/story-api';
@@ -29,7 +29,7 @@ export const VIEWER_EVENTS = [
 export type SceneEnding =
   /** Its script method and its last stage command have finished, and nothing waits on the viewer. */
   | { readonly kind: 'finished' }
-  /** `goToScene(scene)`: no more of this scene's code runs. */
+  /** `goToScene(scene)`: no more of this scene's code runs. The runtime's `sceneChange` carries this, `crossfade` and `fadeToBlack`. */
   | { readonly kind: 'goToScene'; readonly scene: string }
   /** `crossfade(scene; duration)`. */
   | { readonly kind: 'crossfade'; readonly scene: string; readonly duration: Micros }

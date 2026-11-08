@@ -143,10 +143,11 @@ Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playba
 10. **A scene that isn't there:** a scene in code is text (spec 02, section 3a), so deleting a scene can leave a stale value. `checkProgram` flags it before play (`sceneExists`, S6). If play reaches it anyway, it stops with "There's no scene called …" (`noSuchScene`).
 11. **The export** has no viewer, so a scene that waits on the viewer runs to the length cap. The Screening room says so in plain words before exporting (`waitsForViewer`).
 
-**The runtime's part (S2, still to agree).**
-- The three blocks run in the runtime. Each stops the scene's code and sends the main thread a new message: `{ type: 'sceneEnded', at, ending }`, where `ending` is a `SceneEnding` (`playback.ts`).
-- The runtime also sends `sceneEnded` with `{ kind: 'finished' }` once the script method and its last command are done, unless the scene waits on the viewer.
-- The player then asks `nextScene`, and loads the next scene.
+**The runtime's part** (agreed with S2 on 8 Nov 2026; the messages are spec 18's, `packages/runtime/src/messages.ts`, `RUNTIME_PROTOCOL` 2):
+- `load` carries the production's scene ids (`scenes`), so an unknown scene, a scene that isn't text, or a negative duration is a `bad_value` fault at the block, with the block highlighted.
+- The three blocks run in the runtime, from the script method or any listener. Each flushes the commands so far, sends `{ type: 'sceneChange', at, ending }` at that scene time, and stops every strand at once. `ending` is the runtime's `RuntimeSceneEnding`, which is `SceneEnding` (`playback.ts`) without `finished`. No `finished` or `stopped` follows.
+- **The player** passes the ending to `nextScene`. It also derives `{ kind: 'finished' }` itself, from the runtime's `finished` message (the script method has ended): unless the scene waits on the viewer (`waitsForViewer`), it waits for the last stage command to end, sends `stop`, and asks `nextScene`.
+- The same worker takes a fresh `load` for the next scene, from scene time 0 with that scene's own seed. Going to the scene already playing restarts it.
 
 ## 4. Storyboard
 
