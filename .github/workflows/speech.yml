@@ -38,6 +38,14 @@ jobs:
           key: speech-whisper-${{ hashFiles('packages/speech/scripts/*.sh') }}
       - name: Build whisper.cpp
         run: bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" packages/speech/browser/harness/public
+      # Diagnosing a hang: each of spec 06's changes to the example, one at a time.
+      - name: Build whisper.cpp variants, for comparison
+        run: |
+          out=packages/speech/browser/harness/public/builds
+          WHISPER_INCOMING=0 bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" $out/spike
+          WHISPER_INCOMING=1 bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" $out/incoming
+          WHISPER_INCOMING=1 WHISPER_POOL=5 bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" $out/pool
+          WHISPER_INCOMING=1 WHISPER_POOL=5 WHISPER_INITIAL_MEMORY=64MB WHISPER_MAXIMUM_MEMORY=1024MB bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" $out/memory
       - name: Fetch and check the model, and the test clip
         run: bash packages/speech/scripts/fetch-test-assets.sh "$RUNNER_TEMP/whisper-work" packages/speech/browser/harness/public
       - name: Install Chromium for Playwright

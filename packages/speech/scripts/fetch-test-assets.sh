@@ -18,5 +18,5 @@ if [ ! -f "$file" ] || ! echo "$PIN  $file" | sha256sum -c --status; then
 fi
 echo "$PIN  $file" | sha256sum -c --status || { echo "SHA-256 mismatch for $MODEL"; exit 1; }
 cp "$file" "$OUT/model.bin"
-cp "$WORK/whisper-build/jfk.wav" "$OUT/jfk.wav"
+cp "$WORK/jfk.wav" "$OUT/jfk.wav"
 ls -l "$OUT"

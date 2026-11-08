@@ -24,7 +24,8 @@ const finish = (result: unknown) => {
   (window as unknown as { harnessResult: unknown }).harnessResult = result;
   out.textContent = JSON.stringify(result);
 };
-const script = new URL('/whisper.js', location.href).href;
+const build = params.get('build');
+const script = new URL(build ? `/builds/${build}/whisper.js` : '/whisper.js', location.href).href;
 
 async function assets() {
   stage(`isolated: ${String(crossOriginIsolated)}`);
