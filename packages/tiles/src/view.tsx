@@ -38,7 +38,8 @@ export type FocusKey = string;
 export const emptyKey = (parent: NodeId, slot: StatementSlot) => `${parent}/${slot}`;
 export const detailKey = (node: NodeId) => `${node}/detail`;
 
-export type Highlights = Readonly<Record<HighlightKind, ReadonlySet<NodeId>>>;
+/** For each kind, the highlighted nodes and, for an error, the words to show beside each. */
+export type Highlights = Readonly<Record<HighlightKind, ReadonlyMap<NodeId, string | undefined>>>;
 
 export type ValuePill = Part & { readonly kind: 'value' };
 
@@ -247,6 +248,8 @@ function layOut(
     if (focus === s.id || (focus !== null && layout.rows.get(focus) === s.id)) marks += `|${focus}`;
     if (moving === s.id) marks += '|lifted';
     marks += highlightClasses(s.id, highlights);
+    const words = highlights.error.get(s.id);
+    if (words) marks += `|error:${words}`;
     for (const inner of listsIn(s)) marks += list(inner.list, s.id, inner.slot);
     layout.marks.set(s.id, marks);
     return marks;
@@ -339,6 +342,21 @@ function badge(id: NodeId, drawing: Drawing): ReactNode {
     <>
       {' '}
       <span className="tl-ai-badge">{t('aiBadge')}</span>
+    </>
+  );
+}
+
+/**
+ * An error's words beside its statement (spec 14, 3g), in the stop colour. They're part of the
+ * row's name, so a screen reader hears what's wrong with the statement it's on.
+ */
+function errorWords(id: NodeId, drawing: Drawing): ReactNode {
+  const words = drawing.highlights.error.get(id);
+  if (!words) return null;
+  return (
+    <>
+      {' '}
+      <span className="tl-error-words">{words}</span>
     </>
   );
 }
@@ -444,6 +462,7 @@ const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: 
         <span className="tl-grip" aria-hidden="true" data-grip="" />
         {row(s, drawing, off)}
         {badge(s.id, drawing)}
+        {errorWords(s.id, drawing)}
       </li>
     );
   }
@@ -464,6 +483,7 @@ const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: 
         <span className="tl-grip" aria-hidden="true" data-grip="" />
         {row(s, drawing, off)}
         {badge(s.id, drawing)}
+        {errorWords(s.id, drawing)}
       </div>
       {s.kind === 'if' ? (
         <>

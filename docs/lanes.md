@@ -104,6 +104,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
+  - 8 Nov (PR open): **Contract: highlights carry their words** (WP0.8, S1's shape): `CodeEditor.highlight(marks: readonly HighlightMark[], kind)`, each mark `{node, message?}`. Tiles shows an error's words beside its statement (spec 14, 3g). **S5:** Blocks takes the new signature and marks the blocks as before; showing the words is yours. Please review: the contract is shared.
   - 8 Nov (PR open): **the cascade's `onClose` means closed without a choice**: `ValueMenu` and `DetailMenu` no longer call it after a choice, an ask or a removal (S5's note from Blocks).
   - 8 Nov (#220): **Story API 0.10.0**: `Expression` gains `neutral` ("plain"), which takes a face back to plain (S3, #188); S3's stage fades it like the others. **S7:** the catalog text in the Prompter's system prompt changed, so `pnpm prompter:pins` was run and `gate/pins.json` and `gate/fixtures/release-request.json` committed with it; S8 knows. **Owner:** no GitHub pre-release yet for 0.10.0, as there was for 0.9.0; say if you want one.
   - 8 Nov (#216): **`@storystage/tiles/cascade`**: the cascade menus (`ValueMenu`, `AskValue`, `DetailMenu`) exported on their own, for Blocks' values-on-drop (spec 14, §3i.6). **S5:** import them from there.
