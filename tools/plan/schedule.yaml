@@ -383,6 +383,7 @@ items:
     weeks: 3
     basis: first plan
     after: [WP8, WP11a, WP12b]
+    started: 2026-11-08
   - id: WP11c
     label: Automatic check against the storyboard (11.6)
     lane: Screening room
