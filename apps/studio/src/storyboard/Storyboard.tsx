@@ -1,4 +1,4 @@
-import type { FrameId, Production, SceneId } from '@storystage/production';
+import type { FrameId, LineId, Production, SceneId } from '@storystage/production';
 import { addSketch } from '@storystage/sketches';
 import { Button } from '@storystage/ui';
 import { useEffect, useState, type Dispatch } from 'react';
@@ -12,6 +12,7 @@ import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
 import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
+import { ScriptPane } from './ScriptPane.tsx';
 
 export interface StoryboardProps {
   history: History<Production>;
@@ -26,7 +27,7 @@ const isTextEntry = (target: EventTarget | null) =>
 /**
  * The Storyboard tab (`docs/spec/07-ux.md` section 6): the script header and arc (10.1, 10.2) and
  * the scene cards (10.3), the sketch library and the frames with their sketches (10.6), with the
- * Storyboard's undo history (6.8). The script pane follows.
+ * Storyboard's undo history (6.8), and the script pane (10.4).
  */
 export function Storyboard({ history, dispatch }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
@@ -48,6 +49,9 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
   // The chosen sketch, while its frame is current.
   const [chosenSketch, setChosenSketch] = useState<{ frame: FrameId; id: string } | null>(null);
   const sketch = chosenSketch && chosenSketch.frame === currentFrame ? chosenSketch.id : null;
+  // The chosen line, while it's in the current scene.
+  const [chosenLine, setChosenLine] = useState<LineId | null>(null);
+  const line = p.script.some((l) => l.id === chosenLine && l.scene === current) ? chosenLine : null;
   const commit = (label: string, next: Production, key?: string) =>
     dispatch({ type: 'commit', label, next, key });
 
@@ -141,6 +145,16 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
           />
         )}
       </div>
+      <ScriptPane
+        production={p}
+        scene={current}
+        frame={currentFrame}
+        chosen={line}
+        onChosenChange={setChosenLine}
+        onChange={commit}
+        onLeave={() => dispatch({ type: 'seal' })}
+        onAnnounce={setAnnouncement}
+      />
       <p className="ss-visually-hidden" aria-live="polite">
         {announcement}
       </p>

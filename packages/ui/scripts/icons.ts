@@ -15,6 +15,7 @@ export const ICON_NAMES = [
   '360',
   'add',
   'add_photo_alternate',
+  'arrow_drop_down',
   'category',
   'check_circle',
   'chevron_left',
