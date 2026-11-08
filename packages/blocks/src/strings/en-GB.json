@@ -1,18 +1,5 @@
 {
-  "block.doInOrder": "do in order",
-  "block.doTogether": "do together",
-  "block.count": "count up to {times}",
-  "block.while": "while {condition}",
-  "block.forEach": "for each {item} in {items}",
-  "block.eachTogether": "each {item} in {items} together",
-  "block.if": "if {condition}",
-  "block.else": "else",
-  "block.local": "variable {name} = {value}",
-  "block.constant": "constant {name} = {value}",
-  "block.assign": "set {target} to {value}",
-  "block.comment": "note",
-  "block.return": "give back {value}",
-  "block.returnNothing": "stop here",
+  "block.constant": "constant {name} starts as {value}",
   "block.none": "nothing",
   "block.this": "this",
   "block.true": "true",
@@ -39,5 +26,6 @@
   "block.op.or": "or",
   "editor.name": "Blocks",
   "editor.looseBlock": "Blocks go inside a method.",
-  "editor.workspace": "{method}: blocks"
+  "editor.workspace": "{method}: blocks",
+  "palette.control": "control"
 }

@@ -79,6 +79,10 @@ export function partsFrom(template: string, slot: (name: string) => Part): Part[
   return parts;
 }
 
+/** A control statement's words: the shared model's (`control.*`), or this package's. */
+const controlWord = (key: string): string =>
+  STORY[`control.${key.slice('block.'.length)}`] ?? word(key);
+
 const word = (key: string): string => {
   const text = WORDS[key];
   if (text === undefined) throw new Error(`No block words for "${key}"`);
@@ -193,8 +197,9 @@ export function statementShape(
   extra: { hasValue?: boolean; constant?: boolean } = {},
 ): Shape {
   const type = nodeType(kind);
+  // The control statements read as Tiles' do: the shared model's words (spec 14, section 2.5).
   const row = (key: string, slots: Record<string, Part>): Part[] =>
-    partsFrom(word(key), (name) => slots[name] ?? { kind: 'label', name });
+    partsFrom(controlWord(key), (name) => slots[name] ?? { kind: 'label', name });
   const value = (input: string, check: string[] | null = null): Part => ({
     kind: 'value',
     input,
@@ -231,7 +236,7 @@ export function statementShape(
         parts: [
           ...row('block.if', { condition: value('CONDITION', BOOLEAN) }),
           { kind: 'statements', input: 'THEN' },
-          { kind: 'words', text: word('block.else') },
+          { kind: 'words', text: controlWord('block.else') },
           { kind: 'statements', input: 'ELSE' },
         ],
       };
@@ -251,10 +256,7 @@ export function statementShape(
       return {
         type,
         role: 'statement',
-        parts: [
-          { kind: 'words', text: word('block.comment') },
-          { kind: 'text', field: 'TEXT' },
-        ],
+        parts: row('block.comment', { text: { kind: 'text', field: 'TEXT' } }),
       };
     case 'return':
       return {
