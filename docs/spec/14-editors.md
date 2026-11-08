@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3b, 3d (moving), 3f and 3g are built, read-only, in `packages/tiles`. Section 2 is shared, so S5 reviews it. Section 3i is S5's (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3b–3g are built in `packages/tiles`, except the palette and control bar of 3a, which come next. Section 2 is shared, so S5 reviews it. Section 3i is S5's (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -131,7 +131,7 @@ The joints in a cascade come from the caller (`jointsOf`), because which joints 
 3. **A ghost** of the tile at 60% opacity follows the pointer.
 4. **A place that refuses the tile never lights up** (section 2.2).
 5. **Dropping anywhere else** cancels, and the tile goes back.
-6. **Every target is at least 44 × 44 px,** for iPad and for young hands. Touch drags the same way, after a short press so that scrolling still works.
+6. **Every target is at least 44 × 44 px,** for iPad and for young hands. A touch drags from a tile's grip, so the rest of a row still scrolls the program.
 
 ### 3d. Keyboard
 
@@ -147,12 +147,13 @@ Every path works without a pointer (7.8):
 | Delete | Deletes the statement, with an undo label to bring it back |
 | Ctrl+D, Ctrl+C, Ctrl+V | Duplicate, copy, paste (the contract's commands) |
 | Ctrl+/ | Switches a statement off or on |
+| Alt+↑, Alt+↓ | Moves a statement one place up or down in its list |
 
 In the palette, Enter on a block inserts it after the statement in focus, or in the empty slot, then runs its cascade. Focus is always visible, with the handoff's ring on Tiles surfaces.
 
 ### 3e. Values
 
-Enter or a click on a pill opens its cascade (section 2.3), upward if there's no room below. Choosing a value is one undo step ("Change forward to backward in cat move"). "Other number…" and "Other words…" open a small text field, and the value is checked against the parameter's limit (spec 02, section 2, rule 4) before it's applied.
+Enter or a click on a pill opens its cascade (section 2.3), upward if there's no room below. The menu marks the value there now and opens on it, so the arrows start from where the learner is; a detail's menu also offers taking the detail out. Choosing a value is one undo step ("Change forward to backward in cat move"). "Other number…" and "Other words…" open a small text field, and the value is checked against the parameter's limit (spec 02, section 2, rule 4) before it's applied.
 
 ### 3f. Screen readers
 

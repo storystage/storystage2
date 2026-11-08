@@ -60,6 +60,9 @@ export const TEXT_PAIRS: readonly (readonly [TileColour, TileColour])[] = [
   ['comment-text', 'comment'],
   ['add-detail-text', 'add-detail'],
   ['ink', 'empty'],
+  ['program', 'rehearse'],
+  ['error', 'program'],
+  ['ink', 'panel'],
 ];
 
 /** Outlines and focus rings, each needing 3:1 against what's next to them (1.4.11). */
