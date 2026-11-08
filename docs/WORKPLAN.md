@@ -824,7 +824,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 16.5 **Mapping table:** for each statement, the StoryStage feature, the activity, the arc template and the age range. Highlight the statements with the most touch points. (C)
 - [ ] 16.6 Curriculum arc templates and 6–10 classroom use cases with lesson outlines. (C drafts; U reviews with teachers)
 - [ ] 16.7 **The teacher's job:** five interviews (computing, English, drama or media teachers, and a club leader) on what a teacher would hire StoryStage to do, in their words and circumstances; written into the doc's purpose section before the mock-ups (12.1) are approved. (U interviews; C prepares questions and writes up)
-- [ ] 16.8 **The pathway's first rung:** map the text view to KS3 text programming and GCSE computer science (commonly Python), so the pathway guide (20.4) starts there, before Unreal and Unity. (C)
+- [x] 16.8 **The pathway's first rung:** map the text view to KS3 text programming and GCSE computer science (commonly Python), so the pathway guide (20.4) starts there, before Unreal and Unity. (C)
 
 **Done when:** the mapping is published as a doc, cited to the official curriculum documents, and the owner has chosen the curriculum templates to ship.
 
