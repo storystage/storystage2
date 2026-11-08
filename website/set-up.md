@@ -71,7 +71,7 @@ Teachers set each class up in **Settings › Class set-up**:
 | **Backstage imports** | Off, Teacher only, Learners | Who may bring their own 3D models in |
 | **Study logs** | Export | A record of Prompter use and checks for the pilot study, with no pupil names |
 
-**[Open: where each pupil's work lives between lessons on shared devices (WP24.2). The class's pupil folders follow that decision.]**
+**Pupils and folders:** add the class once (first names, or a word and a picture). At the start of a lesson each pupil chooses their name and their work opens; autosave keeps it there. To move work between devices, or keep a copy, **Collect** the class's work into the school's own storage (a drive, OneDrive or Google Drive) and **Hand back** next lesson. StoryStage doesn't sign in to anything.
 
 ### The school lock
 

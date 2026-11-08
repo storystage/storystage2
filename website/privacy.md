@@ -19,7 +19,7 @@ StoryStage is made for children aged 6 to 13, so it is built to collect as littl
 
 ## What stays on the device
 
-- **Productions** (storyboards, scripts, code, and any models a teacher imported) are saved as `.storystage` files on the device or where you choose. **[Open: where pupils' work is kept between lessons on shared school devices (WP24.2).]**
+- **Productions** (storyboards, scripts, code, and any models a teacher imported) are saved on the device: at school, in each pupil's own folder in the app; at home, as `.storystage` files where you choose. A teacher can collect a class's work into the school's own storage and hand it back. The class list (first names, or a word and a picture) stays on the device and never goes into a film or a file.
 - **Voice input** is turned into text on the device. The audio is thrown away straight after, and never leaves the device.
 - **Study logs,** used only in the pilot study, stay on the device until a teacher exports them. They record Prompter use and checks under a made-up code, not pupils' names.
 
