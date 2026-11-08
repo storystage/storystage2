@@ -290,7 +290,7 @@ export const ENTRIES: readonly ApiEntry[] = [
   proc('Scene', 'fadeToBlack', [], {
     task: '4.4',
     details: ['duration'],
-    runs: 'needs:sceneChange',
+    runs: 'command:fade',
     unreal: 'Fade track in Sequencer',
   }),
   proc('Scene', 'crossfade', [param('scene', 'SceneId')], {
@@ -484,7 +484,7 @@ export const ENTRIES: readonly ApiEntry[] = [
 export const STAGE_NEEDS: Readonly<Record<string, string>> = {
   audio: 'Play a sound at a scene time, for the export to mix (with WP11)',
   ask: 'Ask the learner for a value while a program runs (the runtime, not the stage)',
-  sceneChange: 'Fades and scene changes (WP8)',
+  sceneChange: 'Going to another scene, and crossfading to one: the production’s playback (WP8.3)',
   speech: 'Speak a line with visemes (WP14)',
   character: 'Navigation, posture and hand contact (WP5b)',
   animation: 'Clips, gestures, expressions and head turning (WP5b)',

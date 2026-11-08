@@ -37,6 +37,7 @@ import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
 import { Timeline, standInShape, type Touching } from '../timeline.ts';
 import { buildBackdrop, type ShowSky } from './backdrop.ts';
+import { buildFade } from './fade.ts';
 import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
 import { buildStandIn } from './stand-in.ts';
 import { setRotation, type ObjectView } from './view.ts';
@@ -81,6 +82,7 @@ export class BabylonStage implements Stage {
   private views = new Map<ObjectId, ObjectView>();
   private owners = new Map<AbstractMesh, ObjectId>();
   private showSky: ShowSky | null = null;
+  private showFade: ((amount: number) => void) | null = null;
   private watches: readonly Watch[] = [];
   /** What was true at the last check, so that events fire on a change. */
   private touchingPairs = new Map<string, readonly [ObjectId, ObjectId]>();
@@ -112,6 +114,7 @@ export class BabylonStage implements Stage {
       this.library = library;
       this.camera = camera;
       this.showSky = showSky;
+      this.showFade = buildFade(scene, camera);
       this.watches = [];
       this.views = new Map([...objects].map(([id, { view }]) => [id, view]));
       this.owners = new Map(
@@ -348,6 +351,7 @@ export class BabylonStage implements Stage {
     const state = this.timeline.current();
     for (const [id, view] of this.views) view.show(state.get(id)!, this.timeline.transform(id));
     this.showSky?.(this.timeline.sky());
+    this.showFade?.(this.timeline.fade());
     if (this.camera) {
       const { position, rotation } = this.timeline.transform(CAMERA);
       this.camera.position.set(position.x, position.y, position.z);

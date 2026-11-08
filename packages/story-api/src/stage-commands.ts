@@ -166,7 +166,13 @@ export type StageCommand =
   /** The colour of the light from above or from below; `object` is `SCENE`. */
   | (Timed & { readonly kind: 'light'; readonly from: 'above' | 'below'; readonly colour: string })
   /** Fog, 0 (none) to 1 (thick), as in `SceneSetup`; `object` is `SCENE`. */
-  | (Timed & { readonly kind: 'fog'; readonly density: number });
+  | (Timed & { readonly kind: 'fog'; readonly density: number })
+  /**
+   * Fades the whole picture towards black: 0 is clear and 1 is black; `object` is `SCENE`.
+   * Loading a scene clears it. Going to another scene, and crossfading to one, are the
+   * production's (WP8.3), not the stage's.
+   */
+  | (Timed & { readonly kind: 'fade'; readonly to: number });
 
 export type StageCommandKind = StageCommand['kind'];
 

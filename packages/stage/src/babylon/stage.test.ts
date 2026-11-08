@@ -117,6 +117,21 @@ describe('BabylonStage', () => {
     expect(stage.answer({ kind: 'isColliding', a: cat, b: CAMERA, at: 0 }).value).toBe(false);
   });
 
+  it('hangs a black screen in front of the camera as the picture fades', async () => {
+    const stage = new BabylonStage(headlessEngine());
+    await stage.load(SETUP);
+    const scene = (stage as unknown as { scene: Scene }).scene;
+    const veil = scene.getMeshByName('fade')!;
+    expect(veil.isEnabled()).toBe(false);
+    stage.schedule([cmd(0, 2, { object: SCENE, kind: 'fade', to: 1 })]);
+    stage.seek(micros(1));
+    expect(veil.isEnabled()).toBe(true);
+    expect(veil.material!.alpha).toBeCloseTo(0.5, 6);
+    expect(veil.parent).toBe(scene.activeCamera);
+    stage.seek(0);
+    expect(veil.isEnabled()).toBe(false);
+  });
+
   it('shows a program’s sky, light, fog and lens as they change', async () => {
     const stage = new BabylonStage(headlessEngine());
     await stage.load(SETUP);

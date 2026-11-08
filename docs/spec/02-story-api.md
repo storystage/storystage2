@@ -289,7 +289,7 @@ Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters ma
 | Class | Block | Parameters | Details | Task | On screen | Runs |
 | --- | --- | --- | --- | --- | --- | --- |
 | `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `needs:sceneChange` |
-| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `needs:sceneChange` |
+| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `command:fade` |
 | `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `needs:sceneChange` |
 | `Camera` | `frameShot` | `shot: ShotType`, `targets: Thing[]` | `duration`, `animationStyle` | 4.10 | frame a {shot} of {targets} | `command:shot` |
 | `Model` | `speakLine` | `text: Text` | — | 4.4 | speak line {text} | `needs:speech` |
@@ -342,7 +342,7 @@ The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Oc
 
 ## 9. What the stage contract needs
 
-Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. What's left waits for its own work package.
+Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
 
 1. **Not the stage's sums.** `isVolumePreserved` is the Story API's: it sends `resize` the factors that keep the volume. The `ask` functions belong to the runtime.
 2. **Click positions** are fractions of the picture, from its left and bottom edges, as Alice's `getScreenDistanceFromLeft` and `getScreenDistanceFromBottom` are. Viewing angles are in turns, as Alice's are.
@@ -353,7 +353,7 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 | --- | --- | --- |
 | `audio` | Play a sound at a scene time, for the export to mix (with WP11) | `playAudio` |
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
-| `sceneChange` | Fades and scene changes (WP8) | `goToScene`, `fadeToBlack`, `crossfade` |
+| `sceneChange` | Going to another scene, and crossfading to one: the production’s playback (WP8.3) | `goToScene`, `crossfade` |
 | `speech` | Speak a line with visemes (WP14) | `speakLine` |
 | `character` | Navigation, posture and hand contact (WP5b) | `walkTo`, `runTo`, `sitOn`, `standUp`, `lieDown`, `fall`, `touch`, `reachFor`, `pickUp`, `putDown`, `enterFrom`, `exitTo` |
 | `animation` | Clips, gestures, expressions and head turning (WP5b) | `playAnimation`, `gesture`, `showExpression`, `lookAt` |
