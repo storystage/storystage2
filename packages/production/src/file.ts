@@ -133,6 +133,24 @@ const NOT_A_FILM = "This isn't a StoryStage film.";
 const NEWER =
   'This film was made with a newer StoryStage. You can watch it and read its code, but not change it. Update StoryStage to change it.';
 
+/**
+ * One step up the format's versions: from the version it's keyed by, `to` the next. `manifest`
+ * changes the manifest as read, before its shape is checked; `formatVersion` is set to `to` after.
+ * Each version that adds only optional fields has a step that changes nothing else.
+ */
+export interface FormatMigration {
+  readonly to: string;
+  readonly manifest: (m: Partial<ProductionManifest>) => Partial<ProductionManifest>;
+}
+
+export type FormatMigrations = Readonly<Record<string, FormatMigration>>;
+
+/** The format's migrations (spec 03, section 1.2; `packages/production/CHANGELOG.md`). */
+export const FORMAT_MIGRATIONS: FormatMigrations = {
+  // 1.1.0 adds two optional fields (credit names, retake notes): nothing else changes.
+  '1.0.0': { to: '1.1.0', manifest: (m) => m },
+};
+
 export type OpenedProduction =
   | {
       /** `ok`: this version. `migrated`: older, brought up to date; keep `original` beside it. */
@@ -192,6 +210,8 @@ export function openProduction(
     readonly formatVersion?: string;
     /** For the program (`openProgram`): tests pass their own versions and migrations. */
     readonly program?: OpenOptions;
+    /** The format's migrations. Tests pass their own. */
+    readonly migrations?: FormatMigrations;
   } = {},
 ): OpenedProduction {
   const current = options.formatVersion ?? FORMAT_VERSION;
@@ -215,15 +235,24 @@ export function openProduction(
     return broken(NOT_A_FILM, ['manifest.json is not a StoryStage manifest.']);
   if (typeof m.formatVersion !== 'string' || !/^\d+\.\d+\.\d+$/.test(m.formatVersion))
     return broken(DAMAGED, ['manifest.json has no format version.']);
-  const order = compareVersions(m.formatVersion, current);
-  // Format 1.0.0 is the first: nothing older exists to migrate from.
-  if (order < 0)
-    return broken(TOO_OLD, [`Nothing migrates format ${m.formatVersion} to ${current}.`]);
+  let order = compareVersions(m.formatVersion, current);
+  // An older file is brought up to date one step at a time (spec 03, section 1.2).
+  let upgraded: Partial<ProductionManifest> = m;
+  let formatMigrated = false;
+  const migrations = options.migrations ?? FORMAT_MIGRATIONS;
+  while (order < 0) {
+    const from = upgraded.formatVersion!;
+    const step = migrations[from];
+    if (!step) return broken(TOO_OLD, [`Nothing migrates format ${from} to ${current}.`]);
+    upgraded = { ...step.manifest(upgraded), formatVersion: step.to };
+    formatMigrated = true;
+    order = compareVersions(step.to, current);
+  }
   const newer = order > 0;
   const shape = { allowExtra: newer };
 
-  const problems: string[] = [...checkManifestShape(m, shape)];
-  const manifest = m as ProductionManifest;
+  const problems: string[] = [...checkManifestShape(upgraded, shape)];
+  const manifest = upgraded as ProductionManifest;
 
   const scenes: Scene[] = [];
   const frames: Frame[] = [];
@@ -310,7 +339,12 @@ export function openProduction(
     models.set(path, got);
   }
 
-  const status = newer || programStatus === 'readOnly' ? 'readOnly' : programStatus;
+  const status =
+    newer || programStatus === 'readOnly'
+      ? 'readOnly'
+      : formatMigrated || programStatus === 'migrated'
+        ? 'migrated'
+        : 'ok';
   return {
     status,
     production,

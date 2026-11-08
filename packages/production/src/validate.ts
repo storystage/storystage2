@@ -138,7 +138,9 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
     'audio',
     'models',
   ];
-  if (!s.object(v, '', keys)) return s.problems;
+  if (!s.object(v, '', keys, ['credits'])) return s.problems;
+  if (v.credits !== undefined && s.object(v.credits, 'credits', ['names']))
+    s.array(v.credits.names, 'credits.names', (n, p) => s.string(n, p));
   if (v.format !== 'storystage') s.fail('format', 'should be storystage');
   s.string(v.formatVersion, 'formatVersion');
   if (s.object(v.createdWith, 'createdWith', ['app', 'version'])) {
@@ -220,7 +222,8 @@ export function checkStoryboardShape(v: unknown, options: ShapeOptions = {}): st
     s.array(v.arc.parts, 'arc.parts', (part, p) => s.string(part, p));
   }
   s.array(v.cards, 'cards', (c, p) => {
-    if (!s.object(c, p, ['id', 'heading', 'cast', 'arcPart'])) return;
+    if (!s.object(c, p, ['id', 'heading', 'cast', 'arcPart'], ['retakeNotes'])) return;
+    if (c.retakeNotes !== undefined) s.string(c.retakeNotes, join(p, 'retakeNotes'));
     s.string(c.id, join(p, 'id'));
     s.string(c.heading, join(p, 'heading'));
     s.array(c.cast, join(p, 'cast'), (m, q) => modelRef(s, m, q));

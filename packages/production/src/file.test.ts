@@ -180,7 +180,7 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
   it("opens a newer file read-only, allowing fields it doesn't know", () => {
     const newer = changed('manifest.json', (m) => ({
       ...m,
-      formatVersion: '1.1.0',
+      formatVersion: '1.2.0',
       laterField: true,
     }));
     const opened = openProduction(newer);
@@ -220,6 +220,73 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
       status: 'broken',
       message: expect.stringMatching(/very old StoryStage/),
     });
+  });
+
+  it('migrates a 1.0.0 file to 1.1.0, and hands back the original to keep', () => {
+    const old = changed('manifest.json', (m) => ({ ...m, formatVersion: '1.0.0' }));
+    const opened = openProduction(old);
+    expect(opened.status).toBe('migrated');
+    if (opened.status === 'broken') return;
+    expect(opened.original).toBe(old);
+    expect(opened.production.manifest.formatVersion).toBe('1.1.0');
+    expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
+  });
+
+  it('checks a migrated file against the version it was migrated to', () => {
+    // 1.1.0's fields, in a file that says 1.0.0: harmless, and allowed once it's 1.1.0.
+    const old = changed('manifest.json', (m) => ({
+      ...m,
+      formatVersion: '1.0.0',
+      credits: { names: ['Sam'] },
+    }));
+    expect(openProduction(old).status).toBe('migrated');
+  });
+
+  it('migrates step by step, and refuses a version with no step', () => {
+    const migrations = {
+      '1.1.0': { to: '1.2.0', manifest: (m: object) => m },
+      '1.2.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
+    };
+    const opened = openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations });
+    expect(opened.status).toBe('migrated');
+    if (opened.status === 'broken') return;
+    expect(opened.production.manifest).toMatchObject({ formatVersion: '2.0.0', title: 'Moved on' });
+    const gap = { '1.1.0': { to: '1.5.0', manifest: (m: object) => m } };
+    expect(
+      openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: gap }),
+    ).toMatchObject({ status: 'broken', problems: ['Nothing migrates format 1.5.0 to 2.0.0.'] });
+  });
+
+  it('carries credit names and retake notes (format 1.1.0), and refuses them misshapen', () => {
+    const withExtras: Production = {
+      ...p,
+      manifest: { ...p.manifest, credits: { names: ['Sam', 'Priya K.'] } },
+      storyboard: {
+        ...p.storyboard,
+        cards: p.storyboard.cards.map((c, i) =>
+          i === 0 ? { ...c, retakeNotes: 'Pip faces the ice.' } : c,
+        ),
+      },
+    };
+    const opened = openProduction(saveProduction(withExtras));
+    if (opened.status === 'broken') throw new Error(opened.problems.join(' / '));
+    expect(opened.status).toBe('ok');
+    expect(opened.production).toEqual(withExtras);
+    brokenWith(
+      changed('manifest.json', (m) => ({ ...m, credits: { names: 'Sam' } })),
+      /credits.names: should be a list/,
+    );
+    brokenWith(
+      changed('manifest.json', (m) => ({ ...m, credits: { names: [], roles: [] } })),
+      /unknown field roles/,
+    );
+    brokenWith(
+      changed('storyboard.json', (b) => ({
+        ...b,
+        cards: (b.cards as object[]).map((c) => ({ ...c, retakeNotes: 3 })),
+      })),
+      /retakeNotes: should be text/,
+    );
   });
 
   it("ignores entries the format doesn't name, and never writes them back", () => {

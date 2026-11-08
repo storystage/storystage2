@@ -19,7 +19,7 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 
 | Path | What it is | Type |
 |---|---|---|
-| `manifest.json` | Title, format version, running order, audio list. The first entry in the zip | `ProductionManifest` |
+| `manifest.json` | Title, format version, running order, audio list, credit names. The first entry in the zip | `ProductionManifest` |
 | `program.json` | All the code: one `Program` (`01-ast.md`) | `Program` |
 | `scenes/<id>.json` | How one scene starts, and its script method | `Scene` |
 | `storyboard.json` | Logline, synopsis, arc, scene cards | `Storyboard` |
@@ -55,11 +55,11 @@ It returns `ok`, `migrated` (with the `original` bytes to keep), `readOnly` (wit
 - Microphone audio, other than lines the learner chose to record.
 - Usage figures, logs and policy settings, which belong to the device or the class.
 
-A production gets shared between pupils and schools, so anything in it should be treated as public. The learner's own words (the script, captions and names they typed) are the only personal content it should hold.
+A production gets shared between pupils and schools, so anything in it should be treated as public. The learner's own words (the script, captions and names they typed) are the only personal content it should hold. That includes `manifest.credits.names` (format 1.1.0): the names learners chose to put in the end credits (WP11.4), in their own words, which may be first names, initials or nothing. Nothing fills them in from the class list.
 
 ### 1.2 Versions
 
-`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.0.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
+`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.1.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
 - **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
@@ -68,6 +68,8 @@ A production gets shared between pupils and schools, so anything in it should be
 - **A changelog,** in `packages/production/CHANGELOG.md`.
 
 A reader takes the older-is-migrated, newer-is-read-only decision on `formatVersion` first, then opens the program with `openProgram`. If either is newer, the whole production is read-only.
+
+**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0 is one.
 
 ### 1.3 Models
 
@@ -203,7 +205,7 @@ Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playba
 
 ## 4. Storyboard
 
-`storyboard.json` holds the logline and synopsis (required before scenes can be added, WP10.1), the arc (a template and its part names, WP10.2) and one card per scene, with the same id as the scene. `SceneCard.heading` is what 10.8 means by the scene's heading.
+`storyboard.json` holds the logline and synopsis (required before scenes can be added, WP10.1), the arc (a template and its part names, WP10.2) and one card per scene, with the same id as the scene. `SceneCard.heading` is what 10.8 means by the scene's heading. `SceneCard.retakeNotes` (format 1.1.0, optional) is the learner's notes for retakes of that scene, written in the Screening room (WP11.2).
 
 The Prompter never writes the logline, synopsis or script (`CLAUDE.md` rule 4). The format doesn't record who wrote what; that rule is kept by the tools the Prompter is given (WP13).
 
