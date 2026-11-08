@@ -219,3 +219,22 @@ export function inMemoryPorts(): {
   });
   return { main: port(toWorker, toMain), worker: port(toMain, toWorker) };
 }
+
+/** Either end of a real worker: the `Worker` on the page, or `self` inside it. */
+export interface MessageEnd {
+  postMessage(message: unknown): void;
+  addEventListener(type: 'message', listener: (event: MessageEvent) => void): void;
+  removeEventListener(type: 'message', listener: (event: MessageEvent) => void): void;
+}
+
+/** A port on a real worker's end: the page's `new Worker(…)`, or the worker's own `self`. */
+export function messagePort<Out, In>(end: MessageEnd): Port<Out, In> {
+  return {
+    post: (message) => end.postMessage(message),
+    listen: (listener) => {
+      const onMessage = (event: MessageEvent) => listener(event.data as In);
+      end.addEventListener('message', onMessage);
+      return () => end.removeEventListener('message', onMessage);
+    },
+  };
+}
