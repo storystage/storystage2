@@ -226,9 +226,16 @@ export function describeClassFoldersContract(
 
     it('keeps the device’s folder apart from every pupil’s', async () => {
       const folders = await make();
-      const ava = await folders.addPupil('Ava');
       await (await folders.openDevice()).write(null, 'At home', bytes('x'));
+      const ava = await folders.addPupil('Ava');
       expect(await (await folders.open(ava.id)).list()).toEqual([]);
+    });
+
+    it('won’t open the device’s folder once there’s a class list', async () => {
+      const folders = await make();
+      await folders.addPupil('Ava');
+      await failsWith('invalid', () => folders.openDevice());
+      expect(folders.current()).toBeNull();
     });
 
     it('closes a pupil’s folder when the pupil is removed', async () => {

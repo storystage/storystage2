@@ -399,6 +399,9 @@ export function storedClassFolders(
     },
 
     async openDevice() {
+      // Only on a device with no class list, so a pupil can't keep work where Collect never
+      // reaches it, or use the Prompter outside their own count (S4's review of #248).
+      if ((await readClass()).length > 0) throw new FileError('invalid');
       await queue(() => sweep(DEVICE_PUPIL.id)).catch(() => undefined);
       current = folderFor(DEVICE_PUPIL);
       return current;

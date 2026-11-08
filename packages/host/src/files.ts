@@ -210,7 +210,8 @@ export interface ClassFolders {
    * section 9.1). It's outside the class list: `pupils()` never lists it, `folder(id)` can't
    * reach it, so Collect leaves it out, and the Prompter counts against the device. It becomes
    * the current folder, as `open` does. Its pupil is `DEVICE_PUPIL`. A film removed there goes to
-   * the bin as `pupil: 'device'`, so it can be restored.
+   * the bin as `pupil: 'device'`, so it can be restored. While the class list has pupils it's
+   * `invalid`: a pupil on a class device can't step outside Collect or their own Prompter count.
    */
   openDevice(): Promise<PupilFolder>;
   /** The folder in use, if a pupil has chosen their name. */
