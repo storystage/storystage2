@@ -32,7 +32,7 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 
 **File names from ids.** A scene or frame id, or a model's folder, becomes part of a path, so it must match `SAFE_ID` (lowercase letters, digits and hyphens, 1 to 32 characters, starting with a letter or digit). An audio file is a plain name in `audio/`. `checkReferences` refuses anything else.
 
-**Reading a file** follows `15-security.md` section 3: one archive reader, in this package, with its limits on sizes and names, and the whole file checked before anything loads (WP8.4).
+**Reading a file** follows `15-security.md` section 3: one archive reader, in this package (`archive.ts`: `readArchive`, `writeArchive`, `readJson`), with its limits on sizes and names, and the whole file checked before anything loads (WP8.4). The reader parses the zip itself, so it refuses links and devices, encrypted, split and ZIP64 archives, and unknown packing methods; it unpacks only the entries the format names, counting bytes as they come; and it refuses the whole file on any problem, in plain words that never quote the file. `.a3p` files and model packs use the same reader. The writer gives the same bytes for the same entries: deflated at level 6 (or stored, when that is smaller), names in UTF-8, every entry dated 1 January 1980.
 
 ### 1.1 What is never stored
 
@@ -152,6 +152,7 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 |---|---|---|
 | The example production is complete and valid, including its program | `types.test.ts` | Unit |
 | Each rule `checkReferences` enforces (sections 1, 1.3, 2, 3, 6, 7) | `types.test.ts`, one broken production per rule | Unit |
+| The archive reader refuses each case in `15-security.md` sections 3.1 and 3.2, counts bytes while unpacking whatever the zip declares, reads zips from other tools, and the writer gives the same bytes every time (section 1) | `archive.test.ts` | Unit |
 | Saving packs exactly the imported models in use, and a packed model is checked as an import (section 1.3) | With WP8.4 | Unit |
 | A scene's script method can't be removed; other methods can | `types.test.ts`, through `EditSession` | Unit |
 | Fountain reads and writes as section 5 says | With WP10.4 | Unit |

@@ -1,0 +1,22 @@
+{
+  "value": {
+    "system": [
+      {
+        "type": "text",
+        "text": "Line one.\nA \"quoted\" word, a back\\slash & <tag>."
+      }
+    ],
+    "tools": [
+      {
+        "name": "explain",
+        "strict": true,
+        "order": 2,
+        "nothing": null,
+        "list": []
+      }
+    ],
+    "words": "café 🦉 naïve",
+    "tab": "a\tb"
+  },
+  "sha256": "eaa50813cfe0271fd8e0474a7fbb89e8a6d9c2916ad3c4ec96979a3cff1cd5d6"
+}

@@ -91,3 +91,877 @@
 .sb-arc-parts {
   color: var(--ss-muted);
 }
+
+/* Scene strip (Direction A screen 01): cards in running order, then Add a scene. */
+.sb-scene-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+}
+.sb-scene-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  outline: none;
+}
+.sb-scene-card {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 180px;
+  padding: 6px 10px 8px 4px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: pointer;
+  outline: none;
+}
+.sb-scene-card[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sb-scene-card[data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 2px var(--ss-amber-line),
+    0 0 0 2px var(--ss-stage-0),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-scene-card[data-dragging] {
+  opacity: 0.6;
+}
+.sb-scene-card[data-drop-target] {
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sb-scene-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 44px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ss-muted);
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-scene-handle[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.sb-scene-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.sb-scene-top {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.sb-scene-title {
+  font-weight: 700;
+}
+.sb-scene-length,
+.sb-scene-part {
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.sb-scene-frames {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sb-scene-frame {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  font-weight: 700;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+}
+.sb-scene-add {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  max-width: 240px;
+}
+.sb-scene-add-why {
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+
+/* The chosen scene in full. */
+.sb-details {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px 12px 16px;
+  border-radius: 14px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.sb-details-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 19px;
+  font-weight: 700;
+}
+.sb-details-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+.sb-details-label {
+  width: 120px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.sb-details-cast,
+.sb-details-hint {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.sb-details-hint {
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-dialog-text {
+  margin: 0;
+}
+.sb-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* The current scene's frames, and the current frame (07-ux 6.4, 6.5). */
+.sb-frames {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sb-frame-row,
+.sb-frame-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.sb-frame-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  outline: none;
+}
+.sb-frame-square {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 10px 0 2px;
+  border-radius: 8px;
+  font-weight: 700;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+  cursor: pointer;
+  outline: none;
+}
+.sb-frame-square[data-selected] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+}
+.sb-frame-square[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-stage-0),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-frame-square[data-dragging] {
+  opacity: 0.6;
+}
+.sb-frame-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  min-height: 44px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-frame-handle[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+
+/* Length: a stepper of whole seconds. */
+.sb-length {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.sb-length-label {
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-length-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sb-length-input {
+  width: 3ch;
+  min-height: 44px;
+  border: 0;
+  font: inherit;
+  font-weight: 700;
+  text-align: right;
+  color: var(--ss-text);
+  background: transparent;
+  outline: none;
+}
+.sb-length-input[data-focus-visible],
+.sb-length-input:focus-visible {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.sb-length-unit {
+  font-weight: 700;
+}
+
+/* The frame: white, 16:9, with the spotlight glow (Direction A). */
+.sb-canvas {
+  align-self: center;
+  width: min(100%, 720px);
+  margin: 0;
+  border-radius: 6px;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+  box-shadow: 0 30px 70px -30px var(--ss-amber);
+}
+.sb-canvas-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 0;
+  font-weight: 700;
+}
+.sb-canvas-shot {
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 14px;
+  text-transform: uppercase;
+  box-shadow: inset 0 0 0 1.5px var(--ss-sketch-ink);
+}
+.sb-canvas-paper {
+  position: relative;
+  aspect-ratio: 16 / 9;
+}
+
+/* The sketch library: a column left of the main area (07-ux section 6.1). */
+.sb-library {
+  --ss-surface: var(--ss-panel-1);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  width: 232px;
+  padding: 14px 12px;
+  overflow-y: auto;
+  background: var(--ss-panel-1);
+  box-shadow: inset -1px 0 0 var(--ss-line-1);
+}
+.sb-library-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 19px;
+}
+.sb-library-heading {
+  margin: 4px 0 6px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.sb-library-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.sb-library-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  outline: none;
+}
+.sb-library-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 6px;
+  border-radius: 8px;
+  font-size: 14px;
+  text-align: center;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: grab;
+  outline: none;
+}
+.sb-library-item[data-hovered] {
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+}
+.sb-library-item[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-panel-1),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-library-item[data-disabled] {
+  color: var(--ss-unavailable-text);
+  background: var(--ss-unavailable-bg);
+  cursor: default;
+}
+.sb-library-item[data-dragging] {
+  opacity: 0.6;
+}
+.sb-library-item .sb-art {
+  width: 100%;
+  height: 56px;
+  border-radius: 4px;
+  color: var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+}
+.sb-library-item[data-disabled] .sb-art {
+  opacity: 0.5;
+}
+
+/* A sketch's drawing: black lines on white, filling its box. */
+.sb-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.sb-art svg {
+  width: 100%;
+  height: 100%;
+}
+.sb-art-outline {
+  padding: 4px;
+  border: 2px dashed var(--ss-sketch-ink);
+  border-radius: 6px;
+  font-weight: 700;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+/* The frame canvas: a drop target holding the sketches. */
+.sb-canvas-drop {
+  outline: none;
+}
+.sb-canvas-drop[data-drop-target] .sb-canvas-paper,
+.sb-canvas-drop[data-focus-visible] .sb-canvas-paper {
+  box-shadow:
+    inset 0 0 0 2px var(--ss-sketch-ink),
+    inset 0 0 0 6px var(--ss-amber);
+}
+.sb-canvas-paper {
+  overflow: hidden;
+}
+.sb-canvas-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 24px;
+  text-align: center;
+}
+.sb-canvas-list {
+  position: absolute;
+  inset: 0;
+}
+.sb-sketch {
+  position: absolute;
+  translate: -50% -50%;
+  touch-action: none;
+  cursor: grab;
+  outline: none;
+}
+.sb-sketch-art,
+.sb-sketch-art .sb-art {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.sb-sketch-art[data-flipped] {
+  transform: scaleX(-1);
+}
+/* The chosen sketch: an amber box with corner handles, edged in ink so it shows on white. */
+.sb-sketch[data-chosen] {
+  box-shadow:
+    0 0 0 1px var(--ss-sketch-ink),
+    0 0 0 4px var(--ss-amber),
+    0 0 0 5px var(--ss-sketch-ink);
+}
+.sb-sketch:focus-visible {
+  box-shadow:
+    0 0 0 1px var(--ss-sketch-ink),
+    0 0 0 4px var(--ss-amber),
+    0 0 0 5px var(--ss-sketch-ink),
+    0 0 0 8px var(--ss-amber);
+}
+.sb-sketch[data-lifted] {
+  cursor: grabbing;
+  filter: drop-shadow(0 8px 10px var(--ss-sketch-ink));
+}
+.sb-sketch-handle {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--ss-amber);
+  box-shadow: 0 0 0 1.5px var(--ss-sketch-ink);
+  touch-action: none;
+}
+.sb-sketch-handle[data-corner='nw'] {
+  top: -9px;
+  left: -9px;
+  cursor: nwse-resize;
+}
+.sb-sketch-handle[data-corner='ne'] {
+  top: -9px;
+  right: -9px;
+  cursor: nesw-resize;
+}
+.sb-sketch-handle[data-corner='sw'] {
+  bottom: -9px;
+  left: -9px;
+  cursor: nesw-resize;
+}
+.sb-sketch-handle[data-corner='se'] {
+  right: -9px;
+  bottom: -9px;
+  cursor: nwse-resize;
+}
+.sb-canvas-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  padding: 6px 8px 10px;
+}
+/* The drag handle sits on the sketch's white, so it is drawn in ink. */
+.sb-library-handle {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--ss-sketch-ink);
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-library-handle[data-focus-visible] {
+  box-shadow:
+    0 0 0 1px var(--ss-sketch-ink),
+    0 0 0 4px var(--ss-amber);
+}
+
+/* Lines pinned to the frame, under it, in ink (Direction A). */
+.sb-canvas-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 10px 14px 12px;
+  list-style: none;
+  border-top: 1.5px solid var(--ss-sketch-ink);
+}
+.sb-canvas-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.sb-canvas-speaker {
+  text-transform: uppercase;
+}
+
+/* The script pane: a column right of the main area (07-ux section 6.6). */
+.sb-script {
+  --ss-surface: var(--ss-panel-1);
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 10px;
+  width: 300px;
+  min-height: 0;
+  padding: 14px 12px;
+  background: var(--ss-panel-1);
+  box-shadow: inset 1px 0 0 var(--ss-line-1);
+}
+.sb-script-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ss-amber-text);
+}
+.sb-script-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 19px;
+  color: var(--ss-text);
+}
+.sb-script-scene {
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--ss-muted);
+}
+.sb-script-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.sb-script-lines {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  overflow-y: auto;
+}
+.sb-line-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px;
+  outline: none;
+}
+.sb-line {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px 8px 4px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: default;
+  outline: none;
+}
+.sb-line[data-selected] {
+  box-shadow: inset 0 0 0 2px var(--ss-line-2);
+}
+.sb-line[data-current] {
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.sb-line[data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-panel-1),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-line[data-dragging] {
+  opacity: 0.6;
+}
+.sb-line-handle {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: inherit;
+  background: transparent;
+  cursor: grab;
+  outline: none;
+}
+.sb-line-handle[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+/* The pin: the frame's number on a light chip, amber for the current frame, dashed when unpinned. */
+.sb-pin {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 56px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ss-text-2);
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--ss-line-2);
+  cursor: pointer;
+  outline: none;
+}
+.sb-pin:not([data-pinned]) {
+  outline: 1.5px dashed var(--ss-line-2);
+  outline-offset: -1.5px;
+  box-shadow: none;
+}
+.sb-pin[data-pinned] {
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+  box-shadow: none;
+}
+.sb-line[data-current] .sb-pin[data-pinned] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+}
+.sb-pin[data-focus-visible] {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--ss-panel-3),
+    0 0 0 5px var(--ss-focus);
+}
+.sb-pin[data-disabled] {
+  color: var(--ss-unavailable-text);
+  cursor: default;
+}
+.sb-line-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  padding-top: 2px;
+}
+.sb-line-speaker {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ss-muted);
+}
+.sb-line-text {
+  overflow-wrap: anywhere;
+}
+.sb-line-editor {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.sb-line-editor > .ss-field {
+  align-self: stretch;
+}
+.sb-line-new {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sb-line-new-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.sb-line-new-row .ss-field {
+  flex: 1;
+  min-width: 0;
+}
+.sb-who {
+  align-self: stretch;
+}
+.sb-who-row {
+  gap: 4px;
+}
+.sb-who-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  color: var(--ss-text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  cursor: pointer;
+  outline: none;
+}
+.sb-who-button[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+
+/* Menus and lists that open over the page (who says it, pin). */
+.sb-popover {
+  min-width: var(--trigger-width);
+  border-radius: 12px;
+  color: var(--ss-text);
+  background: var(--ss-dialog);
+  box-shadow: inset 0 0 0 1px var(--ss-dialog-line);
+}
+.sb-menu {
+  max-height: 300px;
+  padding: 6px;
+  overflow-y: auto;
+  outline: none;
+}
+.sb-menu-item {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  outline: none;
+}
+.sb-menu-item[data-focused] {
+  background: var(--ss-panel-4);
+}
+.sb-menu-item[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+
+/*
+  Print (07-ux section 6.7; decision 0054): the storyboard alone, black on white in either theme,
+  A4 landscape. The layout is only in the page while printing; the app is hidden from the printer.
+  The foot of every page carries the title and the page number, from custom properties the
+  Storyboard sets on the root while printing.
+*/
+.sb-print-root {
+  display: none;
+}
+@page {
+  size: A4 landscape;
+  margin: 12mm 12mm 14mm;
+  @bottom-left {
+    content: var(--sb-print-title);
+    font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+    font-size: 9pt;
+  }
+  @bottom-right {
+    content: var(--sb-print-page) ' ' counter(page);
+    font-family: 'Atkinson Hyperlegible', system-ui, sans-serif;
+    font-size: 9pt;
+  }
+}
+@media print {
+  body > :not(.sb-print-root) {
+    display: none !important;
+  }
+  .sb-print-root {
+    display: block;
+    color: var(--ss-sketch-ink);
+    background: var(--ss-sketch-paper);
+  }
+}
+.sb-print {
+  font-family: var(--ss-font-body);
+  font-size: 10pt;
+  line-height: 1.35;
+}
+.sb-print p {
+  margin: 0;
+}
+.sb-print-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2mm;
+  margin-bottom: 6mm;
+}
+.sb-print-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 20pt;
+}
+.sb-print-synopsis {
+  max-width: 200mm;
+}
+.sb-print-scene {
+  margin-bottom: 6mm;
+}
+.sb-print-scene-title {
+  display: flex;
+  align-items: baseline;
+  gap: 3mm;
+  margin: 0 0 3mm;
+  font-size: 13pt;
+  break-after: avoid;
+}
+.sb-print-part {
+  padding: 0 2mm;
+  border: 0.3mm solid var(--ss-sketch-ink);
+  border-radius: 1mm;
+  font-size: 9pt;
+  font-weight: 400;
+}
+.sb-print-frames {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5mm 6mm;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sb-print-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5mm;
+  break-inside: avoid;
+}
+.sb-print-frame-head {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+}
+.sb-print-shot {
+  padding: 0 1.5mm;
+  border: 0.3mm solid var(--ss-sketch-ink);
+  border-radius: 1mm;
+  font-size: 8pt;
+  text-transform: uppercase;
+}
+.sb-print-paper {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 0.4mm solid var(--ss-sketch-ink);
+  background: var(--ss-sketch-paper);
+}
+.sb-print-sketch {
+  position: absolute;
+  translate: -50% -50%;
+}
+.sb-print-caption {
+  font-style: italic;
+}
+/* Room for the teacher's marks. */
+.sb-print-marks {
+  height: 8mm;
+  border-bottom: 0.3mm solid var(--ss-sketch-ink);
+}

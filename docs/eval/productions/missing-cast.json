@@ -1,0 +1,28 @@
+{
+  "title": "The Fox's Hello",
+  "backdrop": "forest",
+  "objects": [
+    { "name": "penguin", "class": "Flyer", "item": "example/Flyer/penguin", "position": { "x": -1, "y": 0, "z": 0 } }
+  ],
+  "program": [],
+  "storyboard": {
+    "logline": "A lost penguin learns a fox can be a friend.",
+    "synopsis": "A penguin is lost in a forest and meets a fox.",
+    "arc": { "template": "free", "parts": [] }
+  },
+  "scenes": [
+    { "id": "s1", "heading": "Forest, night", "cast": ["example/Flyer/penguin", { "standIn": "fox" }], "arcPart": null }
+  ],
+  "script": [
+    { "id": "l1", "scene": "s1", "kind": "dialogue", "character": "Fox", "text": "Are you lost too?", "pinnedFrame": "f1-1" }
+  ],
+  "frames": [
+    {
+      "id": "f1-1", "scene": "s1", "order": 0, "caption": "The fox says hello.", "shot": "twoShot", "lengthSeconds": 3,
+      "sketches": [
+        { "id": "k1", "item": "example/Flyer/penguin", "facing": "side", "x": 0.3, "y": 0.6 },
+        { "id": "k2", "item": { "standIn": "fox" }, "facing": "side", "x": 0.7, "y": 0.6 }
+      ]
+    }
+  ]
+}
