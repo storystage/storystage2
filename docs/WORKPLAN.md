@@ -800,7 +800,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 15.3 **Policy and the school lock** (from StoryStage 1 spec 02 §4):
     - a policy file on desktop;
     - managed app configuration on iPad and Android, so schools set it through their device management;
-    - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
+    - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `speech.dictation` (decision 0060), `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
     - a malformed policy means the Prompter is off.
 
     (C)
