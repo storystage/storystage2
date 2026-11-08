@@ -14,7 +14,7 @@ import { Frustum } from '@babylonjs/core/Maths/math.frustum.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
-import { jointsOf, skeletonOf } from '@storystage/backstage';
+import { SCENE_BUDGET, jointsOf, skeletonOf } from '@storystage/backstage';
 import {
   CAMERA,
   StageError,
@@ -38,6 +38,7 @@ import { mul } from '../math.ts';
 import { Timeline, standInShape, type Touching } from '../timeline.ts';
 import { buildBackdrop, type ShowSky } from './backdrop.ts';
 import { buildFade } from './fade.ts';
+import type { Quality, Renderer } from './quality.ts';
 import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
 import { buildStandIn } from './stand-in.ts';
 import { setRotation, type ObjectView } from './view.ts';
@@ -60,6 +61,16 @@ const NO_MODELS: ModelSource = { find: () => null };
 
 export interface BabylonStageParts {
   readonly models?: ModelSource;
+  /** Which renderer the engine is (`createBabylonStage` chose it). */
+  readonly renderer?: Renderer;
+  readonly quality?: Quality;
+}
+
+/** How much the scene asks of the device, against Backstage's scene budget (WP3.9). */
+export interface SceneMeasure {
+  readonly triangles: number;
+  readonly budget: number;
+  readonly fits: boolean;
 }
 
 /** WebGL's rows start at the bottom; a `FrameImage`'s start at the top. */
@@ -90,9 +101,29 @@ export class BabylonStage implements Stage {
   private inView = new Set<ObjectId>();
   private drawing: (() => void) | null = null;
 
-  constructor(engine: AbstractEngine, { models = NO_MODELS }: BabylonStageParts = {}) {
+  readonly renderer: Renderer;
+  readonly quality: Quality;
+
+  constructor(
+    engine: AbstractEngine,
+    { models = NO_MODELS, renderer = 'webgl2', quality = 'standard' }: BabylonStageParts = {},
+  ) {
     this.engine = engine;
     this.models = models;
+    this.renderer = renderer;
+    this.quality = quality;
+  }
+
+  /**
+   * The triangles the loaded scene draws, everything included, against the scene budget. The
+   * budget is provisional until the reference devices have been measured (#6).
+   */
+  measure(): SceneMeasure {
+    const scene = this.loaded();
+    let triangles = 0;
+    for (const mesh of scene.meshes) if (mesh.isEnabled()) triangles += mesh.getTotalIndices() / 3;
+    const budget = SCENE_BUDGET.triangles;
+    return { triangles, budget, fits: triangles <= budget };
   }
 
   async load(setup: SceneSetup): Promise<void> {
