@@ -247,6 +247,10 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
+    devDependencies:
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
 
   packages/text-view: {}
 

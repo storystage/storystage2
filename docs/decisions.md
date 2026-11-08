@@ -61,6 +61,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | S6 merging | S6 squash-merges its WP4 pull requests once checks pass; those changing the contract files wait for the other owner (0052) | 1 Nov 2026 |
 | S3 merging | S3 squash-merges #114, #115, #117 and #118 in stack order once checks pass; the owner reviews afterwards. These four only (0053) | 1 Nov 2026 |
 | Storyboard print | The Storyboard PDF (10.7) comes from a print layout and the device's print dialog (Save as PDF); no PDF library (0054) | 7 Nov 2026 |
+| Story API open specification | Text CC BY 4.0, JSON files Apache-2.0; published as 0.9, a draft, with 1.0 at the release candidate; the owner decides changes, with no fixed comment period; in the repository with a GitHub release per version, and storystage.org ids (0055) | 8 Nov 2026 |
 
 ## Still to decide (owner)
 

@@ -10,9 +10,13 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
-    "spec": "node scripts/spec-cli.ts"
+    "spec": "node scripts/spec-cli.ts",
+    "open-spec": "node scripts/open-spec-cli.ts"
   },
   "dependencies": {
     "@storystage/ast": "workspace:*"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0"
   }
 }
