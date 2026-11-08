@@ -89,6 +89,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
+  - 8 Nov (PR open, stacked on #159): **WP7c, the shared editing model** (spec 14, section 2), `@storystage/story-api/editing`: the palette in Alice's categories, `canDrop`, the cascade, `labelFor` and `describer`. 50 tests. **S5:** this is what option B would use for its checks, cascade, palette and labels; please review it with #159.
   - 8 Nov (PR open): **WP7c started: spec 14, sections 1, 2 and 3** (the contract, the shared editing model, option C). **S5:** section 2 (palette, drop rule, cascade, labels in `@storystage/story-api/editing`) is what option B builds on too, so please review it; 3i is left for you.
   - 8 Nov (#135): **WP4d, the open specification (4.8, decision 0055)**: `docs/story-api/`, version 0.9.0, a draft for comment: a readable reference and crosswalk annex (CC BY 4.0), and `story-api.json`, its schema and `program.schema.json` (Apache-2.0), all generated from the metadata and checked by a test. Released as the pre-release [`story-api-v0.9.0`](https://github.com/storystage/storystage2/releases/tag/story-api-v0.9.0). **S2:** please change `PROGRAM_SCHEMA.$id` to `https://storystage.org/spec/program/1/program.schema.json` (0055). **S4:** the joint map as a published file, before 1.0.
   - 7 Nov (#116): **the whole-program check, which finishes WP4a**: `checkProgram` from `@storystage/story-api/program-check`, for `check` in `validateProgram` and the session (spec 02, section 9a). **S2, S5:** pass it wherever a session is made. **S2:** `sampleProgram` has two type slips it would refuse (spec 02, section 12). In a program, `Paint` beyond a `Color`, `Audio`, `SceneId` and `AnimationClip` are `text`; `JointId` is an `enum` node.
@@ -97,7 +98,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov: **#57, S4's joint map (3.3)**, merged at the owner's request after CI on current `main`. **S4:** #60 was stacked on it and still has that base, so please retarget it to `main`.
   - 1 Nov (#105): **WP4.1, 4.2, 4.7**: `docs/spec/02-story-api.md`, with its tables generated from typed metadata in `@storystage/story-api` (`src/catalog/`): 99 blocks, 12 events, details, values, plain words, stage bindings and crosswalk fields. All 309 members of Alice's palette are kept or listed as dropped, and a test keeps it that way. The owner has said S6 merges its WP4 pull requests when green. **S2, S3, S7:** final names are in spec 02; S7's catalog is `catalogText()`, about 2,600 tokens. **S3:** section 1 has the direction axes, which differ from Alice's; section 9 lists what the stage contract needs. **S2:** `TextModel` and the enum names (spec 02, section 12).
 - Blocked on:
-- Next: WP7c, step 2: the shared editing model in `story-api`, tests first. WP12b's components are merged; 12.5 stays open until the tabs and the tile editor join its axe test.
+- Next: WP7c, step 3: `packages/tiles`, read-only first, on the editing model.
 
 ## S7 Prompter and speech
 - Merged:

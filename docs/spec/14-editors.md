@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -70,7 +70,7 @@ For the object the learner has chosen (a scene object, a joint, or the scene its
 
 ### 2.3 The cascade
 
-When a block lands, the learner is asked for each parameter in order, as Alice's cascading menus do: "Who? Which way? How far?". `cascadeFor(program, slot, type)` gives the menu for one value. Escape at any point cancels the whole drop, and nothing changes.
+When a block lands, the learner is asked for each parameter in order, as Alice's cascading menus do: "Who? Which way? How far?". `emptySlots(node)` says which values to ask for, in order, and `cascadeFor(program, place, mint)` gives the menu for one of them. Escape at any point cancels the whole drop, and nothing changes.
 
 | Type | Menu |
 |---|---|
@@ -89,6 +89,22 @@ When a block lands, the learner is asked for each parameter in order, as Alice's
 ### 2.4 Labels
 
 Every step's undo label is written from the Story API's words, naming what changed (CLAUDE.md, rule 9): "Make cat say Hello", "Add cat move forward 1", "Move cat say Hello into do together", "Change 1 to 2 in cat move". The words come from the strings file, so a translated interface translates its undo labels too. S2's `defaultLabel` is the fallback.
+
+### 2.5 What's in `editing/`
+
+| Function | What it does |
+|---|---|
+| `palette(program, target, self, tab)` | Section 2.1: groups of blocks, each with its `callee` and its words with `???` |
+| `newCall`, `newControl` | A new block from the palette or the control bar, with every value empty (`none`) |
+| `canDrop(program, place, candidate)` | Section 2.2: the edits and their label, or the reason it can't go there. `candidate` is a new statement or value, or `{existing: id}` to move a statement |
+| `emptySlots`, `cascadeFor`, `answer`, `rangeAt` | Section 2.3: what to ask, the menu for each value, a typed value checked against its limit |
+| `detailsToAdd` | The details a block can still take, for "add detail ▾" |
+| `labelFor(program, edit)` | Section 2.4 |
+| `describer(program)` | Any statement or value in words (`cat move forward 1`), its short name (`cat move`), and its type, for rows, screen-reader names and labels (section 3f) |
+
+The joints in a cascade come from the caller (`jointsOf`), because which joints a model has is in the manifest, not the program. Backstage surfaces, sounds, scenes and clips come the same way (`references`).
+
+**Not yet:** the control bar's **variable** and **assign** tiles, which need a name or a target before they can go in (they come with the tile editor's control bar), and a fresh name for a loop's item, so that a loop inside a loop isn't refused for both being called `item`.
 
 ## 3. Option C, the tile editor
 
