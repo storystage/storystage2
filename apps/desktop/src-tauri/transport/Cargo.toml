@@ -1,0 +1,39 @@
+[package]
+name = "storystage-transport"
+version = "0.1.0"
+description = "The Claude transport and the key's type: the only code that touches the key"
+license = "Apache-2.0"
+edition = "2021"
+rust-version = "1.80"
+publish = false
+
+# No Tauri here, so the whole transport can be tested against a local server on any runner.
+[dependencies]
+futures-util = "0.3"
+# The same TLS as the updater: `ring`, with the system's certificates. The default would add a
+# second crypto library, with a C build on every target.
+reqwest = { version = "0.13", default-features = false, features = [
+  "http2",
+  "rustls-no-provider",
+  "stream",
+  "system-proxy",
+] }
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+storystage-gate = { path = "../gate" }
+tokio = { version = "1", features = ["macros", "sync", "time"] }
+zeroize = "1"
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+keyring = { version = "3", features = ["apple-native", "windows-native"] }
+
+[features]
+# Lets a test build point at a fake server. Release builds never turn this on (spec 05, 2.2).
+test-endpoint = []
+
+[dev-dependencies]
+serde_json = "1"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+
+[[test]]
+name = "stream"
+required-features = ["test-endpoint"]
