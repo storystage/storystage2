@@ -70,19 +70,6 @@ test('dictation hears a recorded clip through the real whisper worker', async ({
   expect(wordErrorRate(KENNEDY, String(r.text))).toBeLessThan(0.25);
 });
 
-// Diagnosing a hang in the worker: the same clip on the page (as spike 1.3 ran it), and in the
-// worker with one thread. These report what happened, and fail nothing.
-for (const run of ['page&build=spike', 'page&build=incoming', 'clip&build=incoming', 'page']) {
-  test(`for comparison: ${run}`, async ({ page }) => {
-    test.setTimeout(300_000);
-    const r = await resultOf(page, run).catch((error: unknown) => ({ error: String(error) }));
-    console.log(`comparison ${run}:`, JSON.stringify(r));
-    test
-      .info()
-      .annotations.push({ type: 'comparison', description: `${run}: ${JSON.stringify(r)}` });
-  });
-}
-
 test('the browser microphone passes on samples, and stops when closed', async ({ page }) => {
   test.setTimeout(60_000);
   const r = await resultOf(page, 'microphone');

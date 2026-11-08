@@ -42,6 +42,7 @@ A field's mic button is shown when all of these are true:
 
 - **whisper.cpp v1.9.5**, built to WebAssembly with **Emscripten 6.0.13**, the versions spike 1.3 measured. The build runs in CI from pinned sources, like the spike's, and its output is pinned by SHA-256.
 - It runs in its own **Web Worker**, so the studio never waits on it.
+- **Its threads load whisper's script, not the worker's.** The build adds `mainScriptUrlOrBlob` to Emscripten's own list of module settings (`INCOMING_MODULE_JS_API`), and the worker sets it. The rest of the list stays as Emscripten has it: a shorter list hung whisper's threads in CI.
 - **Language:** English (`en`), greedy decoding, `min(navigator.hardwareConcurrency, 4)` threads.
 - **The spike's build reserved 512 MB at start.** This build starts smaller and grows as needed (`INITIAL_MEMORY` 64 MB, `ALLOW_MEMORY_GROWTH`, `MAXIMUM_MEMORY` 1 GB). *To measure:* peak memory on the reference Chromebook.
 

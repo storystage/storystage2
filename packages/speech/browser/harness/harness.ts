@@ -2,9 +2,9 @@
  * The dictation harness for the browser test (not shipped). `?run=clip` dictates a recorded
  * clip through the real path: dictation, the whisper worker and whisper.cpp itself, with only
  * the microphone replaced by the clip; `&threads=1` limits whisper to one thread. `?run=page`
- * runs whisper.cpp on the page instead, as spike 1.3 did, to compare. `?run=microphone` opens
- * the browser's microphone (a fake device in CI) through the real worklet. The result goes on
- * `window.harnessResult`.
+ * runs whisper.cpp on the page instead, as spike 1.3 did, for diagnosis by hand.
+ * `?run=microphone` opens the browser's microphone (a fake device in CI) through the real
+ * worklet. The result goes on `window.harnessResult`.
  */
 import type { SpeechModels } from '@storystage/host';
 import { createDictation, type Microphone } from '../../src/dictation.ts';
@@ -24,8 +24,7 @@ const finish = (result: unknown) => {
   (window as unknown as { harnessResult: unknown }).harnessResult = result;
   out.textContent = JSON.stringify(result);
 };
-const build = params.get('build');
-const script = new URL(build ? `/builds/${build}/whisper.js` : '/whisper.js', location.href).href;
+const script = new URL('/whisper.js', location.href).href;
 
 async function assets() {
   stage(`isolated: ${String(crossOriginIsolated)}`);

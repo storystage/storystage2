@@ -12,7 +12,6 @@
 #                           reads, so whisper's threads load whisper.js, not the worker's script.
 #                           The rest of the list stays as Emscripten 6.0.13 has it: a shorter list
 #                           hangs whisper's threads (CI, 8 Nov 2026)
-#   WHISPER_POOL            threads made at start (the example makes them as it goes)
 set -euo pipefail
 
 WHISPER_VERSION=v1.9.5
@@ -23,8 +22,7 @@ EMSDK_VERSION=6.0.13
 INITIAL_MEMORY="${WHISPER_INITIAL_MEMORY:-64MB}"
 MAXIMUM_MEMORY="${WHISPER_MAXIMUM_MEMORY:-1024MB}"
 INCOMING="${WHISPER_INCOMING:-1}"
-POOL="${WHISPER_POOL:-0}"
-SETTINGS="INITIAL_MEMORY=$INITIAL_MEMORY, MAXIMUM_MEMORY=$MAXIMUM_MEMORY, INCOMING=$INCOMING, POOL=$POOL"
+SETTINGS="INITIAL_MEMORY=$INITIAL_MEMORY, MAXIMUM_MEMORY=$MAXIMUM_MEMORY, INCOMING=$INCOMING"
 
 WORK="${1:?work dir}"
 OUT="${2:?out dir}"
@@ -55,10 +53,6 @@ if [ ! -f "$BUILT/whisper.js" ]; then
   if [ "$INCOMING" = 1 ]; then
     sed -i 's/-s FORCE_FILESYSTEM=1/-s FORCE_FILESYSTEM=1 -s INCOMING_MODULE_JS_API=\\"[ENVIRONMENT,arguments,canvas,dynamicLibraries,elementPointerLock,instantiateWasm,locateFile,monitorRunDependencies,noExitRuntime,noInitialRun,onAbort,onExit,onRuntimeInitialized,postRun,preInit,preRun,print,printErr,setStatus,statusMessage,stderr,stdin,stdout,thisProgram,wasm,websocket,mainScriptUrlOrBlob]\\"/' "$cmake_file"
     grep -qF 'INCOMING_MODULE_JS_API=\"[ENVIRONMENT,arguments,canvas,dynamicLibraries,elementPointerLock,instantiateWasm,locateFile,monitorRunDependencies,noExitRuntime,noInitialRun,onAbort,onExit,onRuntimeInitialized,postRun,preInit,preRun,print,printErr,setStatus,statusMessage,stderr,stdin,stdout,thisProgram,wasm,websocket,mainScriptUrlOrBlob]\"' "$cmake_file"
-  fi
-  if [ "$POOL" != 0 ]; then
-    sed -i "s/-s PTHREAD_POOL_SIZE_STRICT=0/-s PTHREAD_POOL_SIZE_STRICT=0 -s PTHREAD_POOL_SIZE=$POOL/" "$cmake_file"
-    grep -q "PTHREAD_POOL_SIZE=$POOL" "$cmake_file"
   fi
 
   rm -rf "$WORK/whisper.cpp/build-em"
