@@ -7,7 +7,7 @@
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0011 Project file](../decisions/0011-project-file.md), [0019 Prompter model](../decisions/0019-prompter-model.md), [0022 Off switches](../decisions/0022-off-switches.md), [0027 Threat model owner](../decisions/0027-threat-model-owner.md), [0028 Host interface](../decisions/0028-host-interface.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md), 0046 Website and browser version hosting, 0047 Update hosting and the updater key.
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0011 Project file](../decisions/0011-project-file.md), [0019 Prompter model](../decisions/0019-prompter-model.md), [0022 Off switches](../decisions/0022-off-switches.md), [0027 Threat model owner](../decisions/0027-threat-model-owner.md), [0028 Host interface](../decisions/0028-host-interface.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md), 0046 Website and browser version hosting, 0047 Update hosting and the updater key, [0057 The speech model is bundled](../decisions/0057-speech-model-bundled.md).
 
 The rules in `CLAUDE.md` come first: no key in web code, no StoryStage server, no pictures or audio to the Prompter, and the story is the learner's.
 
@@ -136,7 +136,7 @@ Static files at `app.storystage.org`, in a clean folder with no WordPress (0046)
 | B3 | T | The Bluehost account is taken over, and the app is changed for every school | Two-factor sign-in. The release publishes a hash of the build, and a check compares the live site with it | A scheduled comparison of the live files | WP15b (owner: two-factor) |
 | B4 | E | A bad build lives on through a service worker | No service worker in the first release | A check of the build | WP15b |
 | B5 | I | On a shared computer, the next pupil finds work in browser storage | Saving goes to a file. The banner says work isn't saved to a file. The privacy notice says so | The banner, in the UX tests | WP8.4 |
-| B6 | E | Prompter code is present in the browser build | The browser build has no transport, and `browserHost` uses `offTransport` (0022) | A test that the transport is off in `browserHost` | In #88, not yet merged |
+| B6 | E | Prompter code is present in the browser build | The browser build has no transport, and `browserHost` uses `offTransport` (0022) | A test that the transport is off in `browserHost` | Built (#88) |
 
 ### 2.7 Updates and the build
 
@@ -144,11 +144,24 @@ Static files at `app.storystage.org`, in a clean folder with no WordPress (0046)
 |---|---|---|---|---|---|
 | U1 | T, E | A tampered update | Every build is signed, and the public key is built into the app. A build that fails is dropped | The drill, with a build signed by the wrong key | WP15.7 |
 | U2 | E | The updater key is stolen | It lives only in the `release` environment and the owner's offline copy. No pull request can reach it: `Release` runs by hand and uses no build cache. The environment needs the owner's approval | A check of the environment's settings | Owner, with the key |
-| U3 | T | Whoever controls the host offers an older signed build | The manifest isn't signed. A device moves down only if its own version is listed as `withdrawn` or a school pinned it, so this can't be fully closed. Accepted, for review | Unit tests on `should_move` | In #99, not yet merged |
+| U3 | T | Whoever controls the host offers an older signed build | The manifest isn't signed. A device moves down only if its own version is listed as `withdrawn` or a school pinned it, so this can't be fully closed. Accepted, for review | Unit tests on `should_move` | Built (#99) |
 | U4 | T | A bad package reaches the app | Frozen lockfiles, pinned actions by full SHA, `cargo deny`, Dependabot and CodeQL. A new dependency is reviewed with its licence | CI | Built |
 | U5 | E | A pull request reads a secret | Only `Release` and `Channel` use the `release` environment, and they run by hand. No workflow on `push` or `pull_request` names a secret. The default token is read-only | A test that lists which workflows name a secret | Controls in place; the test with WP15b |
-| U6 | I | The update check identifies a device | A static file with nothing about the device. The rollout `bucket` stays on the device. GitHub sees an IP address, named in the DPIA (0047). A school can stop the check | A test that the URL holds only a channel or a version | In #99, not yet merged |
+| U6 | I | The update check identifies a device | A static file with nothing about the device. The rollout `bucket` stays on the device. GitHub sees an IP address, named in the DPIA (0047). A school can stop the check | A test that the URL holds only a channel or a version | Built (#99) |
 | U7 | D | A broken update reaches every school | Staged rollout, pilot first, and a rollback that needs no rebuild | The rollback drill | WP15.7 |
+
+### 2.9 Speech models
+
+whisper's model files (spec 05 section 5, spec 06 section 1.3). The default is bundled in the app (decision 0057). The optional one is downloaded only when a learner asks.
+
+| Id | Class | Threat | Control | Test | Where |
+|---|---|---|---|---|---|
+| M1 | T, E | A changed model file crashes the decoder, or takes it over | Each model is pinned by SHA-256 and size. The build refuses a bundled one that doesn't match, and every load checks again, so a file changed on disk is never used. The decoder runs in a worker with no network and no file access | A tampered file is refused at load. The build fails on a changed upstream file | Spec 05 §5, S8 (native), S7 (worker) |
+| M2 | I | A model fetched by the webview, or from a new host, reveals the device | The native layer fetches. The webview's content security policy gains no host. The optional model comes from the update host (decisions 0047 and 0061), and only after consent | A test that the address is pinned. The leak scan's report shows no remote fetch by the webview | Spec 05 §5.3 |
+| M3 | D | A huge or never-ending download fills the disk | The download stops once more bytes arrive than the pin allows. It goes to a temporary file, and is deleted if it doesn't match | A server that sends too much, and one that announces a different size | Spec 05 §5.3 |
+| M4 | E | The webview names a file of its choice to load | Commands take a pinned model's name only, never a path. Any other name is refused | A test with a path and an unknown name | Spec 05 §5.5 |
+| M5 | E | The webview reads files through the fs plugin that Android needs | It's used from Rust only, and no capability grants it to any window | The leak scan's ungranted-plugin check covers plugins registered on desktop; on Android, with the human review | Spec 05 §5.2 |
+| M6 | E | Cross-origin isolation is turned off, or a page loads content it shouldn't | `Cross-Origin-Embedder-Policy: require-corp` stops anything cross-origin loading without consent. The content security policy is unchanged | A test on the shipped headers | Spec 05 §5.6 |
 
 ### 2.8 The classroom relay, if chosen
 
