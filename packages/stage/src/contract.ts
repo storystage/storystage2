@@ -25,7 +25,10 @@ import type {
 
 export interface Speech {
   readonly text: string;
-  readonly bubble: 'say' | 'think';
+  /** A `caption` is a speak line's, which the studio draws and voices (spec 06 section 4.7). */
+  readonly bubble: 'say' | 'think' | 'caption';
+  /** The script line a caption speaks, if it came from one (the production's `LineId`). */
+  readonly line?: string;
 }
 
 /** A rendered frame, RGBA, top row first. */

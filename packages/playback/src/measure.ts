@@ -28,12 +28,17 @@ export interface MeasuredScene {
   readonly waits: boolean;
 }
 
-/** A `say` or `think` line, on the film's clock. Speak lines come with WP14. */
+/**
+ * A `say` or `think` line, or a speak line's `caption` (WP14.3, spec 06 section 4.7), on the film's
+ * clock. The export's captions file is written from the captions.
+ */
 export interface MeasuredLine {
   readonly scene: SceneId;
   readonly object: string;
   readonly text: string;
-  readonly kind: 'say' | 'think';
+  readonly kind: 'say' | 'think' | 'caption';
+  /** The script line a caption speaks, if it came from one (the production's `LineId`). */
+  readonly line?: string;
   readonly start: Micros;
   /** Cut short if the scene ends first. */
   readonly duration: Micros;
@@ -100,6 +105,7 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
               object: c.object,
               text: c.text,
               kind: c.bubble,
+              ...(c.line === undefined ? {} : { line: c.line }),
               start: start + c.start,
               duration: c.duration,
             });
