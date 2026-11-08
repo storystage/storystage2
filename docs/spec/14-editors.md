@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails; the control bar's **variable** and **assign** tiles (see 2.3); an error's words beside its statement (3g), which the contract doesn't carry yet; and the Chromebook run of 3h.3 (7.10). Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -70,7 +70,7 @@ For the object the learner has chosen (a scene object, a joint, or the scene its
 
 ### 2.3 The cascade
 
-When a block lands, the learner is asked for each parameter in order, as Alice's cascading menus do: "Who? Which way? How far?". `cascadeFor(program, slot, type)` gives the menu for one value. Escape at any point cancels the whole drop, and nothing changes.
+When a block lands, the learner is asked for each parameter in order, as Alice's cascading menus do: "Who? Which way? How far?". `emptySlots(node)` says which values to ask for, in order, and `cascadeFor(program, place, mint)` gives the menu for one of them. Escape at any point cancels the whole drop, and nothing changes.
 
 | Type | Menu |
 |---|---|
@@ -90,6 +90,22 @@ When a block lands, the learner is asked for each parameter in order, as Alice's
 
 Every step's undo label is written from the Story API's words, naming what changed (CLAUDE.md, rule 9): "Make cat say Hello", "Add cat move forward 1", "Move cat say Hello into do together", "Change 1 to 2 in cat move". The words come from the strings file, so a translated interface translates its undo labels too. S2's `defaultLabel` is the fallback.
 
+### 2.5 What's in `editing/`
+
+| Function | What it does |
+|---|---|
+| `palette(program, target, self, tab)` | Section 2.1: groups of blocks, each with its `callee` and its words with `???` |
+| `newCall`, `newControl` | A new block from the palette or the control bar, with every value empty (`none`) |
+| `canDrop(program, place, candidate)` | Section 2.2: the edits and their label, or the reason it can't go there. `candidate` is a new statement or value, or `{existing: id}` to move a statement |
+| `emptySlots`, `cascadeFor`, `answer`, `rangeAt` | Section 2.3: what to ask, the menu for each value, a typed value checked against its limit |
+| `detailsToAdd` | The details a block can still take, for "add detail ▾" |
+| `labelFor(program, edit)` | Section 2.4 |
+| `describer(program)` | Any statement or value in words (`cat move forward 1`), its short name (`cat move`), and its type, for rows, screen-reader names and labels (section 3f) |
+
+The joints in a cascade come from the caller (`jointsOf`), because which joints a model has is in the manifest, not the program. Backstage surfaces, sounds, scenes and clips come the same way (`references`).
+
+**Not yet:** the control bar's **variable** and **assign** tiles, which need a name or a target before they can go in (they come with the tile editor's control bar), and a fresh name for a loop's item, so that a loop inside a loop isn't refused for both being called `item`.
+
 ## 3. Option C, the tile editor
 
 `packages/tiles` (S6). It rebuilds the behaviour of Alice 3's tile editor in React (workplan WP7c), over section 2. The look is screens 04, 04b and 04c, with the handoff's colours (darker blue and green than Alice's, for 4.5:1 contrast) and our own artwork. The word "Alice" never appears in it.
@@ -105,7 +121,7 @@ Every step's undo label is written from the Story API's words, naming what chang
 1. **Statement rows read like code,** left to right: the target, then the block's words with each value in a pill. Values in pills are tiles themselves, so a function can go in a slot.
 2. **Containers** (do in order, do together, count, while, for each, if/else) draw their body inside them, indented, with their own header row.
 3. **An empty statement list** shows "drop statement here" in a dashed box 44 px high.
-4. **A switched-off statement** is drawn at 45% opacity and named "switched off" for screen readers. It's still saved (`setEnabled`).
+4. **A switched-off statement** is greyed, with a dashed outline, and its name ends "(switched off)". It's still saved (`setEnabled`). This differs from the handoff's 45% opacity, which takes the tile's words below 4.5:1, for the same reason the handoff darkened Alice's blue.
 5. **Colours:** action tiles blue, question tiles green, control tiles as the handoff draws them, and "add detail ▾" in lavender.
 
 ### 3c. Pointer and touch
@@ -115,7 +131,7 @@ Every step's undo label is written from the Story API's words, naming what chang
 3. **A ghost** of the tile at 60% opacity follows the pointer.
 4. **A place that refuses the tile never lights up** (section 2.2).
 5. **Dropping anywhere else** cancels, and the tile goes back.
-6. **Every target is at least 44 × 44 px,** for iPad and for young hands. Touch drags the same way, after a short press so that scrolling still works.
+6. **Every target is at least 44 × 44 px,** for iPad and for young hands. A touch drags from a tile's grip, so the rest of a row still scrolls the program.
 
 ### 3d. Keyboard
 
@@ -131,29 +147,36 @@ Every path works without a pointer (7.8):
 | Delete | Deletes the statement, with an undo label to bring it back |
 | Ctrl+D, Ctrl+C, Ctrl+V | Duplicate, copy, paste (the contract's commands) |
 | Ctrl+/ | Switches a statement off or on |
+| Alt+↑, Alt+↓ | Moves a statement one place up or down in its list |
 
 In the palette, Enter on a block inserts it after the statement in focus, or in the empty slot, then runs its cascade. Focus is always visible, with the handoff's ring on Tiles surfaces.
 
 ### 3e. Values
 
-Enter or a click on a pill opens its cascade (section 2.3), upward if there's no room below. Choosing a value is one undo step ("Change forward to backward in cat move"). "Other number…" and "Other words…" open a small text field, and the value is checked against the parameter's limit (spec 02, section 2, rule 4) before it's applied.
+Enter or a click on a pill opens its cascade (section 2.3), upward if there's no room below. The menu marks the value there now and opens on it, so the arrows start from where the learner is; a detail's menu also offers taking the detail out. Choosing a value is one undo step ("Change forward to backward in cat move"). "Other number…" and "Other words…" open a small text field, and the value is checked against the parameter's limit (spec 02, section 2, rule 4) before it's applied.
 
 ### 3f. Screen readers
 
-1. **The program is a tree:** `role="tree"`, with each statement a `treeitem` at its nesting level, and roving focus.
-2. **Each statement's name is its code in words:** "cat move forward 1, 2 of 5, in do together".
-3. **Each pill's name** is its parameter and value: "amount, 1".
-4. **Announcements** through `host.announce` say what happened, in the same words as the undo label, and say where focus is if it moved: "Moved cat say Hello into do together".
+1. **The program is a tree:** `role="tree"`, with each statement a `treeitem` at its nesting level, and roving focus. Screen readers say "2 of 5" and the level from `aria-posinset`, `aria-setsize` and `aria-level`.
+2. **Each statement's name is the words it shows,** details included: "cat move forward 1 how long 2". A speech-control user says what they see, so a name never differs from the visible words (WCAG 2.5.3).
+3. **A container's tree item is its header row,** so its name is "do together", not its statements too. The box around it is only drawing (`role="none"`), and its statements' group sits beside the header.
+4. **Each pill is named by its value and described by what it's for:** "1", described as "amount".
+5. **Announcements** through `host.announce` say what happened, in the same words as the undo label, and say where focus is if it moved: "Moved cat say Hello into do together".
 
 ### 3g. Highlights
 
 Through the contract (7.9): Rehearse outlines the running statement (a still outline when the learner has asked for reduced motion); an error marks the statement in the stop colour with the error's words beside it; the Prompter's highlight carries its AI badge. Several kinds can show at once.
 
+**Not yet:** the error's words. `highlight(nodes, kind)` (WP0.8) gives the nodes and not the words, so showing them needs the contract to carry a message for each error node. Until then an error is marked by colour and border.
+
 ### 3h. Performance
 
-1. **Rows are render functions keyed by node id,** never components defined inside the editor, so an update doesn't remount them and lose focus (spike finding 7).
-2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object is skipped.
-3. **A method of 500 statements** stays responsive: a keystroke or drop draws within 100 ms. It's tested in CI, then on the reference Chromebook (7.10).
+1. **A row is one memoised component, defined once and keyed by node id,** never a component defined inside the editor's render, so an update doesn't remount it and lose focus (spike finding 7).
+2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object, with the same focus, highlights and names, is skipped. A pass before drawing works out the focus order and each row's pills, so a skipped row is still known to the keyboard. The palette and the control bar are drawn again only when what they show changes.
+3. **A method of 500 statements** stays responsive: a keystroke or drop draws within 100 ms. It's tested in CI, then on the reference Chromebook (7.10). The test times each key, press, release and click with Event Timing, on the production build, two ways: to the next frame drawn, which is what the learner sees, and to the end of the editor's work on it. On real hardware the time to the frame is held to 100 ms. CI's browser draws in software, on the CPU, so CI holds the editor's work to 100 ms and reports the time to the frame.
+4. **Whole-program work is done once for each program:** the shared model keeps its index, types, describer and the problems a program already has with the program (`editing/cache.ts`), since a long method asks for them on every row.
+5. **A keyboard move checks a place only when a step reaches it,** not every place when the statement is picked up. **A drag checks a place once,** when the pointer has stayed on it for 60 ms, so sweeping across rows checks nothing. A drop checks at once.
+6. **Top-level rows off screen** aren't styled or laid out (`content-visibility: auto`). They stay in the accessibility tree.
 
 ### 3i. Option B, Blocks
 

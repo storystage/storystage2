@@ -149,7 +149,9 @@ Edit operations are the only way to change a program. They are plain JSON, so th
 
 `applyEdit(program, edit)` returns the new program and the inverse. `applyEdits(program, edits)` applies several and returns the new program; it is what `TestHost`'s `apply` option wants. Programs are immutable: a change copies only the path to the node, so unchanged parts are shared and the old program stays good.
 
-Every edit is validated when it is applied, and a list of edits is all or nothing. Each edit must leave a valid program, so in a step that removes a field and its uses, the uses go first. A full validation costs a walk over the program. If that hurts on the reference Chromebook, validation can move to the end of a step, without changing what's refused.
+Every edit is validated when it is applied, and a list of edits is all or nothing. Each edit must leave a valid program, so in a step that removes a field and its uses, the uses go first. 
+
+**Checking an edit cheaply.** The schema is checked only against what an edit adds: the new statement or declaration, the new value, the new name or text. The rest of the program is the same objects as before, which were valid, so the result is the same as checking it all, and a property test holds the two to it (`checkWholeShape`). The depth and the rules a schema can't state are still checked over the whole program. At 500 statements (about 3,000 nodes) an edit takes about 1.3 ms instead of 4.7 ms on the PC, for the tile editor's 100 ms budget on the reference Chromebook (WP7.10). `applyEdit` therefore needs a valid program to start from, as every session holds.
 
 ### 4.3 Labels
 
