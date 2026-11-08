@@ -49,6 +49,8 @@ fn print(report: &Report) {
     let good = report.connected && report.pupil_accepted && report.teacher_proved && report.error.is_none();
     if good {
         println!("RESULT: a classroom relay could work on this network, between these two devices.");
+    } else if report.connected && !report.pupil_accepted {
+        println!("RESULT: reached the teacher's device, but it turned this code away. Check the code on the teacher's screen, and try again.");
     } else if !report.connected {
         println!("RESULT: this device can't reach the teacher's. The network may keep devices apart (client isolation), or a firewall on the teacher's device is blocking it.");
     } else {
