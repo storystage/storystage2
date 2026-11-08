@@ -461,6 +461,15 @@ export class Timeline {
       }
       case 'lens':
         return { kind: 'lens', value: state.get(CAMERA)!.lens ?? this.baseLens };
+      case 'jointChain': {
+        // The joint map numbers a chain from its root (`tail`, `tail2`…) and ends a tail at its tip.
+        const joints = this.shapes.get(this.require(state, query.object))?.joints ?? [];
+        const chain = query.chain === 'neck' ? /^neck\d*$/ : /^tail(\d*|Tip)$/;
+        const place = (j: string) =>
+          j.endsWith('Tip') ? Infinity : Number(j.replace(/\D/g, '') || 1);
+        const value = joints.filter((j) => chain.test(j)).sort((a, b) => place(a) - place(b));
+        return { kind: 'jointChain', value };
+      }
       case 'naturalDuration': {
         const c = {
           ...query.action,

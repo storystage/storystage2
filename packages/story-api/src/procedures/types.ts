@@ -20,8 +20,20 @@ export interface EnumValue {
   readonly value: string;
 }
 
+/**
+ * One of an object's joints, from `getJoint` or `getJointChain` (spec 02, section 5). A joint
+ * turns, rolls and points, but doesn't move (decision 0051), and can be a target.
+ */
+export interface JointValue {
+  readonly kind: 'joint';
+  /** The object it belongs to. */
+  readonly object: string;
+  readonly joint: string;
+}
+
 /** What a running program holds in its variables (`docs/spec/18-runtime.md`, section 2). */
-export type Value = number | string | boolean | null | ObjectValue | EnumValue | Value[];
+export type Value =
+  number | string | boolean | null | ObjectValue | EnumValue | JointValue | Value[];
 
 /** One call of a block: what it's called on, and its arguments and details by name. */
 export interface StoryCall {
