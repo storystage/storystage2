@@ -38,7 +38,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | F11 | **Update checks** | None about the learner. The request reveals the device's IP address | **Leaves the device:** GitHub Releases (decision 0047), once a day at most | Desktop apps, unless the school sets `update.channel=off` | Specified (spec 05 §4) |
 | F12 | **App stores** | What Apple and Google collect as stores | Apple and Google, under their own terms | When the app is installed or updated | Outside StoryStage's control |
 | F13 | **The website** | Visitors' IP addresses and requests, in the host's server logs | **Leaves the device:** Bluehost (Newfold Digital), which hosts `storystage.org` and `app.storystage.org` (0046) | When anyone visits | Live host; pages not yet published |
-| F14 | **Backstage search** | The search words | **Leaves the device:** Poly Pizza's API | Only if `backstage.search` is switched on; **off** (3.12; recommendation in 6, M14) | Specified; not built |
+| F14 | **Backstage search** | A teacher's search words | **Leaves the device:** Poly Pizza's API | Teachers only, on unless the school sets `backstage.search=false`; models about guns screened out (decision 0055) | Specified; not built |
 | F15 | **AR camera** | Camera images, used to place the set on a table | The device only; never to the Prompter | After the release candidate (21.5); `ar.enabled` | Later |
 | F16 | **Mixed-reality films** | Video from the camera, with the performance on top | An MP4 on the device | After the release candidate (22.8); off unless the teacher sets `ar.recording` | Later |
 | F17 | **AR packs** | 3D files of the production, with credits | Shared as the school chooses (a website, Drive or OneDrive links) | After the release candidate (22.9) | Later |
@@ -79,7 +79,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | App-store privacy labels | Section 6.3 |
 | The US (decision 0043) | Annex B |
 | The website and update host (0046, 0047) | F11, F13; R12 |
-| Backstage search (3.12, deferred to the DPIA) | F14; R14; recommendation M14 |
+| Backstage search (3.12, deferred to the DPIA) | F14; R14; decided in 0055 |
 
 ### 2.5 Who is responsible for what (proposed; question Q2)
 
@@ -186,7 +186,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | R11 | The microphone records more than the child meant, or audio leaves the device | Remote | Significant | Low |
 | R12 | The website or update host tracks visitors (for example through WordPress plugins, Elementor's Google Fonts, or analytics) | Probable without checks | Minimal | Medium |
 | R13 | Drive or OneDrive access is broader than needed, or links pupils' work to accounts unexpectedly | Possible | Significant | Medium |
-| R14 | Backstage search sends children's search words to a third party and shows them unmoderated models | Possible | Significant | Medium |
+| R14 | Backstage search sends search words to a third party, and shows models that aren't moderated for children | Possible | Significant | Medium |
 | R15 | The Prompter writes the child's story, or the child relies on it, against the child's best interests (standard 1) | Possible | Minimal | Low |
 | R16 | Pupils' work is lost between lessons, or the school can't meet its retention policy, because where work lives isn't settled (24.2) | Probable until decided | Significant | Medium |
 
@@ -209,7 +209,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | R11 | The microphone is used only while the button is held; audio stays in memory and is discarded after transcription; `prompter.voiceInput` lets a school turn voice input off; no microphone on the key field | S7, S8 | Low (**to verify**, WP14a) |
 | R12 | `website/README.md`'s pre-publish check (no statistics plugins, no Google Fonts or Font Awesome from a CDN, no visitor cookies, nothing from third parties); the browser version on its own origin with no third-party requests (B2); the update check holds nothing about the device (U6); `update.channel=off` | Owner, S8 | Low once the check is done |
 | R13 | Off by default; Google Drive's narrowest scope (`drive.file`), and the equivalent for OneDrive; through the school's own Google or Microsoft accounts, under its agreements (8.5) | S4, owner | Low |
-| R14 | **Recommendation (M14):** keep `backstage.search` off by default, and allow a teacher, not a learner, to switch it on. Search words go to Poly Pizza with the device's IP address, and its catalogue isn't moderated for children. Learners use the shipped Backstage and stand-ins; teachers can import files (3.11). The owner decides (3.12) | Owner | Low |
+| R14 | **Decided (0055):** search is for teachers only, never learners, so no child's search words leave the device; models about guns are screened out by whole-word and compound match; every import still shows its report before reaching a class (3.11); a school can switch search off. The owner chose "on for teachers by default" over the recommended "off by default". The screen is a keyword filter, not moderation | S4, S8 | Low |
 | R15 | No tool can write the logline, synopsis or script (spec 04 §3.4); the story coach only asks; plan before change; the teacher levels | S7 | Low |
 | R16 | Decide 24.2 at M1, before 8.4 | Owner | Low once decided |
 
@@ -269,7 +269,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | 4 | **Transparency:** clear, prominent, age-appropriate privacy information, with "bite-sized" explanations at the point of use | Section 6.2; the learner version of the notice; the AI label | S5 to place the point-of-use explanations; test with children in the pilot |
 | 5 | **Detrimental use of data:** no uses shown to be harmful to children's wellbeing | No profiling, ads, rankings or streaks; the Prompter doesn't grade (R9 in the Anthropic note) | None |
 | 6 | **Policies and community standards:** uphold your own published terms | The privacy notice describes only what the app does; tests check the claims (for example that the browser build makes no third-party request, B2) | Publish terms of use with the release (owner) |
-| 7 | **Default settings:** high privacy by default | Prompter off; voice input only on use; study off; search off; Drive and OneDrive off; AR recording off; first-name credits | Confirm M14 (search) |
+| 7 | **Default settings:** high privacy by default | Prompter off; voice input only on use; study off; search for teachers only (0055); Drive and OneDrive off; AR recording off; first-name credits | None |
 | 8 | **Data minimisation** | Section 4.2 | None |
 | 9 | **Data sharing:** don't disclose children's data unless there's a compelling reason | Only to Anthropic, only when the learner asks the Prompter, only at a level the teacher allows, under the adult's agreement | None |
 | 10 | **Geolocation:** off by default, obvious when on | No location is collected, including in AR (22.9) | None |
