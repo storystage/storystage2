@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { WebIO } from '@gltf-transform/core';
+import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { documentFromMesh, figure, box } from '@storystage/sketches/testing';
 import { applyExcludes, globToRegExp } from './exclude.ts';
 
@@ -71,6 +72,30 @@ describe('globToRegExp', () => {
 });
 
 describe('applyExcludes', () => {
+  // A model the build reduced has WebP textures, so it requires EXT_texture_webp; a rebuild
+  // reads it again (the people, kept from `models/`). Reading it must not fail, nor lose that.
+  it('reads a model that needs a glTF extension, and keeps the extension', async () => {
+    const doc = documentFromMesh(figure());
+    doc.createExtension(EXTTextureWebP).setRequired(true);
+    const texture = doc
+      .createTexture('skin')
+      .setImage(new Uint8Array([0x52, 0x49, 0x46, 0x46]))
+      .setMimeType('image/webp');
+    const material = doc.createMaterial('skin').setBaseColorTexture(texture);
+    for (const mesh of doc.getRoot().listMeshes())
+      for (const prim of mesh.listPrimitives()) prim.setMaterial(material);
+    const hand = doc
+      .getRoot()
+      .listNodes()
+      .find((n) => n.getName() === 'rightHand')!;
+    hand.addChild(doc.createNode('Sword'));
+    const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
+    const result = await applyExcludes(await io.writeBinary(doc), { nodes: ['Sword'] });
+    expect(result.removed.nodes).toEqual(['Sword']);
+    const { json } = await io.binaryToJSON(result.bytes);
+    expect(json.extensionsRequired).toEqual(['EXT_texture_webp']);
+  });
+
   it('removes matching nodes and clips, and what only they used', async () => {
     const before = await armedFigure();
     const result = await applyExcludes(before, { nodes: ['*Sword*'], animations: ['*Melee*'] });

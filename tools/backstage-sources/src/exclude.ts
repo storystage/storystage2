@@ -5,6 +5,7 @@
  * Patterns match whole names, with `*` for any run of characters. VRM files are never rewritten.
  */
 import { WebIO, type Document, type Property } from '@gltf-transform/core';
+import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
 export interface Exclude {
   readonly nodes?: readonly string[];
@@ -27,7 +28,8 @@ export const globToRegExp = (glob: string): RegExp =>
 export async function applyExcludes(bytes: Uint8Array, exclude: Exclude): Promise<Excluded> {
   const nodeRes = (exclude.nodes ?? []).map(globToRegExp);
   const animRes = (exclude.animations ?? []).map(globToRegExp);
-  const io = new WebIO();
+  // Every standard extension: a model the build reduced has WebP textures (`EXT_texture_webp`).
+  const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const doc = await io.readBinary(bytes);
   const root = doc.getRoot();
   const removed = { nodes: [] as string[], animations: [] as string[] };
