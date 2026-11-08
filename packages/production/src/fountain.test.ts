@@ -316,6 +316,42 @@ describe('the boneyard and the title page, from another tool', () => {
   });
 });
 
+describe('a script made to be slow to read', () => {
+  // A script from another tool is the learner's file: reading it must take time in step with its
+  // size, however it is made (CodeQL's polynomial regular expression check).
+  const quick = (text: string) => {
+    const start = performance.now();
+    readFountain(text, counterIds());
+    return performance.now() - start;
+  };
+  const spaces = ' '.repeat(200_000);
+
+  it('reads a line of many spaces quickly, with or without a note after them', () => {
+    expect(quick(`.Forest\n\nThe fox${spaces}x\n`)).toBeLessThan(1000);
+    expect(quick(`.Forest\n\nThe fox${spaces}[[line:a\n`)).toBeLessThan(1000);
+  });
+
+  it('reads many unfinished id notes quickly', () => {
+    expect(quick(`.Forest\n\n${'[[line:!'.repeat(30_000)}\n`)).toBeLessThan(1000);
+  });
+
+  it('reads lines that look like transitions and page breaks quickly', () => {
+    expect(quick(`.Forest\n\n>${'< '.repeat(100_000)}x\n`)).toBeLessThan(1000);
+    expect(quick(`.Forest\n\n${'='.repeat(100_000)}${' '.repeat(100_000)}x\n`)).toBeLessThan(1000);
+  });
+
+  it('reads a speaker followed by many spaces quickly', () => {
+    expect(quick(`.Forest\n\nFOX${spaces}x\nHello.\n`)).toBeLessThan(1000);
+  });
+
+  it('writes a title with many spaces around a line break quickly', () => {
+    const p = exampleProduction();
+    const start = performance.now();
+    writeFountain({ ...p, manifest: { ...p.manifest, title: `A${spaces}\n${spaces}B` } });
+    expect(performance.now() - start).toBeLessThan(1000);
+  });
+});
+
 describe('ids in notes', () => {
   it('gives a new id to a line whose id has been used already', () => {
     const script = read('.A [[scene:s1]]\n\nOne. [[line:x]]\n\nTwo. [[line:x]]\n');

@@ -146,8 +146,11 @@ const nameMightBeMisread = (name: string) =>
 
 // ---- Reading ---------------------------------------------------------------------------------
 
-/** An id note at the very end of a line: `[[scene:s1]]` or `[[line:l1 frame:f1]]`. */
-const ID_NOTE = /\s*\[\[(scene|line):([^\s\]]*)(?:\s+frame:([^\s\]]*))?\]\]\s*$/;
+/**
+ * What is inside an id note: `scene:s1` or `line:l1 frame:f1`. It is matched against the note
+ * alone, never a whole line, so reading takes time in step with the line however it is made.
+ */
+const ID_NOTE_INSIDE = /^(scene|line):([^\s\]]*)(?:\s+frame:([^\s\]]*))?$/;
 
 interface Note {
   readonly kind: 'scene' | 'line';
@@ -155,12 +158,19 @@ interface Note {
   readonly frame: string | null;
 }
 
-/** Splits an id note off the end of a line. */
+/**
+ * Splits an id note off the very end of a line (`[[scene:s1]]`, `[[line:l1 frame:f1]]`), with the
+ * spaces around it.
+ */
 function takeNote(line: string): { text: string; note: Note | null } {
-  const m = ID_NOTE.exec(line);
+  const end = line.trimEnd();
+  if (!end.endsWith(']]')) return { text: line, note: null };
+  const open = end.lastIndexOf('[[');
+  if (open === -1) return { text: line, note: null };
+  const m = ID_NOTE_INSIDE.exec(end.slice(open + 2, -2));
   if (!m) return { text: line, note: null };
   return {
-    text: line.slice(0, m.index),
+    text: end.slice(0, open).trimEnd(),
     note: { kind: m[1] as Note['kind'], id: m[2]!, frame: m[3] ?? null },
   };
 }
@@ -273,7 +283,10 @@ export function readFountain(text: string, ids: FountainIds): ReadFountainResult
 }
 
 /** A speaker's name, without dual dialogue's caret. */
-const speaker = (line: string) => line.replace(/\s*\^\s*$/, '').trim();
+function speaker(line: string): string {
+  const name = line.trimEnd();
+  return (name.endsWith('^') ? name.slice(0, -1) : name).trim();
+}
 
 /** The keys a Fountain title page starts with, and the two this writes. */
 const TITLE_KEYS = new Set([
