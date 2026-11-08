@@ -29,9 +29,12 @@ export function sinceWords(iso: string, now = Date.now()): string {
 /** "Who's making films today?": every pupil's name as a large button, with a search. */
 export function NamePage({
   pupils,
+  problem = null,
   onChoose,
 }: {
   pupils: readonly Pupil[];
+  /** Why the last name chosen couldn't be opened. */
+  problem?: string | null;
   onChoose: (pupil: PupilId) => void;
 }) {
   const [search, setSearch] = useState('');
@@ -45,6 +48,11 @@ export function NamePage({
       <h1 id="ls-title" className="ls-title">
         {words.t('lesson.whoToday')}
       </h1>
+      {problem && (
+        <p role="alert" className="ls-problem">
+          {problem}
+        </p>
+      )}
       <div className="ls-search">
         <TextField
           label={words.t('lesson.searchNames')}
@@ -131,6 +139,23 @@ export function FilmList({
           {words.t('film.switchPupil')}
         </Button>
       )}
+    </main>
+  );
+}
+
+/** The class list or the films' folder couldn't be read: why, and Try again. */
+export function FolderProblem({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <main className="ls-page" aria-labelledby="ls-title">
+      <h1 id="ls-title" className="ls-title">
+        {words.t('lesson.films')}
+      </h1>
+      <p role="alert" className="ls-problem">
+        {message}
+      </p>
+      <Button variant="secondary" icon="history" onPress={onRetry}>
+        {words.t('lesson.tryAgain')}
+      </Button>
     </main>
   );
 }

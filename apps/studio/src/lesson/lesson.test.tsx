@@ -1,4 +1,10 @@
-import { browserHost, type ClassFolders, type HostInterface } from '@storystage/host';
+import {
+  FileError,
+  browserHost,
+  type ClassFolders,
+  type HostInterface,
+  type PupilFolder,
+} from '@storystage/host';
 import { memoryClassFolders, memoryFilePicker } from '@storystage/host/testing';
 import {
   ProductionSaver,
@@ -105,6 +111,9 @@ describe('My films (07-ux 9.1)', () => {
     expect(screen.getByRole('alert').textContent).not.toBe('');
     await userEvent.click(screen.getByRole('button', { name: /Open the version saved/ }));
     expect(await screen.findByRole('button', { name: 'Film: The Lost Kite' })).toBeTruthy();
+    // The earlier version is the film now, before any change: the next lesson opens it.
+    const now = openProduction(await folder.read(info!.key));
+    expect(now.status === 'ok' && now.production.manifest.title).toBe('The Lost Kite');
   });
 });
 
@@ -143,6 +152,19 @@ describe('saving (07-ux 9.2)', () => {
     await userEvent.keyboard('{Control>}s{/Control}');
     expect((await screen.findByRole('alert')).textContent).not.toBe('');
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
+  });
+
+  it('keeps a film open when it couldn’t be saved before leaving it', async () => {
+    const classes = memoryClassFolders(() => new Date(), 10);
+    await classes.addPupil('Sam');
+    render(<App host={hostWith(classes)} />);
+    await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
+    await userEvent.type(await screen.findByRole('textbox', { name: 'Title' }), 'K');
+    await userEvent.click(screen.getByRole('button', { name: 'Film: K' }));
+    await userEvent.click(await screen.findByRole('menuitem', { name: 'My films' }));
+    expect((await screen.findByRole('alert')).textContent).not.toBe('');
+    expect(screen.queryByRole('grid', { name: 'My films' })).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Title' })).toHaveProperty('value', 'K');
   });
 
   it('says once, in the browser, where the films are kept', async () => {
@@ -199,6 +221,47 @@ describe('without a class list', () => {
     render(<App host={hostWith(memoryClassFolders())} />);
     expect(await screen.findByRole('textbox', { name: 'Title' })).toBeTruthy();
     expect(screen.queryByRole('heading', { name: 'Who’s making films today?' })).toBeNull();
+  });
+});
+
+describe('a folder that can’t be opened', () => {
+  it('goes to the name page when a name was added as the device’s folder opened', async () => {
+    const { classes } = await classOf('Sam');
+    let asked = 0;
+    // The first look finds no names; by the time the device's folder opens, Sam is there.
+    const racing = {
+      ...classes,
+      pupils: () => (asked++ === 0 ? Promise.resolve([]) : classes.pupils()),
+      openDevice: (): Promise<PupilFolder> => Promise.reject(new FileError('invalid')),
+    };
+    render(<App host={hostWith(racing)} />);
+    expect(await screen.findByRole('row', { name: 'Sam' })).toBeTruthy();
+  });
+
+  it('says so on the name page when a pupil’s folder won’t open', async () => {
+    const { classes } = await classOf('Sam');
+    const broken = { ...classes, open: () => Promise.reject(new FileError('unreadable')) };
+    render(<App host={hostWith(broken)} />);
+    await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/couldn’t be opened/);
+    expect(screen.getByRole('row', { name: 'Sam' })).toBeTruthy();
+  });
+
+  it('says when the device is full, and tries again', async () => {
+    const classes = memoryClassFolders();
+    let full = true;
+    const device = {
+      ...classes,
+      openDevice: async (): Promise<PupilFolder> => {
+        if (full) throw new FileError('full');
+        return classes.open((await classes.addPupil('Device')).id);
+      },
+    };
+    render(<App host={hostWith(device)} />);
+    expect((await screen.findByRole('alert')).textContent).toMatch(/no room left/);
+    full = false;
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(await screen.findByRole('button', { name: /^Film:/ })).toBeTruthy();
   });
 });
 

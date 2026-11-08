@@ -19,7 +19,7 @@ import {
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
 import { useEffect, useState } from 'react';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
-import { FilmList, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
+import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
@@ -33,7 +33,8 @@ import { useStudio } from './studio.ts';
 /** Where the lesson is (`07-ux.md` section 9.1): before the studio, or in it. */
 type Phase =
   | { readonly kind: 'starting' }
-  | { readonly kind: 'names'; readonly pupils: readonly Pupil[] }
+  | { readonly kind: 'names'; readonly pupils: readonly Pupil[]; readonly problem?: string }
+  | { readonly kind: 'unavailable'; readonly message: string }
   | { readonly kind: 'films'; readonly films: readonly ProductionInfo[] }
   | {
       readonly kind: 'problem';
@@ -61,6 +62,13 @@ function rememberBrowserNote() {
     // A browser that keeps nothing shows the note again next time, which is harmless.
   }
 }
+
+/** The host's `FileError` code, if `error` is one. */
+const codeOf = (error: unknown) => (error as { code?: unknown } | null)?.code;
+
+/** Why the class list or a films' folder couldn't be opened, in plain words. */
+const folderProblem = (error: unknown) =>
+  codeOf(error) === 'full' ? words.t('lesson.folderFull') : words.t('lesson.folderProblem');
 
 /** A film the folder couldn't read opens as broken, with S4's words for why. */
 function unavailableAsBroken(result: Awaited<ReturnType<typeof openFromFolder>>): OpenedProduction {
@@ -114,20 +122,27 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
     begin(newProduction(), new ProductionSaver(into, { key: null }), NO_FILES, null, null);
 
   /** A film read from a folder, a backup or the picker: into the studio, or why it can't be. */
-  const opened = async (into: PupilFolder, result: OpenedProduction, key: string | null) => {
+  const opened = async (
+    into: PupilFolder,
+    result: OpenedProduction,
+    key: string | null,
+    fromBackup = false,
+  ) => {
     if (result.status === 'broken') {
       if (!key) return setNote(result.message);
       const backups = await into.backups(key).catch(() => []);
       return setPhase({ kind: 'problem', key, message: result.message, backups });
     }
     const readOnly = result.status === 'readOnly' ? result.message : null;
-    begin(
-      result.production,
-      new ProductionSaver(into, { key, original: result.original, readOnly }),
-      result.files,
-      readOnly,
-      result.status === 'migrated' ? words.t('lesson.migrated') : readOnly,
-    );
+    const saver = new ProductionSaver(into, { key, original: result.original, readOnly });
+    let message = result.status === 'migrated' ? words.t('lesson.migrated') : readOnly;
+    // An earlier version opened in place of a broken film becomes the film at once: the broken
+    // one is kept as a backup, and the next lesson opens this one.
+    if (fromBackup && readOnly === null) {
+      const saved = await saver.save(result.production, result.files, 'asked');
+      if (!saved.ok) message = saved.problem.message;
+    }
+    begin(result.production, saver, result.files, readOnly, message);
   };
 
   const showFilms = async (into: PupilFolder) => {
@@ -148,7 +163,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   useEffect(() => {
     if (phase.kind !== 'starting') return;
     let gone = false;
-    void (async () => {
+    const start = async (tries: number): Promise<void> => {
       const pupils = await host.classes.pupils();
       if (gone) return;
       if (pupils.length > 0) {
@@ -162,15 +177,32 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
         openDevice?: () => Promise<PupilFolder>;
       };
       if (!classes.openDevice) return setPhase({ kind: 'studio' });
-      const device = await classes.openDevice();
-      if (!gone) await showFilms(device);
-    })();
+      try {
+        const device = await classes.openDevice();
+        if (!gone) await showFilms(device);
+      } catch (error) {
+        // A name added since (another window, or Settings on this device): the name page.
+        if (codeOf(error) === 'invalid' && tries > 0) return start(tries - 1);
+        throw error;
+      }
+    };
+    start(1).catch((error: unknown) => {
+      if (!gone) setPhase({ kind: 'unavailable', message: folderProblem(error) });
+    });
     return () => {
       gone = true;
     };
     // This runs as a lesson starts; `host` and the helpers stay the same for the lesson.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase.kind]);
+
+  const choosePupil = (id: string, pupils: readonly Pupil[]) =>
+    void host.classes
+      .open(id)
+      .then(showFilms)
+      .catch((error: unknown) =>
+        setPhase({ kind: 'names', pupils, problem: folderProblem(error) }),
+      );
 
   const onFilmAction = async (action: FilmAction) => {
     if (!folder) return;
@@ -185,11 +217,12 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
         if (picked.problem.code !== 'cancelled') setNote(picked.problem.message);
         return;
       }
-      await saving.save('auto');
+      if (!(await saving.save('auto'))) return;
       // A copy opens as a new film in this folder, so the file picked is never changed.
       return opened(folder, picked, null);
     }
-    await saving.save('auto');
+    // A film whose save failed stays open: its words show with Try again, and nothing is lost.
+    if (!(await saving.save('auto'))) return;
     if (action === 'new') return newFilm(folder);
     if (action === 'myFilms') return showFilms(folder);
     return backToNames();
@@ -202,8 +235,12 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
           {phase.kind === 'names' && (
             <NamePage
               pupils={phase.pupils}
-              onChoose={(id) => void host.classes.open(id).then(showFilms)}
+              problem={phase.problem}
+              onChoose={(id) => choosePupil(id, phase.pupils)}
             />
+          )}
+          {phase.kind === 'unavailable' && (
+            <FolderProblem message={phase.message} onRetry={() => setPhase({ kind: 'starting' })} />
           )}
           {phase.kind === 'films' && folder && (
             <FilmList
@@ -215,7 +252,14 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
                   opened(folder, unavailableAsBroken(r), key),
                 )
               }
-              onSwitch={hasClass ? () => void backToNames() : undefined}
+              onSwitch={
+                hasClass
+                  ? () =>
+                      void backToNames().catch((error: unknown) =>
+                        setPhase({ kind: 'unavailable', message: folderProblem(error) }),
+                      )
+                  : undefined
+              }
             />
           )}
           {phase.kind === 'problem' && folder && (
@@ -225,10 +269,14 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
               onOpenBackup={(index) =>
                 void folder
                   .readBackup(phase.key, index)
-                  .then((bytes) => opened(folder, openProduction(bytes), phase.key))
+                  .then((bytes) => opened(folder, openProduction(bytes), phase.key, true))
                   .catch(() => setPhase({ ...phase, message: words.t('lesson.cantOpen') }))
               }
-              onBack={() => void showFilms(folder)}
+              onBack={() =>
+                void showFilms(folder).catch((error: unknown) =>
+                  setPhase({ kind: 'unavailable', message: folderProblem(error) }),
+                )
+              }
             />
           )}
         </div>
@@ -253,7 +301,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
               title={title}
               pupilName={folder.pupil.name || null}
               canSwitch={hasClass}
-              onAction={(action) => void onFilmAction(action)}
+              onAction={(action) =>
+                void onFilmAction(action).catch((error: unknown) => setNote(folderProblem(error)))
+              }
             />
           ) : (
             title
