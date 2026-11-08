@@ -3,13 +3,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { App } from '../App.tsx';
+import { newProduction } from './edits.ts';
 
 const field = (name: string) => screen.getByRole('textbox', { name }) as HTMLInputElement;
 const button = (name: RegExp) => screen.getByRole('button', { name });
 
 describe('the script header (10.1)', () => {
   it('starts empty, and the header says the film has no title yet', () => {
-    render(<App />);
+    render(<App start={newProduction()} />);
     expect(field('Title').value).toBe('');
     expect(field('Logline').value).toBe('');
     expect(field('Synopsis').value).toBe('');
@@ -19,7 +20,7 @@ describe('the script header (10.1)', () => {
 
   it('shows the title in the header as it is typed', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await user.type(field('Title'), 'The Owl and the Key');
     expect(screen.getByRole('banner').textContent).toContain('The Owl and the Key');
   });
@@ -32,7 +33,7 @@ describe('the script header (10.1)', () => {
 
   it('stops at the limit and says so', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await user.click(field('Logline'));
     await user.paste('x'.repeat(250));
     expect(field('Logline').value).toHaveLength(200);
@@ -43,7 +44,7 @@ describe('the script header (10.1)', () => {
 describe('undo (07-ux 6.8)', () => {
   it('undoes a field’s typing as one step, named for it', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     expect(button(/^Undo/).hasAttribute('data-disabled')).toBe(true);
     await user.type(field('Logline'), 'A shy owl');
     await user.tab();
@@ -57,7 +58,7 @@ describe('undo (07-ux 6.8)', () => {
 
   it('makes a new step after the learner leaves the field and comes back', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await user.type(field('Synopsis'), 'One.');
     await user.tab();
     await user.type(field('Synopsis'), ' Two.');
@@ -68,7 +69,7 @@ describe('undo (07-ux 6.8)', () => {
 
   it('undoes and redoes with Ctrl+Z and Ctrl+Shift+Z outside a text field', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await user.type(field('Title'), 'Owl');
     await user.click(button(/^Undo/));
     await user.click(button(/^Redo/));
@@ -82,7 +83,7 @@ describe('undo (07-ux 6.8)', () => {
 
   it('leaves Ctrl+Z inside a text field to the field', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await user.type(field('Title'), 'Owl');
     await user.keyboard('{Control>}z{/Control}');
     expect(button(/^Undo/).textContent).toBe('Undo: Write title');
@@ -91,14 +92,14 @@ describe('undo (07-ux 6.8)', () => {
 
 describe('the arc (10.2)', () => {
   it('starts as 3-part, and lists its parts', () => {
-    render(<App />);
+    render(<App start={newProduction()} />);
     expect((screen.getByRole('radio', { name: '3-part' }) as HTMLInputElement).checked).toBe(true);
     expect(screen.getByText('Beginning · Middle · End')).toBeTruthy();
   });
 
   it('changes as one step, named for the new arc', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     await user.click(screen.getByRole('radio', { name: '5-part' }));
     expect(screen.getByText('Setup · Conflict · Challenge · Climax · Resolution')).toBeTruthy();
     expect(button(/^Undo/).textContent).toBe('Undo: Change arc to 5-part');
