@@ -206,3 +206,54 @@ test('axe finds no serious issues with the script pane, a line open and a menu o
   await expect(page.getByRole('menu')).toBeVisible();
   expect(await seriousIssues(page)).toEqual([]);
 });
+
+test('Print storyboard lays it out for the print dialog, A4 landscape, black on white', async ({
+  page,
+}) => {
+  // The print dialog is the device's: a stand-in records the call and leaves the layout up.
+  await page.addInitScript(() => {
+    (window as unknown as { printed: number }).printed = 0;
+    window.print = () => {
+      (window as unknown as { printed: number }).printed++;
+    };
+  });
+  await planThreeScenes(page);
+  await page.getByRole('textbox', { name: 'Title' }).fill('The Owl and the Key');
+  for (let i = 0; i < 4; i++) await page.getByRole('button', { name: 'Add a frame' }).click();
+  for (const name of ['Trees', 'Speech bubble'])
+    await page.getByRole('row', { name: `Add ${name} to frame 3.4` }).click();
+  await page.getByRole('textbox', { name: 'Caption' }).fill('The owl finds the key.');
+  const script = page.getByRole('complementary', { name: 'Script' });
+  await script.getByRole('combobox', { name: 'Who says it' }).fill('Owl');
+  await script.getByRole('combobox', { name: 'Who says it' }).press('Tab');
+  await script.getByRole('textbox', { name: 'New line' }).fill('Here is the key.');
+  await script.getByRole('textbox', { name: 'New line' }).press('Enter');
+  await script.getByRole('button', { name: 'Pin line 1' }).click();
+  await page.getByRole('menuitem', { name: 'Pin to frame 3.4, this frame' }).click();
+
+  await page.getByRole('button', { name: 'Print storyboard' }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { printed: number }).printed))
+    .toBe(1);
+  await page.emulateMedia({ media: 'print', colorScheme: 'dark' });
+  // Only the layout prints, in ink on paper whatever the theme.
+  await expect(page.locator('.studio-shell')).toBeHidden();
+  await expect(page.locator('.sb-print')).toBeVisible();
+  const colours = await page.locator('.sb-print-root').evaluate((el) => {
+    const s = getComputedStyle(el);
+    return [s.color, s.backgroundColor];
+  });
+  expect(colours).toEqual(['rgb(22, 20, 18)', 'rgb(255, 255, 255)']);
+  const frames = page.locator('.sb-print-scene').nth(2).locator('.sb-print-frame');
+  await expect(frames).toHaveCount(4);
+  // Three frames to a row.
+  const tops = await frames.evaluateAll((els) => els.map((e) => e.getBoundingClientRect().top));
+  expect(tops[0]).toBe(tops[2]);
+  expect(tops[3]).toBeGreaterThan(tops[0]!);
+  await expect(frames.nth(3)).toContainText('The owl finds the key.');
+  await expect(frames.nth(3)).toContainText('Here is the key.');
+  await page.pdf({ path: 'test-results/storyboard-print.pdf', preferCSSPageSize: true });
+  // When the dialog closes, the layout goes.
+  await page.evaluate(() => window.dispatchEvent(new Event('afterprint')));
+  await expect(page.locator('.sb-print-root')).toHaveCount(0);
+});
