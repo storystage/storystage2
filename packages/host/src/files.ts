@@ -126,6 +126,9 @@ export interface PupilFolder {
   remove(key: ProductionKey): Promise<void>;
 }
 
+/** The device's own folder's pupil (`ClassFolders.openDevice`). No class pupil has this id. */
+export const DEVICE_PUPIL: Pupil = { id: 'device', name: '', picture: null };
+
 /** Who a class Backstage item belongs to: the class, or the one pupil who imported it. */
 export type BackstageOwner = 'class' | PupilId;
 
@@ -202,6 +205,14 @@ export interface ClassFolders {
    * which reach every pupil's folder in turn. `not_found` for a pupil who isn't in the class.
    */
   folder(id: PupilId): Promise<PupilFolder>;
+  /**
+   * The device's own folder, for a device with no class list, at home or in a club (07-ux
+   * section 9.1). It's outside the class list: `pupils()` never lists it, `folder(id)` can't
+   * reach it, so Collect leaves it out, and the Prompter counts against the device. It becomes
+   * the current folder, as `open` does. Its pupil is `DEVICE_PUPIL`. A film removed there goes to
+   * the bin as `pupil: 'device'`, so it can be restored.
+   */
+  openDevice(): Promise<PupilFolder>;
   /** The folder in use, if a pupil has chosen their name. */
   current(): PupilFolder | null;
   /** At the end of a lesson: waits for writes in progress, then nobody's folder is open. */

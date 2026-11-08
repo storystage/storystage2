@@ -438,6 +438,8 @@ pupils/<pupil id>/<key>/original.storystage    the untouched original of a migra
 bin/<pupil id>/<key>/...                       the same, with "binnedAt" in meta.json
 ```
 
+**The device's own folder** is `pupils/device/`, for a device with no class list, at home or in a club (`ClassFolders.openDevice`, 07-ux section 9.1). No class pupil has the id `device`, as theirs are random. It's outside the class list, so `folder(id)` and Collect never reach it, and the Prompter counts against the device while it's open. A film removed there goes to the bin as `pupil: "device"`, and can be restored.
+
 `current` and each backup are `{ "file", "savedAt", "bytes" }`. Pupil ids and keys are random (`pupil-` or `production-`, then 12 letters and digits), so two windows never pick the same one. Names are only ever in `class.json` and `meta.json`, never in a path. A name can't be unsafe on disk, and the class list stays on the device (threat PS3).
 
 ### 6.3 A save is atomic
