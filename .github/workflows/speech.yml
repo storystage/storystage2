@@ -37,6 +37,9 @@ jobs:
           path: ${{ runner.temp }}/whisper-work
           key: speech-whisper-${{ hashFiles('packages/speech/scripts/*.sh') }}
       - name: Build whisper.cpp
+        # Diagnosing a hang: the spike's 512 MB at start, against spec 06's 64 MB.
+        env:
+          WHISPER_INITIAL_MEMORY: 512MB
         run: bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" packages/speech/browser/harness/public
       - name: Fetch and check the model, and the test clip
         run: bash packages/speech/scripts/fetch-test-assets.sh "$RUNNER_TEMP/whisper-work" packages/speech/browser/harness/public

@@ -11,12 +11,14 @@ WHISPER_VERSION=v1.9.5
 # The commit the tag points to, so a moved tag can't change what is built.
 WHISPER_COMMIT=d1be6fde11ac6e0407606b4e42fe72d34add8037
 EMSDK_VERSION=6.0.13
+# Spec 06 section 1.2 sets 64 MB at start; to measure at M1. Settable to compare.
+INITIAL_MEMORY="${WHISPER_INITIAL_MEMORY:-64MB}"
 
 WORK="${1:?work dir}"
 OUT="${2:?out dir}"
 mkdir -p "$WORK" "$OUT"
 
-if [ ! -f "$WORK/whisper-build/whisper.js" ]; then
+if [ ! -f "$WORK/whisper-build/whisper.js" ] || ! grep -q "INITIAL_MEMORY=$INITIAL_MEMORY," "$WORK/whisper-build/VERSION.txt"; then
   [ -d "$WORK/emsdk" ] || git clone -q --depth 1 https://github.com/emscripten-core/emsdk "$WORK/emsdk"
   (cd "$WORK/emsdk" && ./emsdk install "$EMSDK_VERSION" > /dev/null && ./emsdk activate "$EMSDK_VERSION" > /dev/null)
   # shellcheck disable=SC1091
@@ -34,12 +36,12 @@ if [ ! -f "$WORK/whisper-build/whisper.js" ]; then
   cmake_file="$WORK/whisper.cpp/examples/whisper.wasm/CMakeLists.txt"
   sed -i \
     -e "s/'print', 'printErr', 'ccall', 'cwrap', 'HEAPU8'/'print', 'printErr', 'ccall', 'cwrap', 'HEAPU8', 'FS'/" \
-    -e 's/INITIAL_MEMORY=512MB/INITIAL_MEMORY=64MB/' \
+    -e "s/INITIAL_MEMORY=512MB/INITIAL_MEMORY=$INITIAL_MEMORY/" \
     -e 's/MAXIMUM_MEMORY=2000MB/MAXIMUM_MEMORY=1024MB/' \
     -e 's/-s FORCE_FILESYSTEM=1/-s FORCE_FILESYSTEM=1 -s INCOMING_MODULE_JS_API=\\"[print,printErr,locateFile,onRuntimeInitialized,onAbort,mainScriptUrlOrBlob]\\"/' \
     "$cmake_file"
   grep -q "'HEAPU8', 'FS'" "$cmake_file"
-  grep -q 'INITIAL_MEMORY=64MB' "$cmake_file"
+  grep -q "INITIAL_MEMORY=$INITIAL_MEMORY" "$cmake_file"
   grep -q 'MAXIMUM_MEMORY=1024MB' "$cmake_file"
   grep -q 'ALLOW_MEMORY_GROWTH=1' "$cmake_file"
   grep -qF 'INCOMING_MODULE_JS_API=\"[print,printErr,locateFile,onRuntimeInitialized,onAbort,mainScriptUrlOrBlob]\"' "$cmake_file"
@@ -52,7 +54,7 @@ if [ ! -f "$WORK/whisper-build/whisper.js" ]; then
   cp "$WORK/whisper.cpp/build-em/bin/whisper.wasm/main.js" "$WORK/whisper-build/whisper.js"
   cp "$WORK/whisper.cpp/LICENSE" "$WORK/whisper-build/LICENSE-whisper.cpp.txt"
   cp "$WORK/whisper.cpp/samples/jfk.wav" "$WORK/whisper-build/jfk.wav"
-  echo "whisper.cpp $WHISPER_VERSION ($WHISPER_COMMIT), Emscripten $EMSDK_VERSION, INITIAL_MEMORY=64MB, MAXIMUM_MEMORY=1024MB" \
+  echo "whisper.cpp $WHISPER_VERSION ($WHISPER_COMMIT), Emscripten $EMSDK_VERSION, INITIAL_MEMORY=$INITIAL_MEMORY, MAXIMUM_MEMORY=1024MB, INCOMING_MODULE_JS_API with mainScriptUrlOrBlob" \
     > "$WORK/whisper-build/VERSION.txt"
 fi
 
