@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { MANIFEST_VERSION, creditLines, mayDistribute, validateManifest } from './manifest.ts';
+import {
+  MANIFEST_VERSION,
+  SHIPPED_LICENCES,
+  creditLines,
+  mayDistribute,
+  validateManifest,
+} from './manifest.ts';
 
 const cat = {
   id: 'kenney/Quadruped/cat',
@@ -10,6 +16,7 @@ const cat = {
   files: { model: 'models/kenney/cat.glb', thumbnail: 'thumbs/kenney/cat.webp' },
   joints: ['head', 'neck'],
   defaultSize: { height: 0.3 },
+  budget: { triangles: 4386, textureMaxPx: 512 },
   licence: 'CC0-1.0',
   credit: 'Cat by Kenney (CC0)',
   source: { url: 'https://kenney.nl/assets', retrieved: '2026-10-20' },
@@ -70,7 +77,48 @@ describe('validateManifest', () => {
     ).toBe(true);
   });
 
+  it('ships only the licences the audit allows: CC0, CC BY and written permission', () => {
+    for (const licence of ['CC-BY-SA-4.0', 'CC-BY-NC-4.0', 'own-work', 'not-sure']) {
+      const r = validateManifest(manifest({ ...cat, licence }));
+      expect(r.ok, licence).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(/shipped/);
+    }
+    for (const licence of ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0'])
+      expect(validateManifest(manifest({ ...cat, licence })).ok, licence).toBe(true);
+    // A class may still import a share-alike or non-commercial model (3.12).
+    const imported = { ...cat, origin: 'imported' };
+    expect(validateManifest(manifest({ ...imported, licence: 'CC-BY-SA-4.0' })).ok).toBe(true);
+    expect(validateManifest(manifest({ ...imported, licence: 'CC-BY-NC-4.0' })).ok).toBe(true);
+    expect(SHIPPED_LICENCES).toEqual(['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0', 'permission']);
+  });
+
+  it('needs what every model was reduced to', () => {
+    const noBudget = { ...cat, budget: undefined };
+    for (const bad of [
+      noBudget,
+      { ...cat, budget: { triangles: -1, textureMaxPx: 512 } },
+      { ...cat, budget: { triangles: 4386.5, textureMaxPx: 512 } },
+      { ...cat, budget: { triangles: 4386 } },
+    ]) {
+      const r = validateManifest(manifest(bad));
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(/budget/);
+    }
+    // A model with no textures has a largest texture of 0.
+    expect(
+      validateManifest(manifest({ ...cat, budget: { triangles: 12, textureMaxPx: 0 } })).ok,
+    ).toBe(true);
+  });
+
+  it("records a VRM file's version, and nothing else there", () => {
+    expect(validateManifest(manifest({ ...cat, vrm: '0' })).ok).toBe(true);
+    expect(validateManifest(manifest({ ...cat, vrm: '1' })).ok).toBe(true);
+    expect(validateManifest(manifest({ ...cat, vrm: '2' })).ok).toBe(false);
+  });
+
   it('refuses the wrong version and junk', () => {
+    expect(MANIFEST_VERSION).toBe('2.0.0');
+    expect(validateManifest({ manifestVersion: '1.0.0', items: [] }).ok).toBe(false);
     expect(validateManifest({ manifestVersion: '0.1', items: [] }).ok).toBe(false);
     expect(validateManifest(null).ok).toBe(false);
     expect(validateManifest(manifest('cat')).ok).toBe(false);

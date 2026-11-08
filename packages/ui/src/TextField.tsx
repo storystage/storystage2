@@ -2,6 +2,7 @@ import {
   Input,
   Label,
   Text,
+  TextArea,
   TextField as AriaTextField,
   type TextFieldProps as AriaTextFieldProps,
 } from 'react-aria-components';
@@ -19,22 +20,37 @@ export interface TextFieldProps extends Omit<AriaTextFieldProps, 'children' | 'c
   onSpeak?: () => void;
   /** Hides the label visually, where the layout already shows it (it stays for screen readers). */
   hideLabel?: boolean;
+  /** A paragraph rather than a line, such as a synopsis. */
+  multiline?: boolean;
 }
 
-/** A text field, 48 px tall, with its mic button beside it (Direction A). */
+/**
+ * A text field, 48 px tall (taller for a paragraph), with its mic button beside it (Direction A).
+ * With `maxLength`, typing stops at the limit and the field says so (`07-ux.md` section 6.9).
+ */
 export function TextField({
   label,
   placeholder,
   description,
   onSpeak,
   hideLabel,
+  multiline,
   ...props
 }: TextFieldProps) {
+  const atLimit =
+    props.maxLength !== undefined &&
+    typeof props.value === 'string' &&
+    props.value.length >= props.maxLength;
+  const note = atLimit ? messages.t('field.atLimit', { n: props.maxLength! }) : description;
   return (
     <AriaTextField {...props} className="ss-field">
       <Label className={hideLabel ? 'ss-visually-hidden' : 'ss-field-label'}>{label}</Label>
       <div className="ss-field-row">
-        <Input className="ss-input" placeholder={placeholder} />
+        {multiline ? (
+          <TextArea className="ss-input ss-textarea" placeholder={placeholder} />
+        ) : (
+          <Input className="ss-input" placeholder={placeholder} />
+        )}
         {onSpeak && (
           <Button
             variant="secondary"
@@ -44,9 +60,9 @@ export function TextField({
           />
         )}
       </div>
-      {description && (
+      {note && (
         <Text slot="description" className="ss-field-description">
-          {description}
+          {note}
         </Text>
       )}
     </AriaTextField>

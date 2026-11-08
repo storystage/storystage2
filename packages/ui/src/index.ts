@@ -21,7 +21,7 @@ export { contrastRatio } from './contrast.ts';
 export { cssVar, themeVariables } from './css.ts';
 export { createStrings, format, type Messages, type Strings, type Values } from './strings.ts';
 export { messages, type MessageKey } from './messages.ts';
-export { ThemeRoot, type ThemeRootProps } from './ThemeRoot.tsx';
+export { ThemeRoot, useThemeStyle, type ThemeRootProps } from './ThemeRoot.tsx';
 export { Icon, type IconName, type IconProps } from './Icon.tsx';
 export { Button, type ButtonProps, type ButtonVariant } from './Button.tsx';
 export {
@@ -52,3 +52,10 @@ export {
 } from './Choice.tsx';
 export { TextField, type TextFieldProps } from './TextField.tsx';
 export { Dialog, type DialogProps } from './Dialog.tsx';
+export { PlanSteps, moveSteps, type PlanStep, type PlanStepsProps } from './PlanSteps.tsx';
+export {
+  FrameStrip,
+  type FrameCardData,
+  type FrameStripProps,
+  type SceneFrames,
+} from './FrameStrip.tsx';

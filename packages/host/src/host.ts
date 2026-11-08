@@ -28,10 +28,13 @@ export const browserHost: HostInterface = {
 /** The Tauri command that returns the installed version. It takes no arguments. */
 export const VERSION_COMMAND = 'app_version';
 
+/** Three whole numbers, such as `1.4.2`: the versions the release workflow makes. */
+const VERSION = /^\d{1,6}\.\d{1,6}\.\d{1,6}$/;
+
 async function readVersion(invoke: (command: string) => Promise<unknown>): Promise<string | null> {
   try {
     const reply = await invoke(VERSION_COMMAND);
-    return typeof reply === 'string' ? reply : null;
+    return typeof reply === 'string' && VERSION.test(reply) ? reply : null;
   } catch {
     return null;
   }
@@ -39,12 +42,14 @@ async function readVersion(invoke: (command: string) => Promise<unknown>): Promi
 
 /**
  * The Tauri apps' host. `invoke` is Tauri's, and `prompter` is the native transport, both passed
- * in by the Tauri entry point so this package has no Tauri in it.
+ * in by the Tauri entry point so this package has no Tauri in it. If the policy can't be read,
+ * the studio gets no way to reach the Prompter at all, as well as the native layer refusing.
  */
 export async function tauriHost(
   invoke: (command: string) => Promise<unknown>,
   prompter: PrompterTransport,
 ): Promise<HostInterface> {
   const [policy, version] = await Promise.all([readPolicy(invoke), readVersion(invoke)]);
-  return { policy, prompter, version };
+  const reachable = policy.source === 'unreadable' ? offTransport : prompter;
+  return { policy, prompter: reachable, version };
 }

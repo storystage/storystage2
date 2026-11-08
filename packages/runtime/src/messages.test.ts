@@ -13,7 +13,7 @@ import {
 const load: ToRuntime = {
   type: 'load',
   protocol: RUNTIME_PROTOCOL,
-  program: { schemaVersion: '1.0.0' },
+  program: { schemaVersion: '1.0.0', types: [] },
   scene: { backdrop: {}, objects: [], camera: { transform: IDENTITY }, markers: [] },
   entry: nodeId('m1'),
   seed: 42,
