@@ -1,0 +1,103 @@
+# Builds a release and puts it on the pilot channel (WP15.7, spec 05 section 4). Every build goes
+# to pilot first; channel.yml promotes it to stable.
+# The `release` environment holds the updater key: secrets TAURI_SIGNING_PRIVATE_KEY and
+# TAURI_SIGNING_PRIVATE_KEY_PASSWORD, and variable STORYSTAGE_UPDATER_PUBKEY. By hand only, and
+# with no build cache, so nothing from a pull request can reach a signed build.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollout:
+        description: The percentage of pilot devices offered this build
+        required: true
+        default: '100'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+
+jobs:
+  build:
+    name: build (${{ matrix.name }})
+    environment: release
+    strategy:
+      matrix:
+        include:
+          - name: windows
+            os: windows-latest
+            args: ''
+            rust-targets: ''
+            bundles: apps/desktop/src-tauri/target/release/bundle/nsis
+          - name: macos
+            os: macos-latest
+            args: --target universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            bundles: apps/desktop/src-tauri/target/universal-apple-darwin/release/bundle/macos
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+          targets: ${{ matrix.rust-targets }}
+      - uses: ./.github/actions/setup
+      - name: Build and sign the update
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          STORYSTAGE_UPDATER_PUBKEY: ${{ vars.STORYSTAGE_UPDATER_PUBKEY }}
+        run: |
+          test -n "$STORYSTAGE_UPDATER_PUBKEY"
+          pnpm --filter @storystage/desktop tauri build ${{ matrix.args }} \
+            --config '{"bundle":{"createUpdaterArtifacts":true}}' -- --locked
+      - name: Gather the update files
+        shell: bash
+        run: |
+          mkdir out
+          cd "${{ matrix.bundles }}"
+          # GitHub changes spaces in the names of release files.
+          for file in *-setup.exe *-setup.exe.sig *.app.tar.gz *.app.tar.gz.sig; do
+            if [ -f "$file" ]; then cp "$file" "$GITHUB_WORKSPACE/out/${file// /-}"; fi
+          done
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: update-${{ matrix.name }}
+          path: out/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: publish
+    needs: build
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ROLLOUT: ${{ inputs.rollout }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish the build and move the pilot channel
+        run: |
+          version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          node apps/desktop/scripts/update-manifest.mjs build "$version" dist dist/latest.json
+          gh release create "v$version" dist/* --prerelease --target "$GITHUB_SHA" \
+            --title "StoryStage 2 $version" --notes "On the pilot channel."
+
+          mkdir channel
+          cp dist/latest.json channel/latest.json
+          node apps/desktop/scripts/update-manifest.mjs rollout channel/latest.json "$ROLLOUT"
+          gh release view channel-pilot > /dev/null 2>&1 || gh release create channel-pilot \
+            --prerelease --title "Pilot channel" --notes "Holds only the pilot channel's manifest."
+          gh release upload channel-pilot channel/latest.json --clobber

@@ -23,10 +23,20 @@ export const PROMPTER_MODES = [
 ] as const;
 export type PrompterMode = (typeof PROMPTER_MODES)[number];
 
+/**
+ * The API betas a request may ask for (`docs/spec/04-prompter.md`, section 1.4). A beta is an
+ * `anthropic-beta` header, not part of the body, so the native layer adds it, after checking it
+ * against its own copy of this list.
+ */
+export const ALLOWED_BETAS = ['server-side-fallback-2026-07-01'] as const;
+export type PrompterBeta = (typeof ALLOWED_BETAS)[number];
+
 export interface PrompterRequest {
   /** Unique per request, so it can be cancelled and matched in logs. */
   readonly id: string;
   readonly mode: PrompterMode;
+  /** Betas this body needs. Omitted when it needs none. */
+  readonly betas?: readonly PrompterBeta[];
   /**
    * A Messages API request body (model, max_tokens, system, tools, messages, stream: true).
    * Never a key or an auth header: the native layer adds those, and refuses a body that has them.
@@ -125,7 +135,8 @@ export const offTransport: PrompterTransport = {
 
 /**
  * A transport that replays scripted events, for unit tests. (Tests of the whole request loop
- * use `tools/fake-claude`, WP13.7.) It refuses requests containing a secret, like a real one.
+ * use `tools/fake-claude`, WP13.7.) It refuses requests containing a secret or an unlisted beta,
+ * like a real one.
  */
 export function scriptedTransport(
   script: (request: PrompterRequest) => readonly PrompterEvent[],
@@ -139,6 +150,10 @@ export function scriptedTransport(
     async *send(request, signal) {
       if (containsSecret(request)) {
         yield { type: 'error', code: 'refused_by_policy' };
+        return;
+      }
+      if (request.betas?.some((beta) => !ALLOWED_BETAS.includes(beta))) {
+        yield { type: 'error', code: 'refused_by_allowlist' };
         return;
       }
       sent.push(request);

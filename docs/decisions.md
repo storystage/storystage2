@@ -57,7 +57,14 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | AR is iPad-first | Spike 1.9 and AR design mode (WP21) are built and measured on the reference iPad (native ARKit in the Tauri iOS app). Android tablet AR works where supported, untested; no reference Android tablet unless the school IT managers (1.11) show schools have them. Revisit after M1 (0042) | 25 Oct 2026 |
 | Update hosting and the updater key | Updates are static files on GitHub Releases, named in the DPIA. The owner generates the updater key and keeps an offline copy (0047) | 1 Nov 2026 |
 | S8 merges its own pull requests | As S1 does under 0029, for #86, #87, #88, #98, #99, #100, #106 and #108 to #111; `contract` pull requests wait for S5's review (0048) | 1 Nov 2026 |
-| Key entry | The Claude key is typed into a system dialog, never into the studio. Screen 10c's field becomes an Add key button. The iPad's dialog waits for the Apple developer account (0049) | 1 Nov 2026 |
+| Imported models in the file | A `.storystage` file holds a copy of every class-imported model the production uses, with its Backstage record. Shipped models stay out (0049) | 1 Nov 2026 |
+| S2 merging | S2 squash-merges #90, #92, #94, #96, #97 and #101 in stack order once checks pass; the owner reviews afterwards. These six only (0050) | 1 Nov 2026 |
+| Joints and optional events | Joints turn only. `viewEnter` and `viewExit` are added to 6.2. Occlusion waits for S3's measurement. Point-of-view and drag-while-playing events are left out (0051) | 1 Nov 2026 |
+| S6 merging | S6 squash-merges its WP4 pull requests once checks pass; those changing the contract files wait for the other owner (0052) | 1 Nov 2026 |
+| S3 merging | S3 squash-merges #114, #115, #117 and #118 in stack order once checks pass; the owner reviews afterwards. These four only (0053) | 1 Nov 2026 |
+| Storyboard print | The Storyboard PDF (10.7) comes from a print layout and the device's print dialog (Save as PDF); no PDF library (0054) | 7 Nov 2026 |
+| Story API open specification | Text CC BY 4.0, JSON files Apache-2.0; published as 0.9, a draft, with 1.0 at the release candidate; the owner decides changes, with no fixed comment period; in the repository with a GitHub release per version, and storystage.org ids (0055) | 8 Nov 2026 |
+| Key entry | The Claude key is typed into a system dialog, never into the studio. Screen 10c's field becomes an Add key button. The iPad's dialog waits for the Apple developer account (0056) | 1 Nov 2026 |
 
 ## Still to decide (owner)
 

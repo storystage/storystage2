@@ -8,3 +8,8 @@ packages:
 # Only these dependencies may run install scripts (supply-chain control).
 onlyBuiltDependencies:
   - esbuild
+
+# sharp bundles libvips (LGPL): build tools only, never linked into the app (CLAUDE.md rule 8;
+# owner, 7 Nov 2026). glTF Transform needs it only to resize textures in Node; the tools pass their own.
+overrides:
+  ndarray-pixels>sharp: '-'
