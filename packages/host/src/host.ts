@@ -45,7 +45,15 @@ export interface HostInterface {
    * 2.4). `null` in the browser version, which has no Prompter.
    */
   readonly prompterUsage: PrompterUsage | null;
+  /**
+   * Whether this device keeps the pupil folders' files for sure (spec 05 section 6.1). Always
+   * `true` in the Tauri apps. In the browser version, whether the browser agreed to keep them, so
+   * Settings can say "This browser may clear your films if space runs low" when it didn't.
+   */
+  storagePersistent(): Promise<boolean>;
 }
+
+const browserFiles = browserStore();
 
 /** The browser version's host (0022, 15.6): the Prompter has no way to reach anything. */
 export const browserHost: HostInterface = {
@@ -53,9 +61,10 @@ export const browserHost: HostInterface = {
   prompter: offTransport,
   version: null,
   speech: null,
-  classes: storedClassFolders(browserStore()),
+  classes: storedClassFolders(browserFiles),
   picker: browserPicker(),
   prompterUsage: null,
+  storagePersistent: () => browserFiles.persistent(),
 };
 
 /** The Tauri command that returns the installed version. It takes no arguments. */
@@ -100,5 +109,7 @@ export async function tauriHost(
     classes: countingFor(storedClassFolders(tauriStore(invoke)), invoke),
     picker: pickerKind === 'native' ? tauriPicker(invoke) : browserPicker(),
     prompterUsage: tauriUsage(invoke),
+    // The native store, in the app's own data: never cleared by a browser.
+    storagePersistent: async () => true,
   };
 }

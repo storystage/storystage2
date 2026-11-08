@@ -118,6 +118,9 @@ importers:
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
 
   packages/ar: {}
 

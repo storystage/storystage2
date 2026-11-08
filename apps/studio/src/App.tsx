@@ -23,6 +23,7 @@ import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonP
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
+import { ClassSetup } from './settings/ClassSetup.tsx';
 import { Shell } from './shell/Shell.tsx';
 import { words } from './strings.ts';
 import { newProduction } from './storyboard/edits.ts';
@@ -42,6 +43,7 @@ type Phase =
       readonly message: string;
       readonly backups: readonly BackupInfo[];
     }
+  | { readonly kind: 'settings' }
   | { readonly kind: 'studio' };
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
@@ -171,14 +173,8 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
         setPhase({ kind: 'names', pupils });
         return;
       }
-      // `openDevice` arrives with S8's #248. Until then, a device with no class list works
-      // without saving, as the studio always has.
-      const classes = host.classes as typeof host.classes & {
-        openDevice?: () => Promise<PupilFolder>;
-      };
-      if (!classes.openDevice) return setPhase({ kind: 'studio' });
       try {
-        const device = await classes.openDevice();
+        const device = await host.classes.openDevice();
         if (!gone) await showFilms(device);
       } catch (error) {
         // A name added since (another window, or Settings on this device): the name page.
@@ -237,7 +233,23 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
               pupils={phase.pupils}
               problem={phase.problem}
               onChoose={(id) => choosePupil(id, phase.pupils)}
+              onSettings={() => setPhase({ kind: 'settings' })}
             />
+          )}
+          {phase.kind === 'settings' && (
+            <main className="ls-settings" aria-labelledby="ls-settings-title">
+              <h1 id="ls-settings-title" className="ls-title">
+                {words.t('shell.settings.title')}
+              </h1>
+              <Button
+                variant="quiet"
+                icon="arrow_back"
+                onPress={() => setPhase({ kind: 'starting' })}
+              >
+                {words.t('lesson.backToNames')}
+              </Button>
+              <ClassSetup host={host} />
+            </main>
           )}
           {phase.kind === 'unavailable' && (
             <FolderProblem message={phase.message} onRetry={() => setPhase({ kind: 'starting' })} />
@@ -328,6 +340,12 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
           void saving.save('auto');
           setMode(next);
         }}
+        settings={
+          <ClassSetup
+            host={host}
+            open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
+          />
+        }
         panels={{
           storyboard: <Storyboard studio={studio} place={place} onPlaceChange={setPlace} />,
           production: (

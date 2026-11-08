@@ -70,7 +70,7 @@ describe('the name page (07-ux 9.1)', () => {
     const { classes } = await classOf('Sam');
     render(<App host={hostWith(classes)} />);
     await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
-    const film = await screen.findByRole('button', { name: 'Film: Untitled film' });
+    const film = await screen.findByRole('button', { name: 'Film: Untitled film · Sam' });
     expect(film.textContent).toContain('Sam');
   });
 });
@@ -92,7 +92,7 @@ describe('My films (07-ux 9.1)', () => {
       'The Lost Kite',
     ]);
     await userEvent.click(rows[2]!);
-    expect(await screen.findByRole('button', { name: 'Film: The Lost Kite' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Film: The Lost Kite · Sam' })).toBeTruthy();
   });
 
   it('offers the earlier versions of a film that can’t be opened', async () => {
@@ -110,7 +110,7 @@ describe('My films (07-ux 9.1)', () => {
     ).toBeTruthy();
     expect(screen.getByRole('alert').textContent).not.toBe('');
     await userEvent.click(screen.getByRole('button', { name: /Open the version saved/ }));
-    expect(await screen.findByRole('button', { name: 'Film: The Lost Kite' })).toBeTruthy();
+    expect(await screen.findByRole('button', { name: 'Film: The Lost Kite · Sam' })).toBeTruthy();
     // The earlier version is the film now, before any change: the next lesson opens it.
     const now = openProduction(await folder.read(info!.key));
     expect(now.status === 'ok' && now.production.manifest.title).toBe('The Lost Kite');
@@ -160,7 +160,7 @@ describe('saving (07-ux 9.2)', () => {
     render(<App host={hostWith(classes)} />);
     await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
     await userEvent.type(await screen.findByRole('textbox', { name: 'Title' }), 'K');
-    await userEvent.click(screen.getByRole('button', { name: 'Film: K' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Film: K · Sam' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'My films' }));
     expect((await screen.findByRole('alert')).textContent).not.toBe('');
     expect(screen.queryByRole('grid', { name: 'My films' })).toBeNull();
@@ -188,7 +188,7 @@ describe('the Film menu (07-ux 9.3)', () => {
     render(<App host={hostWith(classes)} />);
     await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
     await userEvent.type(await screen.findByRole('textbox', { name: 'Title' }), 'Kite');
-    await userEvent.click(screen.getByRole('button', { name: 'Film: Kite' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Film: Kite · Sam' }));
     await userEvent.click(await screen.findByRole('menuitem', { name: 'My films' }));
     const films = await screen.findByRole('grid', { name: 'My films' });
     // Leaving the film saved it.

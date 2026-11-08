@@ -4,6 +4,7 @@ import './shell/shell.css';
 import './storyboard/storyboard.css';
 import './production/production.css';
 import './lesson/lesson.css';
+import './settings/settings.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { exampleProduction } from '@storystage/production';
