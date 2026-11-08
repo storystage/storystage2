@@ -78,6 +78,8 @@ pub fn run() {
             prompter::prompter_send,
             prompter::prompter_cancel,
             prompter::prompter_status,
+            prompter::prompter_pupil,
+            prompter::prompter_usage,
             prompter::key_add,
             prompter::key_status,
             prompter::key_remove,
