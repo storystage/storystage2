@@ -5,3 +5,4 @@
  * Owner: S2. Workplan: WP11 (decision 0067). Spec: `docs/spec/08-export.md`, sections 2 to 4.
  */
 export * from './rough-cut.ts';
+export * from './RoughCut.tsx';

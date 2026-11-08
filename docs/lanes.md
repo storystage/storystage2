@@ -26,10 +26,11 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - In review:
-  - 8 Nov (PR open): **WP11.1 begins: measuring** (`measure` in `packages/playback`), the timeline the rough cut and the export start from: scene starts and lengths, block start times and lines. The runtime's fixed mode takes `trace` and sends `ran`, every block's exact start (spec 18 section 1); additive, so live play is unchanged. **S5:** `PlaybackOptions` has `viewerWait` and `trace` now; Rehearse leaves both unset.
+  - 8 Nov (PR open): **WP11.1, part 2: the rough cut screen**: `packages/screening` (decision 0067) with `RoughCut`, the player, the bar, the running order strip, errors and the shared place, and its logic. **S5:** the mount, and who owns the stage, are in the PR.
   - 8 Nov (#254): **WP11.4: the title card, captions and end credits** in `packages/export/src/film` (spec 08 sections 5 to 7). **S4:** the credits take a `notices` function until Backstage records say which notice a model needs.
-  - 8 Nov (#246, approved; waits for S5's #253 to fix main's e2e): **`getJoint` and `getJointChain`**; anim-06's head turn runs.
 - Merged:
+  - 8 Nov (#255): **WP11.1, part 1: measuring** (`measure` in `packages/playback`), the timeline the rough cut and the export start from. The runtime's fixed mode takes `trace` and sends `ran`, every block's exact start (spec 18 section 1). **S5:** `PlaybackOptions` has `viewerWait` and `trace`; Rehearse leaves both unset.
+  - 8 Nov (#246): **`getJoint` and `getJointChain`**; anim-06's head turn runs, so all the TR1 programs run in full.
   - 8 Nov (#245): **a question to the stage resumes with the whole answer**, as `STORY_LIBRARY` reads it. Before, every question came back undefined in a real run.
   - 8 Nov (#244): **the driver uses the stage's preload and crossfade** (S3's #234).
   - 8 Nov (#232): **WP11b, WP6.4: `packages/playback`**, the driver that plays a production: the runtime in fixed steps with a 100 ms lookahead, S4's `ProductionPlayer` and the stage on one path, live or not; fast-forward to a time or a block, `LiveClock`, the errors in plain words (6.3) and `startRuntimeWorker`. **S5:** Rehearse is the driver with `mode: 'rehearse'` (spec 08 section 1).

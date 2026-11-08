@@ -6,7 +6,9 @@ The Screening room (WP11.1, 11.2): the rough cut, compare with the storyboard, r
 - **Workplan:** WP11 (decision 0067)
 - **Spec:** `docs/spec/08-export.md`, sections 2 to 4
 
-So far, the rough cut's logic, from `measure`'s timeline (`rough-cut.ts`):
+**`RoughCut`** is the rough cut's screen (spec 08 section 2): the player, the time, the bar, the running order strip and errors. It's controlled: the host gives it the time, whether it's playing, the stage's picture and the captions, and it calls back to play, seek, move a scene (a `SceneStep`, one undo step through the session), open a block on the Production stage, and share the current place. Import `@storystage/screening/styles.css` once.
+
+Its logic, from `measure`'s timeline (`rough-cut.ts`):
 
 - `segments(production, timeline)`: one per scene, numbered in running order, for the bar under the player and the running order strip;
 - `timeLabel`, `sliderText` and `clock`: "0:38 / 1:12", "0:38 of 1:12", with "+" when a scene waits on the viewer;
