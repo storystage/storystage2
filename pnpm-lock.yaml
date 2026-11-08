@@ -189,6 +189,24 @@ importers:
         specifier: workspace:*
         version: link:../prompter
 
+  packages/playback:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+
   packages/production:
     dependencies:
       '@storystage/ast':

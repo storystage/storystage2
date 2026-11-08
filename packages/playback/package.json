@@ -1,0 +1,20 @@
+{
+  "name": "@storystage/playback",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Plays a production on the page: the runtime worker, the stage and the production's player. Used by Rehearse, the Screening room and export.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/runtime": "workspace:*",
+    "@storystage/stage": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  }
+}
