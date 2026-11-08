@@ -25,7 +25,7 @@ This script is written with the spec (`07-ux.md` section 7, `14-editors.md` sect
 | 1 | In the palette, choose the first character, and drag **say** into the method. | The cascade asks what it says. Type "Hello" and confirm. The block reads "… say Hello". | |
 | 2 | Drag **move** in below it. | The cascade asks which way, then how far. Esc on the second question adds nothing. Do it again and answer both. | |
 | 3 | Drag a number from a function onto the move's object chip, or anything else that can't go there. | It is refused, and you are told why in plain words. | |
-| 4 | Drag a block onto empty space outside the method. | It doesn't stay there (the rule in `14-editors.md` section 2.2, once decided). | |
+| 4 | Drag a block onto empty space outside the method. | It goes back where it came from, and you hear "Blocks go inside a method" (decision 0064). | |
 | 5 | Wrap the say and the move in **do together**. | Both sit inside it, in order. | |
 | 6 | On the move, **+ detail**, then **duration** 2 seconds. | A duration chip appears; **remove detail** takes it away again. | |
 | 7 | Switch the say off from its menu, then on again. | It fades and dashes while off. | |

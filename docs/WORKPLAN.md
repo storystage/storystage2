@@ -609,7 +609,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. (C)
 - [ ] 7.6 **Option B made Alice-like:**
     - a custom Blockly renderer with text-like statement rows rather than jigsaw shapes;
-    - loose blocks disabled automatically, and no empty slots (default values in every slot);
+    - no loose blocks: a block dropped outside a method goes back where it came from (decision 0064), and no empty slots (default values in every slot);
     - arguments asked for when a block is dropped, as Alice's cascading menus do;
     - "add detail" for optional arguments (duration, animation style, as seen by);
     - switch a statement off and on;
