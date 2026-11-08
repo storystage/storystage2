@@ -38,7 +38,13 @@ import {
   type BackstageItem,
   type Section,
 } from '@storystage/backstage';
-import { countTriangles, reduceModel, type TextureEncoder } from '@storystage/backstage/optimize';
+import {
+  countTriangles,
+  largestTexture,
+  reduceModel,
+  type ReduceReport,
+  type TextureEncoder,
+} from '@storystage/backstage/optimize';
 import {
   makeItemSketches,
   meshFromDocument,
@@ -47,7 +53,12 @@ import {
   type Picture,
   type SketchMesh,
 } from '@storystage/sketches';
-import { backstageId, type JointName, type StoryClass } from '@storystage/story-api';
+import {
+  backstageId,
+  type BackstageId,
+  type JointName,
+  type StoryClass,
+} from '@storystage/story-api';
 import {
   IMPORT_CEILINGS,
   checkGltfJson,
@@ -57,7 +68,12 @@ import {
   splitGlb,
   type ImportProblem,
 } from './checks.ts';
-import { licenceRecord, type LicenceAnswers, type LicenceProblem } from './licence.ts';
+import {
+  licenceRecord,
+  type LicenceAnswers,
+  type LicenceProblem,
+  type LicenceRecord,
+} from './licence.ts';
 import { readObj } from './obj.ts';
 
 /** What the person chose about the model, on the import's steps. */
@@ -315,7 +331,47 @@ export async function importModel(
   // The licence first: it needs nothing heavy, and the person can fix it straight away.
   const licence = licenceRecord(choices.name, choices.licence);
   if (!licence.ok) return { ok: false, licence: licence.problems };
+  return buildModel(
+    files,
+    {
+      id: backstageId(classModelId(choices.class, choices.name, taken)),
+      section: choices.section,
+      class: choices.class,
+      name: choices.name,
+      ...(choices.description !== undefined ? { description: choices.description } : {}),
+      themes: choices.themes ?? [],
+      licence: licence.record,
+      reduce: 'always',
+    },
+    tools,
+  );
+}
 
+/** Everything in a model's record that doesn't come from the model itself. */
+export interface ModelDetails {
+  readonly id: BackstageId;
+  readonly section: Section;
+  readonly class: StoryClass;
+  readonly name: string;
+  readonly description?: string;
+  readonly themes: readonly string[];
+  readonly licence: LicenceRecord;
+  /**
+   * `always` for an import. `overBudget` for a model pack, whose models were reduced when they
+   * were imported: one within budget isn't reduced again (spec 17, section 5).
+   */
+  readonly reduce: 'always' | 'overBudget';
+}
+
+/**
+ * Steps 1 to 7 for one model, given everything about it but the model: the import's own steps,
+ * and the model pack's, which keeps each record's id and licence.
+ */
+export async function buildModel(
+  files: ReadonlyMap<string, Uint8Array>,
+  details: ModelDetails,
+  tools: ImportTools,
+): Promise<ImportResult> {
   const read = await readPicked(files);
   if (!read.ok) return fail(...read.problems);
   const { doc, vrm, leftOut } = read;
@@ -329,13 +385,21 @@ export async function importModel(
     });
 
   // Step 3: reduce it to its section's budget.
-  const budget = ITEM_BUDGETS[choices.section];
-  let reduced;
-  try {
-    reduced = await reduceModel(doc, budget, { encodeTexture: tools.encodeTexture });
-  } catch {
-    return fail(DAMAGED);
-  }
+  const budget = ITEM_BUDGETS[details.section];
+  const now = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
+  let reduced: ReduceReport;
+  if (
+    details.reduce === 'overBudget' &&
+    now.triangles <= budget.triangles &&
+    now.textureMaxPx <= budget.textureMaxPx
+  )
+    reduced = { before: now, after: now, simplified: false, fits: true };
+  else
+    try {
+      reduced = await reduceModel(doc, budget, { encodeTexture: tools.encodeTexture });
+    } catch {
+      return fail(DAMAGED);
+    }
   if (!reduced.fits)
     return fail({
       code: 'tooManyTriangles',
@@ -354,17 +418,17 @@ export async function importModel(
   }
   if (mesh.positions.length === 0)
     return fail({ code: 'damaged', message: 'This file has no shapes in it to import.' });
-  const skeleton = skeletonOf(choices.class);
+  const skeleton = skeletonOf(details.class);
   const boneNames = (mesh.joints ?? []).map((i) => mesh.nodes![i]!.name);
   const mapping = skeleton && boneNames.length > 0 ? mapSkeleton(boneNames, skeleton) : null;
   const joints: BackstageItem['joints'] =
     mapping && mapping.status === 'mapped' ? (mapping.joints as JointName[]) : 'prop-only';
 
   // Step 6 (its id and the parts of the record the sketches need), then step 5.
-  const id = backstageId(classModelId(choices.class, choices.name, taken));
-  const displayName = choices.name.replace(/\s+/g, ' ').trim();
-  const themes = [...new Set((choices.themes ?? []).map((t) => t.trim()).filter(Boolean))];
-  const sketches = makeItemSketches({ id, section: choices.section, displayName, themes }, mesh);
+  const id = details.id;
+  const displayName = details.name.replace(/\s+/g, ' ').trim();
+  const themes = [...new Set(details.themes.map((t) => t.trim()).filter(Boolean))];
+  const sketches = makeItemSketches({ id, section: details.section, displayName, themes }, mesh);
   const thumbnailPicture = await renderThumbnail(mesh, {
     ...(tools.decodeImage ? { decodeImage: tools.decodeImage } : {}),
   });
@@ -376,11 +440,11 @@ export async function importModel(
   const encoder = new TextEncoder();
   const model = await (await reader()).writeBinary(doc);
 
-  const description = choices.description?.replace(/\s+/g, ' ').trim();
+  const description = details.description?.replace(/\s+/g, ' ').trim();
   const item: BackstageItem = {
     id,
-    section: choices.section,
-    class: choices.class,
+    section: details.section,
+    class: details.class,
     displayName,
     themes,
     ...(description ? { description: description.slice(0, DESCRIPTION_MAX) } : {}),
@@ -388,7 +452,7 @@ export async function importModel(
     joints,
     defaultSize: { height: heightOf(mesh.positions) },
     budget: reduced.after,
-    ...licence.record,
+    ...details.licence,
     origin: 'imported',
     sketches: sketches.map((s) => ({
       facing: s.facing,
