@@ -48,30 +48,22 @@ Each session keeps its own section current. Newest entries first. One line each.
 ## S3 Stage and Story API procedures
 - Merged:
   - 1 Nov (#114, #115, #117, #118, #119): **WP5a, the stage core (5.1 to 5.5)**: the Babylon.js stage in `@storystage/stage/babylon`, on one pure timeline it shares with `FakeStage`; Alice's 20 starting templates, her lighting and fog; glTF models, joints, opacity, paint, stand-ins; the camera, markers, picking, keys and collisions; live play and a fixed time step; reference scenes in `tests/scenes/`. The stage README says how to use it.
-  - 8 Nov (#132, #134, #136): **WP4b, the Story API on the stage (4.3, and 4.4's fade to black)**: the stage contract for WP4.3 (spec 02 section 9), the stage doing all of it, and `STORY_LIBRARY`, a block for every catalog entry the stage runs. WP4's done-when is a test: every block on every class, against the stage.
-- Open:
-   - 8 Nov (#234, `contract`, against `main`): **WP8.2 and 8.3, the stage's half**: `Stage.preload` gets the likely next scene ready, and `load(setup, { crossfade })` fades the old scene out over the new one, moving (held still live at "low"; always moving in an export). Agreed with S4. **S4 to review** (its session is closed, so this is the note). **S2:** the driver calls `preload` on the player's hint and passes a crossfade's duration into `load`.
- - 8 Nov (#142): **WP4.10, shot types, with WP5b and WP4c's start stacked into it**. It now holds:
-    - 4.10's shots;
-    - 5.6, WebGPU, quality and the scene budget (#145);
-    - 5.7, `Stage.picture` (#148);
-    - 5.8, navigation, clips, reaching and looking (#150, #154);
-    - WP4c's contract (#188): stage commands for the character actions and faces, and `naturalDuration`;
-    - 4.6's retargeting and KayKit's shared clips (#189).
-
-    **Owner:** one merge to `main` brings them all.
-  - 8 Nov (#207, on #142): **the rest of WP4c (4.5, 4.6)**: the character actions on both stages, the five gestures and the fall written in code, faces from VRMs, and the 16 blocks. Looked at in pictures on a 100Avatars VRM and a KayKit knight. 4.5 is ticked; 4.6 waits for visemes (S1, WP14.3), turning the eyes, and A-pose models.
-  - 8 Nov (#210, `contract`, on #207): **joint values**, agreed with S2 for TR1's anim-06: a `JointValue` in both `Value` copies, the library taking joints, and a `jointChain` question. **S2** reviews the runtime line, **S6** the question.
-  - 8 Nov (#199, against `main`): **a fix**: one proximity event for a pair, however many watches find it (found reviewing S2's #198).
-  - **S2:** pass `STORY_LIBRARY` to `serve`; it fits your `StoryLibrary` type. Three things for you, from #136: map the library's `StoryFault` to `bad_value` (one line in `scheduler.ts`); choose a value for a joint, for `getJoint`, after which the library takes joints; and a message that sends your listeners' watches to `Stage.watch`, without which proximity and view events can't fire.
-  - **S4 (WP8.3):** agreed on 8 Nov, in spec 03 section 3.1 (#190): fade to black uses the stage's `fade`; a crossfade is the stage's job, with the next scene preloaded, and S3 adds it to the stage contract when WP8.3 needs it.
-  - **S1 (WP14.3):** `speakLine` waits for your speak line design. Tell S3 what the stage must do with visemes. Also, from #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
+  - 8 Nov (#132, #134, #136): **WP4b, the Story API on the stage (4.3)**: the stage contract for WP4.3 (spec 02 section 9), the stage doing all of it, and `STORY_LIBRARY`, a block for every catalog entry the stage runs. WP4's done-when is a test: every block on every class, against the stage.
+  - 8 Nov (#142, with #145, #148, #150, #154, #188 and #189 in it): **WP4.10, shot types, and WP5b (5.6 to 5.8)**: WebGPU or WebGL2, the quality setting and the scene budget; `Stage.picture`; navigation, clip blending, reaching and looking; WP4c's contract; and retargeting with KayKit's shared clips.
+  - 8 Nov (#207, with #210 in it): **WP4c (4.5, 4.6)**: the character actions on both stages, the five gestures and the fall written in code, faces from VRMs, the 16 blocks, and joint values with the `jointChain` question (agreed with S2 and S6).
+  - 8 Nov (#199): a fix: one proximity event for a pair, however many watches find it.
+  - 8 Nov (#234): **WP8.2 and 8.3, the stage's half**: `Stage.preload` gets the likely next scene ready, and `load(setup, { crossfade })` fades the old scene out over the new one.
+  - 8 Nov (#247): **4.6**: humanoids that rest in an A-pose, such as MakeHuman's people, take every clip and gesture as a T-pose model does. Looked at in pictures on two of them.
+- Open: nothing.
+- For other lanes:
+  - **S2:** the driver calls `stage.preload(setup)` on the player's `preload` action and passes a crossfade's duration into `load` (agreed). `getJoint` needs no question to the stage; `getJointChain` asks `jointChain`.
+  - **S1 (WP14b):** `speakLine` and lip sync wait for your speak line design. Tell S3 what the stage must do with visemes. Also, from #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
+  - **S4:** CC0 VRMs with the five expression presets would make `show expression` show on more than a blink.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
-  - **S6:** `Expression` has no neutral, so no block takes a face back to plain (#188). Would you add `neutral`?
 - Blocked on:
-  - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, and measuring view and occlusion events (decision 0051: `stageHarness.eventCost(30)` in the stage harness; about 10 microseconds a frame for 30 objects on the owner's PC).
-  - S4 and S1: 4.4's scene changes (WP8.3) and speak line (WP14.3), by the owner's decision of 8 Nov.
-- Next: after WP4c and WP8's stage half, **WP23b** (the projection stage) waits for the release candidate, WP23a (S1), WP8 (S4) and WP12b (S5). Until then: the A-pose correction once MakeHuman's people are in Backstage, and visemes once S1's speak line design is ready.
+  - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, measuring view and occlusion events (decision 0051), and what two scenes cost to draw at once during a crossfade.
+  - S1 (WP14b): 4.4's speak line, and 4.6's visemes, so 4.4 and 4.6 stay unticked.
+- Next: **WP23b** (the projection stage) waits for the release candidate, WP23a (S1) and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
 - In review:
