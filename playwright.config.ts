@@ -50,5 +50,11 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
+    {
+      command: 'pnpm --filter @storystage/tiles harness',
+      url: 'http://localhost:4183/',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
   ],
 });

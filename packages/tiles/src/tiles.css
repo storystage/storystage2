@@ -1,0 +1,222 @@
+/*
+  @storystage/tiles styles (spec 14, section 3b). Colours only from var(--tl-*), which the editor's
+  root sets from tokens.ts (tiles.test.ts fails on a colour value here). Tiles look the same in
+  both themes, so nothing here reads the theme's tokens except the fonts.
+*/
+
+.tl-root {
+  font-family: var(--ss-font-body, system-ui, sans-serif);
+  color: var(--tl-ink);
+  background: var(--tl-surround);
+  padding: 12px;
+}
+
+.tl-code {
+  background: var(--tl-program);
+  border: 1px solid var(--tl-program-line);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.tl-title {
+  font-weight: 700;
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+
+.tl-note {
+  color: var(--tl-ink-2);
+  margin: 0;
+}
+
+.tl-tree,
+.tl-group {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tl-group {
+  padding: 6px 0 6px 18px;
+}
+
+/* A row: a statement tile, or a control box's header. */
+.tl-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  border-radius: 6px;
+  outline: none;
+}
+
+.tl-tile {
+  background: var(--tl-action);
+  border: 1.5px solid var(--tl-action-line);
+  color: var(--tl-action-text);
+  padding: 4px 10px 4px 0;
+}
+
+.tl-box,
+.tl-box-row {
+  display: block;
+  background: var(--tl-control);
+  border: 1px solid var(--tl-control-line);
+  border-radius: 6px;
+  color: var(--tl-ink);
+  padding: 4px 10px 4px 0;
+}
+
+.tl-box-row {
+  display: flex;
+}
+
+.tl-box-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+}
+
+.tl-comment {
+  background: var(--tl-comment);
+  border: 1px solid var(--tl-comment-line);
+  color: var(--tl-comment-text);
+  padding: 4px 10px 4px 0;
+  font-style: italic;
+}
+
+.tl-else {
+  font-weight: 700;
+  padding-left: 18px;
+}
+
+.tl-grip {
+  align-self: stretch;
+  width: 12px;
+  border-radius: 6px 0 0 6px;
+  background-image: radial-gradient(var(--tl-control-dots) 1px, transparent 1.5px);
+  background-size: 4px 4px;
+}
+
+.tl-tile > .tl-grip {
+  background-color: var(--tl-action-grip);
+  background-image: radial-gradient(var(--tl-action-dots) 1px, transparent 1.5px);
+}
+
+.tl-part {
+  display: inline-flex;
+}
+
+.tl-words {
+  white-space: nowrap;
+}
+
+.tl-name {
+  font-style: italic;
+  font-weight: 700;
+}
+
+.tl-object,
+.tl-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 10px;
+  background: var(--tl-pill);
+  border: 1px solid var(--tl-pill-line);
+  color: var(--tl-pill-text);
+  font-weight: 700;
+}
+
+.tl-object {
+  border-radius: 14px 6px 6px 14px;
+}
+
+.tl-pill {
+  border-radius: 6px;
+  outline: none;
+}
+
+.tl-pill-question {
+  background: var(--tl-question);
+  border: 1.5px solid var(--tl-question-line);
+  color: var(--tl-question-text);
+  border-radius: 20px 6px 6px 20px;
+}
+
+.tl-pill-empty {
+  background: var(--tl-empty);
+  border-color: var(--tl-slot);
+  color: var(--tl-ink);
+}
+
+.tl-empty {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px dashed var(--tl-slot);
+  border-radius: 7px;
+  color: var(--tl-ink);
+  font-weight: 700;
+  outline: none;
+}
+
+/*
+  A switched-off statement, still saved: greyed with a dashed outline. Not Direction A's 45%
+  opacity, which takes its words below 4.5:1 (spec 14, 3b).
+*/
+.tl-tile.tl-off,
+.tl-box.tl-off,
+.tl-box-row.tl-off,
+.tl-comment.tl-off {
+  background: var(--tl-empty);
+  border: 1.5px dashed var(--tl-slot);
+  color: var(--tl-ink);
+}
+
+.tl-tile.tl-off > .tl-grip {
+  background-color: var(--tl-empty);
+  background-image: radial-gradient(var(--tl-control-dots) 1px, transparent 1.5px);
+}
+
+/* For screen readers only. */
+.tl-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Focus: Direction A's ring on light Tiles surfaces, always visible. */
+.tl-row:focus-visible,
+.tl-box-header:focus-visible,
+.tl-pill:focus-visible,
+.tl-empty:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-focus);
+}
+
+/* Highlights (spec 14, 3g). Several can show at once. */
+.tl-hl-rehearse {
+  box-shadow: 0 0 0 3px var(--tl-rehearse);
+}
+
+.tl-hl-error {
+  border-color: var(--tl-error);
+  border-width: 3px;
+}
+
+.tl-hl-prompter {
+  outline: 3px dashed var(--tl-prompter);
+  outline-offset: 2px;
+}
