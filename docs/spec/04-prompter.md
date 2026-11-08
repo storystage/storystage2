@@ -171,9 +171,15 @@ Each piece goes in its own block, as JSON, inside a named tag:
 
 ## 3. Tools
 
-All inputs are JSON objects with `additionalProperties: false`, and every field listed is required unless marked optional. Under strict mode, optional fields are declared as nullable and sent as `null`.
+The definitions are in `packages/prompter/src/tools.ts`, and the tables below describe them. All inputs are JSON objects with `additionalProperties: false`, and every field listed is required unless marked optional. An optional field is left out of `required`, not made nullable: strict mode limits how many optional fields and union types a request's tools may have, so there are no unions at all, and at most 20 optional fields across every tool.
 
-Tool schemas are fixed for a release, so they use plain strings where StoryStage 1 used enums built from catalogs. The catalogs are in the system prompt; the client checks each value and answers `unknown_object` or `unknown_method`. Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints, so `arguments` and `details` are lists of `{ name, value }` pairs, plan steps are flat, and ranges are checked by the client.
+Tool schemas are fixed for a release, so they use plain strings where StoryStage 1 used enums built from catalogs. The catalogs are in the system prompt; the client checks each value and answers `unknown_object` or `unknown_method`. The two enums that are fixed for a release come from their sources: control blocks from the AST's `STATEMENT_KINDS`, and events from the Story API's `EVENTS`.
+
+Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints. So:
+
+- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, or a position as `"x, y, z"` in metres;
+- plan steps are flat;
+- the client checks ranges, whole numbers and lengths before anything runs (`checkToolInput`, section 1.6). A string field may be empty only where `""` means none.
 
 **Shared fields.** Every tool that changes the production has:
 
@@ -207,7 +213,7 @@ Changes how an object starts in the scene.
 |---|---|---|
 | `object` | string | A name in the scene (`cat`, `camera`, `ground`) |
 | `property` | enum `position`, `turn_degrees`, `scale`, `paint`, `opacity`, `vehicle` | |
-| `value` | number, `{x,y,z}` or string | Checked per property |
+| `value` | string | A position as `"x, y, z"`, a number, a paint name or `#rrggbb`, opacity 0 to 1, or the object it rides on; checked per property |
 | `narration`, `plan_step` | | |
 
 #### `insert_statement`
@@ -226,8 +232,6 @@ Adds one procedure call to a method.
 | `line` | string, optional | A script line id; see section 6.5 |
 | `narration`, `plan_step` | | |
 
-`value` is a string, number, boolean or `{x,y,z}`.
-
 #### `insert_control`
 
 Adds a control block that later statements can go inside.
@@ -235,10 +239,10 @@ Adds a control block that later statements can go inside.
 | Field | Type | Notes |
 |---|---|---|
 | `method`, `parent_block`, `position` | as above | |
-| `kind` | enum `do_in_order`, `do_together`, `count`, `while`, `if`, `for_each`, `each_together` | |
-| `count` | integer, optional | For `count` |
-| `condition` | object, optional | For `while` and `if`: `{target, function, arguments}`, or `{value}` for true or false |
-| `items` | list of object names, optional | For `for_each` and `each_together` |
+| `kind` | enum `doInOrder`, `doTogether`, `count`, `while`, `if`, `forEach`, `eachTogether` | The AST's names |
+| `count` | integer, optional | For `count`, from 1 |
+| `condition` | object, optional | For `while` and `if`: `{target, function, arguments}`; a plain true or false is `target` `""` and `function` `"true"` or `"false"` |
+| `items` | list of object names, optional | For `forEach` and `eachTogether` |
 | `narration`, `plan_step` | | |
 
 Result `ids.block`: the id to use as `parent_block` (for `if`, `ids.then` and `ids.else`).
@@ -258,10 +262,10 @@ Result `ids.method`: the name to use in `insert_statement`.
 
 | Field | Type | Notes |
 |---|---|---|
-| `kind` | enum `mouse_click_on_object`, `mouse_click_on_screen`, `key_press`, `arrow_key`, `move_with_arrow_keys`, `time`, `proximity_enter`, `collision_start` | |
+| `event` | enum: the Story API's events (spec 02), except `sceneStart`, which every scene already has | `clickOnObject`, `keyPress`, `timer`, `proximityEnter`, `viewEnter` and the rest |
 | `objects` | list of object names | Clicked objects (empty for any), the object moved by the arrow keys, or the first group |
 | `other_objects` | list of object names | The second group for proximity and collision; otherwise empty |
-| `number` | number, optional | Seconds between runs for `time`; metres for `proximity_enter` |
+| `number` | number, optional | Seconds between runs for `timer`; metres for proximity |
 | `narration`, `plan_step` | | |
 
 Result `ids.block`: the listener; passed as `parent_block`, blocks go into the handler.
@@ -426,10 +430,10 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | `kind` | enum `do`, `add`, `change`, `when`, `stage` | A Story API call; add a model; change how something starts; an event; set the scene from the storyboard |
 | `actor` | string | Object name, or `scene` for `stage` |
 | `action` | string | For `do`: a Story API procedure. For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
-| `target` | string, optional | Object or marker it acts on |
+| `target` | string | Object or marker it acts on, or `""` for none |
 | `details` | list of `{name, value}` | |
-| `line` | string, optional | A script line id |
-| `sketch` | string, optional | A placed sketch id |
+| `line` | string | A script line id, or `""` for none |
+| `sketch` | string | A placed sketch id, or `""` for none |
 | `together` | boolean | Runs at the same time as the step before it |
 | `repeat` | integer | Times to run; 1 for once |
 | `why` | string | One sentence, under 25 words |
@@ -442,7 +446,7 @@ Before a plan is shown, and again when the learner presses **Build these steps**
 
 ### 6.4 The build matches the plan
 
-Code, not trust, keeps the build to the plan. During a build the executor holds the agreed steps, and each change call must name a `plan_step` and match it: same actor, same action, same target, same details and same line. Anything else answers `not_in_plan` and changes nothing. Supporting calls that a step needs, such as the `do_together` block for steps marked `together`, must name the step they serve.
+Code, not trust, keeps the build to the plan. During a build the executor holds the agreed steps, and each change call must name a `plan_step` and match it: same actor, same action, same target, same details and same line. Anything else answers `not_in_plan` and changes nothing. Supporting calls that a step needs, such as the `doTogether` block for steps marked `together`, must name the step they serve.
 
 When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 
@@ -529,7 +533,8 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | Imported models | None | In the user turn, as data | Hash pinning and injection |
 | Learner text | In the user turn | Delimited JSON, with `<`, `>` and `&` escaped | 13.2, injection |
 | Tool enums | Built from catalogs | Plain strings, checked by the client | Schemas are pinned per release |
-| `arguments`, `details` | Keyed objects | Lists of `{name, value}` | Strict mode needs `additionalProperties: false` on every object |
+| `arguments`, `details` | Keyed objects | Lists of `{name, value}`, every value as text | Strict mode needs `additionalProperties: false` on every object, and limits unions |
+| Names | `do_together`, `mouse_click_on_object` and so on | The AST's and the Story API's own names (`doTogether`, `clickOnObject`) | One vocabulary across the program, the editors and the Prompter |
 | Changes | Applied as tools run | Only after an agreed plan, and checked against it | 13.9 |
 | Show me how | Add blocks one at a time | Plan first, then step by step | 13.9 |
 | New tools | | `stage_scene`, `code_frame`, `check_frame`, `script_check`, `propose_plan`, `revise_plan` | 13.4 |
