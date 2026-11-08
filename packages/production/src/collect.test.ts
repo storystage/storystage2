@@ -198,7 +198,12 @@ describe('plainName', () => {
     expect(plainName('  Pip the penguin.  ', 'x')).toBe('Pip the penguin');
     expect(plainName('..', 'x')).toBe('x');
     expect(plainName('a .. b', 'x')).toBe('a b');
-    expect(plainName('aux.txt', 'x')).toBe('aux.txt_');
+    // A device name before the first dot is still the device on Windows: the "_" goes after it.
+    expect(plainName('aux.txt', 'x')).toBe('aux_.txt');
+    expect(plainName('Con. notes', 'x')).toBe('Con_. notes');
+    expect(plainName('nul.storystage', 'x')).toBe('nul_.storystage');
+    expect(plainName('CON', 'x')).toBe('CON_');
+    expect(plainName('console', 'x')).toBe('console');
     expect(plainName('x'.repeat(100), 'x')).toHaveLength(80);
     expect(plainName('tab\there', 'x')).toBe('tab here');
   });
