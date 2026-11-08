@@ -1,0 +1,233 @@
+/*
+  The studio's shell (Direction A, "Global layout"; docs/spec/07-ux.md §1). Tokens only: every colour
+  is a var(--ss-*) from @storystage/ui's ThemeRoot (shell.test.ts checks).
+*/
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+#root > .ss-root {
+  height: 100%;
+}
+
+.studio-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.studio-shell > div {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Header: 64 px, items on the bottom edge so the active tab sits on the amber frame. */
+.studio-header {
+  display: flex;
+  flex: none;
+  align-items: flex-end;
+  gap: 12px;
+  height: 64px;
+  padding: 0 12px 0 14px;
+  background: var(--ss-stage-0);
+}
+.studio-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  align-self: center;
+  min-width: 0;
+}
+.studio-logo {
+  flex: none;
+}
+.studio-logo-tile {
+  fill: var(--ss-panel-4);
+  stroke: var(--ss-line-1);
+}
+.studio-logo-beam {
+  fill: var(--ss-amber);
+  opacity: 0.35;
+}
+.studio-logo-lamp {
+  fill: var(--ss-strong);
+}
+.studio-logo-pool {
+  fill: var(--ss-amber);
+}
+.studio-wordmark {
+  font-family: var(--ss-font-display);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.studio-wordmark-stage {
+  color: var(--ss-amber-text);
+}
+.studio-divider {
+  flex: none;
+  width: 1px;
+  height: 28px;
+  background: var(--ss-line-1);
+  align-self: center;
+}
+.studio-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
+}
+.studio-title-main,
+.studio-title-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.studio-title-main {
+  font-weight: 700;
+}
+.studio-title-sub {
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.studio-modes {
+  display: flex;
+  flex: 1;
+  justify-content: center;
+}
+.studio-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+}
+
+/* Learn and Settings: 84 × 46, an icon over its label. */
+.studio-tool {
+  --ss-surface: var(--ss-stage-0);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  box-sizing: border-box;
+  width: 84px;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ss-text);
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  cursor: pointer;
+  outline: none;
+}
+.studio-tool[data-selected] {
+  color: var(--ss-on-amber);
+  background: var(--ss-amber);
+  box-shadow: none;
+}
+/* Settings, when open, is an amber tab that sits on the frame like the active mode. */
+.studio-tool[data-kind='tab'][data-selected] {
+  align-self: flex-end;
+  height: 50px;
+  border-radius: 12px 12px 0 0;
+}
+.studio-tool[data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-2),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.studio-tool[data-selected][data-focus-visible] {
+  box-shadow:
+    0 0 0 2px var(--ss-amber),
+    0 0 0 4px var(--ss-focus-on-amber);
+}
+
+/* While Learn or Settings is open, no mode tab is lit (Direction A, screen 11); the mode stays chosen. */
+.studio-shell[data-overlay] .ss-mode-tab[data-selected] {
+  color: var(--ss-text);
+  background: var(--ss-tab);
+  box-shadow:
+    inset 0 1px 0 var(--ss-line-1),
+    inset 1px 0 0 var(--ss-line-1),
+    inset -1px 0 0 var(--ss-line-1);
+}
+
+/* The working area, inside the 3 px amber frame. */
+.studio-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  border: 3px solid var(--ss-amber);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+.studio-panels,
+.studio-panels > .ss-mode-panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.studio-panels[hidden] {
+  display: none;
+}
+.studio-overlay {
+  --ss-surface: var(--ss-panel-2);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 22px;
+  background: var(--ss-panel-2);
+}
+.studio-overlay-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Below 1024 px wide: a note instead of the studio (decision 0033). */
+.studio-too-narrow {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .studio-shell {
+    display: none;
+  }
+  .studio-too-narrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    height: 100%;
+    padding: 16px;
+    box-sizing: border-box;
+    text-align: center;
+  }
+}
+
+/* iPad (1024–1279 px): the wordmark folds to the logo mark and the tabs narrow (07-ux §1.2). */
+@media (max-width: 1279px) {
+  .studio-wordmark {
+    display: none;
+  }
+  .studio-modes .ss-mode-tab {
+    padding: 0 12px;
+  }
+}

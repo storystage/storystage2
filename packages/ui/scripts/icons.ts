@@ -45,6 +45,7 @@ export const ICON_NAMES = [
   'photo_camera',
   'play_arrow',
   'radio_button_unchecked',
+  'redo',
   'replay',
   'school',
   'settings',

@@ -1,0 +1,508 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://storystage.org/spec/story-api/0.9/story-api.schema.json",
+  "title": "StoryStage Story API catalog",
+  "description": "The classes, blocks, details, values and events of the StoryStage Story API, with their words in one language.",
+  "type": "object",
+  "required": [
+    "version",
+    "status",
+    "language",
+    "space",
+    "classes",
+    "types",
+    "values",
+    "details",
+    "blocks",
+    "events",
+    "dropped"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "$id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "stable"
+      ]
+    },
+    "language": {
+      "type": "string"
+    },
+    "space": {
+      "type": "object",
+      "required": [
+        "units",
+        "axes",
+        "move",
+        "turn",
+        "roll"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "units": {
+          "type": "string",
+          "minLength": 1
+        },
+        "axes": {
+          "type": "string",
+          "minLength": 1
+        },
+        "move": {
+          "$ref": "#/$defs/directions"
+        },
+        "turn": {
+          "$ref": "#/$defs/directions"
+        },
+        "roll": {
+          "$ref": "#/$defs/directions"
+        }
+      }
+    },
+    "classes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "extends",
+          "abstract",
+          "words",
+          "fromAlice"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "extends": {
+            "oneOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "abstract": {
+            "type": "boolean"
+          },
+          "words": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fromAlice": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^S[A-Z][A-Za-z]*$"
+            }
+          }
+        }
+      }
+    },
+    "types": {
+      "type": "object",
+      "required": [
+        "basic",
+        "references",
+        "writtenAsText"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "basic": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "uniqueItems": true
+        },
+        "references": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "uniqueItems": true
+        },
+        "writtenAsText": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "values": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "origin",
+          "values"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "origin": {
+            "$ref": "#/$defs/origin"
+          },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "words"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+                },
+                "words": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "details": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "type",
+          "default",
+          "words"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "type": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Za-z]*(\\[\\])?$"
+          },
+          "default": {
+            "oneOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "defaultMeans": {
+            "type": "string",
+            "minLength": 1
+          },
+          "range": {
+            "$ref": "#/$defs/range"
+          },
+          "words": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "blocks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "class",
+          "name",
+          "kind",
+          "params",
+          "details",
+          "words",
+          "origin",
+          "fromAlice",
+          "crosswalk"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "class": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "kind": {
+            "enum": [
+              "procedure",
+              "function"
+            ]
+          },
+          "params": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/param"
+            }
+          },
+          "returns": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Za-z]*(\\[\\])?$"
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+            },
+            "uniqueItems": true
+          },
+          "words": {
+            "type": "string",
+            "minLength": 1
+          },
+          "origin": {
+            "$ref": "#/$defs/origin"
+          },
+          "fromAlice": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z]+\\.[A-Za-z*]+$"
+            }
+          },
+          "crosswalk": {
+            "$ref": "#/$defs/crosswalk"
+          }
+        }
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "needs",
+          "gives",
+          "details",
+          "words",
+          "fromAlice",
+          "crosswalk"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+          },
+          "needs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/param"
+            }
+          },
+          "gives": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "type",
+                "words",
+                "fromAlice"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+                },
+                "type": {
+                  "type": "string",
+                  "pattern": "^[A-Z][A-Za-z]*(\\[\\])?$"
+                },
+                "range": {
+                  "$ref": "#/$defs/range"
+                },
+                "words": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "fromAlice": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z]+\\.[A-Za-z*]+$"
+                  }
+                }
+              }
+            }
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+            },
+            "uniqueItems": true
+          },
+          "words": {
+            "type": "string",
+            "minLength": 1
+          },
+          "fromAlice": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[A-Za-z]+\\.[A-Za-z*]+$"
+            }
+          },
+          "crosswalk": {
+            "$ref": "#/$defs/crosswalk"
+          }
+        }
+      }
+    },
+    "dropped": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "members",
+          "why"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "why": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "origin": {
+      "enum": [
+        "alice",
+        "storystage"
+      ]
+    },
+    "vector": {
+      "type": "object",
+      "required": [
+        "x",
+        "y",
+        "z"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "type": "number"
+        },
+        "y": {
+          "type": "number"
+        },
+        "z": {
+          "type": "number"
+        }
+      }
+    },
+    "directions": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/vector"
+      }
+    },
+    "range": {
+      "enum": [
+        "portion",
+        "positive",
+        "positiveOrZero"
+      ]
+    },
+    "param": {
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "words"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Za-z]*(\\[\\])?$"
+        },
+        "range": {
+          "$ref": "#/$defs/range"
+        },
+        "words": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "crosswalk": {
+      "type": "object",
+      "required": [
+        "unreal"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "bml": {
+          "type": "string",
+          "pattern": "^[A-Za-z][A-Za-z0-9]*$"
+        },
+        "unreal": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
