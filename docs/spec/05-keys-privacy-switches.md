@@ -8,11 +8,11 @@
 
 ## 0. Decisions this spec relies on
 
-[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), 0049 Key entry, [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` section 2.1 (W1 to W10).
+[0003 Delivery](../decisions/0003-delivery.md), [0005 API key](../decisions/0005-api-key.md), [0022 Off switches](../decisions/0022-off-switches.md), [0026 App identifier](../decisions/0026-app-identifier.md), [0028 Host interface](../decisions/0028-host-interface.md), [0034 Teacher Prompter levels](../decisions/0034-prompter-levels.md), [0047 Update hosting and the updater key](../decisions/0047-update-hosting-and-key.md), [0056 Key entry](../decisions/0056-key-entry.md), [spike 1.6 Key path](../decisions/spike-1.6-key-path.md). The threats these sections answer are in `15-security.md` section 2.1 (W1 to W10).
 
 ## 1. Wizard
 
-The studio draws the set-up pages (Direction A screens 10a to 10d). The key itself is typed into a **system dialog**, never into the studio (decision 0049, CLAUDE.md rule 1).
+The studio draws the set-up pages (Direction A screens 10a to 10d). The key itself is typed into a **system dialog**, never into the studio (decision 0056, CLAUDE.md rule 1).
 
 ### 1.1 The pages
 
@@ -286,7 +286,7 @@ It stands down, and never asks for an administrator's password, if the current u
 
 ### 4.2 The update host
 
-Update files are static, so there is no StoryStage server (rule 2). *Proposed, for the owner to decide:* GitHub Releases on `storystage/storystage2`, because publishing and rollback then run from CI. Decision 0046 uploads the website by hand through a file manager, which can't support a timed rollback. This adds GitHub as a host that sees update checks, so the DPIA (WP17.3) must name it.
+Update files are static, so there is no StoryStage server (rule 2). They are hosted on GitHub Releases on `storystage/storystage2` (decision 0047), because publishing and rollback then run from CI. Decision 0046 uploads the website by hand through a file manager, which can't support a timed rollback. GitHub is a host that sees update checks, so the DPIA (WP17.3) names it.
 
 | Purpose | File |
 |---|---|

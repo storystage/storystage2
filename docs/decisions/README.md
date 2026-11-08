@@ -45,6 +45,8 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0037](0037-theme-setting.md) | Theme setting | 25 Oct 2026 |
 | [0038](0038-light-theme-approved.md) | Light theme approved | 25 Oct 2026 |
 | [0042](0042-ar-ipad-first.md) | AR is iPad-first | 25 Oct 2026 |
+| [0047](0047-update-hosting-and-key.md) | Update hosting and the updater key | 1 Nov 2026 |
+| [0048](0048-s8-merging.md) | S8 merges its own pull requests | 1 Nov 2026 |
 | [0049](0049-models-in-the-production-file.md) | Imported models travel in the production file | 1 Nov 2026 |
 | [0050](0050-s2-merging.md) | S2 merges its WP2 and WP8.1 pull requests | 1 Nov 2026 |
 | [0051](0051-joints-and-optional-events.md) | Joint moves and Alice's optional events | 1 Nov 2026 |
@@ -52,3 +54,4 @@ Settled decisions change only by the owner. To propose a change, open an issue l
 | [0053](0053-s3-merging.md) | S3 merges the WP5a stack | 1 Nov 2026 |
 | [0054](0054-storyboard-print.md) | Storyboard print | 7 Nov 2026 |
 | [0055](0055-story-api-open-specification.md) | The Story API open specification | 8 Nov 2026 |
+| [0056](0056-key-entry.md) | Key entry | 1 Nov 2026 |

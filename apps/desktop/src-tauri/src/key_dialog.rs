@@ -1,4 +1,4 @@
-//! The system dialog the key is typed into (spec 05 section 1.2, decision 0049). It's made from
+//! The system dialog the key is typed into (spec 05 section 1.2, decision 0056). It's made from
 //! the platform's own controls, so the key never enters a webview. These can only be tried by
 //! hand on each platform. What happens after them is tested in `storystage_transport::add`.
 
