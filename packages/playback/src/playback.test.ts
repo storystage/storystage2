@@ -172,6 +172,38 @@ describe('playing a production', () => {
     expect(await once()).toEqual(await once());
   });
 
+  it("asks the stage to draw a crossfade, over the new scene's time", async () => {
+    const p = exampleProduction();
+    const order = p.manifest.runningOrder.map((e, i) =>
+      i === 1 ? { ...e, transition: { kind: 'crossfade' as const, duration: micros(0.5) } } : e,
+    );
+    const { events, stage } = await play({
+      ...p,
+      manifest: { ...p.manifest, runningOrder: order },
+    });
+    expect(scenes(events)).toEqual(['s1 start', 's2 cut', 's3 crossfade']);
+    const loads = stage.calls.filter((c) => c.method === 'load');
+    expect(loads.map((c) => c.args[1])).toEqual([undefined, undefined, { crossfade: micros(0.5) }]);
+    expect(events.filter((e) => e.kind === 'crossfade')).toEqual([
+      { kind: 'crossfade', from: 's2', to: 's3', duration: micros(0.5) },
+    ]);
+  });
+
+  it('hands the stage the next scene to get ready, in a production only', async () => {
+    const preloads = (stage: FakeStage) =>
+      stage.calls
+        .filter((c) => c.method === 'preload')
+        .map((c) => (c.args[0] as { readonly objects: readonly unknown[] }).objects.length);
+    const p = exampleProduction();
+    const { stage } = await play(p);
+    // After loading s1, s2 is likely; after s2, s3; after s3, nothing.
+    expect(preloads(stage)).toHaveLength(2);
+    const order = stage.calls.map((c) => c.method).filter((m) => m === 'load' || m === 'preload');
+    expect(order).toEqual(['load', 'preload', 'load', 'preload', 'load']);
+    const { stage: rehearsal } = await play(p, { mode: 'rehearse' });
+    expect(preloads(rehearsal)).toEqual([]);
+  });
+
   it('starts from a given scene', async () => {
     const { events } = await play(exampleProduction(), { from: 's2' });
     expect(scenes(events)).toEqual(['s2 start', 's3 fadeToBlack']);

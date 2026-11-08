@@ -53,9 +53,9 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
 |---|---|
 | `load` | `stage.load(setup)` and schedules the action's commands. Then sends the runtime `load` and `start`, and starts the scene's clock at 0 |
 | `stageCommands` | Hands them to `stage.schedule` |
-| `crossfade` | Tells the stage to fade the old picture out over the new one |
+| `crossfade` | Reported as an event. The `load` that follows passes its length to the stage (`stage.load(setup, { crossfade })`), which draws the old scene fading out over the new one |
 | `stop` | Sends the runtime `stop` |
-| `preload` | Hands the next scene's set-up to the stage's `preload` (S3), so a cut or crossfade doesn't wait. Ignored until the stage has one |
+| `preload` | Hands the next scene's set-up to the stage's `preload` (S3), so a cut or crossfade doesn't wait. Not waited for; it never fails play |
 | `next` | Ends a Rehearse run and tells its listeners "Next: <heading>" |
 | `fault` | Tells its listeners. The player sends `end` straight after |
 | `end` | Ends play, and tells its listeners once, however play ended. Its `fadeOut` is always empty: the player sends any fade first |
