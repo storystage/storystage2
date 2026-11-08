@@ -266,4 +266,14 @@ describe('classModelId', () => {
     const taken = new Set(['class/Prop/robot', 'class/Prop/robot-2']);
     expect(classModelId('Prop', 'Robot', taken)).toBe('class/Prop/robot-3');
   });
+
+  it('stays quick and plain whatever the name (no slow matching)', () => {
+    const started = Date.now();
+    expect(classModelId('Prop', '-'.repeat(100_000), new Set())).toBe('class/Prop/model');
+    expect(classModelId('Prop', `a${'-'.repeat(50_000)}b`, new Set())).toBe('class/Prop/a');
+    expect(classModelId('Prop', 'x'.repeat(39) + ' yz', new Set())).toBe(
+      `class/Prop/${'x'.repeat(39)}`,
+    );
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
 });

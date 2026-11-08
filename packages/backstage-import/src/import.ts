@@ -128,15 +128,18 @@ const DAMAGED: ImportProblem = {
  * knows: live and in the bin.
  */
 export function classModelId(cls: StoryClass, name: string, taken: ReadonlySet<string>): string {
-  const slug =
-    name
-      .normalize('NFKD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '')
-      .slice(0, 40)
-      .replace(/-+$/, '') || 'model';
+  // The name's words, joined by hyphens. Split into words and joined, rather than trimmed with
+  // anchored patterns, so no name can make the matching slow (CodeQL, js/polynomial-redos).
+  const words = name
+    .slice(0, 200)
+    .normalize('NFKD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((w) => w !== '');
+  let slug = words.join('-').slice(0, 40);
+  while (slug.endsWith('-')) slug = slug.slice(0, -1);
+  if (slug === '') slug = 'model';
   const base = `class/${cls}/${slug}`;
   if (!taken.has(base)) return base;
   for (let n = 2; ; n++) if (!taken.has(`${base}-${n}`)) return `${base}-${n}`;
