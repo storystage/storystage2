@@ -4,7 +4,13 @@
  * Owner: S7. Workplan: WP13.
  *
  * WP0.8: the transport contract (`transport.ts`). WP13.8: the system prompt (`system-prompt.ts`).
- * The conversation loop arrives with WP13b.
+ * WP13b: building a request (`request.ts`, `models.ts`, `data.ts`) and what each level allows
+ * (`levels.ts`). The conversation loop comes next.
  */
+export * from './data.ts';
+export * from './levels.ts';
+export * from './models.ts';
+export * from './request.ts';
 export * from './system-prompt.ts';
+export * from './tool-names.ts';
 export * from './transport.ts';
