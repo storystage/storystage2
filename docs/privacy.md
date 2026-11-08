@@ -34,11 +34,14 @@ StoryStage is a free app for making 3D animated films, for learners aged 6 to 13
 
 | What | Where | Who controls it |
 |---|---|---|
-| **Productions:** storyboards, scripts, code, films, and any 3D models a teacher imported | A `.storystage` file, saved where the learner, teacher or parent chooses: on the device, or, if a school switches it on, its own Google Drive or OneDrive | The learner and family at home; the school at school |
+| **Productions:** storyboards, scripts, code, films, and any 3D models a teacher imported | At school: each pupil's own folder in the app, on the device, which opens when they choose their name. A teacher can collect the class's work into the school's own storage (a drive, OneDrive or Google Drive) and hand it back. At home: a `.storystage` file wherever you save it | The learner and family at home; the school at school |
+| **The class list:** pupils' first names, or a word and a picture, that open their folders | The device only. Never in a production, an export or a study log | The school |
 | **Settings** and the school's lock | The device | The school or family |
 | **The day's Prompter count**, used for the daily limit | The device | Cleared each day |
 | **The Claude key** | The device's secure store (Windows Credential Manager, the Mac and iPad Keychain, or Android's Keystore). Never in a file, a production or a log, and never shown again after it's added | The adult who added it |
 | **Study logs,** only in pilot schools taking part in the editor study | The device, until the teacher exports them | The school, then the study team |
+
+**On a shared computer login,** folders keep pupils' work apart in StoryStage, but a determined pupil could still find another's files on the computer itself. Where the school gives each pupil their own sign-in on the device, that can't happen.
 
 A production is a file, and files can be passed on. Anything a learner types into one (for example their full name in the credits) goes wherever the file goes. We recommend first names or initials, and StoryStage suggests that by default.
 
@@ -90,7 +93,7 @@ The Windows and Mac apps check for updates at most once a day, by reading a file
 
 ### Optional features a school can switch on
 
-- **Google Drive or OneDrive:** save and open productions in the school's own accounts. The app asks only for access to the files it creates or opens. Google or Microsoft holds the files under the school's agreement with them.
+- **The school's own storage:** a teacher can collect a class's work into a school drive, OneDrive or Google Drive, and hand it back, using the device's own file picker. StoryStage doesn't sign in to Google or Microsoft; the files are held under the school's agreement with them.
 - **Model search (Poly Pizza),** for teachers only: teachers can search Poly Pizza's free models from inside StoryStage, unless the school switches it off. The search words, and the device's IP address, go to Poly Pizza. Learners can't use search. Models about guns are screened out.
 - **AR (augmented reality), in a later release:** placing a film's set on a real table using the camera. Camera images stay on the device and never go to the Prompter. Recording a film with the camera background is off unless a teacher allows it, and no location is stored.
 
@@ -211,7 +214,7 @@ On a school device where the school manages the Prompter, 10b and 10c are replac
 | An optional small picture of the scene could go to the Prompter | **No pictures ever go to the Prompter** (rule 3) |
 | Linux Secret Service key store | No Linux in the first release; iPad and Android stores added |
 | Problem reports opened a GitHub issue | A local file a teacher may email to us; we file it anonymised; nothing sent automatically |
-| No updates, study, browser version or Drive | Update checks (GitHub), the editor study, the browser version, optional Drive and OneDrive |
+| No updates, study, browser version or pupil folders | Update checks (GitHub), the editor study, the browser version, pupil folders on the device, and collecting work into the school's own storage |
 | Speech model downloaded from Hugging Face; voice input only for the Prompter | The default model is in the app (0057); a larger one downloads from GitHub (the update host) only on request; voice input in every text box (0060) |
 | Policy file keys: 3 | 14 keys, and managed configuration on iPad and Android (spec 05 §3) |
 | Learner wording: none | Part 2, for ages 6 to 9 and 10 to 13 |
