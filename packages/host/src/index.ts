@@ -10,3 +10,4 @@ export * from './host.ts';
 export * from './policy.ts';
 export * from './speech.ts';
 export * from './store.ts';
+export * from './tauri-store.ts';

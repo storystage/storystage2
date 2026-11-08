@@ -15,10 +15,16 @@ const answering =
   };
 
 describe('the Tauri host', () => {
-  it('has pupil folders, on the browser store until the native one lands', async () => {
-    const host = await tauriHost(answering('1.4.2'), native);
-    expect(typeof host.classes.pupils).toBe('function');
-    expect(host.classes.current()).toBeNull();
+  it('keeps pupil folders through the native store', async () => {
+    const asked: string[] = [];
+    const invoke = async (command: string): Promise<unknown> => {
+      asked.push(command);
+      if (command === 'classes_read') throw 'not_found';
+      return answering('1.4.2')(command);
+    };
+    const host = await tauriHost(invoke, native);
+    expect(await host.classes.pupils()).toEqual([]);
+    expect(asked).toContain('classes_read');
   });
 
   it('asks the native layer for the policy and the version', async () => {

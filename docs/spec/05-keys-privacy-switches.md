@@ -416,13 +416,13 @@ The rules are written once, in `storedClassFolders` in `packages/host`: backups,
 
 | Host | Store | Where |
 |---|---|---|
-| Tauri apps | The native layer, through a few commands confined to one folder (6.4) | `<app data>/classes/`, inside the device user's own data |
+| Tauri apps | The native layer, through a few commands confined to one folder (6.4) | `<local app data>/classes/`, inside the device user's own data |
 | Browser version | The Origin Private File System | The site's own storage, on `app.storystage.org` only (0046) |
 | Tests | Memory | |
 
-A store does five things, on paths made of **safe parts**: `read`, an atomic `write`, `remove` (a file or a folder), `list` and `move`. A safe part is 1 to 64 characters from `a-z`, `0-9`, `.`, `_` and `-`, starting with a letter or digit, and never `.` or `..`. Every path is checked against that before a store touches anything, so no path can leave the store's folder (threat F1).
+A store does five things, on paths made of **safe parts**: `read`, an atomic `write`, `remove` (a file or a folder), `list` and `move`. A safe part is 1 to 64 characters from `a-z`, `0-9`, `.`, `_` and `-`, starting with a letter or digit. It never ends in a dot, which Windows drops, and is never one of Windows' device names (`con`, `prn`, `aux`, `nul`, `com1` to `com9`, `lpt1` to `lpt9`, with or without an extension). Every path is checked against that before a store touches anything, so no path can leave the store's folder (threat F1).
 
-Until the native store lands, the Tauri apps use the browser store too. They shouldn't stay on it: WebKit deletes script-written storage in Safari after a period without use (the board review's OPS4). Whether that ever reaches an app's own webview on iPad isn't something pupils' work should depend on.
+The Tauri apps use the native store, not the browser's. WebKit deletes script-written storage in Safari after a period without use (the board review's OPS4), and whether that ever reaches an app's own webview on iPad isn't something pupils' work should depend on. The rule for safe parts is the same on both sides: `apps/desktop/src-tauri/classes/fixtures/parts.json` is tested from each.
 
 ### 6.2 What's on disk
 
@@ -446,7 +446,9 @@ A crash before step 2 leaves the last whole version and a stray file, which the 
 
 ### 6.4 The native store's commands
 
-`classes_read`, `classes_write`, `classes_remove`, `classes_list` and `classes_move` each take paths of safe parts, under `<app data>/classes/` only, and each has its own permission. Writes carry raw bytes, not JSON, and are refused over `FILE_LIMIT` before anything is written. Symbolic links in the folder are never followed. Errors are `FileError` codes: `full` when the disk is full, `locked` when another program holds the file, and `unreadable` otherwise.
+`classes_read`, `classes_write`, `classes_remove`, `classes_list` and `classes_move` each take paths of safe parts, under `<local app data>/classes/` only, and each has its own permission. The rules are in the `storystage-classes` crate, which has no Tauri in it. Local app data is used rather than roaming, so a roaming profile doesn't carry every film at each sign-in.
+
+Writes carry raw bytes, not JSON, with the path in an `x-storystage-path` header as its parts joined by `/`, which no safe part contains. They're refused over `FILE_LIMIT` before anything is written. A write goes to a temporary file in the same folder, whose name starts with a dot so it's never listed, is flushed to disk, then renamed over the old file. Reads come back as raw bytes too, and nothing there is `not_found`, which the studio reads as no file. Symbolic links, and junctions on Windows, are never followed: one on the way is `unreadable`, one in a folder isn't listed, and removing a folder removes the links in it, never what they point at. Errors are `FileError` codes: `full` when the disk is full, `locked` when another program holds the file, and `unreadable` otherwise.
 
 The webview can reach every pupil's folder through these commands, as it can in the browser. Pupils are kept apart by the app (threat PS1), and the operating system adds to it where a school has per-pupil sign-in (PS2).
 
@@ -491,8 +493,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Only pinned names (5.5) | A path, an unknown name, an empty name | Rust unit |
 | Refused when dictation is off (5.5) | Each command with `speech.dictation=false`, and still allowed at Prompter level Off | Rust unit |
 | Cross-origin isolation (5.6) | The shipped config has both headers | Rust unit, on `tauri.conf.json` |
-| Every rule of the folders, on every store (6.1 to 6.3) | `describeClassFoldersContract` over the memory store and the browser store (with a stand-in for its handles) | Vitest |
-| Safe path parts only (6.1, 6.4) | `..`, `.`, separators, capitals and long parts refused, in TypeScript and in Rust | Vitest, Rust unit |
+| Every rule of the folders, on every store (6.1 to 6.3) | `describeClassFoldersContract` over the memory store, the browser store (with a stand-in for its handles) and the native store's commands (over a stand-in for the native side) | Vitest |
+| Safe path parts only (6.1, 6.4) | One fixture of safe and unsafe parts (`classes/fixtures/parts.json`), tested in TypeScript and in Rust, so the two rules stay the same | Vitest, Rust unit |
 | A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
-| The native store stays in its folder (6.4) | Paths, symbolic links and the size limit | Rust unit, with the native store |
+| The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |

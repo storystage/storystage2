@@ -23,9 +23,16 @@ export interface FileStore {
 
 const SAFE_PART = /^[a-z0-9][a-z0-9._-]{0,63}$/;
 
-/** True for a part a store can use (spec 05 section 6.1). */
+/** Windows' device names, which open a device instead of a file whatever follows the dot. */
+const DEVICE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\.|$)/;
+
+/**
+ * True for a part a store can use (spec 05 section 6.1). Never ending in a dot, which Windows
+ * drops, and never a device name. The native side has the same rule (`is_safe_part`), and
+ * `apps/desktop/src-tauri/classes/fixtures/parts.json` is tested from both.
+ */
 export function isSafePart(part: string): boolean {
-  return SAFE_PART.test(part) && part !== '.' && part !== '..';
+  return SAFE_PART.test(part) && !part.endsWith('.') && !DEVICE.test(part);
 }
 
 /** Throws unless every part is safe, so no path can leave the store's folder (threat F1). */

@@ -10,6 +10,7 @@ import { offTransport, type PrompterTransport } from '@storystage/prompter';
 import { browserStore } from './browser-store.ts';
 import { storedClassFolders } from './class-folders.ts';
 import type { ClassFolders } from './files.ts';
+import { tauriStore } from './tauri-store.ts';
 import { BROWSER_POLICY, readPolicy, type PolicyInForce } from './policy.ts';
 import { tauriSpeech, type ChannelClass, type Invoke, type SpeechModels } from './speech.ts';
 
@@ -27,7 +28,7 @@ export interface HostInterface {
   readonly speech: SpeechModels | null;
   /**
    * The pupil folders (spec 05 section 6, decision 0065). The Origin Private File System in the
-   * browser version, and for now in the Tauri apps too, until their native store lands (6.1).
+   * browser version, and the native store in the Tauri apps (6.4).
    */
   readonly classes: ClassFolders;
 }
@@ -75,6 +76,6 @@ export async function tauriHost(
     prompter: reachable,
     version,
     speech,
-    classes: storedClassFolders(browserStore()),
+    classes: storedClassFolders(tauriStore(invoke)),
   };
 }
