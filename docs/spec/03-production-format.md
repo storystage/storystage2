@@ -137,7 +137,7 @@ Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playba
         - `to: 1` over the first half;
         - then, on the next scene, `to: 1` at time 0 with no duration, before its first frame;
         - then `to: 0` over the second half.
-    - **Crossfade:** both scenes are on screen, the old one fading out over the new, for the whole duration. It's the stage's job (S3, `packages/stage`), with the next scene preloaded (WP8.2). On a slow device the old scene may be shown still rather than moving.
+    - **Crossfade:** both scenes are on screen, the old one fading out over the new, for the whole duration. It's the stage's job (S3, `packages/stage`), with the next scene preloaded (WP8.2). On a slow device the old scene may be shown still rather than moving. An export always shows both scenes moving: it draws frame by frame at its own pace, at full size, whatever the device, so a film exports the same on a Chromebook as on a fast PC.
 8. **Going back is allowed,** so a film might never end. Play stops after 200 scene starts (`SCENE_START_LIMIT`), or at the export's length cap, with a plain-words message.
 9. **Rehearse** (one scene, from the code editor) doesn't jump. At `goToScene`, `crossfade` or `fadeToBlack` it ends and shows "Next: <the scene's heading>".
 10. **A scene that isn't there:** a scene in code is text (spec 02, section 3a), so deleting a scene can leave a stale value. `checkProgram` flags it before play (`sceneExists`, S6). If play reaches it anyway, it stops with "There's no scene called …" (`noSuchScene`).
