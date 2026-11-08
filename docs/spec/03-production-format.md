@@ -184,6 +184,7 @@ Agreed with S6 (the Story API) and S3 (the stage) on 8 Nov 2026 (WP8.3). `playba
   - `load`, which is self-contained: the scene, its script method, its set-up, its seed, the scene ids for the runtime, how it came in, and any commands to schedule before its first seek;
   - `stageCommands`, a fade on the scene that's ending;
   - `crossfade`: keep the old scene's picture playing, its timeline carrying on with the commands it already has, while the next one loads. Only one runtime runs;
+  - `preload`, after each `load` in a production: the running order's next scene and its set-up, so the stage can fetch its models now (`Stage.preload`, S3). It's only a guess, because a goToScene can go elsewhere; the `load` that follows reuses whatever was fetched, and a failed preload is silent;
   - `stop`, for the worker;
   - `next`, Rehearse's "Next: <heading>";
   - `fault`, the scene start limit or a missing scene, in plain words;
