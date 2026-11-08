@@ -42,9 +42,9 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
 | `commands` | Hands them to `stage.schedule`, then to the player |
 | `ask` | Sends `stage.answer(query)` back to the runtime as `answer` |
 | `watch` | Hands it to `stage.watch` |
-| `highlight` | Tells its listeners which blocks are running (Rehearse highlights them) |
+| `highlight` | Tells its listeners the whole set of blocks running now (several, inside a do together), each time it changes. Rehearse passes them straight to the editor contract's `highlight(nodes, 'rehearse')` |
 | `finished`, `sceneChange` | Passes them to the player, and tells its listeners |
-| `error` | Passes it to the player, which stops. Tells its listeners, with the block and the code, so the studio can say it in plain words |
+| `error` | Passes it to the player, which stops. Tells its listeners, with the block, the code and the error in plain words (6.3), so the studio needs no table of its own |
 | `stopped` | Ignores it |
 
 **What it does with each player action.**
@@ -65,14 +65,15 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
 - **One worker, scene after scene.** The driver reuses one runtime worker: a new `load` resets it (spec 18 section 3.1).
 - **Only the current scene's messages.** After sending a `load`, the driver drops everything from the worker until that `load`'s `loaded` comes back. Messages from one worker arrive in order, so the old scene's leftovers can't reach the new one.
 - **Stage events** (clicks, keys, collisions, proximity, view) go to the runtime as `event`, at the worker's present.
-- **Listeners.** Callers subscribe to the driver's events rather than asking it: running blocks, scene started, finished, next, error, ended. Each subscription returns a function that stops it.
+- **Listeners.** Callers subscribe to the driver's events rather than asking it: running blocks, scene started, finished, next (with the next scene's heading, for the studio's own words around it), error, ended. Each subscription returns a function that stops it.
+- **Its stage and worker.** The driver takes the stage it's given: Rehearse gives it the scene view's own. Disposing of it stops listening and ends the worker, for when the learner leaves the Production stage.
 - **Controls (6.4):**
     - **Pause** and **speed** (½×, 1×, 2×) are the clock's: the driver isn't called while paused.
     - **Restart** starts a new driver, and with it a new player, with the same seed and the same first scene. Each scene's seed is the run's seed plus its start number, so a player that has already run would give different seeds.
     - **Stop** works from outside at any moment: the studio stops a rehearsal when the code changes. It reloads the scene's set-up, so the stage is exactly as it started, rather than undoing anything.
 - **Fast-forward.** The driver plays in fixed steps without drawing, then carries on live. It goes:
     - **to a time,** for the rough cut's jumps within a scene;
-    - **to a block,** for Rehearse's "Rehearse to here": it stops at the first moment that block is running. If the block never runs, it plays to the end and says so.
+    - **to a block,** for Rehearse's "Rehearse to here": it stops when the picture reaches the first moment that block is running. If the block never runs, it plays to the end and says so in its result (`reached: false`), so the studio can say "That block didn't run this time".
 - **Measuring.** A fixed-step run that draws nothing gives the timeline:
     - when each scene starts and how long it lasts;
     - when each block ran;
@@ -86,20 +87,22 @@ The worker's own file is `packages/runtime/src/worker.ts`: `serve(self, STORY_LI
 
 ## 2. The rough cut (11.1)
 
-The Screening room's left column, as on screen 03.
+The Screening room's left column, as on screen 03, at the widths in `07-ux.md` section 1.2: a right column of 560, 544 or 420 pixels, and the player at 16:9 in what's left.
 
 - **The player** fills the column at 16:9, with a label in its top corner: "Scene 2 · Frame 2.3". **Play** and **Pause** share one button.
 - **The bar under the player** is the whole film, from the measuring run:
-    - one segment per scene, numbered in running order;
+    - one segment per scene, numbered in running order; each segment's name is its number and heading;
     - the time so far and the length, as "0:38 / 1:12".
+
+    It's a slider, with `aria-valuetext` such as "0:38 of 1:12".
 - **Jumping:** clicking a scene's segment or card plays from that scene's start. Clicking inside a segment fast-forwards to that point (section 1). Arrow keys on the bar move by 5 seconds, and Home and End go to the ends.
-- **The running order strip** shows one card per scene: its number, heading, length and status. Dragging a card changes the running order, as on the Storyboard; it's one undo step, through the production's session (WP8.2).
+- **The running order strip** shows one card per scene: its number, heading, length and status. Dragging a card changes the running order, and so does the keyboard, in the Storyboard's own way (`07-ux.md` sections 1.3 and 6.4: the handle, Enter, the arrows, Enter). It's one undo step, through the production's session (WP8.2).
 - **A scene that waits on the viewer** (`waitsForViewer`) has no fixed length. Its segment ends in a small "waits for a click" mark, and the time shows "1:12+".
 - **The current frame** is the frame linked to the block that ran most recently. If no block is linked, it's the frame whose planned length covers this moment, counting from the scene's start.
 - **The place:** the studio shares one current scene and frame between its tabs. The Screening room is told it, and tells the studio when it changes, through a type of the same shape as the studio's (`{ scene, frame }`), since it can't import the studio.
 - **Full screen** shows the player alone. Escape leaves it.
 - **Captions** show under the picture while playing (section 6). They're always on in the Screening room (`CLAUDE.md` rule 7).
-- **Errors** stop play. They show in plain words, the block's frame is marked, and **Fix on the Production stage** opens that block.
+- **Errors** stop play. They show in plain words, the block's frame is marked, and **Fix on the Production stage** opens that block: the Screening room calls `onOpenProductionStage(node)` with the block, and the place if it changes, so the Code editor can open the block's method and put focus on it.
 
 ## 3. Compare and retake notes (11.2)
 
