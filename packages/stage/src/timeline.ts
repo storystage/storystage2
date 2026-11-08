@@ -883,7 +883,11 @@ export class Timeline {
           if (c.target === c.object || c.target === CAMERA) throw bad("It can't hold that.");
           break;
         case 'clip':
-          if (!this.shapes.get(c.object)?.clips?.has(c.clip) && !this.library?.has(c.clip))
+          // The shared clips are humanoid ones; anything else plays only its own.
+          if (
+            !this.shapes.get(c.object)?.clips?.has(c.clip) &&
+            !(this.classes.get(c.object) === 'Biped' && this.library?.has(c.clip))
+          )
             throw bad(`${c.object} has no clip called ${c.clip}.`);
           break;
         case 'lookAt':

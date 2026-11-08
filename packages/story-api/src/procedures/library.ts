@@ -157,6 +157,29 @@ const procedure =
   (call, context) =>
     perform(context, make(call));
 
+/** A command without its timing: what a character action is before the stage says how long. */
+type Untimed = Command extends infer C
+  ? C extends Command
+    ? Omit<C, 'duration' | 'style'>
+    : never
+  : never;
+
+/**
+ * A character action (WP4c): it has no duration detail, so it asks the stage how long it takes
+ * at its own pace (`naturalDuration`), then performs it over that time.
+ */
+const action = (make: (call: StoryCall) => Untimed): StoryFunction =>
+  function* (call, context) {
+    const untimed = make(call);
+    const own = (yield* ask({ kind: 'naturalDuration', action: untimed, at: context.now }))
+      .value as number;
+    return yield* perform(context, {
+      ...untimed,
+      duration: own,
+      style: 'beginAndEndGently',
+    } as Command);
+  };
+
 // ---- Where things are, for the "is above" family -------------------------------------------
 
 const sub = (a: Vec3, b: Vec3): Vec3 => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
@@ -599,4 +622,81 @@ export const STORY_LIBRARY: StoryLibrary = {
     return rotate(back(me.rotation), sub(them.position, me.position)).z > 0;
   },
   ...sideBlocks(),
+
+  // Character actions (4.5) and faces (4.6), each at its own pace.
+  playAnimation: action((call) => ({
+    object: self(call),
+    kind: 'clip',
+    clip: words(call.args.clip, 'clip'),
+  })),
+  walkTo: action((call) => ({
+    object: self(call),
+    kind: 'walk',
+    to: object(call.args.target, 'target'),
+    gait: 'walk',
+  })),
+  runTo: action((call) => ({
+    object: self(call),
+    kind: 'walk',
+    to: object(call.args.target, 'target'),
+    gait: 'run',
+  })),
+  sitOn: action((call) => ({
+    object: self(call),
+    kind: 'posture',
+    posture: 'sit',
+    on: object(call.args.target, 'target'),
+  })),
+  standUp: action((call) => ({ object: self(call), kind: 'posture', posture: 'stand' })),
+  lieDown: action((call) => ({ object: self(call), kind: 'posture', posture: 'lie' })),
+  fall: action((call) => ({ object: self(call), kind: 'posture', posture: 'fall' })),
+  touch: action((call) => ({
+    object: self(call),
+    kind: 'reach',
+    target: object(call.args.target, 'target'),
+    then: 'touch',
+  })),
+  reachFor: action((call) => ({
+    object: self(call),
+    kind: 'reach',
+    target: object(call.args.target, 'target'),
+    then: 'stay',
+  })),
+  pickUp: action((call) => ({
+    object: self(call),
+    kind: 'pickUp',
+    target: object(call.args.target, 'target'),
+  })),
+  putDown: action((call) => ({
+    object: self(call),
+    kind: 'putDown',
+    target: object(call.args.target, 'target'),
+  })),
+  enterFrom: action((call) => ({
+    object: self(call),
+    kind: 'enter',
+    from: choice('SceneEdge', call.args.edge, 'edge'),
+    gait: 'walk',
+  })),
+  exitTo: action((call) => ({
+    object: self(call),
+    kind: 'walk',
+    to: { edge: choice('SceneEdge', call.args.edge, 'edge') },
+    gait: 'walk',
+  })),
+  gesture: action((call) => ({
+    object: self(call),
+    kind: 'gesture',
+    gesture: choice('Gesture', call.args.gesture, 'gesture'),
+  })),
+  showExpression: action((call) => ({
+    object: self(call),
+    kind: 'expression',
+    expression: choice('Expression', call.args.expression, 'expression'),
+  })),
+  lookAt: action((call) => ({
+    object: self(call),
+    kind: 'lookAt',
+    target: object(call.args.target, 'target'),
+  })),
 };

@@ -541,7 +541,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
 - [x] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
 - [ ] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). (C)
-- [ ] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
+- [x] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
     - walk to and run to, round obstacles, using a navigation mesh (Babylon.js navigation plugin, Recast/Detour);
     - sit on, stand up, lie down, fall;
     - touch, reach for, pick up and put down (attach to the hand), with IK (BoneIKController);

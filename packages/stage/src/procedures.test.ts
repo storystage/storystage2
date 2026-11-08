@@ -102,6 +102,50 @@ interface Case {
 
 /** A case for every block on a model, with `it` at the origin facing +Z and `other` at its left. */
 const MODEL_CASES: Readonly<Record<string, Case>> = {
+  // Character actions (WP4c), each at its own pace. On the fake stage everything is a stand-in,
+  // with no body to pose, so these check where it goes and what it holds.
+  // The other block is 0.25 m wide each side of x = 2; a walker stops a step (0.35 m) short.
+  walkTo: {
+    args: { target: obj(other) },
+    check: (s) => {
+      close(where(s).position.x, 1.4);
+      close(heading(where(s).rotation), 0.25);
+    },
+  },
+  runTo: { args: { target: obj(other) }, check: (s) => close(where(s).position.x, 1.4) },
+  // A block a metre tall is taken to be a chair, with its seat a little under half way up.
+  sitOn: { args: { target: obj(other) }, check: (s) => close(where(s).position.y, 0.45) },
+  standUp: { check: (s) => close(where(s).position.y, 0) },
+  lieDown: { check: (s) => close(where(s).position.x, 0) },
+  fall: { check: (s) => close(where(s).position.x, 0) },
+  touch: { args: { target: obj(other) }, check: (s) => close(where(s).position.x, 0) },
+  reachFor: { args: { target: obj(other) }, check: (s) => close(where(s).position.x, 0) },
+  pickUp: {
+    args: { target: obj(other) },
+    check: (s) =>
+      expect(s.answer({ kind: 'vehicle', object: other, at: s.time() }).value).toBe(it_),
+  },
+  // Putting down what it isn't holding does nothing.
+  putDown: { args: { target: obj(other) }, check: (s) => close(s.transform(other).position.x, 2) },
+  enterFrom: {
+    args: { edge: choice('SceneEdge', 'right') },
+    check: (s) => close(where(s).position.x, 0),
+  },
+  exitTo: {
+    args: { edge: choice('SceneEdge', 'left') },
+    check: (s) => expect(where(s).position.x).toBeGreaterThan(4),
+  },
+  gesture: {
+    args: { gesture: choice('Gesture', 'wave') },
+    check: (s) => close(where(s).position.x, 0),
+  },
+  showExpression: {
+    args: { expression: choice('Expression', 'happy') },
+    check: (s) => close(where(s).position.x, 0),
+  },
+  lookAt: { args: { target: obj(other) }, check: (s) => close(heading(where(s).rotation), 0) },
+  // A shared clip is a humanoid's; anything else plays only its own clips.
+  playAnimation: { args: { clip: 'idle' }, check: (s) => close(where(s).position.x, 0) },
   move: {
     args: { direction: choice('MoveDirection', 'left'), amount: 1 },
     check: (s) => close(where(s).position.x, 1),
@@ -299,6 +343,10 @@ describe('every Story API block, against the stage', () => {
           ran.add(name);
           if (NOT_YET.has(name)) {
             expect(() => drive(stage, name, it_, {})).toThrow(StageError);
+            return;
+          }
+          if (name === 'playAnimation' && cls !== 'Biped') {
+            expect(() => drive(stage, name, it_, { clip: 'idle' })).toThrow(/no clip/);
             return;
           }
           const c = MODEL_CASES[name];

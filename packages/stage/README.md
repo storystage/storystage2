@@ -46,7 +46,7 @@ Call `resize()` when the canvas changes size. Clicks and keys on the canvas reac
 
 ## Character machinery (5.8)
 
-These are the parts WP4.5–4.6's commands will use. No command drives them yet; WP4c connects them to the timeline.
+These are the parts WP4.5–4.6's commands use ("Character actions", below).
 
 - **Ways round things.** `buildNavigation(timeline.navigationArea())` makes a scene's walkable area with Recast and Detour, through `recast-navigation`, which loads only when it's first asked for. `path(from, to)` gives the corners of the shortest way, or null if there isn't one. It has no graphics, so both stages find the same way.
 - **Clips.** The stage blends a model's own animations itself, not through Babylon.js's scene, so a film is posed the same way at the same moment. `ObjectView.show(state, where, motion)` takes the clips:
@@ -73,7 +73,29 @@ A clip made once plays on any humanoid, as Unity's Mecanim Humanoid does.
 - **Walking speed:** a walk's and a run's speed is measured from their feet: about 1.9 and 3.7 hips' heights a second.
 - **VRM 0.x avatars face -Z** (spec 17, section 3), so the stage turns them to face +Z when it places them. It knows one from its file.
 - **Rest poses:** every model so far rests in a T-pose. A model that rests in an A-pose would hold its arms too low. MakeHuman's people may need a correction for that, once they can be looked at here.
-- **Not yet:** WP4c's actions use these, and none does yet.
+- **The gestures and the fall** are written in code (`humanoid/gestures.ts`): wave, nod, shrug, clap and point, and a fall onto the back that ends as KayKit's lying begins. A gesture turns only the bones it names, so it plays over whatever the legs are doing. The wave is in front of the shoulder, so it shows on a character whose head is wider than its arms are long, as KayKit's are.
+
+## Character actions (4.5, 4.6)
+
+The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt` (`actions.ts`). Each is worked out once, from the scene as it starts, like every other command, so both stages agree and a film is the same every time.
+
+- **Their own time.** `naturalDuration` says how long an action takes at its own pace. The Story API's blocks ask it, then send the command with that duration. Another duration stretches or squeezes the action.
+- **A body.** A model whose joints include a humanoid's (`Body.of`) has a body. A stand-in has none, so it moves where an action takes it, but no limb moves.
+  - Its pose is its resting clip (standing, sitting, sitting on the floor or lying), with the clips of the actions going on laid over it, kept on the ground, then its hands and head turned to what they reach for and look at (`bodyPose`).
+  - A body stands at rest from the start, with KayKit's `idle`.
+- **Walking.** A walk goes the shortest way round what's in the way where things are when it starts (5.8's walkable area, made again only when something that stays put has moved). Something being carried isn't in the way.
+  - To a thing, it stops a step (0.35 m) from its box, facing it; to a marker, on it.
+  - Past an edge, it ends 1.5 m out of the picture, as the camera sees it when the walk starts: `back` is 15 m further away, `front` is behind the camera. `enter` is the same, the other way.
+  - Its legs go at the speed it moves: the walk and run clips are played by the distance gone, and blended by speed, so a walk that starts and ends gently doesn't slide.
+  - A model without a body walks at 1.2 m a second and runs at 3.
+- **Sitting** on something puts the hips on its seat. The stage doesn't know where a seat is, so it guesses: on top of something up to 0.7 m tall, otherwise 45% of the way up, as a chair's is. A stand-in block is solid, so a sitter sits inside it. Standing up leaves it in front of the seat.
+- **Lying and falling** end lying on the back; standing up from either uses KayKit's.
+- **Reaching** turns the nearer hand's arm to put the hand on the nearest point of the target, or as near as it gets. `touch` goes there and back; `stay` keeps it there until the next posture, reach or `pose`.
+- **Holding.** Picking up reaches the thing, then it rides its holder, as on a vehicle, in front of its chest with the hand on it. `vehicle` says who's holding it. Putting it down puts it on the ground in front.
+- **Looking** turns the neck and head, half each, to face the target, by at most a fifth of a turn. It follows the target until the next `lookAt`; `null` stops looking.
+- **Faces** are a VRM's own (`faces.ts`): VRM 0.x's `joy`, `sorrow`, `angry`, `fun` and `blink` and VRM 1.0's presets, by their Story API names. An expression stays until the next; `blink` shuts and opens the eyes. A model without that face shows no change (owner's decision of 8 Nov 2026); the 100Avatars VRMs have only a blink.
+- **Clips.** `play animation` plays the model's own clip of that name, or for a biped, a shared clip. Anything else is refused.
+- **Not yet:** visemes for speaking (waiting on S1's speak line design, WP14.3); turning the eyes as well as the head; correcting for a model that rests in an A-pose; and a walk round other characters, which aren't in the way.
 
 ## How it fits together
 
@@ -88,7 +110,7 @@ A clip made once plays on any humanoid, as Unity's Mecanim Humanoid does.
 - **The scene and the camera.** The sky, light and fog are `SCENE`'s, and only it takes `atmosphere`, `light` and `fog`; only the camera takes `lens`. `SCENE` isn't in `objects()`.
 - **Good view.** `moveAndOrientTo` with `goodView` puts the camera in front of its target, a little above, at two and a half times its largest size, looking at its middle.
 - **Fading.** `fade` on `SCENE` darkens the whole picture, sky included, to black and back. Loading a scene clears it. Going to another scene and crossfading are the production's playback (WP8.3).
-- **Not yet:** smooth paths, folding and spreading wings, the size of a joint, and the character actions and faces in the contract (`walk` to `lookAt`, WP4c). The stage refuses them with `bad_argument`, and refuses to say how long they take.
+- **Not yet:** smooth paths, folding and spreading wings, and the size of a joint. The stage refuses them with `bad_argument`.
 - **Touching.** Alice's rule, in `hull.ts`: each object has a footprint and a height from its box in the scene. Proximity is the same test with a margin, so it measures the gap between two things, not between their centres.
 - **Backdrops.** `backdrops.ts` holds Alice's 20 starting templates, with her numbers. Her fog value is cubed to give the density. Ground surfaces are flat colours until WP3's textures arrive.
 - **Facing the camera.** A camera with no rotation and a model with no rotation both face +Z, so the camera sees the model's back. To face the camera, a model needs half a turn.

@@ -295,22 +295,22 @@ Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters ma
 | `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `needs:sceneChange` |
 | `Camera` | `frameShot` | `shot: ShotType`, `targets: Thing[]` | `duration`, `animationStyle` | 4.10 | frame a {shot} of {targets} | `command:shot` |
 | `Model` | `speakLine` | `text: Text` | — | 4.4 | speak line {text} | `needs:speech` |
-| `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `needs:animation` |
-| `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `needs:character` |
-| `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `needs:character` |
-| `Biped` | `sitOn` | `target: Thing` | — | 4.5 | sit on {target} | `needs:character` |
-| `Biped` | `standUp` | — | — | 4.5 | stand up | `needs:character` |
-| `Biped` | `lieDown` | — | — | 4.5 | lie down | `needs:character` |
-| `Biped` | `fall` | — | — | 4.5 | fall | `needs:character` |
-| `Biped` | `touch` | `target: Thing` | — | 4.5 | touch {target} | `needs:character` |
-| `Biped` | `reachFor` | `target: Thing` | — | 4.5 | reach for {target} | `needs:character` |
-| `Biped` | `pickUp` | `target: Thing` | — | 4.5 | pick up {target} | `needs:character` |
-| `Biped` | `putDown` | `target: Thing` | — | 4.5 | put down {target} | `needs:character` |
-| `Biped` | `enterFrom` | `edge: SceneEdge` | — | 4.5 | enter from {edge} | `needs:character` |
-| `Biped` | `exitTo` | `edge: SceneEdge` | — | 4.5 | exit to {edge} | `needs:character` |
-| `Biped` | `gesture` | `gesture: Gesture` | — | 4.6 | gesture {gesture} | `needs:animation` |
-| `Biped` | `showExpression` | `expression: Expression` | — | 4.6 | look {expression} | `needs:animation` |
-| `Biped` | `lookAt` | `target: Thing` | — | 4.6 | look at {target} | `needs:animation` |
+| `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `command:clip` |
+| `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `command:walk` |
+| `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `command:walk` |
+| `Biped` | `sitOn` | `target: Thing` | — | 4.5 | sit on {target} | `command:posture` |
+| `Biped` | `standUp` | — | — | 4.5 | stand up | `command:posture` |
+| `Biped` | `lieDown` | — | — | 4.5 | lie down | `command:posture` |
+| `Biped` | `fall` | — | — | 4.5 | fall | `command:posture` |
+| `Biped` | `touch` | `target: Thing` | — | 4.5 | touch {target} | `command:reach` |
+| `Biped` | `reachFor` | `target: Thing` | — | 4.5 | reach for {target} | `command:reach` |
+| `Biped` | `pickUp` | `target: Thing` | — | 4.5 | pick up {target} | `command:pickUp` |
+| `Biped` | `putDown` | `target: Thing` | — | 4.5 | put down {target} | `command:putDown` |
+| `Biped` | `enterFrom` | `edge: SceneEdge` | — | 4.5 | enter from {edge} | `command:enter` |
+| `Biped` | `exitTo` | `edge: SceneEdge` | — | 4.5 | exit to {edge} | `command:walk` |
+| `Biped` | `gesture` | `gesture: Gesture` | — | 4.6 | gesture {gesture} | `command:gesture` |
+| `Biped` | `showExpression` | `expression: Expression` | — | 4.6 | look {expression} | `command:expression` |
+| `Biped` | `lookAt` | `target: Thing` | — | 4.6 | look at {target} | `command:lookAt` |
 <!-- /catalog:added -->
 
 1. **Alice's hidden blocks return.** `walkTo`, `touch` and `reachFor` exist in Alice, hidden and unfinished, and aren't on her palette. They're added here as new blocks, so they aren't listed as Alice's.
@@ -344,7 +344,7 @@ The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Oc
 
 ## 9. What the stage contract needs
 
-Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). The contract also has 4.5's character actions and 4.6's faces, which the blocks move to as the stage runs them (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
+Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So is 4.4's fade to black (`fade`). So are 4.5's character actions and 4.6's faces (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. What's left waits for its own work package: going to another scene and crossfading to one are the production's playback (WP8.3), not the stage's.
 
 1. **Not the stage's sums.** `isVolumePreserved` is the Story API's: it sends `resize` the factors that keep the volume. The `ask` functions belong to the runtime.
 2. **Click positions** are fractions of the picture, from its left and bottom edges, as Alice's `getScreenDistanceFromLeft` and `getScreenDistanceFromBottom` are. Viewing angles are in turns, as Alice's are.
@@ -360,8 +360,6 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
 | `sceneChange` | Going to another scene, and crossfading to one: the production’s playback (WP8.3) | `goToScene`, `crossfade` |
 | `speech` | Speak a line with visemes (WP14) | `speakLine` |
-| `character` | Navigation, posture and hand contact (WP5b) | `walkTo`, `runTo`, `sitOn`, `standUp`, `lieDown`, `fall`, `touch`, `reachFor`, `pickUp`, `putDown`, `enterFrom`, `exitTo` |
-| `animation` | Clips, gestures, expressions and head turning (WP5b) | `playAnimation`, `gesture`, `showExpression`, `lookAt` |
 <!-- /catalog:stage -->
 
 ## 9a. The program check
