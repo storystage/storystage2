@@ -22,6 +22,7 @@ import type {
   StageEvent,
   StageQuery,
   StageQueryResult,
+  Watch,
 } from '@storystage/story-api';
 
 /** Bumped on any change that an older main thread or worker couldn't read. */
@@ -101,7 +102,13 @@ export type FromRuntime =
    * already sent. Nothing more comes from this run; the player asks the production what plays
    * next (WP8.3, `docs/spec/03-production-format.md` section 3.1) and sends a new `load`.
    */
-  | { readonly type: 'sceneChange'; readonly at: Micros; readonly ending: RuntimeSceneEnding };
+  | { readonly type: 'sceneChange'; readonly at: Micros; readonly ending: RuntimeSceneEnding }
+  /**
+   * What the stage must watch for this scene's proximity and view listeners: hand it to
+   * `Stage.watch`. Sent once, as the run starts, before any commands, and empty if there's
+   * nothing to watch (WP6.2).
+   */
+  | { readonly type: 'watch'; readonly watches: readonly Watch[] };
 
 /**
  * Which block ended the scene. The production's `SceneEnding` without `finished`, which the
@@ -159,6 +166,7 @@ const FROM_TYPES = new Set<string>([
   'finished',
   'stopped',
   'sceneChange',
+  'watch',
 ]);
 
 const hasType = (m: unknown, types: Set<string>): boolean =>

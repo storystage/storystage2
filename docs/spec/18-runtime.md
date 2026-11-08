@@ -67,18 +67,19 @@ Listeners are those of the scene's type (`02-story-api.md` section 6). Their `ar
 
 - **`sceneStart`** listeners and **timers** start with the entry method. A timer waits its seconds, fires, and repeats. It must be above zero.
 - **Stage events** are handled at the worker's present, not at their `at`, which may be slightly behind it because the worker runs ahead of the clock.
-- **A click** runs `clickOnScreen` first, then `clickOnObject`, if it hit an object in `setOfVisuals` (or any object, if there's no `setOfVisuals`).
-- **An arrow key** runs `keyPress`, then `arrowKeyPress`, then `moveWithArrowKeys`. Under `moveWithArrowKeys`, up and down move the object 0.25 m and left and right turn it a sixteenth of a turn, each over 0.25 seconds.
+- **A click** runs `clickOnScreen` first, then `clickOnObject`, if it hit an object in `setOfVisuals` (or any object, if there's no `setOfVisuals`). Both get the click's `x` and `y`: fractions of the picture from its left and bottom edges, as the stage gives them.
+- **A key** runs `keyPress`, then `numberKeyPress` or `arrowKeyPress` if it's a digit or an arrow, then `moveWithArrowKeys` for an arrow. Under `moveWithArrowKeys`, up and down move the object 0.25 m and left and right turn it a sixteenth of a turn, each over 0.25 seconds. Holding an arrow keeps it going, because the browser repeats the key.
+- **`heldKeyPolicy`.** The browser repeats a held key, so the stage sends `key` again and again, then `keyRelease`. A key's first `key` since its release is a press, and the rest are repeats. `fireMultiple` (the default) fires on the press and every repeat, `fireOnceOnPress` on the press only, and `fireOnceOnRelease` on the release only. Each key is followed separately.
 - **`multipleEventPolicy`:** `ignore` drops a firing while the last run is going, `enqueue` runs it afterwards, and `combine` runs it at once alongside.
-- **`collisionStart` and `proximityEnter`** match their sets either way round, and hand over `a` from `setA` and `b` from `setB`.
+- **`collisionStart`, `collisionEnd`, `proximityEnter` and `proximityExit`** match their sets either way round, and hand over `a` from `setA` and `b` from `setB`. A proximity listener fires only for the stage events at its own `distance`.
+- **`viewEnter` and `viewExit`** fire for an object in their `set`, handing it over as `model` (decision 0051).
 
-**What the stage contract doesn't have yet,** for the `contract` pull request of `02-story-api.md` section 9 (S3, S6):
+**What the stage watches.** Proximity and view tests cost something on every frame, so the stage tests only what it's told (`Stage.watch`). As the run starts, once the listeners' arguments are read, the worker sends `watch`, before any commands:
 
-| Gap | Until then |
-|---|---|
-| A click's `x` and `y` | Handlers get 0 |
-| A key's release, for `heldKeyPolicy` | Each `key` event fires, as `fireMultiple` does |
-| `collisionEnd`, `proximityExit`, `viewEnter`, `viewExit` (decision 0051) | Nothing fires them |
+- one proximity watch (`a`, `b`, `distance`) for each `proximityEnter` or `proximityExit` listener;
+- one view watch (`objects`) for each `viewEnter` or `viewExit` listener.
+
+It's sent even when it's empty, so the main thread can always hand it on. A distance below zero, or a set that isn't a list of objects, is a `bad_value` fault at the listener. Collisions need no watch.
 
 ## 6. What spike 1.4 left open
 
@@ -94,7 +95,7 @@ Listeners are those of the scene's type (`02-story-api.md` section 6). Their `ar
 |---|---|---|
 | Time, order, asking, faults, stop | `scheduler.test.ts` | Unit |
 | Every statement and expression kind, values, calls, limits, determinism, highlighting | `interpreter.test.ts`: small programs, each run and checked | Unit (the semantics suite) |
-| The worker's protocol, both modes, pause, speed, and every event kind the contract can fire | `serve.test.ts`, over `inMemoryPorts` | Unit |
+| The worker's protocol, both modes, pause, speed, every event kind, `heldKeyPolicy` and the `watch` message (section 5) | `serve.test.ts`, over `inMemoryPorts` | Unit |
 | Ending a scene: the message, stopping every strand, defaults, faults, and loading the next scene into the same worker (section 3.1) | `serve.test.ts`, "ending a scene" | Unit |
 | The TR1 evaluation programs in StoryStage 2 AST (the WP6 done-when) | With WP4.3, once the blocks they use run | Unit |
 | Fast-forward to a block (WP6.4) | With WP7.4, which drives it through fixed-step `advance` | Unit |

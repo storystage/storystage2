@@ -177,7 +177,9 @@ export function serve(
       scenes: message.scenes,
     });
     const type = indexProgram(message.program).get(owner.parent)!.node as TypeDecl;
-    const router = new EventRouter(scheduler, interpreter, type);
+    const router = new EventRouter(scheduler, interpreter, type, (watches) =>
+      post({ type: 'watch', watches }),
+    );
     run = { scheduler, interpreter, router, entry: message.entry, out };
     post({ type: 'loaded' });
   };
