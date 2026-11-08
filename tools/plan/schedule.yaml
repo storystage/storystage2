@@ -504,6 +504,7 @@ items:
     weeks: 2
     basis: first plan
     after: [WP5a, WP6]
+    started: 2026-11-08
   - id: WP23b
     label: 'Projection stage: surfaces, virtual projectors, preview (23.3, 23.4)'
     lane: Projection

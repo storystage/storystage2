@@ -518,6 +518,15 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
+  spikes/23.1-projection:
+    devDependencies:
+      '@babylonjs/core':
+        specifier: ^9.31.1
+        version: 9.31.1
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
+
   tools/backstage-sources:
     dependencies:
       '@gltf-transform/core':
