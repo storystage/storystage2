@@ -122,6 +122,13 @@ export type ShotType = (typeof SHOT_TYPES)[number];
 /** A labelled outline standing in for a model that isn't in Backstage yet (WP10.9). */
 export interface StandIn {
   readonly standIn: string;
+  /**
+   * Its box, in metres at scale 1: width (X), height (Y) and depth (Z), each above 0 and at most
+   * 1,000. It stands on its origin, centred across and front to back, as a model does: from
+   * (-w/2, 0, -d/2) to (w/2, h, d/2). Without it, the stage's usual stand-in box. `transform.scale`
+   * multiplies it, as it does a model. An imported Alice world gives each stand-in its object's size in Alice (spec 19).
+   */
+  readonly size?: Vec3;
 }
 
 export interface SceneObjectSetup {
