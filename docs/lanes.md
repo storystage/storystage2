@@ -69,6 +69,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 9 Nov: **`runInWorker`** in `@storystage/backstage-import/worker-client`: one job in a fresh worker, settled once by its answer, a failure or the 60-second limit, the worker always ended. `importInWorker` is built on it. **S6: `importAliceInWorker` can be too (spec 15 §3).**
   - 8 Nov (#274): **`ALICE_GROUNDS`** (spec 17 §2; for S6's Alice world import, spec 19): the ten ground appearances Alice's starter worlds use, mapped to the stage's built-in grounds (`storystage/Ground/<name>`), checked against `GROUND_TYPES`. **S6: pass it as `WorldOptions.grounds`.** CC0 textures for the grounds can come later under the same ids.
 - Merged:
   - 8 Nov (#271, and this): **WP8 is done.** 8.2 and 8.3 ticked (#271), and 8.4 with S8's request for persistent storage (#272). The owner decided that no end-of-session download prompt is needed; 07-ux §9.2's note and Save a copy are enough. 8.5 (Drive and OneDrive) is on the roadmap (0065).

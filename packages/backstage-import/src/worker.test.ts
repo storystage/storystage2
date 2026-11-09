@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { box, glbFromMesh } from '@storystage/sketches/testing';
 import type { ImportChoices, ImportTools } from './import.ts';
-import { importInWorker, type ImportWorker } from './worker-client.ts';
+import { importInWorker, runInWorker, type ImportWorker } from './worker-client.ts';
 import { serveImports, type WorkerPort } from './worker.ts';
 
 const tools: ImportTools = {
@@ -77,5 +77,47 @@ describe('importInWorker (spec 17, section 5)', () => {
     fake.fail();
     expect(await pending).toMatchObject({ ok: false, problems: [{ code: 'damaged' }] });
     expect(fake.terminated()).toBe(1);
+  });
+});
+
+describe('runInWorker, for any untrusted reader (spec 15, section 3)', () => {
+  /** A worker that the test answers by hand. */
+  function manual() {
+    const listeners: Record<string, ((e: { data: unknown }) => void)[]> = {
+      message: [],
+      error: [],
+    };
+    const posted: unknown[] = [];
+    let terminated = 0;
+    const worker: ImportWorker = {
+      postMessage: (m) => void posted.push(m),
+      addEventListener: ((type: string, l: (e: { data: unknown }) => void) =>
+        void listeners[type]!.push(l)) as ImportWorker['addEventListener'],
+      terminate: () => void terminated++,
+    };
+    const send = (data: unknown) => listeners.message!.forEach((l) => l({ data }));
+    return { worker, posted, send, terminated: () => terminated };
+  }
+  const options = {
+    answer: (d: unknown) => (d as { n?: number }).n ?? undefined,
+    timedOut: () => -1,
+    failed: () => -2,
+  };
+
+  it('waits past messages that aren’t its answer, settles once, and ends the worker', async () => {
+    const m = manual();
+    const job = runInWorker(() => m.worker, { job: 'x' }, [], options);
+    expect(m.posted).toEqual([{ job: 'x' }]);
+    m.send({ progress: 1 });
+    m.send({ n: 7 });
+    m.send({ n: 8 });
+    expect(await job).toBe(7);
+    expect(m.terminated()).toBe(1);
+  });
+
+  it('settles with its own refusal after the time limit', async () => {
+    const m = manual();
+    expect(await runInWorker(() => m.worker, {}, [], { ...options, timeLimitMs: 10 })).toBe(-1);
+    expect(m.terminated()).toBe(1);
   });
 });

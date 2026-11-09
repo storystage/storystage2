@@ -12,6 +12,8 @@ export {
   IMPORT_BROKE,
   IMPORT_TIME_LIMIT_MS,
   importInWorker,
+  runInWorker,
+  type WorkerJobOptions,
   type ImportAnswer,
   type ImportMessage,
   type ImportRequest,
