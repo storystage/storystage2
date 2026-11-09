@@ -8,6 +8,8 @@ import { importSetUp } from './world.ts';
 import { buildProgram } from './code.ts';
 import { validateProgram } from '@storystage/ast';
 import { checkProgram } from '@storystage/story-api/program-check';
+import { openProduction, saveProduction } from '@storystage/production';
+import { importAliceWorld } from './import.ts';
 
 // WP9's done-when, for 9.1: Alice's 34 starter projects read with no errors. They're Carnegie
 // Mellon's files, fetched rather than kept here (`scripts/fetch-starters.ts`); CI sets
@@ -45,12 +47,35 @@ describe.skipIf(!folder)('Alice’s 34 starter projects', () => {
       for (const o of w.setup.objects)
         if (typeof o.model !== 'string') expect(o.model.standIn).toMatch(/^[A-Z]/);
       expect(w.gaps.filter((g) => g.kind === 'class')).toEqual([]);
-      for (const g of w.gaps) expect(g.why).toMatch(/.$/);
+      for (const g of w.gaps) expect(g.why).toMatch(/\.$/);
       // Spec 19, sections 5 and 6: a program that passes the AST's and the Story API's checks.
       const built = buildProgram(program, w);
       expect(validateProgram(built.program, { check: (p) => checkProgram(p) })).toEqual([]);
-      for (const g of built.gaps) expect(g.why).toMatch(/.$/);
+      for (const g of built.gaps) expect(g.why).toMatch(/\.$/);
       for (const resource of file.resources)
         expect(resource.bytes, resource.entryName).not.toBeNull();
+    });
+
+  // WP9's done-when (spec 19, sections 7 and 8): each world imports, with no errors or with every
+  // gap reported in plain words, as a production marked Alice's that saves and opens again.
+  for (const { name } of manifest.files)
+    it(`imports ${name}`, () => {
+      const result = importAliceWorld(new Uint8Array(readFileSync(join(folder!, name))), {
+        fileName: name,
+      });
+      if (!result.ok) throw new Error(`${name}: ${result.problem.code}`);
+      const { production, report } = result;
+      expect(production.manifest).toMatchObject({
+        origin: 'alice',
+        title: name.replace(/\.a3p$/, ''),
+      });
+      for (const g of report.gaps) {
+        expect(g.what.length, name).toBeGreaterThan(0);
+        expect(g.where.length, name).toBeGreaterThan(0);
+        expect(g.why, name).toMatch(/^[A-Z].*\.$/);
+      }
+      const opened = openProduction(saveProduction(production));
+      expect(opened.status).toBe('ok');
+      if (opened.status === 'ok') expect(opened.production).toEqual(production);
     });
 });

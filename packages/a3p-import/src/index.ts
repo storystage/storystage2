@@ -8,6 +8,7 @@
 export * from './code.ts';
 export * from './decode.ts';
 export * from './gaps.ts';
+export * from './import.ts';
 export * from './read.ts';
 export { SIMS2_MODELS } from './sims.ts';
 export * from './world.ts';
