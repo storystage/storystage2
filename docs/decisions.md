@@ -80,6 +80,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | The shipped Backstage is bundled | The apps carry the whole shipped Backstage folder (about 85 MB today), so it works offline from the first launch; the browser version serves it from its own origin; `backstage.lock.json` pins the catalogue a release ships (0062) | 8 Nov 2026 |
 | Where imported models live, and OBJ | A class Backstage on each device beside the pupil folders (a learner's import is theirs until the teacher promotes it); a model pack file between devices; productions still carry the models they use (0049); OBJ read in the app by a reader of our own (0066) | 8 Nov 2026 |
 | Bundled voices | Speak line uses an open-source speech engine bundled with StoryStage, on every platform including the browser, with voices for adults and children, men and women, and animals; engine chosen by a spike after a licence and size check (0068) | 8 Nov 2026 |
+| Collect on iPad and Android | On iPad and Android, which can't pick a folder, Collect saves one zip file with a folder per pupil inside, and Hand back opens one; desktop and Chromebooks keep folders ([0070](decisions/0070-collect-as-a-zip-on-ipad-and-android.md)) | 9 Nov 2026 |
 
 ## Still to decide (owner)
 

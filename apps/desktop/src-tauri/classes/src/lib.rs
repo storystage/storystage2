@@ -9,6 +9,7 @@
 //!
 //! `picked` is the same care for the files and folders a person picks in the system's dialog.
 
+pub mod class_zip;
 pub mod picked;
 
 use std::fs;
