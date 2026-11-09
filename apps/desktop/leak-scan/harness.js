@@ -107,6 +107,19 @@ async function main() {
   await invoke('prompter_pupil', { pupil: '../escape' });
   report.usage = await invoke('prompter_usage');
 
+  // The shipped Backstage, through the app's own protocol (decision 0062): backstage.json is
+  // served, and a path out of the folder isn't.
+  const backstage = await invoke('backstage_folder');
+  const status = (path) =>
+    fetch(backstage + path).then(
+      (reply) => reply.status,
+      (error) => String(error),
+    );
+  report.backstage = {
+    manifest: await status('backstage.json'),
+    outside: await status('%2e%2e/tauri.conf.json'),
+  };
+
   // The file dialog is opened from Rust only: the page can't reach the plugin itself.
   report.pickerKind = await invoke('picker_kind');
   report.dialogPlugin = await failure(invoke('plugin:dialog|open', { options: {} }));

@@ -6,6 +6,7 @@
   "permissions": [
     "allow-policy-in-force",
     "allow-app-version",
+    "allow-backstage-folder",
     "allow-prompter-send",
     "allow-prompter-cancel",
     "allow-prompter-status",

@@ -15,6 +15,19 @@ const answering =
   };
 
 describe('the Tauri host', () => {
+  it('finds the shipped Backstage through the app’s own protocol', async () => {
+    const invoke = async (command: string): Promise<unknown> =>
+      command === 'backstage_folder' ? 'http://backstage.localhost/' : answering('1.4.2')(command);
+    expect((await tauriHost(invoke, native)).backstageFolder).toBe('http://backstage.localhost/');
+  });
+
+  it('never takes another address for the Backstage from the native layer', async () => {
+    const invoke = async (command: string): Promise<unknown> =>
+      command === 'backstage_folder' ? 'https://example.com/' : answering('1.4.2')(command);
+    expect((await tauriHost(invoke, native)).backstageFolder).toMatch(/\/backstage\/$/);
+    expect((await tauriHost(invoke, native)).backstageFolder).not.toContain('example.com');
+  });
+
   it('keeps files for sure, as the native store is never cleared by a browser', async () => {
     const host = await tauriHost(answering('1.4.2'), native);
     expect(await host.storagePersistent()).toBe(true);

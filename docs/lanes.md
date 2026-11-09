@@ -207,6 +207,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 9 Nov (#283): **Collect and Hand back as one zip, part 2: the native picker on Android** (0070): Open, Save a copy, and Collect and Hand back as a zip, through the system's dialog and the fs plugin's content URIs. **Owner:** try it on an Android tablet or Chromebook. iPad (part 3) waits for the owner.
   - 9 Nov (#281): **Collect and Hand back as one zip on iPad and Android, part 1** (decision 0070, owner 9 Nov): `class_zip` in `storystage-classes`, writing a film at a time and reading a zip under spec 15's archive rules (names, links, entry count, sizes counted while reading, a zip bomb stopped). Passes on Windows and macOS.
   - 8 Nov (#272): **the browser asked to keep pupils' files** (S4's ask, the last piece of 8.4): `navigator.storage.persist()` once, when the store is first used, and `HostInterface.storagePersistent()` for Settings' warning. S4 reviewed it.
   - 8 Nov (#270): **the security review brief** (`docs/reviews/s8-security-review-brief.md`): where to start the owner's review of S8's native code, what's tested, and the questions worth an expert's time. **Owner:** the review itself.
@@ -235,7 +236,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Owner: a real push of a setting, including `speech.dictation`, through managed Google Play and iPad device management.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7).
-- In review: **Collect and Hand back as one zip, part 2: the native picker on Android** (0070): Open, Save a copy, and Collect and Hand back as a zip, through the system's dialog and the fs plugin's content URIs. Builds and passes in CI; needs trying on an Android device. Next, part 3: iPad's export step.
+- In review: **`HostInterface.backstageFolder`** (S4's ask, decision 0062): the shipped Backstage bundled in the Tauri apps and served read-only by the app's own `backstage` protocol; `backstage/` beside the app in the browser version. Every app build now fetches `.backstage/` first. **S1:** serve `.backstage/` as `backstage/` beside the browser version. It waits for S4's review and the owner's merge.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 

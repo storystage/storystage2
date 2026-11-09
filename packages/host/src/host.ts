@@ -51,9 +51,40 @@ export interface HostInterface {
    * Settings can say "This browser may clear your films if space runs low" when it didn't.
    */
   storagePersistent(): Promise<boolean>;
+  /**
+   * Where the shipped Backstage is (decision 0062), for `openBackstage(folder)`: a URL ending in
+   * `/`, with `backstage.json`, `models/`, `thumbnails/` and `sketches/` in it. In the Tauri apps,
+   * the app's own read-only `backstage` protocol; in the browser version, `backstage/` beside the
+   * app (spec 05 section 7).
+   */
+  readonly backstageFolder: string;
 }
 
 const browserFiles = browserStore();
+
+/** `backstage/` beside the app, where the browser version's Backstage is served. */
+export function browserBackstageFolder(
+  page: string | undefined = globalThis.location?.href,
+): string {
+  return new URL('backstage/', page ?? 'http://localhost/').href;
+}
+
+/** The Tauri command that gives the Backstage's address. It takes no arguments. */
+export const BACKSTAGE_COMMAND = 'backstage_folder';
+
+/** The two addresses the app's `backstage` protocol has: one on Windows and Android, one elsewhere. */
+const BACKSTAGE_PROTOCOL = /^(backstage:\/\/localhost\/|http:\/\/backstage\.localhost\/)$/;
+
+async function readBackstageFolder(invoke: Invoke): Promise<string> {
+  try {
+    const reply = await invoke(BACKSTAGE_COMMAND);
+    return typeof reply === 'string' && BACKSTAGE_PROTOCOL.test(reply)
+      ? reply
+      : browserBackstageFolder();
+  } catch {
+    return browserBackstageFolder();
+  }
+}
 
 /** The browser version's host (0022, 15.6): the Prompter has no way to reach anything. */
 export const browserHost: HostInterface = {
@@ -65,6 +96,7 @@ export const browserHost: HostInterface = {
   picker: browserPicker(),
   prompterUsage: null,
   storagePersistent: () => browserFiles.persistent(),
+  backstageFolder: browserBackstageFolder(),
 };
 
 /** The Tauri command that returns the installed version. It takes no arguments. */
@@ -93,10 +125,11 @@ export async function tauriHost(
   prompter: PrompterTransport,
   Channel?: ChannelClass,
 ): Promise<HostInterface> {
-  const [policy, version, pickerKind] = await Promise.all([
+  const [policy, version, pickerKind, backstageFolder] = await Promise.all([
     readPolicy(invoke),
     readVersion(invoke),
     readPickerKind(invoke),
+    readBackstageFolder(invoke),
   ]);
   const reachable = policy.source === 'unreadable' ? offTransport : prompter;
   const speech = policy.speech.dictation && Channel ? tauriSpeech(invoke, Channel) : null;
@@ -111,5 +144,6 @@ export async function tauriHost(
     prompterUsage: tauriUsage(invoke),
     // The native store, in the app's own data: never cleared by a browser.
     storagePersistent: async () => true,
+    backstageFolder,
   };
 }

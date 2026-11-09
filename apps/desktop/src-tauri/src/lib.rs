@@ -5,6 +5,7 @@
 //! section 4), hands speech input its checked model (section 5) and keeps pupils' folders
 //! (section 6). No API key ever crosses into the webview.
 
+mod backstage;
 mod classes;
 mod key_dialog;
 mod picker;
@@ -60,6 +61,11 @@ pub fn run() {
         // The file dialog, from Rust only: no window is given its permissions (spec 05 section 6.5).
         .plugin(tauri_plugin_dialog::init());
     builder
+        // The shipped Backstage, read-only, at backstage://localhost/ (decision 0062).
+        .register_asynchronous_uri_scheme_protocol(backstage::SCHEME, |context, request, responder| {
+            let app = context.app_handle().clone();
+            std::thread::spawn(move || responder.respond(backstage::handle(&app, &request)));
+        })
         .setup(|app| {
             let policy = read_policy(app.handle());
             app.manage(policy);
@@ -77,6 +83,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             policy_in_force,
             app_version,
+            backstage::backstage_folder,
             prompter::prompter_send,
             prompter::prompter_cancel,
             prompter::prompter_status,

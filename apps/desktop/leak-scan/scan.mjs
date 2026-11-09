@@ -100,6 +100,8 @@ const checks = [
   ['a path out of the pupil folders is refused', report.classes?.escape === 'internal'],
   ['a file that isn’t there reads as not found', report.classes?.missing === 'not_found'],
   ['the desktop app has the native file picker', report.pickerKind === 'native'],
+  ['the shipped Backstage is served to the page', report.backstage?.manifest === 200],
+  ['nothing outside the Backstage is served', report.backstage?.outside === 404],
   [
     'only the request that reached the network counts, against the device',
     report.usage?.entries?.length === 1 &&
