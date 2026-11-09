@@ -124,6 +124,9 @@ importers:
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/backstage-import':
+        specifier: workspace:*
+        version: link:../backstage-import
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
