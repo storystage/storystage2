@@ -29,6 +29,12 @@ export interface SourceItem {
   readonly themes: readonly string[];
   /** What it looks like, for the Prompter's catalogue (spec 17, section 1, rule 5). */
   readonly description?: string;
+  /**
+   * Its real height in metres, where the file's own scale is something else: the build scales a
+   * glTF model to it (spec 17, section 3, pipelines). Models from galleries such as Poly Pizza
+   * come at every scale their makers used. Not for VRM files, which are kept byte for byte.
+   */
+  readonly height?: number;
   readonly licence: ShippableLicence;
   readonly credit: string;
   /** The item's own page: the manifest's `source.url`. */
@@ -102,6 +108,13 @@ export function validateSources(json: unknown): Result {
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
+    if (item.height !== undefined) {
+      if (typeof item.height !== 'number' || !(item.height > 0 && item.height <= 1000))
+        e('height must be metres, more than 0 and at most 1,000.');
+      const f = item.fetch as Record<string, unknown> | undefined;
+      const vrm = f && (f.ext === 'vrm' || (typeof f.path === 'string' && f.path.endsWith('.vrm')));
+      if (vrm) e('height is for glTF models; a VRM file is kept as it is.');
+    }
     const f = item.fetch;
     if (!isObject(f))
       e('needs a fetch: { github, commit, path }, { url, sha256, ext } or { generated }.');

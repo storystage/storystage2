@@ -117,6 +117,8 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
 - **CC0 sources** (3.7, `tools/backstage-sources`):
     - Each source has a list in the assets repository (`sources/*.json`). Every item gives its name, class, section, licence, credit line and own page, and is pinned: a GitHub commit, a SHA-256, or an Arweave address, which names fixed content. Only the licences the audit allows to ship are accepted.
     - The build fetches each item. It packs a `.gltf` into a `.glb`, keeps `.glb` and `.vrm` files byte for byte (a VRM's expressions and look-at serve later blocks), and maps the skeleton (a VRM by its own bone table).
+    - **Real sizes:** an item may give its real `height` in metres. The build scales a glTF model to it under one new root node, since models from galleries such as Poly Pizza come at every scale their makers used (a kite of 6 km, an aeroplane of 30 cm). The manifest's `defaultSize.height` is then that height. VRM files are kept as they are.
+    - **Copies are dropped:** a mesh placed twice in the same place, as some converted models carry it, is removed before reduction (`dropDuplicateInstances`, in `reduceModel`, so imports get it too). It costs triangles, and its sketches would show nothing clean.
     - It writes the manifest items, `provenance.json` (every file fetched, with its SHA-256) and the sketches.
     - **VRM 0.x avatars face -Z.** The sketches turn them; the stage's loader must too (S3).
     - Before a build is merged, a person looks at each new item's sketches for respectful, age-appropriate representation.

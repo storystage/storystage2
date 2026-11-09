@@ -99,6 +99,8 @@ beforeAll(async () => {
           licence: 'CC0-1.0',
           credit: 'Rock by a tester (CC0)',
           page: 'https://github.com/pack/props',
+          // The rock is 2 m tall as made; its real height is 1.5 m.
+          height: 1.5,
           fetch: { github: 'pack/props', commit: COMMIT, path: 'rock.glb' },
         },
       ],
@@ -157,11 +159,16 @@ describe('buildSources reduces every glTF model to its budget', () => {
     const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
     expect(validateManifest(manifest).ok).toBe(true);
     expect(manifest.items[0].budget).toEqual({ triangles: p.triangles, textureMaxPx: 1024 });
+    // Scaled to its real height, under one new root node.
+    expect(manifest.items[0].defaultSize).toEqual({ height: 1.5 });
 
     const doc = await new WebIO()
       .registerExtensions(ALL_EXTENSIONS)
       .readBinary(await readFile(join(dir, 'models/pack/Prop/rock.glb')));
     expect(doc.getRoot().listTextures()[0]!.getMimeType()).toBe('image/webp');
+    const [sized] = doc.getRoot().getDefaultScene()!.listChildren();
+    expect(sized!.getName()).toBe('storystage-size');
+    expect(sized!.getScale()[1]).toBeCloseTo(0.75, 2);
     expect(
       doc
         .getRoot()

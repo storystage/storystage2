@@ -18,7 +18,7 @@
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { WebIO } from '@gltf-transform/core';
+import { WebIO, type Document } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import {
   CATALOGUE_TOKEN_BUDGET,
@@ -41,7 +41,13 @@ import {
   type TextureEncoder,
 } from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
-import { meshFromModel, readModel, renderThumbnail, type ImageDecoder } from '@storystage/sketches';
+import {
+  meshFromDocument,
+  meshFromModel,
+  readModel,
+  renderThumbnail,
+  type ImageDecoder,
+} from '@storystage/sketches';
 import { backstageId, type JointName } from '@storystage/story-api';
 import { fetchModel, httpFetch, type Fetcher } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
@@ -124,6 +130,7 @@ export async function buildSources(
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       const reduced = await reduceModel(doc, budget, { encodeTexture });
+      if (item.height !== undefined) scaleToHeight(doc, item.height);
       fetchedSize = reduced.before;
       bytes = await io.writeBinary(doc);
     } else {
@@ -230,6 +237,25 @@ const removedText = (p: Provenance) =>
 /** "47216 → 19998" when the build changed it, else the one number; "" for nothing. */
 const sizeText = (fetched: number, shipped: number) =>
   fetched === shipped ? (shipped ? `${shipped}` : '') : `${fetched} → ${shipped}`;
+
+/**
+ * Scales a model so its height (its extent along Y) is `metres`: its scene's nodes go under one
+ * new root node with that scale, so nothing inside, skin or animation, needs to change.
+ */
+export function scaleToHeight(doc: Document, metres: number): void {
+  const now = height(meshFromDocument(doc).positions);
+  const k = metres / now;
+  if (!Number.isFinite(k) || Math.abs(k - 1) < 1e-6) return;
+  const root = doc.getRoot();
+  const scene = root.getDefaultScene() ?? root.listScenes()[0];
+  if (!scene) return;
+  const sized = doc.createNode('storystage-size').setScale([k, k, k]);
+  for (const child of scene.listChildren()) {
+    scene.removeChild(child);
+    sized.addChild(child);
+  }
+  scene.addChild(sized);
+}
 
 /** Height in metres at scale 1: the model's extent along Y. */
 function height(positions: Float32Array): number {

@@ -71,6 +71,45 @@ export function largestTexture(doc: Document): number {
   );
 }
 
+/**
+ * Removes a mesh placed twice in the same place: two nodes with the same world transform whose
+ * meshes have the same primitives (after `dedup`, the same accessors and materials), in any
+ * order. Some converted models carry such a copy. It costs triangles, and the sketch renderer
+ * sees two coincident surfaces and draws nothing clean. Gives how many it removed.
+ */
+export function dropDuplicateInstances(doc: Document): number {
+  const root = doc.getRoot();
+  const accessors = root.listAccessors();
+  const materials = root.listMaterials();
+  const seen = new Set<string>();
+  let dropped = 0;
+  for (const node of root.listNodes()) {
+    const mesh = node.getMesh();
+    if (!mesh) continue;
+    const parts = mesh
+      .listPrimitives()
+      .map((p) =>
+        [
+          p.getMode(),
+          accessors.indexOf(p.getIndices()!),
+          ...p.listSemantics().map((s) => `${s}:${accessors.indexOf(p.getAttribute(s)!)}`),
+          materials.indexOf(p.getMaterial()!),
+        ].join(','),
+      )
+      .sort();
+    const where = node
+      .getWorldMatrix()
+      .map((v) => Math.round(v * 1e5) / 1e5)
+      .join(',');
+    const key = `${where}|${node.getSkin() ? 'skin' : ''}|${parts.join(';')}`;
+    if (seen.has(key)) {
+      node.setMesh(null);
+      dropped++;
+    } else seen.add(key);
+  }
+  return dropped;
+}
+
 /** How far meshoptimizer may move the surface, as a share of the model's size: gentle first. */
 const ERRORS = [0.005, 0.01, 0.02, 0.05, 0.1];
 
@@ -80,7 +119,9 @@ export async function reduceModel(
   options: { readonly encodeTexture?: TextureEncoder } = {},
 ): Promise<ReduceReport> {
   const before = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
-  await doc.transform(prune(), dedup(), weld());
+  await doc.transform(prune(), dedup());
+  if (dropDuplicateInstances(doc) > 0) await doc.transform(prune());
+  await doc.transform(weld());
 
   let simplified = false;
   if (countTriangles(doc) > budget.triangles) {

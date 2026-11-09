@@ -106,6 +106,21 @@ describe('validateSources', () => {
     expect(list(undefined, { animations: [''] })).toBe(false);
   });
 
+  it('takes a real height in metres for a glTF model, not for a VRM', () => {
+    const ok = (extra: Record<string, unknown>) =>
+      validateSources({ source: 's', items: [item(extra)] }).ok;
+    expect(ok({ height: 0.85 })).toBe(true);
+    expect(ok({ height: 0 })).toBe(false);
+    expect(ok({ height: 1001 })).toBe(false);
+    expect(ok({ height: '2' })).toBe(false);
+    expect(
+      ok({
+        height: 1.7,
+        fetch: { url: 'https://x.org/a.vrm', sha256: 'a'.repeat(64), ext: 'vrm' },
+      }),
+    ).toBe(false);
+  });
+
   it('lets an Arweave address, which names fixed content, leave out the sha256', () => {
     const tx = 'gfVzs1oH_aPaHVxpQK86HT_rqzyrFPOUKUrDJ30yprs';
     const vrm = (url: string) =>
