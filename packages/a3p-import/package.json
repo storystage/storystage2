@@ -5,7 +5,8 @@
   "description": "Alice 3 worlds (.a3p) into StoryStage: reading them safely (WP9.1), then the program (WP9.2).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./worker": "./src/alice-worker.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
