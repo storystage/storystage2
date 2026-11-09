@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",
+    "@storystage/backstage-import": "workspace:*",
     "@storystage/blocks": "workspace:*",
     "@storystage/editor-contract": "workspace:*",
     "@storystage/host": "workspace:*",
