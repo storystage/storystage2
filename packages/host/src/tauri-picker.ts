@@ -1,6 +1,6 @@
 /**
- * The Tauri desktop apps' file picker (spec 05 section 6.5): the system's dialog, opened by the
- * native layer, so the webview never holds a path. Bytes cross as raw bodies, and names as
+ * The Tauri apps' file picker (spec 05 section 6.5), on desktop and Android: the system's
+ * dialog, opened by the native layer, so the webview never holds a path. Bytes cross as raw bodies, and names as
  * headers, encoded with `encodeURIComponent` as a header carries only plain ASCII.
  */
 import {
@@ -21,6 +21,7 @@ export const PICKER_COMMANDS = {
   open: 'picker_open',
   collectStart: 'picker_collect_start',
   collectWrite: 'picker_collect_write',
+  collectFinish: 'picker_collect_finish',
   handBackStart: 'picker_hand_back_start',
   handBackRead: 'picker_hand_back_read',
   end: 'picker_end',
@@ -108,6 +109,8 @@ export function tauriPicker(invoke: Invoke, limit = FILE_LIMIT): FilePicker {
           };
           await call(PICKER_COMMANDS.collectWrite, file.bytes, { headers });
         }
+        // On Android the zip is finished and saved now (decision 0070); on desktop, nothing to do.
+        await call(PICKER_COMMANDS.collectFinish, { session });
         return files.length;
       } finally {
         await end(session);

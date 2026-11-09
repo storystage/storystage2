@@ -22,6 +22,7 @@ import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
 import { classPacking } from './lesson/packing.ts';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
+import { useStorageKept } from './lesson/useStorageKept.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
@@ -99,6 +100,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   // One packer for the host: a new one each render would make every save look new to useSaving.
   const pack = useMemo(() => classPacking(host), [host]);
   const saving = useSaving(studio.production, film, studio.readOnly, pack);
+  const storageKept = useStorageKept(host);
   const p = studio.production;
 
   /** Starts working on `production`, saved with `saver`. */
@@ -339,7 +341,15 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
           ) : note || missing > 0 ? (
             <>
               {missing > 0 && <NeutralNote>{words.plural('save.missing', missing)}</NeutralNote>}
-              {note && <NeutralNote>{note}</NeutralNote>}
+              {note && (
+                <NeutralNote>
+                  {note}
+                  {/* The browser's one note also says when the browser may clear films. */}
+                  {note === words.t('save.browserNote') &&
+                    storageKept === false &&
+                    ` ${words.t('save.mayClear')}`}
+                </NeutralNote>
+              )}
             </>
           ) : undefined
         }

@@ -63,6 +63,9 @@ function native(
         if (!file) throw 'not_found';
         return file.bytes.slice().buffer;
       }
+      case PICKER_COMMANDS.collectFinish:
+        if (!sessions.delete(named.session as string)) throw 'internal';
+        return undefined;
       case PICKER_COMMANDS.end:
         sessions.delete(named.session as string);
         return undefined;

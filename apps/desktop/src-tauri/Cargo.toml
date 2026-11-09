@@ -55,9 +55,11 @@ windows-sys = { version = "0.61", features = [
 ] }
 zeroize = "1"
 
-[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-# The system's file dialog, from Rust only (spec 05 section 6.5).
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+# The system's file dialog, from Rust only (spec 05 section 6.5): desktop, and Android (0070).
 tauri-plugin-dialog = "2"
+
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 
 [profile.release]

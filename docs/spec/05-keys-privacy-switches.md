@@ -482,16 +482,23 @@ In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the 
 
 | Command | Takes | Gives |
 |---|---|---|
-| `picker_kind` | | `native` on desktop, `browser` on iPad and Android |
+| `picker_kind` | | `native` on desktop and Android, `browser` on iPad until its export step is built (0070) |
 | `picker_save` | The copy as a raw body; its suggested name in `x-storystage-name` | Nothing, or `cancelled` |
 | `picker_open` | | One raw reply: the name's length in four bytes (big-endian), the name, then the file |
 | `picker_collect_start` | | A session, once the teacher has picked a folder |
 | `picker_collect_write` | A file as a raw body; `folder/file` in `x-storystage-name`, the session in `x-storystage-session` | Nothing |
+| `picker_collect_finish` | A session | On Android, finishes the zip and copies it to where the teacher picked; on desktop, nothing to do. Ends the session |
 | `picker_hand_back_start` | | A session, and `{ folder, file }` for each production one level down |
 | `picker_hand_back_read` | A session and an index | The file, as a raw reply |
 | `picker_end` | A session | Forgets the picked folder |
 
-Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. On iPad and Android, `picker_kind` is `browser` and the webview's own pickers are used, until the native dialogs there have been tried on devices.
+Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. **On Android** the same commands use the system's dialog too. A picked file comes back as a content URI, which the fs plugin opens from Rust, so the webview still never holds it. Open reads at most `FILE_LIMIT` and is counted as it reads, since a content URI may not say its size. Save a copy writes straight to the picked file, which can't be renamed over. Collect saves a zip and Hand back opens one (below). The zip is built in, or copied to, a file of the app's own in its cache, and removed when the session ends. **On iPad**, `picker_kind` is still `browser` and the webview's own pickers are used, until iPad's export step is built: iPadOS has no "save as", and the dialog plugin's save can't write a file iPadOS has already exported.
+
+**Collect and Hand back as one zip on iPad and Android** (decision 0070). Neither can pick a folder, so Collect saves one zip, with `<pupil>/<production>.storystage` inside, wherever the teacher picks; Hand back opens one. `storystage_classes::class_zip` writes and reads it:
+
+- Collect **stores** each film as it is (a production is already compressed), a film at a time into a file, never the whole class in memory. Names are checked as on desktop, and a name twice, ignoring case, is `invalid`.
+- Hand back **never trusts the zip**. The whole zip is `unreadable` if any entry's name breaks spec 15 section 3.2 (`..`, absolute, a backslash or control character, a device name, a part ending in a dot or space, over 255 characters, or two names the same ignoring case), if an entry is a link, or if it has more than 2,000 entries. A film declared over `FILE_LIMIT` is `too_big`, and nothing is read. Anything but `<pupil>/<production>.storystage` one level down is left out.
+- Sizes are counted while reading (spec 15 section 3.1): no film over `FILE_LIMIT`, no entry over 1 MiB that unpacks to more than 200 times its packed size, and no more than 8 GiB from one zip. Stored and deflated entries are read, as Windows and macOS make when a teacher compresses a folder; nothing else.
 
 ### 6.6 The class Backstage
 
@@ -557,6 +564,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | A crash mid-save leaves a whole version (6.3) | A store that fails each step in turn, then a read | Vitest |
 | The class Backstage (6.6) | `describeClassFoldersContract` on every store: records kept exactly, owners and promotion, ids never reused, plain paths only, the bin and a removed pupil's items; and the limits, an add that fails part-way and the sweep | Vitest |
 | The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
+| Collect and Hand back as a zip (6.5, 0070) | Round trip; names checked when writing; films one level down only, from a folder rezipped and deflated; every bad name in spec 15 section 3.2 refuses the zip; a link; a zip bomb stopped while reading; too many entries; a file that isn't a zip | Rust unit on Windows and macOS |
 | The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |
 | The page can't reach the dialog itself (6.5) | `plugin:dialog|open` refused on the real Windows app | The leak scan |
 | The native dialogs (6.5) | By hand on Windows and a Mac: each of the four, and closing each | Device (owner) |

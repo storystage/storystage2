@@ -439,16 +439,19 @@ export class BabylonStage implements Stage {
         if (within(hulls.get(a)!, hulls.get(b)!)) touching.set(`${a}\n${b}`, [a, b]);
     });
     const near = new Map<string, Near>();
-    this.watches.forEach((watch, n) => {
-      if (watch.kind !== 'proximity') return;
+    for (const watch of this.watches) {
+      if (watch.kind !== 'proximity') continue;
       for (const a of watch.a)
         for (const b of watch.b) {
           const ha = hulls.get(a);
           const hb = hulls.get(b);
-          if (a !== b && ha && hb && within(ha, hb, watch.distance))
-            near.set(`${n}\n${a}\n${b}`, { a, b, distance: watch.distance });
+          if (a === b || !ha || !hb || !within(ha, hb, watch.distance)) continue;
+          // One event for a pair at a distance, whichever watches find it, whichever way round:
+          // the runtime sends a watch for each listener, and matches a pair either way round.
+          const pair = `${a < b ? `${a}\n${b}` : `${b}\n${a}`}\n${watch.distance}`;
+          if (!near.has(pair)) near.set(pair, { a, b, distance: watch.distance });
         }
-    });
+    }
     const seen = this.visible(
       new Set(this.watches.flatMap((w) => (w.kind === 'view' ? w.objects : []))),
     );

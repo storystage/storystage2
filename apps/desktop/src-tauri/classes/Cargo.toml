@@ -7,8 +7,13 @@ edition = "2021"
 rust-version = "1.80"
 publish = false
 
-# The standard library only, so every rule is tested on any runner without Tauri.
+# No Tauri here, so every rule is tested on any runner.
 [dependencies]
+# Collect and Hand back as one zip on iPad and Android (decision 0070). Stored and deflate only:
+# none of zip's other methods, encryption or extras.
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
+# zip leaves the deflate backend to us: the pure-Rust one, as nothing else is needed.
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 [dev-dependencies]
 serde_json = "1"

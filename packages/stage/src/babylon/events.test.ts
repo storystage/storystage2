@@ -107,6 +107,33 @@ describe('proximity', () => {
     expect(near[0]).toMatchObject({ a: cat, b: dog, distance: 1 });
   });
 
+  it('fires once for a pair, however many watches find it and whichever way round', async () => {
+    const { stage, heard } = await listening();
+    stage.schedule(meetAndPart);
+    // As the runtime sends them: one watch for a proximityEnter listener and one for a
+    // proximityExit listener, with the same sets, and a set that has both in it.
+    stage.watch([
+      { kind: 'proximity', a: [cat], b: [dog], distance: 1 },
+      { kind: 'proximity', a: [cat], b: [dog], distance: 1 },
+      { kind: 'proximity', a: [cat, dog], b: [cat, dog], distance: 1 },
+    ]);
+    for (const t of [0.3, 0.6, 1, 2, 2.5, 3, 4]) stage.seek(micros(t));
+    const near = heard.filter((e) => e.kind.startsWith('proximity'));
+    expect(near.map((e) => e.kind)).toEqual(['proximityEnter', 'proximityExit']);
+  });
+
+  it('fires for each distance a pair is watched at', async () => {
+    const { stage, heard } = await listening();
+    stage.schedule(meetAndPart);
+    stage.watch([
+      { kind: 'proximity', a: [cat], b: [dog], distance: 1 },
+      { kind: 'proximity', a: [dog], b: [cat], distance: 0.5 },
+    ]);
+    for (const t of [0.3, 0.6, 1, 2, 2.5, 3, 4]) stage.seek(micros(t));
+    const entered = heard.filter((e) => e.kind === 'proximityEnter');
+    expect(entered.map((e) => (e as { distance: number }).distance).sort()).toEqual([0.5, 1]);
+  });
+
   it('does not fire for a pair already near when watching starts', async () => {
     const { stage, heard } = await listening();
     stage.watch([{ kind: 'proximity', a: [cat], b: [dog], distance: 5 }]);
