@@ -42,6 +42,9 @@ function fakeClass(pupils: { id: string; name: string; films: string[] }[]) {
           return store.get(key)!.bytes;
         },
         async write(key, name, bytes) {
+          // As the host's checkName: a name over 80 characters is refused.
+          if (name.trim().length > 80)
+            throw Object.assign(new Error('Files: invalid'), { code: 'invalid' });
           const k = key ?? `k${next++}`;
           store.set(k, { name, bytes });
           return { key: k, savedAt: '2026-11-08T12:00:00Z' };
@@ -141,6 +144,22 @@ describe('collectClass', () => {
 });
 
 describe('handBackClass', () => {
+  // S5's cross-check (07-ux 9.7): Sam and sam, "Pip", "pip" and a title of the full 80.
+  it('hands back every collected film, a title of the full 80 characters too', async () => {
+    const long = 'L'.repeat(80);
+    const { classes, folders } = fakeClass([
+      { id: 'a', name: 'Sam', films: ['Pip', 'pip', long] },
+      { id: 'b', name: 'sam', films: [] },
+    ]);
+    const { picker, collected } = fakePicker();
+    expect(await collectClass(classes, picker)).toEqual({ ok: true, count: 3 });
+    const back = fakePicker(collected.map((f) => ({ ...f }))).picker;
+    expect(await handBackClass(classes, back)).toEqual({ written: 3, skipped: [] });
+    const names = [...folders.get('a')!.values()].map((v) => v.name);
+    expect(names).toContain(`${'L'.repeat(66)} (handed back)`);
+    for (const name of names) expect(name.length).toBeLessThanOrEqual(80);
+  });
+
   it("writes each checked file into its pupil's folder as a new production", async () => {
     const { classes, folders } = fakeClass([
       { id: 'a', name: 'Sam', films: ['Pip'] },
