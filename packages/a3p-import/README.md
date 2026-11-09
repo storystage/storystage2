@@ -33,3 +33,7 @@ node packages/a3p-import/scripts/fetch-starters.ts <folder>
 With `ALICE_STARTERS=<folder>` set, `src/starters.test.ts` reads all 34; without it, that test is skipped.
 
 A file already in the folder with the right SHA-256 is kept rather than fetched again, so CI caches the folder by `starters.json` and a cache hit needs no network, with every hash still checked.
+
+## A real `.a3p` for other tests
+
+The starters can't be committed, so `@storystage/a3p-import/testing` writes Alice files instead: `smallAliceWorld()` is the bytes of a small world (a camera, the ground and a cat that says Hello, turns and moves) that imports with three gaps, one each of model, value and block, and saves and opens again. `encodeAlice` writes any decoded graph back as Alice's XML (the inverse of `decodeAlice`), and `aliceArchive` packs it as an `.a3p`. For tests only: the studio's tests and e2e use it.

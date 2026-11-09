@@ -129,3 +129,4 @@ The report is a list the studio shows after an import, grouped by kind (models, 
 | Sections 5 and 6: calls, details, joints, values, notes for what's missing, events | `packages/a3p-import/src/code.test.ts` | Unit |
 | Every result passes `checkProgram` and `checkReferences` | Each of the above | Unit |
 | WP9's done-when: Alice's 34 starter projects import, with every gap reported | `packages/a3p-import/src/starters.test.ts`, with `ALICE_STARTERS` | Unit, fetched in CI |
+| For other packages' tests: `encodeAlice` (the inverse of `decodeAlice`) and `smallAliceWorld`, a real `.a3p` that imports with a stand-in, a mixed colour and a block left out, and saves and opens again (`@storystage/a3p-import/testing`) | `packages/a3p-import/src/testing.test.ts` | Unit |
