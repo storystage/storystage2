@@ -25,7 +25,7 @@ export type SaveStatus =
       readonly kind: 'saved';
       readonly at: string;
       /** Class models the film uses that this device can't find, so they weren't packed. */
-      readonly missing: number;
+      readonly missing: readonly string[];
     }
   | { readonly kind: 'failed'; readonly problem: SaveProblem };
 
@@ -73,8 +73,11 @@ export function useSaving(
   const saved = useRef<Production | null>(null);
   const latest = useRef(production);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // The film's files as last written: they grow as class models are packed into it.
+  // The film's files and packed models as last written: they grow as class models are packed
+  // into it. The studio keeps editing its own production, whose `manifest.models` stays as the
+  // film opened, so packing starts from these, never from that (S4's review of #280).
   const files = useRef<ProductionFiles | null>(null);
+  const models = useRef<Production['manifest']['models'] | null>(null);
 
   useEffect(() => {
     latest.current = production;
@@ -84,15 +87,22 @@ export function useSaving(
   useEffect(() => {
     saved.current = latest.current;
     files.current = film?.files ?? null;
+    models.current = film ? latest.current.manifest.models : null;
   }, [film]);
 
   const packed = useCallback(async (): Promise<Packed> => {
-    const now = latest.current;
+    const latestNow = latest.current;
+    // The studio's production, with the models packed so far: a model packed on an earlier save
+    // stays packed, even where the class Backstage has since lost it.
+    const now = models.current
+      ? { ...latestNow, manifest: { ...latestNow.manifest, models: models.current } }
+      : latestNow;
     const current = files.current ?? film?.files ?? { audio: new Map(), models: new Map() };
     try {
       return await pack(now, current);
     } catch {
-      // The class Backstage couldn't be read: the film is written with what it already carries.
+      // The class Backstage couldn't be read: the film is written with what it already carries,
+      // its packed models and their files together.
       return { production: now, files: current, missing: [] };
     }
   }, [film, pack]);
@@ -112,9 +122,10 @@ export function useSaving(
       if (outcome.ok) {
         saved.current = now;
         files.current = toWrite.files;
+        models.current = toWrite.production.manifest.models;
         setShown({
           film,
-          status: { kind: 'saved', at: outcome.savedAt, missing: toWrite.missing.length },
+          status: { kind: 'saved', at: outcome.savedAt, missing: toWrite.missing },
         });
         return true;
       }

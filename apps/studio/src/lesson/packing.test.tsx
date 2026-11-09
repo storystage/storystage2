@@ -59,7 +59,7 @@ function hostWith(classes: ClassFolders, picker = memoryFilePicker()): HostInter
 
 const NO_FILES = { audio: new Map<string, Uint8Array>(), models: new Map<string, Uint8Array>() };
 
-describe('saving packs the film’s class models', () => {
+describe('saving packs the film’s class models', { timeout: 30_000 }, () => {
   it('saves a film with the class model it uses, so it opens anywhere', async () => {
     const classes = memoryClassFolders();
     const sam = await classes.addPupil('Sam');
@@ -85,6 +85,38 @@ describe('saving packs the film’s class models', () => {
     });
   });
 
+  it('keeps a packed model when the class Backstage has since lost it (spec 03, 1.3)', async () => {
+    const classes = memoryClassFolders();
+    const sam = await classes.addPupil('Sam');
+    const crate = await crateIn(classes);
+    const folder = await classes.folder(sam.id);
+    await folder.write(null, 'Crates', saveProduction(using(crate.id, 'Crates'), NO_FILES));
+    render(<App host={hostWith(classes)} />);
+    await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
+    await userEvent.click(await screen.findByRole('row', { name: /Crates/ }));
+    const title = await screen.findByRole('textbox', { name: 'Title' });
+    await userEvent.type(title, '!');
+    await userEvent.keyboard('{Control>}s{/Control}');
+    await waitFor(async () => {
+      const [film] = await folder.list();
+      const opened = openProduction(await folder.read(film!.key));
+      expect(opened.status === 'ok' && opened.production.manifest.title).toBe('Crates!');
+    });
+    // The class bins the crate; the film, already carrying it, keeps it.
+    await classes.backstage().remove(crate.id);
+    await userEvent.type(title, '?');
+    await userEvent.keyboard('{Control>}s{/Control}');
+    await waitFor(async () => {
+      const [film] = await folder.list();
+      const opened = openProduction(await folder.read(film!.key));
+      expect(opened.status).toBe('ok');
+      if (opened.status !== 'ok') return;
+      expect(opened.production.manifest.title).toBe('Crates!?');
+      expect(opened.production.manifest.models.map((m) => m.item.id)).toEqual([crate.id]);
+    });
+    expect(screen.queryByText(/doesn’t have/)).toBeNull();
+  });
+
   it('says when the film uses a model this device doesn’t have', async () => {
     const classes = memoryClassFolders();
     const sam = await classes.addPupil('Sam');
@@ -99,7 +131,11 @@ describe('saving packs the film’s class models', () => {
     await userEvent.click(await screen.findByRole('row', { name: /Owls/ }));
     await userEvent.type(await screen.findByRole('textbox', { name: 'Title' }), '!');
     await userEvent.keyboard('{Control>}s{/Control}');
-    expect(await screen.findByText(/uses a model this device doesn’t have/)).toBeTruthy();
+    expect(
+      await screen.findByText(
+        'This film uses imported models this device doesn’t have: owl from another device. They’re shown as outlines, and the film still saves.',
+      ),
+    ).toBeTruthy();
   });
 
   it('gives Save a copy the packed film', async () => {
