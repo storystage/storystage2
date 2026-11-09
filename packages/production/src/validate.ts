@@ -131,9 +131,22 @@ function transform(s: Shape, v: unknown, path: string) {
 }
 
 /** A Backstage id (text) or a stand-in (`{ standIn }`). */
+/** The largest stand-in box, in metres on each side (format 1.2.0; S6's `StandIn.size`). */
+export const STAND_IN_SIZE_MAX = 1000;
+
+/** A Backstage id (text) or a stand-in (`{ standIn, size? }`). */
 function modelRef(s: Shape, v: unknown, path: string) {
   if (typeof v === 'string') return;
-  if (s.object(v, path, ['standIn'])) s.string(v.standIn, join(path, 'standIn'));
+  if (!s.object(v, path, ['standIn'], ['size'])) return;
+  s.string(v.standIn, join(path, 'standIn'));
+  if (v.size === undefined) return;
+  const at = join(path, 'size');
+  if (s.object(v.size, at, ['x', 'y', 'z']))
+    for (const k of ['x', 'y', 'z'] as const) {
+      const n = v.size[k];
+      if (s.number(n, join(at, k), 0, STAND_IN_SIZE_MAX) && n === 0)
+        s.fail(join(at, k), 'should be more than 0');
+    }
 }
 
 function transition(s: Shape, v: unknown, path: string) {

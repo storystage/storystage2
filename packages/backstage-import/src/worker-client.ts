@@ -60,6 +60,53 @@ const TOO_SLOW: ImportProblem = {
     'This model took too long to import, so StoryStage stopped. Try a simpler version of it, or a smaller file.',
 };
 
+/** How `runInWorker` settles, besides an answer. */
+export interface WorkerJobOptions<T> {
+  /** The worker's answer, if this message is it; otherwise `undefined`, and it waits on. */
+  readonly answer: (data: unknown) => T | undefined;
+  /** What to settle with when the time limit passes. */
+  readonly timedOut: () => T;
+  /** What to settle with when the worker fails. */
+  readonly failed: () => T;
+  /** Default `IMPORT_TIME_LIMIT_MS`, 60 seconds (spec 15, section 3). */
+  readonly timeLimitMs?: number;
+}
+
+/**
+ * One job in a fresh worker from `start`, for any untrusted reader (spec 15, section 3): posts
+ * `message` with its `transfer` list, and settles once, with the first answer, a failure, or
+ * the time limit. The worker is always ended. `importInWorker` is built on it, and so can
+ * another package's reader (S6's Alice worlds).
+ */
+export function runInWorker<T>(
+  start: () => ImportWorker,
+  message: unknown,
+  transfer: Transferable[],
+  options: WorkerJobOptions<T>,
+): Promise<T> {
+  const worker = start();
+  return new Promise<T>((resolve) => {
+    let done = false;
+    const finish = (result: T) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      worker.terminate();
+      resolve(result);
+    };
+    const timer = setTimeout(
+      () => finish(options.timedOut()),
+      options.timeLimitMs ?? IMPORT_TIME_LIMIT_MS,
+    );
+    worker.addEventListener('message', (event: { data: unknown }) => {
+      const answer = options.answer(event.data);
+      if (answer !== undefined) finish(answer);
+    });
+    worker.addEventListener('error', () => finish(options.failed()));
+    worker.postMessage(message, transfer);
+  });
+}
+
 /**
  * Runs one import in a fresh worker from `start`, and ends the worker when it answers, fails or
  * runs out of time. The picked files' bytes are copied in, so the caller keeps its own.
@@ -69,30 +116,20 @@ export function importInWorker(
   request: ImportRequest,
   options: { readonly timeLimitMs?: number } = {},
 ): Promise<ImportResult> {
-  const worker = start();
-  return new Promise<ImportResult>((resolve) => {
-    let done = false;
-    const finish = (result: ImportResult) => {
-      if (done) return;
-      done = true;
-      clearTimeout(timer);
-      worker.terminate();
-      resolve(result);
-    };
-    const timer = setTimeout(
-      () => finish({ ok: false, problems: [TOO_SLOW] }),
-      options.timeLimitMs ?? IMPORT_TIME_LIMIT_MS,
-    );
-    worker.addEventListener('message', (event: { data: unknown }) => {
-      const data = event.data as Partial<ImportAnswer> | null;
-      if (data?.type === 'result' && data.result) finish(data.result);
-    });
-    worker.addEventListener('error', () => finish({ ok: false, problems: [IMPORT_BROKE] }));
-    const files = request.files.map(([name, bytes]) => [name, bytes.slice()] as const);
-    const message: ImportMessage = { type: 'import', request: { ...request, files } };
-    worker.postMessage(
-      message,
-      files.map(([, bytes]) => bytes.buffer as ArrayBuffer),
-    );
-  });
+  const files = request.files.map(([name, bytes]) => [name, bytes.slice()] as const);
+  const message: ImportMessage = { type: 'import', request: { ...request, files } };
+  return runInWorker<ImportResult>(
+    start,
+    message,
+    files.map(([, bytes]) => bytes.buffer as ArrayBuffer),
+    {
+      answer: (data) => {
+        const d = data as Partial<ImportAnswer> | null;
+        return d?.type === 'result' && d.result ? d.result : undefined;
+      },
+      timedOut: () => ({ ok: false, problems: [TOO_SLOW] }),
+      failed: () => ({ ok: false, problems: [IMPORT_BROKE] }),
+      ...(options.timeLimitMs !== undefined ? { timeLimitMs: options.timeLimitMs } : {}),
+    },
+  );
 }

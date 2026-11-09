@@ -500,6 +500,51 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
     });
 
     describe('sizes', () => {
+      it('gives a stand-in the size it carries, standing on its origin (StandIn.size, #284)', async () => {
+        const [first, second] = SETUP.objects;
+        const sized = (x: number) => ({
+          ...first!,
+          model: { standIn: 'table', size: { x: 2, y: 0.75, z: 1 } },
+          transform: {
+            ...first!.transform,
+            position: { x, y: 0, z: 0 },
+            scale: { x: 1, y: 2, z: 1 },
+          },
+        });
+        const stage = await loaded({
+          ...SETUP,
+          objects: [sized(-1), { ...second!, transform: at(0.9, 0, 0) }],
+        });
+        // Scale multiplies it, as it does a model.
+        expect(stage.answer({ kind: 'size', object: cat, at: 0 }).value).toEqual({
+          x: 2,
+          y: 1.5,
+          z: 1,
+        });
+        // Its joints rest near its top, as on the usual block.
+        const top = stage.answer({
+          kind: 'transform',
+          object: { object: cat, joint: head },
+          at: 0,
+        });
+        expect((top.value as Transform).position.y).toBeCloseTo(0.85 * 1.5, 6);
+      });
+
+      it('refuses a stand-in size out of range', async () => {
+        const [first, second] = SETUP.objects;
+        for (const size of [
+          { x: 0, y: 1, z: 1 },
+          { x: 1, y: 2000, z: 1 },
+          { x: 1, y: Number.NaN, z: 1 },
+        ])
+          await expect(
+            (await make()).load({
+              ...SETUP,
+              objects: [{ ...first!, model: { standIn: 'box', size } }, second!],
+            }),
+          ).rejects.toMatchObject({ code: 'bad_argument' });
+      });
+
       it('sets a height and keeps the shape, and answers with the new size', async () => {
         const stage = await loaded();
         stage.schedule([
