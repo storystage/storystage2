@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { MANIFEST_VERSION, catalogueText } from '@storystage/backstage';
-import { checkBundle, validateLock, type BackstageLock } from './bundle.ts';
+import { checkBundle, servedPath, validateLock, type BackstageLock } from './bundle.ts';
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
@@ -64,6 +64,39 @@ async function bundle(): Promise<BackstageLock> {
     catalogueSha256: sha(catalogue),
   };
 }
+
+describe("servedPath (the apps' backstage protocol, S8)", () => {
+  it('serves plain relative paths inside the Backstage, as is_served does', () => {
+    for (const p of [
+      'backstage.json',
+      'models/kaykit/Biped/knight.glb',
+      'thumbnails/osa_Biped_teddy.webp',
+      'sketches/p01/front.svg',
+      'prompter-catalogue.txt',
+    ])
+      expect(servedPath(p), p).toBe(true);
+  });
+
+  it('serves nothing that could leave it, or that the apps would refuse', () => {
+    for (const p of [
+      '',
+      '/backstage.json',
+      '../x',
+      'models/../../x',
+      'a//b',
+      '.hidden',
+      'models/.git/config',
+      '%2e%2e/x',
+      'a\b',
+      'a b.glb',
+      'C:/x',
+      'models/x.glb?y',
+      'models/(x).glb',
+      'x'.repeat(256),
+    ])
+      expect(servedPath(p), p).toBe(false);
+  });
+});
 
 describe('checkBundle', () => {
   it('passes a folder that matches its lock', async () => {
