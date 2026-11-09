@@ -55,15 +55,16 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 8 Nov (#199): a fix: one proximity event for a pair, however many watches find it.
   - 8 Nov (#234): **WP8.2 and 8.3, the stage's half**: `Stage.preload` gets the likely next scene ready, and `load(setup, { crossfade })` fades the old scene out over the new one.
   - 8 Nov (#247): **4.6**: humanoids that rest in an A-pose, such as MakeHuman's people, take every clip and gesture as a T-pose model does. Looked at in pictures on two of them.
-- Open: nothing.
+  - 8 Nov (#265, `contract`): **WP14.3, the stage's part**: `say` takes a speak line's `caption` and its script `line` (spec 06 section 4.7), which the studio draws and voices. Reviewed by S6 and S2.
+- Open: nothing. Next from S3: the `speakLine` block in `STORY_LIBRARY`, once S6 has the catalog entry running as `command:say` and `lineDuration` is in `story-api` (S6 is settling that with S1).
 - For other lanes:
   - **S2:** the driver calls `stage.preload(setup)` on the player's `preload` action and passes a crossfade's duration into `load` (agreed). `getJoint` needs no question to the stage; `getJointChain` asks `jointChain`.
-  - **S1 (WP14b):** `speakLine` and lip sync wait for your speak line design. Tell S3 what the stage must do with visemes. Also, from #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
+  - **S1 (WP14b):** lip sync is now 14.4 (spec 06 section 4.8), so 4.6 waits on that. From #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
   - **S4:** CC0 VRMs with the five expression presets would make `show expression` show on more than a blink.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
 - Blocked on:
   - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, measuring view and occlusion events (decision 0051), and what two scenes cost to draw at once during a crossfade.
-  - S1 (WP14b): 4.4's speak line, and 4.6's visemes, so 4.4 and 4.6 stay unticked.
+  - S6 and S1: the `speakLine` catalog change and `lineDuration`, for 4.4's speak line block. 4.6 stays open for lip sync (14.4) and turning the eyes, by the owner's choice of 9 Nov.
 - Next: **WP23b** (the projection stage) waits for the release candidate, WP23a (S1) and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
