@@ -4,6 +4,7 @@ fn main() {
     let manifest = tauri_build::AppManifest::new().commands(&[
         "policy_in_force",
         "app_version",
+        "backstage_folder",
         "prompter_send",
         "prompter_cancel",
         "prompter_status",

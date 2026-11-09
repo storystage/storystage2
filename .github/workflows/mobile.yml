@@ -42,6 +42,8 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
       - name: Generate the Android project
         working-directory: apps/desktop
         # The runner image ships the Android SDK and NDK.
@@ -79,6 +81,10 @@ jobs:
           workspaces: apps/desktop/src-tauri -> target
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      # The Backstage fetch is a workspace script, so this job needs the repository set up too.
+      - uses: ./.github/actions/setup
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
       - name: Compile for iPad
         working-directory: apps/desktop/src-tauri
         run: |
@@ -104,6 +110,8 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
       - name: Generate the Xcode project
         working-directory: apps/desktop
         run: pnpm tauri ios init --ci

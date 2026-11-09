@@ -518,7 +518,20 @@ backstage/retired.json             ids emptied from the bin
 - **Limits:** `FILE_LIMIT` for each file (`too_big`), `BACKSTAGE_RECORD_LIMIT` (1 MiB) for a record (`too_big`), and `CLASS_BACKSTAGE_LIMIT` (2 GiB) for every item's files together, the bin's included (`full`). Records don't count towards it.
 - Changes run through the pupil folders' queue, one at a time.
 
-## 7. Tests
+## 7. The shipped Backstage
+
+Decision 0062. The studio finds it at `HostInterface.backstageFolder`, a URL ending in `/`, and opens it with `openBackstage(folder)` from `@storystage/backstage`, which reads and checks `backstage.json` once. The stage fetches model files by URL from there.
+
+| Host | Where | How |
+|---|---|---|
+| Tauri apps | `backstage://localhost/`, or `http://backstage.localhost/` on Windows and Android | `.backstage/` is bundled as a resource, and the app's own `backstage` protocol serves it, read-only. The `backstage_folder` command gives the address; the host takes no other |
+| Browser version | `backstage/` beside the app | S1 serves `.backstage/` there, with the app |
+
+**The protocol** serves only plain relative paths inside the bundled folder (`storystage_classes::backstage_files`): letters, digits, `.`, `_` and `-` between `/`, no part starting with a dot, nothing percent-encoded, at most 255 characters, and never a link. Anything else is not found. Only GET and HEAD. Each reply has its content type and `nosniff`, and `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin`, so the studio, which is cross-origin isolated (5.6), can fetch and show it. The content security policy allows that one origin in `connect-src` and `img-src`. On Android the files are inside the APK, so the protocol reads them through the fs plugin, from Rust. It isn't a file system scope given to the webview: nothing but the shipped Backstage can be reached.
+
+**Every build fetches it first.** `pnpm backstage:fetch` fetches the commit `backstage.lock.json` pins and checks it. Tauri copies resources when it builds, so a build without `.backstage/` fails, in CI and on a developer's machine alike.
+
+## 8. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
 
@@ -565,6 +578,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | The class Backstage (6.6) | `describeClassFoldersContract` on every store: records kept exactly, owners and promotion, ids never reused, plain paths only, the bin and a removed pupil's items; and the limits, an add that fails part-way and the sweep | Vitest |
 | The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
 | Collect and Hand back as a zip (6.5, 0070) | Round trip; names checked when writing; films one level down only, from a folder rezipped and deflated; every bad name in spec 15 section 3.2 refuses the zip; a link; a zip bomb stopped while reading; too many entries; a file that isn't a zip | Rust unit on Windows and macOS |
+| The shipped Backstage's protocol (7) | Plain paths served, anything that could leave the folder refused, content types | Rust unit on Windows and macOS |
+| … in the real app (7) | `backstage.json` served to the page, and a path out of the folder not found | The leak scan |
 | The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |
 | The page can't reach the dialog itself (6.5) | `plugin:dialog|open` refused on the real Windows app | The leak scan |
 | The native dialogs (6.5) | By hand on Windows and a Mac: each of the four, and closing each | Device (owner) |

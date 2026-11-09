@@ -21,7 +21,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost",
+      "csp": "default-src 'self'; img-src 'self' blob: data: backstage: http://backstage.localhost; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost backstage: http://backstage.localhost",
       "headers": {
         "Cross-Origin-Opener-Policy": "same-origin",
         "Cross-Origin-Embedder-Policy": "require-corp"
@@ -44,7 +44,8 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "resources/speech/ggml-tiny.en-q5_1.bin": "speech/ggml-tiny.en-q5_1.bin"
+      "resources/speech/ggml-tiny.en-q5_1.bin": "speech/ggml-tiny.en-q5_1.bin",
+      "../../../.backstage/": "backstage/"
     }
   }
 }
