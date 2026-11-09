@@ -163,7 +163,7 @@ export function App({
     into: PupilFolder,
     result: OpenedProduction,
     key: string | null,
-    fromBackup = false,
+    saveAtOnce = false,
   ) => {
     if (result.status === 'broken') {
       if (!key) return setNote(result.message);
@@ -176,7 +176,7 @@ export function App({
     // An earlier version opened in place of a broken film becomes the film at once: the broken
     // one is kept as a backup, and the next lesson opens this one. An Alice world, opened as a
     // new film, is saved at once too, so it's in My films straight away.
-    if (fromBackup && readOnly === null) {
+    if (saveAtOnce && readOnly === null) {
       const saved = await saver.save(result.production, result.files, 'asked');
       if (!saved.ok) message = saved.problem.message;
     }
@@ -275,7 +275,8 @@ export function App({
     setNote(words.t('alice.opening'));
     const result = await importAliceInWorker(startAlice, bytes, file.name, NO_ALICE_MODELS);
     if (!result.ok) return setNote(result.problem.message);
-    if (!(await saving.save('auto'))) return;
+    // This film's save failed: it stays open, with the failure's words in place of "Opening…".
+    if (!(await saving.save('auto'))) return setNote(null);
     const files = { audio: new Map(), models: new Map() };
     await opened(
       folder,
