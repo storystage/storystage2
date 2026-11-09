@@ -27,6 +27,35 @@ export interface ImportOptions extends WorldOptions, ReadA3pOptions {
   readonly fileName?: string;
   /** This build of StoryStage, for the manifest's `createdWith`. */
   readonly appVersion?: string;
+  /**
+   * Backstage's models as data, for a worker, which can't call back to the page: each Alice
+   * gallery key (`Prop/MangoTree`, or with its variant, `Prop/MangoTree/DEFAULT`) to the model's
+   * id and its height at scale 1 (`defaultSize.height`). The variant's key is tried first. Used
+   * where `findModel` or `modelHeight` isn't given.
+   */
+  readonly models?: ReadonlyMap<string, AliceModel>;
+}
+
+/** One Backstage model, for `ImportOptions.models`. */
+export interface AliceModel {
+  readonly id: string;
+  readonly height?: number | null;
+}
+
+/** `findModel` and `modelHeight` from `models`, where they aren't given themselves. */
+function lookups(options: ImportOptions): WorldOptions {
+  const { models } = options;
+  if (!models) return options;
+  const heights = new Map<string, number>();
+  for (const m of models.values()) if (m.height && m.height > 0) heights.set(m.id, m.height);
+  return {
+    ...options,
+    findModel:
+      options.findModel ??
+      ((key, variant) =>
+        (models.get(`${key}/${variant}`)?.id ?? models.get(key)?.id ?? null) as BackstageId | null),
+    modelHeight: options.modelHeight ?? ((id) => heights.get(id) ?? null),
+  };
 }
 
 /** The report the studio shows after an import (spec 19, section 7). */
@@ -96,7 +125,7 @@ export function importDecodedWorld(
   alice: AliceNode,
   options: ImportOptions = {},
 ): Extract<ImportResult, { ok: true }> {
-  const world = importSetUp(alice, { grounds: ALICE_GROUNDS, ...options });
+  const world = importSetUp(alice, { grounds: ALICE_GROUNDS, ...lookups(options) });
   const built = buildProgram(alice, world);
   const scene = sceneId('s1');
 
