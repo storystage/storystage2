@@ -21,6 +21,7 @@ import {
   type Vec3,
 } from '@storystage/story-api';
 import { listProp, nodeProp, textProp, type AliceNode, type AliceValue } from './decode.ts';
+import { STAND_IN_SIZE_MAX } from '@storystage/production';
 import { words, type ImportGap } from './gaps.ts';
 import { SIMS2_MODELS } from './sims.ts';
 
@@ -50,7 +51,7 @@ export interface WorldSetUp {
   readonly fields: readonly WorldField[];
   /** Calls from Alice's set-up that the set-up can't hold, to keep as code (spec 19, 4.4). */
   readonly asCode: readonly AliceNode[];
-  /** Alice's size, in metres, for each object whose model has no size to scale by yet. */
+  /** Alice's size, in metres, for each Backstage model Backstage gives no size for. */
   readonly sizes: ReadonlyMap<string, Vec3>;
   readonly gaps: readonly ImportGap[];
 }
@@ -82,6 +83,15 @@ export const turnRotation = (q: Quat): Quat => ({ x: negate(q.x), y: q.y, z: neg
 function negate(v: number): number {
   return v === 0 ? 0 : -v;
 }
+
+/** The smallest side a stand-in may have, in metres: 1 cm, for Alice's flat terrain. */
+export const STAND_IN_SIZE_MIN = 0.01;
+
+/** A size the production format takes: each side from 1 cm to `STAND_IN_SIZE_MAX`. */
+export const clampSize = (size: Vec3): Vec3 => {
+  const side = (v: number) => Math.min(STAND_IN_SIZE_MAX, Math.max(STAND_IN_SIZE_MIN, v));
+  return { x: side(size.x), y: side(size.y), z: side(size.z) };
+};
 
 /** The numbers an Alice value object is made from: `new Position(1, 0, 2)`. */
 function numbersOf(e: AliceNode | null, javaClass: string): number[] | null {
@@ -397,15 +407,20 @@ export function importSetUp(program: AliceNode, options: WorldOptions = {}): Wor
 
   const objectSetups: SceneObjectSetup[] = [];
   const unsized = new Map<string, Vec3>();
-  for (const [name, { field, model }] of objects) {
+  for (const [name, { field, model: found }] of objects) {
     const s = state.get(name);
     let scale: Vec3 = IDENTITY.scale;
+    let model = found;
     if (s?.size) {
       const height = typeof model === 'string' ? (options.modelHeight?.(model) ?? null) : null;
       if (height && height > 0) {
         // One scale, from the height (S4: `defaultSize` is the height only).
         const k = s.size.y / height;
         scale = { x: k, y: k, z: k };
+      } else if (typeof model !== 'string') {
+        // A stand-in carries Alice's size itself (`StandIn.size`, format 1.2.0), each side
+        // clamped to what the format allows: Alice gives flat terrain a height of 0.
+        model = { ...model, size: clampSize(s.size) };
       } else {
         unsized.set(name, s.size);
       }
@@ -425,14 +440,14 @@ export function importSetUp(program: AliceNode, options: WorldOptions = {}): Wor
     });
   }
 
-  // A stand-in has no size of its own yet (spec 19, "Needs": `StandIn.size`), so each Alice size
-  // is kept in `sizes` for then, and reported once.
+  // A Backstage model whose size Backstage doesn't give can't be scaled, so its Alice size is
+  // kept in `sizes`, and reported once.
   if (unsized.size > 0)
     gap({
       kind: 'setUp',
       what: unsized.size === 1 ? 'one object’s size' : `${unsized.size} objects’ sizes`,
       where,
-      why: 'Their models aren’t in Backstage yet, so they start at their usual size; their sizes in Alice are kept for when the models arrive.',
+      why: 'Backstage doesn’t give these models’ sizes yet, so they start at their usual size; their sizes in Alice are kept.',
     });
 
   const ground = groundAppearance ? options.grounds?.[groundAppearance] : undefined;

@@ -1,7 +1,8 @@
 import { backstageId, type Quat, type Vec3 } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import type { AliceNode, AliceValue } from './decode.ts';
-import { importSetUp, turnPosition, turnRotation } from './world.ts';
+import { STAND_IN_SIZE_MAX } from '@storystage/production';
+import { clampSize, importSetUp, STAND_IN_SIZE_MIN, turnPosition, turnRotation } from './world.ts';
 
 // Spec 19, sections 3 and 4, on small decoded worlds built in Alice's shapes.
 
@@ -252,16 +253,40 @@ describe('importSetUp: the generated set-up (spec 19, 4.4)', () => {
     expect(what.some((x) => x.includes('setAtmosphereColor'))).toBe(false);
   });
 
-  it('scales by Backstage’s height, else keeps Alice’s size for later and says so once', () => {
+  it('scales by Backstage’s height, gives a stand-in Alice’s size, else keeps it and says so', () => {
     const sized = [call(on(cat), 'SModel', 'setSize', make('Size', 0.5, 0.6, 1.2))];
     const withModel = importSetUp(world([cat], sized), {
       findModel: () => backstageId('Quadruped/Cat/AbyssinianCat'),
       modelHeight: () => 0.3,
     });
     near(withModel.setup.objects[0]!.transform.scale, { x: 2, y: 2, z: 2 });
+    expect(withModel.gaps.filter((g) => g.what.includes('size'))).toHaveLength(0);
+
+    // A stand-in carries the size itself, at scale 1, with nothing to report.
     const standIn = importSetUp(world([cat], sized));
-    expect(standIn.sizes.get('cat')).toEqual({ x: 0.5, y: 0.6, z: 1.2 });
-    expect(standIn.gaps.filter((g) => g.what.includes('size'))).toHaveLength(1);
+    expect(standIn.setup.objects[0]).toMatchObject({
+      model: { standIn: 'Abyssinian cat', size: { x: 0.5, y: 0.6, z: 1.2 } },
+      transform: { scale: { x: 1, y: 1, z: 1 } },
+    });
+    expect(standIn.sizes.size).toBe(0);
+    expect(standIn.gaps.filter((g) => g.what.includes('size'))).toHaveLength(0);
+
+    // A Backstage model with no height to scale by keeps Alice's size aside, reported once.
+    const noHeight = importSetUp(world([cat], sized), {
+      findModel: () => backstageId('Quadruped/Cat/AbyssinianCat'),
+    });
+    expect(noHeight.sizes.get('cat')).toEqual({ x: 0.5, y: 0.6, z: 1.2 });
+    expect(noHeight.gaps.filter((g) => g.what.includes('size'))).toHaveLength(1);
+  });
+
+  it('keeps a stand-in’s size within what the format takes: flat terrain is 1 cm high', () => {
+    const flat = [call(on(cat), 'SModel', 'setSize', make('Size', 40, 0, 2000))];
+    const w = importSetUp(world([cat], flat));
+    expect(w.setup.objects[0]!.model).toEqual({
+      standIn: 'Abyssinian cat',
+      size: { x: 40, y: STAND_IN_SIZE_MIN, z: STAND_IN_SIZE_MAX },
+    });
+    expect(clampSize({ x: -1, y: 0.5, z: 1e9 })).toEqual({ x: 0.01, y: 0.5, z: 1000 });
   });
 });
 

@@ -72,8 +72,8 @@ export type ImportResult =
       readonly production: Production;
       readonly report: ImportReport;
       /**
-       * Alice's size, in metres, for each object whose model has no size to scale by yet: for
-       * when a stand-in can hold one (spec 19, "Needs").
+       * Alice's size, in metres, for each Backstage model Backstage gives no size for. A stand-in
+       * carries its own (`StandIn.size`).
        */
       readonly sizes: ReadonlyMap<string, Vec3>;
     }
