@@ -180,7 +180,7 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
   it("opens a newer file read-only, allowing fields it doesn't know", () => {
     const newer = changed('manifest.json', (m) => ({
       ...m,
-      formatVersion: '1.2.0',
+      formatVersion: '1.3.0',
       laterField: true,
     }));
     const opened = openProduction(newer);
@@ -222,14 +222,16 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
     });
   });
 
-  it('migrates a 1.0.0 file to 1.1.0, and hands back the original to keep', () => {
+  it('migrates a 1.0.0 or 1.1.0 file to this version, and hands back the original to keep', () => {
     const old = changed('manifest.json', (m) => ({ ...m, formatVersion: '1.0.0' }));
     const opened = openProduction(old);
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.original).toBe(old);
-    expect(opened.production.manifest.formatVersion).toBe('1.1.0');
+    expect(opened.production.manifest.formatVersion).toBe('1.2.0');
     expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
+    const older = changed('manifest.json', (m) => ({ ...m, formatVersion: '1.1.0' }));
+    expect(openProduction(older)).toMatchObject({ status: 'migrated', original: older });
   });
 
   it('checks a migrated file against the version it was migrated to', () => {
@@ -244,21 +246,62 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
 
   it('migrates step by step, and refuses a version with no step', () => {
     const migrations = {
-      '1.1.0': { to: '1.2.0', manifest: (m: object) => m },
-      '1.2.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
+      '1.2.0': { to: '1.3.0', manifest: (m: object) => m },
+      '1.3.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
     };
     const opened = openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations });
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.production.manifest).toMatchObject({ formatVersion: '2.0.0', title: 'Moved on' });
-    const stuck = { '1.1.0': { to: '1.1.0', manifest: (m: object) => m } };
+    const stuck = { '1.2.0': { to: '1.2.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: stuck }),
     ).toMatchObject({ status: 'broken' });
-    const gap = { '1.1.0': { to: '1.5.0', manifest: (m: object) => m } };
+    const gap = { '1.2.0': { to: '1.5.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: gap }),
     ).toMatchObject({ status: 'broken', problems: ['Nothing migrates format 1.5.0 to 2.0.0.'] });
+  });
+
+  it('carries a stand-in’s size (format 1.2.0), and refuses one misshapen', () => {
+    const [first, ...rest] = p.scenes;
+    const [object, ...others] = first!.setup.objects;
+    const sized: Production = {
+      ...p,
+      scenes: [
+        {
+          ...first!,
+          setup: {
+            ...first!.setup,
+            objects: [
+              { ...object!, model: { standIn: 'Mango tree', size: { x: 2, y: 4.5, z: 2 } } },
+              ...others,
+            ],
+          },
+        },
+        ...rest,
+      ],
+    };
+    const opened = openProduction(saveProduction(sized));
+    if (opened.status === 'broken') throw new Error(opened.problems.join(' / '));
+    expect(opened.production).toEqual(sized);
+    const withSize = (size: unknown) =>
+      changed('scenes/s1.json', (sc) => {
+        const setup = sc.setup as { objects: Record<string, unknown>[] };
+        return {
+          ...sc,
+          setup: {
+            ...setup,
+            objects: setup.objects.map((o, i) =>
+              i === 0 ? { ...o, model: { standIn: 'Box', size } } : o,
+            ),
+          },
+        };
+      });
+    brokenWith(withSize({ x: 0, y: 1, z: 1 }), /size.x: should be more than 0/);
+    brokenWith(withSize({ x: 1, y: 1001, z: 1 }), /size.y: should be a number from 0 to 1000/);
+    brokenWith(withSize({ x: 1, y: 1, z: 1, w: 1 }), /unknown field w/);
+    brokenWith(withSize('big'), /size: should be an object/);
   });
 
   it('carries credit names and retake notes (format 1.1.0), and refuses them misshapen', () => {

@@ -59,7 +59,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 ### 1.2 Versions
 
-`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.1.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
+`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.2.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
 - **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
@@ -69,7 +69,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 A reader takes the older-is-migrated, newer-is-read-only decision on `formatVersion` first, then opens the program with `openProgram`. If either is newer, the whole production is read-only.
 
-**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0 is one.
+**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0, and 1.1.0 to 1.2.0, are two.
 
 ### 1.3 Models
 
@@ -118,6 +118,8 @@ A scene is two things, kept in step:
 - each scene's method exists, in a type extending `Scene`, and no two scenes share a type;
 - each object in the set-up has a field of that name with `initial: null`, and each such field has an object, except `camera`, whose start is in `SceneSetup.camera`;
 - where the field's type is a Story API class, it is the object's `class`.
+
+**Stand-ins** (WP10.9): an object, a card's cast member or a sketch can be a `StandIn` (`{ standIn }`) where Backstage has no model. Since format 1.2.0 a stand-in may carry `size` (S6, for imported Alice worlds): its box in metres at scale 1, each side more than 0 and at most 1,000 (`STAND_IN_SIZE_MAX`), standing on its origin as a model does. The stage draws a set-up's stand-in at that size; without it, the usual box.
 
 ### 2.1 Undoing the program and the set-up together
 
