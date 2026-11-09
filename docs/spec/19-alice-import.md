@@ -117,7 +117,7 @@ The report is a list the studio shows after an import, grouped by kind (models, 
 
 ## Needs from other sessions
 
-- **S4 (`StandIn`, in the scene set-up):** a stand-in has no size of its own, so Alice's `setSize` has nowhere to go for a model not in Backstage. Proposed: `StandIn` gains `size?: Vec3`, in metres, which the stage uses for the stand-in's box. Until it does, a stand-in imports at scale 1 and the report names its Alice size.
+- **`StandIn.size`** (agreed with S4, 9 Nov 2026): a stand-in has no size of its own, so Alice's `setSize` has nowhere to go for a model not in Backstage. `StandIn` gains `size?: Vec3`, in metres, for its box (the contract, in `@storystage/story-api`). Then S4's production format 1.2.0 accepts it, and S3's stage draws and sizes the box from it. Until both are in, a stand-in imports at scale 1, with its Alice size kept in the import's `sizes` and named in the report; once they are, the import fills it in.
 - **S4 (Backstage):** ground appearances (`SurfaceAppearance.MOON`) as backdrop items, so a world keeps its ground. Until then, the default ground, reported.
 
 ## 9. Tests
