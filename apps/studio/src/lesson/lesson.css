@@ -185,3 +185,46 @@
   font-weight: 400;
   color: var(--ss-muted);
 }
+
+/* What came across from an Alice world (spec 19, section 7): gaps grouped by kind. */
+.al-report {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.al-summary {
+  margin: 0;
+}
+.al-kind {
+  margin: 0 0 6px;
+  font-size: 17px;
+  font-weight: 800;
+}
+.al-gaps {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.al-gaps li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ss-line-1);
+}
+.al-what {
+  font-weight: 700;
+}
+.al-where,
+.al-why {
+  font-size: 14px;
+  color: var(--ss-muted);
+}
+.al-actions {
+  display: flex;
+  justify-content: flex-end;
+}
