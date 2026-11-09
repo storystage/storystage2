@@ -16,10 +16,9 @@ import {
   type ScreeningState,
 } from '@storystage/screening';
 import '@storystage/screening/styles.css';
-import type { Stage } from '@storystage/stage';
 import { NeutralNote } from '@storystage/ui';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { makeStage, hiddenCanvas, type StageMaker } from '../stage/makeStage.ts';
+import { makeStage, hiddenCanvas, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import { useModelSource, type ModelSourceOptions } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
 import type { Place } from '../storyboard/place.ts';
@@ -32,6 +31,11 @@ export interface ScreeningTabProps {
   readonly studio: Studio;
   readonly host: HostInterface;
   onPlaceChange(place: Place): void;
+  /**
+   * False while the tab is out of sight under Learn or Settings: play pauses and the stage stops
+   * drawing, without being disposed. Default true.
+   */
+  readonly active?: boolean;
   /** Fix on the Production stage: the App changes tab and puts the place there. */
   onOpenProductionStage(node: NodeId, place: Place | null): void;
   /** For tests: how stages and runtime workers are made, and Backstage fetched. */
@@ -82,7 +86,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
   const startWorker = props.startWorker ?? startRuntimeWorker;
   const models = useModelSource(host, props.models);
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [stage, setStage] = useState<Stage | null>(null);
+  const [stage, setStage] = useState<ShownStage | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [slot] = useState(controllerSlot);
 
@@ -95,7 +99,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
     const canvas = document.createElement('canvas');
     host.append(canvas);
     let live = true;
-    let made: Stage | null = null;
+    let made: ShownStage | null = null;
     make(canvas, { hidden: false, models: models.source }).then(
       (s) => {
         if (!live) return s.dispose();
@@ -132,6 +136,10 @@ export function ScreeningTab(props: ScreeningTabProps) {
     void models
       .prepare(usedModels(production))
       .then(() => next.prepare(stop.signal))
+      // A measure that worked clears what an earlier one said.
+      .then((timeline) => {
+        if (timeline) setProblem(null);
+      })
       .catch((e: unknown) => {
         console.error('The Screening tab could not measure the film.', e);
         setProblem(words.t('screening.notReady'));
@@ -151,6 +159,18 @@ export function ScreeningTab(props: ScreeningTabProps) {
     // `make`, `startWorker` and the model source last as long as the tab.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [stage, production]);
+
+  // Out of sight: pause, and stop drawing until the tab shows again.
+  const active = props.active ?? true;
+  useEffect(() => {
+    if (!stage) return;
+    if (active) {
+      stage.startLive?.();
+      return;
+    }
+    slot.get()?.pause();
+    stage.stopLive?.();
+  }, [active, stage, slot]);
 
   const state = useSyncExternalStore(slot.subscribe, slot.state);
 

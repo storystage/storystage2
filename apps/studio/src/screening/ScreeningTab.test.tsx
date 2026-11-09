@@ -51,12 +51,13 @@ function harness(over: { stage?: StageMaker; production?: Production } = {}) {
   };
   const onPlaceChange = vi.fn<ScreeningTabProps['onPlaceChange']>();
   const onOpenProductionStage = vi.fn<ScreeningTabProps['onOpenProductionStage']>();
-  function Tab() {
+  function Tab({ active = true }: { active?: boolean }) {
     const studio = useStudio(over.production ?? exampleProduction());
     return (
       <ScreeningTab
         studio={studio}
         host={host}
+        active={active}
         onPlaceChange={onPlaceChange}
         onOpenProductionStage={onOpenProductionStage}
         makeStage={makeStage}
@@ -67,6 +68,8 @@ function harness(over: { stage?: StageMaker; production?: Production } = {}) {
   const view = render(<Tab />);
   return {
     view,
+    /** Shows or hides the tab, as Learn or Settings opening over it does. */
+    setActive: (active: boolean) => view.rerender(<Tab active={active} />),
     made,
     workers: () => ({ started, ended }),
     onPlaceChange,
@@ -114,6 +117,24 @@ describe('ScreeningTab', () => {
     view.unmount();
     for (const m of made) expect(m.stage.calls.some((c) => c.method === 'dispose')).toBe(true);
     expect(workers().ended).toBe(workers().started);
+  });
+
+  it('pauses and stops drawing while Learn or Settings is over it, and draws again after', async () => {
+    const drawing: string[] = [];
+    const { setActive } = harness({
+      stage: async () =>
+        Object.assign(new FakeStage(), {
+          startLive: () => drawing.push('start'),
+          stopLive: () => drawing.push('stop'),
+        }),
+    });
+    await userEvent.click(await screen.findByRole('button', { name: 'Play' }));
+    await screen.findByRole('button', { name: 'Pause' });
+    setActive(false);
+    expect(await screen.findByRole('button', { name: 'Play' })).toBeTruthy();
+    expect(drawing.at(-1)).toBe('stop');
+    setActive(true);
+    expect(drawing.at(-1)).toBe('start');
   });
 
   it("says so in plain words when this device can't make a stage", async () => {

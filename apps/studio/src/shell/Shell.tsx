@@ -32,6 +32,11 @@ export interface ShellProps {
   onModeChange?: (mode: Mode) => void;
   /** A note across every mode, above the working area: a failed save, a film opened read-only. */
   notice?: ReactNode;
+  /**
+   * Learn or Settings opened (true) or closed (false). The panels stay mounted under them, so a
+   * panel that plays (the Screening room) pauses while it's hidden.
+   */
+  onOverlayChange?: (open: boolean) => void;
 }
 
 /**
@@ -49,10 +54,15 @@ export function Shell({
   mode: controlled,
   onModeChange,
   notice,
+  onOverlayChange,
 }: ShellProps) {
   const [own, setOwn] = useState<Mode>(initialMode);
   const mode = controlled ?? own;
-  const [overlay, setOverlay] = useState<Overlay | null>(null);
+  const [overlay, setShown] = useState<Overlay | null>(null);
+  const setOverlay = (next: Overlay | null) => {
+    setShown(next);
+    if ((next !== null) !== (overlay !== null)) onOverlayChange?.(next !== null);
+  };
   const modeName = messages.t(`mode.${mode}`);
   const toggle = (which: Overlay) => (on: boolean) => setOverlay(on ? which : null);
   const changeMode = (next: Mode) => {

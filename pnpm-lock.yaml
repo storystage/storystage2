@@ -51,6 +51,9 @@ importers:
 
   apps/studio:
     dependencies:
+      '@storystage/a3p-import':
+        specifier: workspace:*
+        version: link:../../packages/a3p-import
       '@storystage/ast':
         specifier: workspace:*
         version: link:../../packages/ast

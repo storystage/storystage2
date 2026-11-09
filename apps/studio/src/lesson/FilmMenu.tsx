@@ -1,12 +1,12 @@
 /**
  * The Film menu on the production's title (`07-ux.md` section 9.3): New film, My films, Open a
- * copy, Save a copy and, with a class list, Switch pupil.
+ * copy, Open an Alice world (spec 19), Save a copy and, with a class list, Switch pupil.
  */
 import { Icon, useThemeStyle } from '@storystage/ui';
 import { Button as AriaButton, Menu, MenuItem, MenuTrigger, Popover } from 'react-aria-components';
 import { words } from '../strings.ts';
 
-export type FilmAction = 'new' | 'myFilms' | 'openCopy' | 'saveCopy' | 'switchPupil';
+export type FilmAction = 'new' | 'myFilms' | 'openCopy' | 'openAlice' | 'saveCopy' | 'switchPupil';
 
 export function FilmMenu({
   title,
@@ -25,6 +25,7 @@ export function FilmMenu({
     { id: 'new', label: words.t('film.new') },
     { id: 'myFilms', label: words.t('film.myFilms') },
     { id: 'openCopy', label: words.t('film.openCopy') },
+    { id: 'openAlice', label: words.t('film.openAlice') },
     { id: 'saveCopy', label: words.t('film.saveCopy') },
     ...(canSwitch ? [{ id: 'switchPupil' as const, label: words.t('film.switchPupil') }] : []),
   ];

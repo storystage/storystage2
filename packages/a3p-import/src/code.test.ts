@@ -114,7 +114,7 @@ describe('calls (spec 19, 5.1)', () => {
     ]);
     expect(body[0]).toMatchObject({ kind: 'comment', enabled: false });
     expect((body[0] as { text: string }).text).toMatch(
-      /^In Alice: cat set color id\. StoryStage leaves this out: Aids for Alice’s own scene editor/,
+      /^In Alice: cat set color id\. StoryStage leaves this out\. Aids for Alice’s own scene editor/,
     );
     expect(built.gaps).toEqual([
       expect.objectContaining({ kind: 'block', where: 'Scene.myFirstMethod' }),
@@ -235,7 +235,8 @@ describe('values (spec 19, 5.3)', () => {
       body.map((s) => (s as unknown as { args: { color: { value: string } } }).args.color.value),
     ).toEqual(['darkGray', 'red', 'gray']);
     expect(built.gaps).toEqual([
-      expect.objectContaining({ kind: 'value', why: expect.stringMatching(/nearest, gray/) }),
+      // In the words learners see in the blocks: en-GB.
+      expect.objectContaining({ kind: 'value', why: expect.stringMatching(/nearest, grey,/) }),
     ]);
   });
 

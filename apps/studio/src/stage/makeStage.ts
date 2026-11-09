@@ -16,8 +16,20 @@ export interface MakeStageOptions {
   readonly models: ModelSource;
 }
 
+/**
+ * A stage a tab shows. It can stop drawing and start again without being disposed, while it's
+ * out of sight (Settings or Learn over it). A `FakeStage` draws nothing, so it has neither.
+ */
+export type ShownStage = Stage & {
+  startLive?(): void;
+  stopLive?(): void;
+};
+
 /** How a tab makes its stage. Tests give one that makes a `FakeStage`. */
-export type StageMaker = (canvas: HTMLCanvasElement, options: MakeStageOptions) => Promise<Stage>;
+export type StageMaker = (
+  canvas: HTMLCanvasElement,
+  options: MakeStageOptions,
+) => Promise<ShownStage>;
 
 /**
  * Makes a stage on `canvas`. A shown stage draws every frame until it's disposed; the driver
