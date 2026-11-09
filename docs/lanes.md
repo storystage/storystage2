@@ -56,6 +56,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 8 Nov (#234): **WP8.2 and 8.3, the stage's half**: `Stage.preload` gets the likely next scene ready, and `load(setup, { crossfade })` fades the old scene out over the new one.
   - 8 Nov (#247): **4.6**: humanoids that rest in an A-pose, such as MakeHuman's people, take every clip and gesture as a T-pose model does. Looked at in pictures on two of them.
   - 8 Nov (#265, `contract`): **WP14.3, the stage's part**: `say` takes a speak line's `caption` and its script `line` (spec 06 section 4.7), which the studio draws and voices. Reviewed by S6 and S2.
+  - 9 Nov (#288): **stand-ins take the size they carry** (`StandIn.size`, contract #284 by S6 and S4), on both stages, for imported Alice objects whose models aren't in Backstage yet. A flat one, such as Alice's terrain, lies on the ground.
 - Open: nothing. Next from S3: the `speakLine` block in `STORY_LIBRARY`, once S6 has the catalog entry running as `command:say` and `lineDuration` is in `story-api` (S6 is settling that with S1).
 - For other lanes:
   - **S2:** the driver calls `stage.preload(setup)` on the player's `preload` action and passes a crossfade's duration into `load` (agreed). `getJoint` needs no question to the stage; `getJointChain` asks `jointChain`.
