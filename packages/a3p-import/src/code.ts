@@ -35,6 +35,7 @@ import {
   type ColorName,
   type EventDef,
 } from '@storystage/story-api';
+import { word } from '@storystage/story-api/editing';
 import { listProp, nodeProp, nodesOf, textProp, type AliceNode } from './decode.ts';
 import { words, type ImportGap } from './gaps.ts';
 import { aliceClassOf, isLearnerMade, type WorldSetUp } from './world.ts';
@@ -311,7 +312,8 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
       gap({
         kind: 'value',
         what: `a colour Alice mixed (${bytes.join(', ')})`,
-        why: `StoryStage names its colours, so the nearest, ${words(best)}, takes its place.`,
+        // The colour's name as learners see it in the blocks (en-GB: "dark grey").
+        why: `StoryStage names its colours, so the nearest, ${word(`value.Color.${best}`)}, takes its place.`,
       });
     return { id: mint(), kind: 'enum', type: 'Color', value: best };
   };
@@ -521,12 +523,12 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
         kind: why ? 'block' : 'unknown',
         what,
         why: why
-          ? `StoryStage leaves this block out: ${why}`
+          ? `StoryStage leaves this block out. ${why}`
           : 'StoryStage doesn’t know this Alice block, so a note takes its place.',
       });
       return {
         note: why
-          ? `In Alice: ${what}. StoryStage leaves this out: ${why}`
+          ? `In Alice: ${what}. StoryStage leaves this out. ${why}`
           : `In Alice: ${what}. StoryStage doesn’t know this Alice block.`,
       };
     }
