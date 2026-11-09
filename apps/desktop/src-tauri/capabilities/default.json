@@ -29,6 +29,7 @@
     "allow-picker-open",
     "allow-picker-collect-start",
     "allow-picker-collect-write",
+    "allow-picker-collect-finish",
     "allow-picker-hand-back-start",
     "allow-picker-hand-back-read",
     "allow-picker-end"

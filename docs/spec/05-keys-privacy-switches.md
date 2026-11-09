@@ -482,16 +482,17 @@ In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the 
 
 | Command | Takes | Gives |
 |---|---|---|
-| `picker_kind` | | `native` on desktop, `browser` on iPad and Android |
+| `picker_kind` | | `native` on desktop and Android, `browser` on iPad until its export step is built (0070) |
 | `picker_save` | The copy as a raw body; its suggested name in `x-storystage-name` | Nothing, or `cancelled` |
 | `picker_open` | | One raw reply: the name's length in four bytes (big-endian), the name, then the file |
 | `picker_collect_start` | | A session, once the teacher has picked a folder |
 | `picker_collect_write` | A file as a raw body; `folder/file` in `x-storystage-name`, the session in `x-storystage-session` | Nothing |
+| `picker_collect_finish` | A session | On Android, finishes the zip and copies it to where the teacher picked; on desktop, nothing to do. Ends the session |
 | `picker_hand_back_start` | | A session, and `{ folder, file }` for each production one level down |
 | `picker_hand_back_read` | A session and an index | The file, as a raw reply |
 | `picker_end` | A session | Forgets the picked folder |
 
-Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. On iPad and Android, `picker_kind` is `browser` and the webview's own pickers are used, until the native dialogs there are built and tried on devices.
+Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. **On Android** the same commands use the system's dialog too. A picked file comes back as a content URI, which the fs plugin opens from Rust, so the webview still never holds it. Open reads at most `FILE_LIMIT` and is counted as it reads, since a content URI may not say its size. Save a copy writes straight to the picked file, which can't be renamed over. Collect saves a zip and Hand back opens one (below). The zip is built in, or copied to, a file of the app's own in its cache, and removed when the session ends. **On iPad**, `picker_kind` is still `browser` and the webview's own pickers are used, until iPad's export step is built: iPadOS has no "save as", and the dialog plugin's save can't write a file iPadOS has already exported.
 
 **Collect and Hand back as one zip on iPad and Android** (decision 0070). Neither can pick a folder, so Collect saves one zip, with `<pupil>/<production>.storystage` inside, wherever the teacher picks; Hand back opens one. `storystage_classes::class_zip` writes and reads it:
 

@@ -27,6 +27,7 @@ fn main() {
         "picker_open",
         "picker_collect_start",
         "picker_collect_write",
+        "picker_collect_finish",
         "picker_hand_back_start",
         "picker_hand_back_read",
         "picker_end",
