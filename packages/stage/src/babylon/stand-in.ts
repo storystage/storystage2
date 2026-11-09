@@ -51,8 +51,10 @@ export function buildStandIn(
     height: box.max.y - box.min.y,
     depth: box.max.z - box.min.z,
   };
-  // The nose shows which way it faces, in proportion: 15 cm on the usual half-metre block.
-  const NOSE = 0.3 * Math.min(BODY.width, BODY.depth);
+  // The nose shows which way it faces, in proportion: 15 cm on the usual half-metre block, no
+  // more than 30 cm, and no taller than the block. Alice's flat terrain (49 m by 1 cm by 61 m)
+  // would otherwise have a nose 15 m across.
+  const NOSE = Math.min(0.3 * Math.min(BODY.width, BODY.depth), 0.6 * BODY.height, 0.3);
   const root = new TransformNode(name, scene);
   root.rotationQuaternion = Quaternion.Identity();
   const body = CreateBox(`${name} body`, BODY, scene);
