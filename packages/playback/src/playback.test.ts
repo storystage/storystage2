@@ -340,6 +340,30 @@ describe('the runtime’s messages', () => {
     expect(ended(events)).toEqual([{ kind: 'ended', stopped: false }]);
   });
 
+  it("reports a scene the stage can't load as an error in plain words, and ends", async () => {
+    await settle();
+    // A stage that knows no models: the example's penguin can't be found.
+    const stage = new FakeStage({ knownModels: [] });
+    const playback = new Playback({
+      production: exampleProduction(),
+      stage,
+      port: runtime(),
+      mode: 'production',
+      seed: 1,
+    });
+    const events: PlaybackEvent[] = [];
+    playback.on((e) => events.push(e));
+    await playback.start();
+    expect(events.find((e) => e.kind === 'error')).toMatchObject({
+      kind: 'error',
+      scene: 's1',
+      error: { code: 'stage', stageCode: 'unknown_model', node: null },
+      words: "A model in this scene can't be found. Choose it again in Backstage.",
+    });
+    expect(playback.ended()).toBe(true);
+    expect(ended(events)).toEqual([{ kind: 'ended', stopped: false }]);
+  });
+
   it('drops what the old scene had in flight until the new scene has loaded', async () => {
     const { main, worker } = inMemoryPorts();
     const timers: Timers = { now: () => 0, every: () => () => undefined };

@@ -17,7 +17,7 @@ import {
   type ProductionFiles,
 } from '@storystage/production';
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
 import { classPacking } from './lesson/packing.ts';
@@ -49,6 +49,14 @@ type Phase =
   | { readonly kind: 'studio' };
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
+
+/**
+ * The Screening tab (S2), loaded when it's first opened, so Babylon.js, the runtime's worker and
+ * the encoder aren't in the studio's first download.
+ */
+const ScreeningTab = lazy(() =>
+  import('./screening/ScreeningTab.tsx').then((m) => ({ default: m.ScreeningTab })),
+);
 
 /** Whether this browser has shown the browser version's note about where films are kept. */
 const BROWSER_NOTE = 'storystage.browserNote';
@@ -389,7 +397,20 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
               announcement={said}
             />
           ),
-          screening: null,
+          screening: (
+            <Suspense fallback={null}>
+              <ScreeningTab
+                studio={studio}
+                host={host}
+                onPlaceChange={setPlace}
+                onOpenProductionStage={(_node, at) => {
+                  // The Code editor opening the block itself comes with S5's editors.
+                  if (at) setPlace(at);
+                  setMode('production');
+                }}
+              />
+            </Suspense>
+          ),
         }}
       />
     </ThemeRoot>

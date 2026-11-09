@@ -450,5 +450,7 @@
   "models.licence.not-sure": "Not sure",
   "models.licence.not-sure.about": "Kept in school",
   "settings.bin.emptyModels.one": "The model in the bin will be deleted.",
-  "settings.bin.emptyModels.other": "The {count} models in the bin will be deleted."
+  "settings.bin.emptyModels.other": "The {count} models in the bin will be deleted.",
+  "screening.noStage": "This device can't show the film here. Try it in another browser, or on another computer or tablet.",
+  "screening.notReady": "Something went wrong getting the film ready. Go to another tab and back to try again."
 }

@@ -150,6 +150,25 @@ describe('ScreeningPlayer', () => {
     expect(player.state.time).toBe(timeline.length);
   });
 
+  it("says at once when the film can't be played, from measuring", async () => {
+    await settle();
+    const w = workers();
+    const player = new ScreeningPlayer({
+      production: exampleProduction(),
+      stage: new CountedStage(),
+      // A hidden stage that knows no models: the penguin can't be found.
+      measureStage: () => new CountedStage({ knownModels: [] }),
+      startWorker: w.start,
+      seed: 1,
+      wall: () => 0,
+    });
+    await player.prepare();
+    expect(player.state.error).toEqual({
+      words: "A model in this scene can't be found. Choose it again in Backstage.",
+      node: null,
+    });
+  });
+
   it('stops at an error, in plain words, at its block', async () => {
     await settle();
     const p = exampleProduction();

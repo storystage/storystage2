@@ -1,0 +1,48 @@
+/**
+ * Making a stage for a tab (S2, S5, S3; spec 08 section 2): the Screening tab's shown one and
+ * its hidden one, and later the Production stage's for Rehearse. Babylon.js is loaded only when a
+ * stage is made, so the studio's first screen doesn't download it.
+ */
+import type { ModelSource } from '@storystage/stage/babylon';
+import type { Stage } from '@storystage/stage';
+
+export interface MakeStageOptions {
+  /**
+   * A stage that's never shown: for measuring and exporting. It keeps each frame so it can be
+   * read back, always draws full size, and doesn't draw by itself.
+   */
+  readonly hidden: boolean;
+  /** One source for every stage the App makes (`useModelSource`). */
+  readonly models: ModelSource;
+}
+
+/** How a tab makes its stage. Tests give one that makes a `FakeStage`. */
+export type StageMaker = (canvas: HTMLCanvasElement, options: MakeStageOptions) => Promise<Stage>;
+
+/**
+ * Makes a stage on `canvas`. A shown stage draws every frame until it's disposed; the driver
+ * seeks it. Dispose of it when the tab unmounts.
+ */
+export const makeStage: StageMaker = async (canvas, { hidden, models }) => {
+  const { createBabylonStage } = await import('@storystage/stage/babylon');
+  const stage = await createBabylonStage({ canvas, models, offscreen: hidden });
+  if (hidden) return stage;
+  stage.startLive();
+  // The picture follows the canvas's size on the page.
+  const watching = new ResizeObserver(() => stage.resize());
+  watching.observe(canvas);
+  const dispose = stage.dispose.bind(stage);
+  stage.dispose = () => {
+    watching.disconnect();
+    dispose();
+  };
+  return stage;
+};
+
+/** A canvas that's never on the page, the export's size, for a hidden stage. */
+export function hiddenCanvas(): HTMLCanvasElement {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1280;
+  canvas.height = 720;
+  return canvas;
+}

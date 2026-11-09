@@ -23,10 +23,17 @@
   background: var(--ss-stage-0);
   box-shadow: inset 0 0 0 1px var(--ss-line-1);
 }
-.sr-player > canvas {
+/* The host's stage canvas, directly or in a holder that fills the player. */
+.sr-player > canvas,
+.sr-player .sr-canvas,
+.sr-player .sr-canvas > canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+.sr-player .sr-canvas {
+  position: absolute;
+  inset: 0;
 }
 .sr-player-label {
   position: absolute;

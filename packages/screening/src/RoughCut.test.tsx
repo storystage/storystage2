@@ -152,6 +152,14 @@ describe('RoughCut', () => {
     expect(props.onPlaceChange).toHaveBeenCalledWith({ scene: S2, frame: 'f2' });
   });
 
+  it('shows the player and says it is getting ready while the film is measured', () => {
+    setup({ timeline: null });
+    expect(screen.getByRole('region', { name: 'The film' })).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toBe('Getting the film ready…');
+    expect(screen.queryByRole('slider')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+  });
+
   it('says when the film is cut at 10 minutes', () => {
     setup({ timeline: timeline({ end: { kind: 'cap' } }) });
     expect(screen.getByText(/longer than 10 minutes/)).toBeTruthy();

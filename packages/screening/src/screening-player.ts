@@ -27,7 +27,7 @@ export interface ScreeningPlayerOptions {
   /** The stage the learner sees. The host makes it and disposes of it. */
   readonly stage: Stage;
   /** Makes the hidden stage for measuring, which the player disposes of when it's done. */
-  readonly measureStage: () => Stage;
+  readonly measureStage: () => Stage | Promise<Stage>;
   /** Starts a runtime worker (`startRuntimeWorker`). The player ends every one it starts. */
   readonly startWorker: () => RuntimeWorker;
   readonly seed: number;
@@ -71,7 +71,7 @@ export class ScreeningPlayer {
 
   /** Measures the film. `null` if it was cancelled. */
   async prepare(signal?: AbortSignal): Promise<Timeline | null> {
-    const stage = this.options.measureStage();
+    const stage = await this.options.measureStage();
     const worker = this.options.startWorker();
     try {
       const timeline = await measure({
@@ -84,7 +84,12 @@ export class ScreeningPlayer {
       });
       if (this.disposed) return null;
       this.captionList = captionsFor(timeline.lines, this.options.production.script);
-      this.set({ timeline, time: 0, error: null });
+      // A film that stops with an error says so at once, not only when play gets there.
+      const error =
+        timeline.end.kind === 'error'
+          ? { words: timeline.end.words, node: timeline.end.error.node }
+          : null;
+      this.set({ timeline, time: 0, error });
       return timeline;
     } catch (e) {
       if (e instanceof Error && e.name === 'AbortError') return null;
