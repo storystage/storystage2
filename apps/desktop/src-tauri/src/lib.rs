@@ -51,7 +51,9 @@ pub fn run() {
         .plugin(tauri_plugin_managed_config::init())
         .plugin(tauri_plugin_secure_key::init())
         // For the bundled speech model inside the APK, from Rust only (spec 05 section 5.2).
-        .plugin(tauri_plugin_fs::init());
+        .plugin(tauri_plugin_fs::init())
+        // The file dialog, from Rust only (spec 05 section 6.5, decision 0070).
+        .plugin(tauri_plugin_dialog::init());
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -98,6 +100,7 @@ pub fn run() {
             picker::picker_open,
             picker::picker_collect_start,
             picker::picker_collect_write,
+            picker::picker_collect_finish,
             picker::picker_hand_back_start,
             picker::picker_hand_back_read,
             picker::picker_end,
