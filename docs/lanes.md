@@ -72,6 +72,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 9 Nov: **the film's and the class's models as Backstages** (spec 17 §4b, for S2's Screening-tab mount): `filmBackstage` (packed models, `blob:` URLs on first use) and `openClassBackstage` (records at once, files on `prepare`), both with `dispose`, for `combineBackstages(shipped, film, classes)`. **S2: the mount's model source. S8: the shipped folder is #298.**
   - 9 Nov (#287, contract, agreed with S6): **production format 1.2.0**: a stand-in may carry `size` (S6's `StandIn.size`, #284), wherever a stand-in can be, each side more than 0 and at most 1,000 m (`STAND_IN_SIZE_MAX`), with the 1.1.0 → 1.2.0 step. **S6: the Alice import can fill it in once this merges. S3: the stage's box from it.**
 - Merged:
   - 8 Nov (#274): **`ALICE_GROUNDS`** (spec 17 §2; for S6's Alice world import, spec 19): the ten ground appearances Alice's starter worlds use, mapped to the stage's built-in grounds (`storystage/Ground/<name>`), checked against `GROUND_TYPES`. CC0 textures for the grounds can come later under the same ids.
