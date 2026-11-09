@@ -237,9 +237,15 @@ importers:
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../playback
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
@@ -247,6 +253,9 @@ importers:
         specifier: ^1.62.0
         version: 1.62.0
     devDependencies:
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)

@@ -13,11 +13,14 @@
   },
   "dependencies": {
     "@storystage/backstage": "workspace:*",
+    "@storystage/playback": "workspace:*",
     "@storystage/production": "workspace:*",
+    "@storystage/stage": "workspace:*",
     "@storystage/story-api": "workspace:*",
     "mediabunny": "^1.62.0"
   },
   "devDependencies": {
+    "@storystage/runtime": "workspace:*",
     "vite": "^8.3.4"
   }
 }

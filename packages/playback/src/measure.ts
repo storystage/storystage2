@@ -74,7 +74,13 @@ export interface Timeline {
   readonly end: MeasuredEnd;
 }
 
-export interface MeasureOptions extends Omit<PlaybackOptions, 'mode' | 'viewerWait' | 'trace'> {
+export interface MeasureOptions extends Omit<PlaybackOptions, 'mode' | 'trace'> {
+  /**
+   * How long a scene that waits on the viewer goes on after its last stage command. Default 0, so
+   * the rough cut's run goes on; the export measures with its own 5 seconds, so its timeline is
+   * the film it makes.
+   */
+  readonly viewerWait?: Micros;
   /** Frames a second. Default 30. */
   readonly fps?: number;
   /** Default `FILM_CAP`. */
@@ -85,9 +91,9 @@ export interface MeasureOptions extends Omit<PlaybackOptions, 'mode' | 'viewerWa
 
 /** Plays the running order through in fixed steps, drawing nothing, and says what happened. */
 export async function measure(options: MeasureOptions): Promise<Timeline> {
-  const { fps = 30, limit = FILM_CAP, signal, ...rest } = options;
+  const { fps = 30, limit = FILM_CAP, signal, viewerWait = 0, ...rest } = options;
   // A scene that waits on the viewer ends after its last command, so the run goes on.
-  const playback = new Playback({ ...rest, mode: 'production', viewerWait: 0, trace: true });
+  const playback = new Playback({ ...rest, mode: 'production', viewerWait, trace: true });
   const scenes: { scene: SceneId; transition: Transition | null; start: Micros }[] = [];
   const blocks: MeasuredBlock[] = [];
   const lines: MeasuredLine[] = [];
