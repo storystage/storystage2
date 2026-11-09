@@ -529,6 +529,144 @@ async function crossfadeSky() {
   return out;
 }
 
+/** Milliseconds: the mean, and the slowest but one in twenty. */
+function spread(times: readonly number[]) {
+  const sorted = [...times].sort((a, b) => a - b);
+  const mean = times.reduce((s, t) => s + t, 0) / Math.max(1, times.length);
+  const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] ?? 0;
+  return { mean: Math.round(mean * 100) / 100, p95: Math.round(p95 * 100) / 100 };
+}
+
+/**
+ * WP4c and WP8.3: what characters cost each frame. `count` humanoids (the small one in
+ * `tiny-model.ts`, or the model at `url`) stand, then walk round a wall looking at the first
+ * of them, every third one waving, then crossfade into a second scene of the same. For each, at
+ * 30 frames a second for `seconds`:
+ * - `seek`: the stage's own work (timeline, poses, views), in milliseconds;
+ * - `render`: handing the frame to the GPU;
+ * - `frame`: the whole frame, the GPU's drawing included.
+ *
+ * Also how long the scene took to load, and to work out every walk (its walkable area included).
+ * On a reference device, open this page and call `stageHarness.characterCost(10)` (#6).
+ */
+async function characterCost(
+  count = 10,
+  seconds = 2,
+  url: string = tinyHumanUrl(),
+  renderer: 'auto' | 'webgl2' = 'webgl2',
+) {
+  const canvas = document.createElement('canvas');
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+  document.body.append(canvas);
+  const person = backstageId('test/Biped/person');
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: (id) => (id === person ? { url, joints: [] } : null) },
+    renderer,
+  });
+  const ids = Array.from({ length: count }, (_, i) => objectId(`p${i}`));
+  const setup: SceneSetup = {
+    backdrop: BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop,
+    objects: [
+      ...ids.map((id, i) => ({
+        id,
+        model: person,
+        class: 'Biped' as const,
+        transform: {
+          ...IDENTITY,
+          position: { x: ((i % 5) - 2) * 1.5, y: 0, z: Math.floor(i / 5) * 1.5 },
+        },
+      })),
+      {
+        id: objectId('wall'),
+        model: { standIn: 'wall', size: { x: 6, y: 2, z: 0.3 } },
+        class: 'Prop' as const,
+        transform: { ...IDENTITY, position: { x: 0, y: 0, z: 9 } },
+      },
+    ],
+    camera: { transform: { ...IDENTITY, position: { x: 0, y: 2, z: -8 } } },
+    markers: [
+      { id: objectId('beyond'), transform: { ...IDENTITY, position: { x: 0, y: 0, z: 14 } } },
+    ],
+  };
+  const inside = stage as unknown as {
+    scene: { render(): void };
+    engine: { readPixels(x: number, y: number, w: number, h: number): Promise<unknown> };
+  };
+  const run = async (from: number) => {
+    const seek: number[] = [];
+    const render: number[] = [];
+    const frames = Math.round(seconds * 30);
+    // A few frames first, unmeasured: the first ones also compile shaders.
+    for (let f = 0; f < 5; f++) {
+      stage.seek(micros(from));
+      inside.scene.render();
+    }
+    await inside.engine.readPixels(0, 0, 1, 1);
+    const start = performance.now();
+    for (let f = 0; f < frames; f++) {
+      const a = performance.now();
+      stage.seek(micros(from + f / 30));
+      const b = performance.now();
+      inside.scene.render();
+      render.push(performance.now() - b);
+      seek.push(b - a);
+    }
+    // Waits for the GPU to finish what it was given.
+    await inside.engine.readPixels(0, 0, 1, 1);
+    return {
+      seek: spread(seek),
+      render: spread(render),
+      frame: Math.round(((performance.now() - start) / frames) * 100) / 100,
+    };
+  };
+  let seq = 0;
+  const command = (c: object, start: number): StageCommand => {
+    const timed = {
+      seq: seq++,
+      start: micros(start),
+      duration: 0,
+      style: 'beginAndEndGently',
+      ...c,
+    } as StageCommand;
+    const { seq: _s, start: at, duration: _d, style: _st, ...action } = timed;
+    void _s;
+    void _d;
+    void _st;
+    const own = stage.answer({ kind: 'naturalDuration', action, at } as StageQuery).value as number;
+    return { ...timed, duration: Math.max(own, micros(1)) };
+  };
+
+  const loadStart = performance.now();
+  await stage.load(setup);
+  const loadMs = Math.round(performance.now() - loadStart);
+  const standing = await run(0);
+
+  const planning = performance.now();
+  const acting: StageCommand[] = [];
+  ids.forEach((id, i) => {
+    acting.push(command({ object: id, kind: 'walk', to: objectId('beyond'), gait: 'walk' }, 3));
+    if (i > 0) acting.push(command({ object: id, kind: 'lookAt', target: ids[0]! }, 3));
+    if (i % 3 === 0) acting.push(command({ object: id, kind: 'gesture', gesture: 'wave' }, 3));
+  });
+  stage.schedule(acting);
+  // Working out every walk's way round the wall, its walkable area included, and scheduling it.
+  const planMs = Math.round(performance.now() - planning);
+  const walking = await run(3.6);
+
+  await stage.load(setup, { crossfade: micros(seconds + 1) });
+  const crossfade = await run(0);
+
+  // Which GPU drew it: software (SwiftShader) in CI, the device's own otherwise.
+  const gpu =
+    (inside.engine as unknown as { getGlInfo?(): { renderer: string } }).getGlInfo?.().renderer ??
+    '';
+  stage.dispose();
+  canvas.remove();
+  return { count, renderer: stage.renderer, gpu, loadMs, planMs, standing, walking, crossfade };
+}
+
 /** What the page loaded, in bytes before compression, in order. */
 function scripts() {
   return performance
@@ -551,6 +689,7 @@ Object.assign(window, {
     rendering,
     pictureCheck,
     eventCost,
+    characterCost,
     picture,
     humanPicture,
     scenePictures,

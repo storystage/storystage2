@@ -60,7 +60,7 @@ These are the parts WP4.5–4.6's commands use ("Character actions", below).
 - **Reaching** (`ik.ts`) bends a limb of three joints so that its end is at a point, with the middle joint bending towards a pole. When the point is out of reach, the limb points at it.
 - **Looking** turns a joint to face a point, by no more than its limit. The limit is a fifth of a turn unless told otherwise, counted from where the clips left the joint.
 - **Why not Babylon.js's own controllers?** They move a skeleton's bones, but a glTF model's bones follow their nodes, so the stage turns the nodes with its own arithmetic.
-- **Not measured:** what any of this costs on the reference devices (#6).
+- **Costs:** measured on the owner's PC; the reference devices are still to come (#6). See "What characters cost", below.
 
 ## Humanoids (4.6)
 
@@ -97,6 +97,31 @@ The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`,
 - **Clips.** `play animation` plays the model's own clip of that name, or for a biped, a shared clip. Anything else is refused.
 - **Not yet:** visemes for speaking (waiting on S1's speak line design, WP14.3); turning the eyes as well as the head; and a walk round other characters, which aren't in the way.
 
+## What characters cost
+
+`stageHarness.characterCost(count)` in the stage harness measures it, as `eventCost` does for events.
+- It has `count` humanoids stand, then walk round a wall looking at the first of them (every third one waving), then crossfades into a second scene of the same.
+- For each, it times the stage's own work a frame (`seek`: timeline, poses, reaching and looking, views) and the whole frame, the GPU's drawing included.
+- On a reference device, open the harness and call it in the console (#6). CI runs it small, to check it works.
+
+Measured on the owner's PC, 9 Nov 2026 (Edge, 640 × 360), in milliseconds a frame. A frame at 30 fps has 33 ms.
+
+| Characters, walking | Stage's own work | Frame, on the GPU (GeForce RTX 2060) | Frame, software rendering (SwiftShader) |
+| --- | --- | --- | --- |
+| 10 MakeHuman people | 0.9 | 3.0 | 122 |
+| 20 MakeHuman people | 1.5 | 5.2 | 235 |
+| 20 100Avatars (`david.vrm`) | 1.7 | 3.7 | 43 |
+| 20 KayKit knights | 1.1 | 4.0 | 161 |
+| 40 MakeHuman people | 3.2 | 11.1 | 451 |
+
+- **The stage's own work is small:** about 0.08 ms a character walking, the same with or without a GPU. It isn't what limits a scene.
+- **Drawing is:** it grows with triangles.
+  - Software rendering, a stand-in for a device with a weak GPU, takes about 15 ms for each MakeHuman person (33,000 to 47,000 triangles, before WP3c reduces them), 13 ms for each knight and 5 ms for each VRM.
+  - So the scene budget (`SCENE_BUDGET`, WP3.9) and WP3c's simplifying are what keep a scene at 30 fps. How far, the reference devices will say.
+- **Working out the walks** (their walkable area and ways round the wall) takes about 33 ms once for a layout, whatever the number of characters.
+- **Loading** a scene of 20 takes 0.2 to 0.7 s.
+- **A crossfade** adds 1 to 2 ms a frame on the GPU with 20 characters in each scene, and the old scene's own work.
+
 ## How it fits together
 
 `timeline.ts` works the scene out, with no graphics: the scene at any time is a pure function of the set-up and the commands so far. `FakeStage` and `BabylonStage` both wrap it, so they agree exactly. `BabylonStage` copies the timeline's state onto Babylon.js objects on each `seek`, and nothing else moves them.
@@ -130,7 +155,7 @@ A production plays its scenes in running order (spec 03 section 3.1). The player
   - It goes once the crossfade is over, at the next `seek` past it, or at a `reset` or another `load`. Rewinding doesn't bring it back.
   - A `picture` (5.7) is of the new scene alone.
 - **Fade to black** is the `fade` command, at the end of one scene and the start of the next.
-- **Not measured:** what two scenes cost to draw at once on the reference Chromebook (#6).
+- **Cost:** on the owner's PC, a crossfade adds 1 to 2 ms a frame with 20 characters in each scene ("What characters cost", below). The reference Chromebook is still to measure (#6).
 
 ## Shots (4.10)
 
