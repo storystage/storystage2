@@ -160,6 +160,32 @@ describe('openClassBackstage (decision 0066)', () => {
     expect(view.backstage.find('class/Prop/duck' as BackstageItem['id'])).toBeNull();
   });
 
+  it('finds a model imported since it was made, listing again only for a class id it doesn’t know', async () => {
+    const stored = [{ id: 'class/Prop/crate', record: record('class/Prop/crate') }];
+    let lists = 0;
+    const s: ClassModelStore = {
+      list: async () => {
+        lists++;
+        return [...stored];
+      },
+      read: async () => bytes(4),
+    };
+    const view = await openClassBackstage(s, fakeUrls().urls);
+    await view.prepare(['class/Prop/crate']);
+    const crateUrl = view.backstage.find('class/Prop/crate' as BackstageItem['id'])!.url;
+    expect(lists).toBe(1);
+    // A teacher imports a duck in Settings while the tab stays mounted.
+    stored.push({ id: 'class/Prop/duck', record: record('class/Prop/duck') });
+    await view.prepare(['kaykit/Prop/mug', 'class/Prop/crate']);
+    expect(lists).toBe(1); // a shipped id, and known ones: no listing
+    await view.prepare(['class/Prop/duck']);
+    expect(lists).toBe(2);
+    expect(view.backstage.items.map((i) => i.id)).toEqual(['class/Prop/crate', 'class/Prop/duck']);
+    expect(view.backstage.find('class/Prop/duck' as BackstageItem['id'])?.url).toMatch(/^blob:/);
+    // The URL already made is kept.
+    expect(view.backstage.find('class/Prop/crate' as BackstageItem['id'])!.url).toBe(crateUrl);
+  });
+
   it('leaves a model it can’t read not found, so it shows as a stand-in', async () => {
     const { store: s } = store(new Set(['class/Prop/duck']));
     const view = await openClassBackstage(s, fakeUrls().urls);
