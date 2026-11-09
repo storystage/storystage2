@@ -130,6 +130,7 @@ export async function buildSources(
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       const reduced = await reduceModel(doc, budget, { encodeTexture });
+      if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
       fetchedSize = reduced.before;
       bytes = await io.writeBinary(doc);
@@ -238,6 +239,33 @@ const removedText = (p: Provenance) =>
 const sizeText = (fetched: number, shipped: number) =>
   fetched === shipped ? (shipped ? `${shipped}` : '') : `${fetched} → ${shipped}`;
 
+/** Puts a scene's nodes under one new root node, made by `make`. */
+function wrapScene(doc: Document, make: () => ReturnType<Document['createNode']>): void {
+  const root = doc.getRoot();
+  const scene = root.getDefaultScene() ?? root.listScenes()[0];
+  if (!scene) return;
+  const node = make();
+  for (const child of scene.listChildren()) {
+    scene.removeChild(child);
+    node.addChild(child);
+  }
+  scene.addChild(node);
+}
+
+/**
+ * Turns a model by quarter turns, `x` first, then `y` (both in degrees), under one new root
+ * node, so it faces +Z and stands up as every Backstage model does (spec 17, section 1).
+ */
+export function turnModel(doc: Document, turn: { readonly x?: number; readonly y?: number }): void {
+  const x = ((turn.x ?? 0) * Math.PI) / 180;
+  const y = ((turn.y ?? 0) * Math.PI) / 180;
+  if (x === 0 && y === 0) return;
+  // q = qy · qx: about X first, then about Y.
+  const [sx, cx, sy, cy] = [Math.sin(x / 2), Math.cos(x / 2), Math.sin(y / 2), Math.cos(y / 2)];
+  const q: [number, number, number, number] = [cy * sx, sy * cx, -sy * sx, cy * cx];
+  wrapScene(doc, () => doc.createNode('storystage-turn').setRotation(q));
+}
+
 /**
  * Scales a model so its height (its extent along Y) is `metres`: its scene's nodes go under one
  * new root node with that scale, so nothing inside, skin or animation, needs to change.
@@ -246,15 +274,7 @@ export function scaleToHeight(doc: Document, metres: number): void {
   const now = height(meshFromDocument(doc).positions);
   const k = metres / now;
   if (!Number.isFinite(k) || Math.abs(k - 1) < 1e-6) return;
-  const root = doc.getRoot();
-  const scene = root.getDefaultScene() ?? root.listScenes()[0];
-  if (!scene) return;
-  const sized = doc.createNode('storystage-size').setScale([k, k, k]);
-  for (const child of scene.listChildren()) {
-    scene.removeChild(child);
-    sized.addChild(child);
-  }
-  scene.addChild(sized);
+  wrapScene(doc, () => doc.createNode('storystage-size').setScale([k, k, k]));
 }
 
 /** Height in metres at scale 1: the model's extent along Y. */

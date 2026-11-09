@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { ITEM_BUDGETS, validateManifest } from '@storystage/backstage';
-import { buildSources } from './build.ts';
+import { buildSources, turnModel } from './build.ts';
 import { sharpEncoder } from './sharp-encoder.ts';
 import type { Fetcher } from './fetch.ts';
 
@@ -143,6 +143,27 @@ describe('reduceModel with real pictures', () => {
     expect(doc.getRoot().listTextures()).toHaveLength(0);
     expect(material.getBaseColorFactor().slice(0, 3)).toEqual([1, 0, 0]);
     expect(report.after.textureMaxPx).toBe(0);
+  });
+});
+
+describe('turnModel', () => {
+  it('turns a model about X first, then Y, under one root node', () => {
+    const doc = new Document();
+    const scene = doc.createScene();
+    doc.getRoot().setDefaultScene(scene);
+    // A point in front of the model, at +Z.
+    const point = doc.createNode('point').setTranslation([0, 0, 1]);
+    scene.addChild(point);
+    turnModel(doc, { y: 180 });
+    expect(point.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([
+      0, 0, -1,
+    ]);
+    // Half a turn took it to -Z. x: -90 takes -Z to -Y, and a quarter turn about Y leaves it there.
+    turnModel(doc, { x: -90, y: 90 });
+    expect(point.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([
+      0, -1, 0,
+    ]);
+    expect(scene.listChildren().map((n) => n.getName())).toEqual(['storystage-turn']);
   });
 });
 

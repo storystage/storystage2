@@ -35,6 +35,12 @@ export interface SourceItem {
    * come at every scale their makers used. Not for VRM files, which are kept byte for byte.
    */
   readonly height?: number;
+  /**
+   * Quarter turns in degrees, so a glTF model faces +Z and stands up as every Backstage model
+   * does (spec 17, section 1): `x` first (to stand it up), then `y` (to face it forward).
+   * Galleries' models face every way their makers chose. Not for VRM files.
+   */
+  readonly turn?: { readonly x?: number; readonly y?: number };
   readonly licence: ShippableLicence;
   readonly credit: string;
   /** The item's own page: the manifest's `source.url`. */
@@ -108,12 +114,30 @@ export function validateSources(json: unknown): Result {
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
-    if (item.height !== undefined) {
-      if (typeof item.height !== 'number' || !(item.height > 0 && item.height <= 1000))
+    if (item.turn !== undefined) {
+      const t = item.turn as Record<string, unknown>;
+      const quarter = (v: unknown) =>
+        v === undefined ||
+        (typeof v === 'number' && Number.isInteger(v / 90) && Math.abs(v) <= 270);
+      if (
+        !isObject(t) ||
+        !Object.keys(t).every((k) => k === 'x' || k === 'y') ||
+        !quarter(t.x) ||
+        !quarter(t.y)
+      )
+        e(
+          'turn must be { x?, y? }, each a quarter turn in degrees: 0, 90, 180 or 270, or minus those.',
+        );
+    }
+    if (item.height !== undefined || item.turn !== undefined) {
+      if (
+        item.height !== undefined &&
+        (typeof item.height !== 'number' || !(item.height > 0 && item.height <= 1000))
+      )
         e('height must be metres, more than 0 and at most 1,000.');
       const f = item.fetch as Record<string, unknown> | undefined;
       const vrm = f && (f.ext === 'vrm' || (typeof f.path === 'string' && f.path.endsWith('.vrm')));
-      if (vrm) e('height is for glTF models; a VRM file is kept as it is.');
+      if (vrm) e('height and turn are for glTF models; a VRM file is kept as it is.');
     }
     const f = item.fetch;
     if (!isObject(f))
