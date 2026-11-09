@@ -72,6 +72,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 9 Nov: **the film's and the class's models as Backstages** (spec 17 §4b, for S2's Screening-tab mount): `filmBackstage` (packed models, `blob:` URLs on first use) and `openClassBackstage` (records at once, files on `prepare`), both with `dispose`, for `combineBackstages(shipped, film, classes)`. **S2: the mount's model source. S8: the shipped folder is #298.**
   - 9 Nov (#287, contract, agreed with S6): **production format 1.2.0**: a stand-in may carry `size` (S6's `StandIn.size`, #284), wherever a stand-in can be, each side more than 0 and at most 1,000 m (`STAND_IN_SIZE_MAX`), with the 1.1.0 → 1.2.0 step. **S6: the Alice import can fill it in once this merges. S3: the stage's box from it.**
 - Merged:
   - 8 Nov (#274): **`ALICE_GROUNDS`** (spec 17 §2; for S6's Alice world import, spec 19): the ten ground appearances Alice's starter worlds use, mapped to the stage's built-in grounds (`storystage/Ground/<name>`), checked against `GROUND_TYPES`. CC0 textures for the grounds can come later under the same ids.
@@ -150,6 +151,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
+  - 9 Nov (#302): **a real `.a3p` for tests** (S5's ask for #300): `@storystage/a3p-import/testing` has `smallAliceWorld()`, the bytes of a small Alice world (a camera, the ground and a cat; the cat says Hello, turns and moves) that imports with three gaps, one each of model (a sized stand-in), value (a colour Alice mixed) and block (left out), and saves and opens again. `encodeAlice` and `aliceArchive` write any decoded graph as an `.a3p`. Alice's starters can't be committed, so this is the one to use in the studio's tests and e2e. **S5:** `setInputFiles({ name: 'small.a3p', mimeType: 'application/octet-stream', buffer: Buffer.from(smallAliceWorld()) })`.
   - 9 Nov (#297): **WP9 is done**: the owner dropped the TR1 evaluation worlds from the done-when (no Alice copies exist, S2 found; the four are small worlds the 34 starters already cover, and the evaluation set is now productions in `docs/eval/productions/`). Workplan and spec 19 say so.
   - 9 Nov (#291): **the Alice import fills in `StandIn.size`** (format 1.2.0, S4's #287): a stand-in takes the object's size in Alice, each side from 1 cm (Alice's flat terrain is 0 high) to `STAND_IN_SIZE_MAX`, at scale 1. The starters' 34 size lines are gone from the report; only a Backstage model with no height to scale by keeps its size aside (`sizes`) and is reported. **S3:** imported stand-ins now arrive sized.
   - 9 Nov (#290): **`importAliceInWorker`** (`@storystage/a3p-import/worker-client`): the studio's side of the Alice import's worker, on S4's `runInWorker` (#285), with plain-words refusals when the worker fails or passes 60 s. It loads nothing heavy. **S5:** `importAliceInWorker(() => new Worker(new URL('@storystage/a3p-import/worker', import.meta.url), { type: 'module' }), bytes, fileName, models)`. **S4:** reviewing.
@@ -210,6 +212,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 9 Nov (#283): **Collect and Hand back as one zip, part 2: the native picker on Android** (0070): Open, Save a copy, and Collect and Hand back as a zip, through the system's dialog and the fs plugin's content URIs. **Owner:** try it on an Android tablet or Chromebook. iPad (part 3) waits for the owner.
   - 9 Nov (#281): **Collect and Hand back as one zip on iPad and Android, part 1** (decision 0070, owner 9 Nov): `class_zip` in `storystage-classes`, writing a film at a time and reading a zip under spec 15's archive rules (names, links, entry count, sizes counted while reading, a zip bomb stopped). Passes on Windows and macOS.
   - 8 Nov (#272): **the browser asked to keep pupils' files** (S4's ask, the last piece of 8.4): `navigator.storage.persist()` once, when the store is first used, and `HostInterface.storagePersistent()` for Settings' warning. S4 reviewed it.
   - 8 Nov (#270): **the security review brief** (`docs/reviews/s8-security-review-brief.md`): where to start the owner's review of S8's native code, what's tested, and the questions worth an expert's time. **Owner:** the review itself.
@@ -238,7 +241,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Owner: a real push of a setting, including `speech.dictation`, through managed Google Play and iPad device management.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7).
-- In review: **Collect and Hand back as one zip, part 2: the native picker on Android** (0070): Open, Save a copy, and Collect and Hand back as a zip, through the system's dialog and the fs plugin's content URIs. Builds and passes in CI; needs trying on an Android device. Next, part 3: iPad's export step.
+- In review: **`HostInterface.backstageFolder`** (S4's ask, decision 0062): the shipped Backstage bundled in the Tauri apps and served read-only by the app's own `backstage` protocol; `backstage/` beside the app in the browser version. Every app build now fetches `.backstage/` first. **S1:** serve `.backstage/` as `backstage/` beside the browser version. It waits for S4's review and the owner's merge.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 
