@@ -188,7 +188,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 21 of 61 items finished and 20 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 23 of 61 items finished and 20 more started:
 
 - **Release candidate:** week 13.5 (21 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 19.5 (4 Mar 2027). The plan says week 24.5 (9 Apr 2027).
@@ -250,7 +250,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct; ends about 12 Nov |
 | WP19a | Website and teacher guide drafts (19.1, 19.2) | Curriculum and legal | WP12a | 3 | wk 2 (2 Nov 2026) | 13.5 | 2.1 (25 Oct–8 Nov) |
 | WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 | started 25 Oct; ends about 16 Nov |
-| WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 | forecast: 9 Nov to 16 Nov |
+| WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 | 0.1 (8 Nov) |
 | WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 | forecast: 9 Nov to 30 Nov |
 | WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 | 0.1 (8 Nov) |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 | 1.1 (1–8 Nov) |
@@ -266,7 +266,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP24a | Teacher journey, Prompter access model, relay spike (24.1–24.3) | Apps | WP1g, WP15a, WP8f | 2 | wk 6 (30 Nov 2026) | 5.5 | started 8 Nov; ends about 23 Nov |
 | WP10a | Storyboard: script, arcs, cards, frame canvas, PDF | Interface | WP8f, WP12b, WP10s | 4 | wk 6 (30 Nov 2026) | 4.5 | started 7 Nov; ends about 4 Dec |
 | WP4b | Story API procedures, new blocks, shot types (4.3, 4.4, 4.10) | Language | WP4a, WP5a | 3 | wk 7.5 (10 Dec 2026) | **0 (critical)** | started 7 Nov; ends about 26 Nov |
-| WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 | forecast: 16 Nov to 30 Nov |
+| WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 | 0.3 (8–9 Nov) |
 | WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | started 8 Nov; ends about 10 Dec |
 | WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 23 Nov |
 | WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | 0.1 (8 Nov) |
@@ -683,7 +683,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 9.2 Map Alice types, fields, methods, statements and events onto the StoryStage 2 AST. Map Alice gallery fields onto the converted models in Backstage. Report anything that can't be mapped (for example Sims models) in plain words. (C)
 - [x] 9.3 Imported worlds are marked "imported", so the teacher's switch can relax the storyboard rule for them (WP10.8). (C)
 
-**Done when:** Alice's 34 starter projects and the TR1 evaluation worlds import with no errors, or with every gap reported.
+**Done when:** Alice's 34 starter projects import with no errors, or with every gap reported. (The owner dropped the TR1 evaluation worlds on 9 Nov 2026: no Alice copies of them exist, they are four small worlds the starters already cover, and the evaluation set is now StoryStage 2 productions in `docs/eval/productions/`.)
 
 ### WP10: Storyboard
 **Objective:** the first tab: plan the film, write the script and draw the frames.

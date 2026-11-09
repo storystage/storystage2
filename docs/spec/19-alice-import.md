@@ -3,7 +3,7 @@
 - **Covers:** Reading Alice 3 worlds (`.a3p`) and turning them into one-scene StoryStage productions: classes, objects and their set-up, methods, statements, values and events, and the report of everything that can't come across
 - **Work package:** WP9 (9.1 reading, 9.2 mapping, 9.3 marking)
 - **Owner:** S6
-- **Status:** written by S6, 8 Nov 2026, before the code, from a survey of Alice's 34 starter projects, and built: section 1 is `readA3p` (#238), section 2 `decodeAlice` (#267), sections 3 and 4 `importSetUp` (#269), sections 5 and 6 `buildProgram` (#275), and sections 7 and 8 `importAliceWorld`. All 34 starter projects import, save and open again, with every gap reported. Still to come: the TR1 evaluation worlds, and `StandIn.size` (see "Needs").
+- **Status:** written by S6, 8 Nov 2026, before the code, from a survey of Alice's 34 starter projects, and built: section 1 is `readA3p` (#238), section 2 `decodeAlice` (#267), sections 3 and 4 `importSetUp` (#269), sections 5 and 6 `buildProgram` (#275), and sections 7 and 8 `importAliceWorld`. All 34 starter projects import, save and open again, with every gap reported, and stand-ins carry their Alice size (`StandIn.size`, #291). That is WP9's done-when: the owner dropped the TR1 evaluation worlds on 9 Nov 2026, since no Alice copies of them exist and the starters cover them.
 
 ## 0. Decisions this spec relies on
 
