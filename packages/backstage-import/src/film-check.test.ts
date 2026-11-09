@@ -133,6 +133,13 @@ describe('isSafeSketch', () => {
       ok.replace('</svg>', '</svg><svg></svg>'),
       ok.replace('<title>Crate, front</title>', '<title>a<b</title>'),
       'plain text',
+      ok.replace('fill="#fff"', 'fill="url(https://x.org/a)"'),
+      ok.replace('d="M0 0L1 1Z"', 'd="M0 0L1 1Z" d="M1 1"'),
+      ok.replace('d="M0 0L1 1Z"', 'd="M0 0 Q1 1 2 2"'),
+      ok.replace('stroke-width="2"', 'stroke-width="2px"'),
+      ok.replace('class="fill"', 'class="fill" constructor="x"'),
+      ok.replace('</svg>', '<constructor/></svg>'),
+      ok.replace('</svg>', '</svg data-facing="front">'),
     ])
       expect(isSafeSketch(bad), bad.slice(0, 60)).toBe(false);
   });
@@ -141,6 +148,8 @@ describe('isSafeSketch', () => {
     const started = Date.now();
     expect(isSafeSketch(`<svg${' '.repeat(200_000)}x`)).toBe(false);
     expect(isSafeSketch(`<svg ${' '.repeat(200_000)}>`.concat('</svg>'))).toBe(true);
+    expect(isSafeSketch(`<svg${' a=""'.repeat(100_000)}></svg>`)).toBe(false);
+    expect(isSafeSketch(`<svg${' viewBox="1 1 1 1"'.repeat(100_000)}></svg>`)).toBe(false);
     expect(Date.now() - started).toBeLessThan(1000);
   });
 });

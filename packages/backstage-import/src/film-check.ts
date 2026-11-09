@@ -42,30 +42,37 @@ export interface FilmCheckResult {
 
 const SAFE_FOLDER = /^[a-z0-9][a-z0-9-]{0,31}$/;
 
-/** What each element of a sketch may carry: exactly what the sketch renderer writes. */
-const SKETCH_ATTRIBUTES: Readonly<Record<string, ReadonlySet<string>>> = {
-  svg: new Set([
-    'xmlns',
-    'viewBox',
-    'width',
-    'height',
-    'data-facing',
-    'data-pose',
-    'data-backstage-id',
-  ]),
-  title: new Set(),
-  path: new Set([
-    'class',
-    'd',
-    'fill',
-    'fill-rule',
-    'stroke',
-    'stroke-width',
-    'stroke-linecap',
-    'stroke-linejoin',
-  ]),
+const SIZE = /^\d{1,6}(\.\d{1,6})?$/;
+const PAINT = /^(#[0-9a-fA-F]{3}|#[0-9a-fA-F]{6}|none)$/;
+
+/**
+ * What each element of a sketch may carry, and what each value may be: exactly what the sketch
+ * renderer writes (`packages/sketches/src/render.ts`). So no value can reach outside the sketch,
+ * as `fill="url(…)"` could if the studio ever put a sketch into the page (S2's review).
+ */
+const SKETCH_ATTRIBUTES: Readonly<Record<string, Readonly<Record<string, RegExp>>>> = {
+  svg: {
+    xmlns: /^http:\/\/www\.w3\.org\/2000\/svg$/,
+    viewBox: /^\d{1,6}(\.\d{1,6})? \d{1,6}(\.\d{1,6})? \d{1,6}(\.\d{1,6})? \d{1,6}(\.\d{1,6})?$/,
+    width: SIZE,
+    height: SIZE,
+    'data-facing': /^(front|threeQuarter|side|back)$/,
+    'data-pose': /^[a-z]{1,20}$/,
+    'data-backstage-id': /^[A-Za-z0-9/_.-]{1,200}$/,
+  },
+  title: {},
+  path: {
+    class: /^(fill|detail|outline)$/,
+    // Moves, lines and closes, with numbers: what the renderer's paths are made of.
+    d: /^[MLZ0-9 .e-]*$/,
+    fill: PAINT,
+    'fill-rule': /^(evenodd|nonzero)$/,
+    stroke: PAINT,
+    'stroke-width': SIZE,
+    'stroke-linecap': /^(round|butt|square)$/,
+    'stroke-linejoin': /^(round|miter|bevel)$/,
+  },
 };
-const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 /**
  * Whether `text` is a sketch as Backstage's renderer writes it: one `svg` element of `title` and
@@ -95,24 +102,30 @@ export function isSafeSketch(text: string): boolean {
     const selfClosing = inner.endsWith('/');
     if (selfClosing) inner = inner.slice(0, -1);
     const name = /^[a-zA-Z]+/.exec(inner)?.[0];
-    const allowed = name ? SKETCH_ATTRIBUTES[name] : undefined;
+    const allowed =
+      name && Object.hasOwn(SKETCH_ATTRIBUTES, name) ? SKETCH_ATTRIBUTES[name] : undefined;
     if (!name || !allowed) return false;
-    let rest = inner.slice(name.length);
-    const attributes: [string, string][] = [];
+    // Attributes one at a time, with a sticky pattern, so nothing is copied, and each is refused
+    // as soon as its name, a repeat or its value isn't what the renderer writes: linear in the
+    // file, however it's made (S2's review).
+    const attribute = /\s+([a-zA-Z:-]+)="([^"]*)"/y;
+    attribute.lastIndex = name.length;
+    const seen = new Set<string>();
     for (;;) {
-      const a = /^\s+([a-zA-Z:-]+)="([^"]*)"/.exec(rest);
-      if (!a) break;
-      attributes.push([a[1]!, a[2]!]);
-      rest = rest.slice(a[0].length);
-    }
-    if (rest.trim() !== '') return false;
-    if (closing) {
-      if (attributes.length > 0 || selfClosing || open.pop() !== name) return false;
-    } else {
-      for (const [key, value] of attributes) {
-        if (!allowed.has(key)) return false;
-        if (key === 'xmlns' && value !== SVG_NAMESPACE) return false;
+      const from = attribute.lastIndex;
+      const a = attribute.exec(inner);
+      if (!a) {
+        if (inner.slice(from).trim() !== '') return false;
+        break;
       }
+      const [, key, value] = a;
+      const rule = Object.hasOwn(allowed, key!) ? allowed[key!] : undefined;
+      if (closing || !rule || seen.has(key!) || !rule.test(value!)) return false;
+      seen.add(key!);
+    }
+    if (closing) {
+      if (selfClosing || open.pop() !== name) return false;
+    } else {
       if (name === 'svg') {
         if (open.length > 0 || ++svgs > 1) return false;
       } else if (open.at(-1) !== 'svg') return false;
