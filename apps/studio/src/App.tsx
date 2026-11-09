@@ -17,9 +17,10 @@ import {
   type ProductionFiles,
 } from '@storystage/production';
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
+import { classPacking } from './lesson/packing.ts';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
@@ -95,7 +96,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const [mode, setMode] = useState<Mode>('storyboard');
   const [said, setSaid] = useState('');
   const editors = useEditorHost(studio.session, setSaid);
-  const saving = useSaving(studio.production, film, studio.readOnly);
+  // One packer for the host: a new one each render would make every save look new to useSaving.
+  const pack = useMemo(() => classPacking(host), [host]);
+  const saving = useSaving(studio.production, film, studio.readOnly, pack);
   const p = studio.production;
 
   /** Starts working on `production`, saved with `saver`. */
