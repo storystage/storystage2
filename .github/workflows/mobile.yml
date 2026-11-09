@@ -81,6 +81,8 @@ jobs:
           workspaces: apps/desktop/src-tauri -> target
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      # The Backstage fetch is a workspace script, so this job needs the repository set up too.
+      - uses: ./.github/actions/setup
       - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
         run: pnpm -w run backstage:fetch
       - name: Compile for iPad
