@@ -171,7 +171,8 @@ export class ProductionSaver {
         this.original = null;
       }
       const backup = !this.savedThisSession || kind === 'asked';
-      const name = production.manifest.title.trim() || 'My film';
+      // A title from an opened file may be longer than the host keeps (S5's cross-check).
+      const name = fitName(production.manifest.title, '', 'My film');
       const info = await this.folder.write(this.currentKey, name, bytes, { backup });
       this.currentKey = info.key;
       this.savedThisSession = true;
@@ -200,6 +201,27 @@ export async function openFromFolder(folder: SaveFolder, key: string): Promise<O
 /** A name for a copy of the production, safe to suggest to the system's file picker. */
 export function copyName(production: Production): string {
   return `${plainName(production.manifest.title, 'My film')}.storystage`;
+}
+
+/** The longest name the host keeps for a film or a file (`checkName`, `safeFileName`). */
+export const NAME_LIMIT = 80;
+
+/**
+ * `text` (or `fallback`, if it's empty) with `ending` after it, the whole at most `NAME_LIMIT`
+ * characters as the host counts them (UTF-16 units). Only `text` is shortened, never through the
+ * middle of a character such as an emoji, and a shortened one loses its trailing spaces and dots.
+ */
+export function fitName(text: string, ending = '', fallback = 'My film'): string {
+  let stem = text.trim() || fallback;
+  const room = NAME_LIMIT - ending.length;
+  if (stem.length > room) {
+    stem = stem.slice(0, room);
+    // A high surrogate left on its own is half a character.
+    if (/[\uD800-\uDBFF]$/.test(stem)) stem = stem.slice(0, -1);
+    while (stem.endsWith(' ') || stem.endsWith('.')) stem = stem.slice(0, -1);
+    if (stem === '') stem = fallback.slice(0, room);
+  }
+  return `${stem}${ending}`;
 }
 
 const RESERVED = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/i;
