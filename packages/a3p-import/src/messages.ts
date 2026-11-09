@@ -21,6 +21,13 @@ export interface AliceImportAnswer {
   readonly result: ImportResult;
 }
 
+/** The client's refusal after spec 15's 60 seconds. */
+export const ALICE_TOO_SLOW = {
+  code: 'timedOut',
+  message:
+    'This Alice world took too long to open, so StoryStage stopped. Try opening it again, or a smaller world.',
+} as const;
+
 /** What the worker answers when the import itself broke: a bug here, never the file's fault. */
 export const ALICE_IMPORT_BROKE = {
   code: 'broke',
