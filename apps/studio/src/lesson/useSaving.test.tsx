@@ -70,7 +70,10 @@ describe('useSaving with packing', () => {
     });
     const { result } = renderHook(() => useSaving(titled('Kite'), film, null, pack));
     await act(() => result.current.save('asked'));
-    expect(result.current.status).toMatchObject({ kind: 'saved', missing: 2 });
+    expect(result.current.status).toMatchObject({
+      kind: 'saved',
+      missing: ['class/owl', 'class/kite'],
+    });
   });
 
   it('still saves when the class Backstage can’t be read', async () => {
@@ -83,7 +86,61 @@ describe('useSaving with packing', () => {
     await act(() => result.current.save('asked'));
     expect(save).toHaveBeenCalledTimes(1);
     expect(save.mock.calls[0]![1]).toBe(OPENED);
-    expect(result.current.status).toMatchObject({ kind: 'saved', missing: 0 });
+    expect(result.current.status).toMatchObject({ kind: 'saved', missing: [] });
+  });
+
+  it('packs from the models the last save packed, not the ones the film opened with', async () => {
+    const { saver, save } = fakeSaver();
+    const film: OpenFilm = { saver, files: OPENED };
+    const given: string[][] = [];
+    const crate = { folder: 'prop-crate', item: { id: 'class/Prop/crate' } } as never;
+    // Packing adds the crate the first time; after that it only keeps what it's given.
+    const pack: Pack = async (p, files) => {
+      given.push(p.manifest.models.map((m) => m.item.id));
+      const models = given.length === 1 ? [crate] : p.manifest.models;
+      return { production: { ...p, manifest: { ...p.manifest, models } }, files, missing: [] };
+    };
+    const { result, rerender } = renderHook(
+      ({ production }) => useSaving(production, film, null, pack),
+      { initialProps: { production: titled('Kite') } },
+    );
+    await act(() => result.current.save('asked'));
+    rerender({ production: titled('Kite 2') });
+    await act(() => result.current.save('asked'));
+    expect(given[1]).toEqual(['class/Prop/crate']);
+    expect(save.mock.calls[1]![0].manifest.models.map((m) => m.item.id)).toEqual([
+      'class/Prop/crate',
+    ]);
+  });
+
+  it('falls back to the packed models and their files together', async () => {
+    const { saver, save } = fakeSaver();
+    const film: OpenFilm = { saver, files: OPENED };
+    const crate = { folder: 'prop-crate', item: { id: 'class/Prop/crate' } } as never;
+    const crateFiles = {
+      audio: new Map(),
+      models: new Map([['models/prop-crate/model.glb', new Uint8Array([1])]]),
+    };
+    let calls = 0;
+    const pack: Pack = async (p) => {
+      calls++;
+      if (calls > 1) throw new Error('unreadable');
+      return {
+        production: { ...p, manifest: { ...p.manifest, models: [crate] } },
+        files: crateFiles,
+        missing: [],
+      };
+    };
+    const { result, rerender } = renderHook(
+      ({ production }) => useSaving(production, film, null, pack),
+      { initialProps: { production: titled('Kite') } },
+    );
+    await act(() => result.current.save('asked'));
+    rerender({ production: titled('Kite 2') });
+    await act(() => result.current.save('asked'));
+    const [written, files] = save.mock.calls[1]!;
+    expect(written.manifest.models.map((m) => m.item.id)).toEqual(['class/Prop/crate']);
+    expect(files).toBe(crateFiles);
   });
 
   it('gives Save a copy the packed film', async () => {

@@ -67,6 +67,19 @@ function rememberBrowserNote() {
   }
 }
 
+/**
+ * Which class models a film uses that this device doesn't have, by name: the last part of each id
+ * (`class/Biped/big-robot` is "big robot"), up to three, then how many more (S4's review of #280).
+ */
+export function missingWords(ids: readonly string[]): string {
+  const names = ids.map((id) => (id.split('/').pop() ?? id).replace(/-/g, ' '));
+  const shown = names.slice(0, 3).join(', ');
+  const more = names.length - 3;
+  return words.t('save.missing', {
+    names: more > 0 ? words.plural('save.missingMore', more, { names: shown }) : shown,
+  });
+}
+
 /** The host's `FileError` code, if `error` is one. */
 const codeOf = (error: unknown) => (error as { code?: unknown } | null)?.code;
 
@@ -311,7 +324,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
         ? words.t('save.saved')
         : null;
   const failed = saving.status.kind === 'failed' ? saving.status.problem.message : null;
-  const missing = saving.status.kind === 'saved' ? saving.status.missing : 0;
+  const missing = saving.status.kind === 'saved' ? saving.status.missing : [];
   return (
     <ThemeRoot>
       <Shell
@@ -338,9 +351,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
                 {words.t('save.tryAgain')}
               </Button>
             </NeutralNote>
-          ) : note || missing > 0 ? (
+          ) : note || missing.length > 0 ? (
             <>
-              {missing > 0 && <NeutralNote>{words.plural('save.missing', missing)}</NeutralNote>}
+              {missing.length > 0 && <NeutralNote>{missingWords(missing)}</NeutralNote>}
               {note && (
                 <NeutralNote>
                   {note}
