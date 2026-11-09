@@ -14,6 +14,7 @@ import { collectClass, handBackClass, type HandBackReport } from '@storystage/pr
 import { Button, Dialog, Icon, NeutralNote } from '@storystage/ui';
 import { useCallback, useEffect, useState } from 'react';
 import { sinceWords } from '../lesson/LessonPages.tsx';
+import { useStorageKept } from '../lesson/useStorageKept.ts';
 import { words } from '../strings.ts';
 import { DeviceFilmsCard } from './DeviceFilms.tsx';
 import { PupilsCard, type OpenNow, type PupilFilms } from './Pupils.tsx';
@@ -39,6 +40,7 @@ export function ClassSetup({
   const [deviceFilms, setDeviceFilms] = useState<readonly ProductionInfo[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
+  const storageKept = useStorageKept(host);
 
   useEffect(() => {
     let gone = false;
@@ -91,6 +93,7 @@ export function ClassSetup({
           </span>
         )}
       </div>
+      {storageKept === false && <NeutralNote>{words.t('save.mayClear')}</NeutralNote>}
       {problem && (
         <p role="alert" className="st-problem">
           {problem}

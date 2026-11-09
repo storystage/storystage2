@@ -21,6 +21,7 @@ import { useEffect, useState } from 'react';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
+import { useStorageKept } from './lesson/useStorageKept.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
@@ -96,6 +97,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const [said, setSaid] = useState('');
   const editors = useEditorHost(studio.session, setSaid);
   const saving = useSaving(studio.production, film, studio.readOnly);
+  const storageKept = useStorageKept(host);
   const p = studio.production;
 
   /** Starts working on `production`, saved with `saver`. */
@@ -331,7 +333,13 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
               </Button>
             </NeutralNote>
           ) : note ? (
-            <NeutralNote>{note}</NeutralNote>
+            <NeutralNote>
+              {note}
+              {/* The browser's one note also says when the browser may clear films. */}
+              {note === words.t('save.browserNote') &&
+                storageKept === false &&
+                ` ${words.t('save.mayClear')}`}
+            </NeutralNote>
           ) : undefined
         }
         mode={mode}
