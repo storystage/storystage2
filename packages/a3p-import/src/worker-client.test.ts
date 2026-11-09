@@ -82,10 +82,18 @@ describe('importAliceInWorker', () => {
   });
 
   it('loads nothing heavy: only the message shapes and S4’s runInWorker', () => {
-    const source = readFileSync(new URL('./worker-client.ts', import.meta.url), 'utf8');
-    const loaded = [...source.matchAll(/^import\s+(?!type\b)[^;]*?from\s+'([^']+)'/gms)].map(
-      (m) => m[1],
-    );
+    /** What a file loads when it runs: its imports, leaving out `import type`. */
+    const loads = (file: string) =>
+      [
+        ...readFileSync(new URL(file, import.meta.url), 'utf8').matchAll(
+          /^import\s+(?!type\b)[^;]*?from\s+'([^']+)'/gms,
+        ),
+      ].map((m) => m[1]!);
+    const loaded = loads('./worker-client.ts');
     expect(loaded.sort()).toEqual(['./messages.ts', '@storystage/backstage-import/worker-client']);
+    // And one level on, as backstage-import's `pack-light.test.ts` does (S4's review): the local
+    // files it loads load nothing themselves.
+    for (const local of loaded.filter((x) => x.startsWith('./')))
+      expect(loads(local), local).toEqual([]);
   });
 });
