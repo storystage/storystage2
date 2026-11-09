@@ -15,3 +15,4 @@ export * from './budget.ts';
 export * from './catalogue.ts';
 export * from './credits.ts';
 export * from './loader.ts';
+export * from './alice-grounds.ts';

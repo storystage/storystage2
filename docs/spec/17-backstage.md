@@ -43,6 +43,12 @@
 
 _To be written._
 
+### Grounds, skies and lighting (Backdrops)
+
+The grounds, skies and lighting are built into the stage (`packages/stage/src/backdrops.ts`, S3), with ids `storystage/Ground/<name>`, `storystage/Sky/<name>` and `storystage/Lighting/<name>`. They follow Alice's ground appearances and starting templates, as flat colours, because Alice's textures are CMU's. CC0 textures can replace the colours later (WP3b) under the same ids.
+
+**Alice's grounds** (`ALICE_GROUNDS`, `@storystage/backstage`): each `SGround.SurfaceAppearance` an Alice world uses, mapped to its ground, so an imported world keeps its ground (spec 19, S6). It covers the ten that Alice's 34 starter worlds use, in Alice's own spelling (`BROWN_SAVANA_GRASS`). Any other gives the default ground, and the import reports it. A test checks every id against the stage's `GROUND_TYPES`.
+
 ## 2a. The joint map
 
 The joint map (workplan 3.3) is the list of joints every model is mapped onto, so one block, gesture, walk cycle or "look at" works on every character of a class. The code is the source of truth: `packages/backstage/src/joints.ts` (the map) and `skeleton-map.ts` (mapping a model's bones onto it). `docs/spec/10-crosswalk.md`, section 2, is the background.

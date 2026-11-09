@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "@storystage/host": "workspace:*",
+    "@storystage/stage": "workspace:*",
     "vitest": "^5.0.5"
   }
 }
