@@ -68,8 +68,12 @@ function overBytes(
     if (known) return known;
     const bytes = bytesOf(item, path);
     if (!bytes) return null;
-    // The Blob takes its own copy, so the bytes aren't copied first (a 4 GB Chromebook).
-    const url = urls.create(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: mimeOf(path) }));
+    // The Blob takes its own copy, so ordinary bytes aren't copied first (a 4 GB Chromebook).
+    // Bytes over shared memory, which a cross-origin isolated page can have, can't make a Blob,
+    // so those are copied (S2's review).
+    const own =
+      bytes.buffer instanceof ArrayBuffer ? (bytes as Uint8Array<ArrayBuffer>) : bytes.slice();
+    const url = urls.create(new Blob([own], { type: mimeOf(path) }));
     made.set(key, url);
     return url;
   };
