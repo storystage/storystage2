@@ -118,7 +118,8 @@ impl ClassZip {
         let mut found = Vec::new();
         for index in 0..archive.len() {
             let entry = archive.by_index_raw(index).map_err(zip_code)?;
-            let name = entry.name().to_string();
+            // A name that isn't valid text refuses the zip, as any other bad name does.
+            let name = entry.name().map_err(zip_code)?.to_string();
             let link = entry.unix_mode().is_some_and(|mode| mode & 0o170000 == 0o120000);
             if is_refused(&name) || link || !names.insert(name.to_lowercase()) {
                 return Err(Code::Unreadable);
