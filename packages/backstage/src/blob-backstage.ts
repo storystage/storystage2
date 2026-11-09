@@ -68,7 +68,8 @@ function overBytes(
     if (known) return known;
     const bytes = bytesOf(item, path);
     if (!bytes) return null;
-    const url = urls.create(new Blob([bytes.slice()], { type: mimeOf(path) }));
+    // The Blob takes its own copy, so the bytes aren't copied first (a 4 GB Chromebook).
+    const url = urls.create(new Blob([bytes as Uint8Array<ArrayBuffer>], { type: mimeOf(path) }));
     made.set(key, url);
     return url;
   };
@@ -169,24 +170,54 @@ export async function openClassBackstage(
     seen.add(item.id);
     items.push(item);
   }
+  // Files read and not yet made into a URL. Once a URL is made, the Blob holds the only copy, so
+  // the bytes are let go: each prepared model is held once, not twice (S2's review).
   const read = new Map<string, Uint8Array>();
-  const view = overBytes(items, (item, path) => read.get(`${item.id}\n${path}`), urls);
+  // Files read or being read, so two `prepare`s at once (a `load` and a `preload`) read once.
+  const reading = new Map<string, Promise<void>>();
+  let disposed = false;
+  const view = overBytes(
+    items,
+    (item, path) => {
+      const key = `${item.id}\n${path}`;
+      const bytes = read.get(key);
+      read.delete(key);
+      return bytes;
+    },
+    urls,
+  );
   const byId = new Map(items.map((i) => [i.id, i]));
   return {
-    ...view,
+    backstage: view.backstage,
+    dispose() {
+      disposed = true;
+      read.clear();
+      view.dispose();
+    },
     async prepare(ids) {
+      if (disposed) return;
       await Promise.all(
         ids.flatMap((id) => {
           const item = byId.get(id as Id);
           if (!item) return [];
-          return [item.files.model, item.files.thumbnail].map(async (path) => {
+          return [item.files.model, item.files.thumbnail].map((path) => {
             const key = `${item.id}\n${path}`;
-            if (read.has(key)) return;
-            try {
-              read.set(key, await store.read(item.id, path));
-            } catch {
-              // Unreadable: the model stays not found, and shows as a stand-in.
+            let pending = reading.get(key);
+            if (!pending) {
+              pending = store.read(item.id, path).then(
+                (bytes) => {
+                  // A view disposed while this read was under way keeps nothing.
+                  if (!disposed) read.set(key, bytes);
+                },
+                () => {
+                  // Unreadable: the model stays not found, and shows as a stand-in. A later
+                  // `prepare` may try again.
+                  reading.delete(key);
+                },
+              );
+              reading.set(key, pending);
             }
+            return pending;
           });
         }),
       );

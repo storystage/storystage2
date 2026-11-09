@@ -125,6 +125,25 @@ describe('openClassBackstage (decision 0066)', () => {
     expect(reads).toHaveLength(2); // read once
   });
 
+  it('reads a model once when two prepares overlap, as a load and a preload can (S2)', async () => {
+    const { store: s, reads } = store();
+    const view = await openClassBackstage(s, fakeUrls().urls);
+    await Promise.all([view.prepare(['class/Prop/crate']), view.prepare(['class/Prop/crate'])]);
+    expect(reads).toHaveLength(2); // the model and its thumbnail, once each
+    expect(view.backstage.find('class/Prop/crate' as BackstageItem['id'])?.url).toMatch(/^blob:/);
+  });
+
+  it('reads nothing once disposed, and keeps nothing from a read under way', async () => {
+    const { store: s, reads } = store();
+    const view = await openClassBackstage(s, fakeUrls().urls);
+    const under = view.prepare(['class/Prop/duck']);
+    view.dispose();
+    await under;
+    await view.prepare(['class/Prop/crate']);
+    expect(reads.filter((r) => r.startsWith('class/Prop/crate'))).toEqual([]);
+    expect(view.backstage.find('class/Prop/duck' as BackstageItem['id'])).toBeNull();
+  });
+
   it('leaves a model it can’t read not found, so it shows as a stand-in', async () => {
     const { store: s } = store(new Set(['class/Prop/duck']));
     const view = await openClassBackstage(s, fakeUrls().urls);
