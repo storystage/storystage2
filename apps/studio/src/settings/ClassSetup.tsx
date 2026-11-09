@@ -1,11 +1,13 @@
 /**
- * Settings › Class set-up (`07-ux.md` section 9.4, Direction A screen 11): Pupils and folders,
- * Collect and Hand back, the Prompter's use today and the bin. For the teacher, on the trust of
+ * Settings › Class set-up (`07-ux.md` sections 9.4 and 9.6, Direction A screen 11): Pupils and
+ * folders, Class models, Collect and Hand back, the Prompter's use today and the bin. For the teacher, on the trust of
  * the name page (PS1); reached from the studio's header, or from the name page's corner.
  */
+import type { ImportWorker } from '@storystage/backstage-import/worker-client';
 import type {
   BinnedProduction,
   BinnedPupil,
+  BinnedStoredModel,
   HostInterface,
   ProductionInfo,
   UsageToday,
@@ -16,7 +18,9 @@ import { useCallback, useEffect, useState } from 'react';
 import { sinceWords } from '../lesson/LessonPages.tsx';
 import { useStorageKept } from '../lesson/useStorageKept.ts';
 import { words } from '../strings.ts';
+import { ClassModelsCard, classModel, type ClassModel } from './ClassModels.tsx';
 import { DeviceFilmsCard } from './DeviceFilms.tsx';
+import { startImportWorker } from './importWorker.ts';
 import { PupilsCard, type OpenNow, type PupilFilms } from './Pupils.tsx';
 
 const DEVICE = 'device';
@@ -27,9 +31,12 @@ const newestFirst = <T extends { savedAt: string }>(list: readonly T[]) =>
 export function ClassSetup({
   host,
   open = { pupil: null, film: null },
+  startWorker = startImportWorker,
 }: {
   host: HostInterface;
   open?: OpenNow;
+  /** A fresh import worker; tests pass their own. */
+  startWorker?: () => ImportWorker;
 }) {
   const { classes } = host;
   // Every change bumps the version, and the page reads the class again.
@@ -38,6 +45,8 @@ export function ClassSetup({
   const [bin, setBin] = useState<readonly BinnedProduction[]>([]);
   const [removed, setRemoved] = useState<readonly BinnedPupil[]>([]);
   const [deviceFilms, setDeviceFilms] = useState<readonly ProductionInfo[]>([]);
+  const [models, setModels] = useState<readonly ClassModel[]>([]);
+  const [binnedModels, setBinnedModels] = useState<readonly BinnedStoredModel[]>([]);
   const [problem, setProblem] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const storageKept = useStorageKept(host);
@@ -55,7 +64,11 @@ export function ClassSetup({
       const binned = await classes.bin();
       const binnedPupils = await classes.binnedPupils();
       const device = await classes.deviceFilms();
+      const stored = await classes.backstage().list();
+      const storedBin = await classes.backstage().bin();
       if (gone) return;
+      setModels(stored.map(classModel).sort((a, b) => a.name.localeCompare(b.name, 'en-GB')));
+      setBinnedModels([...storedBin].sort((a, b) => b.binnedAt.localeCompare(a.binnedAt)));
       setDeviceFilms(newestFirst(device));
       setPupils(withFilms.sort((a, b) => a.pupil.name.localeCompare(b.pupil.name, 'en-GB')));
       setBin([...binned].sort((a, b) => b.binnedAt.localeCompare(a.binnedAt)));
@@ -104,7 +117,18 @@ export function ClassSetup({
       </p>
       {pupils && (
         <div className="st-grid">
-          <PupilsCard classes={classes} pupils={pupils} open={open} act={act} />
+          <div className="st-column">
+            <PupilsCard classes={classes} pupils={pupils} open={open} act={act} />
+            <ClassModelsCard
+              classes={classes}
+              models={models}
+              taken={[...models.map((m) => m.id), ...binnedModels.map((m) => m.id)]}
+              pupils={pupils}
+              startWorker={startWorker}
+              act={act}
+              onSaid={setSaid}
+            />
+          </div>
           <div className="st-column">
             {pupils.length > 0 && deviceFilms.length > 0 && (
               <DeviceFilmsCard
@@ -124,7 +148,14 @@ export function ClassSetup({
             {host.prompterUsage && (
               <UsageCard usage={host.prompterUsage} pupils={pupils} version={version} />
             )}
-            <BinCard bin={bin} removed={removed} pupils={pupils} classes={classes} act={act} />
+            <BinCard
+              bin={bin}
+              removed={removed}
+              models={binnedModels}
+              pupils={pupils}
+              classes={classes}
+              act={act}
+            />
           </div>
         </div>
       )}
@@ -285,6 +316,7 @@ function UsageCard({
 function BinCard({
   bin,
   removed,
+  models,
   pupils,
   classes,
   act,
@@ -292,6 +324,8 @@ function BinCard({
   bin: readonly BinnedProduction[];
   /** Pupils removed from the class, newest first, who can be put back with their films. */
   removed: readonly BinnedPupil[];
+  /** Class models moved to the bin (the class Backstage's own bin). */
+  models: readonly BinnedStoredModel[];
   pupils: readonly PupilFilms[];
   classes: HostInterface['classes'];
   act: (work: () => Promise<unknown>) => Promise<boolean>;
@@ -317,6 +351,7 @@ function BinCard({
   const emptyWords = [
     bin.length > 0 ? words.plural('settings.bin.emptyFilms', bin.length) : '',
     removed.length > 0 ? words.plural('settings.bin.emptyPupils', removed.length) : '',
+    models.length > 0 ? words.plural('settings.bin.emptyModels', models.length) : '',
     words.t('settings.bin.cantUndo'),
   ]
     .filter(Boolean)
@@ -327,7 +362,7 @@ function BinCard({
         {words.t('settings.bin')}
       </h3>
       <p className="st-note">{words.t('settings.bin.help')}</p>
-      {bin.length === 0 && removed.length === 0 ? (
+      {bin.length === 0 && removed.length === 0 && models.length === 0 ? (
         <p className="st-note">{words.t('settings.bin.empty')}</p>
       ) : (
         <>
@@ -385,7 +420,38 @@ function BinCard({
             ))}
           </ul>
           {anyGone && <NeutralNote>{words.t('settings.bin.goneNote')}</NeutralNote>}
-          {bin.length === 0 && <p className="st-note">{words.t('settings.noFilms')}</p>}
+          {bin.length === 0 && removed.length > 0 && (
+            <p className="st-note">{words.t('settings.noFilms')}</p>
+          )}
+          {models.length > 0 && (
+            <>
+              <h4 className="st-subtitle">{words.t('models.title')}</h4>
+              <ul className="st-films">
+                {models.map((m) => {
+                  const name = classModel(m).name;
+                  return (
+                    <li key={m.id} className="st-film st-binned">
+                      <Icon name="view_in_ar" />
+                      <span className="st-binned-text">
+                        <span className="st-row-name">{name}</span>
+                        <span className="st-row-count">
+                          {words.t('settings.bin.when', { when: sinceWords(m.binnedAt) })}
+                        </span>
+                      </span>
+                      <Button
+                        variant="quiet"
+                        icon="restore_from_trash"
+                        aria-label={words.t('settings.bin.restoreNamed', { name })}
+                        onPress={() => void act(() => classes.backstage().restore(m.id))}
+                      >
+                        {words.t('settings.bin.restore')}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </>
+          )}
           <Button variant="secondary" icon="delete" onPress={() => setEmptying(true)}>
             {words.t('settings.bin.emptyBin')}
           </Button>
@@ -404,7 +470,10 @@ function BinCard({
             icon="delete"
             onPress={() => {
               setEmptying(false);
-              void act(() => classes.emptyBin());
+              void act(async () => {
+                await classes.emptyBin();
+                await classes.backstage().emptyBin();
+              });
             }}
           >
             {words.t('settings.bin.emptyBin')}

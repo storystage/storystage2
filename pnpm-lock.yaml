@@ -54,6 +54,9 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../../packages/ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../../packages/backstage
       '@storystage/backstage-import':
         specifier: workspace:*
         version: link:../../packages/backstage-import

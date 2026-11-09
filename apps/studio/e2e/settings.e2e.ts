@@ -79,3 +79,33 @@ test('a film goes to the bin and back, from Settings in the studio', async ({ pa
   await expect(bin.getByText('The bin is empty.')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Move to the bin: Kite' })).toBeVisible();
 });
+
+test('the teacher imports a model through the real worker, and it joins the class', async ({
+  page,
+}) => {
+  const { box, glbFromMesh } = await import('@storystage/sketches/testing');
+  const glb = await glbFromMesh(box([0, 0, 0], [1, 1, 1]));
+  await startWithClass(page, ['Sam']);
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const models = page.getByRole('region', { name: 'Class models' });
+  await models.getByRole('button', { name: 'Import a model…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Import a model' });
+  await dialog.locator('input[type="file"]').setInputFiles({
+    name: 'wooden_crate.glb',
+    mimeType: 'model/gltf-binary',
+    buffer: Buffer.from(glb),
+  });
+  await expect(dialog.getByRole('textbox', { name: 'Name' })).toHaveValue('Wooden crate');
+  await dialog.getByText('A prop', { exact: true }).click();
+  await dialog.getByText('Made it myself', { exact: true }).click();
+  expect(await seriousIssues(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Check model' }).click();
+  await expect(dialog.getByRole('heading', { name: 'What Backstage did' })).toBeVisible({
+    timeout: 60_000,
+  });
+  await expect(dialog.getByText('Wooden crate, made by our class', { exact: true })).toBeVisible();
+  await expect(dialog.getByRole('img', { name: 'Wooden crate, in colour' })).toBeVisible();
+  expect(await seriousIssues(page)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Add to class models' }).click();
+  await expect(models.getByText('Wooden crate', { exact: true })).toBeVisible();
+});

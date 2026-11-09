@@ -209,3 +209,96 @@
   font-size: 14px;
   color: var(--ss-muted);
 }
+
+/* Class models (07-ux section 9.6): a thumbnail, the name, its kind and credit. */
+.cm-thumb {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--ss-panel-4);
+}
+.cm-thumb-empty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ss-muted);
+}
+.cm-credit {
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The import dialog (Direction A screen 07): details, then the report. */
+.im-details,
+.im-report {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+.im-files {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.im-problems p {
+  margin: 0;
+  font-weight: 700;
+}
+.im-checking {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 120px;
+}
+.im-pictures {
+  display: flex;
+  gap: 12px;
+}
+.im-pictures img {
+  width: 160px;
+  height: 160px;
+  border-radius: 10px;
+  object-fit: contain;
+  background: var(--ss-panel-4);
+}
+.im-pictures .im-sketch {
+  background: var(--ss-sketch-paper);
+}
+.im-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.im-lines li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.im-lines .ss-icon {
+  flex: none;
+  color: var(--ss-ok);
+}
+.im-credit {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--ss-field);
+}
+.im-report-actions {
+  justify-content: flex-end;
+}
+.im-did {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
