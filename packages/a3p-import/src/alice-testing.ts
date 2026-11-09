@@ -135,6 +135,17 @@ export const color = (r: number, g: number, b: number) =>
     requiredArguments: [r, g, b].map((v) => arg(num(v))),
   });
 
+/** One of Alice's value objects made from numbers: `new Size(1, 2, 3)`. */
+export const make = (cls: string, ...values: number[]) =>
+  n('InstanceCreation', {
+    constructor: n(
+      'JavaConstructor',
+      {},
+      { java: { kind: 'constructor', declaringClass: `org.lgna.story.${cls}`, parameters: [] } },
+    ),
+    requiredArguments: values.map((v) => arg(num(v))),
+  });
+
 /** A world: Program holding a scene with these fields, set-up and methods. */
 export function world(
   fields: AliceNode[],

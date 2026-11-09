@@ -8,6 +8,7 @@ import {
   invoke,
   javaMethod,
   javaType,
+  make,
   method,
   on,
   resource,
@@ -60,6 +61,27 @@ describe('importDecodedWorld', () => {
     expect(production.storyboard.cards[0]).toMatchObject({
       heading: 'Scene',
       cast: [{ standIn: 'Abyssinian cat' }, 'Prop/Trees/MangoTree'],
+    });
+  });
+
+  it('takes Backstage’s models as data, for a worker, the variant first', () => {
+    const sized = world(
+      [camera, cat, tree],
+      [statement(invoke(on(tree), javaMethod('SModel', 'setSize'), [make('Size', 2, 6, 2)]))],
+    );
+    const { production } = importDecodedWorld(sized, {
+      models: new Map([
+        ['Prop/MangoTree', { id: 'Prop/Trees/MangoTree', height: 3 }],
+        ['Quadruped/AbyssinianCat/DEFAULT', { id: 'Quadruped/Cat/AbyssinianCat' }],
+        ['Quadruped/AbyssinianCat', { id: 'Quadruped/Cat/Other' }],
+      ]),
+    });
+    const [first, second] = production.scenes[0]!.setup.objects;
+    expect(first).toMatchObject({ id: 'cat', model: 'Quadruped/Cat/AbyssinianCat' });
+    expect(second).toMatchObject({
+      id: 'tree',
+      model: 'Prop/Trees/MangoTree',
+      transform: { scale: { x: 2, y: 2, z: 2 } },
     });
   });
 
