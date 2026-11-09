@@ -200,6 +200,7 @@ describe('importModel (spec 17, section 5)', () => {
       { ...prop, licence: { choice: 'not-sure', sourceUrl: 'https://example.org/r' } },
     );
     expect(r.report.staysInClass).toMatch(/shown in school but not shared outside it/);
+    expect(r.report.lines).toContain("It's 1 metre tall.");
     expect(r.report.lines.at(-1)).toBe(r.report.staysInClass);
   });
 });

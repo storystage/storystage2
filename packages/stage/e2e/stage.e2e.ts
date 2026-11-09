@@ -250,3 +250,26 @@ test('crossfades from one scene to the next (8.3)', async ({ page }) => {
   expect(end![2]!).toBeLessThan(80);
   expect(before![2]!).toBeGreaterThan(200);
 });
+
+test('measures what characters and crossfades cost each frame (WP4c, 8.3)', async ({ page }) => {
+  test.setTimeout(120_000);
+  await open(page);
+  type Times = { seek: { mean: number; p95: number }; render: { mean: number }; frame: number };
+  const r = await call<{
+    count: number;
+    loadMs: number;
+    planMs: number;
+    standing: Times;
+    walking: Times;
+    crossfade: Times;
+  }>(page, 'characterCost', 5, 1);
+  // This run is only a check that it works: the numbers that count are the reference devices'.
+  console.log(JSON.stringify(r));
+  expect(r.count).toBe(5);
+  for (const t of [r.standing, r.walking, r.crossfade]) {
+    expect(t.seek.mean).toBeGreaterThan(0);
+    expect(t.frame).toBeGreaterThan(0);
+  }
+  // Walking poses more than standing does.
+  expect(r.walking.seek.mean).toBeGreaterThan(r.standing.seek.mean * 0.5);
+});

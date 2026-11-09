@@ -4,6 +4,7 @@ import { saveProduction } from './file.ts';
 import {
   ProductionSaver,
   copyName,
+  fitName,
   openFromFolder,
   openFromPicker,
   saveCopy,
@@ -37,6 +38,9 @@ function fakeFolder(options: { fail?: string; delay?: () => Promise<void> } = {}
     async write(key, name, bytes, opts) {
       await options.delay?.();
       failing();
+      // As the host's checkName: a name over 80 characters is refused.
+      if (name.trim().length > 80)
+        throw Object.assign(new Error('Files: invalid'), { code: 'invalid' });
       writes.push({ key, backup: opts?.backup });
       const k = key ?? `production-${next++}`;
       const got = saved.get(k) ?? { name, versions: [], backups: [], original: null };
@@ -56,7 +60,36 @@ function fakeFolder(options: { fail?: string; delay?: () => Promise<void> } = {}
 
 const titled = (title: string): Production => ({ ...p, manifest: { ...p.manifest, title } });
 
+describe('fitName', () => {
+  it('fits a title and its ending into 80 characters, as the host counts them', () => {
+    expect(fitName('Pip', ' (handed back)')).toBe('Pip (handed back)');
+    expect(fitName('x'.repeat(100))).toBe('x'.repeat(80));
+    expect(fitName('x'.repeat(80), ' (2).storystage')).toHaveLength(80);
+    expect(fitName('   ', '', 'My film')).toBe('My film');
+  });
+
+  it('never cuts through an emoji, and drops the spaces and dots it leaves at the end', () => {
+    expect(fitName(`${'a'.repeat(78)}🐧🐧`)).toBe(`${'a'.repeat(78)}🐧`);
+    const name = fitName(`${'a'.repeat(79)}🐧🐧`);
+    expect(name).toBe('a'.repeat(79));
+    expect(fitName(`${'a'.repeat(70)}         xyz`, ' (handed back)')).toBe(
+      `${'a'.repeat(66)} (handed back)`,
+    );
+  });
+});
+
 describe('ProductionSaver', () => {
+  it('saves a film whose title is longer than the host keeps, under a name that fits', async () => {
+    const { folder, saved } = fakeFolder();
+    const outcome = await new ProductionSaver(folder, { key: null }).save(
+      titled('T'.repeat(120)),
+      NO_FILES,
+      'auto',
+    );
+    expect(outcome).toMatchObject({ ok: true });
+    expect(saved.get('production-1')!.name).toBe('T'.repeat(80));
+  });
+
   it('saves a new production, giving it a key, under its title', async () => {
     const { folder, saved } = fakeFolder();
     const saver = new ProductionSaver(folder, { key: null });

@@ -17,7 +17,7 @@
  *   reason in plain words.
  */
 import { openProduction } from './file.ts';
-import { plainName, type SaveFolder } from './saving.ts';
+import { fitName, plainName, type SaveFolder } from './saving.ts';
 
 /** A pupil's folder, as Collect and Hand back need it. The host's `PupilFolder` fits. */
 export interface CollectFolder extends SaveFolder {
@@ -46,20 +46,15 @@ export interface CollectPicker {
 
 const EXTENSION = '.storystage';
 
-/** The longest name the host's `safeFileName` leaves as it is. */
-const NAME_LIMIT = 80;
-
 /**
  * `name`, or `name (2)`, `name (3)`, … whichever `taken` doesn't have yet, ignoring case, with
  * `ending` (a file's extension) after it. The whole, ending included, fits `NAME_LIMIT`: the name
- * is shortened to make room, so the host's Collect never finds one it would have cut.
+ * is shortened to make room (`fitName`), so the host's Collect never finds one it would have cut.
  */
 function unique(name: string, taken: Set<string>, ending = ''): string {
   for (let n = 1; ; n++) {
     const suffix = n === 1 ? '' : ` (${n})`;
-    let stem = name.slice(0, NAME_LIMIT - suffix.length - ending.length);
-    while (stem.endsWith(' ') || stem.endsWith('.')) stem = stem.slice(0, -1);
-    const candidate = `${stem}${suffix}${ending}`;
+    const candidate = fitName(name, `${suffix}${ending}`, name);
     if (!taken.has(candidate.toLowerCase())) {
       taken.add(candidate.toLowerCase());
       return candidate;
@@ -145,8 +140,9 @@ export async function handBackClass(
       continue;
     }
     try {
-      const title = opened.production.manifest.title.trim() || 'My film';
-      await (await classes.folder(pupil)).write(null, `${title} (handed back)`, bytes);
+      // Shortened to make room for the ending, so a title of the full 80 characters fits too.
+      const name = fitName(opened.production.manifest.title, ' (handed back)');
+      await (await classes.folder(pupil)).write(null, name, bytes);
       written++;
     } catch (error) {
       const code = (error as { code?: unknown } | null)?.code;

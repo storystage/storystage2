@@ -104,7 +104,7 @@ At the end of a unit, the teacher **collects** every pupil's productions into a 
 
 1. **Names the teacher sees:** each pupil's folder is their name, made safe for every system (`plainName`, the host's `safeFileName` rules). Two pupils with the same name get "Sam" and "Sam (2)", in class-list order, ignoring case, so Hand back finds the same pupil again. Productions with the same title in one folder get "Pip" and "Pip (2)".
 2. **Collect copies each production as saved,** byte for byte.
-3. **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5). It writes each good one into its pupil's folder as a new production called "<title> (handed back)", so it never overwrites the pupil's own work. A file that fails, or whose folder names no pupil, is skipped, and the teacher sees why in plain words.
+3. **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5). It writes each good one into its pupil's folder as a new production called "<title> (handed back)", so it never overwrites the pupil's own work. The title is shortened to make room, so the whole name fits the host's 80 characters (`fitName`); so is any title a save writes. A file that fails, or whose folder names no pupil, is skipped, and the teacher sees why in plain words.
 
 ## 2. Scenes
 

@@ -493,7 +493,8 @@ export async function buildModel(
           : 'Prop only: it has no skeleton, so it can move and turn, but not walk or gesture.',
       );
   }
-  lines.push(`It's ${item.defaultSize.height} metres tall.`);
+  const height = item.defaultSize.height;
+  lines.push(`It's ${height} ${height === 1 ? 'metre' : 'metres'} tall.`);
   if (leftOut.length > 0) lines.push(`Left out of the file: ${leftOut.join(', ')}.`);
   lines.push(`Credit: "${item.credit}".`);
   const distribute = mayDistribute(item);
