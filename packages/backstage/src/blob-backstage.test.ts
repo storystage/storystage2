@@ -52,7 +52,10 @@ describe('filmBackstage (decision 0049)', () => {
 
   it('gives the stage blob: URLs for a film’s packed models, made once, on first use', () => {
     const { urls, made } = fakeUrls();
-    const { backstage } = filmBackstage([{ folder: 'prop-crate', item: crate }], files, urls);
+    const { backstage } = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
+      checked: ['prop-crate'],
+      urls,
+    });
     expect(made).toEqual([]);
     expect(backstage.find(crate.id)).toEqual({ url: 'blob:test/1', joints: 'prop-only' });
     expect(backstage.find(crate.id)!.url).toBe('blob:test/1');
@@ -65,9 +68,22 @@ describe('filmBackstage (decision 0049)', () => {
     expect(backstage.credits()[0]!.lines[0]!.text).toBe('crate, made by our class');
   });
 
+  it('shows only the models that passed the check, as a film is untrusted (spec 03, 1.3)', () => {
+    const { urls } = fakeUrls();
+    const unchecked = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
+      checked: [],
+      urls,
+    });
+    expect(unchecked.backstage.items).toEqual([]);
+    expect(unchecked.backstage.find(crate.id)).toBeNull();
+  });
+
   it('revokes every URL it made, and finds nothing after', () => {
     const { urls, revoked } = fakeUrls();
-    const film = filmBackstage([{ folder: 'prop-crate', item: crate }], files, urls);
+    const film = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
+      checked: ['prop-crate'],
+      urls,
+    });
     film.backstage.find(crate.id);
     film.backstage.thumbnail(crate.id);
     film.dispose();
@@ -84,7 +100,7 @@ describe('filmBackstage (decision 0049)', () => {
         { folder: 'c', item: record('class/Prop/lost') },
       ],
       files,
-      urls,
+      { checked: ['a', 'b', 'c'], urls },
     );
     expect(backstage.items.map((i) => i.id)).toEqual(['class/Prop/lost']);
     expect(backstage.find('class/Prop/lost' as BackstageItem['id'])).toBeNull();
@@ -166,7 +182,7 @@ describe('openClassBackstage (decision 0066)', () => {
     const film = filmBackstage(
       [{ folder: 'prop-crate', item: record('class/Prop/crate') }],
       new Map([['models/prop-crate/model.glb', bytes(2)]]),
-      fakeUrls().urls,
+      { checked: ['prop-crate'], urls: fakeUrls().urls },
     );
     const { store: s, reads } = store();
     const cls = await openClassBackstage(s, fakeUrls().urls);

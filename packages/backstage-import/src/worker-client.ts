@@ -10,12 +10,14 @@
  */
 import type { ImportProblem } from './checks.ts';
 import type { ImportChoices, ImportResult } from './import.ts';
+import type { FilmCheckResult, FilmModelInput } from './film-check.ts';
 
 // What the import screen shows: the licence step's choices and words, and the result's types.
 export { LICENCE_CHOICES, LICENCE_PROBLEMS, MAKER_MAX, SOURCE_MAX } from './licence.ts';
 export type { LicenceAnswers, LicenceChoice, LicenceProblem, LicenceRecord } from './licence.ts';
 export type { ImportProblem, ImportProblemCode } from './checks.ts';
 export type { ImportChoices, ImportReport, ImportResult, ImportedFile } from './import.ts';
+export type { FilmCheckResult, FilmModelInput } from './film-check.ts';
 
 /** The longest an import may run (spec 17, section 5). */
 export const IMPORT_TIME_LIMIT_MS = 60_000;
@@ -129,6 +131,54 @@ export function importInWorker(
       },
       timedOut: () => ({ ok: false, problems: [TOO_SLOW] }),
       failed: () => ({ ok: false, problems: [IMPORT_BROKE] }),
+      ...(options.timeLimitMs !== undefined ? { timeLimitMs: options.timeLimitMs } : {}),
+    },
+  );
+}
+
+/** To the worker: check a film's packed models before they reach the stage. */
+export interface FilmCheckMessage {
+  readonly type: 'checkFilm';
+  readonly models: readonly FilmModelInput[];
+  /** The film's model files, by `models/<folder>/<path>`. */
+  readonly files: readonly (readonly [string, Uint8Array])[];
+}
+
+/** From the worker. */
+export interface FilmCheckAnswer {
+  readonly type: 'filmChecked';
+  readonly result: FilmCheckResult;
+}
+
+/**
+ * Checks a film's packed models in a fresh worker (`checkFilmModels`; spec 03, section 1.3), and
+ * ends the worker when it answers, fails or runs out of time. If it can't finish, every model is
+ * refused, so nothing unchecked reaches the stage. The film's bytes are copied in.
+ */
+export function checkFilmInWorker(
+  start: () => ImportWorker,
+  models: readonly FilmModelInput[],
+  files: ReadonlyMap<string, Uint8Array>,
+  options: { readonly timeLimitMs?: number } = {},
+): Promise<FilmCheckResult> {
+  const copies = [...files].map(([path, bytes]) => [path, bytes.slice()] as const);
+  const message: FilmCheckMessage = { type: 'checkFilm', models, files: copies };
+  const none = (reason: string): FilmCheckResult => ({
+    checked: [],
+    refused: models.map((m) => ({ folder: m.folder, name: 'A model', reason })),
+  });
+  return runInWorker<FilmCheckResult>(
+    start,
+    message,
+    copies.map(([, bytes]) => bytes.buffer as ArrayBuffer),
+    {
+      answer: (data) => {
+        const d = data as Partial<FilmCheckAnswer> | null;
+        return d?.type === 'filmChecked' && d.result ? d.result : undefined;
+      },
+      timedOut: () =>
+        none("Its imported models took too long to check, so they're shown as outlines."),
+      failed: () => none("Its imported models couldn't be checked, so they're shown as outlines."),
       ...(options.timeLimitMs !== undefined ? { timeLimitMs: options.timeLimitMs } : {}),
     },
   );

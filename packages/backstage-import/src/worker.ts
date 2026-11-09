@@ -12,7 +12,14 @@
  * the app's content security policy blocks requests from workers as well (F9).
  */
 import { importModel, type ImportResult, type ImportTools } from './import.ts';
-import { IMPORT_BROKE, type ImportAnswer, type ImportMessage } from './worker-client.ts';
+import { checkFilmModels, type FilmCheckResult } from './film-check.ts';
+import {
+  IMPORT_BROKE,
+  type FilmCheckAnswer,
+  type FilmCheckMessage,
+  type ImportAnswer,
+  type ImportMessage,
+} from './worker-client.ts';
 
 /** What the worker's side needs from its port: `self` in a worker, or one end of a channel. */
 export interface WorkerPort {
@@ -20,17 +27,39 @@ export interface WorkerPort {
   addEventListener(type: 'message', listener: (event: { data: unknown }) => void): void;
 }
 
-const isImport = (data: unknown): data is ImportMessage =>
-  typeof data === 'object' && data !== null && (data as { type?: unknown }).type === 'import';
+const typeOf = (data: unknown) =>
+  typeof data === 'object' && data !== null ? (data as { type?: unknown }).type : undefined;
+const isImport = (data: unknown): data is ImportMessage => typeOf(data) === 'import';
+const isFilmCheck = (data: unknown): data is FilmCheckMessage => typeOf(data) === 'checkFilm';
 
 /** Each result's bytes, handed over rather than copied. */
 function transferable(result: ImportResult): Transferable[] {
   return result.ok ? result.files.map((f) => f.bytes.buffer as ArrayBuffer) : [];
 }
 
-/** The worker's side: answers each `import` message. Never throws: a failure is a refusal. */
+/**
+ * The worker's side: answers each `import` message, and each `checkFilm` message (a film's packed
+ * models, `checkFilmModels`). Never throws: a failure is a refusal.
+ */
 export function serveImports(port: WorkerPort, tools: ImportTools): void {
   port.addEventListener('message', (event) => {
+    if (isFilmCheck(event.data)) {
+      const { models, files } = event.data;
+      void checkFilmModels(models, new Map(files))
+        .catch((): FilmCheckResult => ({
+          checked: [],
+          refused: models.map((m) => ({
+            folder: m.folder,
+            name: 'A model',
+            reason: IMPORT_BROKE.message,
+          })),
+        }))
+        .then((result) => {
+          const answer: FilmCheckAnswer = { type: 'filmChecked', result };
+          port.postMessage(answer);
+        });
+      return;
+    }
     if (!isImport(event.data)) return;
     const { files, choices, taken } = event.data.request;
     void importModel(new Map(files), choices, tools, new Set(taken))

@@ -121,16 +121,26 @@ export interface FilmModel {
 /**
  * A film's packed models (`manifest.models`) as a Backstage, from the open production's files
  * (`files.models`, keyed `models/<folder>/<path>`). A film from another device shows its imported
- * models even where this device's class Backstage lacks them.
+ * models even where this device's class Backstage lacks them: those that passed the check, only.
  */
 export function filmBackstage(
   models: readonly FilmModel[],
   files: ReadonlyMap<string, Uint8Array>,
-  urls: ObjectUrls = browserUrls,
+  options: {
+    /**
+     * The folders whose models passed `checkFilmModels` in the import worker
+     * (`@storystage/backstage-import`): a film is untrusted, so only those are shown (spec 03,
+     * section 1.3). Any other is left out, and shows as a stand-in.
+     */
+    readonly checked: readonly string[];
+    readonly urls?: ObjectUrls;
+  },
 ): DisposableBackstage {
+  const checked = new Set(options.checked);
   const folderOf = new Map<Id, string>();
   const items: BackstageItem[] = [];
   for (const m of models) {
+    if (!checked.has(m.folder)) continue;
     const item = importedRecord(m.item);
     if (!item || folderOf.has(item.id)) continue;
     folderOf.set(item.id, m.folder);
@@ -139,7 +149,7 @@ export function filmBackstage(
   return overBytes(
     items,
     (item, path) => files.get(`models/${folderOf.get(item.id)}/${path}`),
-    urls,
+    options.urls ?? browserUrls,
   );
 }
 
