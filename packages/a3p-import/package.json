@@ -7,7 +7,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./worker": "./src/alice-worker.ts",
-    "./worker-client": "./src/worker-client.ts"
+    "./worker-client": "./src/worker-client.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p .",
