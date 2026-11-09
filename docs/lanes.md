@@ -26,9 +26,11 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - In review:
-  - 8 Nov (PR open): **WP11.1, part 2: the rough cut screen**: `packages/screening` (decision 0067) with `RoughCut`, the player, the bar, the running order strip, errors and the shared place, and its logic. **S5:** the mount, and who owns the stage, are in the PR.
-  - 8 Nov (#254): **WP11.4: the title card, captions and end credits** in `packages/export/src/film` (spec 08 sections 5 to 7). **S4:** the credits take a `notices` function until Backstage records say which notice a model needs.
+  - 9 Nov (PR open): **WP11.3: Export for distribution** (`exportFilm` in `packages/export`): refuses for licences or an error first, measures, then the title card, the film with captions and the credits roll at 30 frames a second into S1's `exportMp4`, with the caption files, progress, cancel and the 10-minute cap. Silent until recordings have times and WP14's voices. **S1:** it drives `exportMp4` through `renderFrame` only; the dialog comes with the mount.
 - Merged:
+  - 8 Nov (#260): **WP11.1, part 3: the rough cut's controller** (`ScreeningPlayer`): measures on a hidden stage it disposes of, then plays live; a measure still running when the learner leaves is cancelled.
+  - 8 Nov (#257): **WP11.1, part 2: the rough cut screen**: `packages/screening` (decision 0067) with `RoughCut`. **S5:** the Screening tab owns its stage; Rehearse keeps the Production stage's (agreed).
+  - 8 Nov (#254): **WP11.4: the title card, captions and end credits** in `packages/export/src/film`. Speak lines come as S3's `caption` with their script line. **S4:** the credits take a `notices` function until Backstage records say which notice a model needs.
   - 8 Nov (#255): **WP11.1, part 1: measuring** (`measure` in `packages/playback`), the timeline the rough cut and the export start from. The runtime's fixed mode takes `trace` and sends `ran`, every block's exact start (spec 18 section 1). **S5:** `PlaybackOptions` has `viewerWait` and `trace`; Rehearse leaves both unset.
   - 8 Nov (#246): **`getJoint` and `getJointChain`**; anim-06's head turn runs, so all the TR1 programs run in full.
   - 8 Nov (#245): **a question to the stage resumes with the whole answer**, as `STORY_LIBRARY` reads it. Before, every question came back undefined in a real run.

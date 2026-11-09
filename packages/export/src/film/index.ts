@@ -2,3 +2,5 @@
 export * from './captions.ts';
 export * from './credits.ts';
 export * from './titles.ts';
+export * from './export-film.ts';
+export * from './overlay.ts';
