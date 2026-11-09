@@ -154,6 +154,8 @@ items:
     weeks: 1
     basis: first plan
     after: [WP0, WP0s]
+    started: 2026-11-08
+    finished: 2026-11-08
   - id: WP12b
     label: Design system and components (12.2–12.5)
     lane: Interface
@@ -315,6 +317,8 @@ items:
     weeks: 2
     basis: first plan
     after: [WP9a, WP2, WP4a, WP3c]
+    started: 2026-11-08
+    finished: 2026-11-09
   - id: WP4b
     label: Story API procedures, new blocks, shot types (4.3, 4.4, 4.10)
     lane: Language
