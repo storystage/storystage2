@@ -450,5 +450,21 @@
   "models.licence.not-sure": "Not sure",
   "models.licence.not-sure.about": "Kept in school",
   "settings.bin.emptyModels.one": "The model in the bin will be deleted.",
-  "settings.bin.emptyModels.other": "The {count} models in the bin will be deleted."
+  "settings.bin.emptyModels.other": "The {count} models in the bin will be deleted.",
+  "film.openAlice": "Open an Alice world…",
+  "alice.file": "An Alice world to open",
+  "alice.tooBig": "That Alice world is too big to open.",
+  "alice.opening": "Opening the Alice world. This can take up to a minute.",
+  "alice.reportTitle": "From Alice: {title}",
+  "alice.allCame": "Everything in this world came across.",
+  "alice.gaps.one": "One thing couldn’t come across from Alice, or came across differently:",
+  "alice.gaps.other": "{count} things couldn’t come across from Alice, or came across differently:",
+  "alice.kind.model": "Models",
+  "alice.kind.setUp": "Set-up",
+  "alice.kind.class": "Classes",
+  "alice.kind.block": "Blocks",
+  "alice.kind.value": "Values",
+  "alice.kind.event": "Events",
+  "alice.kind.unknown": "Other",
+  "alice.close": "Start working"
 }

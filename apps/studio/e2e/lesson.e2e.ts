@@ -87,3 +87,21 @@ test('without a class list, films are kept in the device’s own folder', async 
   await expect(page.getByRole('menuitem', { name: 'My films' })).toBeVisible();
   await expect(page.getByRole('menuitem', { name: 'Switch pupil' })).toHaveCount(0);
 });
+
+test('Open an Alice world… runs S6’s worker, which refuses a file that isn’t a world', async ({
+  page,
+}) => {
+  await startWithClass(page, ['Sam']);
+  await page.getByRole('row', { name: 'Sam' }).click();
+  await page.getByRole('button', { name: /^Film:/ }).click();
+  await page.getByRole('menuitem', { name: 'Open an Alice world…' }).click();
+  await page.getByLabel('An Alice world to open').setInputFiles({
+    name: 'notes.a3p',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from('not a zip'),
+  });
+  await expect(page.getByText("This isn't a file StoryStage can open.")).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.getByRole('button', { name: 'Film: Untitled film · Sam' })).toBeVisible();
+});

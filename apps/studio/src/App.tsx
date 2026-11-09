@@ -1,4 +1,5 @@
 import {
+  FILE_LIMIT,
   browserHost,
   type BackupInfo,
   type HostInterface,
@@ -17,7 +18,11 @@ import {
   type ProductionFiles,
 } from '@storystage/production';
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { importAliceInWorker, type ImportWorker } from '@storystage/a3p-import/worker-client';
+import type { ImportReport } from '@storystage/a3p-import';
+import { AliceReport } from './lesson/AliceReport.tsx';
+import { NO_ALICE_MODELS, startAliceWorker } from './lesson/aliceWorker.ts';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
 import { classPacking } from './lesson/packing.ts';
@@ -99,7 +104,16 @@ function unavailableAsBroken(result: Awaited<ReturnType<typeof openFromFolder>>)
  * the three tabs on the production's own session (`studio.ts`), saved into the pupil's folder as
  * it changes. With `start` (tests, and `?example`) it opens on that production, unsaved.
  */
-export function App({ start, host = browserHost }: { start?: Production; host?: HostInterface }) {
+export function App({
+  start,
+  host = browserHost,
+  startAlice = startAliceWorker,
+}: {
+  start?: Production;
+  host?: HostInterface;
+  /** A fresh worker for opening an Alice world; tests pass their own. */
+  startAlice?: () => ImportWorker;
+}) {
   const studio = useStudio(start ?? newProduction());
   const [phase, setPhase] = useState<Phase>(start ? { kind: 'studio' } : { kind: 'starting' });
   const [folder, setFolder] = useState<PupilFolder | null>(null);
@@ -109,6 +123,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const [place, setPlace] = useState<Place>(NOWHERE);
   const [mode, setMode] = useState<Mode>('storyboard');
   const [said, setSaid] = useState('');
+  // What came across from the Alice world just opened, until it's read and closed.
+  const [alice, setAlice] = useState<{ title: string; report: ImportReport } | null>(null);
+  const aliceInput = useRef<HTMLInputElement>(null);
   const editors = useEditorHost(studio.session, setSaid);
   // One packer for the host: a new one each render would make every save look new to useSaving.
   const pack = useMemo(() => classPacking(host), [host]);
@@ -146,7 +163,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
     into: PupilFolder,
     result: OpenedProduction,
     key: string | null,
-    fromBackup = false,
+    saveAtOnce = false,
   ) => {
     if (result.status === 'broken') {
       if (!key) return setNote(result.message);
@@ -157,8 +174,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
     const saver = new ProductionSaver(into, { key, original: result.original, readOnly });
     let message = result.status === 'migrated' ? words.t('lesson.migrated') : readOnly;
     // An earlier version opened in place of a broken film becomes the film at once: the broken
-    // one is kept as a backup, and the next lesson opens this one.
-    if (fromBackup && readOnly === null) {
+    // one is kept as a backup, and the next lesson opens this one. An Alice world, opened as a
+    // new film, is saved at once too, so it's in My films straight away.
+    if (saveAtOnce && readOnly === null) {
       const saved = await saver.save(result.production, result.files, 'asked');
       if (!saved.ok) message = saved.problem.message;
     }
@@ -227,6 +245,11 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
       if (!copied.ok && copied.problem.code !== 'cancelled') setNote(copied.problem.message);
       return;
     }
+    if (action === 'openAlice') {
+      // The file is picked first; the film open now is saved once the world has come in.
+      aliceInput.current?.click();
+      return;
+    }
     if (action === 'openCopy') {
       const picked = await openFromPicker(host.picker);
       if ('problem' in picked) {
@@ -242,6 +265,26 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
     if (action === 'new') return newFilm(folder);
     if (action === 'myFilms') return showFilms(folder);
     return backToNames();
+  };
+
+  /** An .a3p the learner picked: imported in S6's worker, then opened as a new film. */
+  const openAlice = async (file: File | undefined) => {
+    if (!file || !folder) return;
+    if (file.size > FILE_LIMIT) return setNote(words.t('alice.tooBig'));
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    setNote(words.t('alice.opening'));
+    const result = await importAliceInWorker(startAlice, bytes, file.name, NO_ALICE_MODELS);
+    if (!result.ok) return setNote(result.problem.message);
+    // This film's save failed: it stays open, with the failure's words in place of "Opening…".
+    if (!(await saving.save('auto'))) return setNote(null);
+    const files = { audio: new Map(), models: new Map() };
+    await opened(
+      folder,
+      { status: 'ok', production: result.production, files, message: null, original: null },
+      null,
+      true,
+    );
+    setAlice({ title: result.production.manifest.title, report: result.report });
   };
 
   if (phase.kind !== 'studio') {
@@ -327,6 +370,21 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const missing = saving.status.kind === 'saved' ? saving.status.missing : [];
   return (
     <ThemeRoot>
+      <input
+        ref={aliceInput}
+        type="file"
+        accept=".a3p"
+        hidden
+        aria-label={words.t('alice.file')}
+        onChange={(e) => {
+          const file = e.currentTarget.files?.[0];
+          e.currentTarget.value = '';
+          void openAlice(file).catch((error: unknown) => setNote(folderProblem(error)));
+        }}
+      />
+      {alice && (
+        <AliceReport title={alice.title} report={alice.report} onClose={() => setAlice(null)} />
+      )}
       <Shell
         title={
           folder ? (

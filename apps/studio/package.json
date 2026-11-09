@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "@storystage/a3p-import": "workspace:*",
     "@storystage/ast": "workspace:*",
     "@storystage/backstage": "workspace:*",
     "@storystage/backstage-import": "workspace:*",
