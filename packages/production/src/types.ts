@@ -21,7 +21,7 @@ import {
 import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.1.0';
+export const FORMAT_VERSION = '1.2.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };

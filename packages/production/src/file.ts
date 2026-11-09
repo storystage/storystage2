@@ -149,6 +149,8 @@ export type FormatMigrations = Readonly<Record<string, FormatMigration>>;
 export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.1.0 adds two optional fields (credit names, retake notes): nothing else changes.
   '1.0.0': { to: '1.1.0', manifest: (m) => m },
+  // 1.2.0 lets a stand-in carry its size (S6's `StandIn.size`): nothing else changes.
+  '1.1.0': { to: '1.2.0', manifest: (m) => m },
 };
 
 export type OpenedProduction =
