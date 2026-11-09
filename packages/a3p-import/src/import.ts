@@ -79,7 +79,13 @@ export type ImportResult =
     }
   | {
       readonly ok: false;
-      readonly problem: A3pProblem | { readonly code: 'notAWorld'; readonly message: string };
+      /**
+       * The reader's, `notAWorld` for a class on its own, or, from the worker, `broke` (a bug
+       * here) and `timedOut` (over spec 15's 60 seconds). Each `message` is in plain words.
+       */
+      readonly problem:
+        | A3pProblem
+        | { readonly code: 'notAWorld' | 'broke' | 'timedOut'; readonly message: string };
     };
 
 const KINDS: readonly GapKind[] = ['model', 'setUp', 'class', 'block', 'value', 'event', 'unknown'];
