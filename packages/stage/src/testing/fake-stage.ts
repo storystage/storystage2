@@ -81,7 +81,12 @@ export class FakeStage implements Stage {
     }
     const jointsFor = this.options.jointsFor ?? defaultJoints;
     // Every object is the size of a stand-in, so the fake and the real stage agree on them.
-    this.timeline.load(setup, (o) => standInShape(jointsFor(o.class, o.model)));
+    this.timeline.load(setup, (o) =>
+      standInShape(
+        jointsFor(o.class, o.model),
+        typeof o.model === 'string' ? undefined : o.model.size,
+      ),
+    );
     const { library, navigation } = await humanoidsFor(setup);
     this.timeline.useHumanoids(library, navigation);
   }

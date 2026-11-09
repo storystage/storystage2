@@ -87,8 +87,24 @@ export interface Shape {
 export const STAND_IN_BOX: Box = { min: v(-0.25, 0, -0.25), max: v(0.25, 1, 0.25) };
 
 /** A stand-in's shape. It has no bones, so every joint rests near the top of the block. */
-export function standInShape(joints: readonly JointName[]): Shape {
-  return { joints, box: STAND_IN_BOX, jointPlaces: new Map(joints.map((j) => [j, v(0, 0.85, 0)])) };
+/**
+ * A stand-in's box at scale 1: `size` (`StandIn.size`, in metres), standing on its origin,
+ * centred across and front to back, as a model does; without it, `STAND_IN_BOX`. Throws
+ * `bad_argument` for a size out of range, so a hand-written production can't break a scene.
+ */
+export function standInBox(size?: Vec3): Box {
+  if (!size) return STAND_IN_BOX;
+  const fits = (n: number) => Number.isFinite(n) && n > 0 && n <= 1000;
+  if (!fits(size.x) || !fits(size.y) || !fits(size.z))
+    throw bad("A stand-in's size is more than 0 and at most 1,000 metres each way.");
+  return { min: v(-size.x / 2, 0, -size.z / 2), max: v(size.x / 2, size.y, size.z / 2) };
+}
+
+export function standInShape(joints: readonly JointName[], size?: Vec3): Shape {
+  const box = standInBox(size);
+  // No bones: every joint rests near the top of the block, as on the usual one.
+  const rest = v(0, 0.85 * box.max.y, 0);
+  return { joints, box, jointPlaces: new Map(joints.map((j) => [j, rest])) };
 }
 
 /** A paint part of the way from the last one to the new one. */

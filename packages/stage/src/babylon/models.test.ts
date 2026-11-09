@@ -118,6 +118,20 @@ describe('models', () => {
     const apart = await loaded({ ...setup, objects: [place(ann, 0), place(bob, 1.1)] });
     expect(apart.stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(false);
   });
+
+  it('measure a stand-in by the size it carries (StandIn.size)', async () => {
+    // A table 2 m wide at x = -1 reaches to x = 0; a robot a metre wide at 0.2 overlaps it.
+    const table = (x: number) => ({
+      id: bob,
+      model: { standIn: 'table', size: { x: 2, y: 0.75, z: 1 } },
+      class: 'Prop' as const,
+      transform: { ...IDENTITY, position: { x, y: 0, z: 0 } },
+    });
+    const near = await loaded({ ...setup, objects: [place(ann, 0.2), table(-1)] });
+    expect(near.stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(true);
+    const far = await loaded({ ...setup, objects: [place(ann, 1.5), table(-1.5)] });
+    expect(far.stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(false);
+  });
 });
 
 describe('opacity and paint', () => {
