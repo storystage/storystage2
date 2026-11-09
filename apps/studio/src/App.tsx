@@ -17,10 +17,12 @@ import {
   type ProductionFiles,
 } from '@storystage/production';
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
+import { classPacking } from './lesson/packing.ts';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
+import { useStorageKept } from './lesson/useStorageKept.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
@@ -95,7 +97,10 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const [mode, setMode] = useState<Mode>('storyboard');
   const [said, setSaid] = useState('');
   const editors = useEditorHost(studio.session, setSaid);
-  const saving = useSaving(studio.production, film, studio.readOnly);
+  // One packer for the host: a new one each render would make every save look new to useSaving.
+  const pack = useMemo(() => classPacking(host), [host]);
+  const saving = useSaving(studio.production, film, studio.readOnly, pack);
+  const storageKept = useStorageKept(host);
   const p = studio.production;
 
   /** Starts working on `production`, saved with `saver`. */
@@ -203,7 +208,9 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
   const onFilmAction = async (action: FilmAction) => {
     if (!folder) return;
     if (action === 'saveCopy') {
-      const copied = await saveCopy(host.picker, p, film?.files ?? NO_FILES);
+      // A copy carries the film's class models too, so it opens on any device.
+      const copy = await saving.packed();
+      const copied = await saveCopy(host.picker, copy.production, copy.files);
       if (!copied.ok && copied.problem.code !== 'cancelled') setNote(copied.problem.message);
       return;
     }
@@ -304,6 +311,7 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
         ? words.t('save.saved')
         : null;
   const failed = saving.status.kind === 'failed' ? saving.status.problem.message : null;
+  const missing = saving.status.kind === 'saved' ? saving.status.missing : 0;
   return (
     <ThemeRoot>
       <Shell
@@ -330,8 +338,19 @@ export function App({ start, host = browserHost }: { start?: Production; host?: 
                 {words.t('save.tryAgain')}
               </Button>
             </NeutralNote>
-          ) : note ? (
-            <NeutralNote>{note}</NeutralNote>
+          ) : note || missing > 0 ? (
+            <>
+              {missing > 0 && <NeutralNote>{words.plural('save.missing', missing)}</NeutralNote>}
+              {note && (
+                <NeutralNote>
+                  {note}
+                  {/* The browser's one note also says when the browser may clear films. */}
+                  {note === words.t('save.browserNote') &&
+                    storageKept === false &&
+                    ` ${words.t('save.mayClear')}`}
+                </NeutralNote>
+              )}
+            </>
           ) : undefined
         }
         mode={mode}

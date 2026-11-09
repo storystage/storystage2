@@ -2,6 +2,10 @@
  * Saving the open film (`07-ux.md` section 9.2): autosave a moment after each change, Ctrl+S to
  * save now (a backup point), the status for the header, and a question before leaving with work
  * not yet saved. S4's `ProductionSaver` does the saving: one at a time, autosaves merged.
+ *
+ * Before each save, the film's class models are packed into it (S4's `packModels`, decision 0049),
+ * so a film that uses an imported model carries it to any device. The files grow with the film;
+ * the production packing gives is for saving only, and the studio keeps working on its own.
  */
 import type {
   Production,
@@ -17,19 +21,39 @@ export const AUTOSAVE_AFTER_MS = 1500;
 export type SaveStatus =
   | { readonly kind: 'idle' }
   | { readonly kind: 'saving' }
-  | { readonly kind: 'saved'; readonly at: string }
+  | {
+      readonly kind: 'saved';
+      readonly at: string;
+      /** Class models the film uses that this device can't find, so they weren't packed. */
+      readonly missing: number;
+    }
   | { readonly kind: 'failed'; readonly problem: SaveProblem };
 
-/** The open film: where it saves, and the files it carries besides its JSON. */
+/** The open film: where it saves, and the files it opened with besides its JSON. */
 export interface OpenFilm {
   readonly saver: ProductionSaver;
   readonly files: ProductionFiles;
 }
 
+/** What a save writes: the production and its files, with its class models packed in. */
+export interface Packed {
+  readonly production: Production;
+  readonly files: ProductionFiles;
+  readonly missing: readonly string[];
+}
+
+/** Packs a film's class models before it's written (`packModels` with the class Backstage). */
+export type Pack = (production: Production, files: ProductionFiles) => Promise<Packed>;
+
+/** No class Backstage to pack from: the film is written as it is. */
+export const NO_PACKING: Pack = async (production, files) => ({ production, files, missing: [] });
+
 export interface Saving {
   readonly status: SaveStatus;
   /** Saves now, unless nothing changed since the last save (an asked save always runs). */
   save(kind: 'auto' | 'asked'): Promise<boolean>;
+  /** The film as a save would write it, for Save a copy: models packed, files up to date. */
+  packed(): Promise<Packed>;
 }
 
 /** Autosaves `production` into `film` as it changes; nothing while `film` is null or read-only. */
@@ -37,6 +61,7 @@ export function useSaving(
   production: Production,
   film: OpenFilm | null,
   readOnly: string | null,
+  pack: Pack = NO_PACKING,
 ): Saving {
   // The status, and the film it's for: another film's status reads as idle.
   const [shown, setShown] = useState<{ film: OpenFilm | null; status: SaveStatus }>({
@@ -48,15 +73,29 @@ export function useSaving(
   const saved = useRef<Production | null>(null);
   const latest = useRef(production);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // The film's files as last written: they grow as class models are packed into it.
+  const files = useRef<ProductionFiles | null>(null);
 
   useEffect(() => {
     latest.current = production;
   });
 
-  // A new film: what it opened with counts as saved.
+  // A new film: what it opened with counts as saved, with the files it opened with.
   useEffect(() => {
     saved.current = latest.current;
+    files.current = film?.files ?? null;
   }, [film]);
+
+  const packed = useCallback(async (): Promise<Packed> => {
+    const now = latest.current;
+    const current = files.current ?? film?.files ?? { audio: new Map(), models: new Map() };
+    try {
+      return await pack(now, current);
+    } catch {
+      // The class Backstage couldn't be read: the film is written with what it already carries.
+      return { production: now, files: current, missing: [] };
+    }
+  }, [film, pack]);
 
   const save = useCallback(
     async (kind: 'auto' | 'asked') => {
@@ -68,16 +107,21 @@ export function useSaving(
         timer.current = null;
       }
       setShown({ film, status: { kind: 'saving' } });
-      const outcome = await film.saver.save(now, film.files, kind);
+      const toWrite = await packed();
+      const outcome = await film.saver.save(toWrite.production, toWrite.files, kind);
       if (outcome.ok) {
         saved.current = now;
-        setShown({ film, status: { kind: 'saved', at: outcome.savedAt } });
+        files.current = toWrite.files;
+        setShown({
+          film,
+          status: { kind: 'saved', at: outcome.savedAt, missing: toWrite.missing.length },
+        });
         return true;
       }
       setShown({ film, status: { kind: 'failed', problem: outcome.problem } });
       return false;
     },
-    [film, readOnly],
+    [film, readOnly, packed],
   );
 
   // Autosave a moment after the learner stops.
@@ -121,5 +165,5 @@ export function useSaving(
     return () => window.removeEventListener('beforeunload', onLeave);
   }, [film, readOnly, failed]);
 
-  return { status, save };
+  return { status, save, packed };
 }

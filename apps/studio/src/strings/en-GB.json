@@ -375,5 +375,8 @@
   "settings.bin.emptyFilms.other": "The {count} films in the bin will be deleted.",
   "settings.bin.emptyPupils.one": "The removed pupil can’t be put back after this.",
   "settings.bin.emptyPupils.other": "The {count} removed pupils can’t be put back after this.",
-  "settings.bin.cantUndo": "This can’t be undone."
+  "settings.bin.cantUndo": "This can’t be undone.",
+  "save.missing.one": "This film uses a model this device doesn’t have, so it wasn’t saved with the film. It still shows on devices that have it.",
+  "save.missing.other": "This film uses {count} models this device doesn’t have, so they weren’t saved with the film. They still show on devices that have them.",
+  "save.mayClear": "This browser may clear your films if space runs low, so use Save a copy to keep the ones that matter."
 }

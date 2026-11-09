@@ -9,6 +9,7 @@
 //!
 //! `picked` is the same care for the files and folders a person picks in the system's dialog.
 
+pub mod class_zip;
 pub mod picked;
 
 use std::fs;
@@ -91,7 +92,7 @@ pub fn is_safe_part(part: &str) -> bool {
 
 /// A unique temporary name in a folder. It starts with a dot, so it's never a safe part and
 /// `list` never shows it.
-pub(crate) fn temporary_name() -> String {
+pub fn temporary_name() -> String {
     static COUNT: AtomicU64 = AtomicU64::new(0);
     let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
     format!(".tmp-{}-{}-{}", std::process::id(), nanos, COUNT.fetch_add(1, Ordering::Relaxed))

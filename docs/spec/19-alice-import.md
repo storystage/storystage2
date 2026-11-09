@@ -3,7 +3,7 @@
 - **Covers:** Reading Alice 3 worlds (`.a3p`) and turning them into one-scene StoryStage productions: classes, objects and their set-up, methods, statements, values and events, and the report of everything that can't come across
 - **Work package:** WP9 (9.1 reading, 9.2 mapping, 9.3 marking)
 - **Owner:** S6
-- **Status:** section 1 is built (`readA3p`, #238). Sections 2 to 8 written by S6, 8 Nov 2026, before the code they govern (WP9b), from a survey of Alice's 34 starter projects.
+- **Status:** written by S6, 8 Nov 2026, before the code, from a survey of Alice's 34 starter projects, and built: section 1 is `readA3p` (#238), section 2 `decodeAlice` (#267), sections 3 and 4 `importSetUp` (#269), sections 5 and 6 `buildProgram` (#275), and sections 7 and 8 `importAliceWorld`. All 34 starter projects import, save and open again, with every gap reported. Still to come: the TR1 evaluation worlds, and `StandIn.size` (see "Needs").
 
 ## 0. Decisions this spec relies on
 
@@ -117,7 +117,7 @@ The report is a list the studio shows after an import, grouped by kind (models, 
 
 ## Needs from other sessions
 
-- **S4 (`StandIn`, in the scene set-up):** a stand-in has no size of its own, so Alice's `setSize` has nowhere to go for a model not in Backstage. Proposed: `StandIn` gains `size?: Vec3`, in metres, which the stage uses for the stand-in's box. Until it does, a stand-in imports at scale 1 and the report names its Alice size.
+- **`StandIn.size`** (agreed with S4, 9 Nov 2026): a stand-in has no size of its own, so Alice's `setSize` has nowhere to go for a model not in Backstage. `StandIn` gains `size?: Vec3`, in metres, for its box (the contract, in `@storystage/story-api`). Then S4's production format 1.2.0 accepts it, and S3's stage draws and sizes the box from it. Until both are in, a stand-in imports at scale 1, with its Alice size kept in the import's `sizes` and named in the report; once they are, the import fills it in.
 - **S4 (Backstage):** ground appearances (`SurfaceAppearance.MOON`) as backdrop items, so a world keeps its ground. Until then, the default ground, reported.
 
 ## 9. Tests

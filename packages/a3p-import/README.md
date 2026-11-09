@@ -3,7 +3,7 @@
 Alice 3 worlds (`.a3p`) into StoryStage (WP9).
 
 - **Owner:** S6
-- **Workplan:** WP9 (9.1 is built; 9.2 and 9.3 come with WP9b)
+- **Workplan:** WP9 (9.1, 9.2 and 9.3 are built)
 - **Spec:** `docs/spec/15-security.md`, section 3 (the rules for imported files)
 
 ## Reading a file: `readA3p` (9.1)
@@ -15,6 +15,12 @@ It's written for untrusted files, to run in the import worker:
 - **One archive reader:** `readArchive` from `@storystage/production` (WP8.4), with spec 15's limits on sizes, names and unpacking. Only the entries Alice's format names are unpacked.
 - **Its own XML reader** (`xml.ts`), since a worker has no `DOMParser`. A `<!DOCTYPE` or any other declaration is refused before parsing, so no entity can be declared and none expands (threat model F3, the billion laughs). Nesting stops at 256. It's linear in the length of the text, and fetches nothing.
 - **Text:** UTF-8 before Alice 3.7, UTF-16 from 3.7, either byte order. The encoding is read from the bytes, not from what the file says about itself.
+
+## Importing a world: `importAliceWorld` (9.2, 9.3)
+
+`importAliceWorld(bytes, { fileName, findModel, modelHeight })` gives a one-scene production marked `origin: 'alice'`, and a report of every gap in plain words, counted by kind (spec 19, sections 7 and 8; decision 0069). Or it says why it can't, never quoting the file. The production always passes `checkReferences`, so it saves and opens again. The caller passes Backstage's lookups (`findModel` by Alice's gallery key, `modelHeight`); grounds come from `@storystage/backstage`'s `ALICE_GROUNDS`. In a worker, which can't call back to the page, pass Backstage's models as data instead: `models`, a map from Alice gallery key (or key and variant, `Prop/MangoTree/DEFAULT`) to `{ id, height }`. The import reads untrusted files, so it runs in S4's import worker (`@storystage/backstage-import`, spec 15 §3).
+
+In steps, for the tests and anything that needs one part: `readA3p` (9.1), `decodeAlice` (Alice's XML as one graph), `importSetUp` (the scene, objects and start), `buildProgram` (the code), and `importDecodedWorld` (the production).
 
 ## Alice's starter projects
 

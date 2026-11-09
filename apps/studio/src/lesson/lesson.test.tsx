@@ -23,7 +23,7 @@ const SLOW = { timeout: 4000 };
 
 function hostWith(classes: ClassFolders, picker = memoryFilePicker()): HostInterface {
   // A Tauri app's host: no browser note, unless a test asks for one.
-  return { ...browserHost, version: '1.0.0', classes, picker };
+  return { ...browserHost, version: '1.0.0', classes, picker, storagePersistent: async () => true };
 }
 
 async function classOf(...names: string[]) {

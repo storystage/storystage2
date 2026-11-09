@@ -39,7 +39,7 @@ import type { FrameImage, LoadOptions, Speech, Stage } from '../contract.ts';
 import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
-import { Timeline, standInShape, type Touching } from '../timeline.ts';
+import { Timeline, standInBox, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
 import { buildBackdrop, type ShowSky } from './backdrop.ts';
 import { buildFade } from './fade.ts';
@@ -604,7 +604,7 @@ function place(
   if (typeof object.model === 'string') return library.place(object.id, object.model, object.class);
   const skeleton = skeletonOf(object.class);
   return {
-    view: buildStandIn(object.id, object.model.standIn, scene),
-    shape: standInShape(skeleton ? jointsOf(skeleton).map((d) => d.id) : []),
+    view: buildStandIn(object.id, object.model.standIn, scene, standInBox(object.model.size)),
+    shape: standInShape(skeleton ? jointsOf(skeleton).map((d) => d.id) : [], object.model.size),
   };
 }

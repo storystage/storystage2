@@ -24,7 +24,14 @@ function hostWith(
   picker = memoryFilePicker(),
   prompterUsage: PrompterUsage | null = null,
 ): HostInterface {
-  return { ...browserHost, version: '1.0.0', classes, picker, prompterUsage };
+  return {
+    ...browserHost,
+    version: '1.0.0',
+    classes,
+    picker,
+    prompterUsage,
+    storagePersistent: async () => true,
+  };
 }
 
 async function classOf(...names: string[]) {
