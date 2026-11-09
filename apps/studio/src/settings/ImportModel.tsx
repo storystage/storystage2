@@ -124,11 +124,10 @@ export function ImportModel({
   if (kind === '') missing.push(words.t('models.needKind'));
   if (licence === '') missing.push(words.t('models.needLicence'));
 
-  const check = async () => {
-    if (missing.length > 0) return setStep({ kind: 'details', problems: missing });
+  /** The import as the details stand, with `alsoTaken` ids the class can't use either. */
+  const run = (alsoTaken: readonly string[] = []) => {
     const chosen = MODEL_KINDS.find((k) => k.id === kind)!;
-    setStep({ kind: 'checking' });
-    const result = await importInWorker(startWorker, {
+    return importInWorker(startWorker, {
       files: files.map((f) => [f.name, f.bytes] as const),
       choices: {
         section: chosen.section,
@@ -142,8 +141,14 @@ export function ImportModel({
           ...(maker.trim() ? { maker: maker.trim() } : {}),
         },
       },
-      taken,
+      taken: [...taken, ...alsoTaken],
     });
+  };
+
+  const check = async () => {
+    if (missing.length > 0) return setStep({ kind: 'details', problems: missing });
+    setStep({ kind: 'checking' });
+    const result = await run();
     if (result.ok) return setStep({ kind: 'report', result });
     setStep({
       kind: 'details',
@@ -157,7 +162,18 @@ export function ImportModel({
   const add = async (result: Added) => {
     setAdding(true);
     try {
-      await classes.backstage().add('class', result.item.id, result.item, result.files);
+      try {
+        await classes.backstage().add('class', result.item.id, result.item, result.files);
+      } catch (error) {
+        // An id used once and emptied from the bin is never reused, and the class Backstage's
+        // list doesn't show it (S4's review of #292). The same model, with that id taken too,
+        // gets the next one (`-2`).
+        if ((error as { code?: unknown } | null)?.code !== 'invalid') throw error;
+        const again = await run([result.item.id]);
+        if (!again.ok) throw error;
+        result = again;
+        await classes.backstage().add('class', result.item.id, result.item, result.files);
+      }
       onAdded(result.item.displayName);
       onClose();
     } catch (error) {

@@ -174,6 +174,48 @@ describe('importing a model (07-ux 9.6)', () => {
   });
 });
 
+describe('a name used before', () => {
+  it('gets the next id when the first was emptied from the bin', async () => {
+    const classes = memoryClassFolders();
+    const first = await importModel(
+      new Map([['wooden_crate.glb', await glbFromMesh(box([0, 0, 0], [1, 1, 1]))]]),
+      { section: 'props', class: 'Prop', name: 'Wooden crate', licence: { choice: 'own-work' } },
+      tools,
+    );
+    if (!first.ok) throw new Error('import failed');
+    await classes.backstage().add('class', first.item.id, first.item, first.files);
+    await classes.backstage().remove(first.item.id);
+    await classes.backstage().emptyBin();
+    expect(await classes.backstage().list()).toEqual([]);
+    expect(await classes.backstage().bin()).toEqual([]);
+
+    render(<ClassSetup host={hostWith(classes)} startWorker={inPageWorker} />);
+    await userEvent.click(
+      await within(await screen.findByRole('region', { name: 'Class models' })).findByRole(
+        'button',
+        { name: 'Import a model…' },
+      ),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Import a model' });
+    const input = dialog.querySelector('input[type="file"]') as HTMLInputElement;
+    await userEvent.upload(input, await crateFile());
+    await userEvent.click(within(dialog).getByRole('radio', { name: /A prop/ }));
+    await userEvent.click(within(dialog).getByRole('radio', { name: /Made it myself/ }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check model' }));
+    await userEvent.click(
+      await within(dialog).findByRole(
+        'button',
+        { name: 'Add to class models' },
+        { timeout: 15_000 },
+      ),
+    );
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull(), { timeout: 15_000 });
+    expect((await classes.backstage().list()).map((m) => m.id)).toEqual([
+      'class/Prop/wooden-crate-2',
+    ]);
+  }, 30_000);
+});
+
 describe('nameFrom', () => {
   it('makes a name from a file’s name', () => {
     expect(nameFrom('red-dragon_v2.glb')).toBe('Red dragon v2');
