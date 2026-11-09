@@ -8,6 +8,7 @@
  * `extraState`. Names the program gives (a variable's, a method's) are copied in as `label`, for
  * showing only: `fromBlocks` never reads them.
  */
+import { isStatement } from '@storystage/ast';
 import type {
   Args,
   Expression,
@@ -42,7 +43,8 @@ export interface BlockState {
   y?: number;
   extraState?: Extra;
   fields?: Record<string, string | number | boolean>;
-  inputs?: Record<string, { block?: BlockState }>;
+  /** A slot's block, or the palette's shadow block standing in for it (`toolbox.ts`). */
+  inputs?: Record<string, { block?: BlockState; shadow?: BlockState }>;
   next?: { block?: BlockState };
   disabledReasons?: string[];
   deletable?: boolean;
@@ -372,7 +374,7 @@ function list(b: BlockState, input: string): Statement[] {
 }
 
 function slot(b: BlockState, input: string): Expression {
-  const child = b.inputs?.[input]?.block;
+  const child = b.inputs?.[input]?.block ?? b.inputs?.[input]?.shadow;
   if (!child) throw new BlocksMismatch(`an empty ${input} on ${b.type}`);
   return expressionOf(child);
 }
@@ -558,4 +560,29 @@ function expressionOf(b: BlockState): Expression {
       return { ...own(b), kind: 'arrayLength', array: slot(b, 'ARRAY') };
   }
   throw new BlocksMismatch(`a ${b.type} block where a value goes`);
+}
+
+// ---- One node --------------------------------------------------------------------------------
+
+/**
+ * The saved form of one statement or value, alone: for the palette's blocks (a new call with its
+ * values empty). It goes through `toBlocks`, so a palette block is drawn exactly as the same node
+ * would be in a method.
+ */
+export function blockStateOf(program: Program, node: Statement | Expression): BlockState {
+  const holder = 'blockStateOf' as NodeId;
+  const statement: Statement = isStatement(node)
+    ? node
+    : { id: holder, kind: 'return', value: node as Expression };
+  const method: MethodDecl = {
+    id: holder,
+    kind: 'method',
+    name: '',
+    returns: null,
+    params: [],
+    body: [statement],
+  };
+  const first = toBlocks(program, method).blocks.blocks[0]!.inputs!.BODY!.block!;
+  if (statement.id !== holder) return { ...first, next: undefined };
+  return first.inputs!.VALUE!.block!;
 }

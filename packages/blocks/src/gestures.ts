@@ -10,7 +10,6 @@
  */
 import {
   applyEdit,
-  defaultLabel,
   indexProgram,
   type Args,
   type EditOperation,
@@ -22,6 +21,7 @@ import {
   type Statement,
   type StatementSlot,
 } from '@storystage/ast';
+import { labelFor } from '@storystage/story-api/editing';
 import type { FromBlocks } from './mapping.ts';
 
 export type GestureEdits =
@@ -38,7 +38,7 @@ type Unlabelled = EditOperation extends infer E
     ? Omit<E, 'label'>
     : never
   : never;
-type Container = Owner | Statement;
+export type Container = Owner | Statement;
 
 /** Deep equality of plain data, whatever order its keys were written in. */
 function same(a: unknown, b: unknown): boolean {
@@ -54,7 +54,7 @@ function same(a: unknown, b: unknown): boolean {
 }
 
 /** The statement lists a node holds, by slot. */
-function listsOf(node: Container): [StatementSlot, readonly Statement[]][] {
+export function listsOf(node: Container): [StatementSlot, readonly Statement[]][] {
   if (node.kind === 'method' || node.kind === 'listener') return [['body', node.body]];
   switch (node.kind) {
     case 'doInOrder':
@@ -75,7 +75,9 @@ function listsOf(node: Container): [StatementSlot, readonly Statement[]][] {
 }
 
 /** A statement's own expression slots, by slot name (calls' `args` and `details` by parameter). */
-function valuesOf(s: Statement): { slot: string; param?: string; value: Expression | null }[] {
+export function valuesOf(
+  s: Statement,
+): { slot: string; param?: string; value: Expression | null }[] {
   const args = (slot: 'args' | 'details', values: Args) =>
     Object.entries(values).map(([param, value]) => ({ slot, param, value }));
   switch (s.kind) {
@@ -146,7 +148,8 @@ export function editsFor(program: Program, after: FromBlocks): GestureEdits {
   const emit = (edit: Unlabelled) => {
     const labelled = {
       ...edit,
-      label: defaultLabel(sim, { ...edit, label: '' } as EditOperation),
+      // Named as Tiles names it (spec 14, section 2.4).
+      label: labelFor(sim, { ...edit, label: '' } as EditOperation),
     } as EditOperation;
     sim = applyEdit(sim, labelled).program;
     edits.push(labelled);
