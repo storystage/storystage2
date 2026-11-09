@@ -75,9 +75,13 @@ export const isLearnerMade = (type: AliceNode): boolean =>
   );
 
 /** Half a turn about Y (spec 19, 4.5): Alice's forward is -Z, StoryStage's is +Z. */
-export const turnPosition = (p: Vec3): Vec3 => ({ x: -p.x, y: p.y, z: -p.z });
+export const turnPosition = (p: Vec3): Vec3 => ({ x: negate(p.x), y: p.y, z: negate(p.z) });
 /** `h q h⁻¹` for the half turn `h`: the axis turns with the world, the angle stays. */
-export const turnRotation = (q: Quat): Quat => ({ x: -q.x, y: q.y, z: -q.z, w: q.w });
+export const turnRotation = (q: Quat): Quat => ({ x: negate(q.x), y: q.y, z: negate(q.z), w: q.w });
+/** `-v`, but never `-0`, which a saved file can't keep: what's imported is what's saved. */
+function negate(v: number): number {
+  return v === 0 ? 0 : -v;
+}
 
 /** The numbers an Alice value object is made from: `new Position(1, 0, 2)`. */
 function numbersOf(e: AliceNode | null, javaClass: string): number[] | null {
