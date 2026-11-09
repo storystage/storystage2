@@ -502,6 +502,18 @@
   cursor: grab;
   outline: none;
 }
+/* A frame drawn read-only (FramePicture): the paper fills its box, sketches placed as above. */
+.sb-picture {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background: var(--ss-sketch-paper);
+}
+.sb-picture-sketch {
+  position: absolute;
+  translate: -50% -50%;
+}
 .sb-sketch-art,
 .sb-sketch-art .sb-art {
   display: flex;
