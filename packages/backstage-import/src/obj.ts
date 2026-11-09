@@ -358,7 +358,7 @@ export function readObj(
       }
       const accessor = (
         type: 'VEC2' | 'VEC3' | 'SCALAR',
-        array: Float32Array | Uint16Array | Uint32Array,
+        array: Float32Array<ArrayBuffer> | Uint16Array<ArrayBuffer> | Uint32Array<ArrayBuffer>,
       ) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
       const made = materialFor(name);
       if ('problem' in made) return { ok: false, problem: made.problem };

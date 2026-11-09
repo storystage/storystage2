@@ -8,5 +8,14 @@ export * from './obj.ts';
 export * from './import.ts';
 export * from './browser.ts';
 export * from './worker.ts';
+export {
+  IMPORT_BROKE,
+  IMPORT_TIME_LIMIT_MS,
+  importInWorker,
+  type ImportAnswer,
+  type ImportMessage,
+  type ImportRequest,
+  type ImportWorker,
+} from './worker-client.ts';
 export * from './pack.ts';
 export * from './model-pack.ts';

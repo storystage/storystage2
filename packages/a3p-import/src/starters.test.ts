@@ -5,6 +5,9 @@ import manifest from '../starters.json' with { type: 'json' };
 import { decodeAlice, listProp, nodesOf, textProp } from './decode.ts';
 import { readA3p } from './read.ts';
 import { importSetUp } from './world.ts';
+import { buildProgram } from './code.ts';
+import { validateProgram } from '@storystage/ast';
+import { checkProgram } from '@storystage/story-api/program-check';
 
 // WP9's done-when, for 9.1: Alice's 34 starter projects read with no errors. They're Carnegie
 // Mellon's files, fetched rather than kept here (`scripts/fetch-starters.ts`); CI sets
@@ -43,6 +46,10 @@ describe.skipIf(!folder)('Alice’s 34 starter projects', () => {
         if (typeof o.model !== 'string') expect(o.model.standIn).toMatch(/^[A-Z]/);
       expect(w.gaps.filter((g) => g.kind === 'class')).toEqual([]);
       for (const g of w.gaps) expect(g.why).toMatch(/.$/);
+      // Spec 19, sections 5 and 6: a program that passes the AST's and the Story API's checks.
+      const built = buildProgram(program, w);
+      expect(validateProgram(built.program, { check: (p) => checkProgram(p) })).toEqual([]);
+      for (const g of built.gaps) expect(g.why).toMatch(/.$/);
       for (const resource of file.resources)
         expect(resource.bytes, resource.entryName).not.toBeNull();
     });

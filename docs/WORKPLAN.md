@@ -188,7 +188,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 20 of 61 items finished and 20 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 21 of 61 items finished and 20 more started:
 
 - **Release candidate:** week 13.5 (21 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 19.5 (4 Mar 2027). The plan says week 24.5 (9 Apr 2027).
@@ -269,17 +269,17 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 | forecast: 16 Nov to 30 Nov |
 | WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | started 8 Nov; ends about 10 Dec |
 | WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 23 Nov |
-| WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | started 8 Nov; ends about 30 Nov |
+| WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | 0.1 (8 Nov) |
 | WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | started 8 Nov; ends about 23 Nov |
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
 | WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP4b | 3 | wk 10.5 (1 Jan 2027) | 3 | started 8 Nov; ends about 30 Nov |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | started 8 Nov; ends about 7 Dec |
-| WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | forecast: 30 Nov to 21 Dec |
+| WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | started 8 Nov; ends about 30 Nov |
 | WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
 | WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 1 Jan |
 | WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 7 Dec to 21 Dec |
-| WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 21 Dec to 1 Jan |
+| WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 4 Dec to 14 Dec |
 | WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 10 Dec to 24 Dec |
 | WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 | forecast: 28 Dec to 7 Jan |
 | WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | forecast: 7 Jan to 21 Jan |
@@ -668,7 +668,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     (C)
 - [x] 8.2 Scenes as separate types, each with its own backdrop, cast, camera, markers and script method. Add, duplicate, rename, reorder and delete scenes. Load only the active scene, preloading the next. (C)
 - [x] 8.3 Running order with transitions (cut, fade to black, crossfade) and the go to scene block for branching stories. (C)
-- [ ] 8.4 Local save and open (File System Access API in Chromium, Tauri file dialogs, download/upload fallback in Safari), autosave and backups, in the place decided in 24.2. **Import hardening** (from 0.9): normalise paths and reject `..` and absolute entries; cap file, entry and texture sizes; validate against the schema before loading. **Browser version:** a note, the first time a folder opens, that films are kept in this browser on this device, with Save a copy to keep one elsewhere (07-ux §9.2; the owner decided on 8 Nov 2026 that no download prompt at the end of a session is needed), and a request for persistent storage, because browsers can clear site data under storage pressure and Safari after a period without use. (C)
+- [x] 8.4 Local save and open (File System Access API in Chromium, Tauri file dialogs, download/upload fallback in Safari), autosave and backups, in the place decided in 24.2. **Import hardening** (from 0.9): normalise paths and reject `..` and absolute entries; cap file, entry and texture sizes; validate against the schema before loading. **Browser version:** a note, the first time a folder opens, that films are kept in this browser on this device, with Save a copy to keep one elsewhere (07-ux §9.2; the owner decided on 8 Nov 2026 that no download prompt at the end of a session is needed), and a request for persistent storage, because browsers can clear site data under storage pressure and Safari after a period without use. (C)
 - [ ] 8.5 Optional Google Drive and OneDrive save and open, behind a setting that is off by default. Use the narrowest scopes (Drive `drive.file`). (C; U registers the apps in WP15) **Not in the first release (0065):** on the roadmap (section 6b).
 
 **Done when:** a three-scene production saves, reopens identically (round-trip test) and plays through with each transition type.

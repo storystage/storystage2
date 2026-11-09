@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { box, glbFromMesh } from '@storystage/sketches/testing';
 import type { ImportChoices, ImportTools } from './import.ts';
-import { importInWorker, serveImports, type ImportWorker, type WorkerPort } from './worker.ts';
+import { importInWorker, type ImportWorker } from './worker-client.ts';
+import { serveImports, type WorkerPort } from './worker.ts';
 
 const tools: ImportTools = {
   encodeTexture: async (image) => image,

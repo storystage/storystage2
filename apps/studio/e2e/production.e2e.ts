@@ -56,12 +56,38 @@ test('a value changed in a block is one undo step in the studio’s history', as
   await input.fill('Hello there');
   await input.press('Enter');
   await expect(say).toContainText('Hello there');
-  await expect.poll(() => undoLabel(page)).toBe('Undo: Change text');
+  // Named as Tiles names it (spec 14, section 2.4).
+  await expect.poll(() => undoLabel(page)).toMatch(/^Undo: Change .* in /);
   // Undo, from the Storyboard's button, puts the words back in the block.
   await page.getByRole('tab', { name: /Storyboard/ }).click();
   await page.getByRole('button', { name: /^Undo/ }).click();
   await page.getByRole('tab', { name: /Production stage/ }).click();
   await expect(block(page, main.body[0]!.id)).not.toContainText('Hello there');
+});
+
+test('a block from the palette asks for its words, then is one undo step', async ({ page }) => {
+  await openCode(page);
+  // Blocks for the penguin.
+  await page.getByRole('button', { name: /Blocks for/ }).click();
+  await page.locator('.sb-menu-item', { hasText: 'penguin' }).click();
+  const say = page.locator('.blocklyFlyout .blocklyDraggable').filter({ hasText: /say/ }).first();
+  await expect(say).toBeVisible();
+  const last = (await block(page, main.body.at(-1)!.id).boundingBox())!;
+  await drag(page, say, { x: last.x + 8, y: last.y + last.height + 6 });
+  // The shared cascade asks for the words.
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  await menu.getByRole('menuitem', { name: /Other words/ }).click();
+  const field = page.getByRole('textbox').last();
+  await field.fill('Hello from the palette');
+  await field.press('Enter');
+  await expect(page.locator('.pr-workspace')).toContainText('Hello from the palette');
+  await expect.poll(() => undoLabel(page)).toMatch(/^Undo: .*say Hello from the palette/);
+  // Undo takes the new block away again.
+  await page.getByRole('tab', { name: /Storyboard/ }).click();
+  await page.getByRole('button', { name: /^Undo/ }).click();
+  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(page.locator('.pr-workspace')).not.toContainText('Hello from the palette');
 });
 
 test('a block dropped outside the method goes back, and the learner hears why', async ({
