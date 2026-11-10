@@ -87,6 +87,27 @@ describe('catalogueText', () => {
     expect(text).toContain('\nBackdrops\n  (none yet)\n');
   });
 
+  it('lists backdrops without a size or joints, and says they are set, not added', () => {
+    const withGround = catalogueText(
+      manifest(
+        ...shipped.items,
+        item({
+          id: 'storystage/Ground/grass',
+          section: 'backdrops',
+          class: 'Ground',
+          displayName: 'Grass',
+          description: 'short green grass',
+          themes: ['nature'],
+          joints: 'prop-only',
+          defaultSize: { height: 1 },
+        }),
+      ),
+    );
+    expect(withGround).toContain(
+      "\nBackdrops\n  A scene's ground or sky: set it as the scene's backdrop, never add it as a model.\n  Ground\n    storystage/Ground/grass: Grass, short green grass [nature]\n",
+    );
+  });
+
   it('is the same text whatever order the manifest lists them in', () => {
     // The native layer pins the system prompt's hash for a release (spec 04, section 1.8).
     const reversed = manifest(...[...shipped.items].reverse());

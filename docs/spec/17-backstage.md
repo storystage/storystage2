@@ -120,6 +120,12 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - **Real sizes:** an item may give its real `height` in metres. The build scales a glTF model to it under one new root node, since models from galleries such as Poly Pizza come at every scale their makers used (a kite of 6 km, an aeroplane of 30 cm). The manifest's `defaultSize.height` is then that height. VRM files are kept as they are.
     - **Facing:** an item may give a `turn` in whole degrees (`x` first, to stand it up, then `y`), so a glTF model faces +Z and stands up as every Backstage model does (section 1). It's applied before the height is measured. Galleries' models face every way their makers chose. A turn is usually a quarter turn, but a model that leans in its own data takes whatever stands it up: Poly Pizza's crutches take `x: -34`.
     - **Copies are dropped:** a mesh placed twice in the same place, as some converted models carry it, is removed before reduction (`dropDuplicateInstances`, in `reduceModel`, so imports get it too). It costs triangles, and its sketches would show nothing clean.
+    - **Backdrops are made from pictures** (section 2, `backdrops.ts`):
+        - An item in the `backdrops` section gives `backdrop: { kind: 'ground', tile, look }` or `{ kind: 'sky' }`, and fetches its picture (`.jpg`, `.png` or `.webp`), pinned like a model.
+        - Its id is the stage's: `storystage/Ground/<name>` with the class `Ground`, or `storystage/Sky/<name>` with the class `Scene`, since a sky belongs to the scene and the Story API has no sky class. It takes no `height`, `turn` or `exclude`.
+        - The build makes the ground's tile, colour-matched to `look` in linear light, or the sky's dome. The thumbnail is the picture itself, since a flat tile seen from the front shows nothing.
+        - `sources-report.md` and `provenance.json` give each ground's average colour as fetched and as shipped, and each sky's horizon colour with a suggested lighting, for the stage's tables.
+        - The Prompter's catalogue lists backdrops without a size or joints, and says they're set as a scene's backdrop, not added.
     - It writes the manifest items, `provenance.json` (every file fetched, with its SHA-256) and the sketches.
     - **VRM 0.x avatars face -Z.** The sketches turn them; the stage's loader must too (S3).
     - Before a build is merged, a person looks at each new item's sketches for respectful, age-appropriate representation.
