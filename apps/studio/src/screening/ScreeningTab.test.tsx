@@ -1,3 +1,4 @@
+import { basisFor } from '@storystage/check';
 import { browserHost, type HostInterface } from '@storystage/host';
 import { exampleProduction, type Production, type ProductionFiles } from '@storystage/production';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
@@ -226,11 +227,16 @@ describe('ScreeningTab', () => {
 
   it('exports the film from its dialog, on a hidden stage it lets go, and saves it', async () => {
     const saved: FilmExport[] = [];
-    const { made } = harness({ saveFilm: async (film) => void saved.push(film) });
+    const { made, studio } = harness({ saveFilm: async (film) => void saved.push(film) });
     await screen.findByRole('button', { name: 'Play' });
     await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
     const dialog = await screen.findByRole('dialog', { name: 'Export film' });
     expect(dialog).toBeTruthy();
+    // Opening it checks the film first, on a hidden stage of its own.
+    await waitFor(
+      () => expect(studio().production.frames.every((f) => f.check !== undefined)).toBe(true),
+      { timeout: 10_000 },
+    );
     const before = made.length;
     await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
     expect(
@@ -320,6 +326,91 @@ describe('ScreeningTab', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Play' }));
     // Compare follows the film again: the frame playing, not the one chosen.
     await waitFor(() => expect(screen.queryByText('Frame 2.1')).toBeNull(), { timeout: 5_000 });
+  });
+
+  it('checks the whole film on a hidden stage it lets go, and saves the results with no undo step', async () => {
+    const { studio, made } = harness();
+    await screen.findByRole('button', { name: 'Play' });
+    const undo = studio().undoLabel;
+    const before = made.length;
+    expect(screen.getByText(/frames haven’t been checked/)).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check the whole film' }));
+    await waitFor(
+      () => expect(studio().production.frames.every((f) => f.check !== undefined)).toBe(true),
+      { timeout: 10_000 },
+    );
+    await waitFor(() => expect(screen.queryByText(/haven’t been checked/)).toBeNull());
+    expect(studio().undoLabel).toBe(undo);
+    const forCheck = made.slice(before).filter((m) => m.hidden);
+    expect(forCheck).toHaveLength(1);
+    expect(forCheck[0]!.stage.calls.some((c) => c.method === 'dispose')).toBe(true);
+  }, 20_000);
+
+  it('keeps a flag as the learner’s own undo step', async () => {
+    const p = exampleProduction();
+    const flagged: Production = {
+      ...p,
+      frames: p.frames.map((f) => ({
+        ...f,
+        check: {
+          basis: basisFor(p, f),
+          items:
+            f.id === 'f1'
+              ? [{ id: 'a', kind: 'onScreen', outcome: 'flag', words: 'Pip isn’t there' }]
+              : [],
+          kept: [],
+        },
+      })),
+    };
+    const { studio } = harness({ production: flagged });
+    await screen.findByRole('button', { name: 'Play' });
+    expect(screen.getByText('Frame 1.1: Pip isn’t there')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Keep this flag on frame 1.1' }));
+    expect(studio().production.frames.find((f) => f.id === 'f1')?.check?.kept).toEqual(['a']);
+    expect(studio().undoLabel).toBe('Keep the flag on frame 1.1');
+    expect(
+      await screen.findByRole('button', { name: 'Kept on frame 1.1. Let it go' }),
+    ).toBeTruthy();
+  });
+
+  it('checks the film first when Export film opens, and lists what it found', async () => {
+    const { studio } = harness();
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    await waitFor(
+      () => expect(studio().production.frames.every((f) => f.check !== undefined)).toBe(true),
+      { timeout: 10_000 },
+    );
+    await waitFor(() => expect(within(dialog).queryByText(/storyboard|look at/)).toBeTruthy());
+    expect(within(dialog).queryByText('Checking the film against its storyboard…')).toBeNull();
+  }, 20_000);
+
+  it('stops a check that is running when the learner leaves the tab', async () => {
+    // The check's hidden stage arrives only when let through, so the check is still running.
+    let hold = false;
+    let letThrough = () => {};
+    const held = new Promise<void>((ok) => (letThrough = ok));
+    const forCheck: FakeStage[] = [];
+    const { setShown, studio } = harness({
+      stage: async (_canvas, { hidden }) => {
+        const stage = new FakeStage();
+        if (hidden && hold) {
+          await held;
+          forCheck.push(stage);
+        }
+        return stage as Stage;
+      },
+    });
+    await screen.findByRole('button', { name: 'Play' });
+    hold = true;
+    await userEvent.click(screen.getByRole('button', { name: 'Check the whole film' }));
+    await screen.findByText(/Checking frame/);
+    setShown(false);
+    letThrough();
+    await waitFor(() => expect(forCheck).toHaveLength(1));
+    await waitFor(() => expect(forCheck[0]!.calls.some((c) => c.method === 'dispose')).toBe(true));
+    expect(studio().production.frames.some((f) => f.check !== undefined)).toBe(false);
   });
 
   it("says so in plain words when this device can't make a stage", async () => {

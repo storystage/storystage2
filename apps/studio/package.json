@@ -17,6 +17,7 @@
     "@storystage/backstage": "workspace:*",
     "@storystage/backstage-import": "workspace:*",
     "@storystage/blocks": "workspace:*",
+    "@storystage/check": "workspace:*",
     "@storystage/editor-contract": "workspace:*",
     "@storystage/export": "workspace:*",
     "@storystage/host": "workspace:*",
