@@ -26,6 +26,7 @@ import {
   type Key,
 } from 'react-aria-components';
 import { words } from '../strings.ts';
+import type { Highlights } from './BlocksPanel.tsx';
 import { sceneNumber } from '../storyboard/edits.ts';
 
 export interface CodeEditorProps {
@@ -34,6 +35,10 @@ export interface CodeEditorProps {
   host: EditorHost;
   /** A block to open at: its method's tab, with keyboard focus on it (Screening's Fix). */
   reveal?: NodeId | null;
+  /** Rehearse's marks (section 7.4). An error's block has its method's tab opened. */
+  highlights?: Highlights;
+  /** Set to the editor showing, for the block chosen in it (Rehearse to here). */
+  editorRef?: { current: { selection(): readonly NodeId[] } | null };
 }
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
@@ -81,13 +86,29 @@ const SCENE = 'scene';
  * method, each showing the Blocks editor (`@storystage/blocks`, loaded on demand so the Storyboard
  * opens without Blockly).
  */
-export function CodeEditor({ production: p, scene, host, reveal = null }: CodeEditorProps) {
+export function CodeEditor({
+  production: p,
+  scene,
+  host,
+  reveal = null,
+  highlights,
+  editorRef,
+}: CodeEditorProps) {
   const themeStyle = useThemeStyle();
   const methods = sceneMethods(p, scene);
   // Opened to show a block: its method first. Each reveal opens the editor afresh (a new key).
   const [chosen, setChosen] = useState<Key | null>(() =>
     reveal ? methodHolding(p, methods, reveal) : null,
   );
+  // A rehearsal stopped at an error: its block's method shows, so the error is seen beside it.
+  // Only a new error moves the tab; the learner may choose another tab afterwards.
+  const errorAt = highlights?.error[0]?.node ?? null;
+  const [errorShown, setErrorShown] = useState<NodeId | null>(null);
+  if (errorAt !== errorShown) {
+    setErrorShown(errorAt);
+    const holding = errorAt ? methodHolding(p, methods, errorAt) : null;
+    if (holding) setChosen(holding);
+  }
   const [object, setObject] = useState<Key>(SCENE);
   const [tab, setTab] = useState<PaletteTab>('actions');
   const open = methods.find((m) => m.id === chosen)?.id ?? methods[0]?.id ?? null;
@@ -149,6 +170,8 @@ export function CodeEditor({ production: p, scene, host, reveal = null }: CodeEd
                 target={target}
                 tab={tab}
                 focus={reveal && m.id === chosen ? reveal : null}
+                {...(highlights ? { highlights } : {})}
+                {...(editorRef ? { editorRef } : {})}
               />
             </Suspense>
           </TabPanel>

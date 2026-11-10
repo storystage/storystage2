@@ -6,7 +6,7 @@
  */
 import type { Expression, NodeId } from '@storystage/ast';
 import { createBlocksEditor, type AskRequest, type BlocksEditor } from '@storystage/blocks';
-import type { EditorHost } from '@storystage/editor-contract';
+import type { EditorHost, HighlightMark } from '@storystage/editor-contract';
 import type { Ask as AskKind, PaletteTab } from '@storystage/story-api/editing';
 import { AskValue, ValueMenu } from '@storystage/tiles/cascade';
 import { useEffect, useRef, useState } from 'react';
@@ -20,7 +20,19 @@ export interface BlocksPanelProps {
   tab: PaletteTab;
   /** A block to put keyboard focus on as the editor opens: the one Screening's Fix pointed at. */
   focus?: NodeId | null;
+  /** Rehearse's marks: the blocks running, and the error a run stopped at with its words. */
+  highlights?: Highlights;
+  /** Where the Code editor finds the editor showing, for the block chosen in it. */
+  editorRef?: { current: { selection(): readonly NodeId[] } | null };
 }
+
+/** What Rehearse highlights in the editor (`07-ux.md` section 7.4). */
+export interface Highlights {
+  readonly rehearse: readonly HighlightMark[];
+  readonly error: readonly HighlightMark[];
+}
+
+const NO_HIGHLIGHTS: Highlights = { rehearse: [], error: [] };
 
 /** A question the editor is waiting on, and how to answer it. */
 interface Question {
@@ -30,7 +42,15 @@ interface Question {
   readonly answer: (value: Expression | null) => void;
 }
 
-export default function BlocksPanel({ method, host, target, tab, focus = null }: BlocksPanelProps) {
+export default function BlocksPanel({
+  method,
+  host,
+  target,
+  tab,
+  focus = null,
+  highlights = NO_HIGHLIGHTS,
+  editorRef,
+}: BlocksPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<BlocksEditor | null>(null);
   const [ready, setReady] = useState(false);
@@ -57,9 +77,11 @@ export default function BlocksPanel({ method, host, target, tab, focus = null }:
     });
     blocks.mount(box.current, host, { method, selection: focus ? [focus] : [], focus });
     editor.current = blocks;
+    if (editorRef) editorRef.current = blocks;
     setReady(true);
     return () => {
       editor.current = null;
+      if (editorRef?.current === blocks) editorRef.current = null;
       blocks.unmount();
     };
     // `focus` is for opening only: the Code editor opens afresh for each block it's asked to show.
@@ -69,6 +91,13 @@ export default function BlocksPanel({ method, host, target, tab, focus = null }:
   useEffect(() => {
     editor.current?.setPalette(target, tab);
   }, [target, tab, ready]);
+
+  useEffect(() => {
+    editor.current?.highlight(highlights.rehearse, 'rehearse');
+  }, [highlights.rehearse, ready]);
+  useEffect(() => {
+    editor.current?.highlight(highlights.error, 'error');
+  }, [highlights.error, ready]);
 
   return (
     <div className="pr-workspace-frame">
