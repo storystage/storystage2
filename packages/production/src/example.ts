@@ -4,7 +4,15 @@
  * It uses stand-ins and made-up Backstage ids, so it needs no model files.
  */
 import { nodeId, type NodeId, type TypeDecl } from '@storystage/ast';
-import { IDENTITY, backstageId, micros, objectId, type SceneSetup } from '@storystage/story-api';
+import {
+  IDENTITY,
+  backstageId,
+  micros,
+  objectId,
+  type BackstageId,
+  type SceneSetup,
+  type StandIn,
+} from '@storystage/story-api';
 import { FORMAT_VERSION, frameId, lineId, sceneId, type Production } from './types.ts';
 
 const penguin = backstageId('example/Flyer/penguin');
@@ -256,5 +264,64 @@ export function exampleProduction(): Production {
         links: [blockOf(3)],
       },
     ],
+  };
+}
+
+/** A model reference as the demo plays it: the cast as stand-ins of their real size. */
+const DEMO_CAST: Readonly<Record<string, StandIn>> = {
+  [penguin]: { standIn: 'penguin', size: { x: 0.4, y: 0.7, z: 0.4 } },
+  fox: { standIn: 'fox', size: { x: 0.35, y: 0.5, z: 0.9 } },
+};
+const demoRef = (ref: BackstageId | StandIn): BackstageId | StandIn =>
+  typeof ref === 'string' ? (DEMO_CAST[ref] ?? ref) : (DEMO_CAST[ref.standIn] ?? ref);
+
+/** Each scene's backdrop, as one of the stage's built-in templates (`packages/stage`). */
+const DEMO_BACKDROPS: Readonly<Record<string, string>> = {
+  s1: 'ice',
+  s2: 'northwestForest',
+  s3: 'ice',
+};
+const DEMO_GROUNDS: Readonly<Record<string, string>> = {
+  ice: 'ice',
+  northwestForest: 'forestFloor',
+};
+
+/**
+ * The example production, playable on a real stage: what `?example` shows in the browser (S2,
+ * S5). The same three scenes, script, storyboard and transitions, but every backdrop is one of the
+ * stage's built-in templates (`storystage/Ground/...`, `storystage/Sky/...`,
+ * `storystage/Lighting/...`), and the cast are stand-ins of their real size (format 1.2.0), so it
+ * needs no model files and finds everything it uses. `exampleProduction` keeps its made-up ids,
+ * which tests of unknown models rely on.
+ */
+export function demoProduction(): Production {
+  const p = exampleProduction();
+  return {
+    ...p,
+    manifest: { ...p.manifest, title: 'The Lost Penguin (demo)' },
+    scenes: p.scenes.map((s) => {
+      const template = DEMO_BACKDROPS[s.id]!;
+      return {
+        ...s,
+        setup: {
+          ...s.setup,
+          backdrop: {
+            ground: backstageId(`storystage/Ground/${DEMO_GROUNDS[template]}`),
+            sky: backstageId(`storystage/Sky/${template}`),
+            lighting: backstageId(`storystage/Lighting/${template}`),
+            fog: 0.15,
+          },
+          objects: s.setup.objects.map((o) => ({ ...o, model: demoRef(o.model) })),
+        },
+      };
+    }),
+    storyboard: {
+      ...p.storyboard,
+      cards: p.storyboard.cards.map((c) => ({ ...c, cast: c.cast.map(demoRef) })),
+    },
+    frames: p.frames.map((f) => ({
+      ...f,
+      sketches: f.sketches.map((k) => ({ ...k, item: demoRef(k.item) })),
+    })),
   };
 }
