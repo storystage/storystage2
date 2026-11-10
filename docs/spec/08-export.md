@@ -215,7 +215,7 @@ The driver plays the scene offscreen in fixed steps on a hidden stage, in determ
 
 The frames of a scene, in storyboard order, share the scene's run:
 
-- **A frame starts** when the first of its linked blocks (`Frame.links`, 10.8) first starts in the scene's run. A frame with no linked block that ran starts where the frame before it ends; the first frame starts with the scene.
+- **A frame starts** when the first of its linked blocks (`Frame.links`, 10.8) first starts in the scene's run, unless that's before the frame before it starts. Otherwise it starts where the frame before was planned to end (that frame's start plus its planned length); the first frame starts with the scene.
 - **A frame ends** where the next frame starts. The last frame ends with the scene. A frame whose next frame starts no later than it does ends at its own start plus its planned length, but no later than the scene's end.
 
 ### 9.4 What it compares
