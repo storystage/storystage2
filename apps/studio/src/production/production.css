@@ -256,3 +256,10 @@
   color: var(--ss-on-strong);
   background: var(--ss-strong);
 }
+/* A thought, not speech: in italics, outlined rather than filled. */
+.pr-caption[data-thought] {
+  font-style: italic;
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 2px var(--ss-line-2);
+}

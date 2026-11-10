@@ -273,8 +273,13 @@ export default function SceneView(props: SceneViewProps) {
         {state.speech.length > 0 && (
           <div className="pr-captions">
             {state.speech.map((s, i) => (
-              <p key={i} className="pr-caption">
-                {s}
+              <p key={i} className="pr-caption" data-thought={s.thought || undefined}>
+                {s.thought && (
+                  <span className="ss-visually-hidden">
+                    {words.t('production.rehearse.thinks')}
+                  </span>
+                )}
+                {s.text}
               </p>
             ))}
           </div>

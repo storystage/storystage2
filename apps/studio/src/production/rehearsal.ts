@@ -38,7 +38,13 @@ export interface RehearsalState {
   /** "Rehearse to here" went to a block that never ran. */
   readonly notReached: boolean;
   /** What the scene's objects are saying or thinking now, in the set-up's order: the captions. */
-  readonly speech: readonly string[];
+  readonly speech: readonly Said[];
+}
+
+/** A line on the stage now: said, or thought (shown so it doesn't read as speech). */
+export interface Said {
+  readonly text: string;
+  readonly thought: boolean;
 }
 
 export const IDLE: RehearsalState = {
@@ -200,6 +206,8 @@ export class Rehearsal {
       mode: 'rehearse',
       seed: REHEARSE_SEED,
       from: scene,
+      // Every block's exact start (`ran`): Rehearse to here finds a block over in an instant.
+      trace: true,
     });
     this.playback = playback;
     playback.on((event) => {
@@ -217,13 +225,14 @@ export class Rehearsal {
   private hear(): void {
     const { production, scene, stage } = this.options;
     const objects = production.scenes.find((s) => s.id === scene)?.setup.objects ?? [];
-    const speech: string[] = [];
+    const speech: Said[] = [];
     for (const o of objects) {
       const said = stage.speech(o.id);
-      if (said?.text) speech.push(said.text);
+      if (said?.text) speech.push({ text: said.text, thought: said.bubble === 'think' });
     }
     const before = this.current.speech;
-    if (speech.length !== before.length || speech.some((s, i) => s !== before[i]))
+    const same = (a: Said, b: Said | undefined) => a.text === b?.text && a.thought === b.thought;
+    if (speech.length !== before.length || speech.some((s, i) => !same(s, before[i])))
       this.set({ speech });
   }
 

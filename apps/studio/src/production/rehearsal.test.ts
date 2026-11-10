@@ -13,11 +13,11 @@ const id = (): NodeId => nodeId(`r${(counter++).toString(36).padStart(5, '0')}`)
 const self = (): Expression => ({ id: id(), kind: 'this' });
 const PENGUIN = nodeId('scene1p');
 const the = (field: NodeId): Expression => ({ id: id(), kind: 'fieldRef', target: self(), field });
-const say = (value: Expression): Statement => ({
+const say = (value: Expression, name = 'say'): Statement => ({
   id: id(),
   kind: 'call',
   target: the(PENGUIN),
-  callee: { kind: 'story', name: 'say' },
+  callee: { kind: 'story', name },
   args: { text: value },
   details: {},
 });
@@ -71,7 +71,7 @@ describe('Rehearsal', () => {
     const p = withSceneOne([first, second]);
     const { rehearsal, frames, seen, stage } = rehearse(p);
     const heard = new Set<string>();
-    rehearsal.subscribe(() => rehearsal.state.speech.forEach((s) => heard.add(s)));
+    rehearsal.subscribe(() => rehearsal.state.speech.forEach((s) => heard.add(s.text)));
     await rehearsal.start();
     expect(rehearsal.state.status).toBe('playing');
     expect(loads(stage)[0]?.args[0]).toEqual(p.scenes[0]!.setup);
@@ -84,6 +84,16 @@ describe('Rehearsal', () => {
     expect(rehearsal.state.speech).toEqual([]);
     expect(rehearsal.state.running).toEqual([]);
     expect(rehearsal.state.error).toBeNull();
+  });
+
+  it('marks a thought as a thought, so it doesn’t read as speech', async () => {
+    const think = say(words('Hmm, the ice…'), 'think');
+    const { rehearsal, frames } = rehearse(withSceneOne([think]));
+    const heard: { text: string; thought: boolean }[] = [];
+    rehearsal.subscribe(() => heard.push(...rehearsal.state.speech));
+    await rehearsal.start();
+    await frames(30);
+    expect(heard).toContainEqual({ text: 'Hmm, the ice…', thought: true });
   });
 
   it('stops at once, puts the set-up back and lets the worker go', async () => {

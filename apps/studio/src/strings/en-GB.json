@@ -519,5 +519,6 @@
   "production.rehearse.finished": "The scene finished.",
   "production.rehearse.stopped": "Stopped. The scene is back as it was set up.",
   "production.rehearse.codeChanged": "Rehearse stopped because the code changed.",
-  "production.rehearse.missing": "Some models show as outlines, because this device can’t find them."
+  "production.rehearse.missing": "Some models show as outlines, because this device can’t find them.",
+  "production.rehearse.thinks": "Thinks: "
 }
