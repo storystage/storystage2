@@ -99,12 +99,49 @@ export function matchColour(rgb: Uint8Array, look: Rgb): Uint8Array {
   return out;
 }
 
-/** `rgb` with its light scaled by `exposure` in linear light. */
-export function expose(rgb: Uint8Array, exposure: number): Uint8Array {
-  const table = new Uint8Array(256);
-  for (let v = 0; v < 256; v++)
-    table[v] = Math.round(toSrgb(Math.min(1, toLinear(v / 255) * exposure)) * 255);
-  return rgb.map((v) => table[v]!);
+/**
+ * `rgb` with its light scaled by `exposure` in linear light, and tinted: white becomes `tint`
+ * (sRGB, 0 to 1), so a cool tint makes a night bluer.
+ */
+export function expose(rgb: Uint8Array, exposure: number, tint: Rgb = [1, 1, 1]): Uint8Array {
+  const tables = tint.map((t) => {
+    const gain = exposure * toLinear(t);
+    const table = new Uint8Array(256);
+    for (let v = 0; v < 256; v++)
+      table[v] = Math.round(toSrgb(Math.min(1, toLinear(v / 255) * gain)) * 255);
+    return table;
+  });
+  return rgb.map((v, i) => tables[i % 3]![v]!);
+}
+
+/**
+ * `rgb`, `width` pixels wide, turned so that its column at `ahead` (0 to 1 across) is in the
+ * middle: an equirectangular picture wraps round, so nothing is lost.
+ */
+export function turnPicture(rgb: Uint8Array, width: number, ahead: number): Uint8Array {
+  const shift = Math.round((ahead - 0.5) * width);
+  if (shift % width === 0) return rgb;
+  const out = new Uint8Array(rgb.length);
+  const rows = rgb.length / (width * 3);
+  for (let y = 0; y < rows; y++)
+    for (let x = 0; x < width; x++) {
+      const from = (((x + shift) % width) + width) % width;
+      out.set(
+        rgb.subarray((y * width + from) * 3, (y * width + from) * 3 + 3),
+        (y * width + x) * 3,
+      );
+    }
+  return out;
+}
+
+/** How to treat a sky's picture (spec 17 section 3). */
+export interface SkyOptions {
+  /** Its light, from 1 (as it is) down. */
+  readonly exposure?: number;
+  /** What white becomes. */
+  readonly tint?: Rgb;
+  /** The picture's column, 0 to 1 across, that faces straight ahead (+Z). Default the middle. */
+  readonly ahead?: number;
 }
 
 /** A picture's pixels, three bytes each, no wider or taller than `maxPx`. */
@@ -221,17 +258,20 @@ export interface SkyDome {
  * across, with an unlit material and the equirectangular picture at `SKY_TEXTURE_PX` by half
  * that. The middle of the picture faces +Z, the way the default camera looks, with +Y up.
  *
- * `exposure` scales its light in linear light, from 1 (as it is) down: a gallery's tonemapped
- * pictures are each exposed to look bright, so a night sky comes as bright as noon.
+ * `options.exposure` scales its light in linear light, from 1 (as it is) down, and `tint` colours
+ * it: a gallery's tonemapped pictures are each exposed to look bright, so a night sky comes as
+ * bright and as grey as noon. `ahead` turns it, so the sun of a sunset is straight ahead.
  */
-export async function skyDome(picture: Uint8Array, exposure = 1): Promise<SkyDome> {
+export async function skyDome(picture: Uint8Array, options: SkyOptions = {}): Promise<SkyDome> {
   const fetched = await pixels(picture, {
     width: SKY_TEXTURE_PX,
     height: SKY_TEXTURE_PX / 2,
     fit: 'fill',
   });
   const { width, height } = fetched;
-  const rgb = exposure === 1 ? fetched.rgb : expose(fetched.rgb, exposure);
+  const { exposure = 1, tint, ahead = 0.5 } = options;
+  const turned = turnPicture(fetched.rgb, width, ahead);
+  const rgb = exposure === 1 && !tint ? turned : expose(turned, exposure, tint);
   const doc = new Document();
   doc.createBuffer();
   const unlit = doc.createExtension(KHRMaterialsUnlit);
