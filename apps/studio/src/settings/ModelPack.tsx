@@ -22,6 +22,9 @@ type Said =
       readonly leftOut: readonly { readonly name: string; readonly reason: string }[];
     };
 
+/** A model's name from its id, as missing models are named: `class/Prop/big-crate` is "big crate". */
+export const modelName = (id: string) => (id.split('/').pop() ?? id).replace(/-/g, ' ');
+
 /** The pack's name: the class's models, on any device. */
 export const MODEL_PACK_NAME = `Class models${MODEL_PACK_EXTENSION}`;
 
@@ -55,7 +58,7 @@ export function ModelPack({
       await picker.saveCopy(MODEL_PACK_NAME, pack);
       done(
         words.t('pack.saved'),
-        leftOut.map((id) => ({ name: id, reason: words.t('pack.unreadable') })),
+        leftOut.map((id) => ({ name: modelName(id), reason: words.t('pack.unreadable') })),
       );
     } catch (error) {
       const code = (error as { code?: unknown } | null)?.code;

@@ -7,7 +7,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import { ClassSetup } from './ClassSetup.tsx';
-import { MODEL_PACK_NAME } from './ModelPack.tsx';
+import { MODEL_PACK_NAME, modelName } from './ModelPack.tsx';
 
 // Save models and Open models (spec 17, section 5; 07-ux 9.6): S4's real worker side, served in
 // the page through a pair of ports, so the pack is checked as the app checks it.
@@ -126,5 +126,11 @@ describe('Save models and Open models', { timeout: 30_000 }, () => {
     await waitFor(async () =>
       expect(within(await card()).getByRole('status').textContent).not.toMatch(/^$|Opening/),
     );
+  });
+});
+
+describe('modelName', () => {
+  it('names a model from its id, as missing models are named', () => {
+    expect(modelName('class/Prop/big-crate')).toBe('big crate');
   });
 });
