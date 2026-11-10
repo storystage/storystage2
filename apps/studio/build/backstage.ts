@@ -57,7 +57,8 @@ export function serveFrom(folder: string) {
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const url = req.url ?? '';
     if (!url.startsWith(PREFIX)) return next();
-    const path = url.slice(PREFIX.length);
+    // A cache-buster or a reload may add a query or a hash; they name no file.
+    const path = url.slice(PREFIX.length).split(/[?#]/)[0] ?? '';
     const file = join(folder, path);
     const found =
       (req.method === 'GET' || req.method === 'HEAD') &&

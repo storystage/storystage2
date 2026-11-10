@@ -91,6 +91,12 @@ describe('serveFrom', () => {
     expect((await call('/backstage/backstage.json', 'POST')).status).toBe(404);
   });
 
+  it('ignores a query or a hash, as a cache-buster or a reload adds', async () => {
+    for (const url of ['/backstage/backstage.json?v=2', '/backstage/backstage.json#x'])
+      expect(await call(url), url).toMatchObject({ status: 200, type: 'application/json' });
+    expect((await call('/backstage/../secret.txt?v=2')).status).toBe(404);
+  });
+
   it('leaves every other address to the app', async () => {
     expect(await call('/index.html')).toEqual({ status: 0, passed: true });
   });
