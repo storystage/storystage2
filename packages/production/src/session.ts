@@ -13,6 +13,11 @@
  * `apply`, `begin`, `commit`, `cancel`, `undo`, `redo`, `history` and `goTo` behave as
  * `EditSession`'s do (`packages/ast`), so the code editors' host can use this in its place, and
  * every change, from code or the stage, goes through one history.
+ *
+ * One thing goes around the history: a frame's automatic check (`annotate`, spec 08 section 9.6).
+ * Running a check isn't the learner's change, so it's no undo step, and its latest result stays
+ * through undo and redo; its `basis` says whether it still fits what's there. Keeping a flag is
+ * the learner's choice, an ordinary step.
  */
 import {
   EditRefused,
@@ -28,7 +33,14 @@ import {
 } from '@storystage/ast';
 import type { ObjectId, SceneSetup } from '@storystage/story-api';
 import type { SceneStep } from './scenes.ts';
-import { sceneMethodCheck, type Production, type Scene } from './types.ts';
+import {
+  sceneMethodCheck,
+  type Frame,
+  type FrameCheck,
+  type FrameId,
+  type Production,
+  type Scene,
+} from './types.ts';
 
 /** Everything in a production but its program. */
 export type ProductionRest = Omit<Production, 'program'>;
@@ -38,8 +50,11 @@ export interface ProductionChange<Source extends string = string> {
   /** The program edits this change ran; empty when only the rest changed. */
   readonly edits: readonly EditOperation[];
   readonly label: string;
-  readonly source: Source | 'undo' | 'redo' | 'load';
+  readonly source: Source | 'undo' | 'redo' | 'load' | 'check';
 }
+
+/** A frame's check result as `annotate` takes it: the flags kept are the frame's own. */
+export type CheckResult = Omit<FrameCheck, 'kept'>;
 
 export interface ProductionSessionOptions {
   /** More rules for every program edit, such as the Story API's (spec 01, section 4.5). */
@@ -67,6 +82,8 @@ export class ProductionSession<Source extends string = string> {
   private open: Step<Source> | null = null;
   private readonly listeners = new Set<(change: ProductionChange<Source>) => void>();
   private readonly options: ProductionSessionOptions;
+  /** Each frame's latest check result (`annotate`), laid over whatever undo or redo puts back. */
+  private checks = new Map<FrameId, CheckResult | null>();
 
   constructor(production: Production, options: ProductionSessionOptions = {}) {
     this.current = production;
@@ -144,6 +161,21 @@ export class ProductionSession<Source extends string = string> {
     return { ok: true };
   }
 
+  /**
+   * Saves check results on their frames outside the history (spec 08 section 9.6): no undo step,
+   * and undo and redo keep them. `null` removes a frame's result. A frame keeps its `kept`, which
+   * changes only through `change`, as an undo step. A frame that isn't there is skipped, and gets
+   * its result if undo brings it back.
+   */
+  annotate(results: ReadonlyMap<FrameId, CheckResult | null>): SessionResult {
+    if (this.options.readOnly !== undefined) return { ok: false, reason: this.options.readOnly };
+    if (results.size === 0) return { ok: true };
+    for (const [frame, result] of results) this.checks.set(frame, result);
+    const { program, ...rest } = this.current;
+    this.set({ ...this.withChecks(rest), program }, [], 'Check', 'check');
+    return { ok: true };
+  }
+
   /** Opens a step that later changes join: a whole Prompter request is one undo step. */
   begin(label: string, source: Source): void {
     if (this.open) throw new Error('A group is already open.');
@@ -176,7 +208,7 @@ export class ProductionSession<Source extends string = string> {
     if (!step) return;
     this.done.push(step);
     const program = run(this.current.program, step.edits);
-    this.set({ ...step.after, program }, step.edits, step.label, 'redo');
+    this.set({ ...this.withChecks(step.after), program }, step.edits, step.label, 'redo');
   }
 
   undoLabel(): string | null {
@@ -216,6 +248,7 @@ export class ProductionSession<Source extends string = string> {
     if (problems.length > 0) throw new Error(`Not a valid program: ${problems[0]!.message}`);
     this.done = [];
     this.undone = [];
+    this.checks = new Map();
     this.set(production, [], 'Open', 'load');
   }
 
@@ -244,7 +277,27 @@ export class ProductionSession<Source extends string = string> {
 
   private runBack(step: Step<Source>, label: string): void {
     const program = run(this.current.program, step.inverses);
-    this.set({ ...step.before, program }, step.inverses, label, 'undo');
+    this.set({ ...this.withChecks(step.before), program }, step.inverses, label, 'undo');
+  }
+
+  /** `rest` with each frame's latest check result laid over it, and its own `kept`. */
+  private withChecks(rest: ProductionRest): ProductionRest {
+    if (this.checks.size === 0) return rest;
+    let changed = false;
+    const frames = rest.frames.map((frame): Frame => {
+      if (!this.checks.has(frame.id)) return frame;
+      const result = this.checks.get(frame.id)!;
+      const { check, ...without } = frame;
+      if (result === null) {
+        if (check === undefined) return frame;
+        changed = true;
+        return without;
+      }
+      if (check?.basis === result.basis && check.items === result.items) return frame;
+      changed = true;
+      return { ...frame, check: { ...result, kept: check?.kept ?? [] } };
+    });
+    return changed ? { ...rest, frames } : rest;
   }
 
   private set(
