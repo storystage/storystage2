@@ -324,7 +324,7 @@ async function makeBackdrop(
       colours: { look: b.look, before: rgbToHex(tile.before), after: rgbToHex(tile.after) },
     };
   }
-  const dome = await skyDome(picture.bytes);
+  const dome = await skyDome(picture.bytes, b.exposure);
   return {
     bytes: await io.writeBinary(dome.doc),
     ext: 'glb',

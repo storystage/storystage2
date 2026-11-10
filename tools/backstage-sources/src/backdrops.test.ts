@@ -166,6 +166,14 @@ describe('skyDome (spec 17 section 2)', () => {
     expect([meta.width, meta.height]).toEqual([SKY_TEXTURE_PX, SKY_TEXTURE_PX / 2]);
   });
 
+  it('scales its light by its exposure, in linear light, and lights more dimly for it', async () => {
+    const bright = await skyDome(await png(200, 100, sky));
+    const night = await skyDome(await png(200, 100, sky), 0.2);
+    // A fifth of the light is about half the sRGB value, for these colours.
+    expect(night.horizon[2]!).toBeLessThan(bright.horizon[2]! * 0.6);
+    expect(Math.max(...night.lighting.above)).toBeLessThan(Math.max(...bright.lighting.above));
+  });
+
   it('reports the horizon band as its atmosphere colour, and a lighting to suit', async () => {
     const dome = await skyDome(await png(200, 100, sky));
     expect(close(dome.horizon, [200 / 255, 210 / 255, 230 / 255], 0.03)).toBe(true);
