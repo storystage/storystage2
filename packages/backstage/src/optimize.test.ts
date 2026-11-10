@@ -229,6 +229,28 @@ describe('reduceModel', () => {
     expect(report.fits).toBe(false);
   });
 
+  it('drops a mesh placed twice in the same place, keeping one placed elsewhere', async () => {
+    const doc = sphere(10, 20); // 400 triangles
+    const root = doc.getRoot();
+    const [node] = root.listNodes();
+    const scene = root.getDefaultScene()!;
+    // The same shape again, as its own mesh, as some converted models carry it.
+    const copy = doc.createMesh('copy');
+    for (const p of node!.getMesh()!.listPrimitives()) copy.addPrimitive(p.clone());
+    scene.addChild(doc.createNode('copy').setMesh(copy));
+    // And once more, moved: that one is meant.
+    scene.addChild(doc.createNode('moved').setMesh(node!.getMesh()).setTranslation([2, 0, 0]));
+    const report = await reduceModel(doc, { triangles: 20_000, textureMaxPx: 1024 });
+    expect(report.before.triangles).toBe(800);
+    expect(report.after.triangles).toBe(400);
+    expect(
+      root
+        .listNodes()
+        .filter((n) => n.getMesh())
+        .map((n) => n.getName()),
+    ).toEqual([node!.getName(), 'moved']);
+  });
+
   it('drops what nothing uses', async () => {
     const doc = sphere(10, 20);
     doc.createTexture('unused').setImage(png(64, 64)).setMimeType('image/png');

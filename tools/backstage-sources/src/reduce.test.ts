@@ -6,7 +6,7 @@ import sharp from 'sharp';
 import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { ITEM_BUDGETS, validateManifest } from '@storystage/backstage';
-import { buildSources } from './build.ts';
+import { buildSources, turnModel } from './build.ts';
 import { sharpEncoder } from './sharp-encoder.ts';
 import type { Fetcher } from './fetch.ts';
 
@@ -99,6 +99,8 @@ beforeAll(async () => {
           licence: 'CC0-1.0',
           credit: 'Rock by a tester (CC0)',
           page: 'https://github.com/pack/props',
+          // The rock is 2 m tall as made; its real height is 1.5 m.
+          height: 1.5,
           fetch: { github: 'pack/props', commit: COMMIT, path: 'rock.glb' },
         },
       ],
@@ -144,6 +146,27 @@ describe('reduceModel with real pictures', () => {
   });
 });
 
+describe('turnModel', () => {
+  it('turns a model about X first, then Y, under one root node', () => {
+    const doc = new Document();
+    const scene = doc.createScene();
+    doc.getRoot().setDefaultScene(scene);
+    // A point in front of the model, at +Z.
+    const point = doc.createNode('point').setTranslation([0, 0, 1]);
+    scene.addChild(point);
+    turnModel(doc, { y: 180 });
+    expect(point.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([
+      0, 0, -1,
+    ]);
+    // Half a turn took it to -Z. x: -90 takes -Z to -Y, and a quarter turn about Y leaves it there.
+    turnModel(doc, { x: -90, y: 90 });
+    expect(point.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([
+      0, -1, 0,
+    ]);
+    expect(scene.listChildren().map((n) => n.getName())).toEqual(['storystage-turn']);
+  });
+});
+
 describe('buildSources reduces every glTF model to its budget', () => {
   it('simplifies it, shrinks its picture to WebP, and records before and after', async () => {
     const report = await buildSources(dir, { fetcher, today: '2026-11-07' });
@@ -157,11 +180,16 @@ describe('buildSources reduces every glTF model to its budget', () => {
     const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
     expect(validateManifest(manifest).ok).toBe(true);
     expect(manifest.items[0].budget).toEqual({ triangles: p.triangles, textureMaxPx: 1024 });
+    // Scaled to its real height, under one new root node.
+    expect(manifest.items[0].defaultSize).toEqual({ height: 1.5 });
 
     const doc = await new WebIO()
       .registerExtensions(ALL_EXTENSIONS)
       .readBinary(await readFile(join(dir, 'models/pack/Prop/rock.glb')));
     expect(doc.getRoot().listTextures()[0]!.getMimeType()).toBe('image/webp');
+    const [sized] = doc.getRoot().getDefaultScene()!.listChildren();
+    expect(sized!.getName()).toBe('storystage-size');
+    expect(sized!.getScale()[1]).toBeCloseTo(0.75, 2);
     expect(
       doc
         .getRoot()
