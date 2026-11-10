@@ -1,4 +1,5 @@
 import type { ListenerDecl, MethodDecl, Program, Statement } from '@storystage/ast';
+import { nodeId } from '@storystage/ast';
 import { sampleProgram } from '@storystage/ast/testing';
 import * as Blockly from 'blockly/core';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -94,6 +95,32 @@ describe('a method as blocks and back (3i.8)', () => {
     for (const owner of owners(program)) {
       expect(fromBlocks(throughBlockly(toBlocks(program, owner)))).toEqual(expected(owner));
     }
+  });
+
+  it('shows a speak line’s script line as a fixed block, and keeps its id (spec 06, 4.1)', () => {
+    const owner = owners(program).find(
+      (o) => o.kind === 'method' && o.body.some((s) => s.kind === 'call'),
+    )!;
+    const at = owner.body.findIndex((s) => s.kind === 'call');
+    const call = owner.body[at] as Statement & { kind: 'call' };
+    const speak: Statement = {
+      ...call,
+      callee: { kind: 'story', name: 'speakLine' },
+      args: { text: { id: nodeId('speakw'), kind: 'text', value: 'Here is the key.' } },
+      details: { line: { id: nodeId('speakn'), kind: 'text', value: 'l7' } },
+    };
+    const body = owner.body.map((s, i) => (i === at ? speak : s));
+    const withSpeak = { ...owner, body } as MethodDecl;
+    const types = program.types.map((t) => ({
+      ...t,
+      methods: t.methods.map((m) => (m.id === owner.id ? withSpeak : m)),
+    }));
+    const state = toBlocks({ ...program, types }, withSpeak);
+    const json = JSON.stringify(state);
+    expect(json).toContain('"type":"ss_fromscript"');
+    expect(json).toContain('"line":"l7"');
+    expect(fromBlocks(state)).toEqual(expected(withSpeak));
+    expect(fromBlocks(throughBlockly(state))).toEqual(expected(withSpeak));
   });
 
   it('gives each block its node’s id, and the method’s header can’t be deleted', () => {
