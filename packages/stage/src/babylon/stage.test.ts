@@ -83,10 +83,20 @@ describe('BabylonStage', () => {
   it('keeps the old scene if the new one cannot load', async () => {
     const stage = new BabylonStage(headlessEngine());
     await stage.load(SETUP);
+    const [first, second] = SETUP.objects;
     await expect(
-      stage.load({ ...SETUP, backdrop: { ground: backstageId('storystage/Ground/cheese') } }),
-    ).rejects.toMatchObject({ code: 'unknown_model' });
+      stage.load({ ...SETUP, objects: [{ ...first!, paint: 'rainbow' }, second!] }),
+    ).rejects.toMatchObject({ code: 'bad_argument' });
     expect(stage.objects()).toContain(cat);
+    await expect(stage.renderFrame()).resolves.toBeDefined();
+  });
+
+  it('plays a backdrop it does not know with the default ground, and says so (spec 03, 1.3)', async () => {
+    const stage = new BabylonStage(headlessEngine());
+    const cheese = backstageId('storystage/Ground/cheese');
+    await stage.load({ ...SETUP, backdrop: { ground: cheese } });
+    expect(stage.objects()).toContain(cat);
+    expect(stage.missing()).toEqual([{ kind: 'backdrop', id: cheese }]);
     await expect(stage.renderFrame()).resolves.toBeDefined();
   });
 

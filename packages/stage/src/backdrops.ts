@@ -215,6 +215,32 @@ export interface Backdrop {
  */
 export const fogDensity = (fog: number) => fog * fog * fog;
 
+/**
+ * A scene's backdrop, with any part that isn't built in (its ground, sky or lighting) as the
+ * default instead, and the ids that weren't found (spec 03 section 1.3: the scene plays on).
+ */
+export function resolveBackdropKnown(backdrop: SceneSetup['backdrop']): {
+  readonly backdrop: Backdrop;
+  readonly missing: readonly BackstageId[];
+} {
+  const missing: BackstageId[] = [];
+  const known = <T>(table: ReadonlyMap<BackstageId, T>, id: BackstageId | undefined) => {
+    if (id === undefined || table.has(id)) return id;
+    missing.push(id);
+    return undefined;
+  };
+  const ground = known(GROUNDS, backdrop.ground);
+  const sky = known(SKIES, backdrop.sky);
+  const lighting = known(LIGHTING, backdrop.lighting);
+  const kept = {
+    ...backdrop,
+    ground,
+    sky,
+    lighting,
+  } as SceneSetup['backdrop'];
+  return { backdrop: resolveBackdrop(kept), missing };
+}
+
 /** What a scene's backdrop looks like. Rejects an id that isn't built in with `unknown_model`. */
 export function resolveBackdrop(backdrop: SceneSetup['backdrop']): Backdrop {
   const find = <T>(table: ReadonlyMap<BackstageId, T>, id: BackstageId): T => {
