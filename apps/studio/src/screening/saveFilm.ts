@@ -1,11 +1,13 @@
 /**
  * Saving an exported film: the MP4 and its two caption files, named after the title (spec 08
  * section 4; decision 0028). The host's picker saves one `.storystage` file at a time, so a way to
- * save the three together is asked of S8 (`saveFilm`). Until the host has it, the browser's
- * downloads save them.
+ * save the three together (`saveFilm`) is asked of S8. Until the host has it, the browser saves
+ * them: into a folder the learner picks, where the browser can (Chrome, Edge), or else as one
+ * `.zip`, so a browser's "allow multiple downloads?" can never lose the captions (S5's review).
  */
-import type { FilePicker, HostInterface } from '@storystage/host';
+import { FileError, type FilePicker, type HostInterface } from '@storystage/host';
 import type { FilmExport } from '@storystage/export';
+import { zipSync } from 'fflate';
 
 export interface FilmFile {
   readonly file: string;
@@ -16,6 +18,18 @@ export interface FilmFile {
 type FilmPicker = FilePicker & {
   saveFilm?(name: string, files: readonly FilmFile[]): Promise<void>;
 };
+
+/** The parts of the browser's folder picker this uses. */
+export interface FolderPage {
+  showDirectoryPicker?(options: { mode: 'readwrite' }): Promise<{
+    getFileHandle(
+      name: string,
+      options: { create: true },
+    ): Promise<{
+      createWritable(): Promise<{ write(data: Uint8Array): Promise<void>; close(): Promise<void> }>;
+    }>;
+  }>;
+}
 
 const utf8 = new TextEncoder();
 
@@ -28,29 +42,47 @@ export function filmFiles(film: FilmExport): FilmFile[] {
   ];
 }
 
-const TYPES: Readonly<Record<string, string>> = {
-  mp4: 'video/mp4',
-  vtt: 'text/vtt',
-  srt: 'application/x-subrip',
-};
+/** The learner closed the picker: the job keeps the film, to save again. */
+const isAbort = (e: unknown) => e instanceof DOMException && e.name === 'AbortError';
 
-/** The browser's download, for each file. */
-function download(files: readonly FilmFile[]): void {
+/** All three into a folder the learner picks. */
+async function intoFolder(page: Required<FolderPage>, files: readonly FilmFile[]): Promise<void> {
+  let folder;
+  try {
+    folder = await page.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    throw isAbort(e) ? new FileError('cancelled') : e;
+  }
   for (const { file, bytes } of files) {
-    const type = TYPES[file.slice(file.lastIndexOf('.') + 1)] ?? 'application/octet-stream';
-    const url = URL.createObjectURL(new Blob([bytes as Uint8Array<ArrayBuffer>], { type }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file;
-    a.click();
-    // Long enough for the browser to start the download.
-    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    const handle = await folder.getFileHandle(file, { create: true });
+    const writing = await handle.createWritable();
+    await writing.write(bytes);
+    await writing.close();
   }
 }
 
-export async function saveFilm(host: HostInterface, film: FilmExport): Promise<void> {
+/** One download: the three files in a `.zip`, stored as they are (an MP4 doesn't shrink). */
+function asZip(name: string, files: readonly FilmFile[]): void {
+  const zip = zipSync(Object.fromEntries(files.map((f) => [f.file, f.bytes])), { level: 0 });
+  const url = URL.createObjectURL(
+    new Blob([zip as Uint8Array<ArrayBuffer>], { type: 'application/zip' }),
+  );
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${name}.zip`;
+  a.click();
+  // Long enough for the browser to start the download.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+export async function saveFilm(
+  host: HostInterface,
+  film: FilmExport,
+  page: FolderPage = window as FolderPage,
+): Promise<void> {
   const files = filmFiles(film);
   const picker = host.picker as FilmPicker;
   if (picker.saveFilm) return picker.saveFilm(film.name, files);
-  download(files);
+  if (page.showDirectoryPicker) return intoFolder(page as Required<FolderPage>, files);
+  asZip(film.name, files);
 }

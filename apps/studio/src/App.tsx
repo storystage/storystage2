@@ -31,7 +31,10 @@ import { useStorageKept } from './lesson/useStorageKept.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
+import type { ExportJob } from '@storystage/screening';
+import { exportSlot } from './screening/exportSlot.ts';
 import { Shell } from './shell/Shell.tsx';
+import { useModelSource } from './stage/useModelSource.ts';
 import { words } from './strings.ts';
 import { newProduction } from './storyboard/edits.ts';
 import { NOWHERE, currentPlace, type Place } from './storyboard/place.ts';
@@ -132,6 +135,11 @@ export function App({
   const [mode, setMode] = useState<Mode>('storyboard');
   // Learn or Settings over the panels: the Screening room pauses under them.
   const [overlayOpen, setOverlayOpen] = useState(false);
+  // One model source for every stage, and the running export, above the tabs (S5's review of
+  // #317), so an export goes on when the learner changes tab, and stops when the studio closes.
+  const models = useModelSource(host, studio.production, film?.files ?? NO_FILES);
+  const [exports] = useState(() => exportSlot<ExportJob>());
+  useEffect(() => () => exports.get()?.stop(), [exports]);
   const [said, setSaid] = useState('');
   // What came across from the Alice world just opened, until it's read and closed.
   const [alice, setAlice] = useState<{ title: string; report: ImportReport } | null>(null);
@@ -463,7 +471,8 @@ export function App({
               <ScreeningTab
                 studio={studio}
                 host={host}
-                files={film?.files ?? NO_FILES}
+                models={models}
+                exports={exports}
                 active={!overlayOpen}
                 onPlaceChange={setPlace}
                 onOpenProductionStage={(_node, at) => {

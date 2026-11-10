@@ -9,7 +9,6 @@ import type { NodeId } from '@storystage/ast';
 import { distributionProblems, exportFilm, usedModels, type FilmExport } from '@storystage/export';
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
-import type { ProductionFiles } from '@storystage/production';
 import {
   ExportDialog,
   ExportJob,
@@ -24,7 +23,8 @@ import '@storystage/screening/styles.css';
 import { Button, NeutralNote } from '@storystage/ui';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, hiddenCanvas, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
-import { useModelSource, type ModelSourceOptions } from '../stage/useModelSource.ts';
+import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import type { ExportSlot } from './exportSlot.ts';
 import { words } from '../strings.ts';
 import { saveFilm } from './saveFilm.ts';
 import type { Place } from '../storyboard/place.ts';
@@ -36,8 +36,13 @@ const SEED = 1;
 export interface ScreeningTabProps {
   readonly studio: Studio;
   readonly host: HostInterface;
-  /** The open film's files: its packed models, checked before they're shown. */
-  readonly files: ProductionFiles;
+  /** The App's one model source, for every stage (`useModelSource`). */
+  readonly models: ModelSourceHandle;
+  /**
+   * Where the App keeps the running export, so it goes on when the learner changes tab (Keep
+   * working); the App stops it when the studio closes.
+   */
+  readonly exports: ExportSlot<ExportJob>;
   onPlaceChange(place: Place): void;
   /**
    * False while the tab is out of sight under Learn or Settings: play pauses and the stage stops
@@ -49,7 +54,6 @@ export interface ScreeningTabProps {
   /** For tests: how stages and runtime workers are made, and Backstage fetched. */
   readonly makeStage?: StageMaker;
   readonly startWorker?: () => RuntimeWorker;
-  readonly models?: ModelSourceOptions;
   /** For tests: how an exported film is saved, and how it's encoded. */
   readonly saveFilm?: (film: FilmExport) => Promise<void>;
   readonly exportOptions?: Pick<Parameters<typeof exportFilm>[0], 'backend' | 'compositor'>;
@@ -95,7 +99,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
   const production = studio.production;
   const make = props.makeStage ?? makeStage;
   const startWorker = props.startWorker ?? startRuntimeWorker;
-  const models = useModelSource(host, production, props.files, props.models);
+  const { models, exports } = props;
   const canvasRef = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<ShownStage | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -191,7 +195,8 @@ export function ScreeningTab(props: ScreeningTabProps) {
   // Export film: one job for the tab's life, so Keep working can close the dialog while it goes
   // on. Each run makes its own hidden stage and lets it go at the end. Leaving the tab stops it.
   const save = props.saveFilm ?? ((film: FilmExport) => saveFilm(host, film));
-  const [job] = useState(() => new ExportJob({ save }));
+  // The export the App keeps: one started here earlier, or a new one.
+  const [job] = useState(() => exports.get() ?? exports.put(new ExportJob({ save })));
   /** The export as the learner asked for it: this film, these choices. */
   const exportRun =
     (chosen: ExportChoices): ExportRun =>
@@ -214,7 +219,6 @@ export function ScreeningTab(props: ScreeningTabProps) {
         hidden.dispose();
       }
     };
-  useEffect(() => () => job.stop(), [job]);
   const exportState = useSyncExternalStore(
     (l) => job.subscribe(l),
     () => job.state,
