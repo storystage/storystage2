@@ -273,3 +273,20 @@ test('measures what characters and crossfades cost each frame (WP4c, 8.3)', asyn
   // Walking poses more than standing does.
   expect(r.walking.seek.mean).toBeGreaterThan(r.standing.seek.mean * 0.5);
 });
+
+test('reads back the same picture from WebGPU as from WebGL2, top row first, red first', async ({
+  page,
+}) => {
+  await open(page);
+  const r = await call<{
+    renderer: string;
+    frame: number;
+    picture: number;
+    top: { auto: number[]; webgl2: number[] };
+    bottom: { auto: number[]; webgl2: number[] };
+  }>(page, 'renderersAgree');
+  console.log(JSON.stringify(r));
+  // The two renderers smooth edges a little differently; a flipped or blue-first picture is far off.
+  expect(r.frame).toBeLessThan(6);
+  expect(r.picture).toBeLessThan(6);
+});

@@ -80,12 +80,29 @@ export interface SceneMeasure {
   readonly fits: boolean;
 }
 
-/** WebGL's rows start at the bottom; a `FrameImage`'s start at the top. */
-function topRowFirst(bottomUp: Uint8Array, width: number, height: number): Uint8ClampedArray {
+/**
+ * Pixels read back, as a `FrameImage` has them: top row first, red, green, blue, alpha.
+ * - WebGL reads the bottom row first.
+ * - WebGPU reads the canvas top row first, in its own channel order, which is blue first on most
+ *   devices (`bgra8unorm`).
+ * - A render target (`picture`) comes back bottom row first and red first on both.
+ */
+function asFrame(
+  read: Uint8Array,
+  width: number,
+  height: number,
+  { bottomUp, bgra }: { bottomUp: boolean; bgra: boolean },
+): Uint8ClampedArray {
   const out = new Uint8ClampedArray(width * height * 4);
   const row = width * 4;
   for (let y = 0; y < height; y++)
-    out.set(bottomUp.subarray(y * row, (y + 1) * row), (height - 1 - y) * row);
+    out.set(read.subarray(y * row, (y + 1) * row), (bottomUp ? height - 1 - y : y) * row);
+  if (bgra)
+    for (let p = 0; p < out.length; p += 4) {
+      const blue = out[p]!;
+      out[p] = out[p + 2]!;
+      out[p + 2] = blue;
+    }
   return out;
 }
 
@@ -359,7 +376,16 @@ export class BabylonStage implements Stage {
     const width = this.engine.getRenderWidth();
     const height = this.engine.getRenderHeight();
     const pixels = await this.engine.readPixels(0, 0, width, height);
-    return { width, height, data: topRowFirst(pixels as Uint8Array, width, height) };
+    const webgpu = this.renderer === 'webgpu';
+    // A WebGPU canvas keeps its own channel order: blue first on most devices.
+    const format = (this.engine as unknown as { _options?: { swapChainFormat?: string } })._options
+      ?.swapChainFormat;
+    const bgra = webgpu && (format ?? '').startsWith('bgra');
+    return {
+      width,
+      height,
+      data: asFrame(pixels as Uint8Array, width, height, { bottomUp: !webgpu, bgra }),
+    };
   }
 
   /**
@@ -391,7 +417,12 @@ export class BabylonStage implements Stage {
       const pixels = await target.readPixels();
       if (!pixels) throw new StageError('bad_argument', 'The picture could not be read back.');
       const bytes = new Uint8Array(pixels.buffer, pixels.byteOffset, width * height * 4);
-      return { width, height, data: topRowFirst(bytes, width, height) };
+      // Babylon.js reads a render target back bottom row first on WebGPU too, and red first.
+      return {
+        width,
+        height,
+        data: asFrame(bytes, width, height, { bottomUp: true, bgra: false }),
+      };
     } finally {
       target.dispose();
     }
