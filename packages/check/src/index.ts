@@ -4,3 +4,4 @@
  * Owner: S2. Workplan: WP11c (decision 0071).
  */
 export * from './geometry.ts';
+export * from './spans.ts';
