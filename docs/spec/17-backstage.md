@@ -72,10 +72,12 @@ The grounds, skies and lighting are built into the stage (`packages/stage/src/ba
 1. **New ids,** `storystage/Sky/<name>`, that don't clash with the templates' (for example `storystage/Sky/clearDay`): a clear day, a cloudy day, a sunset and a night sky to start with.
 2. **The item:** a `.glb` sky dome, an inward-facing sphere centred on the origin with a radius of 200 m (inside the 256 m far clip), about 1,000 triangles. It has one unlit material with an equirectangular picture of at most 2,048 pixels, WebP and sRGB. The middle of the picture (u = 0.5) faces +Z, the way the default camera looks, with +Y up.
 3. **Its atmosphere colour** is the average of the picture's horizon band. The build reports it, and the stage's sky table (`SKIES`) gets an entry for each picture sky with that colour, so fog fades distant things into the picture rather than against it.
-4. **What the stage does with it** (S3):
+4. **Its lighting:** each picture sky comes with a lighting of the same name (`storystage/Lighting/clearDay` for `storystage/Sky/clearDay`), which the stage adds with its `SKIES` entry, as each template pairs a sky with a lighting. Its colours from above and below suit the picture: warm for the sunset, dim and blue for the night. The build suggests a pair with each sky, so a sunset doesn't light a scene like noon.
+5. **What the stage does with it** (S3):
     - It keeps the dome on the camera, as if infinitely far, and draws it unlit, without fog, behind everything. It's in pictures, crossfades and fades like everything else.
     - Fog and the background colour follow the atmosphere colour, as for any sky.
     - **Setting the atmosphere colour tints the picture** (the owner's choice, 10 Nov 2026): by the new colour divided by the sky's own, capped at 1. A program that darkens the sky at dusk sees it darken, and setting it back shows the picture unchanged.
+    - **A picture sky without its item is reported,** unlike a ground. It has nothing to fall back to but its atmosphere colour, so when its id is in `SKIES` but Backstage has no item (the web build without a shipped Backstage, or an older Backstage), the stage draws that colour, the scene plays on, and it's reported as `{ kind: 'backdrop', id }`, the same as an item that fails to load.
 
 **Sources:** ambientCG and Poly Haven, both CC0, checked item by item as in section 3. The files are kept in the assets repository, pinned like the other sources' originals. Poly Haven's API asks for a User-Agent naming the client; the tools send a generic one. Each item's credit names its maker and the site, although CC0 doesn't ask for it.
 
