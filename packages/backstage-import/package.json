@@ -6,7 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./pack": "./src/pack.ts",
+    "./pack": "./src/light-pack.ts",
     "./worker": "./src/import-worker.ts",
     "./worker-client": "./src/worker-client.ts"
   },

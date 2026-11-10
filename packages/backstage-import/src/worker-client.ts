@@ -11,6 +11,7 @@
 import type { ImportProblem } from './checks.ts';
 import type { ImportChoices, ImportResult } from './import.ts';
 import type { FilmCheckResult, FilmModelInput } from './film-check.ts';
+import type { OpenedModelPack } from './model-pack.ts';
 
 // What the import screen shows: the licence step's choices and words, and the result's types.
 export { LICENCE_CHOICES, LICENCE_PROBLEMS, MAKER_MAX, SOURCE_MAX } from './licence.ts';
@@ -18,6 +19,7 @@ export type { LicenceAnswers, LicenceChoice, LicenceProblem, LicenceRecord } fro
 export type { ImportProblem, ImportProblemCode } from './checks.ts';
 export type { ImportChoices, ImportReport, ImportResult, ImportedFile } from './import.ts';
 export type { FilmCheckResult, FilmModelInput } from './film-check.ts';
+export type { OpenedModelPack, PackedImport } from './model-pack.ts';
 
 /** The longest an import may run (spec 17, section 5). */
 export const IMPORT_TIME_LIMIT_MS = 60_000;
@@ -72,6 +74,12 @@ export interface WorkerJobOptions<T> {
   readonly failed: () => T;
   /** Default `IMPORT_TIME_LIMIT_MS`, 60 seconds (spec 15, section 3). */
   readonly timeLimitMs?: number;
+  /**
+   * Whether this message says one step of a long job is done, such as one model of a model pack:
+   * each such message gives the next step its own full time limit. Without it, the limit is for
+   * the whole job.
+   */
+  readonly progress?: (data: unknown) => boolean;
 }
 
 /**
@@ -96,11 +104,15 @@ export function runInWorker<T>(
       worker.terminate();
       resolve(result);
     };
-    const timer = setTimeout(
-      () => finish(options.timedOut()),
-      options.timeLimitMs ?? IMPORT_TIME_LIMIT_MS,
-    );
+    const limit = options.timeLimitMs ?? IMPORT_TIME_LIMIT_MS;
+    let timer = setTimeout(() => finish(options.timedOut()), limit);
     worker.addEventListener('message', (event: { data: unknown }) => {
+      if (done) return;
+      if (options.progress?.(event.data)) {
+        clearTimeout(timer);
+        timer = setTimeout(() => finish(options.timedOut()), limit);
+        return;
+      }
       const answer = options.answer(event.data);
       if (answer !== undefined) finish(answer);
     });
@@ -182,4 +194,69 @@ export function checkFilmInWorker(
       ...(options.timeLimitMs !== undefined ? { timeLimitMs: options.timeLimitMs } : {}),
     },
   );
+}
+
+/** To the worker: open a model pack, checking every model as an import (spec 17, section 5). */
+export interface ModelPackMessage {
+  readonly type: 'openModelPack';
+  readonly bytes: Uint8Array;
+  /** The ids the class Backstage has had, live and in the bin. */
+  readonly taken: readonly string[];
+}
+
+/** From the worker, as each model's checks begin. */
+export interface ModelPackProgress {
+  readonly type: 'modelPackProgress';
+  /** The model now being checked, from 1. */
+  readonly n: number;
+  /** How many models the pack holds. */
+  readonly total: number;
+}
+
+/** From the worker, when the pack is opened. */
+export interface ModelPackAnswer {
+  readonly type: 'modelPackOpened';
+  readonly result: OpenedModelPack;
+}
+
+const PACK_TOO_SLOW: ImportProblem = {
+  code: 'tooSlow',
+  message:
+    'One of the models in this pack took too long to check, so StoryStage stopped. Nothing was added.',
+};
+
+/**
+ * Opens a model pack in a fresh worker (`openModelPack`): every model checked as an import. The
+ * time limit is for each model, not the whole pack: each model the worker begins gives it a
+ * fresh `IMPORT_TIME_LIMIT_MS`, so a big pack takes as long as it needs, but no one model can
+ * hang. The pack's bytes are copied in, so the caller keeps its own.
+ */
+export function openModelPackInWorker(
+  start: () => ImportWorker,
+  bytes: Uint8Array,
+  taken: readonly string[],
+  options: {
+    readonly timeLimitMs?: number;
+    /** As each model's checks begin: its place (from 1) and how many the pack holds. */
+    readonly onProgress?: (n: number, total: number) => void;
+  } = {},
+): Promise<OpenedModelPack> {
+  const copy = bytes.slice();
+  const message: ModelPackMessage = { type: 'openModelPack', bytes: copy, taken };
+  return runInWorker<OpenedModelPack>(start, message, [copy.buffer as ArrayBuffer], {
+    answer: (data) => {
+      const d = data as Partial<ModelPackAnswer> | null;
+      return d?.type === 'modelPackOpened' && d.result ? d.result : undefined;
+    },
+    progress: (data) => {
+      const p = data as Partial<ModelPackProgress> | null;
+      if (p?.type !== 'modelPackProgress') return false;
+      if (typeof p.n === 'number' && typeof p.total === 'number')
+        options.onProgress?.(p.n, p.total);
+      return true;
+    },
+    timedOut: () => ({ ok: false, problem: PACK_TOO_SLOW }),
+    failed: () => ({ ok: false, problem: IMPORT_BROKE }),
+    ...(options.timeLimitMs !== undefined ? { timeLimitMs: options.timeLimitMs } : {}),
+  });
 }

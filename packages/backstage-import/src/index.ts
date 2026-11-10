@@ -12,16 +12,21 @@ export {
   IMPORT_BROKE,
   IMPORT_TIME_LIMIT_MS,
   checkFilmInWorker,
+  openModelPackInWorker,
   importInWorker,
   runInWorker,
   type WorkerJobOptions,
   type FilmCheckAnswer,
   type FilmCheckMessage,
   type ImportAnswer,
+  type ModelPackAnswer,
+  type ModelPackMessage,
+  type ModelPackProgress,
   type ImportMessage,
   type ImportRequest,
   type ImportWorker,
 } from './worker-client.ts';
 export * from './pack.ts';
+export * from './model-pack-file.ts';
 export * from './model-pack.ts';
 export * from './film-check.ts';

@@ -3,13 +3,13 @@ import { readArchive, writeArchive } from '@storystage/production';
 import type { TextureEncoder } from '@storystage/backstage/optimize';
 import { box, figure, glbFromMesh } from '@storystage/sketches/testing';
 import { importModel, type ImportChoices, type ImportTools } from './import.ts';
+import { openModelPack } from './model-pack.ts';
 import {
   MODEL_PACK_FORMAT,
   modelPackFromClass,
-  openModelPack,
   writeModelPack,
   type PackModel,
-} from './model-pack.ts';
+} from './model-pack-file.ts';
 import type { ClassModels } from './pack.ts';
 
 /** A PNG header of the given size. */

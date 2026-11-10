@@ -182,6 +182,10 @@ describe('openClassBackstage (decision 0066)', () => {
     expect(lists).toBe(2);
     expect(view.backstage.items.map((i) => i.id)).toEqual(['class/Prop/crate', 'class/Prop/duck']);
     expect(view.backstage.find('class/Prop/duck' as BackstageItem['id'])?.url).toMatch(/^blob:/);
+    // A class id the store doesn't have (a film's own packed model) lists once, not every time.
+    await view.prepare(['class/Prop/only-in-a-film']);
+    await view.prepare(['class/Prop/only-in-a-film']);
+    expect(lists).toBe(3);
     // The URL already made is kept.
     expect(view.backstage.find('class/Prop/crate' as BackstageItem['id'])!.url).toBe(crateUrl);
   });

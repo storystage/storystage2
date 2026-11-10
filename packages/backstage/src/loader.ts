@@ -153,6 +153,10 @@ export function forgetOpenedBackstages(): void {
 /**
  * Several Backstages as one: the shipped one first, then a class's. An id is answered by the
  * first that has it, so a class's import can't stand in for a shipped model.
+ *
+ * It's a snapshot: which Backstage owns which id is settled when it's made. A model a class view
+ * adds later (`openClassBackstage`'s `prepare`) isn't found through a combination made before;
+ * ask the Backstages in order at each `find`, or combine again (S2's review).
  */
 export function combineBackstages(...backstages: readonly Backstage[]): Backstage {
   const owner = new Map<Id, Backstage>();
