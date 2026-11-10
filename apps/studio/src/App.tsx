@@ -23,7 +23,7 @@ import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { importAliceInWorker, type ImportWorker } from '@storystage/a3p-import/worker-client';
 import type { ImportReport } from '@storystage/a3p-import';
 import { AliceReport } from './lesson/AliceReport.tsx';
-import { NO_ALICE_MODELS, startAliceWorker } from './lesson/aliceWorker.ts';
+import { aliceModelSource, startAliceWorker } from './lesson/aliceWorker.ts';
 import { FilmMenu, type FilmAction } from './lesson/FilmMenu.tsx';
 import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonPages.tsx';
 import { classPacking } from './lesson/packing.ts';
@@ -142,6 +142,8 @@ export function App({
   const editors = useEditorHost(studio.session, setSaid);
   // One packer for the host: a new one each render would make every save look new to useSaving.
   const pack = useMemo(() => classPacking(host), [host]);
+  // The shipped Backstage's Alice models, read when the first world is opened, then kept.
+  const aliceModels = useMemo(() => aliceModelSource(host), [host]);
   const saving = useSaving(studio.production, film, studio.readOnly, pack);
   const storageKept = useStorageKept(host);
   const p = studio.production;
@@ -286,7 +288,7 @@ export function App({
     if (file.size > FILE_LIMIT) return setNote(words.t('alice.tooBig'));
     const bytes = new Uint8Array(await file.arrayBuffer());
     setNote(words.t('alice.opening'));
-    const result = await importAliceInWorker(startAlice, bytes, file.name, NO_ALICE_MODELS);
+    const result = await importAliceInWorker(startAlice, bytes, file.name, await aliceModels());
     if (!result.ok) return setNote(result.problem.message);
     // This film's save failed: it stays open, with the failure's words in place of "Opening…".
     if (!(await saving.save('auto'))) return setNote(null);
