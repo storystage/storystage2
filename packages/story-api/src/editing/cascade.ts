@@ -375,7 +375,7 @@ export function detailsToAdd(
   }
   const given = 'details' in found ? Object.keys(found.details) : [];
   return offered
-    .filter((d) => !given.includes(d))
+    .filter((d) => !given.includes(d) && !DETAILS[d]?.fromScript)
     .map((name) => ({ name, words: word(`detail.${name}`) }));
 }
 

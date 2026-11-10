@@ -237,6 +237,7 @@ Details are Alice's optional keyword arguments, the "add detail" of both editors
 | `heldKeyPolicy` | `HeldKeyPolicy` | `fireMultiple` | — | when the key is held |
 | `multipleEventPolicy` | `MultipleEventPolicy` | `ignore` | — | if it happens again while running |
 | `setOfVisuals` | `Thing[]` | every object | — | which objects |
+| `line` | `LineId` | words the script doesn’t have | — | script line |
 <!-- /catalog:details -->
 
 1. **Each block lists its own** in sections 2 and 3, as Alice does. A test checks them against her detail lists, so `say` has no `animationStyle` and `moveToward` no `pathStyle`, for example.
@@ -294,7 +295,7 @@ Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters ma
 | `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `runtime` |
 | `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `runtime` |
 | `Camera` | `frameShot` | `shot: ShotType`, `targets: Thing[]` | `duration`, `animationStyle` | 4.10 | frame a {shot} of {targets} | `command:shot` |
-| `Model` | `speakLine` | `text: Text` | — | 4.4 | speak line {text} | `needs:speech` |
+| `Model` | `speakLine` | `text: Text` | `duration`, `line` | 4.4 | speak line {text} | `command:say` |
 | `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `command:clip` |
 | `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `command:walk` |
 | `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `command:walk` |
@@ -360,7 +361,6 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 | --- | --- | --- |
 | `audio` | Play a sound at a scene time, for the export to mix (with WP11) | `playAudio` |
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
-| `speech` | Speak a line with visemes (WP14) | `speakLine` |
 <!-- /catalog:stage -->
 
 ## 9a. The program check

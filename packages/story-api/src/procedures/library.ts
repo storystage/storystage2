@@ -31,6 +31,7 @@ import {
   type Vec3,
 } from '../vocabulary.ts';
 import { COLOR_BYTES, colorName } from './colours.ts';
+import { lineDuration } from './line-duration.ts';
 import {
   StoryFault,
   type EnumValue,
@@ -551,6 +552,25 @@ export const STORY_LIBRARY: StoryLibrary = {
   })),
   say: say('say'),
   think: say('think'),
+  // Spec 06, 4.2 and 4.7: a caption the studio voices, timed by its words unless `duration` is
+  // given. `line` is the script line it came from, if any.
+  speakLine: procedure((call) => {
+    const text = words(call.args.text, 'text');
+    const given = call.details.duration;
+    const seconds = given === undefined ? lineDuration(text) : number(given, 'duration');
+    if (seconds < 0) throw new StoryFault('duration must be 0 or more.');
+    const line = call.details.line;
+    return {
+      object: self(call),
+      kind: 'say',
+      text,
+      bubble: 'caption',
+      ...(line === undefined ? {} : { line: words(line, 'line') }),
+      duration: micros(seconds),
+      // A caption has no motion; the style is `say`'s usual one.
+      style: 'beginAndEndGently',
+    };
+  }),
   straightenOutJoints: procedure((call) => ({
     object: self(call),
     kind: 'pose',

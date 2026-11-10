@@ -218,6 +218,14 @@ describe('after a drop', () => {
     ]);
     expect(detailsToAdd(scene(), ID.say).map((d) => d.name)).not.toContain('animationStyle');
   });
+
+  it('never offers a speak line’s script line, which only the script sets (spec 06, 4.1)', () => {
+    const speak = call(field(ID.cat), 'speakLine', {
+      text: { id: mint(), kind: 'text', value: 'Hi' },
+    });
+    const { program } = withBlock(speak);
+    expect(detailsToAdd(program, speak.id).map((d) => d.name)).toEqual(['duration']);
+  });
 });
 
 describe('answer', () => {

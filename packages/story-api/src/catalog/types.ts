@@ -59,7 +59,14 @@ export type BasicType = (typeof BASIC_TYPES)[number];
  * Backstage surface; `JointId` is a joint from the joint map; `SceneId` is a production's scene;
  * `Audio` and `AnimationClip` are a production's sound or a model's clip.
  */
-export const REFERENCE_TYPES = ['Paint', 'Audio', 'JointId', 'SceneId', 'AnimationClip'] as const;
+export const REFERENCE_TYPES = [
+  'Paint',
+  'Audio',
+  'JointId',
+  'SceneId',
+  'AnimationClip',
+  'LineId',
+] as const;
 export type ReferenceType = (typeof REFERENCE_TYPES)[number];
 
 /**
@@ -67,7 +74,13 @@ export type ReferenceType = (typeof REFERENCE_TYPES)[number];
  * AST's `enum` node allows. Whether one exists is for the production's check. `JointId` is an
  * `enum` node (spec 02, section 5).
  */
-export const TEXT_REFERENCES: readonly TypeName[] = ['Paint', 'Audio', 'SceneId', 'AnimationClip'];
+export const TEXT_REFERENCES: readonly TypeName[] = [
+  'Paint',
+  'Audio',
+  'SceneId',
+  'AnimationClip',
+  'LineId',
+];
 
 /** Enumerations, with Alice's constants in camel case. Added ones are in `ADDED_ENUMS`. */
 export const ENUMS = {
@@ -178,6 +191,11 @@ export interface DetailDef {
   readonly default: number | boolean | string | null;
   readonly defaultMeans?: string;
   readonly range?: NumberRange;
+  /**
+   * Set when the block is made from a script line, never by the learner, so it isn't offered
+   * under "add detail" (the speak line's `line`, spec 06 section 4.1).
+   */
+  readonly fromScript?: true;
 }
 
 /** Workplan tasks that implement entries. 4.3 is Alice's own; the others are additions. */
