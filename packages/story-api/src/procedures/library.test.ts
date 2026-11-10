@@ -113,6 +113,28 @@ describe('procedures', () => {
     });
   });
 
+  it('speak line: a caption timed by its words, or by its duration (spec 06, 4.2 and 4.7)', () => {
+    const { sent } = run('speakLine', { args: { text: 'Here is the key.' } });
+    expect(sent).toEqual([
+      {
+        object: 'cat',
+        kind: 'say',
+        text: 'Here is the key.',
+        bubble: 'caption',
+        duration: micros(2),
+        style: 'beginAndEndGently',
+      },
+    ]);
+    const timed = run('speakLine', {
+      args: { text: 'Here is the key.' },
+      details: { duration: 3, line: 'l7' },
+    });
+    expect(timed.sent[0]).toMatchObject({ duration: micros(3), line: 'l7' });
+    expect(() => run('speakLine', { args: { text: 'Hi' }, details: { duration: -1 } })).toThrow(
+      StoryFault,
+    );
+  });
+
   it('say and think with Alice’s bubble', () => {
     const { sent } = run('think', { args: { text: 'Hmm' } });
     expect(sent[0]).toMatchObject({

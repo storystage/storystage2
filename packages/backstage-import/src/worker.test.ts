@@ -121,3 +121,57 @@ describe('runInWorker, for any untrusted reader (spec 15, section 3)', () => {
     expect(m.terminated()).toBe(1);
   });
 });
+
+describe('runInWorker, step by step (a model pack)', () => {
+  it('gives each reported step a fresh time limit, so a long job finishes', async () => {
+    const listeners: ((e: { data: unknown }) => void)[] = [];
+    let terminated = 0;
+    const worker: ImportWorker = {
+      postMessage: () => {
+        // Five steps 15 ms apart, then the answer: 90 ms in all, against a 40 ms limit per step.
+        for (let i = 1; i <= 5; i++)
+          setTimeout(() => listeners.forEach((l) => l({ data: { step: i } })), i * 15);
+        setTimeout(() => listeners.forEach((l) => l({ data: { done: 'yes' } })), 90);
+      },
+      addEventListener: ((type: string, l: (e: { data: unknown }) => void) =>
+        type === 'message'
+          ? void listeners.push(l)
+          : undefined) as ImportWorker['addEventListener'],
+      terminate: () => void terminated++,
+    };
+    const result = await runInWorker(() => worker, {}, [], {
+      answer: (d) => (d as { done?: string }).done,
+      progress: (d) => (d as { step?: number }).step !== undefined,
+      timedOut: () => 'too slow',
+      failed: () => 'failed',
+      timeLimitMs: 40,
+    });
+    expect(result).toBe('yes');
+    expect(terminated).toBe(1);
+  });
+});
+
+describe('openModelPackInWorker (spec 17, section 5)', () => {
+  it('opens a pack in the worker, every model checked, and ends the worker', async () => {
+    const { writeModelPack } = await import('./model-pack-file.ts');
+    const { importModel } = await import('./import.ts');
+    const { openModelPackInWorker } = await import('./worker-client.ts');
+    const r = await importModel(
+      new Map([['crate.glb', await glbFromMesh(box([0, 0, 0], [1, 1, 1]))]]),
+      choices,
+      tools,
+    );
+    if (!r.ok) throw new Error('import failed');
+    const pack = writeModelPack([{ item: r.item, files: r.files }]);
+    const fake = fakeWorker(true);
+    const progress: [number, number][] = [];
+    const opened = await openModelPackInWorker(() => fake.worker, pack, [], {
+      onProgress: (n, total) => void progress.push([n, total]),
+    });
+    expect(progress).toEqual([[1, 1]]);
+    expect(opened).toMatchObject({ ok: true, leftOut: [], models: [{ item: { id: r.item.id } }] });
+    expect(fake.terminated()).toBe(1);
+    const again = await openModelPackInWorker(() => fakeWorker(true).worker, pack, [r.item.id]);
+    expect(again).toMatchObject({ ok: true, models: [], leftOut: [{ name: 'Crate' }] });
+  });
+});

@@ -7,15 +7,15 @@ import './lesson/lesson.css';
 import './settings/settings.css';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { exampleProduction } from '@storystage/production';
+import { demoProduction } from '@storystage/production';
 import { App } from './App.tsx';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('StoryStage could not find its page.');
 
-// `?example` opens the example production, unsaved, for trying the Code editor and for the
+// `?example` opens the demo production (the example, playable on a real stage), unsaved, for the
 // end-to-end tests. Otherwise a lesson starts: the name page, or the device's own films (07-ux 9.1).
-const start = new URLSearchParams(location.search).has('example') ? exampleProduction() : undefined;
+const start = new URLSearchParams(location.search).has('example') ? demoProduction() : undefined;
 
 createRoot(root).render(
   <StrictMode>

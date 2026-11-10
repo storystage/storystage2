@@ -13,10 +13,14 @@
  */
 import { importModel, type ImportResult, type ImportTools } from './import.ts';
 import { checkFilmModels, type FilmCheckResult } from './film-check.ts';
+import { openModelPack, type OpenedModelPack } from './model-pack.ts';
 import {
   IMPORT_BROKE,
   type FilmCheckAnswer,
   type FilmCheckMessage,
+  type ModelPackAnswer,
+  type ModelPackMessage,
+  type ModelPackProgress,
   type ImportAnswer,
   type ImportMessage,
 } from './worker-client.ts';
@@ -31,6 +35,14 @@ const typeOf = (data: unknown) =>
   typeof data === 'object' && data !== null ? (data as { type?: unknown }).type : undefined;
 const isImport = (data: unknown): data is ImportMessage => typeOf(data) === 'import';
 const isFilmCheck = (data: unknown): data is FilmCheckMessage => typeOf(data) === 'checkFilm';
+const isModelPack = (data: unknown): data is ModelPackMessage => typeOf(data) === 'openModelPack';
+
+/** An opened pack's bytes, handed over rather than copied. */
+function packTransferable(result: OpenedModelPack): Transferable[] {
+  return result.ok
+    ? result.models.flatMap((m) => m.files.map((f) => f.bytes.buffer as ArrayBuffer))
+    : [];
+}
 
 /** Each result's bytes, handed over rather than copied. */
 function transferable(result: ImportResult): Transferable[] {
@@ -43,6 +55,22 @@ function transferable(result: ImportResult): Transferable[] {
  */
 export function serveImports(port: WorkerPort, tools: ImportTools): void {
   port.addEventListener('message', (event) => {
+    if (isModelPack(event.data)) {
+      const { bytes, taken } = event.data;
+
+      void openModelPack(bytes, tools, new Set(taken), {
+        onModel: (n, total) => {
+          const progress: ModelPackProgress = { type: 'modelPackProgress', n, total };
+          port.postMessage(progress);
+        },
+      })
+        .catch((): OpenedModelPack => ({ ok: false, problem: IMPORT_BROKE }))
+        .then((result) => {
+          const answer: ModelPackAnswer = { type: 'modelPackOpened', result };
+          port.postMessage(answer, packTransferable(result));
+        });
+      return;
+    }
     if (isFilmCheck(event.data)) {
       const { models, files } = event.data;
       void checkFilmModels(models, new Map(files))

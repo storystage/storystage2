@@ -350,9 +350,12 @@ export const ENTRIES: readonly ApiEntry[] = [
     runs: 'command:say',
     unreal: 'A UI widget; there is no built-in speech bubble',
   }),
+  // Spec 06, 4.7: a `say` with a caption instead of a bubble, which the studio voices. Its
+  // duration is `lineDuration` of its words unless the `duration` detail says otherwise.
   proc('Model', 'speakLine', [param('text', 'Text')], {
     task: '4.4',
-    runs: 'needs:speech',
+    details: ['duration', 'line'],
+    runs: 'command:say',
     bml: 'speech',
     unreal: 'Audio with lip-sync tools',
   }),
@@ -486,7 +489,6 @@ export const ENTRIES: readonly ApiEntry[] = [
 export const STAGE_NEEDS: Readonly<Record<string, string>> = {
   audio: 'Play a sound at a scene time, for the export to mix (with WP11)',
   ask: 'Ask the learner for a value while a program runs (the runtime, not the stage)',
-  speech: 'Speak a line with visemes (WP14)',
 };
 
 /** Changes to commands the contract already has, still to make. */

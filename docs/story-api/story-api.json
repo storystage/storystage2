@@ -270,13 +270,15 @@
       "Audio",
       "JointId",
       "SceneId",
-      "AnimationClip"
+      "AnimationClip",
+      "LineId"
     ],
     "writtenAsText": [
       "Paint",
       "Audio",
       "SceneId",
-      "AnimationClip"
+      "AnimationClip",
+      "LineId"
     ]
   },
   "values": [
@@ -1068,6 +1070,13 @@
       "default": null,
       "defaultMeans": "every object",
       "words": "which objects"
+    },
+    {
+      "name": "line",
+      "type": "LineId",
+      "default": null,
+      "defaultMeans": "words the script doesn’t have",
+      "words": "script line"
     }
   ],
   "blocks": [
@@ -2731,7 +2740,10 @@
           "words": "words"
         }
       ],
-      "details": [],
+      "details": [
+        "duration",
+        "line"
+      ],
       "words": "speak line {text}",
       "origin": "storystage",
       "fromAlice": [],
