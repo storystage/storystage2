@@ -1,6 +1,7 @@
 /**
  * Running ahead without drawing (`docs/spec/08-export.md`, section 1): to a time, for the rough
- * cut's jumps, or to a block, for Rehearse's "Rehearse to here" (WP6.4).
+ * cut's jumps, or to a block, for Rehearse's "Rehearse to here" (WP6.4). To a block, give the
+ * driver `trace: true`: then a block is found at the moment it starts, however short it is.
  */
 import type { NodeId } from '@storystage/ast';
 import { micros, type Micros } from '@storystage/story-api';
@@ -38,8 +39,13 @@ export async function fastForward(
     typeof to === 'number'
       ? () => undefined
       : playback.on((event) => {
-          if (seen === null && event.kind === 'running' && event.nodes.includes(to.node))
-            seen = event.at;
+          if (seen !== null) return;
+          // With `trace`, `ran` gives every block's exact start, even one that starts and ends
+          // between frames, which `running` (a snapshot at each frame) would miss.
+          if (event.kind === 'ran') {
+            const started = event.blocks.find((b) => b.node === to.node);
+            if (started) seen = started.at;
+          } else if (event.kind === 'running' && event.nodes.includes(to.node)) seen = event.at;
         });
   let t = from;
   try {
