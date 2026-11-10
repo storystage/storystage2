@@ -494,5 +494,7 @@
   "exportHeader.stopped": "the export stopped",
   "exportHeader.percent": "{percent}%",
   "exportHeader.save": "Save",
-  "exportHeader.stoppedShort": "!"
+  "exportHeader.stoppedShort": "!",
+  "screening.notesStep": "Retake notes for scene {n}",
+  "screening.side": "Compare and notes"
 }

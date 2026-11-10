@@ -16,10 +16,19 @@ import {
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
 import {
+  CheckSoon,
+  Compare,
   ExportDialog,
   ExportJob,
+  RetakeNotes,
   RoughCut,
   ScreeningPlayer,
+  currentFrame,
+  framesInOrder,
+  sceneAt,
+  segments,
+  stillMoment,
+  type StillState,
   type ExportChoices,
   type ExportRun,
   type Place as ScreeningPlace,
@@ -27,7 +36,9 @@ import {
 } from '@storystage/screening';
 import '@storystage/screening/styles.css';
 import { Button, NeutralNote } from '@storystage/ui';
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import type { FrameId, Production, SceneId } from '@storystage/production';
+import { frameDrawer } from '../storyboard/FramePicture.tsx';
 import { makeStage, hiddenCanvas, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import type { ExportSlot } from './exportSlot.ts';
@@ -116,6 +127,9 @@ export function ScreeningTab(props: ScreeningTabProps) {
   const [stage, setStage] = useState<ShownStage | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [slot] = useState(controllerSlot);
+  // Compare (11.2): the frame chosen with its arrows, and its still.
+  const [chosen, setChosen] = useState<FrameId | null>(null);
+  const [still, setStill] = useState<StillState>({ kind: 'none' });
 
   // The tab's own stage: made when it opens, disposed when the learner leaves. Each stage gets a
   // canvas of its own, removed with it: a disposed engine lets go of its canvas's context, so a
@@ -148,11 +162,20 @@ export function ScreeningTab(props: ScreeningTabProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The parts of the film that change what plays: the program, the scenes' set-ups, the running
+  // order, and the script (the captions). A retake note or a storyboard frame doesn't, so typing
+  // a note never measures the film again.
+  const playable = useMemo(
+    () => production,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [production.program, production.scenes, production.manifest.runningOrder, production.script],
+  );
+
   // A controller for each version of the film: measured again after a change.
   useEffect(() => {
     if (!stage) return;
     const next = new ScreeningPlayer({
-      production,
+      production: playable,
       stage,
       measureStage: () => make(hiddenCanvas(), { hidden: true, models: models.source }),
       startWorker,
@@ -161,14 +184,17 @@ export function ScreeningTab(props: ScreeningTabProps) {
     const stop = new AbortController();
     slot.set(next);
     void models
-      .prepare(usedModels(production))
+      .prepare(usedModels(playable))
       .then(() => next.prepare(stop.signal))
       // A measure that worked clears what an earlier one said.
       .then((timeline) => {
         if (!timeline) return;
         setProblem(null);
-        // The first frame shows at once, not a black picture until Play.
-        return next.seek(0);
+        // The first frame shows at once, not a black picture until Play; Compare starts on it.
+        return next.seek(0).then(async () => {
+          const first = framesInOrder(playable)[0];
+          if (first) setStill(await stillFor(next, playable, first.id));
+        });
       })
       .catch((e: unknown) => {
         console.error('The Screening tab could not measure the film.', e);
@@ -188,7 +214,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
     };
     // `make`, `startWorker` and the model source last as long as the tab.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, production]);
+  }, [stage, playable]);
 
   // Out of sight: pause, and stop drawing until the tab shows again.
   const active = props.active ?? true;
@@ -203,6 +229,40 @@ export function ScreeningTab(props: ScreeningTabProps) {
   }, [active, stage, slot]);
 
   const state = useSyncExternalStore(slot.subscribe, slot.state);
+
+  // Compare (11.2): the frame chosen with its arrows, or else the frame playing now.
+  const drawFrame = useMemo(() => frameDrawer(production), [production]);
+  const shownFrame =
+    (chosen && production.frames.some((f) => f.id === chosen) ? chosen : null) ??
+    (state.timeline ? currentFrame(production, state.timeline, state.time)?.id : null) ??
+    framesInOrder(production)[0]?.id ??
+    null;
+  const showFrame = (id: FrameId) => {
+    const player = slot.get();
+    setChosen(id);
+    if (!player) return;
+    setStill({ kind: 'drawing' });
+    void stillFor(player, production, id).then(setStill);
+  };
+  // Retake notes: for the frame compared, or the scene playing.
+  const notesScene =
+    production.frames.find((f) => f.id === shownFrame)?.scene ??
+    (state.timeline ? sceneAt(segments(production, state.timeline), state.time)?.scene : null) ??
+    production.manifest.runningOrder[0]?.scene ??
+    null;
+  const writeNotes = (scene: SceneId, notes: string) => {
+    const n = production.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
+    const next: Production = {
+      ...production,
+      storyboard: {
+        ...production.storyboard,
+        cards: production.storyboard.cards.map((c) =>
+          c.id === scene ? { ...c, retakeNotes: notes } : c,
+        ),
+      },
+    };
+    studio.commit(words.t('screening.notesStep', { n }), next, `retake:${scene}`);
+  };
 
   // Export film: one job for the tab's life, so Keep working can close the dialog while it goes
   // on. Each run makes its own hidden stage and lets it go at the end. Leaving the tab stops it.
@@ -246,54 +306,92 @@ export function ScreeningTab(props: ScreeningTabProps) {
   };
 
   return (
-    <div className="sr-tab">
-      <div className="sr-tab-bar">
-        <Button variant="primary" icon="movie" onPress={() => setExportOpen(true)}>
-          {words.t('screening.export')}
-        </Button>
+    <div className="sr-tab sr-room">
+      <div className="sr-main">
+        <div className="sr-tab-bar">
+          <Button variant="primary" icon="movie" onPress={() => setExportOpen(true)}>
+            {words.t('screening.export')}
+          </Button>
+        </div>
+        <ExportDialog
+          isOpen={exportOpen}
+          onOpenChange={setExportOpen}
+          production={production}
+          timeline={state.timeline}
+          refusals={exportOpen ? distributionProblems(production, models.item) : []}
+          job={exportState}
+          onExport={(chosen) => job.start(exportRun(chosen))}
+          onStop={() => job.stop()}
+          onSaveAgain={() => void job.saveAgain()}
+        />
+        {problem && <NeutralNote>{problem}</NeutralNote>}
+        {models.refused.length > 0 && (
+          <NeutralNote>
+            {words.t('screening.refused')}
+            <ul className="sr-refused">
+              {models.refused.map((r) => (
+                <li key={r.folder}>
+                  {words.t('screening.refusedModel', { name: r.name, reason: r.reason })}
+                </li>
+              ))}
+            </ul>
+          </NeutralNote>
+        )}
+        <RoughCut
+          production={production}
+          timeline={state.timeline}
+          time={state.time}
+          playing={state.playing}
+          onPlayPause={() => {
+            const player = slot.get();
+            if (state.playing) player?.pause();
+            else void player?.play();
+          }}
+          onSeek={(t) => void slot.get()?.seek(t)}
+          player={<div ref={canvasRef} className="sr-canvas" />}
+          captions={state.captions}
+          error={state.error}
+          onOpenProductionStage={(node, place) => props.onOpenProductionStage(node, place)}
+          onStep={(step) => void studio.step(step)}
+          onPlaceChange={(place: ScreeningPlace) => props.onPlaceChange(place)}
+        />
       </div>
-      <ExportDialog
-        isOpen={exportOpen}
-        onOpenChange={setExportOpen}
-        production={production}
-        timeline={state.timeline}
-        refusals={exportOpen ? distributionProblems(production, models.item) : []}
-        job={exportState}
-        onExport={(chosen) => job.start(exportRun(chosen))}
-        onStop={() => job.stop()}
-        onSaveAgain={() => void job.saveAgain()}
-      />
-      {problem && <NeutralNote>{problem}</NeutralNote>}
-      {models.refused.length > 0 && (
-        <NeutralNote>
-          {words.t('screening.refused')}
-          <ul className="sr-refused">
-            {models.refused.map((r) => (
-              <li key={r.folder}>
-                {words.t('screening.refusedModel', { name: r.name, reason: r.reason })}
-              </li>
-            ))}
-          </ul>
-        </NeutralNote>
-      )}
-      <RoughCut
-        production={production}
-        timeline={state.timeline}
-        time={state.time}
-        playing={state.playing}
-        onPlayPause={() => {
-          const player = slot.get();
-          if (state.playing) player?.pause();
-          else void player?.play();
-        }}
-        onSeek={(t) => void slot.get()?.seek(t)}
-        player={<div ref={canvasRef} className="sr-canvas" />}
-        captions={state.captions}
-        error={state.error}
-        onOpenProductionStage={(node, place) => props.onOpenProductionStage(node, place)}
-        onStep={(step) => void studio.step(step)}
-        onPlaceChange={(place: ScreeningPlace) => props.onPlaceChange(place)}
-      />
+      <aside className="sr-side" aria-label={words.t('screening.side')}>
+        <Compare
+          production={production}
+          timeline={state.timeline}
+          frame={shownFrame}
+          onShow={showFrame}
+          drawFrame={drawFrame}
+          still={still}
+        />
+        <CheckSoon />
+        <RetakeNotes
+          production={production}
+          scene={notesScene}
+          onChange={writeNotes}
+          onDone={() => studio.seal()}
+          readOnly={studio.readOnly !== null}
+        />
+      </aside>
     </div>
   );
 }
+
+/** The still for a frame: at the moment it stands for, drawn on the shown stage (spec 08 §3). */
+async function stillFor(
+  player: ScreeningPlayer,
+  production: Production,
+  frame: FrameId,
+): Promise<StillState> {
+  const timeline = player.state.timeline;
+  const found = production.frames.find((f) => f.id === frame);
+  if (!timeline || !found) return { kind: 'none' };
+  const at = stillMoment(production, timeline, found);
+  if (at === null) return { kind: 'notPlayed' };
+  const image = await player.still(at, STILL.width, STILL.height);
+  return image ? { kind: 'ready', at, image } : { kind: 'none' };
+}
+
+/** The still's size: the column's width at most, 16:9. */
+const STILL = { width: 512, height: 288 };

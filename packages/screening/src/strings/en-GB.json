@@ -51,5 +51,22 @@
   "export.again": "Try again",
   "roughCut.missingBackdrop": "Scene {n}'s backdrop isn't all here, so it shows plain ground and sky. Choose it again in Backstage.",
   "roughCut.missingModels.one": "Scene {n} uses {names}, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
-  "roughCut.missingModels.other": "Scene {n} uses {names}, which this device can't find, so they show as outlines. Choose them again in Backstage."
+  "roughCut.missingModels.other": "Scene {n} uses {names}, which this device can't find, so they show as outlines. Choose them again in Backstage.",
+  "compare.title": "Compare with storyboard",
+  "compare.sketch": "Your sketch",
+  "compare.still": "Film still",
+  "compare.frame": "Frame {frame}",
+  "compare.previous": "Previous frame",
+  "compare.next": "Next frame",
+  "compare.noFrames": "This film has no storyboard frames to compare yet.",
+  "compare.drawing": "Drawing the still…",
+  "compare.notPlayed": "This scene doesn't play in the film, so there's no still.",
+  "compare.stillLabel": "The film at {time}, for frame {frame}",
+  "notes.title": "Retake notes",
+  "notes.label": "Notes for scene {n}",
+  "notes.placeholder": "What to change next time",
+  "notes.left": "{n} characters left",
+  "notes.step": "Retake notes for scene {n}",
+  "check.title": "Automatic check",
+  "check.soon": "Coming soon"
 }

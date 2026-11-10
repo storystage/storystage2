@@ -17,7 +17,7 @@ import {
   type Timeline,
 } from '@storystage/playback';
 import type { Production } from '@storystage/production';
-import type { Stage } from '@storystage/stage';
+import type { FrameImage, Stage } from '@storystage/stage';
 import type { Micros } from '@storystage/story-api';
 import type { RoughCutError } from './RoughCut.tsx';
 import { sceneAt, segments } from './rough-cut.ts';
@@ -147,6 +147,23 @@ export class ScreeningPlayer {
     })();
     await this.busy;
     this.busy = null;
+  }
+
+  /**
+   * A still of the film at `at` (Compare, spec 08 section 3), `width` × `height`, drawn on the
+   * device and never sent anywhere. In the scene on the stage now, it's drawn without moving the
+   * film; in another scene, the film moves there first. `null` before the film is measured.
+   */
+  async still(at: Micros, width: number, height: number): Promise<FrameImage | null> {
+    const timeline = this.state.timeline;
+    if (!timeline || this.disposed) return null;
+    const all = segments(this.options.production, timeline);
+    const target = sceneAt(all, at);
+    if (!target) return null;
+    const now = sceneAt(all, this.state.time);
+    if (!this.playback || now !== target) await this.seek(at);
+    else await this.busy;
+    return this.options.stage.picture(at - target.start, width, height);
   }
 
   /** On every animation frame: moves the film to the clock's time and draws it. */

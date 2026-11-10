@@ -102,9 +102,11 @@ function harness(
   const onPlaceChange = vi.fn<ScreeningTabProps['onPlaceChange']>();
   const onOpenProductionStage = vi.fn<ScreeningTabProps['onOpenProductionStage']>();
   const slot = exportSlot<ExportJob>();
+  let latest: ReturnType<typeof useStudio> | null = null;
   /** What the App holds for the tab: the studio, the one model source and the export slot. */
   function Tab({ active = true, shown = true }: { active?: boolean; shown?: boolean }) {
     const studio = useStudio(over.production ?? exampleProduction());
+    latest = studio;
     const models = useModelSource(
       host,
       studio.production,
@@ -132,6 +134,8 @@ function harness(
   return {
     view,
     slot,
+    /** The studio as the tab last saw it. */
+    studio: () => latest!,
     /** Shows or hides the tab, as Learn or Settings opening over it does. */
     setActive: (active: boolean) => view.rerender(<Tab active={active} />),
     /** Leaves the tab for another, or comes back: the tab unmounts, the App doesn't. */
@@ -269,6 +273,31 @@ describe('ScreeningTab', () => {
       await screen.findByText('The Lost Penguin is saved, with its captions beside it.'),
     ).toBeTruthy();
   }, 20_000);
+
+  it('writes retake notes to the scene’s card as one undo step, without measuring the film again', async () => {
+    const { studio, made } = harness();
+    await screen.findByRole('button', { name: 'Play' });
+    const measured = made.filter((m) => m.hidden).length;
+    const box = screen.getByRole('textbox', { name: 'Notes for scene 1' });
+    await userEvent.type(box, 'Pip slower');
+    await userEvent.tab();
+    const card = studio().production.storyboard.cards.find((c) => c.id === 's1');
+    expect(card?.retakeNotes).toBe('Pip slower');
+    expect(studio().undoLabel).toBe('Retake notes for scene 1');
+    expect(made.filter((m) => m.hidden).length).toBe(measured);
+  });
+
+  it("compares a frame's sketch with a still drawn on the shown stage", async () => {
+    const { made } = harness();
+    await screen.findByRole('button', { name: 'Play' });
+    expect(screen.getByRole('heading', { name: 'Compare with storyboard' })).toBeTruthy();
+    expect(screen.getByText('Frame 1.1')).toBeTruthy();
+    const shown = made.find((m) => !m.hidden)!.stage;
+    await waitFor(() => expect(shown.calls.some((c) => c.method === 'picture')).toBe(true));
+    await userEvent.click(screen.getByRole('button', { name: 'Next frame' }));
+    expect(await screen.findByText('Frame 2.1')).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Notes for scene 2' })).toBeTruthy();
+  });
 
   it("says so in plain words when this device can't make a stage", async () => {
     harness({ stage: async () => Promise.reject(new Error('no WebGL')) });
