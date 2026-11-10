@@ -2,7 +2,15 @@
  * New blocks, as the palette and the control bar make them (spec 14, sections 2.1 and 3a). Every
  * value starts empty (`none`), and the cascade asks for each one (section 2.3).
  */
-import type { Args, Callee, Expression, NodeId, Program, Statement } from '@storystage/ast';
+import type {
+  Args,
+  Callee,
+  Expression,
+  NodeId,
+  Program,
+  Statement,
+  TypeRef,
+} from '@storystage/ast';
 import { findEntry } from '../catalog/catalog.ts';
 import { storyType, type ProgramTypes } from '../catalog/program-types.ts';
 import { typesOf } from './cache.ts';
@@ -79,3 +87,27 @@ export function newControl(kind: ControlKind, mint: () => NodeId): Statement {
       return { id, kind, text: '' };
   }
 }
+
+/**
+ * The control bar's **variable** tile, once the learner has named it and chosen its type (spec
+ * 14, 2.3): it starts empty, and the cascade asks what it starts as.
+ */
+export function newLocal(name: string, type: TypeRef, mint: () => NodeId): Statement {
+  return { id: mint(), kind: 'local', name, type, value: none(mint) };
+}
+
+/**
+ * The control bar's **assign** tile, once the learner has chosen which variable it sets: the
+ * cascade then asks for its new value, of that variable's type.
+ */
+export function newAssign(variable: NodeId, mint: () => NodeId): Statement {
+  return {
+    id: mint(),
+    kind: 'assign',
+    target: { id: mint(), kind: 'variableRef', variable },
+    value: none(mint),
+  };
+}
+
+/** The types the variable tile offers, in the order it lists them (spec 14, 2.3). */
+export const VARIABLE_TYPES = ['Number', 'WholeNumber', 'Text', 'Boolean', 'Thing'] as const;

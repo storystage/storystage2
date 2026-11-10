@@ -153,6 +153,82 @@ describe('the control bar (spec 14, 3a)', () => {
   });
 });
 
+describe('the variable and set tiles (spec 14, 2.3)', () => {
+  /** Makes a variable `name` holding a whole number, starting as 2, after the note. */
+  async function makeVariable(user: ReturnType<typeof userEvent.setup>, name: string) {
+    await user.click(screen.getByRole('button', { name: 'variable' }));
+    const dialog = await screen.findByRole('dialog', { name: 'A new variable' });
+    await user.type(within(dialog).getByRole('textbox', { name: 'Its name' }), name);
+    await user.click(within(dialog).getByRole('radio', { name: 'a whole number' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Use it' }));
+    await screen.findByRole('menu');
+    await user.click(await choice('2'));
+  }
+
+  it('asks a variable’s name and what it holds, then what it starts as', async () => {
+    const { host, user } = setup(IDS.note);
+    await makeVariable(user, 'steps');
+    expect(body(host).at(-1)).toMatchObject({
+      kind: 'local',
+      name: 'steps',
+      type: { kind: 'story', name: 'WholeNumber' },
+      value: { kind: 'wholeNumber', value: 2 },
+    });
+    expect(host.changes).toHaveLength(1);
+    expect(last(host)).toMatch(/steps/);
+  });
+
+  it('says what’s wrong with a name, and puts nothing in until it’s right', async () => {
+    const { host, user } = setup(IDS.note);
+    await makeVariable(user, 'steps');
+    await user.click(screen.getByRole('button', { name: 'variable' }));
+    const dialog = await screen.findByRole('dialog', { name: 'A new variable' });
+    const field = within(dialog).getByRole('textbox', { name: 'Its name' });
+    const use = within(dialog).getByRole('button', { name: 'Use it' });
+    await user.click(use);
+    expect((await within(dialog).findByRole('alert')).textContent).toBe('Give it a name.');
+    await user.type(field, '2nd');
+    await user.click(use);
+    expect(within(dialog).getByRole('alert').textContent).toMatch(/^A name starts with a letter/);
+    await user.clear(field);
+    await user.type(field, 'steps');
+    await user.click(use);
+    expect(within(dialog).getByRole('alert').textContent).toBe(
+      'steps is already used here. Choose another name.',
+    );
+    expect(host.changes).toHaveLength(1);
+  });
+
+  it('sets a variable chosen from those above it, asking for its new value', async () => {
+    const { host, user } = setup(IDS.note);
+    await makeVariable(user, 'steps');
+    await user.click(screen.getByRole('button', { name: 'set' }));
+    await menu('Which variable to set');
+    await user.click(await choice('steps'));
+    await screen.findByRole('menu');
+    await user.click(await choice('3'));
+    const set = body(host).at(-1)!;
+    expect(set).toMatchObject({ kind: 'assign', value: { kind: 'wholeNumber', value: 3 } });
+    expect(host.changes).toHaveLength(2);
+  });
+
+  it('says so when there’s no variable to set, and changes nothing', async () => {
+    const { host, user } = setup(IDS.note);
+    await user.click(screen.getByRole('button', { name: 'set' }));
+    expect(last(host)).toMatch(/^There’s no variable here to set/);
+    expect(host.changes).toHaveLength(0);
+  });
+
+  it('puts in nothing if the question is closed with Escape', async () => {
+    const { host, user } = setup(IDS.note);
+    await user.click(screen.getByRole('button', { name: 'variable' }));
+    await screen.findByRole('dialog', { name: 'A new variable' });
+    await user.keyboard('{Escape}');
+    expect(last(host)).toBe('Nothing added');
+    expect(host.changes).toHaveLength(0);
+  });
+});
+
 describe('questions (spec 14, 2.1)', () => {
   it('go into the value in focus, then ask for their own values', async () => {
     const { host, user } = setup(IDS.move);

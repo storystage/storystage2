@@ -21,16 +21,21 @@ import {
 import {
   canDrop,
   describer,
+  namesAt,
+  newAssign,
   newCall,
   newControl,
+  newLocal,
   type Ask,
   type CascadeOptions,
   type ControlKind,
+  type NameInScope,
   type PaletteItem,
   type PaletteTab,
   type Place,
   type StatementPlace,
   type ValuePlace,
+  readyFor,
   word,
 } from '@storystage/story-api/editing';
 import type { Expression } from '@storystage/ast';
@@ -47,7 +52,7 @@ import {
   toggleEnabled,
   type Change,
 } from './actions.ts';
-import { ControlBar } from './controls.tsx';
+import { asksFirst, ControlBar, type BarKind } from './controls.tsx';
 import {
   addListener,
   answerSlot,
@@ -57,7 +62,14 @@ import {
   targets,
   type Pending,
 } from './insert.ts';
-import { AskValue, DetailMenu, ValueMenu } from './menus.tsx';
+import {
+  AskValue,
+  ChooseVariable,
+  DetailMenu,
+  NewVariable,
+  ValueMenu,
+  type VariableType,
+} from './menus.tsx';
 import { MethodsPanel } from './panel.tsx';
 import { MethodTabs } from './tabs.tsx';
 import { indexOf, isWhereItIs, place, placeKey, placesIn, whereIs } from './places.ts';
@@ -112,7 +124,21 @@ type Menu =
       readonly ask: Ask;
       readonly pending?: true;
     }
-  | { readonly kind: 'details'; readonly node: NodeId; readonly anchor: Element };
+  | { readonly kind: 'details'; readonly node: NodeId; readonly anchor: Element }
+  /** The variable tile's question, for a variable at `at`: its name and what it holds. */
+  | {
+      readonly kind: 'variable';
+      readonly at: StatementPlace;
+      readonly anchor: Element;
+      readonly taken: readonly string[];
+    }
+  /** The set tile's question, for an assignment at `at`: which variable. */
+  | {
+      readonly kind: 'assign';
+      readonly at: StatementPlace;
+      readonly anchor: Element;
+      readonly names: readonly NameInScope[];
+    };
 
 interface MovingState extends Moving {
   /**
@@ -152,6 +178,8 @@ export class TileEditor implements CodeEditor {
   private pill: ValuePill | null = null;
   /** A new block being dragged from the palette or the control bar. */
   private fresh: Statement | null = null;
+  /** Being dragged from the bar: a variable or set tile, which asks its question once dropped. */
+  private freshAsk: 'variable' | 'assign' | null = null;
   /** During a drag: the place the pointer is over, and what each place checked so far said. */
   private over: string | null = null;
   private verdicts = new Map<string, boolean>();
@@ -451,13 +479,42 @@ export class TileEditor implements CodeEditor {
     this.begin(node, insertionPlace(program, this.method, this.focusKey));
   }
 
-  private insertControl(kind: ControlKind): void {
+  private insertControl(kind: BarKind): void {
     const program = this.host!.program();
     if (this.method === null) return;
-    this.begin(
-      newControl(kind, idMinter(program)),
-      insertionPlace(program, this.method, this.focusKey),
-    );
+    const at = insertionPlace(program, this.method, this.focusKey);
+    if (asksFirst(kind)) return this.askFirst(kind, at);
+    this.begin(newControl(kind, idMinter(program)), at);
+  }
+
+  /**
+   * The variable or set tile, for a place: ask its question by the tile, then put it in through
+   * the cascade like any other block (spec 14, 2.3). Set needs a variable there that may change.
+   */
+  private askFirst(kind: 'variable' | 'assign', at: StatementPlace): void {
+    if (!this.element) return;
+    const names = namesAt(this.host!.program(), at);
+    const anchor =
+      this.element.querySelector(`[data-kind="${kind}"]`) ?? this.element.querySelector('.tl-tree');
+    if (!anchor) return;
+    if (kind === 'variable') {
+      this.menu = { kind, at, anchor, taken: names.map((v) => v.name) };
+    } else {
+      const settable = names.filter((v) => v.assignable);
+      if (settable.length === 0) {
+        this.host!.announce(t('assign.none'));
+        this.render();
+        return;
+      }
+      this.menu = { kind, at, anchor, names: settable };
+    }
+    this.render();
+  }
+
+  /** The variable or set tile's question was answered: the block, then the cascade. */
+  private answered(node: Statement, at: StatementPlace): void {
+    this.menu = null;
+    this.begin(node, at);
   }
 
   /** The value being asked for is chosen: ask the next, or put the finished block in. */
@@ -499,7 +556,12 @@ export class TileEditor implements CodeEditor {
       find(value?.id) ?? find(pending.node.id) ?? this.element.querySelector('.tl-tree');
     if (!anchor) return;
     anchor.scrollIntoView({ block: 'nearest' });
-    const label = slot.param !== undefined ? word(`param.${slot.param}`) : t(`slot.${slot.slot}`);
+    const label =
+      slot.param !== undefined
+        ? word(`param.${slot.param}`)
+        : pending.node.kind === 'local'
+          ? pending.node.name
+          : t(`slot.${slot.slot}`);
     this.menu = { kind: 'value', place: slot, label, anchor, pending: true };
     this.render();
   }
@@ -519,19 +581,23 @@ export class TileEditor implements CodeEditor {
         const tree = this.element?.querySelector<HTMLElement>('.tl-tree');
         const node = this.fresh;
         if (!tree || !node) return;
-        this.dragOver(
-          placeAt(tree, x, y, null),
-          (at) => canDrop(this.host!.program(), at, node).ok,
-        );
+        this.dragOver(placeAt(tree, x, y, null), (at) => {
+          const program = this.host!.program();
+          return canDrop(program, at, readyFor(program, at, node)).ok;
+        });
       },
       onEnd: (drop: boolean) => {
         this.settle();
         const node = this.fresh;
+        const ask = this.freshAsk;
         const at = this.moving?.at;
         this.fresh = null;
+        this.freshAsk = null;
         this.moving = null;
-        if (drop && node && at) this.begin(node, at);
-        else this.render();
+        if (drop && node && at) {
+          if (ask) this.askFirst(ask, at);
+          else this.begin(node, at);
+        } else this.render();
       },
     };
   }
@@ -618,6 +684,32 @@ export class TileEditor implements CodeEditor {
     const menu = this.menu;
     if (!menu) return null;
     const close = () => this.closeMenu();
+    const nothing = () => {
+      this.menu = null;
+      this.host?.announce(t('nothingAdded'));
+      this.refocus = true;
+      this.render();
+    };
+    if (menu.kind === 'variable')
+      return (
+        <NewVariable
+          anchor={menu.anchor}
+          taken={menu.taken}
+          onClose={nothing}
+          onMake={(name: string, type: VariableType) =>
+            this.answered(newLocal(name, { kind: 'story', name: type }, idMinter(program)), menu.at)
+          }
+        />
+      );
+    if (menu.kind === 'assign')
+      return (
+        <ChooseVariable
+          anchor={menu.anchor}
+          names={menu.names}
+          onClose={nothing}
+          onChoose={(variable) => this.answered(newAssign(variable, idMinter(program)), menu.at)}
+        />
+      );
     if (menu.kind === 'details')
       return (
         <DetailMenu
@@ -732,11 +824,17 @@ export class TileEditor implements CodeEditor {
         },
       },
       bar: {
-        onInsert: (kind: ControlKind) => this.insertControl(kind),
+        onInsert: (kind: BarKind) => this.insertControl(kind),
         drag: {
           ...drag,
-          onStart: (kind: string) =>
-            this.startFresh(newControl(kind as ControlKind, idMinter(program()))),
+          onStart: (kind: string) => {
+            const mint = idMinter(program());
+            if (asksFirst(kind as BarKind)) {
+              // Dragged as a note, which goes wherever a statement can; the question comes after.
+              this.freshAsk = kind as 'variable' | 'assign';
+              this.startFresh({ id: mint(), kind: 'comment', text: '' });
+            } else this.startFresh(newControl(kind as ControlKind, mint));
+          },
         },
       },
     };
