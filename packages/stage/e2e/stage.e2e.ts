@@ -97,7 +97,9 @@ test('shows a ground in the colour its table says', async ({ page }) => {
 
 test('labels a stand-in, so a learner can tell what it stands for', async ({ page }) => {
   await open(page);
-  expect(await call<number>(page, 'darkPixels', 'room-camera', 3)).toBeGreaterThan(100);
+  // The label's letters. An export's frame is smoothed by averaging (renderFrame), so fewer of
+  // their pixels are fully dark than when it wasn't: 92 here, against none without a label.
+  expect(await call<number>(page, 'darkPixels', 'room-camera', 3)).toBeGreaterThan(60);
 });
 
 test('fades the whole picture to black, the sky included', async ({ page }) => {

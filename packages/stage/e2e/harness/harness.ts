@@ -451,6 +451,7 @@ async function scenePictures(
   commands: readonly StageCommand[],
   seconds: readonly number[],
   files: Readonly<Record<string, { url: string; joints: readonly string[] }>>,
+  quality: 'low' | 'standard' = 'standard',
 ) {
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -465,6 +466,7 @@ async function scenePictures(
     },
     offscreen: true,
     renderer: 'webgl2',
+    quality,
   });
   // A backdrop may be named by its template.
   const backdrop = setup.backdrop as unknown;
