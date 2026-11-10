@@ -13,7 +13,8 @@
     "test:whisper": "playwright test -c playwright.whisper.config.ts"
   },
   "dependencies": {
-    "@storystage/host": "workspace:*"
+    "@storystage/host": "workspace:*",
+    "@storystage/story-api": "workspace:*"
   },
   "devDependencies": {
     "vite": "^8.3.4"

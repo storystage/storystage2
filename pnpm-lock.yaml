@@ -472,6 +472,9 @@ importers:
       '@storystage/host':
         specifier: workspace:*
         version: link:../host
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
     devDependencies:
       vite:
         specifier: ^8.3.4

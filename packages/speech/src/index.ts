@@ -9,6 +9,8 @@
  * (`transcript.ts`); the browser's microphone (`microphone.ts`), the whisper worker
  * (`whisper-core.ts`, `whisper-worker.ts`, `worker-recogniser.ts`) and dictation in the app
  * (`browser.ts`).
+ *
+ * WP14b (S1): speak line's voices, in `speak-line/` (spec 06, section 4).
  */
 export * from './browser-speaker.ts';
 export * from './browser.ts';
@@ -16,6 +18,7 @@ export * from './dictation.ts';
 export * from './microphone.ts';
 export * from './narration.ts';
 export * from './resample.ts';
+export * from './speak-line/index.ts';
 export * from './speakable.ts';
 export * from './transcript.ts';
 export * from './voices.ts';
