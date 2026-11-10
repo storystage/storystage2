@@ -105,3 +105,28 @@ test('Open an Alice world… runs S6’s worker, which refuses a file that isn�
   });
   await expect(page.getByRole('button', { name: 'Film: Untitled film · Sam' })).toBeVisible();
 });
+
+test('an Alice world opens as a new film, with what didn’t come across', async ({ page }) => {
+  const { smallAliceWorld } = await import('@storystage/a3p-import/testing');
+  await startWithClass(page, ['Sam']);
+  await page.getByRole('row', { name: 'Sam' }).click();
+  await page.getByRole('button', { name: /^Film:/ }).click();
+  await page.getByRole('menuitem', { name: 'Open an Alice world…' }).click();
+  await page.getByLabel('An Alice world to open').setInputFiles({
+    name: 'small.a3p',
+    mimeType: 'application/octet-stream',
+    buffer: Buffer.from(smallAliceWorld()),
+  });
+  const report = page.getByRole('dialog', { name: 'From Alice: small' });
+  await expect(report).toBeVisible({ timeout: 30_000 });
+  for (const heading of ['Models (1)', 'Values (1)', 'Blocks (1)'])
+    await expect(report.getByRole('heading', { name: heading })).toBeVisible();
+  expect(await seriousIssues(page)).toEqual([]);
+  if (process.env.S5_SHOT) await page.screenshot({ path: process.env.S5_SHOT });
+  await report.getByRole('button', { name: 'Start working' }).click();
+  await expect(page.getByRole('button', { name: 'Film: small · Sam' })).toBeVisible();
+  // In My films straight away.
+  await page.getByRole('button', { name: 'Film: small · Sam' }).click();
+  await page.getByRole('menuitem', { name: 'My films' }).click();
+  await expect(page.getByRole('row', { name: /small/ })).toBeVisible();
+});
