@@ -19,7 +19,7 @@ import {
   type ProductionFiles,
 } from '@storystage/production';
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { importAliceInWorker, type ImportWorker } from '@storystage/a3p-import/worker-client';
 import type { ImportReport } from '@storystage/a3p-import';
 import { AliceReport } from './lesson/AliceReport.tsx';
@@ -32,7 +32,7 @@ import { useStorageKept } from './lesson/useStorageKept.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
-import type { ExportJob } from '@storystage/screening';
+import type { ExportJob, ExportJobState } from '@storystage/screening';
 import { exportSlot } from './screening/exportSlot.ts';
 import { Shell } from './shell/Shell.tsx';
 import { useModelSource } from './stage/useModelSource.ts';
@@ -58,6 +58,33 @@ type Phase =
   | { readonly kind: 'studio' };
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
+
+const NO_EXPORT: ExportJobState = { kind: 'idle' };
+
+/**
+ * What the header says about an export, while the learner isn't looking at its dialog: running,
+ * finished but not saved, or stopped. Nothing once it's saved, or before one starts.
+ */
+export function exportActivity(state: ExportJobState): { label: string; short: string } | null {
+  if (state.kind === 'running') {
+    const percent = Math.floor(state.fraction * 100);
+    return {
+      label: words.t('exportHeader.running', { percent }),
+      short: words.t('exportHeader.percent', { percent }),
+    };
+  }
+  if (state.kind === 'unsaved')
+    return {
+      label: words.t('exportHeader.unsaved'),
+      short: words.t('exportHeader.save'),
+    };
+  if (state.kind === 'failed' || state.kind === 'refused')
+    return {
+      label: words.t('exportHeader.stopped'),
+      short: words.t('exportHeader.stoppedShort'),
+    };
+  return null;
+}
 
 /**
  * The Screening tab (S2), loaded when it's first opened, so Babylon.js, the runtime's worker and
@@ -142,6 +169,11 @@ export function App({
   const [exports] = useState(() => exportSlot<ExportJob>());
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => () => exports.get()?.stop(), [exports]);
+  const exportState = useSyncExternalStore(
+    (listener) => exports.subscribe(listener),
+    () => exports.get()?.state ?? NO_EXPORT,
+  );
+  const exporting = exportActivity(exportState);
   const [said, setSaid] = useState('');
   // A block for the Code editor to open at (Screening's Fix), until the learner leaves the tab.
   const [reveal, setReveal] = useState<{ node: NodeId; n: number } | null>(null);
@@ -410,6 +442,7 @@ export function App({
         <AliceReport title={alice.title} report={alice.report} onClose={() => setAlice(null)} />
       )}
       <Shell
+        badges={exporting ? { screening: { text: exporting.short, spoken: exporting.label } } : {}}
         onOverlayChange={setOverlayOpen}
         title={
           folder ? (
@@ -453,6 +486,8 @@ export function App({
         onModeChange={(next) => {
           // Changing tab is a moment to save.
           void saving.save('auto');
+          // Back to the Screening room while an export needs the learner: its dialog, open.
+          if (next === 'screening' && exporting) setExportOpen(true);
           // The learner chose a tab: a block Fix asked to show is no longer wanted.
           setReveal(null);
           setMode(next);

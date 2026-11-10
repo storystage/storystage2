@@ -9,6 +9,7 @@ import {
   messages,
   type IconName,
   type Mode,
+  type ModeBadge,
 } from '@storystage/ui';
 import { useState, type ReactNode } from 'react';
 import { ToggleButton } from 'react-aria-components';
@@ -37,6 +38,8 @@ export interface ShellProps {
    * panel that plays (the Screening room) pauses while it's hidden.
    */
   onOverlayChange?: (open: boolean) => void;
+  /** Something going on in a mode, as a badge on its tab: an export running (S2's #317). */
+  badges?: Partial<Record<Mode, ModeBadge>>;
 }
 
 /**
@@ -55,6 +58,7 @@ export function Shell({
   onModeChange,
   notice,
   onOverlayChange,
+  badges,
 }: ShellProps) {
   const [own, setOwn] = useState<Mode>(initialMode);
   const mode = controlled ?? own;
@@ -93,7 +97,7 @@ export function Shell({
               )}
             </div>
             <div className="studio-modes">
-              <ModeTabList />
+              <ModeTabList badges={badges} />
             </div>
             <div className="studio-tools">
               <span className="studio-divider" aria-hidden="true" />

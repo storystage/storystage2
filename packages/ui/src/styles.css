@@ -196,6 +196,26 @@
   cursor: pointer;
   outline: none;
 }
+/* A badge in the tab's corner (an export running): over the tab's edge, so it takes no width. */
+.ss-mode-tab {
+  position: relative;
+}
+.ss-mode-tab-badge {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  min-width: 28px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+  box-shadow: 0 0 0 2px var(--ss-stage-0);
+}
 .ss-mode-tab-label {
   font-family: var(--ss-font-display);
   font-size: 16px;
