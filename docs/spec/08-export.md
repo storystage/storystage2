@@ -265,6 +265,16 @@ Agreed with S4 for the format (1.3.0, `CHECK_KINDS`, `CHECK_OUTCOMES`, `CHECK_LI
 - **Undo:** running a check doesn't add an undo step. Its result is written outside the history (S4's `annotate` on the production's session) and stays across undo and redo, which `basis` keeps correct. Keeping a flag is the learner's choice, and is an undoable step.
 - **The words are data.** In a file someone has edited by hand, `words` can say anything. The studio draws them as plain text, and the Prompter's `check_frame` passes the result inside its `<check_result>` data block (spec 04 section 2.4), never as instructions.
 
+### 9.8 The package's API
+
+Agreed with S5, who builds the frame card, the frame strip and the Check buttons on it:
+
+- **Running:** `checkFrame({ production, stage, startWorker, frame, signal?, onProgress? })` and `checkScene({ …, scene })`, and the Screening room's `checkFilm`. As with `exportFilm`, the caller makes, prepares and disposes of the hidden stage, one a run; the runner never disposes of it. A run gives the stored shape (`Frame['check']`), with `kept` carried over from the frame's last result and pruned of ids that are no longer flags. `onProgress(done, total)` counts frames, for "Checking frame 2 of 5…".
+- **Writing back,** as pure helpers, so the studio chooses how each goes into the history: `withChecks(production, results)` (written with `annotate`, not an undo step) and `keepFlag(production, frame, itemId, keep)` (an undo step, labelled "Keep the flag on frame 2.3").
+- **Status,** cheap enough for every frame on every render: `frameStatus(frame, production)` gives `'checked'`, `'lookAt'` or `null` (no result, or a stale one, so the frame shows the studio's own status); `checkState(frame, production)` gives `{ stale, flags, kept }` or `null`. `basis` is cached per program and scene.
+- **Order:** `ITEM_ORDER` lists flags first, then notes, then passed items, so every view lists them the same way.
+- **Rehearsed** (07-ux section 2.3) stays the studio's: a Rehearse run doesn't compare anything with the storyboard. The studio can tell a frame was rehearsed from the run's `ran` events reaching one of the frame's linked blocks.
+
 ### 9.7 Tests
 
 | Rule | Test | Level |
