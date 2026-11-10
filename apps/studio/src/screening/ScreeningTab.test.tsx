@@ -1,5 +1,6 @@
 import { browserHost, type HostInterface } from '@storystage/host';
-import { exampleProduction, type Production } from '@storystage/production';
+import { exampleProduction, type Production, type ProductionFiles } from '@storystage/production';
+import type { ImportWorker } from '@storystage/backstage-import/worker-client';
 import {
   inMemoryPorts,
   serve,
@@ -30,7 +31,28 @@ const host: HostInterface = {
   },
 };
 
-function harness(over: { stage?: StageMaker; production?: Production } = {}) {
+const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
+
+/** An import worker that answers a film check with `result`. */
+const checkingWorker = (result: unknown) => (): ImportWorker => {
+  let answer: ((event: { data: unknown }) => void) | null = null;
+  return {
+    postMessage: () => queueMicrotask(() => answer?.({ data: { type: 'filmChecked', result } })),
+    addEventListener: (type: string, listener: (event: { data: unknown }) => void) => {
+      if (type === 'message') answer = listener;
+    },
+    terminate: () => undefined,
+  } as ImportWorker;
+};
+
+function harness(
+  over: {
+    stage?: StageMaker;
+    production?: Production;
+    files?: ProductionFiles;
+    importWorker?: () => ImportWorker;
+  } = {},
+) {
   const made: { hidden: boolean; stage: FakeStage }[] = [];
   let started = 0;
   let ended = 0;
@@ -60,8 +82,10 @@ function harness(over: { stage?: StageMaker; production?: Production } = {}) {
         active={active}
         onPlaceChange={onPlaceChange}
         onOpenProductionStage={onOpenProductionStage}
+        files={over.files ?? NO_FILES}
         makeStage={makeStage}
         startWorker={startWorker}
+        {...(over.importWorker ? { models: { startWorker: over.importWorker } } : {})}
       />
     );
   }
@@ -135,6 +159,23 @@ describe('ScreeningTab', () => {
     expect(drawing.at(-1)).toBe('stop');
     setActive(true);
     expect(drawing.at(-1)).toBe('start');
+  });
+
+  it("names a film's packed models that didn't pass the check, which show as outlines", async () => {
+    const p = exampleProduction();
+    const gran = {
+      folder: 'gran',
+      item: { displayName: 'Gran' },
+    } as unknown as Production['manifest']['models'][number];
+    harness({
+      production: { ...p, manifest: { ...p.manifest, models: [gran] } },
+      importWorker: checkingWorker({
+        checked: [],
+        refused: [{ folder: 'gran', name: 'Gran', reason: 'Its model is missing from the film.' }],
+      }),
+    });
+    expect(await screen.findByText('Gran: Its model is missing from the film.')).toBeTruthy();
+    expect(screen.getByText('Some models this film carries show as outlines here:')).toBeTruthy();
   });
 
   it("says so in plain words when this device can't make a stage", async () => {

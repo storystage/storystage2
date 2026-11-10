@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '303437818646127113a552c91246391c0734796e';
+export const SHIPPED_CATALOGUE_COMMIT = '7a285bfbb0b7346742b1b44a168e54261f5ca3b3';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -70,9 +70,77 @@ Cast
 Props
   Prop
     kaykit/Prop/mug: Mug, a big wooden mug with metal bands, full to the top with froth [fantasy, food] 0.55 m, no joints
+    polypizza/Prop/alarm-clock: Alarm clock, a red alarm clock with two bells on top [home] 0.15 m, no joints
+    polypizza/Prop/apple: Apple, a shiny red apple with a stalk and a leaf [food] 0.08 m, no joints
+    polypizza/Prop/backpack: Backpack, a brown backpack with pockets [school] 0.45 m, no joints
+    polypizza/Prop/basketball: Basketball, an orange basketball with black lines [sport, toys] 0.24 m, no joints
+    polypizza/Prop/beach-ball: Beach ball, a ball with blue, white, red and yellow panels [toys, beach] 0.5 m, no joints
+    polypizza/Prop/bed: Bed, a single bed with a wooden frame, a red cover and a white pillow [home] 0.61 m, no joints
+    polypizza/Prop/birthday-cake: Birthday cake, a pink layered cake with lit candles on top [food, party] 0.25 m, no joints
+    polypizza/Prop/books: Pile of books, a stack of coloured books lying flat [school, library] 0.15 m, no joints
+    polypizza/Prop/bookshelf: Bookshelf, a tall wooden bookshelf full of coloured books [home, school, library] 1.8 m, no joints
+    polypizza/Prop/computer: Computer, an old beige computer with its screen and keyboard [school, office, history] 0.45 m, no joints
+    polypizza/Prop/cooker: Cooker, a white cooker with four rings on top and an oven below [home, kitchen] 0.9 m, no joints
+    polypizza/Prop/cup-of-tea: Cup of tea, a white teacup on a saucer [kitchen, food] 0.08 m, no joints
+    polypizza/Prop/cupboard: Cupboard, a tall wooden cupboard with two closed doors [home] 1.9 m, no joints
+    polypizza/Prop/desk: Desk, a light wooden desk with drawers [home, school, office] 0.77 m, no joints
+    polypizza/Prop/desk-chair: Desk chair, a red office chair on wheels with grey armrests [home, school, office] 1 m, no joints
+    polypizza/Prop/floor-lamp: Floor lamp, a tall lamp with a yellow shade on a thin pole [home] 1.6 m, no joints
+    polypizza/Prop/fridge: Fridge, a tall white fridge with two doors [home, kitchen] 1.8 m, no joints
+    polypizza/Prop/globe: Globe, a world globe on a wooden stand [school, geography] 0.4 m, no joints
+    polypizza/Prop/grand-piano: Grand piano, a light wooden grand piano with its lid open [music] 1 m, no joints
+    polypizza/Prop/guitar: Guitar, a light wooden acoustic guitar [music] 1 m, no joints
+    polypizza/Prop/kettle: Kettle, a green kettle with a black handle [kitchen] 0.25 m, no joints
+    polypizza/Prop/kite: Kite, a rainbow-coloured kite with a long tail [toys, outdoors] 1.2 m, no joints
+    polypizza/Prop/lantern: Lantern, a dark metal lantern with a glowing light inside [night, adventure] 0.3 m, no joints
+    polypizza/Prop/loaf: Loaf of bread, a round brown loaf with cuts across the top [food] 0.12 m, no joints
+    polypizza/Prop/pizza: Pizza, a whole pepperoni pizza [food] 0.03 m, no joints
+    polypizza/Prop/plates: Stack of plates, a pile of white plates [kitchen] 0.1 m, no joints
+    polypizza/Prop/pot-plant: Pot plant, a green leafy plant in a clay pot [home, garden] 0.5 m, no joints
+    polypizza/Prop/rubber-duck: Rubber duck, a yellow rubber duck with an orange beak [toys] 0.1 m, no joints
+    polypizza/Prop/school-desk: School desk, a pupil's desk and chair in light blue metal [school] 0.8 m, no joints
+    polypizza/Prop/sofa: Sofa, a red three-seat sofa with low arms [home] 0.85 m, no joints
+    polypizza/Prop/table: Table, a plain dark wooden table with four legs [home] 0.75 m, no joints
+    polypizza/Prop/teapot: Teapot, a round pale blue teapot with a lid [kitchen] 0.15 m, no joints
+    polypizza/Prop/teddy-bear: Teddy bear, a light brown teddy bear with a red ribbon, sitting down [toys] 0.35 m, no joints
+    polypizza/Prop/telephone: Telephone, an old orange telephone with a dial [home, history] 0.12 m, no joints
+    polypizza/Prop/television: Television, an old boxy television with a grey screen [home, history] 0.5 m, no joints
+    polypizza/Prop/toy-block: Toy block, a red and white wooden toy block with the letter A [toys] 0.08 m, no joints
+    polypizza/Prop/umbrella: Umbrella, an open dark blue umbrella [weather] 1 m, no joints
+    polypizza/Prop/watering-can: Watering can, a yellow watering can [garden] 0.3 m, no joints
+  Transport
+    polypizza/Transport/aeroplane: Aeroplane, a white passenger aeroplane [transport] 11.83 m, no joints
+    polypizza/Transport/bicycle: Bicycle, an orange bicycle [transport] 1 m, no joints
+    polypizza/Transport/bus: Bus, a white and blue coach [transport, town] 3.2 m, no joints
+    polypizza/Transport/car: Car, a small blue car [transport, town] 1.5 m, no joints
+    polypizza/Transport/rocket: Rocket, a white rocket with red fins and a round window [space] 11.95 m, no joints
+    polypizza/Transport/rowing-boat: Rowing boat, a small white rowing boat [transport, sea] 0.6 m, no joints
+    polypizza/Transport/steam-train: Steam train, a small steam engine with its coal wagon [transport, history] 4 m, no joints
 
 Set
-  (none yet)
+  Prop
+    polypizza/Prop/barn: Barn, a red barn with white doors [farm] 8 m, no joints
+    polypizza/Prop/bench: Bench, a wooden bench with black legs [park] 0.85 m, no joints
+    polypizza/Prop/castle: Castle, a grey stone castle with towers [fairy tale, history] 15 m, no joints
+    polypizza/Prop/corner-shop: Corner shop, a small shop with a striped awning on a street corner [town] 5 m, no joints
+    polypizza/Prop/farmhouse: Farmhouse, a big white wooden farmhouse with a porch [farm, countryside] 9 m, no joints
+    polypizza/Prop/fir-tree: Fir tree, a tall green fir tree [nature, winter] 8 m, no joints
+    polypizza/Prop/footbridge: Footbridge, a small dark wooden footbridge [nature] 1.5 m, no joints
+    polypizza/Prop/fountain: Fountain, a white stone fountain with three bowls [park, town] 1.5 m, no joints
+    polypizza/Prop/house: House, a small brown house with a chimney [town, home] 6.02 m, no joints
+    polypizza/Prop/lighthouse: Lighthouse, a red and white striped lighthouse beside a cottage [sea] 20 m, no joints
+    polypizza/Prop/palm-tree: Palm tree, a palm tree with coconuts [beach] 8 m, no joints
+    polypizza/Prop/picket-fence: Picket fence, a white picket fence [town, garden] 1 m, no joints
+    polypizza/Prop/picnic-table: Picnic table, a wooden picnic table with benches [park] 0.75 m, no joints
+    polypizza/Prop/rock: Rock, a tall grey rock [nature] 1.5 m, no joints
+    polypizza/Prop/schoolhouse: Schoolhouse, a red schoolhouse with a bell tower [school, history] 8 m, no joints
+    polypizza/Prop/stones: Stones, a few small grey stones [nature] 0.29 m, no joints
+    polypizza/Prop/tent: Tent, a green tent [camping] 1.6 m, no joints
+    polypizza/Prop/tower: Tower, a round white stone tower with a wooden door [fairy tale] 10 m, no joints
+    polypizza/Prop/town-building: Town building, a red brick building with shops below and flats above [town] 10 m, no joints
+    polypizza/Prop/tree: Tree, a tree with a twisty trunk and round green leaves [nature] 6 m, no joints
+    polypizza/Prop/well: Well, a stone well with a red roof and a bucket [fairy tale, countryside] 2.2 m, no joints
+    polypizza/Prop/wooden-fence: Wooden fence, a short wooden rail fence [farm, countryside] 1.11 m, no joints
 
 Backdrops
   (none yet)

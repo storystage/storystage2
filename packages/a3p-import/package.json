@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./worker": "./src/alice-worker.ts",
     "./worker-client": "./src/worker-client.ts",
+    "./models": "./src/models.ts",
     "./testing": "./src/testing.ts"
   },
   "scripts": {
