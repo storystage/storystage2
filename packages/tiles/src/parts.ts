@@ -4,7 +4,7 @@
  * the cascade can open on it (section 3e).
  */
 import type { AstNode, Expression, NodeId, TypeRef } from '@storystage/ast';
-import { findEntry } from '@storystage/story-api';
+import { DETAILS, findEntry } from '@storystage/story-api';
 import { word, type Describer, type ValuePlace } from '@storystage/story-api/editing';
 import { t } from './words.ts';
 
@@ -73,6 +73,9 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
     case 'call': {
       const target: Part = { kind: 'object', text: describe(node.target), node: node.target.id };
       const details = Object.entries(node.details).flatMap(([name, e]) => {
+        // A speak line's script line (spec 06, 4.1) is set by the script, not changed here.
+        if (DETAILS[name]?.fromScript)
+          return [{ kind: 'text', text: word('words.fromScript') } as Part];
         const label = word(`detail.${name}`);
         const pill = value(e, at('details', name), label);
         return pill ? [{ kind: 'text', text: label } as Part, pill] : [];

@@ -231,6 +231,7 @@
   "control.return": "give back {value}",
   "control.returnNothing": "stop here",
   "words.empty": "???",
+  "words.fromScript": "from the script",
   "words.scene": "the scene",
   "words.this": "this",
   "words.true": "true",
