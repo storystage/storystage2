@@ -49,6 +49,18 @@ describe('humanInfo', () => {
     });
   });
 
+  it('puts glasses on with the clothes, and names them for the Blender script', () => {
+    const info = humanInfo({ ...person, glasses: 'kwnet_at_optical_glasses' });
+    expect(info.clothes).toEqual([
+      'female_casualsuit02.mhclo',
+      'shoes06.mhclo',
+      'kwnet_at_optical_glasses.mhclo',
+    ]);
+    // So it keeps their lenses clear, rather than making them solid as other clothes are.
+    expect(info.storystage.glasses).toBe('kwnet_at_optical_glasses');
+    expect(humanInfo(person).storystage.glasses).toBeNull();
+  });
+
   it('passes on what only the Blender script can do: eye colour and hair tint', () => {
     expect(humanInfo(person)).toMatchObject({ storystage: { eyes: 'grey', hairTint: 'grey' } });
   });
@@ -81,7 +93,8 @@ describe('sourceList', () => {
     expect(list.items[25]).toMatchObject({
       id: 'makehuman/Biped/p26',
       displayName: 'Margaret',
-      description: 'an older woman of 72 with a grey bob, in a pink striped blouse and pink skirt',
+      description:
+        'an older woman of 72 with a grey bob and glasses, in a pink striped blouse and pink skirt',
       class: 'Biped',
       section: 'cast',
       licence: 'CC0-1.0',

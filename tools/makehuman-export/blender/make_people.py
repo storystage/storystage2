@@ -5,7 +5,8 @@ tools and are never linked into the app (CLAUDE.md, rule 8); the people they mak
 CC0 assets are CC0. The decisions live in `src/human-info.ts`, which is tested; this stays thin.
 
     blender -b --python-exit-code 1 --python make_people.py -- \
-        <people.json> <makehuman_system_assets_cc0.zip> <models folder> <previews folder>
+        <people.json> <makehuman_system_assets_cc0.zip> [more CC0 packs, such as glasses01_cc0.zip]
+        <models folder> <previews folder>
 
 For each person it builds the character, bakes its shape, tints older people's hair, and exports a
 rigged binary glTF. It then imports that glTF into an empty scene and renders it, so a preview
@@ -135,6 +136,30 @@ def make_solid(obj):
             material.blend_method = "OPAQUE"
 
 
+def make_clear_lenses(obj):
+    """The glasses' pictures are see-through where the lenses are. Made solid, as other clothes
+    are, the lenses filled in as tinted blocks. Their alpha goes through a Round node instead,
+    which Blender's glTF exporter (4.2 and later) writes as MASK with a cutoff of 0.5: solid
+    frames, clear lenses, and nothing for the stage to sort as it would for BLEND."""
+    for slot in obj.material_slots:
+        material = slot.material
+        if not material:
+            continue
+        tree = material.node_tree
+        for node in list(tree.nodes):
+            if node.type != "BSDF_PRINCIPLED":
+                continue
+            alpha = node.inputs["Alpha"]
+            if not alpha.links:
+                raise RuntimeError(f"{obj.name}'s glasses have no see-through picture")
+            source = alpha.links[0].from_socket
+            tree.links.remove(alpha.links[0])
+            cut = tree.nodes.new("ShaderNodeMath")
+            cut.operation = "ROUND"
+            tree.links.new(source, cut.inputs[0])
+            tree.links.new(cut.outputs[0], alpha)
+
+
 def shrink_textures():
     """The pack's textures run to 4096 pixels, far past any device budget, and 30 people would
     put more than half a gigabyte in the assets repository. WP3c sets the final sizes."""
@@ -182,8 +207,11 @@ def make_person(info, models):
             raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
         repaint(outfit, recoloured_outfit(extra["clothesColour"]))
 
+    glasses = extra["glasses"]
     for part in parts:
-        if ObjectService.get_object_type(part).lower() not in SEE_THROUGH:
+        if glasses and glasses in part.name + part.data.name:
+            make_clear_lenses(part)
+        elif ObjectService.get_object_type(part).lower() not in SEE_THROUGH:
             make_solid(part)
 
     shrink_textures()
@@ -258,12 +286,15 @@ def render_preview(glb, png):
 
 
 def main():
-    people_file, pack, models, previews = sys.argv[sys.argv.index("--") + 1 :]
+    # The system pack, then any more (the community's CC0 glasses), then the two folders.
+    args = sys.argv[sys.argv.index("--") + 1 :]
+    people_file, packs, models, previews = args[0], args[1:-2], args[-2], args[-1]
     with open(people_file, encoding="utf-8") as f:
         people = json.load(f)
     os.makedirs(models, exist_ok=True)
     os.makedirs(previews, exist_ok=True)
-    install_assets(pack)
+    for pack in packs:
+        install_assets(pack)
 
     report = []
     for info in people:
