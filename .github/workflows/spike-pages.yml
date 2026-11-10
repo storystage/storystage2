@@ -63,3 +63,7 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        # The site carries the voices' and whisper's models (about 200 MB); GitHub's file sync for it
+        # can take more than the default 10 minutes, which cancelled the deploy on 10 Nov 2026.
+        with:
+          timeout: 1800000
