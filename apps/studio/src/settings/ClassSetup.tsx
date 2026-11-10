@@ -121,6 +121,7 @@ export function ClassSetup({
             <PupilsCard classes={classes} pupils={pupils} open={open} act={act} />
             <ClassModelsCard
               classes={classes}
+              picker={host.picker}
               models={models}
               taken={[...models.map((m) => m.id), ...binnedModels.map((m) => m.id)]}
               pupils={pupils}

@@ -472,5 +472,20 @@
   "storyboard.picture.empty": "A frame with no sketches yet",
   "storyboard.picture.of": "A frame with: {sketches}",
   "screening.refused": "Some models this film carries show as outlines here:",
-  "screening.refusedModel": "{name}: {reason}"
+  "screening.refusedModel": "{name}: {reason}",
+  "pack.save": "Save models…",
+  "pack.open": "Open models…",
+  "pack.file": "A file of class models to open",
+  "pack.saving": "Putting the class’s models in one file…",
+  "pack.saved": "The class’s models are saved. Open the file on another device with Open models.",
+  "pack.unreadable": "Its files couldn’t be read on this device, so it was left out.",
+  "pack.full": "There’s no room left there for the file.",
+  "pack.notSaved": "The models couldn’t be saved. Try again, or choose another place.",
+  "pack.tooBig": "That file is too big to open.",
+  "pack.opening": "Opening the file…",
+  "pack.checking": "Checking model {n} of {total}…",
+  "pack.added.one": "Added {count} model to the class.",
+  "pack.added.other": "Added {count} models to the class.",
+  "pack.leftOut": "Left out",
+  "pack.notOpened": "The file couldn’t be opened. Try again."
 }
