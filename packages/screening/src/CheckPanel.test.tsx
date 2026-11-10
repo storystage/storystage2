@@ -114,6 +114,25 @@ describe('CheckPanel', () => {
     expect(onKeep).toHaveBeenCalledWith('f1', 'onScreen:k1', false);
   });
 
+  it("says when the last check couldn't finish, and can run again", () => {
+    render(
+      <CheckPanel
+        production={exampleProduction()}
+        running={null}
+        failed
+        onCheck={vi.fn()}
+        onKeep={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole('status').textContent).toBe(
+      'The check couldn’t finish. You can try again.',
+    );
+    expect(screen.getByRole('button', { name: 'Check the whole film' })).toHaveProperty(
+      'disabled',
+      false,
+    );
+  });
+
   it('says so when every frame matches', () => {
     const p = checked();
     const allGood: Production = {

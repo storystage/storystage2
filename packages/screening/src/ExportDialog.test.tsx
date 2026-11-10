@@ -148,9 +148,25 @@ describe('ExportDialog', () => {
     expect(screen.getByRole('button', { name: 'Export film' })).toHaveProperty('disabled', false);
   });
 
-  it('says when it is checking the film first, and when every frame matches', () => {
+  it('says when it is checking the film first', () => {
     setup({ check: { kind: 'checking' } });
     expect(screen.getByText('Checking the film against its storyboard…')).toBeTruthy();
+  });
+
+  it('says when every frame matches', () => {
+    setup({ check: { kind: 'ready', flags: [] } });
+    expect(screen.getByText('Every frame matches its storyboard.')).toBeTruthy();
+  });
+
+  it("says when the check couldn't finish, can check again, and still lets the film go", async () => {
+    const onCheck = vi.fn();
+    setup({ check: { kind: 'failed' }, onCheck });
+    expect(
+      screen.getByText('The check couldn’t finish. You can export anyway, or check again.'),
+    ).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(onCheck).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: 'Export film' })).toHaveProperty('disabled', false);
   });
 
   it('waits for the film to be measured before it can export', () => {

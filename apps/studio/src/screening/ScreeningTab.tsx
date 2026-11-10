@@ -321,6 +321,8 @@ export function ScreeningTab(props: ScreeningTabProps) {
   // result that says the same as the one saved keeps it, so nothing changes for nothing.
   const readOnly = studio.readOnly !== null;
   const [checking, setChecking] = useState<{ done: number; total: number } | null>(null);
+  // The last check stopped on a problem: the panel and the dialog say so (S5's review).
+  const [checkFailed, setCheckFailed] = useState(false);
   const checkStop = useRef<AbortController | null>(null);
   // Leaving the tab stops a check that's running.
   useEffect(() => () => checkStop.current?.abort(), []);
@@ -332,6 +334,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
     try {
       await models.prepare(usedModels(film));
       if (stop.signal.aborted) return;
+      setCheckFailed(false);
       setChecking({ done: 0, total: framesInOrder(film).length });
       const hidden = await make(hiddenCanvas(), { hidden: true, models: models.source });
       try {
@@ -351,7 +354,10 @@ export function ScreeningTab(props: ScreeningTabProps) {
       }
     } catch (e) {
       // Stopped by leaving the tab: nothing to say.
-      if (!stop.signal.aborted) console.error('The Screening tab could not check the film.', e);
+      if (!stop.signal.aborted) {
+        console.error('The Screening tab could not check the film.', e);
+        setCheckFailed(true);
+      }
     } finally {
       if (checkStop.current === stop) checkStop.current = null;
       if (!stop.signal.aborted) setChecking(null);
@@ -395,8 +401,11 @@ export function ScreeningTab(props: ScreeningTabProps) {
               ? { kind: 'checking' }
               : flagged.unchecked === 0
                 ? { kind: 'ready', flags: flagged.flags }
-                : null
+                : checkFailed
+                  ? { kind: 'failed' }
+                  : null
           }
+          onCheck={() => void runFilmCheck()}
           job={exportState}
           onExport={(chosen) => job.start(exportRun(chosen))}
           onStop={() => job.stop()}
@@ -451,6 +460,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
         <CheckPanel
           production={production}
           running={checking}
+          failed={checkFailed}
           onCheck={() => void runFilmCheck()}
           onKeep={keep}
           readOnly={readOnly}

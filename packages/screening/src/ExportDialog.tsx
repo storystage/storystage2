@@ -31,7 +31,10 @@ export interface ExportDialogProps {
   readonly check?:
     | { readonly kind: 'checking' }
     | { readonly kind: 'ready'; readonly flags: readonly FilmFlag[] }
+    | { readonly kind: 'failed' }
     | null;
+  /** Runs the check again after it couldn't finish. */
+  onCheck?(): void;
   onExport(choices: ExportChoices): void;
   onStop(): void;
   onSaveAgain(): void;
@@ -91,6 +94,19 @@ export function ExportDialog(props: ExportDialogProps) {
         {props.check?.kind === 'checking' && (
           <NeutralNote>
             <span role="status">{words.t('export.checking')}</span>
+          </NeutralNote>
+        )}
+        {props.check?.kind === 'failed' && (
+          <NeutralNote>
+            <span role="status">{words.t('export.checkFailed')}</span>
+            {props.onCheck && (
+              <>
+                {' '}
+                <Button variant="quiet" onPress={props.onCheck} isDisabled={running}>
+                  {words.t('export.checkAgain')}
+                </Button>
+              </>
+            )}
           </NeutralNote>
         )}
         {props.check?.kind === 'ready' && (

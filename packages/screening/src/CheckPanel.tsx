@@ -52,6 +52,8 @@ export interface CheckPanelProps {
   readonly production: Production;
   /** While a check runs: frames done of frames to do. */
   readonly running: { readonly done: number; readonly total: number } | null;
+  /** The last check stopped on a problem, so the learner knows it ran (S5's review). */
+  readonly failed?: boolean;
   onCheck(): void;
   /** Keep a flag, or let it go: the learner's own undoable step. */
   onKeep(frame: FrameId, itemId: string, keep: boolean): void;
@@ -79,6 +81,11 @@ export function CheckPanel(props: CheckPanelProps) {
       {running && (
         <p className="sr-side-note" role="status">
           {words.t('check.running', { done: running.done, total: running.total })}
+        </p>
+      )}
+      {!running && props.failed && (
+        <p className="sr-side-note" role="status">
+          {words.t('check.failed')}
         </p>
       )}
       {frames === 0 && <p className="sr-side-note">{words.t('check.noFrames')}</p>}

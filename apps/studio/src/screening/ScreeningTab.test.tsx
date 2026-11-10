@@ -413,6 +413,37 @@ describe('ScreeningTab', () => {
     expect(studio().production.frames.some((f) => f.check !== undefined)).toBe(false);
   });
 
+  it("says when the check couldn't finish, in the panel and in Export film, and checks again", async () => {
+    // Hidden stages fail once the film is measured, so the check can't start; then they work.
+    let failing = false;
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { studio } = harness({
+      stage: async (_canvas, { hidden }) => {
+        if (hidden && failing) throw new Error('no stage for the check');
+        return new FakeStage() as Stage;
+      },
+    });
+    await screen.findByRole('button', { name: 'Play' });
+    failing = true;
+    await userEvent.click(screen.getByRole('button', { name: 'Check the whole film' }));
+    expect(await screen.findByText('The check couldn’t finish. You can try again.')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    expect(
+      await within(dialog).findByText(
+        'The check couldn’t finish. You can export anyway, or check again.',
+      ),
+    ).toBeTruthy();
+    failing = false;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Check again' }));
+    await waitFor(
+      () => expect(studio().production.frames.every((f) => f.check !== undefined)).toBe(true),
+      { timeout: 10_000 },
+    );
+    expect(screen.queryByText(/couldn’t finish/)).toBeNull();
+    quiet.mockRestore();
+  }, 20_000);
+
   it("says so in plain words when this device can't make a stage", async () => {
     harness({ stage: async () => Promise.reject(new Error('no WebGL')) });
     expect(await screen.findByText(/can't show the film here/)).toBeTruthy();
