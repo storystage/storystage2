@@ -24,12 +24,13 @@ const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),
 
 describe('the light subpaths the studio loads (S5)', () => {
   it('./pack, on every save: never the model readers, the simplifier or the pipeline', async () => {
-    expect(pkg.exports['./pack']).toBe('./src/pack.ts');
-    expect(packagesOf(loadsAll('./pack.ts'))).toEqual(
+    expect(pkg.exports['./pack']).toBe('./src/light-pack.ts');
+    expect(packagesOf(loadsAll('./light-pack.ts'))).toEqual(
       new Set(['@storystage/backstage', '@storystage/production']),
     );
     const pack = await import('@storystage/backstage-import/pack');
     expect(typeof pack.packModels).toBe('function');
+    expect(typeof pack.modelPackFromClass).toBe('function');
   });
 
   it('./worker-client, on the import screen: importModel loads only in the worker', async () => {

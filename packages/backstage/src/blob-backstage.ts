@@ -216,6 +216,9 @@ export async function openClassBackstage(
   // A model imported since the view was made (Settings, while the Screening tab stays mounted):
   // `prepare` lists the store again when it's asked for a class id it doesn't know (S2, S5).
   let listing: Promise<void> | null = null;
+  // Class ids the last listing didn't find (a film's own packed model, or one deleted), so a film
+  // that carries some doesn't make every `prepare` list again (S2's review).
+  let notFound = new Set<string>();
   const relist = () =>
     (listing ??= fresh(byId)
       .then((found) => {
@@ -238,7 +241,11 @@ export async function openClassBackstage(
     },
     async prepare(ids) {
       if (disposed) return;
-      if (ids.some((id) => id.startsWith('class/') && !byId.has(id as Id))) await relist();
+      const unknown = (id: string) => id.startsWith('class/') && !byId.has(id as Id);
+      if (ids.some((id) => unknown(id) && !notFound.has(id))) {
+        await relist();
+        notFound = new Set([...notFound, ...ids.filter(unknown)]);
+      }
       if (disposed) return;
       await Promise.all(
         ids.flatMap((id) => {

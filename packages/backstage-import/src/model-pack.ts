@@ -19,102 +19,15 @@ import {
   validateManifest,
   type BackstageItem,
 } from '@storystage/backstage';
-import {
-  SAFE_ID,
-  ZIP_LAYOUT,
-  readArchive,
-  readJson,
-  stableJson,
-  writeArchive,
-  type PackedModel,
-} from '@storystage/production';
+import { SAFE_ID, ZIP_LAYOUT, readArchive, readJson } from '@storystage/production';
 import type { ImportProblem } from './checks.ts';
 import { buildModel, type ImportReport, type ImportTools, type ImportedFile } from './import.ts';
-import { packFolder, type ClassModels } from './pack.ts';
-
-/** The pack's own name and version, in `backstage.json`. */
-export const MODEL_PACK_FORMAT = 'storystage-models';
-export const MODEL_PACK_VERSION = '1.0.0';
-const MANIFEST = 'backstage.json';
-
-/** `backstage.json` in a model pack. */
-export interface ModelPackManifest {
-  readonly format: typeof MODEL_PACK_FORMAT;
-  readonly formatVersion: string;
-  readonly models: readonly PackedModel[];
-}
-
-/** One model to pack: its record, and the files it names, at their paths. */
-export interface PackModel {
-  readonly item: BackstageItem;
-  readonly files: readonly ImportedFile[];
-}
-
-/** The files a record names. */
-const filesOf = (item: BackstageItem) => [
-  item.files.model,
-  item.files.thumbnail,
-  ...item.sketches.map((s) => s.file),
-];
-
-/** A model pack's bytes. Every file each record names must be given. */
-export function writeModelPack(models: readonly PackModel[]): Uint8Array {
-  const folders = new Set<string>();
-  const packed: PackedModel[] = [];
-  const entries: { name: string; bytes: Uint8Array }[] = [];
-  for (const { item, files } of models) {
-    const folder = packFolder(item.id, folders);
-    folders.add(folder);
-    packed.push({ folder, item });
-    for (const file of filesOf(item)) {
-      const found = files.find((f) => f.path === file);
-      if (!found) throw new Error(`${item.id} names ${file}, which wasn't given.`);
-      entries.push({ name: ZIP_LAYOUT.model(folder, file), bytes: found.bytes });
-    }
-  }
-  const manifest: ModelPackManifest = {
-    format: MODEL_PACK_FORMAT,
-    formatVersion: MODEL_PACK_VERSION,
-    models: packed,
-  };
-  entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
-  return writeArchive([
-    { name: MANIFEST, bytes: new TextEncoder().encode(stableJson(manifest)) },
-    ...entries,
-  ]);
-}
-
-/**
- * The class's own models, packed: those that belong to the class, not a pupil's own imports
- * (decision 0066). A model whose files can't be read is left out and named in `leftOut`.
- */
-export async function modelPackFromClass(
-  classModels: ClassModels,
-): Promise<{ readonly pack: Uint8Array; readonly leftOut: readonly string[] }> {
-  const models: PackModel[] = [];
-  const leftOut: string[] = [];
-  for (const stored of await classModels.list()) {
-    if (stored.owner !== undefined && stored.owner !== 'class') continue;
-    const checked = validateManifest({ manifestVersion: MANIFEST_VERSION, items: [stored.record] });
-    if (!checked.ok) {
-      leftOut.push(stored.id);
-      continue;
-    }
-    const item = checked.manifest.items[0]!;
-    try {
-      const files = await Promise.all(
-        filesOf(item).map(async (path) => ({
-          path,
-          bytes: await classModels.read(stored.id, path),
-        })),
-      );
-      models.push({ item, files });
-    } catch {
-      leftOut.push(stored.id);
-    }
-  }
-  return { pack: writeModelPack(models), leftOut };
-}
+import {
+  MODEL_PACK_FORMAT,
+  MODEL_PACK_MANIFEST,
+  MODEL_PACK_VERSION,
+  type ModelPackManifest,
+} from './model-pack-file.ts';
 
 /** One model from an opened pack: ready to add to the class Backstage, with its report. */
 export interface PackedImport {
@@ -150,12 +63,16 @@ export async function openModelPack(
   bytes: Uint8Array,
   tools: ImportTools,
   taken: ReadonlySet<string> = new Set(),
+  options: {
+    /** Called as each model's checks begin: the worker reports it, for the time limit per model. */
+    readonly onModel?: () => void;
+  } = {},
 ): Promise<OpenedModelPack> {
   const read = readArchive(bytes, {
-    wanted: (name) => name === MANIFEST || MODEL_ENTRY.test(name),
+    wanted: (name) => name === MODEL_PACK_MANIFEST || MODEL_ENTRY.test(name),
   });
   if (!read.ok) return { ok: false, problem: { code: 'damaged', message: read.problem.message } };
-  const manifestBytes = read.entries.get(MANIFEST);
+  const manifestBytes = read.entries.get(MODEL_PACK_MANIFEST);
   if (!manifestBytes) return { ok: false, problem: NOT_A_PACK };
   const parsed = readJson(manifestBytes);
   if (!parsed.ok) return { ok: false, problem: NOT_A_PACK };
@@ -181,6 +98,7 @@ export async function openModelPack(
   const leftOut: { name: string; reason: string }[] = [];
   const seen = new Set<string>();
   for (const entry of manifest.models as readonly unknown[]) {
+    options.onModel?.();
     const folder = (entry as { folder?: unknown } | null)?.folder;
     const record = (entry as { item?: unknown } | null)?.item;
     const name =
