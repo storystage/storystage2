@@ -36,9 +36,11 @@ export interface SourceItem {
    */
   readonly height?: number;
   /**
-   * Quarter turns in degrees, so a glTF model faces +Z and stands up as every Backstage model
+   * Turns in whole degrees, so a glTF model faces +Z and stands up as every Backstage model
    * does (spec 17, section 1): `x` first (to stand it up), then `y` (to face it forward).
-   * Galleries' models face every way their makers chose. Not for VRM files.
+   * Galleries' models face every way their makers chose. Usually quarter turns, but a model that
+   * leans in its own data (Poly Pizza's crutches lean 34°) takes whatever stands it up. Not for
+   * VRM files.
    */
   readonly turn?: { readonly x?: number; readonly y?: number };
   readonly licence: ShippableLicence;
@@ -116,18 +118,15 @@ export function validateSources(json: unknown): Result {
     if (badExclude(item.exclude)) e(EXCLUDE);
     if (item.turn !== undefined) {
       const t = item.turn as Record<string, unknown>;
-      const quarter = (v: unknown) =>
-        v === undefined ||
-        (typeof v === 'number' && Number.isInteger(v / 90) && Math.abs(v) <= 270);
+      const degrees = (v: unknown) =>
+        v === undefined || (Number.isInteger(v) && Math.abs(v as number) <= 270);
       if (
         !isObject(t) ||
         !Object.keys(t).every((k) => k === 'x' || k === 'y') ||
-        !quarter(t.x) ||
-        !quarter(t.y)
+        !degrees(t.x) ||
+        !degrees(t.y)
       )
-        e(
-          'turn must be { x?, y? }, each a quarter turn in degrees: 0, 90, 180 or 270, or minus those.',
-        );
+        e('turn must be { x?, y? }, each a whole number of degrees from -270 to 270.');
     }
     if (item.height !== undefined || item.turn !== undefined) {
       if (

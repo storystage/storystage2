@@ -121,12 +121,15 @@ describe('validateSources', () => {
     ).toBe(false);
   });
 
-  it('takes quarter turns for a glTF model, not for a VRM', () => {
+  it('takes turns in whole degrees for a glTF model, not for a VRM', () => {
     const ok = (extra: Record<string, unknown>) =>
       validateSources({ source: 's', items: [item(extra)] }).ok;
     expect(ok({ turn: { y: 180 } })).toBe(true);
     expect(ok({ turn: { x: -90, y: 270 } })).toBe(true);
-    expect(ok({ turn: { y: 45 } })).toBe(false);
+    // A model that leans in its own data is stood up by whatever it takes.
+    expect(ok({ turn: { x: -34 } })).toBe(true);
+    expect(ok({ turn: { y: 22.5 } })).toBe(false);
+    expect(ok({ turn: { y: '90' } })).toBe(false);
     expect(ok({ turn: { z: 90 } })).toBe(false);
     expect(ok({ turn: { y: 360 } })).toBe(false);
     expect(
