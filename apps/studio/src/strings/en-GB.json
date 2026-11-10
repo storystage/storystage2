@@ -470,5 +470,7 @@
   "alice.kind.unknown": "Other",
   "alice.close": "Start working",
   "storyboard.picture.empty": "A frame with no sketches yet",
-  "storyboard.picture.of": "A frame with: {sketches}"
+  "storyboard.picture.of": "A frame with: {sketches}",
+  "screening.refused": "Some models this film carries show as outlines here:",
+  "screening.refusedModel": "{name}: {reason}"
 }

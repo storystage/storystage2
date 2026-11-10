@@ -463,6 +463,7 @@ export function App({
               <ScreeningTab
                 studio={studio}
                 host={host}
+                files={film?.files ?? NO_FILES}
                 active={!overlayOpen}
                 onPlaceChange={setPlace}
                 onOpenProductionStage={(_node, at) => {
