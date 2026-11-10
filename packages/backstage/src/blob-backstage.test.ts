@@ -52,7 +52,10 @@ describe('filmBackstage (decision 0049)', () => {
 
   it('gives the stage blob: URLs for a film’s packed models, made once, on first use', () => {
     const { urls, made } = fakeUrls();
-    const { backstage } = filmBackstage([{ folder: 'prop-crate', item: crate }], files, urls);
+    const { backstage } = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
+      checked: ['prop-crate'],
+      urls,
+    });
     expect(made).toEqual([]);
     expect(backstage.find(crate.id)).toEqual({ url: 'blob:test/1', joints: 'prop-only' });
     expect(backstage.find(crate.id)!.url).toBe('blob:test/1');
@@ -65,9 +68,22 @@ describe('filmBackstage (decision 0049)', () => {
     expect(backstage.credits()[0]!.lines[0]!.text).toBe('crate, made by our class');
   });
 
+  it('shows only the models that passed the check, as a film is untrusted (spec 03, 1.3)', () => {
+    const { urls } = fakeUrls();
+    const unchecked = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
+      checked: [],
+      urls,
+    });
+    expect(unchecked.backstage.items).toEqual([]);
+    expect(unchecked.backstage.find(crate.id)).toBeNull();
+  });
+
   it('revokes every URL it made, and finds nothing after', () => {
     const { urls, revoked } = fakeUrls();
-    const film = filmBackstage([{ folder: 'prop-crate', item: crate }], files, urls);
+    const film = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
+      checked: ['prop-crate'],
+      urls,
+    });
     film.backstage.find(crate.id);
     film.backstage.thumbnail(crate.id);
     film.dispose();
@@ -84,7 +100,7 @@ describe('filmBackstage (decision 0049)', () => {
         { folder: 'c', item: record('class/Prop/lost') },
       ],
       files,
-      urls,
+      { checked: ['a', 'b', 'c'], urls },
     );
     expect(backstage.items.map((i) => i.id)).toEqual(['class/Prop/lost']);
     expect(backstage.find('class/Prop/lost' as BackstageItem['id'])).toBeNull();
@@ -144,6 +160,32 @@ describe('openClassBackstage (decision 0066)', () => {
     expect(view.backstage.find('class/Prop/duck' as BackstageItem['id'])).toBeNull();
   });
 
+  it('finds a model imported since it was made, listing again only for a class id it doesn’t know', async () => {
+    const stored = [{ id: 'class/Prop/crate', record: record('class/Prop/crate') }];
+    let lists = 0;
+    const s: ClassModelStore = {
+      list: async () => {
+        lists++;
+        return [...stored];
+      },
+      read: async () => bytes(4),
+    };
+    const view = await openClassBackstage(s, fakeUrls().urls);
+    await view.prepare(['class/Prop/crate']);
+    const crateUrl = view.backstage.find('class/Prop/crate' as BackstageItem['id'])!.url;
+    expect(lists).toBe(1);
+    // A teacher imports a duck in Settings while the tab stays mounted.
+    stored.push({ id: 'class/Prop/duck', record: record('class/Prop/duck') });
+    await view.prepare(['kaykit/Prop/mug', 'class/Prop/crate']);
+    expect(lists).toBe(1); // a shipped id, and known ones: no listing
+    await view.prepare(['class/Prop/duck']);
+    expect(lists).toBe(2);
+    expect(view.backstage.items.map((i) => i.id)).toEqual(['class/Prop/crate', 'class/Prop/duck']);
+    expect(view.backstage.find('class/Prop/duck' as BackstageItem['id'])?.url).toMatch(/^blob:/);
+    // The URL already made is kept.
+    expect(view.backstage.find('class/Prop/crate' as BackstageItem['id'])!.url).toBe(crateUrl);
+  });
+
   it('leaves a model it can’t read not found, so it shows as a stand-in', async () => {
     const { store: s } = store(new Set(['class/Prop/duck']));
     const view = await openClassBackstage(s, fakeUrls().urls);
@@ -166,7 +208,7 @@ describe('openClassBackstage (decision 0066)', () => {
     const film = filmBackstage(
       [{ folder: 'prop-crate', item: record('class/Prop/crate') }],
       new Map([['models/prop-crate/model.glb', bytes(2)]]),
-      fakeUrls().urls,
+      { checked: ['prop-crate'], urls: fakeUrls().urls },
     );
     const { store: s, reads } = store();
     const cls = await openClassBackstage(s, fakeUrls().urls);

@@ -235,7 +235,7 @@ function wholeAccessors(doc: Document): boolean {
 }
 
 /** Steps 1 and 2: the picked files, checked and read into one glTF document. */
-async function readPicked(
+export async function readPicked(
   files: ReadonlyMap<string, Uint8Array>,
 ): Promise<
   | { ok: true; doc: Document; vrm: '0' | '1' | null; leftOut: readonly string[] }
@@ -301,7 +301,7 @@ async function readPicked(
 }
 
 /** Pictures in the model itself (embedded, or in a `.glb`'s binary chunk), from their headers. */
-function checkEmbeddedPictures(doc: Document): ImportProblem | null {
+export function checkEmbeddedPictures(doc: Document): ImportProblem | null {
   for (const texture of doc.getRoot().listTextures()) {
     const image = texture.getImage();
     if (!image) continue;

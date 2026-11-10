@@ -57,7 +57,7 @@ function overBytes(
   items: readonly BackstageItem[],
   bytesOf: (item: BackstageItem, path: string) => Uint8Array | undefined,
   urls: ObjectUrls,
-): DisposableBackstage {
+): DisposableBackstage & { add(item: BackstageItem): void } {
   const byId = new Map(items.map((i) => [i.id, i]));
   const made = new Map<string, string>();
   let disposed = false;
@@ -77,7 +77,8 @@ function overBytes(
     made.set(key, url);
     return url;
   };
-  const list = [...byId.values()];
+  // Kept as one list, which `add` grows in place, so `items` always shows every model.
+  const list: BackstageItem[] = [...byId.values()];
   const backstage: Backstage = {
     items: list,
     item: (id) => byId.get(id),
@@ -96,6 +97,11 @@ function overBytes(
   };
   return {
     backstage,
+    add(item) {
+      if (byId.has(item.id)) return;
+      byId.set(item.id, item);
+      list.push(item);
+    },
     dispose() {
       disposed = true;
       for (const url of made.values()) urls.revoke(url);
@@ -121,16 +127,26 @@ export interface FilmModel {
 /**
  * A film's packed models (`manifest.models`) as a Backstage, from the open production's files
  * (`files.models`, keyed `models/<folder>/<path>`). A film from another device shows its imported
- * models even where this device's class Backstage lacks them.
+ * models even where this device's class Backstage lacks them: those that passed the check, only.
  */
 export function filmBackstage(
   models: readonly FilmModel[],
   files: ReadonlyMap<string, Uint8Array>,
-  urls: ObjectUrls = browserUrls,
+  options: {
+    /**
+     * The folders whose models passed `checkFilmModels` in the import worker
+     * (`@storystage/backstage-import`): a film is untrusted, so only those are shown (spec 03,
+     * section 1.3). Any other is left out, and shows as a stand-in.
+     */
+    readonly checked: readonly string[];
+    readonly urls?: ObjectUrls;
+  },
 ): DisposableBackstage {
+  const checked = new Set(options.checked);
   const folderOf = new Map<Id, string>();
   const items: BackstageItem[] = [];
   for (const m of models) {
+    if (!checked.has(m.folder)) continue;
     const item = importedRecord(m.item);
     if (!item || folderOf.has(item.id)) continue;
     folderOf.set(item.id, m.folder);
@@ -139,7 +155,7 @@ export function filmBackstage(
   return overBytes(
     items,
     (item, path) => files.get(`models/${folderOf.get(item.id)}/${path}`),
-    urls,
+    options.urls ?? browserUrls,
   );
 }
 
@@ -153,7 +169,9 @@ export interface ClassModelStore {
 export interface ClassBackstageView extends DisposableBackstage {
   /**
    * Reads these models' files (model and thumbnail), so `find` and `thumbnail` give their URLs.
-   * Ids it doesn't have, and files it can't read, are left out: those models stay not found.
+   * Asked for a class id it doesn't know, it lists the store again first, so a model imported
+   * since the view was made is found. Ids still not there, and files it can't read, are left out:
+   * those models stay not found.
    */
   prepare(ids: readonly string[]): Promise<void>;
 }
@@ -166,14 +184,18 @@ export async function openClassBackstage(
   store: ClassModelStore,
   urls: ObjectUrls = browserUrls,
 ): Promise<ClassBackstageView> {
-  const items: BackstageItem[] = [];
-  const seen = new Set<Id>();
-  for (const stored of await store.list()) {
-    const item = importedRecord(stored.record);
-    if (!item || item.id !== stored.id || seen.has(item.id)) continue;
-    seen.add(item.id);
-    items.push(item);
-  }
+  /** The store's valid imported records that aren't known yet. */
+  const fresh = async (known: ReadonlyMap<Id, BackstageItem>): Promise<BackstageItem[]> => {
+    const found: BackstageItem[] = [];
+    for (const stored of await store.list()) {
+      const item = importedRecord(stored.record);
+      if (!item || item.id !== stored.id || known.has(item.id)) continue;
+      if (found.some((f) => f.id === item.id)) continue;
+      found.push(item);
+    }
+    return found;
+  };
+  const items = await fresh(new Map());
   // Files read and not yet made into a URL. Once a URL is made, the Blob holds the only copy, so
   // the bytes are let go: each prepared model is held once, not twice (S2's review).
   const read = new Map<string, Uint8Array>();
@@ -191,6 +213,22 @@ export async function openClassBackstage(
     urls,
   );
   const byId = new Map(items.map((i) => [i.id, i]));
+  // A model imported since the view was made (Settings, while the Screening tab stays mounted):
+  // `prepare` lists the store again when it's asked for a class id it doesn't know (S2, S5).
+  let listing: Promise<void> | null = null;
+  const relist = () =>
+    (listing ??= fresh(byId)
+      .then((found) => {
+        if (disposed) return;
+        for (const item of found) {
+          byId.set(item.id, item);
+          view.add(item);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        listing = null;
+      }));
   return {
     backstage: view.backstage,
     dispose() {
@@ -199,6 +237,8 @@ export async function openClassBackstage(
       view.dispose();
     },
     async prepare(ids) {
+      if (disposed) return;
+      if (ids.some((id) => id.startsWith('class/') && !byId.has(id as Id))) await relist();
       if (disposed) return;
       await Promise.all(
         ids.flatMap((id) => {

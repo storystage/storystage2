@@ -233,6 +233,7 @@ Entries are looked up from the list the format expects. An entry the format does
 - `uri` values are embedded data, or files in the same import (F9).
 - Image width and height come from the header before decoding: 8192 pixels on a side at most, and 40 million pixels in all.
 - Only the glTF extensions the stage uses are accepted. An unknown required extension refuses the file.
+- **A film's packed models are checked when it opens,** as imports are, in the import worker within its 60-second limit (`checkFilmInWorker`; spec 03, section 1.3). Each sketch must be exactly what Backstage's renderer writes (`isSafeSketch`), with every attribute's value too. A model that fails, or every model if the check can't finish, shows as an outline, with the reason in plain words.
 
 ## 4. Tests
 

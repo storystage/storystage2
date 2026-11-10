@@ -11,9 +11,12 @@ export * from './worker.ts';
 export {
   IMPORT_BROKE,
   IMPORT_TIME_LIMIT_MS,
+  checkFilmInWorker,
   importInWorker,
   runInWorker,
   type WorkerJobOptions,
+  type FilmCheckAnswer,
+  type FilmCheckMessage,
   type ImportAnswer,
   type ImportMessage,
   type ImportRequest,
@@ -21,3 +24,4 @@ export {
 } from './worker-client.ts';
 export * from './pack.ts';
 export * from './model-pack.ts';
+export * from './film-check.ts';
