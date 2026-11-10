@@ -8,7 +8,9 @@ import { rpDictionary, toBritish } from './british.ts';
 
 export const SAMPLE_RATE = 24_000;
 const MAX_TOKENS = 510;
-const BASE = import.meta.env.BASE_URL;
+// Absolute, from the page's own address: the spike site builds with relative paths (`--base ./`),
+// and a relative import() or ONNX Runtime's wasm path would resolve against assets/, not the page.
+const BASE = new URL(import.meta.env.BASE_URL, document.baseURI).href;
 
 interface Phonemiser {
   loadDictionary(url: string): Promise<void>;
