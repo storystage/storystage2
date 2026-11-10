@@ -461,6 +461,7 @@ export class BabylonStage implements Stage {
       try {
         this.timeline.seek(at);
         this.show();
+        placeForPicture(scene);
         target.render();
       } finally {
         this.timeline.seek(now);
@@ -673,6 +674,18 @@ function showScene(s: Showing): void {
     setRotation(s.camera, mul(rotation, CAMERA_TURN));
     s.camera.fov = s.timeline.lens() * 2 * Math.PI;
   }
+}
+
+/**
+ * Brings every node's place up to date for a picture. A render target doesn't do it as drawing a
+ * frame does, so a stand-in's label, which turns to face the camera, was left where it was made
+ * and missing from the picture (found by S2 in Compare). The camera goes first: a label turns to it.
+ */
+function placeForPicture(scene: Scene): void {
+  scene.activeCamera?.computeWorldMatrix();
+  scene.activeCamera?.getViewMatrix(true);
+  for (const node of scene.transformNodes) node.computeWorldMatrix(true);
+  for (const mesh of scene.meshes) mesh.computeWorldMatrix(true);
 }
 
 /** A stand-in has its class's joints, so code written for the real model still runs. */
