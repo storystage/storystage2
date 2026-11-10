@@ -69,15 +69,27 @@ importers:
       '@storystage/editor-contract':
         specifier: workspace:*
         version: link:../../packages/editor-contract
+      '@storystage/export':
+        specifier: workspace:*
+        version: link:../../packages/export
       '@storystage/host':
         specifier: workspace:*
         version: link:../../packages/host
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../../packages/playback
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
+      '@storystage/screening':
+        specifier: workspace:*
+        version: link:../../packages/screening
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../../packages/stage
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
@@ -100,6 +112,9 @@ importers:
       '@axe-core/playwright':
         specifier: ^4.14.0
         version: 4.14.0(playwright-core@1.64.1)
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)

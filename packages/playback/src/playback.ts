@@ -369,7 +369,20 @@ export class Playback {
     const { stage, port, production } = this.options;
     this.awaitingLoaded = true;
     const fade = action.transition?.kind === 'crossfade' ? action.transition.duration : null;
-    await stage.load(action.setup, fade === null ? undefined : { crossfade: fade });
+    try {
+      await stage.load(action.setup, fade === null ? undefined : { crossfade: fade });
+    } catch (e) {
+      if (!(e instanceof StageError)) throw e;
+      // A model or backdrop the stage can't find: play stops here, in plain words (6.3).
+      this.scene = action.scene;
+      this.sceneStart = this.film;
+      this.awaitingLoaded = false;
+      this.fail({
+        type: 'error',
+        error: { code: 'stage', node: null, at: 0, stageCode: e.code, detail: e.message },
+      });
+      return;
+    }
     stage.schedule(action.commands);
     this.scene = action.scene;
     this.sceneStart = this.film;

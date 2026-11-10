@@ -18,7 +18,7 @@ import {
   type ProductionFiles,
 } from '@storystage/production';
 import { Button, NeutralNote, ThemeRoot, type Mode } from '@storystage/ui';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react';
 import { importAliceInWorker, type ImportWorker } from '@storystage/a3p-import/worker-client';
 import type { ImportReport } from '@storystage/a3p-import';
 import { AliceReport } from './lesson/AliceReport.tsx';
@@ -54,6 +54,14 @@ type Phase =
   | { readonly kind: 'studio' };
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
+
+/**
+ * The Screening tab (S2), loaded when it's first opened, so Babylon.js, the runtime's worker and
+ * the encoder aren't in the studio's first download.
+ */
+const ScreeningTab = lazy(() =>
+  import('./screening/ScreeningTab.tsx').then((m) => ({ default: m.ScreeningTab })),
+);
 
 /** Whether this browser has shown the browser version's note about where films are kept. */
 const BROWSER_NOTE = 'storystage.browserNote';
@@ -122,6 +130,8 @@ export function App({
   const [note, setNote] = useState<string | null>(null);
   const [place, setPlace] = useState<Place>(NOWHERE);
   const [mode, setMode] = useState<Mode>('storyboard');
+  // Learn or Settings over the panels: the Screening room pauses under them.
+  const [overlayOpen, setOverlayOpen] = useState(false);
   const [said, setSaid] = useState('');
   // What came across from the Alice world just opened, until it's read and closed.
   const [alice, setAlice] = useState<{ title: string; report: ImportReport } | null>(null);
@@ -386,6 +396,7 @@ export function App({
         <AliceReport title={alice.title} report={alice.report} onClose={() => setAlice(null)} />
       )}
       <Shell
+        onOverlayChange={setOverlayOpen}
         title={
           folder ? (
             <FilmMenu
@@ -447,7 +458,21 @@ export function App({
               announcement={said}
             />
           ),
-          screening: null,
+          screening: (
+            <Suspense fallback={null}>
+              <ScreeningTab
+                studio={studio}
+                host={host}
+                active={!overlayOpen}
+                onPlaceChange={setPlace}
+                onOpenProductionStage={(_node, at) => {
+                  // The Code editor opening the block itself comes with S5's editors.
+                  if (at) setPlace(at);
+                  setMode('production');
+                }}
+              />
+            </Suspense>
+          ),
         }}
       />
     </ThemeRoot>

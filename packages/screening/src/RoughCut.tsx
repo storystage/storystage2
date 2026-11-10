@@ -43,7 +43,11 @@ export interface RoughCutError {
 
 export interface RoughCutProps {
   readonly production: Production;
-  readonly timeline: Timeline;
+  /**
+   * `null` while the film is being measured: the player shows, with a note, and the controls
+   * come once it's ready. The player stays where it is, so the stage's canvas isn't remade.
+   */
+  readonly timeline: Timeline | null;
   /** The film's time now. */
   readonly time: Micros;
   readonly playing: boolean;
@@ -72,7 +76,9 @@ function timeAtClick(e: MouseEvent<HTMLElement>, length: Micros): Micros {
 
 /** The rough cut (WP11.1, spec 08 section 2): the player, the bar under it and the running order. */
 export function RoughCut(props: RoughCutProps) {
-  const { production: p, timeline, time } = props;
+  const { production: p, time } = props;
+  const ready = props.timeline !== null;
+  const timeline = props.timeline ?? MEASURING;
   const all = segments(p, timeline);
   const segment = sceneAt(all, time);
   const frame = currentFrame(p, timeline, time);
@@ -128,78 +134,97 @@ export function RoughCut(props: RoughCutProps) {
         )}
       </div>
 
-      <div className="sr-controls">
-        <Button
-          variant="primary"
-          {...(props.playing ? {} : { icon: 'play_arrow' as const })}
-          onPress={props.onPlayPause}
-        >
-          {props.playing ? words.t('roughCut.pause') : words.t('roughCut.play')}
-        </Button>
-        <span className="sr-time">{timeLabel(time, timeline)}</span>
-        <Button variant="secondary" icon="fullscreen" onPress={fullScreen}>
-          {words.t('roughCut.fullScreen')}
-        </Button>
-      </div>
-
-      <div
-        className="sr-bar"
-        role="slider"
-        tabIndex={0}
-        aria-label={words.t('roughCut.bar')}
-        aria-valuemin={0}
-        aria-valuemax={Math.round(timeline.length / 1000)}
-        aria-valuenow={Math.round(time / 1000)}
-        aria-valuetext={sliderText(time, timeline)}
-        onKeyDown={onBarKey}
-        onClick={(e) => props.onSeek(timeAtClick(e, timeline.length))}
-      >
-        {all.map((s, i) => (
-          <span
-            key={i}
-            className="sr-segment"
-            data-current={s === segment || undefined}
-            style={{ flexGrow: Math.max(1, s.length) }}
-            title={segmentName(s)}
-          >
-            <span className="sr-segment-name">{segmentName(s)}</span>
-            {s.waits && <span className="sr-waits">{words.t('roughCut.waits')}</span>}
-          </span>
-        ))}
-        <span
-          className="sr-bar-now"
-          aria-hidden
-          style={{ left: `${timeline.length > 0 ? (100 * time) / timeline.length : 0}%` }}
-        />
-      </div>
-
-      {timeline.end.kind === 'cap' && <NeutralNote>{words.t('roughCut.cap')}</NeutralNote>}
-
-      {props.error && (
+      {!ready && (
         <NeutralNote>
-          <span role="alert">{props.error.words}</span>{' '}
-          {props.error.node !== null && (
-            <Button
-              variant="secondary"
-              icon="handyman"
-              onPress={() => props.onOpenProductionStage(props.error!.node!, place)}
-            >
-              {words.t('roughCut.fix')}
-            </Button>
-          )}
+          <span role="status">{words.t('roughCut.measuring')}</span>
         </NeutralNote>
       )}
 
-      <RunningOrder
-        production={p}
-        segments={all}
-        current={segment?.scene ?? null}
-        onSeek={props.onSeek}
-        onStep={props.onStep}
-      />
+      {ready && (
+        <>
+          <div className="sr-controls">
+            <Button
+              variant="primary"
+              icon={props.playing ? 'pause' : 'play_arrow'}
+              onPress={props.onPlayPause}
+            >
+              {props.playing ? words.t('roughCut.pause') : words.t('roughCut.play')}
+            </Button>
+            <span className="sr-time">{timeLabel(time, timeline)}</span>
+            <Button variant="secondary" icon="fullscreen" onPress={fullScreen}>
+              {words.t('roughCut.fullScreen')}
+            </Button>
+          </div>
+
+          <div
+            className="sr-bar"
+            role="slider"
+            tabIndex={0}
+            aria-label={words.t('roughCut.bar')}
+            aria-valuemin={0}
+            aria-valuemax={Math.round(timeline.length / 1000)}
+            aria-valuenow={Math.round(time / 1000)}
+            aria-valuetext={sliderText(time, timeline)}
+            onKeyDown={onBarKey}
+            onClick={(e) => props.onSeek(timeAtClick(e, timeline.length))}
+          >
+            {all.map((s, i) => (
+              <span
+                key={i}
+                className="sr-segment"
+                data-current={s === segment || undefined}
+                style={{ flexGrow: Math.max(1, s.length) }}
+                title={segmentName(s)}
+              >
+                <span className="sr-segment-name">{segmentName(s)}</span>
+                {s.waits && <span className="sr-waits">{words.t('roughCut.waits')}</span>}
+              </span>
+            ))}
+            <span
+              className="sr-bar-now"
+              aria-hidden
+              style={{ left: `${timeline.length > 0 ? (100 * time) / timeline.length : 0}%` }}
+            />
+          </div>
+
+          {timeline.end.kind === 'cap' && <NeutralNote>{words.t('roughCut.cap')}</NeutralNote>}
+
+          {props.error && (
+            <NeutralNote>
+              <span role="alert">{props.error.words}</span>{' '}
+              {props.error.node !== null && (
+                <Button
+                  variant="secondary"
+                  icon="handyman"
+                  onPress={() => props.onOpenProductionStage(props.error!.node!, place)}
+                >
+                  {words.t('roughCut.fix')}
+                </Button>
+              )}
+            </NeutralNote>
+          )}
+
+          <RunningOrder
+            production={p}
+            segments={all}
+            current={segment?.scene ?? null}
+            onSeek={props.onSeek}
+            onStep={props.onStep}
+          />
+        </>
+      )}
     </section>
   );
 }
+
+/** Stands in for the timeline while the film is measured. */
+const MEASURING: Timeline = {
+  scenes: [],
+  blocks: [],
+  lines: [],
+  length: 0,
+  end: { kind: 'ended' },
+};
 
 const segmentName = (s: Segment) =>
   words.t('roughCut.segment', {
