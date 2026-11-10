@@ -1,5 +1,5 @@
 import type { FrameId, LineId, Production, SceneId, ScriptLine } from '@storystage/production';
-import { Button, Icon, TextField, useThemeStyle } from '@storystage/ui';
+import { Button, Icon, useThemeStyle } from '@storystage/ui';
 import { useState } from 'react';
 import {
   Button as AriaButton,
@@ -18,6 +18,7 @@ import {
   type Key,
   type Selection,
 } from 'react-aria-components';
+import { SpokenField } from '../speech/SpokenField.tsx';
 import { words } from '../strings.ts';
 import { LIMITS, sceneNumber } from './edits.ts';
 import { sceneFrames } from './frames.ts';
@@ -202,7 +203,8 @@ export function ScriptPane({
 
           {open && (
             <div className="sb-line-editor">
-              <TextField
+              <SpokenField
+                field={`line:${open.id}`}
                 label={words.t('storyboard.script.line', { number: lineNumber(p, open.id) })}
                 multiline
                 value={open.text}
@@ -265,7 +267,8 @@ export function ScriptPane({
               onCommit={(input) => setWho(whoFrom(input) ?? ACTION())}
             />
             <div className="sb-line-new-row">
-              <TextField
+              <SpokenField
+                field="line:new"
                 label={words.t('storyboard.script.new')}
                 hideLabel
                 placeholder={words.t('storyboard.script.typeOrSay')}

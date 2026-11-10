@@ -51,7 +51,7 @@ export {
   type RadioCardsProps,
   type ToggleProps,
 } from './Choice.tsx';
-export { TextField, type TextFieldProps } from './TextField.tsx';
+export { TextField, insertWords, type FieldSpeech, type TextFieldProps } from './TextField.tsx';
 export { Dialog, type DialogProps } from './Dialog.tsx';
 export { PlanSteps, moveSteps, type PlanStep, type PlanStepsProps } from './PlanSteps.tsx';
 export {

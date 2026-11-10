@@ -522,5 +522,9 @@
   "production.rehearse.missing": "Some models show as outlines, because this device can’t find them.",
   "production.rehearse.thinks": "Thinks: ",
   "screening.notesStep": "Retake notes for scene {n}",
-  "screening.side": "Compare and notes"
+  "screening.side": "Compare and notes",
+  "talkToType.stopped": "Talk to type stopped working. You can still type.",
+  "settings.talkToType": "Talk to type",
+  "settings.talkToType.switch": "Talk to type: a mic beside each field",
+  "settings.talkToType.help": "Tap the mic beside a field, say the words, then tap it again. What you say stays on this device and is never sent anywhere."
 }
