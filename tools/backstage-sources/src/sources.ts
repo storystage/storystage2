@@ -14,9 +14,14 @@ export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0'] as const
 export type ShippableLicence = (typeof SHIPPABLE_LICENCES)[number];
 
 export type FetchSpec =
+  /** A backdrop's `path` is its picture: .jpg, .png or .webp. */
   | { readonly github: string; readonly commit: string; readonly path: string }
   /** `sha256` may be left out only for an Arweave address, which names fixed content. */
-  | { readonly url: string; readonly sha256?: string; readonly ext: 'glb' | 'vrm' }
+  | {
+      readonly url: string;
+      readonly sha256?: string;
+      readonly ext: 'glb' | 'vrm' | 'jpg' | 'png' | 'webp';
+    }
   /** A model made in the build itself: a path under the Backstage folder's `generated/`. */
   | { readonly generated: string };
 
@@ -50,7 +55,26 @@ export interface SourceItem {
   readonly fetch: FetchSpec;
   /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
   readonly exclude?: Exclude;
+  /**
+   * For the `backdrops` section, and only there: what to make of the fetched picture (spec 17
+   * section 2, `backdrops.ts`). A ground is a tile `tile` metres across, colour-matched to
+   * `look`, the stage's flat colour for it as `rrggbb`; a sky is a dome, its light scaled by
+   * `exposure` (from 0.05 to 1, default 1), since a gallery's night sky comes as bright as noon.
+   */
+  readonly backdrop?: Backdrop;
 }
+
+export type Backdrop =
+  | { readonly kind: 'ground'; readonly tile: number; readonly look: string }
+  | { readonly kind: 'sky'; readonly exposure?: number };
+
+/** The ids the stage draws backdrops under (spec 17 section 2). */
+const BACKDROP_IDS = {
+  ground: /^storystage\/Ground\/[a-z][A-Za-z0-9]*$/,
+  sky: /^storystage\/Sky\/[a-z][A-Za-z0-9]*$/,
+} as const;
+const BACKDROP_CLASS = { ground: 'Ground', sky: 'Scene' } as const;
+const PICTURE = /\.(jpg|png|webp)$/;
 
 export interface SourceList {
   readonly source: string;
@@ -94,10 +118,17 @@ export function validateSources(json: unknown): Result {
       e('is not an object.');
       return;
     }
-    if (!isText(item.id) || !/^[a-z0-9-]+\/[A-Z][A-Za-z]+\/[a-z0-9-]+$/.test(item.id))
+    const backdrop = item.section === 'backdrops';
+    if (backdrop) {
+      // The stage's ids, which name grounds and skies in camelCase (`storystage/Ground/darkGrass`).
+      if (!isText(item.id) || !Object.values(BACKDROP_IDS).some((r) => r.test(item.id as string)))
+        e('a backdrop id must be storystage/Ground/<name> or storystage/Sky/<name>.');
+    } else if (!isText(item.id) || !/^[a-z0-9-]+\/[A-Z][A-Za-z]+\/[a-z0-9-]+$/.test(item.id))
       e('id must be source/Class/name, for example kaykit/Biped/knight.');
-    else if (seen.has(item.id)) e('has the same id as an earlier item.');
-    else seen.add(item.id);
+    if (isText(item.id)) {
+      if (seen.has(item.id)) e('has the same id as an earlier item.');
+      else seen.add(item.id);
+    }
     if (!isText(item.displayName)) e('needs a display name.');
     if (!STORY_CLASSES.includes(item.class as StoryClass)) e('class must be a Story API class.');
     if (!SECTIONS.includes(item.section as Section))
@@ -116,6 +147,8 @@ export function validateSources(json: unknown): Result {
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
+    if (backdrop) backdropProblems(item).forEach(e);
+    else if (item.backdrop !== undefined) e('backdrop is for the backdrops section only.');
     if (item.turn !== undefined) {
       const t = item.turn as Record<string, unknown>;
       const degrees = (v: unknown) =>
@@ -151,7 +184,10 @@ export function validateSources(json: unknown): Result {
         e(
           'fetch.commit must be a full 40-character commit, so the build fetches what was reviewed.',
         );
-      if (!isText(f.path) || !/\.(glb|gltf|vrm)$/.test(f.path))
+      if (backdrop) {
+        if (!isText(f.path) || !PICTURE.test(f.path))
+          e("a backdrop's fetch.path must be its picture: .jpg, .png or .webp.");
+      } else if (!isText(f.path) || !/\.(glb|gltf|vrm)$/.test(f.path))
         e('fetch.path must end .glb, .gltf or .vrm.');
     } else {
       if (!isUrl(f.url)) e('fetch.url must be an https address.');
@@ -163,8 +199,49 @@ export function validateSources(json: unknown): Result {
         e(
           "fetch.sha256 must be the file's SHA-256, 64 hex characters (only an Arweave address may leave it out).",
         );
-      if (f.ext !== 'glb' && f.ext !== 'vrm') e('fetch.ext must be glb or vrm.');
+      if (backdrop) {
+        if (f.ext !== 'jpg' && f.ext !== 'png' && f.ext !== 'webp')
+          e("a backdrop's fetch.ext must be jpg, png or webp.");
+      } else if (f.ext !== 'glb' && f.ext !== 'vrm') e('fetch.ext must be glb or vrm.');
     }
   });
   return errors.length ? { ok: false, errors } : { ok: true, list: json as unknown as SourceList };
+}
+
+/** A backdrop item's own rules: its kind, its class, and nothing a model would take. */
+function backdropProblems(item: Record<string, unknown>): string[] {
+  const b = item.backdrop;
+  if (!isObject(b) || (b.kind !== 'ground' && b.kind !== 'sky'))
+    return ["a backdrop needs backdrop: { kind: 'ground', tile, look } or { kind: 'sky' }."];
+  const problems: string[] = [];
+  const kind = b.kind;
+  if (typeof item.id === 'string' && !BACKDROP_IDS[kind].test(item.id))
+    problems.push(
+      `a ${kind}'s id must be storystage/${kind === 'ground' ? 'Ground' : 'Sky'}/<name>.`,
+    );
+  if (item.class !== BACKDROP_CLASS[kind])
+    problems.push(`a ${kind}'s class must be ${BACKDROP_CLASS[kind]}.`);
+  if (kind === 'ground') {
+    if (!Object.keys(b).every((k) => k === 'kind' || k === 'tile' || k === 'look'))
+      problems.push('a ground takes only kind, tile and look.');
+    if (typeof b.tile !== 'number' || !(b.tile >= 0.5 && b.tile <= 20))
+      problems.push("a ground's tile must be its size in metres, from 0.5 to 20.");
+    if (typeof b.look !== 'string' || !/^[0-9a-f]{6}$/.test(b.look))
+      problems.push("a ground's look must be the stage's flat colour as rrggbb.");
+  } else {
+    if (!Object.keys(b).every((k) => k === 'kind' || k === 'exposure'))
+      problems.push('a sky takes only kind and exposure.');
+    if (
+      b.exposure !== undefined &&
+      (typeof b.exposure !== 'number' || !(b.exposure >= 0.05 && b.exposure <= 1))
+    )
+      problems.push("a sky's exposure must be from 0.05 to 1.");
+  }
+  if (item.height !== undefined || item.turn !== undefined || item.exclude !== undefined)
+    problems.push('a backdrop takes no height, turn or exclude: the build makes its model.');
+  if (isObject(item.fetch) && 'generated' in item.fetch)
+    problems.push(
+      "a backdrop's fetch is its picture, pinned: { github, commit, path } or { url, sha256, ext }.",
+    );
+  return problems;
 }

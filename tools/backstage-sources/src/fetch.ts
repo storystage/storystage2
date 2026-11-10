@@ -28,6 +28,25 @@ export interface Fetched {
 
 const sha256 = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 
+/** A backdrop's picture (spec 17 section 2), pinned as a model is. */
+export async function fetchPicture(
+  item: SourceItem,
+  fetcher: Fetcher,
+): Promise<{ readonly bytes: Uint8Array; readonly fetched: Fetched['fetched'] }> {
+  const f = item.fetch;
+  if ('generated' in f) throw new Error(`${item.id}: a backdrop's picture is fetched, not made.`);
+  const url =
+    'url' in f
+      ? f.url
+      : `https://raw.githubusercontent.com/${f.github}/${f.commit}/` +
+        f.path.split('/').map(encodeURIComponent).join('/');
+  const bytes = await fetcher(url);
+  const got = sha256(bytes);
+  if ('url' in f && f.sha256 !== undefined && got !== f.sha256)
+    throw new Error(`${item.id}: ${f.url} has sha256 ${got}, not ${f.sha256} as listed.`);
+  return { bytes, fetched: [{ url, sha256: got }] };
+}
+
 export async function fetchModel(
   item: SourceItem,
   fetcher: Fetcher,
@@ -59,6 +78,8 @@ export async function fetchModel(
     const got = sha256(bytes);
     if (f.sha256 !== undefined && got !== f.sha256)
       throw new Error(`${item.id}: ${f.url} has sha256 ${got}, not ${f.sha256} as listed.`);
+    if (f.ext !== 'glb' && f.ext !== 'vrm')
+      throw new Error(`${item.id}: ${f.url} is a picture, not a model.`);
     return { bytes, ext: f.ext, fetched: [{ url: f.url, sha256: got }] };
   }
   const base = `https://raw.githubusercontent.com/${f.github}/${f.commit}/`;

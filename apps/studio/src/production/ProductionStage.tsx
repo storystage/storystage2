@@ -1,6 +1,6 @@
 import type { NodeId } from '@storystage/ast';
 import type { EditorHost } from '@storystage/editor-contract';
-import type { Production, SceneId } from '@storystage/production';
+import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useRef, useState } from 'react';
@@ -12,6 +12,9 @@ import { sceneFrames } from '../storyboard/frames.ts';
 import type { Highlights } from './BlocksPanel.tsx';
 import { CodeEditor } from './CodeEditor.tsx';
 import type { RehearsalState } from './rehearsal.ts';
+import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
+import { ProductionFrames } from './ProductionFrames.tsx';
+import type { Place } from '../storyboard/place.ts';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
 
@@ -37,6 +40,13 @@ export interface ProductionStageProps {
   /** For tests: how the scene view's stage and runtime worker are made. */
   makeStage?: StageMaker;
   startWorker?: () => RuntimeWorker;
+  /** The current frame, shared with the other tabs; the strip shows it chosen. */
+  frame?: FrameId | null;
+  /** The learner chose a frame on the strip. Without it there's no strip. */
+  onPlaceChange?: (place: Place) => void;
+  /** The frames Rehearse has played since they last changed, kept by the App for the session. */
+  rehearsed?: Rehearsed;
+  onRehearsed?: (next: Rehearsed) => void;
 }
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
@@ -96,6 +106,10 @@ export function ProductionStage({
   active = true,
   makeStage,
   startWorker,
+  frame = null,
+  onPlaceChange,
+  rehearsed = NONE_REHEARSED,
+  onRehearsed,
 }: ProductionStageProps) {
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
@@ -113,6 +127,14 @@ export function ProductionStage({
       : null;
   return (
     <div className="pr">
+      {onPlaceChange && (
+        <ProductionFrames
+          production={p}
+          frame={frame}
+          rehearsed={rehearsed}
+          onPlaceChange={onPlaceChange}
+        />
+      )}
       {scene !== null && models && (
         <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>
           <SceneView
@@ -122,7 +144,19 @@ export function ProductionStage({
             models={models}
             unavailable={unavailable}
             selectedBlock={() => editorRef.current?.selection()[0] ?? null}
-            onRehearsal={setRehearsal}
+            onRehearsal={(state) => {
+              setRehearsal(state);
+              // The frames this run has reached are Rehearsed until they change (section 2.3).
+              if (!onRehearsed) return;
+              const reached = framesReached(
+                p,
+                scene,
+                state.ran,
+                state.status === 'ended' && state.reachedEnd,
+              );
+              const next = withRehearsed(rehearsed, p, reached);
+              if (next !== rehearsed) onRehearsed(next);
+            }}
             onAnnounce={onAnnounce}
             active={active}
             {...(makeStage ? { makeStage } : {})}
