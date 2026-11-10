@@ -19,7 +19,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'pnpm build && pnpm exec vite preview',
+    // Built as the spike site builds it (spike-pages.yml), so relative paths are tested too.
+    command: 'pnpm exec vite build --base ./ && pnpm exec vite preview',
     url: 'http://localhost:4233',
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
