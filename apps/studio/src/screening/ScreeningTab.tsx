@@ -6,7 +6,13 @@
  * the tab.
  */
 import type { NodeId } from '@storystage/ast';
-import { distributionProblems, exportFilm, usedModels, type FilmExport } from '@storystage/export';
+import {
+  RESOLUTIONS,
+  distributionProblems,
+  exportFilm,
+  usedModels,
+  type FilmExport,
+} from '@storystage/export';
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
 import {
@@ -208,7 +214,10 @@ export function ScreeningTab(props: ScreeningTabProps) {
     (chosen: ExportChoices): ExportRun =>
     async (signal, onProgress) => {
       await models.prepare(usedModels(production));
-      const hidden = await make(hiddenCanvas(), { hidden: true, models: models.source });
+      const hidden = await make(hiddenCanvas(RESOLUTIONS[chosen.resolution]), {
+        hidden: true,
+        models: models.source,
+      });
       try {
         return await exportFilm({
           production,

@@ -86,6 +86,7 @@ const timeline = (over: Partial<Timeline> = {}): Timeline => ({
   lines: [],
   length: micros(72),
   end: { kind: 'ended' },
+  missing: [],
   ...over,
 });
 

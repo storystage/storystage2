@@ -188,6 +188,36 @@ export function RoughCut(props: RoughCutProps) {
           </div>
 
           {timeline.end.kind === 'cap' && <NeutralNote>{words.t('roughCut.cap')}</NeutralNote>}
+          {timeline.missing.map(({ scene, missing }) => {
+            const n = p.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
+            // Measuring plays only the running order, so this is a guard, not a case.
+            if (n === 0) return null;
+            // As the studio's Class models card names them: the id's last part, dashes as spaces.
+            const models = [
+              ...new Set(
+                missing.flatMap((m) =>
+                  m.kind === 'model'
+                    ? [m.model.slice(m.model.lastIndexOf('/') + 1).replace(/-/g, ' ')]
+                    : [],
+                ),
+              ),
+            ];
+            return (
+              <NeutralNote key={scene}>
+                {models.length > 0 && (
+                  <span>
+                    {words.plural('roughCut.missingModels', models.length, {
+                      n,
+                      names: names(models),
+                    })}
+                  </span>
+                )}
+                {missing.some((m) => m.kind === 'backdrop') && (
+                  <span> {words.t('roughCut.missingBackdrop', { n })}</span>
+                )}
+              </NeutralNote>
+            );
+          })}
 
           {props.error && (
             <NeutralNote>
@@ -217,6 +247,10 @@ export function RoughCut(props: RoughCutProps) {
   );
 }
 
+/** "red fox", "fox and penguin", "fox, owl and penguin". */
+const names = (all: readonly string[]) =>
+  all.length <= 1 ? (all[0] ?? '') : `${all.slice(0, -1).join(', ')} and ${all.at(-1)!}`;
+
 /** Stands in for the timeline while the film is measured. */
 const MEASURING: Timeline = {
   scenes: [],
@@ -224,6 +258,7 @@ const MEASURING: Timeline = {
   lines: [],
   length: 0,
   end: { kind: 'ended' },
+  missing: [],
 };
 
 const segmentName = (s: Segment) =>

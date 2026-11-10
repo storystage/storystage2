@@ -24,6 +24,9 @@ import {
   type ToRuntime,
 } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
+
+/** Something a scene names that the stage couldn't find. */
+export type Missing = ReturnType<Stage['missing']>[number];
 import { errorWords } from './words.ts';
 import {
   StageError,
@@ -75,6 +78,11 @@ export type PlaybackEvent =
       /** What happened and what to do next, for the learner (6.3). */
       readonly words: string;
     }
+  /**
+   * What the scene just loaded couldn't find (`stage.missing()`, spec 03 section 1.3): models
+   * shown as stand-ins, backdrop parts left as the default. Play goes on.
+   */
+  | { readonly kind: 'missing'; readonly scene: SceneId; readonly missing: readonly Missing[] }
   /** Play can't go on: too many scene starts, or a scene that isn't there. */
   | { readonly kind: 'fault'; readonly code: string; readonly message: string }
   /** Play is over: the film ended (after any fade, which the player sends first), or it was stopped. */
@@ -402,5 +410,7 @@ export class Playback {
     });
     this.running = true;
     this.emit({ kind: 'scene', scene: action.scene, transition: action.transition, at: this.film });
+    const missing = stage.missing();
+    if (missing.length > 0) this.emit({ kind: 'missing', scene: action.scene, missing });
   }
 }
