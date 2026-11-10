@@ -59,17 +59,26 @@ describe('models', () => {
     expect(body(ann)).toBeDefined();
   });
 
-  it('refuse a model Backstage does not have, or a file that will not load', async () => {
+  it('that Backstage does not have, or that will not load, show as stand-ins (spec 03, 1.3)', async () => {
+    const ghost = backstageId('test/Biped/ghost');
     const missing = new BabylonStage(headlessEngine(), { models: source });
-    const nothing = { ...setup, objects: [place(ann, 0, backstageId('test/Biped/ghost'))] };
-    await expect(missing.load(nothing)).rejects.toMatchObject({ code: 'unknown_model' });
+    await missing.load({ ...setup, objects: [place(ann, 0, ghost), place(bob, 2)] });
+    // The scene plays on, the missing one as a stand-in with its model's name, and it says so.
+    expect(missing.objects()).toEqual(expect.arrayContaining([ann, bob]));
+    expect(missing.missing()).toEqual([{ kind: 'model', object: ann, model: ghost }]);
+    expect(missing.joints(ann)).toContain(head);
     const broken = new BabylonStage(headlessEngine(), {
       models: { find: () => ({ url: 'data:model/gltf-binary;base64,AAAA', joints: [] }) },
     });
-    await expect(broken.load(setup)).rejects.toMatchObject({ code: 'unknown_model' });
-    await expect(new BabylonStage(headlessEngine()).load(setup)).rejects.toMatchObject({
-      code: 'unknown_model',
-    });
+    await broken.load(setup);
+    expect(broken.missing().map((m) => m.kind)).toEqual(['model', 'model']);
+    const none = new BabylonStage(headlessEngine());
+    await none.load(setup);
+    expect(none.missing()).toHaveLength(2);
+    // A scene with everything found has nothing missing.
+    const found = new BabylonStage(headlessEngine(), { models: source });
+    await found.load(setup);
+    expect(found.missing()).toEqual([]);
   });
 
   it('are found through a manifest', () => {

@@ -9,7 +9,7 @@ import {
   type ToRuntime,
 } from '@storystage/runtime';
 import { FakeStage } from '@storystage/stage/testing';
-import { STORY_LIBRARY, micros } from '@storystage/story-api';
+import { STORY_LIBRARY, micros, StageError } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { ScreeningPlayer } from './screening-player.ts';
 
@@ -156,15 +156,21 @@ describe('ScreeningPlayer', () => {
     const player = new ScreeningPlayer({
       production: exampleProduction(),
       stage: new CountedStage(),
-      // A hidden stage that knows no models: the penguin can't be found.
-      measureStage: () => new CountedStage({ knownModels: [] }),
+      // A hidden stage that can't make sense of the set-up. (A model it can't find no longer
+      // stops a scene: it plays on as a stand-in, spec 03 section 1.3.)
+      measureStage: () =>
+        new (class extends CountedStage {
+          override async load(): Promise<void> {
+            throw new StageError('bad_argument', 'There is no paint called rainbow.');
+          }
+        })(),
       startWorker: w.start,
       seed: 1,
       wall: () => 0,
     });
     await player.prepare();
     expect(player.state.error).toEqual({
-      words: "A model in this scene can't be found. Choose it again in Backstage.",
+      words: "The stage can't do what this block asks. Check what you've put in its spaces.",
       node: null,
     });
   });

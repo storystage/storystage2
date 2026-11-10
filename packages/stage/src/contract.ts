@@ -11,6 +11,7 @@
  * see the same scene at the same time.
  */
 import type {
+  BackstageId,
   JointName,
   Micros,
   ObjectId,
@@ -50,11 +51,22 @@ export interface LoadOptions {
   readonly crossfade?: Micros;
 }
 
+/**
+ * Something a scene names that the stage couldn't find (spec 03 section 1.3): a model, which
+ * shows as a stand-in labelled with its name, or a backdrop's ground, sky or lighting, which is
+ * the default instead. The scene still loads and plays.
+ */
+export type Missing =
+  | { readonly kind: 'model'; readonly object: ObjectId; readonly model: BackstageId }
+  | { readonly kind: 'backdrop'; readonly id: BackstageId };
+
 export interface Stage {
   /**
    * Replaces the scene with `setup` and forgets every command. Resolves when every model has
    * loaded **and the scene is ready to draw** (shaders compiled), so the first frame is the same
-   * every time (spike 1.4, rule 5). Rejects with a `StageError` (`unknown_model`).
+   * every time (spike 1.4, rule 5). A model or backdrop it can't find doesn't stop it: a model
+   * shows as a stand-in, a backdrop's part is the default, and `missing()` says which (spec 03,
+   * section 1.3). Rejects with a `StageError` (`bad_argument`) for a set-up it can't make sense of.
    */
   load(setup: SceneSetup, options?: LoadOptions): Promise<void>;
 
@@ -66,6 +78,9 @@ export interface Stage {
    * report.
    */
   preload(setup: SceneSetup): Promise<void>;
+
+  /** What the last `load` couldn't find, in set-up order: the backdrop's parts, then models. */
+  missing(): readonly Missing[];
 
   /** The objects in the scene, the camera included, in setup order. */
   objects(): readonly ObjectId[];

@@ -54,13 +54,18 @@ describe('FakeStage', () => {
     ).toThrow(StageError);
   });
 
-  it('refuses an unknown model when it is told which models exist', async () => {
+  it('plays on past a model it is told does not exist, and says so (spec 03, 1.3)', async () => {
     const stage = new FakeStage({ knownModels: [backstageId('Quadruped/Cat/AbyssinianCat')] });
+    const dragon = backstageId('Dragon/Big');
     const setup = {
       ...SETUP,
-      objects: [{ ...SETUP.objects[0]!, model: backstageId('Dragon/Big') }],
+      objects: [{ ...SETUP.objects[0]!, model: dragon }, SETUP.objects[1]!],
     };
-    await expect(stage.load(setup)).rejects.toMatchObject({ code: 'unknown_model' });
+    await stage.load(setup);
+    expect(stage.objects()).toContain(SETUP.objects[0]!.id);
+    expect(stage.missing()).toEqual([
+      { kind: 'model', object: SETUP.objects[0]!.id, model: dragon },
+    ]);
   });
 
   it('turns to face the other way round the short way', async () => {
