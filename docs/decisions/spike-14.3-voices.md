@@ -1,6 +1,6 @@
 # Spike 14.3: the bundled speech engine
 
-- **Status:** proposed by S1, 10 Nov 2026. Waiting for the owner.
+- **Status:** decided: **go**, with an accent switch (owner, 10 Nov 2026). Proposed by S1 on 10 Nov 2026.
 - **Evidence:** `docs/spikes/REPORT.md`, section 14.3; the licence check in `docs/spikes/tts-engines.md`; code in `spikes/14.3-voices/`.
 
 ## Proposal
@@ -16,4 +16,8 @@ Before release:
 
 ## Owner decision
 
-_Not yet decided._
+Go: Kokoro becomes speak line's bundled engine, with our British rules and the presets. Before release, D checks its training-data provenance and its credits, and the reference Chromebook and iPad give memory and speed.
+
+**And an American accent option:** British English by default, with a switch in Settings. Kokoro has American voices too (11 women's, 9 men's), spoken with the CMU dictionary as it is. Spec 06 section 4.3 says how the switch works.
+
+Recorded by S1 from the owner's answer in the S1 session, 10 Nov 2026.
