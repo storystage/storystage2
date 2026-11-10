@@ -25,7 +25,8 @@ import { DropZone, type DropZoneProps } from 'react-aria-components';
 import { words, type WordKey } from '../strings.ts';
 import { updateFrame } from './frames.ts';
 import { pinnedLines } from './lines.ts';
-import { SketchArt, sketchAspect, sketchName, type SketchItem } from './SketchArt.tsx';
+import { describeSketch, sketchStyle } from './FramePicture.tsx';
+import { SketchArt, sketchName, type SketchItem } from './SketchArt.tsx';
 import { SKETCH_DRAG_TYPE } from './SketchLibrary.tsx';
 
 export interface FrameCanvasProps {
@@ -45,22 +46,6 @@ export interface FrameCanvasProps {
   /** The frame's caption line: its number, shot and length. */
   children: ReactNode;
 }
-
-/** A sketch at standard size is this tall, as a share of the frame's height. */
-const STANDARD_HEIGHT = 0.3;
-
-/** "Owl, on the left": a sketch's accessible name (`07-ux.md` section 6.5). */
-function describe(s: PlacedSketch): string {
-  const name = sketchName(s.item);
-  const where = words.t(`storyboard.canvas.where.${across(s)}`);
-  return words.t(s.flipped ? 'storyboard.canvas.sketchFlipped' : 'storyboard.canvas.sketch', {
-    name,
-    where,
-  });
-}
-
-/** A share of the frame as a CSS length, to 0.01%. */
-const percent = (share: number) => `${Math.round(share * 10000) / 100}%`;
 
 const optionId = (frame: Frame, id: string) => `sb-sketch-${frame.id}-${id}`;
 
@@ -341,18 +326,12 @@ export function FrameCanvas({
                       id={optionId(frame, s.id)}
                       role="option"
                       aria-selected={isChosen}
-                      aria-label={describe(s)}
+                      aria-label={describeSketch(s)}
                       tabIndex={s === focusTarget ? 0 : -1}
                       className="sb-sketch"
                       data-chosen={isChosen || undefined}
                       data-lifted={lifted === s.id || undefined}
-                      style={{
-                        left: percent(s.x),
-                        top: percent(s.y),
-                        height: percent(STANDARD_HEIGHT * s.scale),
-                        aspectRatio: sketchAspect(s.item),
-                        zIndex: s.layer + 1,
-                      }}
+                      style={sketchStyle(s)}
                       onFocus={() => {
                         if (!isChosen) onChosenChange(s.id);
                       }}
