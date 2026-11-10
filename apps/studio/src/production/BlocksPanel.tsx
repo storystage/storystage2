@@ -18,6 +18,8 @@ export interface BlocksPanelProps {
   /** The object the palette offers blocks for, and its tab. */
   target: Expression;
   tab: PaletteTab;
+  /** A block to put keyboard focus on as the editor opens: the one Screening's Fix pointed at. */
+  focus?: NodeId | null;
 }
 
 /** A question the editor is waiting on, and how to answer it. */
@@ -28,7 +30,7 @@ interface Question {
   readonly answer: (value: Expression | null) => void;
 }
 
-export default function BlocksPanel({ method, host, target, tab }: BlocksPanelProps) {
+export default function BlocksPanel({ method, host, target, tab, focus = null }: BlocksPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<BlocksEditor | null>(null);
   const [ready, setReady] = useState(false);
@@ -53,13 +55,15 @@ export default function BlocksPanel({ method, host, target, tab }: BlocksPanelPr
           });
         }),
     });
-    blocks.mount(box.current, host, { method, selection: [], focus: null });
+    blocks.mount(box.current, host, { method, selection: focus ? [focus] : [], focus });
     editor.current = blocks;
     setReady(true);
     return () => {
       editor.current = null;
       blocks.unmount();
     };
+    // `focus` is for opening only: the Code editor opens afresh for each block it's asked to show.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, host]);
 
   useEffect(() => {

@@ -1,3 +1,4 @@
+import type { NodeId } from '@storystage/ast';
 import type { EditorHost } from '@storystage/editor-contract';
 import type { Production, SceneId } from '@storystage/production';
 import { Button, Icon } from '@storystage/ui';
@@ -14,6 +15,8 @@ export interface ProductionStageProps {
   onGoToStoryboard: () => void;
   /** The polite live region's words: what the editors and the stage announce. */
   announcement: string;
+  /** A block to open the Code editor at (Screening's Fix), with a count so each request is new. */
+  reveal?: { readonly node: NodeId; readonly n: number } | null;
 }
 
 /** What the scene still needs before its Code editor opens (`07-ux.md` section 1.4; 10.8). */
@@ -45,6 +48,7 @@ export function ProductionStage({
   host,
   onGoToStoryboard,
   announcement,
+  reveal = null,
 }: ProductionStageProps) {
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
@@ -58,7 +62,13 @@ export function ProductionStage({
           </Button>
         </div>
       ) : open ? (
-        <CodeEditor production={p} scene={scene} host={host} />
+        <CodeEditor
+          production={p}
+          scene={scene}
+          host={host}
+          key={reveal ? `reveal-${reveal.n}` : 'code'}
+          reveal={reveal?.node ?? null}
+        />
       ) : (
         <section className="pr-closed" aria-labelledby="pr-closed-title">
           <h2 id="pr-closed-title" className="pr-closed-title">
