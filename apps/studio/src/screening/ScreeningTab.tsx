@@ -9,6 +9,7 @@ import type { NodeId } from '@storystage/ast';
 import { usedModels } from '@storystage/export';
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
+import type { ProductionFiles } from '@storystage/production';
 import {
   RoughCut,
   ScreeningPlayer,
@@ -30,6 +31,8 @@ const SEED = 1;
 export interface ScreeningTabProps {
   readonly studio: Studio;
   readonly host: HostInterface;
+  /** The open film's files: its packed models, checked before they're shown. */
+  readonly files: ProductionFiles;
   onPlaceChange(place: Place): void;
   /**
    * False while the tab is out of sight under Learn or Settings: play pauses and the stage stops
@@ -84,7 +87,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
   const production = studio.production;
   const make = props.makeStage ?? makeStage;
   const startWorker = props.startWorker ?? startRuntimeWorker;
-  const models = useModelSource(host, props.models);
+  const models = useModelSource(host, production, props.files, props.models);
   const canvasRef = useRef<HTMLDivElement>(null);
   const [stage, setStage] = useState<ShownStage | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -177,6 +180,18 @@ export function ScreeningTab(props: ScreeningTabProps) {
   return (
     <div className="sr-tab">
       {problem && <NeutralNote>{problem}</NeutralNote>}
+      {models.refused.length > 0 && (
+        <NeutralNote>
+          {words.t('screening.refused')}
+          <ul className="sr-refused">
+            {models.refused.map((r) => (
+              <li key={r.folder}>
+                {words.t('screening.refusedModel', { name: r.name, reason: r.reason })}
+              </li>
+            ))}
+          </ul>
+        </NeutralNote>
+      )}
       <RoughCut
         production={production}
         timeline={state.timeline}

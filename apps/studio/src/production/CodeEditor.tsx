@@ -1,4 +1,10 @@
-import type { Expression, ListenerDecl, MethodDecl, NodeId } from '@storystage/ast';
+import {
+  indexProgram,
+  type Expression,
+  type ListenerDecl,
+  type MethodDecl,
+  type NodeId,
+} from '@storystage/ast';
 import type { EditorHost } from '@storystage/editor-contract';
 import type { Production, SceneId } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
@@ -26,6 +32,8 @@ export interface CodeEditorProps {
   production: Production;
   scene: SceneId;
   host: EditorHost;
+  /** A block to open at: its method's tab, with keyboard focus on it (Screening's Fix). */
+  reveal?: NodeId | null;
 }
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
@@ -38,6 +46,19 @@ export function sceneMethods(p: Production, scene: SceneId): (MethodDecl | Liste
   const first = type.methods.filter((m) => m.id === script);
   const others = type.methods.filter((m) => m.id !== script);
   return [...first, ...type.listeners, ...others];
+}
+
+/** Which of `methods` holds `node`, or `null` for a node in none of them. */
+export function methodHolding(
+  p: Production,
+  methods: readonly (MethodDecl | ListenerDecl)[],
+  node: NodeId,
+): NodeId | null {
+  const index = indexProgram(p.program);
+  const ids = new Set<NodeId>(methods.map((m) => m.id));
+  for (let at: NodeId | null = node; at !== null; at = index.get(at)?.parent ?? null)
+    if (ids.has(at)) return at;
+  return null;
 }
 
 /** A tab's name: a method's own, or an event's words ("when an object is clicked"). */
@@ -60,10 +81,13 @@ const SCENE = 'scene';
  * method, each showing the Blocks editor (`@storystage/blocks`, loaded on demand so the Storyboard
  * opens without Blockly).
  */
-export function CodeEditor({ production: p, scene, host }: CodeEditorProps) {
+export function CodeEditor({ production: p, scene, host, reveal = null }: CodeEditorProps) {
   const themeStyle = useThemeStyle();
   const methods = sceneMethods(p, scene);
-  const [chosen, setChosen] = useState<Key | null>(null);
+  // Opened to show a block: its method first. Each reveal opens the editor afresh (a new key).
+  const [chosen, setChosen] = useState<Key | null>(() =>
+    reveal ? methodHolding(p, methods, reveal) : null,
+  );
   const [object, setObject] = useState<Key>(SCENE);
   const [tab, setTab] = useState<PaletteTab>('actions');
   const open = methods.find((m) => m.id === chosen)?.id ?? methods[0]?.id ?? null;
@@ -119,7 +143,13 @@ export function CodeEditor({ production: p, scene, host }: CodeEditorProps) {
         {methods.map((m) => (
           <TabPanel key={m.id} id={m.id} className="pr-tab-panel">
             <Suspense fallback={<p className="pr-loading">{words.t('production.loading')}</p>}>
-              <BlocksPanel method={m.id} host={host} target={target} tab={tab} />
+              <BlocksPanel
+                method={m.id}
+                host={host}
+                target={target}
+                tab={tab}
+                focus={reveal && m.id === chosen ? reveal : null}
+              />
             </Suspense>
           </TabPanel>
         ))}
