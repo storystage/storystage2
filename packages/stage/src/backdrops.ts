@@ -191,13 +191,15 @@ const LIGHTING = new Map<BackstageId, Lighting>();
 
 /**
  * The picture skies (the owner's choice, 10 Nov 2026), each with a lighting of the same name.
- * The colours are provisional: S4's build reports each picture's horizon and a lighting to suit.
+ * Each atmosphere colour is the average of its picture's band just above the horizon, and each
+ * lighting suits its picture: both from S4's build (backstage-assets#9, 10 Nov 2026), the
+ * sunset's lighting warm, with its sun low ahead.
  */
 const PICTURE_SKIES: readonly (readonly [name: string, horizon: Colour, lighting: Lighting])[] = [
-  ['clearDay', rgb(0.74, 0.85, 0.95), { above: WHITE, below: rgb(0.2, 0.22, 0.2) }],
-  ['cloudy', rgb(0.72, 0.74, 0.78), { above: rgb(0.85, 0.86, 0.9), below: rgb(0.2, 0.2, 0.22) }],
-  ['sunset', rgb(0.96, 0.6, 0.38), { above: rgb(1, 0.78, 0.6), below: rgb(0.25, 0.12, 0.2) }],
-  ['night', rgb(0.05, 0.07, 0.15), { above: rgb(0.32, 0.38, 0.58), below: BLACK }],
+  ['clearDay', hex('aebfd0'), { above: hex('99bdec'), below: hex('454c53') }],
+  ['cloudy', hex('99a1b3'), { above: hex('acbfe9'), below: hex('3d4048') }],
+  ['sunset', hex('c6c1b4'), { above: hex('f2c08c'), below: hex('4f4d48') }],
+  ['night', hex('545b63'), { above: hex('7b8ca3'), below: hex('222528') }],
 ];
 
 export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map(

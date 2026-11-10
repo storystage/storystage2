@@ -661,7 +661,7 @@ async function pictureSky() {
       duration: micros(0),
       style: 'beginAndEndAbruptly',
       kind: 'atmosphere',
-      colour: '#5e6c79',
+      colour: '#576068',
     },
   ]);
   const none = await backdropFrame(backdrop, new Map());

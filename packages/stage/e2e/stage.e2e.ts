@@ -159,7 +159,7 @@ test('draws a picture sky around the camera, the right way round, and tints it (
   expect(Math.abs(r.tinted[0]! - red! / 2)).toBeLessThan(12);
   expect(r.missing).toEqual([]);
   // With no item, its atmosphere colour, reported.
-  expect(Math.abs(r.without.colour[0]! - 0.74 * 255)).toBeLessThan(4);
+  expect(Math.abs(r.without.colour[0]! - 0xae)).toBeLessThan(4);
   expect(r.without.missing).toEqual([{ kind: 'backdrop', id: 'storystage/Sky/clearDay' }]);
 });
 
