@@ -207,6 +207,10 @@ export interface ModelPackMessage {
 /** From the worker, as each model's checks begin. */
 export interface ModelPackProgress {
   readonly type: 'modelPackProgress';
+  /** The model now being checked, from 1. */
+  readonly n: number;
+  /** How many models the pack holds. */
+  readonly total: number;
 }
 
 /** From the worker, when the pack is opened. */
@@ -231,7 +235,11 @@ export function openModelPackInWorker(
   start: () => ImportWorker,
   bytes: Uint8Array,
   taken: readonly string[],
-  options: { readonly timeLimitMs?: number } = {},
+  options: {
+    readonly timeLimitMs?: number;
+    /** As each model's checks begin: its place (from 1) and how many the pack holds. */
+    readonly onProgress?: (n: number, total: number) => void;
+  } = {},
 ): Promise<OpenedModelPack> {
   const copy = bytes.slice();
   const message: ModelPackMessage = { type: 'openModelPack', bytes: copy, taken };
@@ -240,7 +248,13 @@ export function openModelPackInWorker(
       const d = data as Partial<ModelPackAnswer> | null;
       return d?.type === 'modelPackOpened' && d.result ? d.result : undefined;
     },
-    progress: (data) => (data as { type?: unknown } | null)?.type === 'modelPackProgress',
+    progress: (data) => {
+      const p = data as Partial<ModelPackProgress> | null;
+      if (p?.type !== 'modelPackProgress') return false;
+      if (typeof p.n === 'number' && typeof p.total === 'number')
+        options.onProgress?.(p.n, p.total);
+      return true;
+    },
     timedOut: () => ({ ok: false, problem: PACK_TOO_SLOW }),
     failed: () => ({ ok: false, problem: IMPORT_BROKE }),
     ...(options.timeLimitMs !== undefined ? { timeLimitMs: options.timeLimitMs } : {}),

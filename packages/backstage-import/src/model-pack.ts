@@ -64,8 +64,11 @@ export async function openModelPack(
   tools: ImportTools,
   taken: ReadonlySet<string> = new Set(),
   options: {
-    /** Called as each model's checks begin: the worker reports it, for the time limit per model. */
-    readonly onModel?: () => void;
+    /**
+     * Called as each model's checks begin, with its place (from 1) and how many the pack holds:
+     * the worker reports it, for the time limit per model and the studio's "Checking model 3 of 12".
+     */
+    readonly onModel?: (n: number, total: number) => void;
   } = {},
 ): Promise<OpenedModelPack> {
   const read = readArchive(bytes, {
@@ -97,8 +100,9 @@ export async function openModelPack(
   const models: PackedImport[] = [];
   const leftOut: { name: string; reason: string }[] = [];
   const seen = new Set<string>();
-  for (const entry of manifest.models as readonly unknown[]) {
-    options.onModel?.();
+  const total = manifest.models.length;
+  for (const [index, entry] of (manifest.models as readonly unknown[]).entries()) {
+    options.onModel?.(index + 1, total);
     const folder = (entry as { folder?: unknown } | null)?.folder;
     const record = (entry as { item?: unknown } | null)?.item;
     const name =

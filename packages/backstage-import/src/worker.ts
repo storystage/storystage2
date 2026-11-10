@@ -57,9 +57,12 @@ export function serveImports(port: WorkerPort, tools: ImportTools): void {
   port.addEventListener('message', (event) => {
     if (isModelPack(event.data)) {
       const { bytes, taken } = event.data;
-      const progress: ModelPackProgress = { type: 'modelPackProgress' };
+
       void openModelPack(bytes, tools, new Set(taken), {
-        onModel: () => port.postMessage(progress),
+        onModel: (n, total) => {
+          const progress: ModelPackProgress = { type: 'modelPackProgress', n, total };
+          port.postMessage(progress);
+        },
       })
         .catch((): OpenedModelPack => ({ ok: false, problem: IMPORT_BROKE }))
         .then((result) => {

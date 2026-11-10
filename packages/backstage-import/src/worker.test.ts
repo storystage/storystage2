@@ -164,7 +164,11 @@ describe('openModelPackInWorker (spec 17, section 5)', () => {
     if (!r.ok) throw new Error('import failed');
     const pack = writeModelPack([{ item: r.item, files: r.files }]);
     const fake = fakeWorker(true);
-    const opened = await openModelPackInWorker(() => fake.worker, pack, []);
+    const progress: [number, number][] = [];
+    const opened = await openModelPackInWorker(() => fake.worker, pack, [], {
+      onProgress: (n, total) => void progress.push([n, total]),
+    });
+    expect(progress).toEqual([[1, 1]]);
     expect(opened).toMatchObject({ ok: true, leftOut: [], models: [{ item: { id: r.item.id } }] });
     expect(fake.terminated()).toBe(1);
     const again = await openModelPackInWorker(() => fakeWorker(true).worker, pack, [r.item.id]);
