@@ -6,3 +6,4 @@
 export * from './geometry.ts';
 export * from './spans.ts';
 export * from './compare.ts';
+export * from './status.ts';

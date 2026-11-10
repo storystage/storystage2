@@ -5,37 +5,16 @@
  */
 import type { NodeId } from '@storystage/ast';
 import type { Missing } from '@storystage/playback';
-import type { Frame, LineId, PlacedSketch, ScriptLine } from '@storystage/production';
+import type {
+  CheckItem,
+  CheckOutcome,
+  Frame,
+  PlacedSketch,
+  ScriptLine,
+} from '@storystage/production';
 import type { BackstageId, Micros, StandIn, Transform } from '@storystage/story-api';
 import { facing, heightOnPicture, project, type OnPicture, type View } from './geometry.ts';
 import type { FrameSpan } from './spans.ts';
-
-// ---- The result's shape, as S4's format 1.3.0 has it (#338) --------------------------------
-
-export type CheckKind =
-  | 'onScreen'
-  | 'offCamera'
-  | 'position'
-  | 'order'
-  | 'facing'
-  | 'shot'
-  | 'line'
-  | 'length'
-  | 'problem'
-  | 'missing';
-export type CheckOutcome = 'passed' | 'flag' | 'note';
-
-export interface CheckItem {
-  /** Stable across runs, and unique in the frame: `kept` points at it. */
-  readonly id: string;
-  readonly kind: CheckKind;
-  readonly outcome: CheckOutcome;
-  /** Plain words (9.5). */
-  readonly words: string;
-  readonly node?: NodeId;
-  readonly sketch?: string;
-  readonly line?: LineId;
-}
 
 /** Flags first, then notes, then passed items, so every view lists them the same way. */
 export const ITEM_ORDER: readonly CheckOutcome[] = ['flag', 'note', 'passed'];
