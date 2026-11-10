@@ -1,6 +1,12 @@
 import { StageError, backstageId } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import { BACKDROP_TEMPLATES, GROUND_TYPES, fogDensity, resolveBackdrop } from './backdrops.ts';
+import {
+  BACKDROP_TEMPLATES,
+  GROUND_TYPES,
+  fogDensity,
+  groundLook,
+  resolveBackdrop,
+} from './backdrops.ts';
 
 const template = (id: string) => {
   const found = BACKDROP_TEMPLATES.find((t) => t.id === id);
@@ -28,6 +34,12 @@ describe('backdrops', () => {
     expect(moon.sky.atmosphere).toEqual({ r: 0.11, g: 0.133, b: 0.178 });
     expect(moon.lighting.below).toEqual({ r: 0, g: 0.118, b: 0.396 });
     expect(template('amazon').lighting.above).toEqual({ r: 0.341, g: 0.576, b: 1 });
+  });
+
+  it("gives each ground's look on screen, for its texture to match (spec 17 section 2)", () => {
+    expect(groundLook(backstageId('storystage/Ground/grass'))).toBe('#5f9e3a');
+    expect(groundLook(backstageId('storystage/Ground/nowhere'))).toBeNull();
+    for (const id of GROUND_TYPES) expect(groundLook(id), id).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it('cubes the fog value, as Alice does, so small values stay subtle', () => {
