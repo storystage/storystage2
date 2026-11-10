@@ -73,7 +73,7 @@ Once the scene's code has stopped (a `stop`, a `sceneChange` or an `error`), the
     - **Stop** works from outside at any moment: the studio stops a rehearsal when the code changes. It reloads the scene's set-up, so the stage is exactly as it started, rather than undoing anything.
 - **Fast-forward.** The driver plays in fixed steps without drawing, then carries on live. It goes:
     - **to a time,** for the rough cut's jumps within a scene;
-    - **to a block,** for Rehearse's "Rehearse to here": it stops when the picture reaches the first moment that block is running. If the block never runs, it plays to the end and says so in its result (`reached: false`), so the studio can say "That block didn't run this time".
+    - **to a block,** for Rehearse's "Rehearse to here": it stops when the picture reaches the first moment that block is running. If the block never runs, it plays to the end and says so in its result (`reached: false`), so the studio can say "That block didn't run this time". Give the driver `trace: true` for this: it then finds the block at the moment it starts from the runtime's `ran`, even a block that starts and ends between frames, which the `running` snapshots miss.
 - **Measuring.** A fixed-step run that draws nothing gives the timeline:
     - when each scene starts and how long it lasts;
     - when each block ran;
