@@ -99,6 +99,14 @@ export function matchColour(rgb: Uint8Array, look: Rgb): Uint8Array {
   return out;
 }
 
+/** `rgb` with its light scaled by `exposure` in linear light. */
+export function expose(rgb: Uint8Array, exposure: number): Uint8Array {
+  const table = new Uint8Array(256);
+  for (let v = 0; v < 256; v++)
+    table[v] = Math.round(toSrgb(Math.min(1, toLinear(v / 255) * exposure)) * 255);
+  return rgb.map((v) => table[v]!);
+}
+
 /** A picture's pixels, three bytes each, no wider or taller than `maxPx`. */
 async function pixels(picture: Uint8Array, resize: ResizeOptions) {
   const { data, info } = await sharp(picture)
@@ -212,13 +220,18 @@ export interface SkyDome {
  * A picture sky (spec 17 section 2): an inward-facing sphere centred on the origin, `SKY_RADIUS`
  * across, with an unlit material and the equirectangular picture at `SKY_TEXTURE_PX` by half
  * that. The middle of the picture faces +Z, the way the default camera looks, with +Y up.
+ *
+ * `exposure` scales its light in linear light, from 1 (as it is) down: a gallery's tonemapped
+ * pictures are each exposed to look bright, so a night sky comes as bright as noon.
  */
-export async function skyDome(picture: Uint8Array): Promise<SkyDome> {
-  const { rgb, width, height } = await pixels(picture, {
+export async function skyDome(picture: Uint8Array, exposure = 1): Promise<SkyDome> {
+  const fetched = await pixels(picture, {
     width: SKY_TEXTURE_PX,
     height: SKY_TEXTURE_PX / 2,
     fit: 'fill',
   });
+  const { width, height } = fetched;
+  const rgb = exposure === 1 ? fetched.rgb : expose(fetched.rgb, exposure);
   const doc = new Document();
   doc.createBuffer();
   const unlit = doc.createExtension(KHRMaterialsUnlit);

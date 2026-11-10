@@ -78,6 +78,11 @@ describe('backdrop source items (spec 17 section 2)', () => {
       /look/,
     );
     expect(errors({ ...grass, height: 1 })).toMatch(/no height, turn or exclude/);
+    expect(ok({ ...clearDay, backdrop: { kind: 'sky', exposure: 0.2 } }).ok).toBe(true);
+    expect(errors({ ...clearDay, backdrop: { kind: 'sky', exposure: 2 } })).toMatch(/exposure/);
+    expect(errors({ ...clearDay, backdrop: { kind: 'sky', tile: 2 } })).toMatch(
+      /only kind and exposure/,
+    );
     expect(
       errors({ ...grass, fetch: { ...(grass.fetch as object), path: 'originals/grass.glb' } }),
     ).toMatch(/picture/);
