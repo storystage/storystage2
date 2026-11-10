@@ -68,5 +68,22 @@
   "notes.left": "{n} characters left",
   "notes.step": "Retake notes for scene {n}",
   "check.title": "Automatic check",
-  "check.soon": "Coming soon"
+  "check.run": "Check the whole film",
+  "check.running": "Checking frame {done} of {total}…",
+  "check.noFrames": "This film has no storyboard frames to check yet.",
+  "check.unchecked.one": "One frame hasn’t been checked since it last changed.",
+  "check.unchecked.other": "{count} frames haven’t been checked since they last changed.",
+  "check.allGood": "Every frame matches its storyboard.",
+  "check.failed": "The check couldn’t finish. You can try again.",
+  "check.flag": "Frame {frame}: {words}",
+  "check.keep": "Keep",
+  "check.kept": "Kept",
+  "check.keepLabel": "Keep this flag on frame {frame}",
+  "check.keptLabel": "Kept on frame {frame}. Let it go",
+  "export.checking": "Checking the film against its storyboard…",
+  "export.flags.one": "The automatic check found one thing to look at. You can export anyway:",
+  "export.flags.other": "The automatic check found {count} things to look at. You can export anyway:",
+  "export.noFlags": "Every frame matches its storyboard.",
+  "export.checkFailed": "The check couldn’t finish. You can export anyway, or check again.",
+  "export.checkAgain": "Check again"
 }
