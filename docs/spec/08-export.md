@@ -116,6 +116,7 @@ The right column, as on screen 03.
 - **No still is ever sent anywhere.** It's drawn on the device and thrown away. The Prompter never sees it (owner, 31 Oct 2026).
 - **Retake notes:** each scene has a note, in the learner's own words, kept with the production on its storyboard card (`SceneCard.retakeNotes`, spec 03, S4's #231). It's typed, or dictated (decision 0060), and written through the production's session, so it has undo like everything else. Its length limit is spec 07's (section 6.9).
 - **The automatic check** (11.6) sits under Compare. It's WP11c. Until then its panel says "Coming soon".
+- **In code:** `Compare`, `RetakeNotes` and `CheckSoon` in `packages/screening`. The sketch is the studio's read-only `FramePicture` (S5), through `drawFrame`. The still comes from `ScreeningPlayer.still`: in the scene on the stage it's drawn without moving the film; for a frame in another scene, the film moves there first. Compare starts on the first frame and follows the frame playing until the learner chooses one with the arrows. Retake notes are for the frame compared's scene, written with `studio.commit` under one key per scene, so a run of typing is one undo step; they don't measure the film again, since only the program, the set-ups, the running order and the script change what plays.
 
 ## 4. Export for distribution (11.3)
 
