@@ -59,10 +59,13 @@ export const makeStage: StageMaker = async (canvas, { hidden, models }) => {
   return stage;
 };
 
-/** A canvas that's never on the page, the export's size, for a hidden stage. */
-export function hiddenCanvas(): HTMLCanvasElement {
+/**
+ * A canvas that's never on the page, for a hidden stage: the export's size, so a 1080p film is
+ * drawn at 1080p rather than scaled up. Measuring draws nothing, so the default does for it.
+ */
+export function hiddenCanvas(size = { width: 1280, height: 720 }): HTMLCanvasElement {
   const canvas = document.createElement('canvas');
-  canvas.width = 1280;
-  canvas.height = 720;
+  canvas.width = size.width;
+  canvas.height = size.height;
   return canvas;
 }

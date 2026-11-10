@@ -21,6 +21,7 @@ const timeline = (waits = false): Timeline => ({
   lines: [],
   length: micros(60),
   end: { kind: 'ended' },
+  missing: [],
 });
 
 function setup(over: Partial<ExportDialogProps> = {}) {

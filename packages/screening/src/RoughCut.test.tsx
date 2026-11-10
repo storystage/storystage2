@@ -33,6 +33,7 @@ const timeline = (over: Partial<Timeline> = {}): Timeline => ({
   lines: [],
   length: micros(72),
   end: { kind: 'ended' },
+  missing: [],
   ...over,
 });
 
@@ -158,6 +159,28 @@ describe('RoughCut', () => {
     expect(screen.getByRole('status').textContent).toBe('Getting the film ready…');
     expect(screen.queryByRole('slider')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Play' })).toBeNull();
+  });
+
+  it("names the models a scene couldn't find, which show as outlines while the film plays on", () => {
+    setup({
+      timeline: timeline({
+        missing: [
+          {
+            scene: S2,
+            missing: [
+              { kind: 'model', object: 'fox' as never, model: 'class/Quadruped/red-fox' as never },
+              { kind: 'backdrop', id: 'class/Ground/moss' as never },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(
+      screen.getByText(
+        "Scene 2 uses red-fox, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText(/Scene 2's backdrop isn't all here/)).toBeTruthy();
   });
 
   it('says when the film is cut at 10 minutes', () => {

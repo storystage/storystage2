@@ -8,7 +8,7 @@ import type { NodeId } from '@storystage/ast';
 import { waitsForViewer, type SceneId, type Transition } from '@storystage/production';
 import type { RuntimeError } from '@storystage/runtime';
 import { micros, type Micros } from '@storystage/story-api';
-import { Playback, type PlaybackEvent, type PlaybackOptions } from './playback.ts';
+import { Playback, type Missing, type PlaybackEvent, type PlaybackOptions } from './playback.ts';
 
 /** The longest film (spec 08, section 4): 10 minutes. */
 export const FILM_CAP = micros(600);
@@ -72,6 +72,8 @@ export interface Timeline {
   /** The whole film, without a title card or credits. */
   readonly length: Micros;
   readonly end: MeasuredEnd;
+  /** What each scene couldn't find, the first time it loaded; scenes that found everything aren't here. */
+  readonly missing: readonly { readonly scene: SceneId; readonly missing: readonly Missing[] }[];
 }
 
 export interface MeasureOptions extends Omit<PlaybackOptions, 'mode' | 'trace'> {
@@ -97,6 +99,7 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
   const scenes: { scene: SceneId; transition: Transition | null; start: Micros }[] = [];
   const blocks: MeasuredBlock[] = [];
   const lines: MeasuredLine[] = [];
+  const missing: { scene: SceneId; missing: readonly Missing[] }[] = [];
   let end: MeasuredEnd | null = null;
 
   const heard = (e: PlaybackEvent) => {
@@ -127,6 +130,10 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
         break;
       case 'fault':
         end = { kind: 'fault', message: e.message };
+        break;
+      case 'missing':
+        if (!missing.some((m) => m.scene === e.scene))
+          missing.push({ scene: e.scene, missing: e.missing });
         break;
       default:
         break;
@@ -173,5 +180,6 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
       .map((l) => ({ ...l, duration: Math.min(l.duration, endOf(l.scene, l.start) - l.start) })),
     length,
     end: end ?? { kind: 'ended' },
+    missing,
   };
 }

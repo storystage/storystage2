@@ -188,6 +188,27 @@ export function RoughCut(props: RoughCutProps) {
           </div>
 
           {timeline.end.kind === 'cap' && <NeutralNote>{words.t('roughCut.cap')}</NeutralNote>}
+          {timeline.missing.map(({ scene, missing }) => {
+            const n = p.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
+            const models = missing.flatMap((m) =>
+              m.kind === 'model' ? [m.model.slice(m.model.lastIndexOf('/') + 1)] : [],
+            );
+            return (
+              <NeutralNote key={scene}>
+                {models.length > 0 && (
+                  <span>
+                    {words.t('roughCut.missingModels', {
+                      n,
+                      names: [...new Set(models)].join(', '),
+                    })}
+                  </span>
+                )}
+                {missing.some((m) => m.kind === 'backdrop') && (
+                  <span> {words.t('roughCut.missingBackdrop', { n })}</span>
+                )}
+              </NeutralNote>
+            );
+          })}
 
           {props.error && (
             <NeutralNote>
@@ -224,6 +245,7 @@ const MEASURING: Timeline = {
   lines: [],
   length: 0,
   end: { kind: 'ended' },
+  missing: [],
 };
 
 const segmentName = (s: Segment) =>

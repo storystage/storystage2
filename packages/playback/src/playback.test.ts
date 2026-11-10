@@ -375,6 +375,31 @@ describe('the runtime’s messages', () => {
     expect(ended(events)).toEqual([{ kind: 'ended', stopped: false }]);
   });
 
+  it("says what a scene couldn't find, and plays on (spec 03 section 1.3)", async () => {
+    await settle();
+    const stage = new FakeStage({ knownModels: [] });
+    const playback = new Playback({
+      production: exampleProduction(),
+      stage,
+      port: runtime(),
+      mode: 'production',
+      seed: 1,
+    });
+    const events: PlaybackEvent[] = [];
+    playback.on((e) => events.push(e));
+    await playback.start();
+    const missing = events.filter((e) => e.kind === 'missing');
+    expect(missing[0]).toMatchObject({
+      kind: 'missing',
+      scene: 's1',
+      missing: expect.arrayContaining([
+        { kind: 'model', object: 'penguin', model: 'example/Flyer/penguin' },
+      ]),
+    });
+    expect(events.some((e) => e.kind === 'error')).toBe(false);
+    expect(playback.ended()).toBe(false);
+  });
+
   it('drops what the old scene had in flight until the new scene has loaded', async () => {
     const { main, worker } = inMemoryPorts();
     const timers: Timers = { now: () => 0, every: () => () => undefined };
@@ -497,7 +522,8 @@ describe('dispose', () => {
     await playback.frame(micros(1));
     expect(ended).toBe(1);
     expect(playback.ended()).toBe(true);
-    expect(events.map((e) => e.kind)).toEqual(['scene']);
+    // The example's made-up backdrop is reported missing as it loads; nothing comes after dispose.
+    expect(events.map((e) => e.kind).filter((k) => k !== 'missing')).toEqual(['scene']);
   });
 });
 
@@ -629,6 +655,24 @@ describe('measure', () => {
     controller.abort();
     await expect(running).rejects.toMatchObject({ name: 'AbortError' });
     expect(ended).toBe(1);
+  });
+
+  it("lists what each scene couldn't find, and measures the film to the end", async () => {
+    await settle();
+    const timeline = await measure({
+      production: exampleProduction(),
+      stage: new FakeStage({ knownModels: [] }),
+      port: runtime(),
+      seed: 1,
+    });
+    expect(timeline.end).toEqual({ kind: 'ended' });
+    expect(timeline.scenes.map((s) => s.scene)).toEqual(['s1', 's2', 's3']);
+    expect(timeline.missing.map((m) => m.scene)).toEqual(['s1', 's2', 's3']);
+    expect(timeline.missing[0]!.missing).toContainEqual({
+      kind: 'model',
+      object: 'penguin',
+      model: 'example/Flyer/penguin',
+    });
   });
 
   it('stops at the length cap', async () => {
