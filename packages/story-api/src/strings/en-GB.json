@@ -162,6 +162,7 @@
   "param.x": "distance from the left",
   "param.y": "distance from the bottom",
   "detail.duration": "how long",
+  "detail.line": "script line",
   "detail.animationStyle": "how it starts and ends",
   "detail.asSeenBy": "as seen by",
   "detail.pathStyle": "path",

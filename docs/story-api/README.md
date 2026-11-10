@@ -1,7 +1,7 @@
 # The StoryStage Story API
 
 <!-- reference:version -->
-**Version 0.10.0, a draft for comment.** 99 blocks, 14 events, 18 details and 19 value types.
+**Version 0.10.0, a draft for comment.** 99 blocks, 14 events, 19 details and 19 value types.
 <!-- /reference:version -->
 
 The Story API is the vocabulary young people use to make 3D animated films in code: the characters and things in a scene, what they can do ("move forward 1", "say Hello", "walk to the tree"), what can be asked about them, and the events a film can react to. It keeps the vocabulary of [Alice 3](https://www.alice.org/), made at Carnegie Mellon University, and adds what film-making needs. StoryStage 2 implements it; anyone may implement it too.
@@ -83,7 +83,7 @@ Alice's shapes (box, sphere, cone and the others) are Props here. A joint can tu
 
 <!-- reference:types -->
 - **Basic:** `Number`, `WholeNumber`, `Text`, `Boolean`.
-- **References** to something outside a program: `Paint`, `Audio`, `JointId`, `SceneId`, `AnimationClip`. A program writes `Paint`, `Audio`, `SceneId`, `AnimationClip` as text, and a joint as a value of `JointId` (section 6.3).
+- **References** to something outside a program: `Paint`, `Audio`, `JointId`, `SceneId`, `AnimationClip`, `LineId`. A program writes `Paint`, `Audio`, `SceneId`, `AnimationClip`, `LineId` as text, and a joint as a value of `JointId` (section 6.3).
 - **Classes** as types: each class in section 3, except that the `Text` class's type is `TextModel`, because `Text` is words. A list of anything is written with `[]`: `Biped[]`.
 
 | Value type | Values | Origin |
@@ -134,6 +134,7 @@ A whole number fits where a number is wanted, a colour where paint is, and a cla
 | `heldKeyPolicy` | `HeldKeyPolicy` | `fireMultiple` | — | when the key is held |
 | `multipleEventPolicy` | `MultipleEventPolicy` | `ignore` | — | if it happens again while running |
 | `setOfVisuals` | `Thing[]` | every object | — | which objects |
+| `line` | `LineId` | words the script doesn’t have | — | script line |
 <!-- /reference:details -->
 
 ## 6. Blocks
@@ -232,7 +233,7 @@ A whole number fits where a number is wanted, a colour where paint is, and a cla
 | `Scene` | `fadeToBlack` | procedure | — | — | `duration` | fade to black |
 | `Scene` | `crossfade` | procedure | `scene: SceneId` | — | `duration` | crossfade to {scene} |
 | `Camera` | `frameShot` | procedure | `shot: ShotType`, `targets: Thing[]` | — | `duration`, `animationStyle` | frame a {shot} of {targets} |
-| `Model` | `speakLine` | procedure | `text: Text` | — | — | speak line {text} |
+| `Model` | `speakLine` | procedure | `text: Text` | — | `duration`, `line` | speak line {text} |
 | `JointedModel` | `playAnimation` | procedure | `clip: AnimationClip` | — | — | play animation {clip} |
 | `Biped` | `walkTo` | procedure | `target: Thing` | — | — | walk to {target} |
 | `Biped` | `runTo` | procedure | `target: Thing` | — | — | run to {target} |

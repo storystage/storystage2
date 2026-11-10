@@ -23,6 +23,13 @@ export const DETAILS: Readonly<Record<string, DetailDef>> = {
   heldKeyPolicy: { type: 'HeldKeyPolicy', default: 'fireMultiple' },
   multipleEventPolicy: { type: 'MultipleEventPolicy', default: 'ignore' },
   setOfVisuals: { type: 'Thing[]', default: null, defaultMeans: 'every object' },
+  // Spec 06, 4.1: the script line a speak line came from, as the production's `LineId`.
+  line: {
+    type: 'LineId',
+    default: null,
+    defaultMeans: 'words the script doesn’t have',
+    fromScript: true,
+  },
 };
 
 /** Alice accepts these but ignores them, so they aren't offered: `member.detail`. */
