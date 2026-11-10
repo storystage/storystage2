@@ -451,6 +451,7 @@ async function scenePictures(
   commands: readonly StageCommand[],
   seconds: readonly number[],
   files: Readonly<Record<string, { url: string; joints: readonly string[] }>>,
+  quality: 'low' | 'standard' = 'standard',
 ) {
   const canvas = document.createElement('canvas');
   canvas.width = W;
@@ -465,6 +466,7 @@ async function scenePictures(
     },
     offscreen: true,
     renderer: 'webgl2',
+    quality,
   });
   // A backdrop may be named by its template.
   const backdrop = setup.backdrop as unknown;
@@ -667,6 +669,49 @@ async function characterCost(
   return { count, renderer: stage.renderer, gpu, loadMs, planMs, standing, walking, crossfade };
 }
 
+/**
+ * The same scene drawn by the renderer `auto` picks (WebGPU where the device has it) and by
+ * WebGL2, read back by `renderFrame` and by `picture`: how far apart they are, on average,
+ * in each colour (0 to 255), and the top and bottom rows' colours. Where there's no WebGPU,
+ * `auto` is WebGL2, so they're the same.
+ */
+async function renderersAgree() {
+  const frames = async (renderer: 'auto' | 'webgl2') => {
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const stage = await createBabylonStage({ canvas, models, offscreen: true, renderer });
+    // Sky above and grass below, so a picture upside down can't pass.
+    const grass = BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop;
+    await stage.load({ ...redCat, backdrop: grass });
+    const frame = await stage.renderFrame();
+    const picture = await stage.picture(0, W, H);
+    const used = stage.renderer;
+    stage.dispose();
+    return { used, frame: frame.data, picture: picture.data };
+  };
+  const a = await frames('auto');
+  const b = await frames('webgl2');
+  const apart = (x: Uint8ClampedArray, y: Uint8ClampedArray) => {
+    let sum = 0;
+    for (let p = 0; p < x.length; p += 4)
+      sum +=
+        Math.abs(x[p]! - y[p]!) + Math.abs(x[p + 1]! - y[p + 1]!) + Math.abs(x[p + 2]! - y[p + 2]!);
+    return sum / ((x.length / 4) * 3);
+  };
+  const at = (data: Uint8ClampedArray, row: number) => {
+    const p = (row * W + Math.floor(W / 2)) * 4;
+    return [data[p]!, data[p + 1]!, data[p + 2]!];
+  };
+  return {
+    renderer: a.used,
+    frame: apart(a.frame, b.frame),
+    picture: apart(a.picture, b.picture),
+    top: { auto: at(a.frame, 2), webgl2: at(b.frame, 2) },
+    bottom: { auto: at(a.frame, H - 3), webgl2: at(b.frame, H - 3) },
+  };
+}
+
 /** What the page loaded, in bytes before compression, in order. */
 function scripts() {
   return performance
@@ -690,6 +735,7 @@ Object.assign(window, {
     pictureCheck,
     eventCost,
     characterCost,
+    renderersAgree,
     picture,
     humanPicture,
     scenePictures,

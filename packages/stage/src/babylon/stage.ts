@@ -81,12 +81,55 @@ export interface SceneMeasure {
   readonly fits: boolean;
 }
 
-/** WebGL's rows start at the bottom; a `FrameImage`'s start at the top. */
-function topRowFirst(bottomUp: Uint8Array, width: number, height: number): Uint8ClampedArray {
+/** How many times wider and taller an export, or a picture, is drawn, before it's averaged down. */
+export const SUPERSAMPLE = 2;
+
+/** Each `k` by `k` block of pixels averaged into one, in whole numbers, so it's the same every time. */
+function averageBlocks(
+  big: Uint8ClampedArray,
+  width: number,
+  height: number,
+  k: number,
+): Uint8ClampedArray {
+  if (k === 1) return big;
+  const out = new Uint8ClampedArray(width * height * 4);
+  const bigWidth = width * k;
+  const n = k * k;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++)
+      for (let c = 0; c < 4; c++) {
+        let sum = 0;
+        for (let dy = 0; dy < k; dy++)
+          for (let dx = 0; dx < k; dx++)
+            sum += big[((y * k + dy) * bigWidth + x * k + dx) * 4 + c]!;
+        out[(y * width + x) * 4 + c] = Math.floor((sum + n / 2) / n);
+      }
+  return out;
+}
+
+/**
+ * Pixels read back, as a `FrameImage` has them: top row first, red, green, blue, alpha.
+ * - WebGL reads the bottom row first.
+ * - WebGPU reads the canvas top row first, in its own channel order, which is blue first on most
+ *   devices (`bgra8unorm`).
+ * - A render target (`picture`) comes back bottom row first and red first on both.
+ */
+function asFrame(
+  read: Uint8Array,
+  width: number,
+  height: number,
+  { bottomUp, bgra }: { bottomUp: boolean; bgra: boolean },
+): Uint8ClampedArray {
   const out = new Uint8ClampedArray(width * height * 4);
   const row = width * 4;
   for (let y = 0; y < height; y++)
-    out.set(bottomUp.subarray(y * row, (y + 1) * row), (height - 1 - y) * row);
+    out.set(read.subarray(y * row, (y + 1) * row), (bottomUp ? height - 1 - y : y) * row);
+  if (bgra)
+    for (let p = 0; p < out.length; p += 4) {
+      const blue = out[p]!;
+      out[p] = out[p + 2]!;
+      out[p + 2] = blue;
+    }
   return out;
 }
 
@@ -366,10 +409,28 @@ export class BabylonStage implements Stage {
       this.leaving.target.render();
     }
     scene.render();
-    const width = this.engine.getRenderWidth();
-    const height = this.engine.getRenderHeight();
-    const pixels = await this.engine.readPixels(0, 0, width, height);
-    return { width, height, data: topRowFirst(pixels as Uint8Array, width, height) };
+    const drawnWidth = this.engine.getRenderWidth();
+    const drawnHeight = this.engine.getRenderHeight();
+    const pixels = await this.engine.readPixels(0, 0, drawnWidth, drawnHeight);
+    // An export is drawn bigger, then averaged down to the size asked for.
+    const k = this.offscreen ? SUPERSAMPLE : 1;
+    const width = Math.floor(drawnWidth / k);
+    const height = Math.floor(drawnHeight / k);
+    const webgpu = this.renderer === 'webgpu';
+    // A WebGPU canvas keeps its own channel order: blue first on most devices.
+    const format = (this.engine as unknown as { _options?: { swapChainFormat?: string } })._options
+      ?.swapChainFormat;
+    const bgra = webgpu && (format ?? '').startsWith('bgra');
+    return {
+      width,
+      height,
+      data: averageBlocks(
+        asFrame(pixels as Uint8Array, width * k, height * k, { bottomUp: !webgpu, bgra }),
+        width,
+        height,
+        k,
+      ),
+    };
   }
 
   /**
@@ -381,11 +442,18 @@ export class BabylonStage implements Stage {
     const scene = this.loaded();
     checkPictureSize(width, height);
     await scene.whenReadyAsync();
-    const target = new RenderTargetTexture('picture', { width, height }, scene, {
-      generateMipMaps: false,
-      // Smoothed edges, as a frame on screen has.
-      samples: 4,
-    });
+    // Smoothed edges, as an export's frames are: drawn bigger with no multisampling, which a GPU
+    // doesn't repeat exactly, then averaged. A picture too big for that is drawn as asked.
+    const most = this.engine.getCaps().maxTextureSize;
+    const k = Math.max(width, height) * SUPERSAMPLE <= most ? SUPERSAMPLE : 1;
+    const target = new RenderTargetTexture(
+      'picture',
+      { width: width * k, height: height * k },
+      scene,
+      {
+        generateMipMaps: false,
+      },
+    );
     try {
       target.renderList = scene.meshes.slice();
       target.activeCamera = this.camera;
@@ -400,8 +468,10 @@ export class BabylonStage implements Stage {
       }
       const pixels = await target.readPixels();
       if (!pixels) throw new StageError('bad_argument', 'The picture could not be read back.');
-      const bytes = new Uint8Array(pixels.buffer, pixels.byteOffset, width * height * 4);
-      return { width, height, data: topRowFirst(bytes, width, height) };
+      const bytes = new Uint8Array(pixels.buffer, pixels.byteOffset, width * k * height * k * 4);
+      // Babylon.js reads a render target back bottom row first on WebGPU too, and red first.
+      const big = asFrame(bytes, width * k, height * k, { bottomUp: true, bgra: false });
+      return { width, height, data: averageBlocks(big, width, height, k) };
     } finally {
       target.dispose();
     }

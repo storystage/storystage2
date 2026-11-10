@@ -13,7 +13,7 @@ import {
   type Renderer,
   type RendererChoice,
 } from './quality.ts';
-import { BabylonStage } from './stage.ts';
+import { BabylonStage, SUPERSAMPLE } from './stage.ts';
 
 export { BabylonStage };
 export { modelsFromManifest, type ModelFile, type ModelSource } from './models.ts';
@@ -79,16 +79,27 @@ export async function createBabylonStage(options: BabylonStageOptions): Promise<
   const supported = typeof navigator !== 'undefined' && 'gpu' in navigator;
   let engine: AbstractEngine | null = null;
   let used: Renderer = 'webgl2';
+  // A GPU's multisampled edges aren't exactly repeatable (one shade, at a few edge pixels, on a
+  // GeForce RTX 2060), so an export draws at twice the size with none, and `renderFrame`
+  // averages each 2 by 2 block: smooth, and the same every time (owner's choice, 10 Nov 2026).
+  const antialias = offscreen ? false : settings.antialias;
+  // Babylon.js sizes a canvas on the page from its size there, which the drawing scale doubles,
+  // but one that isn't on the page from its own width and height. So that one is made twice the
+  // size here, and its frames still come back the size it was.
+  const onPage = 'clientWidth' in canvas && canvas.clientWidth > 0;
+  if (offscreen && !onPage) {
+    canvas.width *= SUPERSAMPLE;
+    canvas.height *= SUPERSAMPLE;
+  }
   if (pickRenderer(renderer, supported) === 'webgpu') {
-    engine = await webgpuEngine(canvas, settings.antialias);
+    engine = await webgpuEngine(canvas, antialias);
     if (engine) used = 'webgpu';
   }
-  engine ??= new Engine(canvas, settings.antialias, {
+  engine ??= new Engine(canvas, antialias, {
     preserveDrawingBuffer: offscreen,
     stencil: false,
   });
-  // An export is drawn full size, so its frames are the size it asked for.
-  engine.setHardwareScalingLevel(offscreen ? 1 : settings.scale);
+  engine.setHardwareScalingLevel(offscreen ? 1 / SUPERSAMPLE : settings.scale);
   const stage = new BabylonStage(engine, { models, renderer: used, quality, offscreen });
   if (!offscreen && 'addEventListener' in canvas && 'clientWidth' in canvas)
     listenTo(canvas, stage);
