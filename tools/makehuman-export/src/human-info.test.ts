@@ -49,12 +49,16 @@ describe('humanInfo', () => {
     });
   });
 
-  it('puts glasses on with the clothes', () => {
-    expect(humanInfo({ ...person, glasses: 'kwnet_at_optical_glasses' }).clothes).toEqual([
+  it('puts glasses on with the clothes, and names them for the Blender script', () => {
+    const info = humanInfo({ ...person, glasses: 'kwnet_at_optical_glasses' });
+    expect(info.clothes).toEqual([
       'female_casualsuit02.mhclo',
       'shoes06.mhclo',
       'kwnet_at_optical_glasses.mhclo',
     ]);
+    // So it keeps their lenses clear, rather than making them solid as other clothes are.
+    expect(info.storystage.glasses).toBe('kwnet_at_optical_glasses');
+    expect(humanInfo(person).storystage.glasses).toBeNull();
   });
 
   it('passes on what only the Blender script can do: eye colour and hair tint', () => {

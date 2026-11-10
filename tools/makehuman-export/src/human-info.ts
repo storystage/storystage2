@@ -54,6 +54,8 @@ export interface HumanInfo {
     /** The outfit to recolour, and its colour: red, green and blue from 0 to 1. */
     readonly outfit: string;
     readonly clothesColour: readonly [number, number, number] | null;
+    /** The glasses, whose lenses stay clear (`make_people.py` exports them as glTF's MASK). */
+    readonly glasses: string | null;
   };
 }
 
@@ -99,6 +101,7 @@ export function humanInfo(p: Person): HumanInfo {
       hairTint: p.hairTint ?? null,
       outfit: p.clothes[0]!,
       clothesColour: p.clothesColour ? CLOTHES_COLOURS[p.clothesColour] : null,
+      glasses: p.glasses ?? null,
     },
   };
 }
