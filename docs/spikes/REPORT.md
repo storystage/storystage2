@@ -11,6 +11,7 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | **go**, 21 Oct 2026 ([record](../decisions/spike-1.6-key-path.md)) |
 | **1.7 Tauri Android on a Chromebook** | **built and passing in CI** (Android 14 emulator, 4 GB); Chromebook run pending (#6) | The APK (ARM and x86_64) installs and starts; Babylon.js scene with WebGL2 at 20.9 fps in software; Blockly draws all its blocks; 33 MB of JS memory | decide after the Chromebook run and the school-policy question | pending |
 | **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | **go for video**; audio after the Chromebook check, 21 Oct 2026 ([record](../decisions/spike-1.8-mp4.md)) |
+| **14.3 Voices** (decision 0068: the bundled speech engine) | **passed in CI** (Chromium, software); devices pending (#6) | Kokoro-82M with a GPL-free phonemiser: whisper's word error rate 0–5% across eight British voices; 1.9× slower than real time on 4 cores; 86 MB model. Piper and KittenTTS fail the licence check | **go for Kokoro**, with lines prepared in advance | pending ([record](../decisions/spike-14.3-voices.md)) |
 | **23.1 Projection bake** (WP23, may run before the release candidate) | **passed in CI** (Chromium, SwiftShader) | Box and building front: from the sweet spot, 99% of projector-lit pixels match the show (mean error 1.5–2.4 of 255); off to one side, 73–78%, as expected; hidden faces left unbaked; about 15 ms a frame | **go**, with the findings below | **go**, 8 Nov 2026 ([record](../decisions/spike-23.1-projection-bake.md)) |
 | **24.3 Classroom relay** (option B; decided at M1) | **probe built, passing in CI over loopback**; the school-network test needs the owner | Loopback only so far, on Linux, Windows and macOS: a right code finishes and a wrong one is turned away; 226–406 Mbit/s, round trips under 0.1 ms (`docs/spikes/24.3-classroom-relay.md`) | **A** for the pilot; run the probe at the 1.11 visits; **C** ruled out | |
 | 1.9 AR | not started; **iPad-first** (decision 0042), needs the reference iPad (#6) | | | |
@@ -247,3 +248,45 @@ The first transcription after loading took longer (13.4 s for the quantised mode
 7. **The packing wastes space on cubes:** the box uses under half of its texture. A better packer, or a cross-shaped layout for boxes, belongs in 23.3.
 
 **Not covered:** real projectors and real models (23.5); curved surfaces (only flat faces here); Babylon.js projection textures on spotlights for the preview, which 23.4 plans (this spike projects in its own shader); the Pixera build script (23.2, which needs a Windows PC with an NVIDIA graphics card and Pixera Creator).
+
+## 14.3 Voices: the bundled speech engine
+
+**Task:** choose the open-source speech engine bundled with StoryStage for speak line (decision 0068), on every platform including the browser, with voices for adults and children, men and women, and animals, after a licence and size check. Code: `spikes/14.3-voices/`. The licence check: `docs/spikes/tts-engines.md`. Run: `.github/workflows/spikes.yml`; the page is on the spike site.
+
+**How it works.**
+- **The engine:** Kokoro-82M (8-bit ONNX, Apache-2.0) runs in ONNX Runtime Web (MIT), WebAssembly only, in the page.
+- **Pronunciation:** text becomes Kokoro's phonemes through HeadTTS's English phonemiser (MIT) and the CMU dictionary (BSD), not eSpeak NG (GPL-3). British voices get British pronunciations: our own rules over the CMU dictionary, Reece Dunn's RP list (BSD-2-Clause) for content words, and a short hand list (owner, 10 Nov).
+- **What it does:** ten test lines are spoken in eight British voices, plus six presets (woman, man, girl, boy, small and big animal). The presets are made by shifting pitch and formants together, then restoring the length.
+- **The intelligibility check:** whisper (tiny English, quantised, from spike 1.3) transcribes every clip, and the word error rate is counted.
+- **Pinned assets:** every asset is fetched pinned by SHA-256 into `public/`, which git ignores.
+
+**Results (10 Nov 2026):**
+
+| | CI (GitHub runner, 4 cores, Chromium) | Owner's PC (Edge, 8 cores) |
+|---|---|---|
+| Model download | 86 MB, plus 0.5 MB a voice | same |
+| Load (phonemiser, download, session) | 0.4 s, 3.0 s, 2.4 s | 0.4 s, 2.3 s, 2.2 s |
+| Time to speak a line, as a multiple of its length | **1.9×** (median, every voice) | **1.5×** |
+| whisper's word error rate, eight British voices | **0–5%** (mean per voice) | (no whisper locally) |
+| Presets (woman, man, girl, boy, small and big animal) | 0% on 10 of 12 clips | |
+| Making a preset from a line | under 0.1 s | same |
+
+The few misses are mostly whisper's small model ("5s" for *five*, "brothers") and one word, *key*, which two voices blur ("cave", "KU"). The girl and big-animal presets inherit that from their base voices. For comparison, spike 1.3's robotic eSpeak NG request scored 27–36%.
+
+**Findings for WP14b (14.3):**
+1. **Kokoro is the only candidate that passes the licence check.**
+   - Piper's British voice is built on research-only recordings ("lessac": no commercial use, no redistribution).
+   - KittenTTS's models are under a revocable community licence with revenue limits.
+   - The npm package `phonemizer`, which kokoro-js uses, is labelled Apache-2.0 but is eSpeak NG (GPL-3) inside.
+2. **Lines must be prepared in advance.** Speaking takes 1.5–1.9× a line's own length on a PC, so slower still on a 4 GB Chromebook. Spec 06 section 4.6 already plans it: each line's sound is made in a worker as the code changes, and Rehearse and export reuse it.
+3. **Understood almost perfectly.** It is far clearer than eSpeak NG, in every British voice, and the presets keep it.
+4. **British pronunciations need our own rules,** because no British word list with a clean licence and enough words was found (`tts-engines.md` section 6). The rules and the RP list give Southern British on the test lines. The owner judges the accent by ear on the spike page; D may check the MFA UK list (CC BY 4.0) as a bigger source.
+5. **Children's and animals' voices are made from adult voices.** That's because no openly licensed children's voice model exists. They stay as intelligible as the voice they come from. Whether they sound right is for the owner to judge by ear: the clips are in the CI artifact and on the page.
+6. **For D (WP17):** Kokoro was partly trained on audio from closed commercial speech services (its model card). Whether those services' terms allow that needs checking before release. Credits for its CC BY training sets (Koniwa, SIWIS) and the RP list's notice go in `NOTICE` and the About screen.
+
+**Not covered:**
+- the reference Chromebook and iPad (memory and speed, #6);
+- WebAssembly memory (browsers don't report it);
+- a full British word list;
+- the presets' sound, judged by people;
+- lip sync (14.4).
