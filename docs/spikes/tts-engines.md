@@ -60,7 +60,38 @@ A real child voice would need recordings made for StoryStage, with parents' cons
 
 **Proposed outcome:** the engine that passes the licence check, fits the size and memory budget and gives the lowest word error rate, with speed decided by whether Rehearse can speak lines live or must prepare them in advance (spec 06, section 4.6).
 
+## 6. A British word list (10 Nov 2026)
+
+The CMU Pronouncing Dictionary is American, so Kokoro's British voices come out with an American accent ("fox" as /fɑks/, "river" with a final /ɹ/). Kokoro needs British pronunciations. The lists checked:
+
+| Word list | Licence | Size | Where its pronunciations came from | Verdict |
+|---|---|---|---|---|
+| **misaki's `gb_gold` and `gb_silver`** (Kokoro's own library) | Repository Apache-2.0 | about 6.5 MB | Gold: "seeded some local datasets of IPA labels", unnamed. Silver: **eSpeak NG 1.52's output** for a public word list, filtered (the author, [misaki #51](https://github.com/hexgrad/misaki/issues/51)). The licence question is open and unanswered ([#107](https://github.com/hexgrad/misaki/issues/107), Sept 2026) | **No.** The silver list is eSpeak NG's dictionary (GPL-3) by another route, and the gold list's sources are unknown |
+| **Britfone** | MIT | 16,000 words, RP | CMUdict, plus British specifics from Wiktionary (CC BY-SA), Wikipedia, and the Collins, Oxford, Cambridge and Macmillan dictionaries | **Not without D's review.** Transcriptions taken from commercial dictionaries may carry those publishers' rights (UK database right), whatever the MIT notice says; Wiktionary's are share-alike |
+| **English (UK) MFA dictionary** (Montreal Forced Aligner) | CC BY 4.0 | 74,882 words | Not stated | **Possible**, after D checks its sources: the clearest licence of the large lists (credit only). Its phone set needs mapping to Kokoro's |
+| **en-GB-x-rp** (Reece Dunn) | BSD-2-Clause | about 2,100 words, RP, last changed 2018 | Not stated; built on John Wells's lexical sets | **Yes, as a supplement.** Clean but small |
+| **Our own rules over the CMU dictionary** | Ours (Apache-2.0) over BSD | every word the CMU dictionary has | American pronunciations turned British by rules: no /r/ after a vowel unless a vowel follows, LOT as /ɒ/, GOAT as /əʊ/, BATH words (a short list) as /ɑː/, and so on | **Yes.** Fully clean; quality to judge by ear |
+
+**Chosen by the owner (10 Nov 2026):** our own American-to-British rules over the CMU dictionary, with Reece Dunn's RP list and a short hand-checked list on top. D checks the MFA dictionary's sources as a possible larger list later. Whisper can't judge an accent, so the owner judges it by ear, on the spike page.
+
+**Built in the spike** (`spikes/14.3-voices/src/british.ts`, 22 tests):
+- **The rules:**
+  - TRAP /a/, GOAT /əʊ/, LOT /ɒ/;
+  - no /r/ after a vowel unless a vowel follows (*car* /kɑː/, *here* /hɪə/, *river* /ɹɪvə/, but *very* keeps it);
+  - THOUGHT /ɔː/, except CLOTH words before ɡ ŋ f θ s ʃ (*dog* /dɒɡ/);
+  - long stressed /iː/ and /uː/;
+  - flap t back to /t/ (*better*).
+- **The RP list:** used for content words only. For small words it gives the stressed form (*of* /ɒv/, *the* /ðiː/), and the CMU dictionary's weak forms (/əv/, /ðə/) are right in a sentence.
+- **The hand list:** BATH and PALM words (*ask*, *path*, *father*), which nothing in American spelling predicts, plus *one* /wʌn/ and a few others.
+- **The ten test lines now read as Southern British.** For example: "Thank you, Mr Fox." → /θaŋk juː, mɪstə fɒks/; "Our schedule is full on Wednesday afternoon." → /aʊə ʃɛdjuːl ɪz fʊl ɒn wɛnzdɪ ˌɑːftənuːn/.
+
 ## Sources (8 Nov 2026)
+
+- [misaki #51: where the English lexicons came from](https://github.com/hexgrad/misaki/issues/51), and [#107, open](https://github.com/hexgrad/misaki/issues/107)
+- [Britfone](https://github.com/JoseLlarena/Britfone)
+- [English (UK) MFA dictionary](https://mfa-models.readthedocs.io/en/latest/dictionary/English/English%20%28UK%29%20MFA%20dictionary%20v2_0_0a.html)
+- [en-GB-x-rp](https://github.com/rhdunn/en-GB-x-rp.dict)
+- [Lessac data licence (research only)](https://www.cstr.ed.ac.uk/projects/blizzard/2013/lessac_blizzard2013/license.html)
 
 - [HeadTTS README (MIT; CMUdict phonemiser; Kokoro in the browser)](https://unpkg.com/@met4citizen/headtts@1.0.0/README.md)
 - [Kokoro-82M model card (training data, Apache-2.0)](https://huggingface.co/hexgrad/Kokoro-82M)
