@@ -3,8 +3,8 @@ import { nodeId, type EditOperation } from '@storystage/ast';
 import { objectId } from '@storystage/story-api';
 import { exampleProduction } from './example.ts';
 import { addScene, deleteScene, duplicateScene, moveScene, renameScene } from './scenes.ts';
-import { ProductionSession, type ProductionChange } from './session.ts';
-import { checkReferences, sceneId, type Production } from './types.ts';
+import { ProductionSession, type CheckResult, type ProductionChange } from './session.ts';
+import { checkReferences, frameId, sceneId, type Production } from './types.ts';
 
 type Source = 'code' | 'stage' | 'storyboard' | 'prompter';
 
@@ -276,5 +276,82 @@ describe('duplicateScene', () => {
       ok: false,
       refusal: { code: 'noSuchScene' },
     });
+  });
+});
+
+describe('ProductionSession.annotate (spec 08 section 9.6)', () => {
+  const f1 = frameId('f1');
+  const result = (basis: string): CheckResult => ({
+    basis,
+    items: [{ id: 'length', kind: 'length', outcome: 'flag', words: 'This frame lasts 6 seconds' }],
+  });
+  const checkOf = (s: ProductionSession<Source>) =>
+    s.production().frames.find((f) => f.id === f1)!.check;
+  const keepLength = (p: Production) => ({
+    ...p,
+    frames: p.frames.map((f) =>
+      f.id === f1 && f.check ? { ...f, check: { ...f.check, kept: ['length'] } } : f,
+    ),
+  });
+
+  it('saves a result on its frame with no undo step, and tells listeners it was a check', () => {
+    const s = session();
+    const seen: string[] = [];
+    s.subscribe((c) => seen.push(c.source));
+    expect(s.annotate(new Map([[f1, result('b1')]]))).toEqual({ ok: true });
+    expect(checkOf(s)).toEqual({ ...result('b1'), kept: [] });
+    expect(s.history()).toEqual([]);
+    expect(seen).toEqual(['check']);
+  });
+
+  it('keeps the latest result through undo and redo', () => {
+    const s = session();
+    s.change('Move penguin', 'stage', movePenguin);
+    s.annotate(new Map([[f1, result('b2')]]));
+    s.undo();
+    expect(penguinX(s.production())).not.toBe(9);
+    expect(checkOf(s)?.basis).toBe('b2');
+    s.redo();
+    expect(penguinX(s.production())).toBe(9);
+    expect(checkOf(s)?.basis).toBe('b2');
+  });
+
+  it("leaves the flags kept to the history: keeping one is the learner's own step", () => {
+    const s = session();
+    s.annotate(new Map([[f1, result('b1')]]));
+    s.change('Keep a flag', 'storyboard', keepLength);
+    expect(checkOf(s)?.kept).toEqual(['length']);
+    // A new run keeps what was kept.
+    s.annotate(new Map([[f1, result('b3')]]));
+    expect(checkOf(s)).toEqual({ ...result('b3'), kept: ['length'] });
+    s.undo();
+    expect(checkOf(s)).toEqual({ ...result('b3'), kept: [] });
+    s.redo();
+    expect(checkOf(s)?.kept).toEqual(['length']);
+  });
+
+  it('removes a result with null, skips frames that are gone, and forgets them all on load', () => {
+    const s = session();
+    s.annotate(
+      new Map([
+        [f1, result('b1')],
+        [frameId('nowhere'), result('b1')],
+      ]),
+    );
+    expect(s.production().frames.some((f) => f.id === 'nowhere')).toBe(false);
+    s.annotate(new Map([[f1, null]]));
+    expect(checkOf(s)).toBeUndefined();
+    s.annotate(new Map([[f1, result('b1')]]));
+    s.load(exampleProduction());
+    expect(checkOf(s)).toBeUndefined();
+    s.change('Move penguin', 'stage', movePenguin);
+    s.undo();
+    expect(checkOf(s)).toBeUndefined();
+  });
+
+  it('is refused for a read-only production', () => {
+    const s = new ProductionSession<Source>(exampleProduction(), { readOnly: 'Read-only.' });
+    expect(s.annotate(new Map([[f1, result('b1')]]))).toEqual({ ok: false, reason: 'Read-only.' });
+    expect(checkOf(s)).toBeUndefined();
   });
 });

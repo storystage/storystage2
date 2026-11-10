@@ -34,6 +34,7 @@ import {
   type Storyboard,
 } from './types.ts';
 import {
+  checkFrameCheck,
   checkFrameShape,
   checkManifestShape,
   checkSceneShape,
@@ -151,7 +152,20 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   '1.0.0': { to: '1.1.0', manifest: (m) => m },
   // 1.2.0 lets a stand-in carry its size (S6's `StandIn.size`): nothing else changes.
   '1.1.0': { to: '1.2.0', manifest: (m) => m },
+  // 1.3.0 lets a frame keep its latest automatic check (S2's `Frame.check`): nothing else changes.
+  '1.2.0': { to: '1.3.0', manifest: (m) => m },
 };
+
+/**
+ * A frame's saved check is only a cached result (spec 08 section 9.6): one that doesn't fit its
+ * shape is dropped, so the frame opens without it, rather than the file being refused.
+ */
+function withReadableCheck(frame: Frame, where: string, shape: { allowExtra: boolean }): Frame {
+  if (!('check' in frame) || checkFrameCheck(frame.check, where, shape).length === 0) return frame;
+  const rest: { -readonly [K in keyof Frame]?: Frame[K] } = { ...frame };
+  delete rest.check;
+  return rest as Frame;
+}
 
 export type OpenedProduction =
   | {
@@ -275,7 +289,9 @@ export function openProduction(
     const id = (scene ?? frame)![1]!;
     if (!SAFE_ID.test(id) || v?.id !== id) found.push(`${name}: its id doesn't match its name.`);
     problems.push(...found);
-    if (found.length === 0) (scene ? scenes : frames).push(v as never);
+    if (found.length > 0) continue;
+    if (scene) scenes.push(v as never);
+    else frames.push(withReadableCheck(v as Frame, name, shape));
   }
 
   const storyboardJson = json(ZIP_LAYOUT.storyboard);

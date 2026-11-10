@@ -10,6 +10,7 @@
  */
 import { validateManifest as validateBackstage, MANIFEST_VERSION } from '@storystage/backstage';
 import { SHOT_TYPES, STORY_CLASSES } from '@storystage/story-api';
+import { CHECK_KINDS, CHECK_OUTCOMES } from './types.ts';
 
 export interface ShapeOptions {
   /** True for a newer file, opened read-only: fields this version doesn't know are allowed. */
@@ -269,11 +270,14 @@ export function checkStoryboardShape(v: unknown, options: ShapeOptions = {}): st
 
 const FACINGS = ['front', 'threeQuarter', 'side', 'back'] as const;
 
-/** `frames/<id>.json`. */
+/**
+ * `frames/<id>.json`. Its `check` is only allowed here; `checkFrameCheck` judges it, and a file
+ * whose check doesn't fit opens without it (`openProduction`).
+ */
 export function checkFrameShape(v: unknown, where: string, options: ShapeOptions = {}): string[] {
   const s = new Shape(where, options);
   const keys = ['id', 'scene', 'order', 'caption', 'shot', 'lengthSeconds', 'sketches', 'links'];
-  if (!s.object(v, '', keys)) return s.problems;
+  if (!s.object(v, '', keys, ['check'])) return s.problems;
   s.string(v.id, 'id');
   s.string(v.scene, 'scene');
   s.number(v.order, 'order', 0);
@@ -291,5 +295,53 @@ export function checkFrameShape(v: unknown, where: string, options: ShapeOptions
     s.boolean(k.flipped, join(p, 'flipped'));
   });
   s.array(v.links, 'links', (l, p) => s.string(l, p));
+  return s.problems;
+}
+
+/**
+ * Limits for a frame's saved check (format 1.3.0, spec 08 section 9.6, agreed with S2). The check
+ * keeps to them; a file over them opens without its check.
+ */
+export const CHECK_LIMITS = {
+  /** Items in one frame's result. */
+  items: 200,
+  /** One item's words: a `problem` carries the error's own words (spec 08's 6.3). */
+  words: 300,
+  /** An item's `id`, `node`, `sketch` or `line`, and each kept id. */
+  id: 200,
+  /** The hash the result depends on. */
+  basis: 128,
+} as const;
+
+/**
+ * A frame's `check` (format 1.3.0): its problems, or none. Only a cached result, so a check with
+ * problems is dropped, not the file. Whether it's stale is `@storystage/check`'s to judge.
+ */
+export function checkFrameCheck(v: unknown, where: string, options: ShapeOptions = {}): string[] {
+  const s = new Shape(where, options);
+  if (!s.object(v, 'check', ['basis', 'items', 'kept'])) return s.problems;
+  s.string(v.basis, 'check.basis', CHECK_LIMITS.basis);
+  const ids = new Set<string>();
+  const list = (x: unknown, path: string) => {
+    if (!Array.isArray(x) || x.length <= CHECK_LIMITS.items) return true;
+    s.fail(path, `should hold at most ${CHECK_LIMITS.items}`);
+    return false;
+  };
+  if (list(v.items, 'check.items'))
+    s.array(v.items, 'check.items', (item, p) => {
+      if (!s.object(item, p, ['id', 'kind', 'outcome', 'words'], ['node', 'sketch', 'line']))
+        return;
+      if (s.string(item.id, join(p, 'id'), CHECK_LIMITS.id)) {
+        if (ids.has(item.id)) s.fail(join(p, 'id'), 'is used twice');
+        ids.add(item.id);
+      }
+      s.oneOf(item.kind, join(p, 'kind'), CHECK_KINDS);
+      s.oneOf(item.outcome, join(p, 'outcome'), CHECK_OUTCOMES);
+      s.string(item.words, join(p, 'words'), CHECK_LIMITS.words);
+      for (const k of ['node', 'sketch', 'line'] as const)
+        if (k in item) s.string(item[k], join(p, k), CHECK_LIMITS.id);
+    });
+  if (list(v.kept, 'check.kept'))
+    s.array(v.kept, 'check.kept', (k, p) => s.string(k, p, CHECK_LIMITS.id));
   return s.problems;
 }

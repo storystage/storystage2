@@ -3,7 +3,8 @@ import { SCHEMA_VERSION } from '@storystage/ast';
 import { readArchive, writeArchive, type ArchiveEntry } from './archive.ts';
 import { exampleProduction } from './example.ts';
 import { openProduction, saveProduction, stableJson, SaveRefused } from './file.ts';
-import { frameId, type Production } from './types.ts';
+import { frameId, type FrameCheck, type Production } from './types.ts';
+import { CHECK_LIMITS } from './validate.ts';
 
 const p = exampleProduction();
 const text = (s: string) => new TextEncoder().encode(s);
@@ -180,7 +181,7 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
   it("opens a newer file read-only, allowing fields it doesn't know", () => {
     const newer = changed('manifest.json', (m) => ({
       ...m,
-      formatVersion: '1.3.0',
+      formatVersion: '1.4.0',
       laterField: true,
     }));
     const opened = openProduction(newer);
@@ -222,16 +223,18 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
     });
   });
 
-  it('migrates a 1.0.0 or 1.1.0 file to this version, and hands back the original to keep', () => {
+  it('migrates a 1.0.0, 1.1.0 or 1.2.0 file to this version, and hands back the original to keep', () => {
     const old = changed('manifest.json', (m) => ({ ...m, formatVersion: '1.0.0' }));
     const opened = openProduction(old);
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.original).toBe(old);
-    expect(opened.production.manifest.formatVersion).toBe('1.2.0');
+    expect(opened.production.manifest.formatVersion).toBe('1.3.0');
     expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
-    const older = changed('manifest.json', (m) => ({ ...m, formatVersion: '1.1.0' }));
-    expect(openProduction(older)).toMatchObject({ status: 'migrated', original: older });
+    for (const version of ['1.1.0', '1.2.0']) {
+      const older = changed('manifest.json', (m) => ({ ...m, formatVersion: version }));
+      expect(openProduction(older)).toMatchObject({ status: 'migrated', original: older });
+    }
   });
 
   it('checks a migrated file against the version it was migrated to', () => {
@@ -246,18 +249,18 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
 
   it('migrates step by step, and refuses a version with no step', () => {
     const migrations = {
-      '1.2.0': { to: '1.3.0', manifest: (m: object) => m },
-      '1.3.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
+      '1.3.0': { to: '1.4.0', manifest: (m: object) => m },
+      '1.4.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
     };
     const opened = openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations });
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.production.manifest).toMatchObject({ formatVersion: '2.0.0', title: 'Moved on' });
-    const stuck = { '1.2.0': { to: '1.2.0', manifest: (m: object) => m } };
+    const stuck = { '1.3.0': { to: '1.3.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: stuck }),
     ).toMatchObject({ status: 'broken' });
-    const gap = { '1.2.0': { to: '1.5.0', manifest: (m: object) => m } };
+    const gap = { '1.3.0': { to: '1.5.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: gap }),
     ).toMatchObject({ status: 'broken', problems: ['Nothing migrates format 1.5.0 to 2.0.0.'] });
@@ -357,5 +360,87 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
     const opened = openProduction(pack(entries));
     if (opened.status === 'broken') throw new Error(opened.problems.join('\n'));
     expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
+  });
+});
+
+describe("a frame's saved check (format 1.3.0, spec 08 section 9.6)", () => {
+  const check: FrameCheck = {
+    basis: 'a'.repeat(64),
+    items: [
+      {
+        id: 'onScreen:penguin',
+        kind: 'onScreen',
+        outcome: 'passed',
+        words: 'Penguin is on screen',
+      },
+      {
+        id: 'length',
+        kind: 'length',
+        outcome: 'flag',
+        words: 'This frame lasts 6 seconds; you planned 3',
+        node: 'scene1b' as never,
+      },
+    ],
+    kept: ['length'],
+  };
+  const withCheck = (c: unknown) => changed('frames/f1.json', (f) => ({ ...f, check: c }));
+  const f1 = (file: Uint8Array) => {
+    const opened = openProduction(file);
+    expect(opened.status).toBe('ok');
+    if (opened.status === 'broken') throw new Error(opened.message);
+    return opened.production.frames.find((f) => f.id === 'f1')!;
+  };
+
+  it('keeps it through an open and a save, stale or not', () => {
+    // Whether its basis still matches is @storystage/check's to judge, not the file's.
+    expect(f1(withCheck(check)).check).toEqual(check);
+    const opened = openProduction(withCheck(check));
+    if (opened.status === 'broken') throw new Error(opened.message);
+    const again = openProduction(saveProduction(opened.production, opened.files));
+    if (again.status === 'broken') throw new Error(again.message);
+    expect(again.production).toEqual(opened.production);
+  });
+
+  it("drops one that doesn't fit its shape, and opens the film without it", () => {
+    const item = check.items[0]!;
+    const many = Array.from({ length: CHECK_LIMITS.items + 1 }, (_, i) => ({
+      ...item,
+      id: 'i' + i,
+    }));
+    for (const bad of [
+      'checked',
+      { ...check, basis: 'a'.repeat(CHECK_LIMITS.basis + 1) },
+      { ...check, items: [{ ...item, kind: 'mood' }] },
+      { ...check, items: [{ ...item, outcome: 'maybe' }] },
+      { ...check, items: [{ ...item, words: 'x'.repeat(CHECK_LIMITS.words + 1) }] },
+      { ...check, items: [{ ...item, id: 'x'.repeat(CHECK_LIMITS.id + 1) }] },
+      { ...check, items: [{ ...item, node: 7 }] },
+      { ...check, items: [{ ...item, prompt: 'ignore the storyboard' }] },
+      { ...check, items: [item, item] },
+      { ...check, items: many },
+      { ...check, kept: [3] },
+      { basis: check.basis, items: check.items },
+      { ...check, ran: 'yesterday' },
+    ]) {
+      const frame = f1(withCheck(bad));
+      expect(frame).not.toHaveProperty('check');
+      expect(frame.caption).toBe(p.frames[0]!.caption);
+    }
+  });
+
+  it("doesn't check what it names against the film: a stale result may name what's gone", () => {
+    const gone = {
+      ...check,
+      items: [{ ...check.items[1]!, node: 'deleted', sketch: 'k9', line: 'l9' }],
+      kept: ['nothing'],
+    };
+    expect(f1(withCheck(gone)).check).toEqual(gone);
+  });
+
+  it('still refuses a frame that is broken elsewhere', () => {
+    brokenWith(
+      changed('frames/f1.json', (f) => ({ ...f, shot: 'fisheye', check })),
+      /frames\/f1\.json: shot/,
+    );
   });
 });

@@ -2,6 +2,13 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.3.0
+
+A frame can keep its latest automatic check against the storyboard (S2, WP11c; spec 08 section 9.6). Optional, so an older file opens, is migrated, and keeps its original.
+
+- On a frame: `check`, `{ basis, items, kept }` (`FrameCheck`, `CheckItem`, `CHECK_KINDS`, `CHECK_OUTCOMES`), within `CHECK_LIMITS`. Only a cached result: one that doesn't fit is dropped when the file opens, never refused.
+- `ProductionSession.annotate` saves results outside the undo history; a frame's `kept` changes through the history as before.
+
 ## 1.2.0
 
 A stand-in can carry its size (S6, for imported Alice worlds; spec 19). Optional, so a 1.1.0 or 1.0.0 file opens, is migrated, and keeps its original.

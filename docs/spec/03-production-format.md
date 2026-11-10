@@ -59,7 +59,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 ### 1.2 Versions
 
-`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.2.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
+`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.3.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
 - **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
@@ -69,7 +69,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 A reader takes the older-is-migrated, newer-is-read-only decision on `formatVersion` first, then opens the program with `openProgram`. If either is newer, the whole production is read-only.
 
-**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0, and 1.1.0 to 1.2.0, are two.
+**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0, 1.1.0 to 1.2.0, and 1.2.0 to 1.3.0, are three.
 
 ### 1.3 Models
 
@@ -132,6 +132,7 @@ So the production has its own session, `ProductionSession` (`session.ts`, WP8.2)
 - **`apply`, `begin`, `commit`, `cancel`, `undo`, `redo`, `history` and `goTo` behave as `EditSession`'s do,** so the code editors' host uses the production session in its place. `step` takes a step from the scene functions below, and `change` takes a change to anything but the program, such as moving an object on the stage, which then appears in the history like any other. A group (`begin` to `commit`) can mix all three: a whole Prompter request is one undo step.
 - **Renaming a scene object** is one step: a `rename` edit, and the set-up with that object's `id` changed, along with any `vehicle` pointing at it. A rename typed in the code editor does the same: the session renames the object in its scene's set-up in the same step. **Removing** the field takes the object out of the set-up, and whatever rode on it rides on the scene.
 - **A scene's script method can't be removed** (`sceneMethodCheck`), and a production opened read-only refuses every change, with the reason.
+- **A frame's automatic check goes around the history** (`annotate`; spec 08 section 9.6). Running a check isn't the learner's change, so it's no undo step: `annotate` saves each frame's latest result (its `basis` and `items`) on the frame, and undo and redo keep it, laid over what they put back. That stays right because the result's `basis` says whether it still fits what's there. The flags kept are the learner's choice: keeping one is an ordinary `change`, and a new result keeps the frame's `kept`. `null` removes a frame's result, a frame that isn't there is skipped, and opening another production forgets them all. Listeners hear it with the source `check`.
 
 **Adding, deleting and moving a scene** are `addScene`, `deleteScene` and `moveScene` (`scenes.ts`, written by S5 for the Storyboard). Each is one step across the type, the set-up, the card, the frames and lines, and the running order, and returns the program edits it made with their inverses, for the session to hold. A new scene is a type from `newSceneType` (`SceneN`, the first free name), an empty set-up and a card, with a scene id `sN`, the first free one; it waits for the logline and synopsis (WP10.1), and a production holds at most 50 scenes. Deleting unpins lines elsewhere that were pinned to its frames and keeps the learner's recordings, no longer tied to the scene; it is refused, in the AST's plain words, while other code still uses the scene's type. Moving changes only the running order.
 
@@ -246,6 +247,10 @@ Oh no, the ice is moving! [[line:l2]]
 
 One file per frame, `frames/<id>.json`. `order` is the frame's place in its scene, from 0, with no two the same in one scene. `lengthSeconds` is the planned length, which the automatic check compares (WP11.6). Sketch positions are fractions of the frame from the top left, so a frame doesn't depend on the size it's drawn at. A sketch stands for a Backstage model or a `StandIn`; no outside drawing is ever stored (`CLAUDE.md` rule 5).
 
+**A frame's check** (format 1.3.0, optional): the frame's latest automatic check against the storyboard and the flags the learner kept, `check: { basis, items, kept }` (`FrameCheck`; spec 08 section 9.6, S2's `@storystage/check`). Each item has an `id` (unique in the frame), a `kind` (`CHECK_KINDS`), an `outcome` (`passed`, `flag` or `note`), its `words`, and the `node`, `sketch` or `line` it's about, where one applies. Within `CHECK_LIMITS`: at most 200 items, words of at most 300 characters, ids of at most 200 characters, a `basis` of at most 128 and at most 200 kept ids.
+
+It's only a cached result, so **a check that doesn't fit this shape is dropped** when the file opens, and the frame opens without it; the file isn't refused. What it names isn't checked against the film: a stale result may name a block, sketch or line since deleted, and `kept` may hold ids that match no flag. Whether it's stale is `@storystage/check`'s to judge, from `basis`; a stale result is kept and still shows. Its words come from a file, so they're data: the studio draws them as plain text, and the Prompter's `check_frame` never passes them as instructions.
+
 ## 7. Links
 
 `Frame.links` lists the blocks a frame is linked to, by node id. Since ids survive edits (`01-ast.md` section 3), a link survives moving and renaming. A link to a block that has been removed is **not** an error: the block may come back on undo, so the Storyboard shows the frame as not linked (WP10.8), and the link stays in the file. For the same reason `checkReferences` doesn't look at links.
@@ -269,6 +274,8 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
 | A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
 | A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
+| A frame's check is kept through an open and a save, stale or not; one that doesn't fit its shape or limits is dropped, not the file; what it names isn't checked (section 6) | `file.test.ts` | Unit |
+| `annotate`: no undo step, kept through undo and redo, the frame's `kept` left to the history, `null` and missing frames, forgotten on load, refused read-only (section 2.1) | `session.test.ts` | Unit |
 | A read-only file is never written (section 1.2) | `saving.test.ts` | Unit |
 | Collect and Hand back: one folder per pupil, names made safe and unique as the teacher sees them, files copied as saved; handed-back files checked and written as new productions, the rest skipped with reasons (section 1.5) | `collect.test.ts` | Unit |
 | Saving in a pupil's folder: a key for a new production, backups on a session's first save and saves asked for, the original kept once, plain-words problems, one save at a time with waiting autosaves merged; opening from the folder and the picker through `openProduction`; a copy's name (section 1.4) | `saving.test.ts` | Unit |
