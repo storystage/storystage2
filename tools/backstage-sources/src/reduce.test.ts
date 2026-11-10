@@ -165,6 +165,18 @@ describe('turnModel', () => {
     ]);
     expect(scene.listChildren().map((n) => n.getName())).toEqual(['storystage-turn']);
   });
+
+  it('stands up a model that leans in its own data', () => {
+    const doc = new Document();
+    const scene = doc.createScene();
+    doc.getRoot().setDefaultScene(scene);
+    // The top of a stick leaning forward by 34°, as Poly Pizza's crutches do.
+    const a = (34 * Math.PI) / 180;
+    const top = doc.createNode('top').setTranslation([0, Math.cos(a), Math.sin(a)]);
+    scene.addChild(top);
+    turnModel(doc, { x: -34 });
+    expect(top.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([0, 1, 0]);
+  });
 });
 
 describe('buildSources reduces every glTF model to its budget', () => {
