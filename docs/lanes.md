@@ -84,6 +84,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 10 Nov (spec, agreed with S3): **ground and sky textures** (spec 17 §2; WP3b, workplan 3.7): CC0 ground textures from ambientCG and Poly Haven as Backstage items under the stage's `storystage/Ground/<name>` ids, each a one-tile `.glb` whose average colour matches the flat one, and a few new picture skies (the owner's choice, 10 Nov), tinted when code sets the atmosphere colour (the owner's choice). **S3: the stage's half (tiling, fallback, the sky dome) builds on it.**
   - 10 Nov (contract, agreed with S2): **production format 1.3.0, a frame's saved check** (spec 08 §9.6, WP11c): `Frame.check` (`basis`, `items`, `kept`) within `CHECK_LIMITS`, dropped when the file opens if it doesn't fit, never refusing the file; and `ProductionSession.annotate`, which saves check results outside the undo history while keeping a flag stays an undo step. **S2: `@storystage/check` builds on it. S5: `editorHost` reads the new `check` source as a load (a type-only change).**
 - Merged:
   - 10 Nov (#330): **a wheelchair and crutches in the shipped Backstage** (backstage-assets#7; WP3b, the owner's inclusion gaps of 1 Nov): two Poly Pizza props by Google, CC BY 3.0, in the everyday and health themes. `backstage.lock.json` pins backstage-assets 1d4e784 (119 models), and the Prompter's catalogue and pins are refreshed. The people with glasses (#323) follow in their own assets PR, once their build is checked.
