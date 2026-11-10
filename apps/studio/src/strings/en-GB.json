@@ -522,5 +522,7 @@
   "production.rehearse.missing": "Some models show as outlines, because this device can’t find them.",
   "production.rehearse.thinks": "Thinks: ",
   "screening.notesStep": "Retake notes for scene {n}",
-  "screening.side": "Compare and notes"
+  "screening.side": "Compare and notes",
+  "screening.keepStep": "Keep the flag on frame {frame}",
+  "screening.letGoStep": "Let the flag go on frame {frame}"
 }

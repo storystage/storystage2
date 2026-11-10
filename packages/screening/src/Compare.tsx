@@ -174,15 +174,3 @@ export function RetakeNotes(props: RetakeNotesProps) {
     </section>
   );
 }
-
-/** The automatic check (11.6) sits under Compare; it's WP11c. */
-export function CheckSoon() {
-  return (
-    <section className="sr-check" aria-labelledby="sr-check-title">
-      <h2 id="sr-check-title" className="sr-side-title">
-        {words.t('check.title')}
-      </h2>
-      <p className="sr-side-note">{words.t('check.soon')}</p>
-    </section>
-  );
-}

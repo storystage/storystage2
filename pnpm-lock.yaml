@@ -66,6 +66,9 @@ importers:
       '@storystage/blocks':
         specifier: workspace:*
         version: link:../../packages/blocks
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../../packages/check
       '@storystage/editor-contract':
         specifier: workspace:*
         version: link:../../packages/editor-contract
@@ -377,6 +380,9 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../check
       '@storystage/export':
         specifier: workspace:*
         version: link:../export
