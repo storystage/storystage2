@@ -145,15 +145,19 @@ const FUNCTION_WORDS = new Set(
 export function rpDictionary(text: string): string[] {
   const seen = new Set<string>();
   const lines: string[] = [];
-  for (const raw of text.split(/\r?\n/)) {
+  for (const raw of text.split('\n')) {
     if (!raw || raw.startsWith(';;;')) continue;
-    const line = raw.replace(/#@@.*$/, '').trim();
-    const m = /^([A-Z'.-]+)(\([a-z-]+\))?\s+(.+)$/.exec(line);
-    if (!m || seen.has(m[1]!) || FUNCTION_WORDS.has(m[1]!)) continue;
-    const ps = rpToKokoro(m[3]!);
+    // Plain string steps, not one regular expression over the line: no slow worst case (CodeQL).
+    const note = raw.indexOf('#@@');
+    const line = (note >= 0 ? raw.slice(0, note) : raw).trim();
+    const space = line.search(/\s/);
+    if (space < 0) continue;
+    const word = /^([A-Z'.-]+)(?:\([a-z-]+\))?$/.exec(line.slice(0, space))?.[1];
+    if (!word || seen.has(word) || FUNCTION_WORDS.has(word)) continue;
+    const ps = rpToKokoro(line.slice(space).trim());
     if (!ps) continue;
-    seen.add(m[1]!);
-    lines.push(`${m[1]}\t${ps}`);
+    seen.add(word);
+    lines.push(`${word}\t${ps}`);
   }
   return lines;
 }
