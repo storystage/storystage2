@@ -1,15 +1,16 @@
 /**
  * Settings › Class set-up › Class models (`07-ux.md` section 9.6; decision 0066): the models
  * imported into the class Backstage on this device, each with its thumbnail, kind and credit,
- * **Import a model…**, and **Move to the bin**. A pupil's own import says whose it is, with
+ * **Import a model…**, **Move to the bin**, and **Save models** and **Open models** (the pack). A pupil's own import says whose it is, with
  * **Make it the class's** (`promote`).
  */
-import type { ClassFolders, StoredModel } from '@storystage/host';
+import type { ClassFolders, FilePicker, StoredModel } from '@storystage/host';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
 import { Button, Icon } from '@storystage/ui';
 import { useEffect, useState } from 'react';
 import { words, type WordKey } from '../strings.ts';
 import { ImportModel } from './ImportModel.tsx';
+import { ModelPack } from './ModelPack.tsx';
 import { kindOf } from './modelKinds.ts';
 import type { PupilFilms } from './Pupils.tsx';
 
@@ -80,6 +81,7 @@ function Thumbnail({ classes, model }: { classes: ClassFolders; model: ClassMode
 
 export function ClassModelsCard({
   classes,
+  picker,
   models,
   taken,
   pupils,
@@ -88,6 +90,8 @@ export function ClassModelsCard({
   onSaid,
 }: {
   classes: ClassFolders;
+  /** The system's picker, for Save models (07-ux 9.6). */
+  picker: FilePicker;
   models: readonly ClassModel[];
   taken: readonly string[];
   pupils: readonly PupilFilms[];
@@ -153,6 +157,14 @@ export function ClassModelsCard({
           })}
         </ul>
       )}
+      <ModelPack
+        classes={classes}
+        picker={picker}
+        taken={taken}
+        hasClassModels={models.some((m) => m.owner === 'class')}
+        startWorker={startWorker}
+        onChanged={() => void act(async () => {})}
+      />
       {importing && (
         <ImportModel
           classes={classes}
