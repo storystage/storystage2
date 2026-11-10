@@ -102,6 +102,12 @@ test('labels a stand-in, so a learner can tell what it stands for', async ({ pag
   expect(await call<number>(page, 'darkPixels', 'room-camera', 3)).toBeGreaterThan(60);
 });
 
+test('labels a stand-in in a picture too (5.7)', async ({ page }) => {
+  await open(page);
+  // A picture drawn on a stage that hasn't drawn a frame left the label where it was made.
+  expect(await call<number>(page, 'darkPixels', 'room-camera', 3, true)).toBeGreaterThan(60);
+});
+
 test('fades the whole picture to black, the sky included', async ({ page }) => {
   await open(page);
   const sky = (t: number) => call<number[]>(page, 'sample', 'fade-out', t, 320, 20);

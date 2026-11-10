@@ -187,6 +187,18 @@ async function frameOf(name: string, seconds: number) {
   return frame;
 }
 
+/** The same moment as `frameOf`, but taken with `picture` while the scene is at 0 (5.7). */
+async function stillOf(name: string, seconds: number) {
+  const scene = SCENES[name]!;
+  const stage = await offscreenStage();
+  await stage.load(scene.setup);
+  stage.schedule(scene.commands);
+  stage.seek(micros(0));
+  const still = await stage.picture(micros(seconds), W, H);
+  stage.dispose();
+  return still;
+}
+
 /** The colour at one point of a frame. */
 async function sample(name: string, seconds: number, x: number, y: number) {
   const { data } = await frameOf(name, seconds);
@@ -195,8 +207,8 @@ async function sample(name: string, seconds: number, x: number, y: number) {
 }
 
 /** How many pixels of a frame are near black, which only a stand-in's label is. */
-async function darkPixels(name: string, seconds: number) {
-  const { data } = await frameOf(name, seconds);
+async function darkPixels(name: string, seconds: number, still = false) {
+  const { data } = still ? await stillOf(name, seconds) : await frameOf(name, seconds);
   let count = 0;
   for (let p = 0; p < data.length; p += 4)
     if (data[p]! < 70 && data[p + 1]! < 70 && data[p + 2]! < 90) count++;
@@ -219,9 +231,9 @@ async function subjectShare(name: string, seconds: number) {
   return count / (W * H);
 }
 
-/** A frame as a PNG, for people to look at. */
-async function picture(name: string, seconds: number) {
-  const frame = await frameOf(name, seconds);
+/** A frame as a PNG, for people to look at; or, with `still`, a picture of that moment. */
+async function picture(name: string, seconds: number, still = false) {
+  const frame = still ? await stillOf(name, seconds) : await frameOf(name, seconds);
   const canvas = document.createElement('canvas');
   canvas.width = frame.width;
   canvas.height = frame.height;
