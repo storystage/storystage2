@@ -153,9 +153,9 @@ function contextOf(
 export function scopeAt(
   program: Program,
   node: NodeId,
-): readonly { id: NodeId; name: string; type: TypeRef }[] {
+): readonly { id: NodeId; name: string; type: TypeRef; assignable: boolean }[] {
   const index = indexOf(program);
-  const found: { id: NodeId; name: string; type: TypeRef }[] = [];
+  const found: { id: NodeId; name: string; type: TypeRef; assignable: boolean }[] = [];
   for (let at = index.get(node); at?.parent;) {
     const up = index.get(at.parent);
     if (!up) break;
@@ -165,12 +165,19 @@ export function scopeAt(
       typeof at.key === 'number'
     ) {
       for (const s of (holder[at.slot] as AstNode[]).slice(0, at.key))
-        if (s.kind === 'local') found.push({ id: s.id, name: s.name, type: s.type });
+        if (s.kind === 'local')
+          found.push({ id: s.id, name: s.name, type: s.type, assignable: s.constant !== true });
     }
     if ((up.node.kind === 'forEach' || up.node.kind === 'eachTogether') && at.slot === 'body')
-      found.push({ id: up.node.item.id, name: up.node.item.name, type: up.node.item.type });
+      found.push({
+        id: up.node.item.id,
+        name: up.node.item.name,
+        type: up.node.item.type,
+        assignable: false,
+      });
     if (up.node.kind === 'method' || up.node.kind === 'listener')
-      for (const p of up.node.params) found.push({ id: p.id, name: p.name, type: p.type });
+      for (const p of up.node.params)
+        found.push({ id: p.id, name: p.name, type: p.type, assignable: true });
     at = up;
   }
   return found;
@@ -347,7 +354,7 @@ export function cascadeFor(
 export function emptySlots(node: AstNode): readonly ValuePlace[] {
   if (node.kind !== 'call' && node.kind !== 'functionCall') {
     const holder = node as unknown as Record<string, Expression | undefined>;
-    return ['times', 'condition', 'items']
+    return ['times', 'condition', 'items', 'value']
       .filter((slot) => holder[slot]?.kind === 'none')
       .map((slot) => ({ kind: 'value', node: node.id, slot }));
   }

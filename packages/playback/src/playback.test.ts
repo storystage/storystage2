@@ -436,7 +436,7 @@ describe('the runtime’s messages', () => {
 });
 
 describe('fastForward', () => {
-  async function started(production: Production) {
+  async function started(production: Production, trace = false) {
     await settle();
     const stage = new FakeStage();
     const playback = new Playback({
@@ -445,6 +445,7 @@ describe('fastForward', () => {
       port: runtime(),
       mode: 'rehearse',
       seed: 1,
+      ...(trace ? { trace: true } : {}),
     });
     await playback.start();
     return { playback, stage };
@@ -457,6 +458,19 @@ describe('fastForward', () => {
     expect(result.reached).toBe(true);
     expect(result.at).toBeGreaterThanOrEqual(micros(2));
     expect(result.at).toBeLessThan(micros(2.2));
+  });
+
+  it('with trace, finds a block that starts and ends between frames, at its moment', async () => {
+    // An instant block between two lines: never in a frame's `running` snapshot.
+    const blink = {
+      ...say('blink'),
+      details: { duration: { id: id(), kind: 'number', value: 0 } },
+    } as Statement;
+    const { playback } = await started(withSceneOne([say('one'), blink, say('two')]), true);
+    const result = await fastForward(playback, 0, { node: blink.id });
+    expect(result.reached).toBe(true);
+    expect(result.at).toBeGreaterThanOrEqual(micros(1));
+    expect(result.at).toBeLessThan(micros(1.1));
   });
 
   it('says so when the block never runs', async () => {

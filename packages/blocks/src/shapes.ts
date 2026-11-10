@@ -53,6 +53,8 @@ export const enumType = (name: string) => `ss_enum_${name}`;
 export const nodeType = (kind: string) => `ss_${kind}`;
 export const USER_CALL = 'ss_usercall';
 export const USER_FUNCTION = 'ss_userfn';
+/** A detail only the script sets (a speak line's `line`): fixed words, carrying the line's id. */
+export const FROM_SCRIPT = 'ss_fromscript';
 export const METHOD = 'ss_method';
 export const LISTENER = 'ss_listener';
 
@@ -397,6 +399,16 @@ export const STATEMENT_KINDS = [
   'comment',
   'return',
 ] as const satisfies readonly Exclude<Statement['kind'], 'call'>[];
+
+/** The block in a `fromScript` detail's slot (spec 06, 4.1): "from the script", unchangeable. */
+export function fromScriptShape(): Shape {
+  return {
+    type: FROM_SCRIPT,
+    role: 'value',
+    output: outputCheck('LineId'),
+    parts: [{ kind: 'words', text: STORY['words.fromScript'] ?? 'from the script' }],
+  };
+}
 
 /** The expression kinds with a block of their own (enum values and function calls have theirs). */
 export const EXPRESSION_KINDS = [

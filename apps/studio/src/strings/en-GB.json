@@ -526,5 +526,7 @@
   "talkToType.stopped": "Talk to type stopped working. You can still type.",
   "settings.talkToType": "Talk to type",
   "settings.talkToType.switch": "Talk to type: a mic beside every place you write",
-  "settings.talkToType.help": "Tap the mic beside where you write, say the words, then tap it again. What you say stays on this device and is never sent anywhere."
+  "settings.talkToType.help": "Tap the mic beside where you write, say the words, then tap it again. What you say stays on this device and is never sent anywhere.",
+  "screening.keepStep": "Keep the flag on frame {frame}",
+  "screening.letGoStep": "Let the flag go on frame {frame}"
 }

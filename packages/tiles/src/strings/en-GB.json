@@ -44,5 +44,21 @@
   "tiles.control.if": "if",
   "tiles.control.forEach": "for each in",
   "tiles.control.eachTogether": "each in together",
-  "tiles.control.comment": "note"
+  "tiles.control.variable": "variable",
+  "tiles.control.assign": "set",
+  "tiles.control.comment": "note",
+  "tiles.variable.title": "A new variable",
+  "tiles.variable.name": "Its name",
+  "tiles.variable.type": "What it holds",
+  "tiles.variable.type.Number": "a number",
+  "tiles.variable.type.WholeNumber": "a whole number",
+  "tiles.variable.type.Text": "words",
+  "tiles.variable.type.Boolean": "true or false",
+  "tiles.variable.type.Thing": "an object",
+  "tiles.variable.noName": "Give it a name.",
+  "tiles.variable.long": "That name is too long.",
+  "tiles.variable.badName": "A name starts with a letter, and has only letters, digits and _ in it.",
+  "tiles.variable.taken": "{name} is already used here. Choose another name.",
+  "tiles.assign.title": "Which variable to set",
+  "tiles.assign.none": "There’s no variable here to set. Put in a variable above it first."
 }

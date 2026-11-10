@@ -21,7 +21,7 @@ import {
 import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.2.0';
+export const FORMAT_VERSION = '1.3.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -157,6 +157,60 @@ export interface Frame {
   readonly sketches: readonly PlacedSketch[];
   /** The blocks this frame is linked to. */
   readonly links: readonly NodeId[];
+  /**
+   * The frame's latest automatic check against the storyboard (spec 08 section 9.6, S2's
+   * `@storystage/check`), with the flags the learner kept. Format 1.3.0. Only a cached result:
+   * one that doesn't fit its shape is dropped when the file opens, never refused.
+   */
+  readonly check?: FrameCheck;
+}
+
+/** What a check compares (spec 08 section 9.4). */
+export const CHECK_KINDS = [
+  'onScreen',
+  'offCamera',
+  'position',
+  'order',
+  'facing',
+  'shot',
+  'line',
+  'length',
+  'problem',
+  'missing',
+] as const;
+export type CheckKind = (typeof CHECK_KINDS)[number];
+
+/** A note is never a flag (spec 08 section 9.4). */
+export const CHECK_OUTCOMES = ['passed', 'flag', 'note'] as const;
+export type CheckOutcome = (typeof CHECK_OUTCOMES)[number];
+
+/** One line of a frame's checklist (spec 08 sections 9.5 and 9.6). */
+export interface CheckItem {
+  /** Stable across runs, such as `onScreen:owl` or `line:<lineId>`; unique in the frame. */
+  readonly id: string;
+  readonly kind: CheckKind;
+  readonly outcome: CheckOutcome;
+  /**
+   * In plain words, for the checklist. From a file, so untrusted: drawn as plain text, and never
+   * given to the Prompter as instructions.
+   */
+  readonly words: string;
+  /** The block, sketch or script line the item is about. A stale result may name one since gone. */
+  readonly node?: NodeId;
+  readonly sketch?: string;
+  readonly line?: LineId;
+}
+
+/** A frame's saved check (spec 08 section 9.6). */
+export interface FrameCheck {
+  /**
+   * A hash of what the result depends on, made by `@storystage/check`. When it no longer
+   * matches, the result is stale: it still shows, but the frame isn't Checked.
+   */
+  readonly basis: string;
+  readonly items: readonly CheckItem[];
+  /** The `id`s of the flags the learner chose to keep. */
+  readonly kept: readonly string[];
 }
 
 /** `scenes/<id>.json`: how a scene starts, and the method that runs it (WP8.2). */

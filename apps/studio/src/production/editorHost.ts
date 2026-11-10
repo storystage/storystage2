@@ -6,13 +6,17 @@
  */
 import type { Program } from '@storystage/ast';
 import type { ChangeSource, EditorHost, ProgramChange } from '@storystage/editor-contract';
-import type { ProductionSession } from '@storystage/production';
+import type { ProductionChange, ProductionSession } from '@storystage/production';
 import { useMemo } from 'react';
 import type { StudioSource } from '../studio.ts';
 
-/** How the session's sources read to an editor: the Storyboard's and the stage's changes are loads. */
-function sourceOf(source: StudioSource | 'undo' | 'redo' | 'load'): ChangeSource {
-  return source === 'storyboard' ? 'load' : source;
+/**
+ * How the session's sources read to an editor: the Storyboard's and the stage's changes are loads.
+ * A check's result (`annotate`) never changes the program, so editors don't see it; it reads as a
+ * load too.
+ */
+function sourceOf(source: ProductionChange<StudioSource>['source']): ChangeSource {
+  return source === 'storyboard' || source === 'check' ? 'load' : source;
 }
 
 export function editorHost(

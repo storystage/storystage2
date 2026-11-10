@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '7a285bfbb0b7346742b1b44a168e54261f5ca3b3';
+export const SHIPPED_CATALOGUE_COMMIT = '1d4e7849a33fdf624a6808cb8865b87050ef4cb3';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -81,6 +81,7 @@ Props
     polypizza/Prop/bookshelf: Bookshelf, a tall wooden bookshelf full of coloured books [home, school, library] 1.8 m, no joints
     polypizza/Prop/computer: Computer, an old beige computer with its screen and keyboard [school, office, history] 0.45 m, no joints
     polypizza/Prop/cooker: Cooker, a white cooker with four rings on top and an oven below [home, kitchen] 0.9 m, no joints
+    polypizza/Prop/crutches: Crutches, a pair of grey forearm crutches [everyday, health] 1.15 m, no joints
     polypizza/Prop/cup-of-tea: Cup of tea, a white teacup on a saucer [kitchen, food] 0.08 m, no joints
     polypizza/Prop/cupboard: Cupboard, a tall wooden cupboard with two closed doors [home] 1.9 m, no joints
     polypizza/Prop/desk: Desk, a light wooden desk with drawers [home, school, office] 0.77 m, no joints
@@ -108,6 +109,7 @@ Props
     polypizza/Prop/toy-block: Toy block, a red and white wooden toy block with the letter A [toys] 0.08 m, no joints
     polypizza/Prop/umbrella: Umbrella, an open dark blue umbrella [weather] 1 m, no joints
     polypizza/Prop/watering-can: Watering can, a yellow watering can [garden] 0.3 m, no joints
+    polypizza/Prop/wheelchair: Wheelchair, a manual wheelchair with a dark blue seat and big spoked wheels [everyday, health] 0.9 m, no joints
   Transport
     polypizza/Transport/aeroplane: Aeroplane, a white passenger aeroplane [transport] 11.83 m, no joints
     polypizza/Transport/bicycle: Bicycle, an orange bicycle [transport] 1 m, no joints

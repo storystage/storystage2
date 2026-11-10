@@ -13,7 +13,9 @@ import {
   type Ask,
   type CascadeOptions,
   type Choice,
+  type NameInScope,
   type ValuePlace,
+  VARIABLE_TYPES,
 } from '@storystage/story-api/editing';
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -24,11 +26,16 @@ import {
   Menu,
   MenuItem,
   Popover,
+  Radio,
+  RadioGroup,
   SubmenuTrigger,
   TextField,
 } from 'react-aria-components';
 import { tileVariables } from './tokens.ts';
 import { t } from './words.ts';
+
+/** The kinds of value a new variable may hold. */
+export type VariableType = (typeof VARIABLE_TYPES)[number];
 
 interface Anchored {
   /** The pill or button the menu opens from. */
@@ -238,6 +245,113 @@ export function DetailMenu(props: DetailMenuProps) {
         {details.map((d) => (
           <MenuItem key={d.name} id={d.name} className="tl-menu-item">
             {d.words}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Popover>
+  );
+}
+
+/** The longest name the program format takes (`ast` schema). */
+const NAME_MAX = 60;
+const NAME = /^\p{L}[\p{L}\p{N}_]*$/u;
+
+/** Why `name` can't be a new variable's here, or null if it can (spec 14, 2.3). */
+export function variableNameProblem(name: string, taken: readonly string[]): string | null {
+  if (name === '') return t('variable.noName');
+  if (name.length > NAME_MAX) return t('variable.long');
+  if (!NAME.test(name)) return t('variable.badName');
+  if (taken.includes(name)) return t('variable.taken', { name });
+  return null;
+}
+
+export interface NewVariableProps extends Anchored {
+  /** The names already in scope where it goes, which it may not have. */
+  readonly taken: readonly string[];
+  readonly onMake: (name: string, type: VariableType) => void;
+}
+
+/**
+ * The variable tile's question (spec 14, 2.3): a name and the kind of value it holds. What it
+ * starts as is asked next, by the cascade, like any other value.
+ */
+export function NewVariable(props: NewVariableProps) {
+  const anchorRef = useRef(props.anchor);
+  const [name, setName] = useState('');
+  const [type, setType] = useState<VariableType>('Number');
+  const [problem, setProblem] = useState<string | null>(null);
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    const why = variableNameProblem(trimmed, props.taken);
+    if (why) setProblem(why);
+    else props.onMake(trimmed, type);
+  };
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(props.onClose)}>
+      <Dialog aria-label={t('variable.title')} className="tl-ask">
+        <form onSubmit={submit}>
+          <TextField
+            className="tl-ask-field"
+            value={name}
+            onChange={(v) => {
+              setName(v);
+              setProblem(null);
+            }}
+            isInvalid={problem !== null}
+            autoFocus
+          >
+            <Label className="tl-ask-label">{t('variable.name')}</Label>
+            <Input className="tl-ask-input" />
+          </TextField>
+          {problem ? (
+            <p role="alert" className="tl-ask-problem">
+              {problem}
+            </p>
+          ) : null}
+          <RadioGroup
+            className="tl-ask-types"
+            value={type}
+            onChange={(v) => setType(v as VariableType)}
+          >
+            <Label className="tl-ask-label">{t('variable.type')}</Label>
+            {VARIABLE_TYPES.map((v) => (
+              <Radio key={v} value={v} className="tl-ask-type">
+                {t(`variable.type.${v}`)}
+              </Radio>
+            ))}
+          </RadioGroup>
+          <Button type="submit" className="tl-ask-ok">
+            {t('use')}
+          </Button>
+        </form>
+      </Dialog>
+    </Popover>
+  );
+}
+
+export interface ChooseVariableProps extends Anchored {
+  readonly names: readonly NameInScope[];
+  readonly onChoose: (variable: NodeId) => void;
+}
+
+/** The assign tile's question: which variable it sets (only those that may be changed). */
+export function ChooseVariable(props: ChooseVariableProps) {
+  const anchorRef = useRef(props.anchor);
+  const close = useCloseUnlessActed(props.onClose);
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)}>
+      <Menu
+        aria-label={t('assign.title')}
+        autoFocus="first"
+        onAction={(k) => {
+          close.acted();
+          props.onChoose(String(k) as NodeId);
+        }}
+      >
+        {props.names.map((v) => (
+          <MenuItem key={v.id} id={v.id} className="tl-menu-item">
+            {v.name}
           </MenuItem>
         ))}
       </Menu>

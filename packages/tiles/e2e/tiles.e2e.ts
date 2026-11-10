@@ -335,3 +335,69 @@ test('adding an event opens it in a tab of its own', async ({ page }) => {
   );
   await expect(page.getByRole('tree', { name: 'when the scene starts' })).toBeVisible();
 });
+
+// The variable and set tiles (spec 14, 2.3).
+
+test('a variable by keyboard: its name, what it holds, then what it starts as, axe clean', async ({
+  page,
+}) => {
+  await open(page);
+  // After the first statement, so it and the set dragged under it stay in view.
+  await page.getByRole('treeitem', { name: /^cat say Hello/ }).focus();
+  await page.getByRole('button', { name: 'variable', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'A new variable' });
+  const name = dialog.getByRole('textbox', { name: 'Its name' });
+  await expect(name).toBeFocused();
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+  await page.keyboard.type('steps');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('ArrowDown');
+  await expect(dialog.getByRole('radio', { name: 'a whole number' })).toBeChecked();
+  await page.keyboard.press('Enter');
+  const start = page.getByRole('menu', { name: 'steps' });
+  await expect(start).toBeVisible();
+  await start.getByRole('menuitemradio', { name: '2', exact: true }).click();
+  await expect(page.getByRole('treeitem', { name: /^steps starts as 2/ })).toBeVisible();
+  // Then set, dragged under it: which variable, then its new value.
+  const made = page.getByRole('treeitem', { name: /^steps starts as 2/ });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const source = (await page.getByRole('button', { name: 'set', exact: true }).boundingBox())!;
+  const row = (await made.boundingBox())!;
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 40, source.y + 40, { steps: 5 });
+  await page.mouse.move(row.x + 40, row.y + row.height - 4, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+  await page
+    .getByRole('menu', { name: 'Which variable to set' })
+    .getByRole('menuitem', { name: 'steps' })
+    .click();
+  await page.getByRole('menu').getByRole('menuitemradio', { name: '3', exact: true }).click();
+  await expect(page.getByRole('treeitem', { name: /^set steps to 3/ })).toBeVisible();
+});
+
+for (const size of SIZES)
+  test(`every control tile is on screen and big enough to touch at ${size.name} size`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await open(page);
+    // The bar may wrap where the font is wider (fonts differ by system); nothing may be cut off.
+    const boxes = await page
+      .getByRole('toolbar', { name: 'Control blocks' })
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons.map((b) => {
+          const r = b.getBoundingClientRect();
+          return { left: r.left, right: r.right, height: r.height };
+        }),
+      );
+    expect(boxes).toHaveLength(10);
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(size.width);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+  });

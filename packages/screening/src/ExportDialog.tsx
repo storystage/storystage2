@@ -3,6 +3,7 @@ import type { Timeline } from '@storystage/playback';
 import type { Production } from '@storystage/production';
 import { Button, Dialog, NeutralNote, Segmented, TextField, Toggle } from '@storystage/ui';
 import { useState } from 'react';
+import type { FilmFlag } from './CheckPanel.tsx';
 import type { ExportJobState } from './export-job.ts';
 import { words } from './strings.ts';
 
@@ -23,12 +24,26 @@ export interface ExportDialogProps {
   /** Why the film can't leave the school (non-commercial or unchecked models), in plain words. */
   readonly refusals: readonly string[];
   readonly job: ExportJobState;
+  /**
+   * The whole-film check, which runs before Export and lists its flags; the learner can export
+   * anyway (spec 08 sections 4 and 9.1). `null` before it has run.
+   */
+  readonly check?:
+    | { readonly kind: 'checking' }
+    | { readonly kind: 'ready'; readonly flags: readonly FilmFlag[] }
+    | { readonly kind: 'failed' }
+    | null;
+  /** Runs the check again after it couldn't finish. */
+  onCheck?(): void;
   onExport(choices: ExportChoices): void;
   onStop(): void;
   onSaveAgain(): void;
 }
 
 const STEPS = ['frames', 'credits', 'saving'] as const;
+
+/** The flags the learner hasn't kept: those are the ones to look at before exporting. */
+const open = (flags: readonly FilmFlag[]) => flags.filter((f) => !f.kept);
 
 /** "About 21 MB". */
 function size(bytes: number): string {
@@ -74,6 +89,42 @@ export function ExportDialog(props: ExportDialogProps) {
                 <li key={r}>{r}</li>
               ))}
             </ul>
+          </NeutralNote>
+        )}
+        {props.check?.kind === 'checking' && (
+          <NeutralNote>
+            <span role="status">{words.t('export.checking')}</span>
+          </NeutralNote>
+        )}
+        {props.check?.kind === 'failed' && (
+          <NeutralNote>
+            <span role="status">{words.t('export.checkFailed')}</span>
+            {props.onCheck && (
+              <>
+                {' '}
+                <Button variant="quiet" onPress={props.onCheck} isDisabled={running}>
+                  {words.t('export.checkAgain')}
+                </Button>
+              </>
+            )}
+          </NeutralNote>
+        )}
+        {props.check?.kind === 'ready' && (
+          <NeutralNote>
+            {open(props.check.flags).length > 0 ? (
+              <>
+                {words.plural('export.flags', open(props.check.flags).length)}
+                <ul>
+                  {open(props.check.flags).map((f) => (
+                    <li key={`${f.frame}/${f.id}`}>
+                      {words.t('check.flag', { frame: f.frameNumber, words: f.words })}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              words.t('export.noFlags')
+            )}
           </NeutralNote>
         )}
         {[...new Set(waiting.map((s) => s.scene))].map((scene) => (
