@@ -26,5 +26,6 @@ The automatic check against the storyboard (WP11.6): what a run did, against wha
 - `spans.ts`: each frame's span in the film, from its links or its plan (9.3).
 - `compare.ts`: the comparisons and their words (9.4, 9.5), speak lines against the script included (spec 06 section 4.1).
 - `script-words.ts`: Use the new words.
+- `strings.ts` and `strings/en-GB.json`: every word the learner sees, the items' and the undo label's.
 - `status.ts`: `basis`, status and keeping a flag (9.6).
 - `runner.ts`: playing a scene and gathering each frame's state.

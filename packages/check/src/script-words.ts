@@ -6,6 +6,7 @@
 import { indexProgram, mintId, type SetArgument } from '@storystage/ast';
 import type { CheckItem, Production } from '@storystage/production';
 import { numberedLines } from './runner.ts';
+import { t } from './strings.ts';
 
 /**
  * The `setArgument` edit giving the item's `speakLine` block its script line's words, labelled
@@ -31,6 +32,6 @@ export function scriptWords(production: Production, item: CheckItem): SetArgumen
     slot: 'args',
     param: 'text',
     value: { id: mintId(new Set(index.keys())), kind: 'text', value: line.text },
-    label: `Use the script’s words for line ${line.number}`,
+    label: t('scriptWords.step', { number: line.number }),
   };
 }
