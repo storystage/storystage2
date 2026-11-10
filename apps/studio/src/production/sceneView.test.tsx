@@ -7,11 +7,14 @@ import type { ModelSource } from '@storystage/stage/babylon';
 import { FakeStage } from '@storystage/stage/testing';
 import { STORY_LIBRARY } from '@storystage/story-api';
 import { ThemeRoot } from '@storystage/ui';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import type { Place } from '../storyboard/place.ts';
+import { NONE_REHEARSED, type Rehearsed } from './frameProgress.ts';
 import { ProductionStage } from './ProductionStage.tsx';
 
 // The scene view and Rehearse (07-ux 7.2, 7.4) on a fake stage and a real runtime. Blockly can't
@@ -206,5 +209,70 @@ describe('Rehearse (07-ux 7.4)', () => {
     await screen.findByRole('button', { name: 'Rehearse' });
     expect(said(onAnnounce)).toContain('Rehearse stopped because the code changed.');
     expect(ended()).toBe(1);
+  });
+});
+
+describe('the frame strip (07-ux 7.1)', () => {
+  function strip(production: Production) {
+    let rehearsed: Rehearsed = NONE_REHEARSED;
+    const onPlaceChange = vi.fn<(place: Place) => void>();
+    const makeStage: StageMaker = async () => new FakeStage() as Stage;
+    const startWorker = () => {
+      const { main, worker } = inMemoryPorts();
+      const timers: Timers = { now: () => 0, every: () => () => undefined };
+      serve(worker, STORY_LIBRARY, timers);
+      return { port: main, terminate: () => {} };
+    };
+    function View() {
+      const [r, setR] = useState<Rehearsed>(NONE_REHEARSED);
+      rehearsed = r;
+      return (
+        <ThemeRoot>
+          <ProductionStage
+            production={production}
+            scene={production.scenes[0]!.id}
+            frame={production.frames[0]!.id}
+            host={host}
+            onGoToStoryboard={() => {}}
+            announcement=""
+            models={models}
+            makeStage={makeStage}
+            startWorker={startWorker}
+            onPlaceChange={onPlaceChange}
+            rehearsed={r}
+            onRehearsed={setR}
+          />
+        </ThemeRoot>
+      );
+    }
+    render(<View />);
+    return { onPlaceChange, rehearsed: () => rehearsed };
+  }
+
+  it('shows every frame by scene with its status, and choosing one moves the place', async () => {
+    const user = userEvent.setup();
+    const p = exampleProduction();
+    const { onPlaceChange } = strip(p);
+    const list = screen.getByRole('listbox', { name: 'Frames' });
+    const cards = within(list).getAllByRole('option');
+    expect(cards).toHaveLength(p.frames.length);
+    expect(cards[0]!.textContent).toMatch(/1\.1\s*Coded/);
+    await user.click(cards.at(-1)!);
+    const last = p.frames.find((f) => f.id === cards.at(-1)!.getAttribute('data-key'))!;
+    expect(onPlaceChange).toHaveBeenLastCalledWith({ scene: last.scene, frame: last.id });
+  });
+
+  it('marks the frames a rehearsal reaches as Rehearsed', async () => {
+    const user = userEvent.setup();
+    const p = exampleProduction();
+    strip(p);
+    const rehearse = await screen.findByRole('button', { name: 'Rehearse' });
+    await waitFor(() => expect(rehearse.hasAttribute('disabled')).toBe(false));
+    await user.click(rehearse);
+    const list = screen.getByRole('listbox', { name: 'Frames' });
+    await waitFor(
+      () => expect(within(list).getAllByRole('option')[0]!.textContent).toMatch(/Rehearsed/),
+      { timeout: 4000 },
+    );
   });
 });

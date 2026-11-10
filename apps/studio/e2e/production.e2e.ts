@@ -131,6 +131,9 @@ test('Rehearse plays the scene on the scene view, highlights the blocks running,
   await expect(view.getByRole('button', { name: 'Stop' })).toBeVisible();
   // A block running is marked in the Blocks editor (14-editors 3i.10).
   await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 10_000 });
+  // The frame the run reached is Rehearsed on the strip (07-ux 2.3, 7.1).
+  const strip = page.getByRole('listbox', { name: 'Frames' });
+  await expect(strip.getByRole('option').first()).toContainText('Rehearsed', { timeout: 10_000 });
   await view.getByRole('button', { name: 'Stop' }).click();
   await expect(rehearse).toBeVisible();
   await expect(page.locator('.ss-highlight-rehearse')).toHaveCount(0);

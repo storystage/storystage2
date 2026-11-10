@@ -29,6 +29,7 @@ import { FilmList, FolderProblem, NamePage, OpenProblem } from './lesson/LessonP
 import { classPacking } from './lesson/packing.ts';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { useStorageKept } from './lesson/useStorageKept.ts';
+import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
@@ -181,6 +182,8 @@ export function App({
   const [alice, setAlice] = useState<{ title: string; report: ImportReport } | null>(null);
   const aliceInput = useRef<HTMLInputElement>(null);
   const editors = useEditorHost(studio.session, setSaid);
+  // The frames Rehearse has played since they last changed (07-ux 2.3), for this session only.
+  const [rehearsed, setRehearsed] = useState<Rehearsed>(NONE_REHEARSED);
   // One packer for the host: a new one each render would make every save look new to useSaving.
   const pack = useMemo(() => classPacking(host), [host]);
   // The shipped Backstage's Alice models, read when the first world is opened, then kept.
@@ -504,6 +507,10 @@ export function App({
             <ProductionStage
               production={p}
               scene={currentPlace(p, place).scene}
+              frame={currentPlace(p, place).frame}
+              onPlaceChange={setPlace}
+              rehearsed={rehearsed}
+              onRehearsed={setRehearsed}
               host={editors}
               onGoToStoryboard={() => setMode('storyboard')}
               announcement={said}
