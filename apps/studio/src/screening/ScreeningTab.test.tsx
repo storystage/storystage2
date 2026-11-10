@@ -1,6 +1,7 @@
 import { browserHost, type HostInterface } from '@storystage/host';
 import { exampleProduction, type Production, type ProductionFiles } from '@storystage/production';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
+import type { EncoderBackend, FilmExport, Frame } from '@storystage/export';
 import {
   inMemoryPorts,
   serve,
@@ -12,11 +13,14 @@ import {
 import type { Stage } from '@storystage/stage';
 import { FakeStage } from '@storystage/stage/testing';
 import { STORY_LIBRARY } from '@storystage/story-api';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { StageMaker } from '../stage/makeStage.ts';
+import type { ExportJob } from '@storystage/screening';
+import { useModelSource } from '../stage/useModelSource.ts';
 import { useStudio } from '../studio.ts';
+import { exportSlot } from './exportSlot.ts';
 import { ScreeningTab, type ScreeningTabProps } from './ScreeningTab.tsx';
 
 /** No shipped Backstage folder and no class: stand-ins only, as in a test. */
@@ -32,6 +36,29 @@ const host: HostInterface = {
 };
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
+
+/** An encoder that keeps nothing, and a compositor with one frame-sized buffer. */
+const FAKE_ENCODING = {
+  backend: {
+    canEncodeVideo: async () => true,
+    canEncodeAudio: async () => true,
+    open: async () => ({
+      addFrame: async () => undefined,
+      addAudio: async () => undefined,
+      finish: async () => new ArrayBuffer(8),
+      cancel: async () => undefined,
+    }),
+  } satisfies EncoderBackend,
+  compositor: (size: { width: number; height: number }) => {
+    const frame: Frame = {
+      kind: 'rgba',
+      width: size.width,
+      height: size.height,
+      data: new Uint8ClampedArray(size.width * size.height * 4),
+    };
+    return { frame: () => frame };
+  },
+};
 
 /** An import worker that answers a film check with `result`. */
 const checkingWorker = (result: unknown) => (): ImportWorker => {
@@ -51,6 +78,7 @@ function harness(
     production?: Production;
     files?: ProductionFiles;
     importWorker?: () => ImportWorker;
+    saveFilm?: (film: FilmExport) => Promise<void>;
   } = {},
 ) {
   const made: { hidden: boolean; stage: FakeStage }[] = [];
@@ -73,8 +101,17 @@ function harness(
   };
   const onPlaceChange = vi.fn<ScreeningTabProps['onPlaceChange']>();
   const onOpenProductionStage = vi.fn<ScreeningTabProps['onOpenProductionStage']>();
-  function Tab({ active = true }: { active?: boolean }) {
+  const slot = exportSlot<ExportJob>();
+  /** What the App holds for the tab: the studio, the one model source and the export slot. */
+  function Tab({ active = true, shown = true }: { active?: boolean; shown?: boolean }) {
     const studio = useStudio(over.production ?? exampleProduction());
+    const models = useModelSource(
+      host,
+      studio.production,
+      over.files ?? NO_FILES,
+      over.importWorker ? { startWorker: over.importWorker } : {},
+    );
+    if (!shown) return null;
     return (
       <ScreeningTab
         studio={studio}
@@ -82,18 +119,23 @@ function harness(
         active={active}
         onPlaceChange={onPlaceChange}
         onOpenProductionStage={onOpenProductionStage}
-        files={over.files ?? NO_FILES}
+        models={models}
+        exports={slot}
         makeStage={makeStage}
         startWorker={startWorker}
-        {...(over.importWorker ? { models: { startWorker: over.importWorker } } : {})}
+        {...(over.saveFilm ? { saveFilm: over.saveFilm } : {})}
+        exportOptions={FAKE_ENCODING}
       />
     );
   }
   const view = render(<Tab />);
   return {
     view,
+    slot,
     /** Shows or hides the tab, as Learn or Settings opening over it does. */
     setActive: (active: boolean) => view.rerender(<Tab active={active} />),
+    /** Leaves the tab for another, or comes back: the tab unmounts, the App doesn't. */
+    setShown: (shown: boolean) => view.rerender(<Tab shown={shown} />),
     made,
     workers: () => ({ started, ended }),
     onPlaceChange,
@@ -177,6 +219,56 @@ describe('ScreeningTab', () => {
     expect(await screen.findByText('Gran: Its model is missing from the film.')).toBeTruthy();
     expect(screen.getByText('Some models this film carries show as outlines here:')).toBeTruthy();
   });
+
+  it('exports the film from its dialog, on a hidden stage it lets go, and saves it', async () => {
+    const saved: FilmExport[] = [];
+    const { made } = harness({ saveFilm: async (film) => void saved.push(film) });
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    expect(dialog).toBeTruthy();
+    const before = made.length;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
+    expect(
+      await screen.findByText(
+        'The Lost Penguin is saved, with its captions beside it.',
+        {},
+        { timeout: 10_000 },
+      ),
+    ).toBeTruthy();
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.vtt).toContain('PIP: Oh no, the ice is moving!');
+    const forExport = made.slice(before).filter((m) => m.hidden);
+    expect(forExport).toHaveLength(1);
+    expect(forExport[0]!.stage.calls.some((c) => c.method === 'dispose')).toBe(true);
+  }, 20_000);
+
+  it('goes on exporting when the learner changes tab (Keep working), and shows it on coming back', async () => {
+    let release = () => {};
+    const saving = new Promise<void>((ok) => (release = ok));
+    const saved: FilmExport[] = [];
+    const { slot, setShown } = harness({
+      saveFilm: async (film) => {
+        await saving;
+        saved.push(film);
+      },
+    });
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
+    setShown(false);
+    expect(slot.get()?.state.kind).toBe('running');
+    release();
+    await waitFor(() => expect(slot.get()?.state.kind).toBe('done'), { timeout: 10_000 });
+    expect(saved).toHaveLength(1);
+    setShown(true);
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    expect(
+      await screen.findByText('The Lost Penguin is saved, with its captions beside it.'),
+    ).toBeTruthy();
+  }, 20_000);
 
   it("says so in plain words when this device can't make a stage", async () => {
     harness({ stage: async () => Promise.reject(new Error('no WebGL')) });

@@ -175,3 +175,42 @@
   font-variant-numeric: tabular-nums;
   color: var(--ss-text-2);
 }
+
+/* Export film (screen 09). */
+.sr-export {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sr-export-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.sr-export-steps {
+  display: flex;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ss-muted);
+}
+.sr-export-steps [aria-current] {
+  font-weight: 700;
+  color: var(--ss-text);
+}
+.sr-export-bar {
+  height: 12px;
+  overflow: hidden;
+  border-radius: 6px;
+  background: var(--ss-panel-3);
+}
+.sr-export-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--ss-amber);
+}
+.sr-export-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}

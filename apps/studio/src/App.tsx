@@ -32,7 +32,10 @@ import { useStorageKept } from './lesson/useStorageKept.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
+import type { ExportJob } from '@storystage/screening';
+import { exportSlot } from './screening/exportSlot.ts';
 import { Shell } from './shell/Shell.tsx';
+import { useModelSource } from './stage/useModelSource.ts';
 import { words } from './strings.ts';
 import { newProduction } from './storyboard/edits.ts';
 import { NOWHERE, currentPlace, type Place } from './storyboard/place.ts';
@@ -133,6 +136,12 @@ export function App({
   const [mode, setMode] = useState<Mode>('storyboard');
   // Learn or Settings over the panels: the Screening room pauses under them.
   const [overlayOpen, setOverlayOpen] = useState(false);
+  // One model source for every stage, and the running export, above the tabs (S5's review of
+  // #317), so an export goes on when the learner changes tab, and stops when the studio closes.
+  const models = useModelSource(host, studio.production, film?.files ?? NO_FILES);
+  const [exports] = useState(() => exportSlot<ExportJob>());
+  const [exportOpen, setExportOpen] = useState(false);
+  useEffect(() => () => exports.get()?.stop(), [exports]);
   const [said, setSaid] = useState('');
   // A block for the Code editor to open at (Screening's Fix), until the learner leaves the tab.
   const [reveal, setReveal] = useState<{ node: NodeId; n: number } | null>(null);
@@ -471,7 +480,10 @@ export function App({
               <ScreeningTab
                 studio={studio}
                 host={host}
-                files={film?.files ?? NO_FILES}
+                models={models}
+                exports={exports}
+                exportOpen={exportOpen}
+                onExportOpenChange={setExportOpen}
                 active={!overlayOpen}
                 onPlaceChange={setPlace}
                 onOpenProductionStage={(node, at) => {
