@@ -1,3 +1,4 @@
+import type { NodeId } from '@storystage/ast';
 import {
   FILE_LIMIT,
   browserHost,
@@ -133,6 +134,8 @@ export function App({
   // Learn or Settings over the panels: the Screening room pauses under them.
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [said, setSaid] = useState('');
+  // A block for the Code editor to open at (Screening's Fix), until the learner leaves the tab.
+  const [reveal, setReveal] = useState<{ node: NodeId; n: number } | null>(null);
   // What came across from the Alice world just opened, until it's read and closed.
   const [alice, setAlice] = useState<{ title: string; report: ImportReport } | null>(null);
   const aliceInput = useRef<HTMLInputElement>(null);
@@ -439,6 +442,8 @@ export function App({
         onModeChange={(next) => {
           // Changing tab is a moment to save.
           void saving.save('auto');
+          // The learner chose a tab: a block Fix asked to show is no longer wanted.
+          setReveal(null);
           setMode(next);
         }}
         settings={
@@ -456,6 +461,7 @@ export function App({
               host={editors}
               onGoToStoryboard={() => setMode('storyboard')}
               announcement={said}
+              reveal={reveal}
             />
           ),
           screening: (
@@ -465,9 +471,9 @@ export function App({
                 host={host}
                 active={!overlayOpen}
                 onPlaceChange={setPlace}
-                onOpenProductionStage={(_node, at) => {
-                  // The Code editor opening the block itself comes with S5's editors.
+                onOpenProductionStage={(node, at) => {
                   if (at) setPlace(at);
+                  setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }));
                   setMode('production');
                 }}
               />
