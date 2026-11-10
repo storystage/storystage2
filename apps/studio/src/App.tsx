@@ -508,6 +508,9 @@ export function App({
               onGoToStoryboard={() => setMode('storyboard')}
               announcement={said}
               reveal={reveal}
+              models={models}
+              onAnnounce={setSaid}
+              active={!overlayOpen}
             />
           ),
           screening: (

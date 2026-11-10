@@ -118,3 +118,23 @@ test('axe finds no serious issues with the Code editor open', async ({ page }) =
     .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
   expect(serious).toEqual([]);
 });
+
+test('Rehearse plays the scene on the scene view, highlights the blocks running, and stops', async ({
+  page,
+}) => {
+  await openCode(page);
+  const view = page.getByRole('region', { name: 'Scene view' });
+  await expect(view.locator('canvas')).toBeVisible();
+  const rehearse = view.getByRole('button', { name: 'Rehearse', exact: true });
+  await expect(rehearse).toBeEnabled();
+  await rehearse.click();
+  await expect(view.getByRole('button', { name: 'Stop' })).toBeVisible();
+  // A block running is marked in the Blocks editor (14-editors 3i.10).
+  await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 10_000 });
+  await view.getByRole('button', { name: 'Stop' }).click();
+  await expect(rehearse).toBeVisible();
+  await expect(page.locator('.ss-highlight-rehearse')).toHaveCount(0);
+  expect(
+    (await new AxeBuilder({ page }).include('.pr-scene').analyze()).violations.map((v) => v.id),
+  ).toEqual([]);
+});
