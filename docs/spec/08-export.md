@@ -205,7 +205,11 @@ WP11c, decision 0071: `packages/check` (`@storystage/check`). It compares what t
 
 ### 9.2 How it runs
 
-The driver plays the scene offscreen in fixed steps on a hidden stage, in deterministic mode (6.5), with the runtime's `trace` (spec 18 section 1). A scene that waits on the viewer goes on after `viewerWait` of 5 seconds, as in the export. At the end of each frame, it asks the stage where things are, using questions it already answers (`transform`, `isVisible`, `size`, `lens`); it also notes when each character was last visible during the frame.
+The driver plays the scene offscreen in fixed steps on a hidden stage, in deterministic mode (6.5), with the runtime's `trace` (spec 18 section 1). A scene that waits on the viewer goes on after `viewerWait` of 5 seconds, as in the export. At the end of each frame, it asks the stage where things are, using questions it already answers (`transform`, `isVisible`, `size`, `lens`); it also notes when each character was last on screen during the frame. As S3 describes the stage:
+
+- **On screen** is worked out here, not asked: `isVisible` only says a character is showing (its opacity above 0). A character is on screen when it's showing and its middle (its origin, at its base, plus half its height up) is in front of the camera, nearer than 256 m (the stage's far clipping), and inside the picture.
+- **The picture:** the camera looks along its +Z with +Y up, in a right-handed scene, so its +X is on the picture's **left**. The lens is the vertical viewing angle in **turns** (radians = lens × 2π), and the horizontal angle follows from the picture's 16:9 shape.
+- **Facing:** a model faces its own +Z, so its facing is its rotation applied to (0, 0, 1).
 
 ### 9.3 A frame's span in the film
 
@@ -253,6 +257,13 @@ Each frame's latest result is saved on the frame (`Frame.check`, a production fo
 - `kept`: the `id`s of the flags the learner chose to keep. A kept flag stays in the checklist but doesn't hold the frame back.
 
 A frame is **Checked** (07-ux section 2.3) when its result isn't stale and every flag in it is kept. A flag not kept marks it **Look at**. The Prompter's `check_frame` (spec 04) reads this result. It doesn't run the check.
+
+Agreed with S4 for the format (1.3.0, `CHECK_KINDS`, `CHECK_OUTCOMES`, `CHECK_LIMITS` in `@storystage/production`):
+
+- **Limits:** at most 200 items a frame, each `id` unique in it; `words` at most 300 characters (a problem item carries the error's words); `id`, `node`, `sketch` and `line` at most 200 each; `basis` at most 128; `kept` at most 200 ids. `node`, `sketch` and `line` aren't checked against the program or the frame: a stale result may name something since deleted, and the frame card just doesn't link it. A kept id that matches no flag is allowed, and the next check prunes it.
+- **A `check` that doesn't fit the shape** is dropped quietly when the file opens; the frame opens without it and the file isn't refused. A **stale** result is kept: only this package can tell stale, from `basis`.
+- **Undo:** running a check doesn't add an undo step. Its result is written outside the history (S4's `annotate` on the production's session) and stays across undo and redo, which `basis` keeps correct. Keeping a flag is the learner's choice, and is an undoable step.
+- **The words are data.** In a file someone has edited by hand, `words` can say anything. The studio draws them as plain text, and the Prompter's `check_frame` passes the result inside its `<check_result>` data block (spec 04 section 2.4), never as instructions.
 
 ### 9.7 Tests
 
