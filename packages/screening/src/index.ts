@@ -9,3 +9,4 @@ export * from './RoughCut.tsx';
 export * from './screening-player.ts';
 export * from './export-job.ts';
 export * from './ExportDialog.tsx';
+export * from './Compare.tsx';

@@ -208,6 +208,27 @@ describe('ScreeningPlayer', () => {
     expect(player.state.error?.words).toMatch(/can't use/);
   });
 
+  it("draws a still in the scene on the stage without moving, and moves to another scene's first", async () => {
+    await settle();
+    const { player, shown } = setup();
+    const timeline = (await player.prepare())!;
+    await player.seek(micros(0.2));
+    const s1 = timeline.scenes[0]!;
+    const here = await player.still(s1.start + micros(0.5), 64, 36);
+    expect(here).toMatchObject({ width: 64, height: 36 });
+    expect(player.state.time).toBe(micros(0.2));
+    const pictures = shown.calls.filter((c) => c.method === 'picture');
+    expect(pictures.at(-1)!.args).toEqual([micros(0.5), 64, 36]);
+    const s2 = timeline.scenes[1]!;
+    await player.still(s2.start + micros(0.3), 64, 36);
+    expect(player.state.time).toBe(s2.start + micros(0.3));
+    expect(shown.calls.filter((c) => c.method === 'picture').at(-1)!.args).toEqual([
+      micros(0.3),
+      64,
+      36,
+    ]);
+  });
+
   it('tells its listeners when anything changes', async () => {
     await settle();
     const { player, after } = setup();
