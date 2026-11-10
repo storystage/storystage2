@@ -299,6 +299,29 @@ describe('ScreeningTab', () => {
     expect(screen.getByRole('textbox', { name: 'Notes for scene 2' })).toBeTruthy();
   });
 
+  it('keeps the still with the sketch beside it when the arrows are pressed quickly', async () => {
+    harness();
+    await screen.findByRole('button', { name: 'Play' });
+    const next = screen.getByRole('button', { name: 'Next frame' });
+    await userEvent.click(next);
+    await userEvent.click(next);
+    expect(await screen.findByText('Frame 3.1')).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole('img', { name: /for frame 3.1$/ })).toBeTruthy());
+    expect(screen.queryByRole('img', { name: /for frame 2.1$/ })).toBeNull();
+  });
+
+  it('pauses the film for an arrow, and follows the film again on Play', async () => {
+    harness();
+    await userEvent.click(await screen.findByRole('button', { name: 'Play' }));
+    await screen.findByRole('button', { name: 'Pause' });
+    await userEvent.click(screen.getByRole('button', { name: 'Next frame' }));
+    expect(await screen.findByRole('button', { name: 'Play' })).toBeTruthy();
+    expect(screen.getByText('Frame 2.1')).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Play' }));
+    // Compare follows the film again: the frame playing, not the one chosen.
+    await waitFor(() => expect(screen.queryByText('Frame 2.1')).toBeNull(), { timeout: 5_000 });
+  });
+
   it("says so in plain words when this device can't make a stage", async () => {
     harness({ stage: async () => Promise.reject(new Error('no WebGL')) });
     expect(await screen.findByText(/can't show the film here/)).toBeTruthy();

@@ -237,12 +237,20 @@ export function ScreeningTab(props: ScreeningTabProps) {
     (state.timeline ? currentFrame(production, state.timeline, state.time)?.id : null) ??
     framesInOrder(production)[0]?.id ??
     null;
+  // The frame whose still was asked for last: a slower answer for an earlier frame is dropped,
+  // so the still always belongs to the sketch beside it (S5's review).
+  const askedFor = useRef<FrameId | null>(null);
   const showFrame = (id: FrameId) => {
     const player = slot.get();
     setChosen(id);
+    askedFor.current = id;
     if (!player) return;
+    // A still moves the film to its frame, so the film stops there rather than jumping on.
+    if (state.playing) player.pause();
     setStill({ kind: 'drawing' });
-    void stillFor(player, production, id).then(setStill);
+    void stillFor(player, production, id).then((drawn) => {
+      if (askedFor.current === id) setStill(drawn);
+    });
   };
   // Retake notes: for the frame compared, or the scene playing.
   const notesScene =
@@ -252,6 +260,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
     null;
   const writeNotes = (scene: SceneId, notes: string) => {
     const n = production.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
+    if (n === 0) return; // Not in the running order: no "scene 0".
     const next: Production = {
       ...production,
       storyboard: {
@@ -345,7 +354,12 @@ export function ScreeningTab(props: ScreeningTabProps) {
           onPlayPause={() => {
             const player = slot.get();
             if (state.playing) player?.pause();
-            else void player?.play();
+            else {
+              // Playing again: Compare follows the film rather than the frame chosen.
+              setChosen(null);
+              askedFor.current = null;
+              void player?.play();
+            }
           }}
           onSeek={(t) => void slot.get()?.seek(t)}
           player={<div ref={canvasRef} className="sr-canvas" />}
