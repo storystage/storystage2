@@ -6,6 +6,7 @@
  * the tab.
  */
 import type { NodeId } from '@storystage/ast';
+import { checkFilm, keepFlag, sameOrNew } from '@storystage/check';
 import {
   RESOLUTIONS,
   distributionProblems,
@@ -16,7 +17,7 @@ import {
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
 import {
-  CheckSoon,
+  CheckPanel,
   Compare,
   ExportDialog,
   ExportJob,
@@ -24,6 +25,7 @@ import {
   RoughCut,
   ScreeningPlayer,
   currentFrame,
+  filmFlags,
   framesInOrder,
   sceneAt,
   segments,
@@ -314,6 +316,72 @@ export function ScreeningTab(props: ScreeningTabProps) {
     props.onExportOpenChange?.(open);
   };
 
+  // Check the whole film (WP11c, spec 08 section 9.1): on a hidden stage made for the run and let
+  // go after. The results are saved with the session's `annotate`, which is no undo step; a
+  // result that says the same as the one saved keeps it, so nothing changes for nothing.
+  const readOnly = studio.readOnly !== null;
+  const [checking, setChecking] = useState<{ done: number; total: number } | null>(null);
+  // The last check stopped on a problem: the panel and the dialog say so (S5's review).
+  const [checkFailed, setCheckFailed] = useState(false);
+  const checkStop = useRef<AbortController | null>(null);
+  // Leaving the tab stops a check that's running.
+  useEffect(() => () => checkStop.current?.abort(), []);
+  const runFilmCheck = async () => {
+    if (checkStop.current || readOnly) return;
+    const stop = new AbortController();
+    checkStop.current = stop;
+    const film = production;
+    try {
+      await models.prepare(usedModels(film));
+      if (stop.signal.aborted) return;
+      setCheckFailed(false);
+      setChecking({ done: 0, total: framesInOrder(film).length });
+      const hidden = await make(hiddenCanvas(), { hidden: true, models: models.source });
+      try {
+        const results = await checkFilm({
+          production: film,
+          stage: hidden,
+          startWorker,
+          signal: stop.signal,
+          onProgress: (done, total) => setChecking({ done, total }),
+        });
+        const saved = new Map(film.frames.map((f) => [f.id, f.check]));
+        studio.session.annotate(
+          new Map([...results].map(([id, r]) => [id, sameOrNew(saved.get(id), r)])),
+        );
+      } finally {
+        hidden.dispose();
+      }
+    } catch (e) {
+      // Stopped by leaving the tab: nothing to say.
+      if (!stop.signal.aborted) {
+        console.error('The Screening tab could not check the film.', e);
+        setCheckFailed(true);
+      }
+    } finally {
+      if (checkStop.current === stop) checkStop.current = null;
+      if (!stop.signal.aborted) setChecking(null);
+    }
+  };
+  const flagged = filmFlags(production);
+  const keep = (frame: FrameId, itemId: string, keepIt: boolean) => {
+    const n = flagged.flags.find((f) => f.frame === frame)?.frameNumber ?? '';
+    studio.commit(
+      words.t(keepIt ? 'screening.keepStep' : 'screening.letGoStep', { frame: n }),
+      keepFlag(production, frame, itemId, keepIt),
+    );
+  };
+  // Opening Export film checks the frames not checked since they changed first (section 4), and
+  // the dialog lists what it found; the learner can export anyway.
+  useEffect(() => {
+    if (!exportOpen || flagged.unchecked === 0) return;
+    // Started just after the dialog opens, as from a press; once started it runs to its end.
+    const start = setTimeout(() => void runFilmCheck());
+    return () => clearTimeout(start);
+    // Only as the dialog opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportOpen]);
+
   return (
     <div className="sr-tab sr-room">
       <div className="sr-main">
@@ -328,6 +396,16 @@ export function ScreeningTab(props: ScreeningTabProps) {
           production={production}
           timeline={state.timeline}
           refusals={exportOpen ? distributionProblems(production, models.item) : []}
+          check={
+            checking
+              ? { kind: 'checking' }
+              : flagged.unchecked === 0
+                ? { kind: 'ready', flags: flagged.flags }
+                : checkFailed
+                  ? { kind: 'failed' }
+                  : null
+          }
+          onCheck={() => void runFilmCheck()}
           job={exportState}
           onExport={(chosen) => job.start(exportRun(chosen))}
           onStop={() => job.stop()}
@@ -379,13 +457,20 @@ export function ScreeningTab(props: ScreeningTabProps) {
           drawFrame={drawFrame}
           still={still}
         />
-        <CheckSoon />
+        <CheckPanel
+          production={production}
+          running={checking}
+          failed={checkFailed}
+          onCheck={() => void runFilmCheck()}
+          onKeep={keep}
+          readOnly={readOnly}
+        />
         <RetakeNotes
           production={production}
           scene={notesScene}
           onChange={writeNotes}
           onDone={() => studio.seal()}
-          readOnly={studio.readOnly !== null}
+          readOnly={readOnly}
         />
       </aside>
     </div>

@@ -48,6 +48,8 @@ export function catalogueText(manifest: BackstageManifest): string {
   const line = (i: BackstageItem) => {
     const name = i.description ? `${i.displayName}, ${i.description}` : i.displayName;
     const themes = i.themes.length ? ` [${i.themes.join(', ')}]` : '';
+    // A ground or sky has no size on the stage and no joints (spec 17 section 2).
+    if (i.section === 'backdrops') return `    ${i.id}: ${name}${themes}`;
     const joints =
       i.joints === 'prop-only' ? 'no joints' : `joints ${sets.get(i.joints.join(', '))}`;
     return `    ${i.id}: ${name}${themes} ${i.defaultSize.height} m, ${joints}`;
@@ -65,6 +67,10 @@ export function catalogueText(manifest: BackstageManifest): string {
     lines.push('', SECTION_NAMES[section]);
     const here = items.filter((i) => i.section === section);
     if (!here.length) lines.push('  (none yet)');
+    else if (section === 'backdrops')
+      lines.push(
+        "  A scene's ground or sky: set it as the scene's backdrop, never add it as a model.",
+      );
     let cls = '';
     for (const i of here) {
       if (i.class !== cls) lines.push(`  ${(cls = i.class)}`);

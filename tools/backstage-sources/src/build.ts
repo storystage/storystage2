@@ -49,7 +49,8 @@ import {
   type ImageDecoder,
 } from '@storystage/sketches';
 import { backstageId, type JointName } from '@storystage/story-api';
-import { fetchModel, httpFetch, type Fetcher } from './fetch.ts';
+import { groundTile, hexToRgb, rgbToHex, skyDome } from './backdrops.ts';
+import { fetchModel, fetchPicture, httpFetch, type Fetcher, type Fetched } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
 import { sharpDecoder, sharpEncoder, thumbnailWebp } from './sharp-encoder.ts';
 import { excludesFor, validateSources, type SourceItem } from './sources.ts';
@@ -71,6 +72,17 @@ export interface Provenance {
   readonly missingJoints: readonly string[];
   /** What the list's `exclude` removed. */
   readonly excluded: { readonly nodes: readonly string[]; readonly animations: readonly string[] };
+  /**
+   * A backdrop's colours (spec 17 section 2), as `rrggbb`: a ground's average as fetched and as
+   * shipped, matched to its `look`; a sky's horizon (its atmosphere colour) and a suggested
+   * lighting, for the stage's tables.
+   */
+  readonly backdrop?:
+    | { readonly look: string; readonly before: string; readonly after: string }
+    | {
+        readonly horizon: string;
+        readonly lighting: { readonly above: string; readonly below: string };
+      };
 }
 
 export interface BuildReport {
@@ -117,7 +129,9 @@ export async function buildSources(
   const built = new Map<string, BackstageItem>();
 
   for (const { item, source, exclude } of items) {
-    const got = await fetchModel(item, fetcher, dir);
+    // A backdrop is made here from its picture (spec 17 section 2); anything else is fetched.
+    const made = item.backdrop ? await makeBackdrop(item, fetcher, io) : null;
+    const got: Fetched = made ?? (await fetchModel(item, fetcher, dir));
     const { ext, fetched } = got;
     // VRM files are kept byte for byte; excludes apply to glTF models only.
     const trimmed =
@@ -157,8 +171,11 @@ export async function buildSources(
     // Its colour picture for Backstage's browse views (spec 17, section 7a).
     const thumbnail = `thumbnails/${item.id}.webp`;
     await mkdir(dirname(join(dir, thumbnail)), { recursive: true });
-    const picture = await renderThumbnail(mesh, { decodeImage });
-    await writeFile(join(dir, thumbnail), await thumbnailWebp(picture));
+    // A backdrop's is its own picture: a flat tile seen from the front would show nothing.
+    await writeFile(
+      join(dir, thumbnail),
+      made ? made.thumbnail : await thumbnailWebp(await renderThumbnail(mesh, { decodeImage })),
+    );
 
     built.set(item.id, {
       id: backstageId(item.id),
@@ -193,6 +210,7 @@ export async function buildSources(
       skeleton: mapping ? mapping.status : 'none',
       missingJoints: mapping ? mapping.missingRequired : [],
       excluded: first?.excluded ?? trimmed.removed,
+      ...(made ? { backdrop: made.colours } : {}),
     };
   }
 
@@ -288,6 +306,74 @@ function height(positions: Float32Array): number {
   return hi > lo ? Math.max(0.01, Math.round((hi - lo) * 100) / 100) : 1;
 }
 
+/** A backdrop item's model, made from its picture, with its thumbnail and colours. */
+async function makeBackdrop(
+  item: SourceItem,
+  fetcher: Fetcher,
+  io: WebIO,
+): Promise<Fetched & { thumbnail: Uint8Array; colours: NonNullable<Provenance['backdrop']> }> {
+  const picture = await fetchPicture(item, fetcher);
+  const b = item.backdrop!;
+  if (b.kind === 'ground') {
+    const tile = await groundTile(picture.bytes, b.tile, hexToRgb(b.look));
+    return {
+      bytes: await io.writeBinary(tile.doc),
+      ext: 'glb',
+      fetched: picture.fetched,
+      thumbnail: tile.thumbnail,
+      colours: { look: b.look, before: rgbToHex(tile.before), after: rgbToHex(tile.after) },
+    };
+  }
+  const dome = await skyDome(picture.bytes);
+  return {
+    bytes: await io.writeBinary(dome.doc),
+    ext: 'glb',
+    fetched: picture.fetched,
+    thumbnail: dome.thumbnail,
+    colours: {
+      horizon: rgbToHex(dome.horizon),
+      lighting: { above: rgbToHex(dome.lighting.above), below: rgbToHex(dome.lighting.below) },
+    },
+  };
+}
+
+/** The backdrops' colours, for the reviewer and for the stage's tables (spec 17 section 2). */
+function backdropRows(
+  built: ReadonlyMap<string, BackstageItem>,
+  provenance: Readonly<Record<string, Provenance>>,
+): string[] {
+  const grounds: string[] = [];
+  const skies: string[] = [];
+  for (const id of [...built.keys()].sort()) {
+    const c = provenance[id]?.backdrop;
+    if (!c) continue;
+    if ('look' in c) grounds.push(`| \`${id}\` | #${c.look} | #${c.before} | #${c.after} |`);
+    else skies.push(`| \`${id}\` | #${c.horizon} | #${c.lighting.above} | #${c.lighting.below} |`);
+  }
+  return [
+    ...(grounds.length
+      ? [
+          '',
+          "**Grounds:** each picture matched to the stage's flat colour (spec 17 section 2: within 10% on each channel).",
+          '',
+          '| Ground | Stage colour | Fetched average | Shipped average |',
+          '|---|---|---|---|',
+          ...grounds,
+        ]
+      : []),
+    ...(skies.length
+      ? [
+          '',
+          "**Picture skies:** for the stage's `SKIES` and lighting tables (S3). The lighting is a suggestion.",
+          '',
+          '| Sky | Horizon (atmosphere) | Light from above | Light from below |',
+          '|---|---|---|---|',
+          ...skies,
+        ]
+      : []),
+  ];
+}
+
 function report(
   items: readonly BackstageItem[],
   provenance: Readonly<Record<string, Provenance>>,
@@ -310,6 +396,7 @@ function report(
     ...rows,
     '',
     "Triangles and textures show fetched → shipped where the build reduced them to the section's budget (`ITEM_BUDGETS`, provisional until the reference devices have run). VRM files are kept byte for byte, so they aren't reduced. VRM 0.x avatars face -Z and must be turned by the stage's loader.",
+    ...backdropRows(built, provenance),
     '',
     `**Prompter catalogue:** about ${tokens.toLocaleString('en-GB')} of ${CATALOGUE_TOKEN_BUDGET.toLocaleString('en-GB')} tokens. \`prompter-catalogue.txt\` is exactly what Claude reads; check its descriptions with the sketches.`,
     '',

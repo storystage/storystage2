@@ -126,6 +126,49 @@ describe('ExportDialog', () => {
     expect(screen.getByRole('button', { name: 'Try again' })).toBeTruthy();
   });
 
+  it('lists the check\u2019s flags before export, and still lets the film go', () => {
+    setup({
+      check: {
+        kind: 'ready',
+        flags: [
+          {
+            frame: 'f1' as never,
+            frameNumber: '1.1',
+            id: 'a',
+            words: 'Owl is missing',
+            kept: false,
+          },
+          { frame: 'f1' as never, frameNumber: '1.1', id: 'b', words: 'Kept one', kept: true },
+        ],
+      },
+    });
+    expect(screen.getByText(/found one thing to look at. You can export anyway/)).toBeTruthy();
+    expect(screen.getByText('Frame 1.1: Owl is missing')).toBeTruthy();
+    expect(screen.queryByText('Frame 1.1: Kept one')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Export film' })).toHaveProperty('disabled', false);
+  });
+
+  it('says when it is checking the film first', () => {
+    setup({ check: { kind: 'checking' } });
+    expect(screen.getByText('Checking the film against its storyboard…')).toBeTruthy();
+  });
+
+  it('says when every frame matches', () => {
+    setup({ check: { kind: 'ready', flags: [] } });
+    expect(screen.getByText('Every frame matches its storyboard.')).toBeTruthy();
+  });
+
+  it("says when the check couldn't finish, can check again, and still lets the film go", async () => {
+    const onCheck = vi.fn();
+    setup({ check: { kind: 'failed' }, onCheck });
+    expect(
+      screen.getByText('The check couldn’t finish. You can export anyway, or check again.'),
+    ).toBeTruthy();
+    await userEvent.click(screen.getByRole('button', { name: 'Check again' }));
+    expect(onCheck).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: 'Export film' })).toHaveProperty('disabled', false);
+  });
+
   it('waits for the film to be measured before it can export', () => {
     setup({ timeline: null });
     expect(screen.getByRole('button', { name: 'Export film' })).toHaveProperty('disabled', true);
