@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails; the control bar's **variable** and **assign** tiles (see 2.3); an error's words beside its statement (3g), which the contract doesn't carry yet; and the Chromebook run of 3h.3 (7.10). Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails, and the Chromebook run of 3h.3 (7.10). An error's words beside its statement (3g) came with the contract's `HighlightMark` (#233); the **variable** and **assign** tiles and fresh loop item names (2.3) on 10 Nov 2026. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -95,7 +95,8 @@ Every step's undo label is written from the Story API's words, naming what chang
 | Function | What it does |
 |---|---|
 | `palette(program, target, self, tab)` | Section 2.1: groups of blocks, each with its `callee` and its words with `???` |
-| `newCall`, `newControl` | A new block from the palette or the control bar, with every value empty (`none`) |
+| `newCall`, `newControl`, `newLocal`, `newAssign` | A new block from the palette or the control bar, with every value empty (`none`). A variable is made once it has a name and a type, and an assignment once it has its variable |
+| `namesAt(program, place)`, `freshName`, `readyFor` | The variables a block at a place would see (with whether each may be changed); a name numbered until it's free; a new loop given an item name that's free where it goes |
 | `canDrop(program, place, candidate)` | Section 2.2: the edits and their label, or the reason it can't go there. `candidate` is a new statement or value, or `{existing: id}` to move a statement |
 | `emptySlots`, `cascadeFor`, `answer`, `rangeAt` | Section 2.3: what to ask, the menu for each value, a typed value checked against its limit |
 | `detailsToAdd` | The details a block can still take, for "add detail ▾" |
@@ -104,7 +105,7 @@ Every step's undo label is written from the Story API's words, naming what chang
 
 The joints in a cascade come from the caller (`jointsOf`), because which joints a model has is in the manifest, not the program. Backstage surfaces, sounds, scenes and clips come the same way (`references`).
 
-**Not yet:** the control bar's **variable** and **assign** tiles, which need a name or a target before they can go in (they come with the tile editor's control bar), and a fresh name for a loop's item, so that a loop inside a loop isn't refused for both being called `item`.
+**Variables.** The control bar's **variable** tile asks first for a name and what the variable holds (a number, a whole number, words, true or false, or an object), refusing a name that's empty, too long, not a name, or already in scope there (`namesAt`). Then the cascade asks what it starts as, like any value. The **assign** tile ("set") asks first which variable it sets, from those in scope that may change (not a loop's item or a constant), then its new value; where there's none it says so and puts nothing in. Escape at either question puts nothing in. A new loop's item takes a name that's free where the loop goes (`readyFor`: `item`, then `item2`), so a loop inside a loop isn't refused for both being called `item`.
 
 ## 3. Option C, the tile editor
 
@@ -114,7 +115,7 @@ The joints in a cascade come from the caller (`jointsOf`), because which joints 
 
 1. **Methods panel,** on the left: an object picker ("owl ▾", with its figure), the Actions and Questions tabs, and the palette in categories (section 2.1).
 2. **Code area:** one tab per method or listener. The open method's header reads like its declaration: "owl.myFirstMethod" or "when the scene starts".
-3. **Control tiles bar,** above the code: do in order, count, while, for each in, if, do together, each in together, variable, assign and comment.
+3. **Control tiles bar,** above the code: do in order, count, while, for each in, if, do together, each in together, variable, assign ("set") and comment, on one line at the three sizes (07-ux section 1).
 
 ### 3b. Tiles
 

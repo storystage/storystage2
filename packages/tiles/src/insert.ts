@@ -4,7 +4,7 @@
  * host, as one step. So Escape at any point changes nothing. Until then the block lives in a
  * preview program, never the host's.
  */
-import { applyAll, EditRefused, idMinter } from '@storystage/ast';
+import { applyAll, EditRefused, idMinter, isStatement } from '@storystage/ast';
 import type {
   Expression,
   ListenerDecl,
@@ -18,6 +18,7 @@ import {
   canDrop,
   describer,
   emptySlots,
+  readyFor,
   type Place,
   type StatementPlace,
   type ValuePlace,
@@ -50,8 +51,10 @@ function filled(node: Statement | Expression, slot: ValuePlace, value: Expressio
 export function beginInsert(
   base: Program,
   at: Place,
-  node: Statement | Expression,
+  given: Statement | Expression,
 ): Pending | Change {
+  // A loop inside a loop gets an item name of its own (`item2`), not a clash (spec 14, 2.3).
+  const node = at.kind === 'statement' && isStatement(given) ? readyFor(base, at, given) : given;
   const result = canDrop(base, at, node);
   if (!result.ok) return { ok: false, reason: result.reason };
   const slots = emptySlots(node);
