@@ -199,7 +199,7 @@ const PICTURE_SKIES: readonly (readonly [name: string, horizon: Colour, lighting
   ['clearDay', hex('aebfd0'), { above: hex('99bdec'), below: hex('454c53') }],
   ['cloudy', hex('99a1b3'), { above: hex('acbfe9'), below: hex('3d4048') }],
   ['sunset', hex('c6c1b4'), { above: hex('f2c08c'), below: hex('4f4d48') }],
-  ['night', hex('545b63'), { above: hex('7b8ca3'), below: hex('222528') }],
+  ['night', hex('1c2647'), { above: hex('374d8f'), below: hex('0b0f1c') }],
 ];
 
 export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map(
