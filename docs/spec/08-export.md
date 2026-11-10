@@ -193,3 +193,93 @@ The credits are the same whatever language the interface is in, apart from the h
 | Credits: order, grouping, imported models, notices (section 7) | `packages/export` | Unit |
 | A three-scene production exports to an MP4 that plays, with captions and credits (WP11 done-when) | Playwright in CI, then the owner's device run on Windows, macOS, iPad and ChromeOS | End to end, device |
 | Keyboard path through the Screening room, axe clean, at the three sizes | Playwright | End to end |
+
+## 9. The automatic check against the storyboard (11.6)
+
+WP11c, decision 0071: `packages/check` (`@storystage/check`). It compares what the code does with what the storyboard planned, from the scene's state rather than from pictures. It works without the Prompter and without a network. No picture is taken, and nothing is sent anywhere.
+
+### 9.1 Where it runs
+
+- **Check this frame** and **Check this scene**, on the Production stage (S5): the frame's scene, or one scene.
+- **Check the whole film**, in the Screening room: every scene in the running order. It runs before **Export for distribution** and lists any flags; the learner can export anyway (section 4).
+
+### 9.2 How it runs
+
+The driver plays the scene offscreen in fixed steps on a hidden stage, in deterministic mode (6.5), with the runtime's `trace` (spec 18 section 1). A scene that waits on the viewer goes on after `viewerWait` of 5 seconds, as in the export. At the end of each frame, it asks the stage where things are, using questions it already answers (`transform`, `isVisible`, `size`, `lens`); it also notes when each character was last on screen during the frame. As S3 describes the stage:
+
+- **On screen** is worked out here, not asked: `isVisible` only says a character is showing (its opacity above 0). A character is on screen when it's showing and its middle (its origin, at its base, plus half its height up) is in front of the camera, nearer than 256 m (the stage's far clipping), and inside the picture.
+- **The picture:** the camera looks along its +Z with +Y up, in a right-handed scene, so its +X is on the picture's **left**. The lens is the vertical viewing angle in **turns** (radians = lens × 2π), and the horizontal angle follows from the picture's 16:9 shape.
+- **Facing:** a model faces its own +Z, so its facing is its rotation applied to (0, 0, 1).
+
+### 9.3 A frame's span in the film
+
+The frames of a scene, in storyboard order, share the scene's run:
+
+- **A frame starts** when the first of its linked blocks (`Frame.links`, 10.8) first starts in the scene's run, unless that's before the frame before it starts. Otherwise it starts where the frame before was planned to end (that frame's start plus its planned length); the first frame starts with the scene.
+- **A frame ends** where the next frame starts. The last frame ends with the scene. A frame whose next frame starts no later than it does ends at its own start plus its planned length, but no later than the scene's end.
+
+### 9.4 What it compares
+
+Each comparison gives an item: **passed**, or a **flag**. A few give a **note**, which is never a flag. The tolerances are chosen so that a frame that matches its storyboard gives no flags.
+
+- **Who is on screen.** The characters are the frame's sketches whose `item` is the model of an object in the scene's set-up, or one of the scene card's cast; marks (`mark/…`) and backdrop sketches (`backdrop/…`) aren't characters. A cast member sketched with no object in the set-up isn't on screen, and is flagged. When two objects share a model, they're matched to the sketches in left-to-right order. A character sketched but not visible at the frame's end is flagged. A character who was visible during the frame but isn't at its end has **walked off camera**, and that's what the flag says. A character visible but not sketched is a note.
+- **Where they are.** Each character's place on the picture comes from its position, the camera's transform and the lens. It's flagged when it's on the opposite side of the middle from its sketch, with both more than 15% of the picture's width from the middle (a **mirrored position**). For two characters both on screen, their left-to-right order is compared with the sketch's, and swapped characters are flagged, unless they're within 10% of the picture's width of each other.
+- **Which way they face.** A character's facing towards the camera is front (within 30°), three-quarter (30° to 75°), side (75° to 120°) or back (beyond 120°), and for a side view, left or right. Unflipped, a side or three-quarter sketch faces the picture's left, and `flipped` turns it to the right (the sketch renderer's `VIEWS`, `packages/sketches/src/render.ts`). It's flagged only when it's two steps or more from the sketch's facing (front against side or back, say), or a side view faces the other way from the sketch's (`flipped`).
+- **The shot.** It checks that every character the shot frames is on screen. A close-up should fill at least 40% of the picture's height with its first character; a wide shot should leave each character no more than 60% of it. Medium and two-shots are checked for the characters on screen only.
+- **Pinned script lines.** Each dialogue line pinned to the frame (`pinnedFrame`) should be said (a `say`, or a speak line's `caption`) with the same words, compared as captions compare them (section 6), during the scene's run. A line never said in the scene is flagged. A line said in another frame of the scene is a note ("said in frame 2.4").
+- **The frame's length.** The frame's span is compared with `lengthSeconds`. It's flagged when it's more than half as long again, or less than half, with a second's grace either way. So a frame twice its planned length is flagged, and one a little over is not.
+- **Problems while it runs.** An error that stops the run, endless loops included, is flagged on the frame it happened in, with its words (6.3). A model the stage couldn't find (section 1's `missing`) is a note on every frame of the scene.
+
+### 9.5 The words
+
+Plain words, as screen 07's checklist draws them, with the character's name from the script where it has one and otherwise from the set-up:
+
+| Item | Passed | Flag |
+|---|---|---|
+| On screen | "Owl is on screen" | "Owl isn't on screen at the end of this frame" |
+| Off camera | | "Owl walks off camera during this frame" |
+| Position | "Owl is on the left, as in your sketch" | "Owl ends on the left; your sketch has it on the right" |
+| Order | | "Owl and Fox are the other way round from your sketch" |
+| Facing | "Owl faces the camera, as in your sketch" | "Owl faces away; your sketch has it facing the camera" |
+| Shot | "The close-up frames Owl" | "The close-up doesn't fill the picture with Owl" |
+| Line | "Line 2.3 is said" | "Line 2.3 is never said" |
+| Length | "This frame lasts about 3 seconds, as planned" | "This frame lasts 6 seconds; you planned 3" |
+| Problem | | the error's own words (6.3) |
+
+Each item says which block (`node`) and which sketch (`sketch`) or line (`line`) it's about, so the frame card can link to them.
+
+### 9.6 The result, saved in the film
+
+Each frame's latest result is saved on the frame (`Frame.check`, a production format change for S4), with the flags the learner chose to keep:
+
+- `basis`: a hash of what the result depends on: the program, the scene's set-up, the frame itself and the frames beside it, and the script lines pinned to it. When it no longer matches, the result is **stale**. It still shows, marked as from before the last change, but the frame isn't Checked.
+- `items`: each item's `id` (stable across runs, such as `onScreen:owl` or `line:<lineId>`), `kind`, `outcome` (`passed`, `flag` or `note`), `words`, and `node`, `sketch` and `line` where they apply.
+- `kept`: the `id`s of the flags the learner chose to keep. A kept flag stays in the checklist but doesn't hold the frame back.
+
+A frame is **Checked** (07-ux section 2.3) when its result isn't stale and every flag in it is kept. A flag not kept marks it **Look at**. The Prompter's `check_frame` (spec 04) reads this result. It doesn't run the check.
+
+Agreed with S4 for the format (1.3.0, `CHECK_KINDS`, `CHECK_OUTCOMES`, `CHECK_LIMITS` in `@storystage/production`):
+
+- **Limits:** at most 200 items a frame, each `id` unique in it; `words` at most 300 characters (a problem item carries the error's words); `id`, `node`, `sketch` and `line` at most 200 each; `basis` at most 128; `kept` at most 200 ids. `node`, `sketch` and `line` aren't checked against the program or the frame: a stale result may name something since deleted, and the frame card just doesn't link it. A kept id that matches no flag is allowed, and is simply ignored: it isn't pruned, since only the learner's own steps change `kept`.
+- **A `check` that doesn't fit the shape** is dropped quietly when the file opens; the frame opens without it and the file isn't refused. A **stale** result is kept: only this package can tell stale, from `basis`.
+- **Undo:** running a check doesn't add an undo step. Its result (`basis` and `items`) is written outside the history with `ProductionSession.annotate` (#338) and stays across undo and redo, which `basis` keeps correct. `annotate` leaves each frame's `kept` alone. Keeping a flag, or letting it go, is the learner's choice, an undoable step through `change`.
+- **The words are data.** In a file someone has edited by hand, `words` can say anything. The studio draws them as plain text, and the Prompter's `check_frame` passes the result inside its `<check_result>` data block (spec 04 section 2.4), never as instructions.
+
+### 9.7 The package's API
+
+Agreed with S5, who builds the frame card, the frame strip and the Check buttons on it:
+
+- **Running:** `checkFrame({ production, stage, startWorker, frame, signal?, onProgress? })` and `checkScene({ …, scene })`, and the Screening room's `checkFilm`. As with `exportFilm`, the caller makes, prepares and disposes of the hidden stage, one a run; the runner never disposes of it. A run gives each frame's `CheckResult` (`basis` and `items`, the stored shape without `kept`), ready for `annotate`. `onProgress(done, total)` counts frames, for "Checking frame 2 of 5…".
+- **Writing back:** results go to `session.annotate(results)` (S4's, not an undo step). Keeping a flag is `keepFlag(production, frame, itemId, keep)`, a pure helper giving the next production, for the studio's undoable `commit`, labelled "Keep the flag on frame 2.3".
+- **Status,** cheap enough for every frame on every render: `frameStatus(frame, production)` gives `'checked'`, `'lookAt'` or `null` (no result, or a stale one, so the frame shows the studio's own status); `checkState(frame, production)` gives `{ stale, flags, kept }` or `null`. `basis` is cached per program and scene.
+- **Order:** `ITEM_ORDER` lists flags first, then notes, then passed items, so every view lists them the same way.
+- **Rehearsed** (07-ux section 2.3) stays the studio's: a Rehearse run doesn't compare anything with the storyboard. A frame counts as rehearsed when a Rehearse run's `ran` events include one of its `links`; a frame with no links, when the run reaches the scene's end. So unlinked frames still move on.
+
+### 9.8 Tests
+
+| Rule | Test | Level |
+|---|---|---|
+| Spans from links and planned lengths (9.3) | `packages/check` | Unit |
+| Each comparison, its tolerances, and its words (9.4, 9.5) | `packages/check`, from scene states made in the test | Unit |
+| The done-when: five planted differences (a missing character, a mirrored position, an unsaid line, a frame twice its planned length, a character off camera) each flagged, and no flags on a matching frame | `packages/check`, through the runner on `FakeStage` and the real runtime | Unit |
+| A stale result, kept flags and Checked (9.6) | `packages/check` | Unit |

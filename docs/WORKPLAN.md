@@ -104,6 +104,7 @@ packages/
   speech/          whisper.cpp WASM input, speech synthesis output, narration queue
   playback/        Plays a production on the page: the runtime worker, the stage and the production's player; used by Rehearse, the Screening room and export (decision 0067)
   screening/       The Screening room's screen: rough cut, compare, retake notes, export (decision 0067)
+  check/           The automatic check against the storyboard: the comparison, its words and the runner (decision 0071)
   export/          Frame-by-frame render to MP4 (WebCodecs + muxer), captions (WebVTT/SRT), title and credits; AR pack (baker, GLB, USDZ, page, QR)
   ar/              AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording
   host/            The host interface (decision 0028): what the build hands the studio (policy in force, Prompter transport, files)
