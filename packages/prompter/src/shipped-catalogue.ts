@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '67abbe85751d16ba57f197273645514cadcad5c3';
+export const SHIPPED_CATALOGUE_COMMIT = '1b53a3dedb931b3ef9c88684de3dc6413d6aeab8';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -145,5 +145,26 @@ Set
     polypizza/Prop/wooden-fence: Wooden fence, a short wooden rail fence [farm, countryside] 1.11 m, no joints
 
 Backdrops
-  (none yet)
+  A scene's ground or sky: set it as the scene's backdrop, never add it as a model.
+  Ground
+    storystage/Ground/darkGrass: Dark grass, dark green grass [nature, fantasy]
+    storystage/Ground/desert: Desert, pale cream sand [desert]
+    storystage/Ground/dryGrass: Dry grass, dry yellow grass [nature, countryside]
+    storystage/Ground/forestFloor: Forest floor, brown earth with fallen leaves [forest, nature]
+    storystage/Ground/grass: Grass, short green grass [nature, countryside]
+    storystage/Ground/ice: Ice, pale blue cracked ice [winter]
+    storystage/Ground/jungle: Jungle, mossy green forest ground [jungle, forest]
+    storystage/Ground/mars: Mars, orange-red gravel [space]
+    storystage/Ground/moon: Moon, fine, dusty grey ground [space]
+    storystage/Ground/oceanFloor: Sea floor, pale sand on the sea floor [sea, nature]
+    storystage/Ground/rockyBrown: Rocky brown, brown earth with small stones [nature, countryside]
+    storystage/Ground/room: Room, a wooden plank floor, for a room [home, school]
+    storystage/Ground/sandyDesert: Sandy desert, golden sand in small ripples [desert]
+    storystage/Ground/snow: Snow, smooth white snow [winter, nature]
+    storystage/Ground/swamp: Swamp, muddy green ground with twigs [swamp, nature]
+  Scene
+    storystage/Sky/clearDay: Clear day, a clear blue sky with the sun high [day]
+    storystage/Sky/cloudy: Cloudy, a blue sky with white clouds [day]
+    storystage/Sky/night: Night, a dark moonlit night sky [night]
+    storystage/Sky/sunset: Sunset, a sunset with the sun low on the horizon [evening]
 `;
