@@ -220,9 +220,14 @@ Rehearse and export must take exactly the same time (6.5), but how long a voice 
 
 - Speak line's voices come from the **bundled engine** (decision 0068), not the device, so a production sounds the same on every device and in its exported film. Narration (section 3) still uses the device's voices (section 2.1). The text goes through the same sanitiser (section 2.2).
 - **Each character keeps one voice for the whole production.** The production stores a voice for each cast member, `voice: { preset, base, pitch, formant, speed }` (`03-production-format.md`, a field to add).
-- **Presets** for Settings › Cast: Woman, Man, Girl, Boy, and animal sizes (small, middle-sized, big). A preset is one of the engine's voices, with pitch, formant (the size of the voice) and speed changed. Children's and animals' voices are made this way from adult voices: no openly licensed children's voice model exists (`docs/spikes/tts-engines.md`, section 4).
+- **Presets** for Settings › Cast: Woman, Man, Girl, Boy, and animal sizes (small, middle-sized, big). A preset is one of the engine's voices, with pitch, formant (the size of the voice) and speed changed. The limits, 1 meaning unchanged: pitch and formant 0.7 to 1.5, speed 0.8 to 1.25. Spike 14.3's presets use 0.8 to 1.45, shifting pitch and formant together. Children's and animals' voices are made this way from adult voices: no openly licensed children's voice model exists (`docs/spikes/tts-engines.md`, section 4).
 - By default each cast member gets a preset from its Backstage class, with people alternating woman and man, and no two characters with the same voice while the engine has voices to spare. The learner can change it, and play a sample line.
 - The engine and its voices are part of StoryStage, so a production sounds the same wherever it's opened.
+- **Accent** (owner, 10 Nov 2026): **British English by default**, with **American English** as an option, switched in Settings › Voices.
+  - The accent decides which of Kokoro's voices the presets use: British (`bf_…`, `bm_…`) or American (`af_…`, `am_…`).
+  - It also decides the pronunciations: British by our rules, the RP list and the hand list (`docs/spikes/tts-engines.md`, section 6), or American from the CMU dictionary as it is.
+  - The production stores its accent with its cast's voices (`voice.accent`, `03-production-format.md`), so a film sounds the same on every device.
+  - The switch sets the accent for new productions. It can also change the one that's open: every character keeps its preset, takes that preset's voice in the other accent, and every line's sound is prepared again (section 4.6).
 
 ### 4.4 Captions
 
@@ -283,7 +288,7 @@ Recording the learner's own voice for a line, and lip sync driving the mouth (14
 | The queue: order, Stop, shortening, captions without a voice (3.1) | Unit, fake speaker | `packages/speech` |
 | A speak line's duration from its words, and the `duration` detail (4.2) | Unit | `packages/story-api` (`lineDuration`, the procedure); `packages/speech` (the cache uses the same time) |
 | The sound fitted to the duration, faded at the end, cut by the next line and by Stop (4.2, 4.5) | Unit, fake engine and clock | `packages/speech` |
-| Presets given to the cast by class, no two characters alike while voices remain (4.3) | Unit | `packages/speech` |
+| Presets given to the cast by class, no two characters alike while voices remain; switching the accent keeps each character's preset (4.3) | Unit | `packages/speech` |
 | A line's sound made when its code changes, reused by Rehearse and export, silent with a caption while not ready (4.6) | Unit, fake engine | `packages/speech` |
 | Every spoken test line understood: whisper's word error rate on the engine's output (4.6) | End-to-end in CI | the spike, then `packages/speech` |
 | A speak line is the same in Rehearse and export: same duration, same captions, same scene-state hash (4.2, 4.4) | Unit (fixed step) | `packages/stage`, `packages/runtime` |
@@ -323,8 +328,8 @@ Recording the learner's own voice for a line, and lip sync driving the mouth (14
 | Speech in the DPIA: on-device only, the one download | D (WP17.3) | Sections 1.4, 1.6 |
 | `speakLine` runs as `command:say`, with the `line` detail | S6 (WP4) | Section 4.7 |
 | `say`'s `bubble: 'caption'` and `line`, in the stage contract and `Speech`; no bubble drawn for a caption | S3 (WP4.4, contract PR) | Section 4.7 |
-| A `voice` for each cast member in the production format | S4 (WP8) | Section 4.3 |
-| Captions drawn over the scene view, the voice played during Rehearse, and Settings › Cast's voices | S5 (WP7) | Sections 4.3–4.5 |
+| A `voice` for each cast member in the production format, with its accent | S4 (WP8) | Section 4.3 |
+| Captions drawn over the scene view, the voice played during Rehearse, Settings › Cast's voices, and the accent switch in Settings › Voices | S5 (WP7) | Sections 4.3–4.5 |
 | Line changed, line never spoken, and words not in the script, in the automatic check | S2 (WP11.6) | Section 4.1 |
 | The captions file from the speech timeline, and each line's sound mixed into the soundtrack | S2 (WP11.4) | Sections 4.4, 4.6 |
 | The speech engine's files bundled in the apps, served from the app and checked like the speech model | S8 (WP15) | Section 4.6 |
