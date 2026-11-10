@@ -20,12 +20,14 @@ import type {
   Statement,
   TypeRef,
 } from '@storystage/ast';
+import { DETAILS } from '@storystage/story-api';
 import {
   LISTENER,
   METHOD,
   TARGET,
   USER_CALL,
   USER_FUNCTION,
+  FROM_SCRIPT,
   argInput,
   detailInput,
   enumType,
@@ -73,6 +75,8 @@ export interface Extra {
   count?: number;
   listener?: string;
   event?: string;
+  /** A `fromScript` detail's value: the script line's id. */
+  line?: string;
 }
 
 /** The reason Blockly records for a block the learner switched off. */
@@ -160,7 +164,15 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
 
   function details(values: Args): Record<string, { block: BlockState }> {
     return Object.fromEntries(
-      Object.entries(values).map(([d, e]) => [detailInput(d), { block: expression(e) }]),
+      Object.entries(values).map(([d, e]) => [
+        detailInput(d),
+        {
+          block:
+            DETAILS[d]?.fromScript && e.kind === 'text'
+              ? base(e, FROM_SCRIPT, { line: e.value })
+              : expression(e),
+        },
+      ]),
     );
   }
 
@@ -478,6 +490,7 @@ function statementNode(b: BlockState): Statement {
 
 function expressionOf(b: BlockState): Expression {
   const x = b.extraState ?? {};
+  if (b.type === FROM_SCRIPT) return { ...own(b), kind: 'text', value: String(x.line ?? '') };
   if (b.type.startsWith('ss_storyfn_')) {
     return {
       ...own(b),

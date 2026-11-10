@@ -84,7 +84,7 @@ When a block lands, the learner is asked for each parameter in order, as Alice's
 
 1. **Only values that fit appear,** so a cascade answer can never be refused.
 2. **A slot keeps a sensible default** where Alice has one (an `amount` of 1, a `direction` of forward), so a block is never left with an empty slot after the cascade.
-3. **"add detail ▾"** lists the details the block hasn't been given, each opening its own cascade.
+3. **"add detail ▾"** lists the details the block hasn't been given, each opening its own cascade. A detail only the script sets (`fromScript`: the speak line's `line`, `06-speech.md` section 4.1) is never listed, and where a block has one, both editors show it as the words "from the script" (`words.fromScript`), not a value to change: Tiles as words in the row, Blocks as a fixed block that carries the line's id.
 
 ### 2.4 Labels
 
