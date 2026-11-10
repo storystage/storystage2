@@ -133,6 +133,34 @@ describe('hairTint', () => {
   });
 });
 
+describe('glasses', () => {
+  it('accepts plain frames from the CC0 glasses pack, and nothing else', () => {
+    expect(validatePeople([person({ glasses: 'kwnet_at_optical_glasses' })]).ok).toBe(true);
+    expect(validatePeople([person({ glasses: 'ews_3d_glasses' })]).ok).toBe(false);
+    expect(validatePeople([person({ glasses: 'toigo_round_glasses_leopard' })]).ok).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    expect(peopleTable([person({ glasses: 'kwnet_at_optical_glasses' })])).toContain(
+      'male_casualsuit01, shoes01, kwnet_at_optical_glasses |',
+    );
+  });
+
+  it('are worn by five people of mixed ages in people.json, and their descriptions say so', () => {
+    const file = fileURLToPath(new URL('../people.json', import.meta.url));
+    const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+    const wearing = people.filter((p) => p.glasses);
+    expect(wearing.map((p) => [p.name, p.ageYears])).toEqual([
+      ['Kai', 8],
+      ['Oskar', 13],
+      ['Hannah', 36],
+      ['Chen', 45],
+      ['Margaret', 72],
+    ]);
+    for (const p of wearing) expect(p.description).toMatch(/glasses/);
+  });
+});
+
 describe('peopleTable', () => {
   it('describes each person in plain words for review', () => {
     const table = peopleTable([

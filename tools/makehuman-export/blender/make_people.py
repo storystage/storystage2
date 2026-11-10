@@ -5,7 +5,8 @@ tools and are never linked into the app (CLAUDE.md, rule 8); the people they mak
 CC0 assets are CC0. The decisions live in `src/human-info.ts`, which is tested; this stays thin.
 
     blender -b --python-exit-code 1 --python make_people.py -- \
-        <people.json> <makehuman_system_assets_cc0.zip> <models folder> <previews folder>
+        <people.json> <makehuman_system_assets_cc0.zip> [more CC0 packs, such as glasses01_cc0.zip]
+        <models folder> <previews folder>
 
 For each person it builds the character, bakes its shape, tints older people's hair, and exports a
 rigged binary glTF. It then imports that glTF into an empty scene and renders it, so a preview
@@ -258,12 +259,15 @@ def render_preview(glb, png):
 
 
 def main():
-    people_file, pack, models, previews = sys.argv[sys.argv.index("--") + 1 :]
+    # The system pack, then any more (the community's CC0 glasses), then the two folders.
+    args = sys.argv[sys.argv.index("--") + 1 :]
+    people_file, packs, models, previews = args[0], args[1:-2], args[-2], args[-1]
     with open(people_file, encoding="utf-8") as f:
         people = json.load(f)
     os.makedirs(models, exist_ok=True)
     os.makedirs(previews, exist_ok=True)
-    install_assets(pack)
+    for pack in packs:
+        install_assets(pack)
 
     report = []
     for info in people:

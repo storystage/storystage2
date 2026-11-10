@@ -49,7 +49,6 @@
   {
     "id": "p03",
     "name": "Kai",
-    "description": "a child of 8 with a brown side fringe, in a teal striped shirt and jeans",
     "ageYears": 8,
     "gender": 0.5,
     "build": {
@@ -68,7 +67,9 @@
     "eyebrows": "eyebrow003",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "teal",
-    "shoes": "shoes03"
+    "shoes": "shoes03",
+    "glasses": "spamrakuen_sagerfrogs_glasses_02",
+    "description": "a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and jeans"
   },
   {
     "id": "p04",
@@ -287,7 +288,6 @@
   {
     "id": "p13",
     "name": "Oskar",
-    "description": "a boy of 13 with short dark hair, in a blue shirt and grey jeans",
     "ageYears": 13,
     "gender": 0.7,
     "build": {
@@ -305,7 +305,9 @@
     "hair": "short04",
     "eyebrows": "eyebrow001",
     "clothes": ["male_casualsuit01"],
-    "shoes": "shoes05"
+    "shoes": "shoes05",
+    "glasses": "spamrakuen_tbm_glasses_frames_01",
+    "description": "a boy of 13 with short dark hair and black glasses, in a blue shirt and grey jeans"
   },
   {
     "id": "p14",
@@ -451,7 +453,6 @@
   {
     "id": "p20",
     "name": "Hannah",
-    "description": "a woman of 36 with a black bob, in a teal striped shirt and jeans",
     "ageYears": 36,
     "gender": 0.15,
     "build": {
@@ -470,12 +471,13 @@
     "eyebrows": "eyebrow008",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "teal",
-    "shoes": "shoes06"
+    "shoes": "shoes06",
+    "glasses": "spamrakuen_sagerfrogs_glasses_04",
+    "description": "a woman of 36 with a black bob and rimless glasses, in a teal striped shirt and jeans"
   },
   {
     "id": "p21",
     "name": "Chen",
-    "description": "a man of 45 with a brown side fringe, in a green striped shirt and jeans",
     "ageYears": 45,
     "gender": 0.85,
     "build": {
@@ -494,7 +496,9 @@
     "eyebrows": "eyebrow009",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "green",
-    "shoes": "shoes05"
+    "shoes": "shoes05",
+    "glasses": "spamrakuen_sagerfrogs_glasses_03",
+    "description": "a man of 45 with a brown side fringe and thin metal glasses, in a green striped shirt and jeans"
   },
   {
     "id": "p22",
@@ -593,7 +597,6 @@
   {
     "id": "p26",
     "name": "Margaret",
-    "description": "an older woman of 72 with a grey bob, in a pink striped blouse and pink skirt",
     "ageYears": 72,
     "gender": 0.15,
     "build": {
@@ -613,7 +616,9 @@
     "eyebrows": "eyebrow002",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "rose",
-    "shoes": "shoes06"
+    "shoes": "shoes06",
+    "glasses": "kwnet_at_optical_glasses",
+    "description": "an older woman of 72 with a grey bob and glasses, in a pink striped blouse and pink skirt"
   },
   {
     "id": "p27",

@@ -80,7 +80,12 @@ export function humanInfo(p: Person): HumanInfo {
     hair: p.hair === null ? '' : `${p.hair}.mhclo`,
     proxy: '',
     targets: [],
-    clothes: [...p.clothes, p.shoes, ...(p.hat ? [p.hat] : [])].map((c) => `${c}.mhclo`),
+    clothes: [
+      ...p.clothes,
+      p.shoes,
+      ...(p.hat ? [p.hat] : []),
+      ...(p.glasses ? [p.glasses] : []),
+    ].map((c) => `${c}.mhclo`),
     expressions: [],
     skin_mhmat: `${skinFor(p)}.mhmat`,
     skin_material_type: MATERIAL,

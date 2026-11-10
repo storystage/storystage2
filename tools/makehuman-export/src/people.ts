@@ -56,6 +56,20 @@ export const SYSTEM_ASSETS = {
 } as const;
 
 /**
+ * Plain glasses in the community's `glasses01_cc0.zip` (CC0), as its page lists them:
+ * https://static.makehumancommunity.org/assets/assetpacks/glasses01.html. Only everyday frames:
+ * the pack's costume and tinted ones (3-D glasses, goggles, sunglasses) aren't offered.
+ */
+export const GLASSES = [
+  'kwnet_at_optical_glasses',
+  'spamrakuen_sagerfrogs_glasses_01',
+  'spamrakuen_sagerfrogs_glasses_02',
+  'spamrakuen_sagerfrogs_glasses_03',
+  'spamrakuen_sagerfrogs_glasses_04',
+  'spamrakuen_tbm_glasses_frames_01',
+] as const;
+
+/**
  * Outfits in the pack that nobody wears (owner, 1 Nov 2026): the crop top and the short denim
  * shorts don't suit a tool for 6 to 13-year-olds, and the rest carry MakeHuman's logo.
  */
@@ -133,6 +147,8 @@ export interface Person {
   readonly clothesColour?: ClothesColour;
   readonly shoes: string;
   readonly hat?: string;
+  /** Glasses from the community's CC0 glasses pack (`GLASSES`). */
+  readonly glasses?: string;
 }
 
 /**
@@ -201,6 +217,8 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
       e(`hat must be one of ${SYSTEM_ASSETS.hats.join(', ')}.`);
+    if (p.glasses !== undefined && !has(GLASSES, p.glasses))
+      e(`glasses must be one of ${GLASSES.join(', ')}.`);
   });
   return errors.length ? { ok: false, errors } : { ok: true };
 }
@@ -235,6 +253,7 @@ const clothesWords = (p: Person) =>
     ...p.clothes.map((c) => (p.clothesColour ? `${c} (${p.clothesColour})` : c)),
     p.shoes,
     ...(p.hat ? [p.hat] : []),
+    ...(p.glasses ? [p.glasses] : []),
   ].join(', ');
 
 /** The review table: one row per person, in plain words. */
