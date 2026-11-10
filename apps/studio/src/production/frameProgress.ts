@@ -59,6 +59,9 @@ function idsIn(program: Production['program']): ReadonlySet<string> {
   return ids;
 }
 
+/** Whether a block is still in the program. */
+export const inProgram = (p: Production, node: string): boolean => idsIn(p.program).has(node);
+
 /** Coded: the frame is linked to blocks that are still in the program. */
 export function isCoded(p: Production, frame: Frame): boolean {
   if (frame.links.length === 0) return false;
