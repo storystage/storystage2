@@ -222,9 +222,9 @@ The frames of a scene, in storyboard order, share the scene's run:
 
 Each comparison gives an item: **passed**, or a **flag**. A few give a **note**, which is never a flag. The tolerances are chosen so that a frame that matches its storyboard gives no flags.
 
-- **Who is on screen.** The characters are the frame's sketches whose `item` is the model of an object in the scene's set-up; marks, backdrops and props aren't characters. When two objects share a model, they're matched to the sketches in left-to-right order. A character sketched but not visible at the frame's end is flagged. A character who was visible during the frame but isn't at its end has **walked off camera**, and that's what the flag says. A character visible but not sketched is a note.
+- **Who is on screen.** The characters are the frame's sketches whose `item` is the model of an object in the scene's set-up, or one of the scene card's cast; marks (`mark/…`) and backdrop sketches (`backdrop/…`) aren't characters. A cast member sketched with no object in the set-up isn't on screen, and is flagged. When two objects share a model, they're matched to the sketches in left-to-right order. A character sketched but not visible at the frame's end is flagged. A character who was visible during the frame but isn't at its end has **walked off camera**, and that's what the flag says. A character visible but not sketched is a note.
 - **Where they are.** Each character's place on the picture comes from its position, the camera's transform and the lens. It's flagged when it's on the opposite side of the middle from its sketch, with both more than 15% of the picture's width from the middle (a **mirrored position**). For two characters both on screen, their left-to-right order is compared with the sketch's, and swapped characters are flagged, unless they're within 10% of the picture's width of each other.
-- **Which way they face.** A character's facing towards the camera is front (within 30°), three-quarter (30° to 75°), side (75° to 120°) or back (beyond 120°), and for a side view, left or right. It's flagged only when it's two steps or more from the sketch's facing (front against side or back, say), or a side view faces the other way from the sketch's (`flipped`).
+- **Which way they face.** A character's facing towards the camera is front (within 30°), three-quarter (30° to 75°), side (75° to 120°) or back (beyond 120°), and for a side view, left or right. Unflipped, a side or three-quarter sketch faces the picture's left, and `flipped` turns it to the right (the sketch renderer's `VIEWS`, `packages/sketches/src/render.ts`). It's flagged only when it's two steps or more from the sketch's facing (front against side or back, say), or a side view faces the other way from the sketch's (`flipped`).
 - **The shot.** It checks that every character the shot frames is on screen. A close-up should fill at least 40% of the picture's height with its first character; a wide shot should leave each character no more than 60% of it. Medium and two-shots are checked for the characters on screen only.
 - **Pinned script lines.** Each dialogue line pinned to the frame (`pinnedFrame`) should be said (a `say`, or a speak line's `caption`) with the same words, compared as captions compare them (section 6), during the scene's run. A line never said in the scene is flagged. A line said in another frame of the scene is a note ("said in frame 2.4").
 - **The frame's length.** The frame's span is compared with `lengthSeconds`. It's flagged when it's more than half as long again, or less than half, with a second's grace either way. So a frame twice its planned length is flagged, and one a little over is not.
@@ -265,7 +265,7 @@ Agreed with S4 for the format (1.3.0, `CHECK_KINDS`, `CHECK_OUTCOMES`, `CHECK_LI
 - **Undo:** running a check doesn't add an undo step. Its result (`basis` and `items`) is written outside the history with `ProductionSession.annotate` (#338) and stays across undo and redo, which `basis` keeps correct. `annotate` leaves each frame's `kept` alone. Keeping a flag, or letting it go, is the learner's choice, an undoable step through `change`.
 - **The words are data.** In a file someone has edited by hand, `words` can say anything. The studio draws them as plain text, and the Prompter's `check_frame` passes the result inside its `<check_result>` data block (spec 04 section 2.4), never as instructions.
 
-### 9.8 The package's API
+### 9.7 The package's API
 
 Agreed with S5, who builds the frame card, the frame strip and the Check buttons on it:
 
@@ -273,9 +273,9 @@ Agreed with S5, who builds the frame card, the frame strip and the Check buttons
 - **Writing back:** results go to `session.annotate(results)` (S4's, not an undo step). Keeping a flag is `keepFlag(production, frame, itemId, keep)`, a pure helper giving the next production, for the studio's undoable `commit`, labelled "Keep the flag on frame 2.3".
 - **Status,** cheap enough for every frame on every render: `frameStatus(frame, production)` gives `'checked'`, `'lookAt'` or `null` (no result, or a stale one, so the frame shows the studio's own status); `checkState(frame, production)` gives `{ stale, flags, kept }` or `null`. `basis` is cached per program and scene.
 - **Order:** `ITEM_ORDER` lists flags first, then notes, then passed items, so every view lists them the same way.
-- **Rehearsed** (07-ux section 2.3) stays the studio's: a Rehearse run doesn't compare anything with the storyboard. The studio can tell a frame was rehearsed from the run's `ran` events reaching one of the frame's linked blocks.
+- **Rehearsed** (07-ux section 2.3) stays the studio's: a Rehearse run doesn't compare anything with the storyboard. A frame counts as rehearsed when a Rehearse run's `ran` events include one of its `links`; a frame with no links, when the run reaches the scene's end. So unlinked frames still move on.
 
-### 9.7 Tests
+### 9.8 Tests
 
 | Rule | Test | Level |
 |---|---|---|
