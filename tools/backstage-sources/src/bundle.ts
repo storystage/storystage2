@@ -54,8 +54,24 @@ export function validateLock(json: unknown): string[] {
 }
 
 /**
+ * Whether the apps' `backstage` protocol serves this path (S8's `is_served`, in
+ * `storystage-classes`'s `backstage_files.rs`; spec 05, section 7): `/` between parts, each
+ * of letters, digits, `.`, `_` and `-`, never `.` or `..`, none starting with a dot, at
+ * most 255 characters. A file named otherwise would work in the browser version, but be missing
+ * in the apps, so a bundle with one is refused.
+ */
+export function servedPath(path: string): boolean {
+  return (
+    path.length > 0 &&
+    path.length <= 255 &&
+    path.split('/').every((part) => /^[A-Za-z0-9._-]+$/.test(part) && !part.startsWith('.'))
+  );
+}
+
+/**
  * Checks a fetched Backstage folder against the lock: the two pinned files match their hashes,
- * the manifest is valid and of this code's version, every file it names is there, and the
+ * the manifest is valid and of this code's version, every file it names is there under a name the
+ * apps can serve (`servedPath`), and the
  * Prompter catalogue is exactly what this code makes of the manifest. Returns the problems, or
  * none.
  */
@@ -88,7 +104,11 @@ export async function checkBundle(dir: string, lock: BackstageLock): Promise<str
   for (const item of manifest.items) {
     const files = [item.files.model, item.files.thumbnail, ...item.sketches.map((s) => s.file)];
     for (const f of files)
-      if (!existsSync(join(dir, f))) problems.push(`${item.id}: ${f} is missing.`);
+      if (!servedPath(f))
+        problems.push(
+          `${item.id}: ${f} has a name the apps can't serve. Use letters, digits, ".", "_" and "-".`,
+        );
+      else if (!existsSync(join(dir, f))) problems.push(`${item.id}: ${f} is missing.`);
   }
   if (new TextDecoder().decode(catalogueBytes) !== catalogueText(manifest))
     problems.push(
