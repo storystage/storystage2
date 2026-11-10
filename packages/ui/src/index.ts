@@ -37,6 +37,7 @@ export {
   ModeTabList,
   ModeTabs,
   type Mode,
+  type ModeBadge,
   type ModeTabsProps,
 } from './ModeTabs.tsx';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmented.tsx';

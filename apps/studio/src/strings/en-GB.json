@@ -473,5 +473,11 @@
   "storyboard.picture.of": "A frame with: {sketches}",
   "screening.refused": "Some models this film carries show as outlines here:",
   "screening.refusedModel": "{name}: {reason}",
-  "screening.export": "Export film"
+  "screening.export": "Export film",
+  "exportHeader.running": "exporting {percent}%",
+  "exportHeader.unsaved": "the exported film isn’t saved yet",
+  "exportHeader.stopped": "the export stopped",
+  "exportHeader.percent": "{percent}%",
+  "exportHeader.save": "Save",
+  "exportHeader.stoppedShort": "!"
 }
