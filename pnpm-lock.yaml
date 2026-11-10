@@ -66,6 +66,9 @@ importers:
       '@storystage/blocks':
         specifier: workspace:*
         version: link:../../packages/blocks
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../../packages/check
       '@storystage/editor-contract':
         specifier: workspace:*
         version: link:../../packages/editor-contract

@@ -263,3 +263,13 @@
   background: var(--ss-panel-3);
   box-shadow: inset 0 0 0 2px var(--ss-line-2);
 }
+
+/* The frame strip across the top (07-ux 7.1): its sketch thumbnails fill their paper square. */
+.pr-strip {
+  flex: none;
+  padding-bottom: 4px;
+}
+.pr-strip .sb-picture {
+  width: 100%;
+  height: 100%;
+}
