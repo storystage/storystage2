@@ -190,16 +190,25 @@ export function RoughCut(props: RoughCutProps) {
           {timeline.end.kind === 'cap' && <NeutralNote>{words.t('roughCut.cap')}</NeutralNote>}
           {timeline.missing.map(({ scene, missing }) => {
             const n = p.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
-            const models = missing.flatMap((m) =>
-              m.kind === 'model' ? [m.model.slice(m.model.lastIndexOf('/') + 1)] : [],
-            );
+            // Measuring plays only the running order, so this is a guard, not a case.
+            if (n === 0) return null;
+            // As the studio's Class models card names them: the id's last part, dashes as spaces.
+            const models = [
+              ...new Set(
+                missing.flatMap((m) =>
+                  m.kind === 'model'
+                    ? [m.model.slice(m.model.lastIndexOf('/') + 1).replace(/-/g, ' ')]
+                    : [],
+                ),
+              ),
+            ];
             return (
               <NeutralNote key={scene}>
                 {models.length > 0 && (
                   <span>
-                    {words.t('roughCut.missingModels', {
+                    {words.plural('roughCut.missingModels', models.length, {
                       n,
-                      names: [...new Set(models)].join(', '),
+                      names: names(models),
                     })}
                   </span>
                 )}
@@ -237,6 +246,10 @@ export function RoughCut(props: RoughCutProps) {
     </section>
   );
 }
+
+/** "red fox", "fox and penguin", "fox, owl and penguin". */
+const names = (all: readonly string[]) =>
+  all.length <= 1 ? (all[0] ?? '') : `${all.slice(0, -1).join(', ')} and ${all.at(-1)!}`;
 
 /** Stands in for the timeline while the film is measured. */
 const MEASURING: Timeline = {

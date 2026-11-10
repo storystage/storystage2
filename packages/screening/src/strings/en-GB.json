@@ -49,6 +49,7 @@
   "export.saveAgain": "Save it",
   "export.close": "Close",
   "export.again": "Try again",
-  "roughCut.missingModels": "Scene {n} uses {names}, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
-  "roughCut.missingBackdrop": "Scene {n}'s backdrop isn't all here, so it shows plain ground and sky. Choose it again in Backstage."
+  "roughCut.missingBackdrop": "Scene {n}'s backdrop isn't all here, so it shows plain ground and sky. Choose it again in Backstage.",
+  "roughCut.missingModels.one": "Scene {n} uses {names}, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
+  "roughCut.missingModels.other": "Scene {n} uses {names}, which this device can't find, so they show as outlines. Choose them again in Backstage."
 }

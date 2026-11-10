@@ -177,10 +177,31 @@ describe('RoughCut', () => {
     });
     expect(
       screen.getByText(
-        "Scene 2 uses red-fox, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
+        "Scene 2 uses red fox, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
       ),
     ).toBeTruthy();
     expect(screen.getByText(/Scene 2's backdrop isn't all here/)).toBeTruthy();
+  });
+
+  it('says "they" for more than one missing model', () => {
+    setup({
+      timeline: timeline({
+        missing: [
+          {
+            scene: S1,
+            missing: [
+              { kind: 'model', object: 'fox' as never, model: 'class/Quadruped/fox' as never },
+              { kind: 'model', object: 'pip' as never, model: 'class/Flyer/penguin' as never },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(
+      screen.getByText(
+        "Scene 1 uses fox and penguin, which this device can't find, so they show as outlines. Choose them again in Backstage.",
+      ),
+    ).toBeTruthy();
   });
 
   it('says when the film is cut at 10 minutes', () => {
