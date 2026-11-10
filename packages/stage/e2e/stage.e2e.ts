@@ -108,6 +108,61 @@ test('labels a stand-in in a picture too (5.7)', async ({ page }) => {
   expect(await call<number>(page, 'darkPixels', 'room-camera', 3, true)).toBeGreaterThan(60);
 });
 
+interface Rows {
+  mean: number[];
+  range: number;
+  missing: { kind: string; id?: string }[];
+}
+
+test('tiles a ground texture from Backstage, matching the flat colour (spec 17 §2)', async ({
+  page,
+}) => {
+  await open(page);
+  const r = await call<Record<'plain' | 'own' | 'check' | 'broken', Rows>>(page, 'groundTextures');
+  console.log(JSON.stringify(r));
+  // A texture of the ground's own colour looks as the flat ground does.
+  r.own.mean.forEach((c, i) => expect(Math.abs(c - r.plain.mean[i]!)).toBeLessThan(6));
+  // A check shows, tiled: dark and light near the camera, where the flat ground is even.
+  expect(r.plain.range).toBeLessThan(20);
+  expect(r.check.range).toBeGreaterThan(120);
+  // No item is normal; an item that can't be read falls back to the colour, and is reported.
+  expect(r.plain.missing).toEqual([]);
+  expect(r.own.missing).toEqual([]);
+  r.broken.mean.forEach((c, i) => expect(Math.abs(c - r.plain.mean[i]!)).toBeLessThan(3));
+  expect(r.broken.missing).toEqual([{ kind: 'backdrop', id: 'storystage/Ground/grass' }]);
+});
+
+test('draws a picture sky around the camera, the right way round, and tints it (spec 17 §2)', async ({
+  page,
+}) => {
+  await open(page);
+  const r = await call<{
+    middleAbove: number[];
+    middleBelow: number[];
+    left: number[];
+    right: number[];
+    tinted: number[];
+    missing: unknown[];
+    without: { colour: number[]; missing: unknown[] };
+  }>(page, 'pictureSky');
+  console.log(JSON.stringify(r));
+  // The picture's middle faces +Z, where the camera looks: red, bright above and dim below.
+  const [red, , blue] = r.middleAbove;
+  expect(red).toBeGreaterThan(220);
+  expect(blue).toBeLessThan(30);
+  expect(r.middleBelow[0]).toBeGreaterThan(70);
+  expect(r.middleBelow[0]).toBeLessThan(140);
+  // +X is on the picture's left (blue there), -X on its right (green).
+  expect(r.left[2]).toBeGreaterThan(200);
+  expect(r.right[1]).toBeGreaterThan(200);
+  // Half its own atmosphere colour halves it.
+  expect(Math.abs(r.tinted[0]! - red! / 2)).toBeLessThan(12);
+  expect(r.missing).toEqual([]);
+  // With no item, its atmosphere colour, reported.
+  expect(Math.abs(r.without.colour[0]! - 0.74 * 255)).toBeLessThan(4);
+  expect(r.without.missing).toEqual([{ kind: 'backdrop', id: 'storystage/Sky/clearDay' }]);
+});
+
 test('fades the whole picture to black, the sky included', async ({ page }) => {
   await open(page);
   const sky = (t: number) => call<number[]>(page, 'sample', 'fade-out', t, 320, 20);
@@ -245,6 +300,12 @@ test('keeps pictures of the scenes for people to look at', async ({ page }, info
       contentType: 'image/png',
     });
   }
+  const backdrops = await call<Record<string, string>>(page, 'backdropPictures');
+  for (const [name, png] of Object.entries(backdrops))
+    await info.attach(`textured ${name}`, {
+      body: Buffer.from(png.split(',')[1]!, 'base64'),
+      contentType: 'image/png',
+    });
 });
 
 test('crossfades from one scene to the next (8.3)', async ({ page }) => {
