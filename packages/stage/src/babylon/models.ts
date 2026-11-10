@@ -100,7 +100,10 @@ export class ModelLibrary {
       const options = {
         pluginExtension: '.glb',
         pluginOptions: {
-          gltf: { onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson) },
+          gltf: {
+            onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson),
+            useSRGBBuffers: false,
+          },
         },
       };
       const container = await LoadAssetContainerAsync(file.url, this.scene, options);
@@ -199,7 +202,7 @@ function plainSurfaces(
     if (!source) continue;
     let plain = made.get(source);
     if (!plain) {
-      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor, scene);
+      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor.toGammaSpace(), scene);
       plain.diffuseTexture = source.albedoTexture;
       plain.alpha = source.alpha;
       plain.useAlphaFromDiffuseTexture = source.useAlphaFromAlbedoTexture;
