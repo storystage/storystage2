@@ -8,3 +8,4 @@ export * from './spans.ts';
 export * from './compare.ts';
 export * from './status.ts';
 export * from './runner.ts';
+export * from './script-words.ts';

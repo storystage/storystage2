@@ -9,6 +9,7 @@ import type {
   CheckItem,
   CheckOutcome,
   Frame,
+  LineId,
   PlacedSketch,
   ScriptLine,
 } from '@storystage/production';
@@ -37,6 +38,25 @@ export interface Seen {
   readonly seenDuring: boolean;
 }
 
+/** A speak line spoken in the scene's run: a `say` whose bubble is `caption` (spec 06 section 4.7). */
+export interface Spoken {
+  /** The `speakLine` block that spoke it, when its run is found. */
+  readonly node: NodeId | null;
+  /** The speaker's object id, and its name for the learner. */
+  readonly object: string;
+  readonly name: string;
+  readonly text: string;
+  /** The script line the block was made from, if any. */
+  readonly line: LineId | null;
+  readonly start: Micros;
+}
+
+/** A dialogue line of the film, by id: its number ("2.3") and words. */
+export interface NumberedLine {
+  readonly number: string;
+  readonly text: string;
+}
+
 export interface FrameRun {
   readonly frame: Frame;
   /** The scene's place in the running order, and the frame's number ("2.1"). */
@@ -51,6 +71,10 @@ export interface FrameRun {
   readonly script: readonly ScriptLine[];
   /** What was said or spoken in the scene's run, on the film's clock. */
   readonly said: readonly { readonly text: string; readonly start: Micros }[];
+  /** The speak lines spoken in the scene's run, on the film's clock. */
+  readonly spoken: readonly Spoken[];
+  /** Every script line of the film by id, numbered by its scene, for speak lines from any scene. */
+  readonly lines: ReadonlyMap<LineId, NumberedLine>;
   /** The scene's other frames, for "said in frame 2.4". */
   readonly otherFrames: readonly { readonly frameNumber: string; readonly span: FrameSpan }[];
   /** The error that stopped the scene's run, if any. */
@@ -341,6 +365,52 @@ export function compareFrame(run: FrameRun): CheckItem[] {
       });
     } else add({ ...base, outcome: 'flag', words: `Line ${number} is never said` });
   });
+
+  // Speak lines spoken in the frame, against the script (spec 06 section 4.1): once a block.
+  const pinned = new Set(
+    run.script.filter((l) => l.kind === 'dialogue' && l.pinnedFrame === frame.id).map((l) => l.id),
+  );
+  const spokenHere = new Set<string>();
+  for (const s of run.spoken) {
+    if (s.start < run.span.start || s.start >= run.span.end) continue;
+    const id = `speak:${s.node ?? `${s.object}:${s.line ?? ''}`}`;
+    if (spokenHere.has(id)) continue;
+    spokenHere.add(id);
+    const base = { id, kind: 'line' as const, ...(s.node ? { node: s.node } : {}) };
+    const said = (line: LineId, number: string) =>
+      // A line pinned to the frame has its own item already.
+      pinned.has(line)
+        ? null
+        : add({
+            ...base,
+            outcome: 'passed',
+            words: `${s.name} says line ${number} as written`,
+            line,
+          });
+    if (s.line !== null) {
+      const line = run.lines.get(s.line);
+      if (!line)
+        add({
+          ...base,
+          outcome: 'note',
+          words: `${s.name} says a line that's no longer in the script`,
+        });
+      else if (sameWords(s.text, line.text)) said(s.line, line.number);
+      else
+        add({
+          ...base,
+          outcome: 'flag',
+          words: `${s.name}'s words aren't the same as line ${line.number} in the script`,
+          line: s.line,
+        });
+      continue;
+    }
+    // Dialogue the script hasn't got is allowed: advice, not a flag.
+    const match = run.script.find((l) => l.kind === 'dialogue' && sameWords(l.text, s.text));
+    const number = match && run.lines.get(match.id)?.number;
+    if (match && number) said(match.id, number);
+    else add({ ...base, outcome: 'note', words: `${s.name} says words that aren't in the script` });
+  }
 
   // The frame's length.
   const lasts = (run.span.end - run.span.start) / 1_000_000;
