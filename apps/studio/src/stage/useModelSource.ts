@@ -6,7 +6,7 @@
  * memory already.
  *
  * A film is untrusted, so its packed models are checked in the import worker before any reaches
- * the stage (spec 03 section 1.3; `checkFilmInWorker`). Only those that pass are shown; the others
+ * the stage (spec 03 section 1.3; `checkFilmInWorker`), when a stage first prepares models. Only those that pass are shown; the others
  * show as outlines, and `refused` says which and why, in plain words.
  *
  * The source asks each Backstage in turn at every `find`, so a model the class view learns of
@@ -32,7 +32,7 @@ import type { HostInterface } from '@storystage/host';
 import type { Production, ProductionFiles } from '@storystage/production';
 import type { ModelSource } from '@storystage/stage/babylon';
 import type { BackstageId } from '@storystage/story-api';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { startImportWorker } from '../settings/importWorker.ts';
 
 export type RefusedModel = FilmCheckResult['refused'][number];
@@ -108,29 +108,65 @@ export function useModelSource(
     };
   }, [host]);
 
-  // The film's packed models, checked first. A new film, or new packed models, checks again; the
-  // last film's URLs go (S5: on `studio.open`).
+  // The film's packed models, checked first, but only once a stage needs models (S5's review of
+  // #317): a lesson that never opens the Screening room never pays for the check. A new film, or
+  // new packed models, checks again; the last film's URLs go (S5: on `studio.open`).
   const models = production.manifest.models;
   const packed = files.models;
+  const filmFor = useRef<{
+    readonly models: typeof models;
+    readonly packed: typeof packed;
+    readonly ready: Promise<void>;
+    made: DisposableBackstage | null;
+    live: boolean;
+  } | null>(null);
+  const latest = useRef({ models, packed, startWorker });
   useEffect(() => {
-    let live = true;
-    let made: DisposableBackstage | null = null;
-    const checking: Promise<FilmCheckResult> =
-      models.length === 0
-        ? Promise.resolve({ checked: [], refused: [] })
-        : checkFilmInWorker(startWorker, models, packed);
-    void checking.then((result) => {
-      if (!live) return;
-      made = filmBackstage(models, packed, { checked: result.checked });
-      film.current = made.backstage;
+    latest.current = { models, packed, startWorker };
+    // Another film: its models are checked when a stage next asks.
+    const was = filmFor.current;
+    if (was && (was.models !== models || was.packed !== packed)) {
+      was.live = false;
+      was.made?.dispose();
+      filmFor.current = null;
+      film.current = null;
+    }
+  }, [models, packed, startWorker]);
+  useEffect(
+    () => () => {
+      const was = filmFor.current;
+      if (was) {
+        was.live = false;
+        was.made?.dispose();
+      }
+    },
+    [],
+  );
+  /** Checks the open film's packed models once, and gives their Backstage to the source. */
+  const checkFilm = useCallback((): Promise<void> => {
+    const now = latest.current;
+    const was = filmFor.current;
+    if (was && was.models === now.models && was.packed === now.packed) return was.ready;
+    const entry = {
+      models: now.models,
+      packed: now.packed,
+      made: null as DisposableBackstage | null,
+      live: true,
+      ready: Promise.resolve(),
+    };
+    entry.ready = (
+      now.models.length === 0
+        ? Promise.resolve<FilmCheckResult>({ checked: [], refused: [] })
+        : checkFilmInWorker(now.startWorker, now.models, now.packed)
+    ).then((result) => {
+      if (!entry.live) return;
+      entry.made = filmBackstage(now.models, now.packed, { checked: result.checked });
+      film.current = entry.made.backstage;
       setRefused(result.refused.length === 0 ? NOTHING_REFUSED : result.refused);
     });
-    return () => {
-      live = false;
-      if (made && film.current === made.backstage) film.current = null;
-      made?.dispose();
-    };
-  }, [models, packed, startWorker]);
+    filmFor.current = entry;
+    return entry.ready;
+  }, []);
 
   const handle = useMemo(
     () => ({
@@ -146,10 +182,11 @@ export function useModelSource(
         film.current?.item(id) ??
         classView.current?.backstage.item(id),
       prepare: async (ids: readonly string[]) => {
+        await checkFilm();
         await classView.current?.prepare(ids);
       },
     }),
-    [],
+    [checkFilm],
   );
   return useMemo(() => ({ ...handle, refused }), [handle, refused]);
 }

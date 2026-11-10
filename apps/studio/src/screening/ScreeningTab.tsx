@@ -43,6 +43,12 @@ export interface ScreeningTabProps {
    * working); the App stops it when the studio closes.
    */
   readonly exports: ExportSlot<ExportJob>;
+  /**
+   * Whether Export film is open, when the App holds it (S5's header takes the learner here with
+   * it open). Without it, the tab holds it.
+   */
+  readonly exportOpen?: boolean;
+  onExportOpenChange?(open: boolean): void;
   onPlaceChange(place: Place): void;
   /**
    * False while the tab is out of sight under Learn or Settings: play pauses and the stage stops
@@ -223,7 +229,12 @@ export function ScreeningTab(props: ScreeningTabProps) {
     (l) => job.subscribe(l),
     () => job.state,
   );
-  const [exportOpen, setExportOpen] = useState(false);
+  const [ownExportOpen, setOwnExportOpen] = useState(false);
+  const exportOpen = props.exportOpen ?? ownExportOpen;
+  const setExportOpen = (open: boolean) => {
+    setOwnExportOpen(open);
+    props.onExportOpenChange?.(open);
+  };
 
   return (
     <div className="sr-tab">

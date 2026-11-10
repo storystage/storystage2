@@ -7,7 +7,7 @@
  */
 import { FileError, type FilePicker, type HostInterface } from '@storystage/host';
 import type { FilmExport } from '@storystage/export';
-import { zipSync } from 'fflate';
+import { writeArchive } from '@storystage/production';
 
 export interface FilmFile {
   readonly file: string;
@@ -61,9 +61,9 @@ async function intoFolder(page: Required<FolderPage>, files: readonly FilmFile[]
   }
 }
 
-/** One download: the three files in a `.zip`, stored as they are (an MP4 doesn't shrink). */
+/** One download: the three files in a `.zip`, by the repo's one archive writer (spec 03 section 1). */
 function asZip(name: string, files: readonly FilmFile[]): void {
-  const zip = zipSync(Object.fromEntries(files.map((f) => [f.file, f.bytes])), { level: 0 });
+  const zip = writeArchive(files.map((f) => ({ name: f.file, bytes: f.bytes })));
   const url = URL.createObjectURL(
     new Blob([zip as Uint8Array<ArrayBuffer>], { type: 'application/zip' }),
   );

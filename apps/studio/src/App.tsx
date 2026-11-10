@@ -139,6 +139,7 @@ export function App({
   // #317), so an export goes on when the learner changes tab, and stops when the studio closes.
   const models = useModelSource(host, studio.production, film?.files ?? NO_FILES);
   const [exports] = useState(() => exportSlot<ExportJob>());
+  const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => () => exports.get()?.stop(), [exports]);
   const [said, setSaid] = useState('');
   // What came across from the Alice world just opened, until it's read and closed.
@@ -473,6 +474,8 @@ export function App({
                 host={host}
                 models={models}
                 exports={exports}
+                exportOpen={exportOpen}
+                onExportOpenChange={setExportOpen}
                 active={!overlayOpen}
                 onPlaceChange={setPlace}
                 onOpenProductionStage={(_node, at) => {
