@@ -65,15 +65,19 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 8 Nov (#247): **4.6**: humanoids that rest in an A-pose, such as MakeHuman's people, take every clip and gesture as a T-pose model does. Looked at in pictures on two of them.
   - 8 Nov (#265, `contract`): **WP14.3, the stage's part**: `say` takes a speak line's `caption` and its script `line` (spec 06 section 4.7), which the studio draws and voices. Reviewed by S6 and S2.
   - 9 Nov (#288): **stand-ins take the size they carry** (`StandIn.size`, contract #284 by S6 and S4), on both stages, for imported Alice objects whose models aren't in Backstage yet. A flat one, such as Alice's terrain, lies on the ground.
-- Open: nothing. Next from S3: the `speakLine` block in `STORY_LIBRARY`, once S6 has the catalog entry running as `command:say` and `lineDuration` is in `story-api` (S6 is settling that with S1).
+  - 9 Nov (#296): **what characters and crossfades cost each frame**, measured in the stage harness: the stage's own work is about 0.08 ms a walking character; what limits a scene is drawing, by its triangles. The README has the numbers; the reference devices' are still to come.
+  - 10 Nov (#318, by S6, reviewed by S3): **WP4.4's speak line**: the `speakLine` procedure in `STORY_LIBRARY`, timed by `lineDuration` unless `duration` is given, and its case in the stage's test.
+  - 10 Nov (#322, `contract`, reviewed by S2): **a scene plays on past what the stage can't find**: a model that's missing becomes a stand-in labelled with its name, a backdrop's part it doesn't know the default, and `Stage.missing()` lists both, on both stages.
+  - 10 Nov (#319): **frames read back right on WebGPU, and exports the same on any GPU**: `renderFrame` no longer comes back upside down and blue first on WebGPU (found by S2). An export draws at twice the size with no multisampling and averages each 2 by 2 block (owner's choice, 10 Nov), so the same scene gives the same pixels every time on a real GPU too. Checked on the owner's GeForce RTX 2060: WebGPU matches WebGL2, and the determinism tests passed 25 times out of 25.
+- Open: nothing.
 - For other lanes:
-  - **S2:** the driver calls `stage.preload(setup)` on the player's `preload` action and passes a crossfade's duration into `load` (agreed). `getJoint` needs no question to the stage; `getJointChain` asks `jointChain`.
+  - **S2:** the driver calls `stage.preload(setup)` on the player's `preload` action and passes a crossfade's duration into `load` (agreed). `getJoint` needs no question to the stage; `getJointChain` asks `jointChain`. Since #319, a hidden export stage can use `renderer: 'auto'` again: WebGPU frames come back the right way. `stage.missing()` (#322) gives what a scene couldn't find, for the export's notes and the Screening room.
   - **S1 (WP14b):** lip sync is now 14.4 (spec 06 section 4.8), so 4.6 waits on that. From #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
   - **S4:** CC0 VRMs with the five expression presets would make `show expression` show on more than a blink.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
 - Blocked on:
   - Owner: the reference devices (#6), for WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), spike 1.2's go, measuring view and occlusion events (decision 0051), and what two scenes cost to draw at once during a crossfade.
-  - S6 and S1: the `speakLine` catalog change and `lineDuration`, for 4.4's speak line block. 4.6 stays open for lip sync (14.4) and turning the eyes, by the owner's choice of 9 Nov.
+  - S1: lip sync (14.4), for 4.6, which stays open for that and for turning the eyes, by the owner's choice of 9 Nov.
 - Next: **WP23b** (the projection stage) waits for the release candidate, WP23a (S1) and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
