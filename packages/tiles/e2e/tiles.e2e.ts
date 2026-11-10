@@ -379,12 +379,25 @@ test('a variable by keyboard: its name, what it holds, then what it starts as, a
 });
 
 for (const size of SIZES)
-  test(`the control bar stays on one line at ${size.name} size`, async ({ page }) => {
+  test(`every control tile is on screen and big enough to touch at ${size.name} size`, async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: size.width, height: size.height });
     await open(page);
-    const tops = await page
+    // The bar may wrap where the font is wider (fonts differ by system); nothing may be cut off.
+    const boxes = await page
       .getByRole('toolbar', { name: 'Control blocks' })
       .getByRole('button')
-      .evaluateAll((buttons) => buttons.map((b) => Math.round(b.getBoundingClientRect().top)));
-    expect(new Set(tops).size).toBe(1);
+      .evaluateAll((buttons) =>
+        buttons.map((b) => {
+          const r = b.getBoundingClientRect();
+          return { left: r.left, right: r.right, height: r.height };
+        }),
+      );
+    expect(boxes).toHaveLength(10);
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(size.width);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
   });

@@ -585,7 +585,7 @@
 }
 
 .tl-add-event,
-/* Eleven tiles on one line at iPad size (1180 px), each still 44 px high to touch. */
+/* Ten tiles, kept narrow so they wrap less, each still 44 px high to touch. */
 .tl-control {
   min-height: 44px;
   padding: 0 9px;

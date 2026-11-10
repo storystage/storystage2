@@ -115,7 +115,7 @@ The joints in a cascade come from the caller (`jointsOf`), because which joints 
 
 1. **Methods panel,** on the left: an object picker ("owl ▾", with its figure), the Actions and Questions tabs, and the palette in categories (section 2.1).
 2. **Code area:** one tab per method or listener. The open method's header reads like its declaration: "owl.myFirstMethod" or "when the scene starts".
-3. **Control tiles bar,** above the code: do in order, count, while, for each in, if, do together, each in together, variable, assign ("set") and comment, on one line at the three sizes (07-ux section 1).
+3. **Control tiles bar,** above the code: do in order, count, while, for each in, if, do together, each in together, variable, assign ("set") and comment.
 
 ### 3b. Tiles
 
