@@ -15,7 +15,13 @@ import {
   type ToRuntime,
 } from '@storystage/runtime';
 import { FakeStage } from '@storystage/stage/testing';
-import { STORY_LIBRARY, micros, objectId, type StageCommand } from '@storystage/story-api';
+import {
+  STORY_LIBRARY,
+  micros,
+  objectId,
+  type StageCommand,
+  StageError,
+} from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { LiveClock } from './clock.ts';
 import { fastForward } from './fast-forward.ts';
@@ -342,8 +348,13 @@ describe('the runtime’s messages', () => {
 
   it("reports a scene the stage can't load as an error in plain words, and ends", async () => {
     await settle();
-    // A stage that knows no models: the example's penguin can't be found.
-    const stage = new FakeStage({ knownModels: [] });
+    // A stage that can't make sense of the set-up. (A model it can't find no longer stops a
+    // scene: it plays on as a stand-in, spec 03 section 1.3.)
+    const stage = new (class extends FakeStage {
+      override async load(): Promise<void> {
+        throw new StageError('bad_argument', 'There is no paint called rainbow.');
+      }
+    })();
     const playback = new Playback({
       production: exampleProduction(),
       stage,
@@ -357,8 +368,8 @@ describe('the runtime’s messages', () => {
     expect(events.find((e) => e.kind === 'error')).toMatchObject({
       kind: 'error',
       scene: 's1',
-      error: { code: 'stage', stageCode: 'unknown_model', node: null },
-      words: "A model in this scene can't be found. Choose it again in Backstage.",
+      error: { code: 'stage', stageCode: 'bad_argument', node: null },
+      words: "The stage can't do what this block asks. Check what you've put in its spaces.",
     });
     expect(playback.ended()).toBe(true);
     expect(ended(events)).toEqual([{ kind: 'ended', stopped: false }]);

@@ -212,6 +212,7 @@ Status: proposed by S1, 8 Nov 2026. The voices come from a speech engine bundled
 Rehearse and export must take exactly the same time (6.5), but how long a voice takes to say something isn't known in advance and differs by device. So the length comes from the words, not from the voice:
 
 - **Duration** = 0.4 s + 0.4 s for each word, at least 1.5 s, rounded up to the next 0.1 s. That's 150 words a minute, a calm speaking pace for children's listening. The `duration` detail, as on `say`, overrides it.
+- **The rule lives in the Story API**, as `lineDuration(text)` in `@storystage/story-api`, because it is part of what the block means, like any block's default duration. The Story API's `speakLine` procedure uses it to time the block; the speech package imports it to prepare each line's sound (section 4.6). The Story API depends on nothing but `ast`, so it can't import speech; speech may import the Story API (decided by S1 and S6, 10 Nov 2026).
 - The block takes that long, and the program moves on after it, whatever the voice does. The caption shows for exactly that long.
 - **The voice is fitted to the time.** The engine makes the line's sound first, so its length is known. If it is longer than the duration it is sped up, to 1.25× at most, keeping its pitch; anything still longer is faded out over 0.2 s at the end. Shorter lines are left as they are. Words a minute for each voice are *to measure* in the spike; if the voices run long, the 0.4 s a word changes, in one place.
 
@@ -249,11 +250,11 @@ The browser's own speech synthesis can't be recorded into a film, and its voices
 
 No new mechanism: a speak line is a `say` command with a caption instead of a bubble.
 
-- **Story API** (S6): `speakLine` runs as `command:say`, not `needs:speech`, and its details are `duration` and `line`.
+- **Story API** (S6): `speakLine` runs as `command:say`, not `needs:speech`, and its details are `duration` and `line`. `lineDuration(text)` (section 4.2) is exported from `@storystage/story-api`, and the procedure uses it when the block has no `duration`.
 - **Stage contract** (S3): `say` gains `bubble: 'caption'` beside `'say'` and `'think'`, and an optional `line: LineId`; `Speech` carries both. The stage draws no bubble for a caption. The studio's frame overlay draws it, as the camera-frame overlay is drawn (Direction A, screen 02). The scene-state hash includes it, as it does bubbles.
 - **Runtime** (S2): nothing new. The duration is worked out in the Story API's procedure, like every other block's.
 - **Studio** (S5): during Rehearse it watches the stage's speech for objects whose bubble is `caption`. When one starts, it plays that line's prepared sound (section 4.6) and draws the caption.
-- **Speech** (S7's package; S1 adds the code for 14.3): `lineDuration(words)` (section 4.2), `castVoices(cast)` (section 4.3), the engine in a worker with its line cache (section 4.6), and a `LinePlayer` that plays a line's sound fitted to its duration and stops on cue. It is tested with a fake engine and clock.
+- **Speech** (S7's package; S1 adds the code for 14.3): the line cache built from the program's `speakLine` blocks, each timed by its `duration` detail or by the Story API's `lineDuration` (the stage's `Speech` carries no duration), `castVoices(cast)` (section 4.3), the engine in a worker with its line cache (section 4.6), and a `LinePlayer` that plays a line's sound fitted to its duration and stops on cue. It is tested with a fake engine and clock.
 - **Export** (S2, WP11): captions from the stage's speech timeline, and each line's sound from the cache, mixed in at its start time.
 - **Apps** (S8): the engine's files bundled in each app and served from the app itself, checked like the speech model (section 1.4).
 
@@ -280,7 +281,7 @@ Recording the learner's own voice for a line, and lip sync driving the mouth (14
 | Only on-device voices; en-GB first (2.1) | Unit, fake voice lists | `packages/speech` |
 | The sanitiser (2.2) | Unit | `packages/speech` |
 | The queue: order, Stop, shortening, captions without a voice (3.1) | Unit, fake speaker | `packages/speech` |
-| A speak line's duration from its words, and the `duration` detail (4.2) | Unit | `packages/speech`, `packages/story-api` |
+| A speak line's duration from its words, and the `duration` detail (4.2) | Unit | `packages/story-api` (`lineDuration`, the procedure); `packages/speech` (the cache uses the same time) |
 | The sound fitted to the duration, faded at the end, cut by the next line and by Stop (4.2, 4.5) | Unit, fake engine and clock | `packages/speech` |
 | Presets given to the cast by class, no two characters alike while voices remain (4.3) | Unit | `packages/speech` |
 | A line's sound made when its code changes, reused by Rehearse and export, silent with a caption while not ready (4.6) | Unit, fake engine | `packages/speech` |

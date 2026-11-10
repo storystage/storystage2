@@ -487,5 +487,12 @@
   "pack.added.one": "Added {count} model to the class.",
   "pack.added.other": "Added {count} models to the class.",
   "pack.leftOut": "Left out",
-  "pack.notOpened": "The file couldn’t be opened. Try again."
+  "pack.notOpened": "The file couldn’t be opened. Try again.",
+  "screening.export": "Export film",
+  "exportHeader.running": "exporting {percent}%",
+  "exportHeader.unsaved": "the exported film isn’t saved yet",
+  "exportHeader.stopped": "the export stopped",
+  "exportHeader.percent": "{percent}%",
+  "exportHeader.save": "Save",
+  "exportHeader.stoppedShort": "!"
 }

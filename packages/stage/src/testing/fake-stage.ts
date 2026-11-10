@@ -8,7 +8,6 @@
  * few bytes derived from the state hash.
  */
 import {
-  StageError,
   type BackstageId,
   type JointName,
   type Micros,
@@ -23,11 +22,12 @@ import {
   type Watch,
   jointName,
 } from '@storystage/story-api';
-import type { FrameImage, Speech, Stage, LoadOptions } from '../contract.ts';
+import type { FrameImage, Speech, Stage, LoadOptions, Missing } from '../contract.ts';
 import { length, sub } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
+import { resolveBackdropKnown } from '../backdrops.ts';
 
 export { hashState };
 
@@ -55,6 +55,8 @@ const closeBy: Touching = (a, b) => length(sub(a.transform.position, b.transform
 export class FakeStage implements Stage {
   readonly calls: FakeStageCall[] = [];
   private readonly timeline = new Timeline();
+  /** What the last `load` couldn't find. */
+  private lost: readonly Missing[] = [];
   private listeners = new Set<(e: StageEvent) => void>();
   private readonly options: FakeStageOptions;
 
@@ -66,6 +68,10 @@ export class FakeStage implements Stage {
     this.calls.push({ method, args: structuredClone(args) });
   }
 
+  missing(): readonly Missing[] {
+    return this.lost;
+  }
+
   /** Records preloading; there's nothing to get ready. */
   async preload(setup: SceneSetup): Promise<void> {
     this.record('preload', [setup]);
@@ -74,11 +80,15 @@ export class FakeStage implements Stage {
   /** A crossfade is recorded; the fake stage draws nothing, so the old scene simply goes. */
   async load(setup: SceneSetup, options?: LoadOptions): Promise<void> {
     this.record('load', options ? [setup, options] : [setup]);
+    // What it can't find shows as a stand-in, and the scene plays on (spec 03 section 1.3).
     const known = this.options.knownModels;
-    for (const o of setup.objects) {
+    const lost: Missing[] = resolveBackdropKnown(setup.backdrop).missing.map((id) => ({
+      kind: 'backdrop',
+      id,
+    }));
+    for (const o of setup.objects)
       if (known && typeof o.model === 'string' && !known.includes(o.model))
-        throw new StageError('unknown_model', `There is no model called ${o.model}.`);
-    }
+        lost.push({ kind: 'model', object: o.id, model: o.model });
     const jointsFor = this.options.jointsFor ?? defaultJoints;
     // Every object is the size of a stand-in, so the fake and the real stage agree on them.
     this.timeline.load(setup, (o) =>
@@ -89,6 +99,7 @@ export class FakeStage implements Stage {
     );
     const { library, navigation } = await humanoidsFor(setup);
     this.timeline.useHumanoids(library, navigation);
+    this.lost = lost;
   }
 
   objects(): readonly ObjectId[] {

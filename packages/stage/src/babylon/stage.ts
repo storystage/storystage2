@@ -33,9 +33,10 @@ import {
   type StageQueryResult,
   type Transform,
   type Watch,
+  type Vec3,
 } from '@storystage/story-api';
-import { resolveBackdrop } from '../backdrops.ts';
-import type { FrameImage, LoadOptions, Speech, Stage } from '../contract.ts';
+import { resolveBackdropKnown } from '../backdrops.ts';
+import type { FrameImage, LoadOptions, Missing, Speech, Stage } from '../contract.ts';
 import { hullOf, within } from '../hull.ts';
 import { mul } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
@@ -107,6 +108,8 @@ export class BabylonStage implements Stage {
   private nearPairs = new Map<string, Near>();
   private inView = new Set<ObjectId>();
   private drawing: (() => void) | null = null;
+  /** What the last `load` couldn't find (spec 03 section 1.3). */
+  private lost: readonly Missing[] = [];
   /** A scene that will probably come next, its models loading (WP8.2). */
   private preloaded: { scene: Scene; library: ModelLibrary } | null = null;
   /** The scene before, fading out over this one (WP8.3). */
@@ -160,8 +163,14 @@ export class BabylonStage implements Stage {
     ]);
   }
 
+  missing(): readonly Missing[] {
+    return this.lost;
+  }
+
   async load(setup: SceneSetup, options: LoadOptions = {}): Promise<void> {
-    const backdrop = resolveBackdrop(setup.backdrop);
+    const known = resolveBackdropKnown(setup.backdrop);
+    const backdrop = known.backdrop;
+    const missing: Missing[] = known.missing.map((id) => ({ kind: 'backdrop', id }));
     // A scene got ready ahead, whether this one or not, keeps what it has loaded.
     const ready = this.preloaded;
     this.preloaded = null;
@@ -181,7 +190,7 @@ export class BabylonStage implements Stage {
       const camera = new FreeCamera('camera', Vector3.Zero(), scene);
       camera.minZ = NEAR;
       camera.maxZ = FAR;
-      const placed = await Promise.all(setup.objects.map((o) => place(o, library, scene)));
+      const placed = await Promise.all(setup.objects.map((o) => place(o, library, scene, missing)));
       const objects = new Map(setup.objects.map((o, i) => [o.id, placed[i]!]));
       timeline.load(setup, (o) => objects.get(o.id)!.shape);
       const humanoids = await humanoidsFor(setup);
@@ -214,6 +223,7 @@ export class BabylonStage implements Stage {
         };
       } else this.dropScene(this.scene, this.library);
       this.timeline = timeline;
+      this.lost = missing;
       this.scene = scene;
       this.library = library;
       this.camera = camera;
@@ -600,11 +610,21 @@ function place(
   object: SceneObjectSetup,
   library: ModelLibrary,
   scene: Scene,
+  missing: Missing[],
 ): PlacedModel | Promise<PlacedModel> {
-  if (typeof object.model === 'string') return library.place(object.id, object.model, object.class);
-  const skeleton = skeletonOf(object.class);
-  return {
-    view: buildStandIn(object.id, object.model.standIn, scene, standInBox(object.model.size)),
-    shape: standInShape(skeleton ? jointsOf(skeleton).map((d) => d.id) : [], object.model.size),
+  const standIn = (label: string, size?: Vec3): PlacedModel => {
+    const skeleton = skeletonOf(object.class);
+    return {
+      view: buildStandIn(object.id, label, scene, standInBox(size)),
+      shape: standInShape(skeleton ? jointsOf(skeleton).map((d) => d.id) : [], size),
+    };
   };
+  if (typeof object.model !== 'string') return standIn(object.model.standIn, object.model.size);
+  const model = object.model;
+  // A model that can't be had shows as a stand-in with its name, and the scene plays on.
+  return library.place(object.id, model, object.class).catch((e: unknown) => {
+    if (!(e instanceof StageError) || e.code !== 'unknown_model') throw e;
+    missing.push({ kind: 'model', object: object.id, model });
+    return standIn(model.split('/').pop() || model);
+  });
 }
