@@ -6,22 +6,27 @@
  * the tab.
  */
 import type { NodeId } from '@storystage/ast';
-import { usedModels } from '@storystage/export';
+import { distributionProblems, exportFilm, usedModels, type FilmExport } from '@storystage/export';
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
 import type { ProductionFiles } from '@storystage/production';
 import {
+  ExportDialog,
+  ExportJob,
   RoughCut,
   ScreeningPlayer,
+  type ExportChoices,
+  type ExportRun,
   type Place as ScreeningPlace,
   type ScreeningState,
 } from '@storystage/screening';
 import '@storystage/screening/styles.css';
-import { NeutralNote } from '@storystage/ui';
+import { Button, NeutralNote } from '@storystage/ui';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, hiddenCanvas, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import { useModelSource, type ModelSourceOptions } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
+import { saveFilm } from './saveFilm.ts';
 import type { Place } from '../storyboard/place.ts';
 import type { Studio } from '../studio.ts';
 
@@ -45,6 +50,9 @@ export interface ScreeningTabProps {
   readonly makeStage?: StageMaker;
   readonly startWorker?: () => RuntimeWorker;
   readonly models?: ModelSourceOptions;
+  /** For tests: how an exported film is saved, and how it's encoded. */
+  readonly saveFilm?: (film: FilmExport) => Promise<void>;
+  readonly exportOptions?: Pick<Parameters<typeof exportFilm>[0], 'backend' | 'compositor'>;
 }
 
 const NOT_YET: ScreeningState = {
@@ -141,7 +149,10 @@ export function ScreeningTab(props: ScreeningTabProps) {
       .then(() => next.prepare(stop.signal))
       // A measure that worked clears what an earlier one said.
       .then((timeline) => {
-        if (timeline) setProblem(null);
+        if (!timeline) return;
+        setProblem(null);
+        // The first frame shows at once, not a black picture until Play.
+        return next.seek(0);
       })
       .catch((e: unknown) => {
         console.error('The Screening tab could not measure the film.', e);
@@ -177,8 +188,57 @@ export function ScreeningTab(props: ScreeningTabProps) {
 
   const state = useSyncExternalStore(slot.subscribe, slot.state);
 
+  // Export film: one job for the tab's life, so Keep working can close the dialog while it goes
+  // on. Each run makes its own hidden stage and lets it go at the end. Leaving the tab stops it.
+  const save = props.saveFilm ?? ((film: FilmExport) => saveFilm(host, film));
+  const [job] = useState(() => new ExportJob({ save }));
+  /** The export as the learner asked for it: this film, these choices. */
+  const exportRun =
+    (chosen: ExportChoices): ExportRun =>
+    async (signal, onProgress) => {
+      await models.prepare(usedModels(production));
+      const hidden = await make(hiddenCanvas(), { hidden: true, models: models.source });
+      try {
+        return await exportFilm({
+          production,
+          find: models.item,
+          stage: hidden,
+          startWorker,
+          seed: SEED,
+          ...chosen,
+          signal,
+          onProgress,
+          ...props.exportOptions,
+        });
+      } finally {
+        hidden.dispose();
+      }
+    };
+  useEffect(() => () => job.stop(), [job]);
+  const exportState = useSyncExternalStore(
+    (l) => job.subscribe(l),
+    () => job.state,
+  );
+  const [exportOpen, setExportOpen] = useState(false);
+
   return (
     <div className="sr-tab">
+      <div className="sr-tab-bar">
+        <Button variant="primary" icon="movie" onPress={() => setExportOpen(true)}>
+          {words.t('screening.export')}
+        </Button>
+      </div>
+      <ExportDialog
+        isOpen={exportOpen}
+        onOpenChange={setExportOpen}
+        production={production}
+        timeline={state.timeline}
+        refusals={exportOpen ? distributionProblems(production, models.item) : []}
+        job={exportState}
+        onExport={(chosen) => job.start(exportRun(chosen))}
+        onStop={() => job.stop()}
+        onSaveAgain={() => void job.saveAgain()}
+      />
       {problem && <NeutralNote>{problem}</NeutralNote>}
       {models.refused.length > 0 && (
         <NeutralNote>

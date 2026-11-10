@@ -1,6 +1,7 @@
 import { browserHost, type HostInterface } from '@storystage/host';
 import { exampleProduction, type Production, type ProductionFiles } from '@storystage/production';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
+import type { EncoderBackend, FilmExport, Frame } from '@storystage/export';
 import {
   inMemoryPorts,
   serve,
@@ -12,7 +13,7 @@ import {
 import type { Stage } from '@storystage/stage';
 import { FakeStage } from '@storystage/stage/testing';
 import { STORY_LIBRARY } from '@storystage/story-api';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { StageMaker } from '../stage/makeStage.ts';
@@ -33,6 +34,29 @@ const host: HostInterface = {
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
 
+/** An encoder that keeps nothing, and a compositor with one frame-sized buffer. */
+const FAKE_ENCODING = {
+  backend: {
+    canEncodeVideo: async () => true,
+    canEncodeAudio: async () => true,
+    open: async () => ({
+      addFrame: async () => undefined,
+      addAudio: async () => undefined,
+      finish: async () => new ArrayBuffer(8),
+      cancel: async () => undefined,
+    }),
+  } satisfies EncoderBackend,
+  compositor: (size: { width: number; height: number }) => {
+    const frame: Frame = {
+      kind: 'rgba',
+      width: size.width,
+      height: size.height,
+      data: new Uint8ClampedArray(size.width * size.height * 4),
+    };
+    return { frame: () => frame };
+  },
+};
+
 /** An import worker that answers a film check with `result`. */
 const checkingWorker = (result: unknown) => (): ImportWorker => {
   let answer: ((event: { data: unknown }) => void) | null = null;
@@ -51,6 +75,7 @@ function harness(
     production?: Production;
     files?: ProductionFiles;
     importWorker?: () => ImportWorker;
+    saveFilm?: (film: FilmExport) => Promise<void>;
   } = {},
 ) {
   const made: { hidden: boolean; stage: FakeStage }[] = [];
@@ -86,6 +111,8 @@ function harness(
         makeStage={makeStage}
         startWorker={startWorker}
         {...(over.importWorker ? { models: { startWorker: over.importWorker } } : {})}
+        {...(over.saveFilm ? { saveFilm: over.saveFilm } : {})}
+        exportOptions={FAKE_ENCODING}
       />
     );
   }
@@ -177,6 +204,29 @@ describe('ScreeningTab', () => {
     expect(await screen.findByText('Gran: Its model is missing from the film.')).toBeTruthy();
     expect(screen.getByText('Some models this film carries show as outlines here:')).toBeTruthy();
   });
+
+  it('exports the film from its dialog, on a hidden stage it lets go, and saves it', async () => {
+    const saved: FilmExport[] = [];
+    const { made } = harness({ saveFilm: async (film) => void saved.push(film) });
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    expect(dialog).toBeTruthy();
+    const before = made.length;
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
+    expect(
+      await screen.findByText(
+        'The Lost Penguin is saved, with its captions beside it.',
+        {},
+        { timeout: 10_000 },
+      ),
+    ).toBeTruthy();
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.vtt).toContain('PIP: Oh no, the ice is moving!');
+    const forExport = made.slice(before).filter((m) => m.hidden);
+    expect(forExport).toHaveLength(1);
+    expect(forExport[0]!.stage.calls.some((c) => c.method === 'dispose')).toBe(true);
+  }, 20_000);
 
   it("says so in plain words when this device can't make a stage", async () => {
     harness({ stage: async () => Promise.reject(new Error('no WebGL')) });

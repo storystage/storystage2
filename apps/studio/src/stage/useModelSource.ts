@@ -19,6 +19,7 @@ import {
   openBackstage,
   openClassBackstage,
   type Backstage,
+  type BackstageItem,
   type ClassBackstageView,
   type DisposableBackstage,
 } from '@storystage/backstage';
@@ -30,6 +31,7 @@ import {
 import type { HostInterface } from '@storystage/host';
 import type { Production, ProductionFiles } from '@storystage/production';
 import type { ModelSource } from '@storystage/stage/babylon';
+import type { BackstageId } from '@storystage/story-api';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { startImportWorker } from '../settings/importWorker.ts';
 
@@ -40,6 +42,8 @@ export interface ModelSourceHandle {
   readonly source: ModelSource;
   /** Reads these class models from the device before a stage loads them. */
   prepare(ids: readonly string[]): Promise<void>;
+  /** A model's Backstage record, from the same Backstages in the same order: for credits and licences. */
+  item(id: BackstageId): BackstageItem | undefined;
   /** The film's packed models that didn't pass the check, so show as outlines. */
   readonly refused: readonly RefusedModel[];
 }
@@ -137,6 +141,10 @@ export function useModelSource(
           classView.current?.backstage.find(id) ??
           null,
       },
+      item: (id: BackstageId) =>
+        shipped.current?.item(id) ??
+        film.current?.item(id) ??
+        classView.current?.backstage.item(id),
       prepare: async (ids: readonly string[]) => {
         await classView.current?.prepare(ids);
       },

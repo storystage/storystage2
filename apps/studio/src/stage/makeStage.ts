@@ -37,7 +37,15 @@ export type StageMaker = (
  */
 export const makeStage: StageMaker = async (canvas, { hidden, models }) => {
   const { createBabylonStage } = await import('@storystage/stage/babylon');
-  const stage = await createBabylonStage({ canvas, models, offscreen: hidden });
+  // A hidden stage draws for measuring and the export: WebGL2, for the same pixels on every
+  // machine (the stage README). Its WebGPU read-back is also upside down and in another colour
+  // order today, which S3 has been told.
+  const stage = await createBabylonStage({
+    canvas,
+    models,
+    offscreen: hidden,
+    ...(hidden ? { renderer: 'webgl2' as const } : {}),
+  });
   if (hidden) return stage;
   stage.startLive();
   // The picture follows the canvas's size on the page.
