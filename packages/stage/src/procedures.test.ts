@@ -238,6 +238,17 @@ const MODEL_CASES: Readonly<Record<string, Case>> = {
       expect(s.speech(it_)).toEqual({ text: 'Hmm', bubble: 'think' });
     },
   },
+  speakLine: {
+    args: { text: 'Here is the key.' },
+    details: { line: 'l7' },
+    // Timed by its words (spec 06, 4.2): 2 s, so still showing at 1.5 s, gone after.
+    check: (s) => {
+      s.seek(micros(1.5));
+      expect(s.speech(it_)).toEqual({ text: 'Here is the key.', bubble: 'caption', line: 'l7' });
+      s.seek(micros(2.1));
+      expect(s.speech(it_)).toBeNull();
+    },
+  },
   straightenOutJoints: { check: (s) => close(Math.abs(where(s).rotation.w), 1) },
   isCollidingWith: { args: { other: obj(other) }, check: (_s, v) => expect(v).toBe(false) },
   getDistanceTo: { args: { other: obj(other) }, check: (_s, v) => close(v as number, 2) },
