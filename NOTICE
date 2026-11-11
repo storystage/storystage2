@@ -27,6 +27,14 @@ Kokoro-82M (8-bit ONNX, and its voices)  1.0  Apache-2.0  hexgrad; ONNX by onnx-
 CMU Pronouncing Dictionary 0.7b (as HeadTTS's en-us.txt)  BSD-2-Clause  Carnegie Mellon University
 en-GB-x-rp.dict (RP pronunciations)  BSD-2-Clause  Copyright (C) 2017 Reece H. Dunn
 
+== Inside the stage (packages/stage; kept by hand) ==
+
+Compiled into @recast-navigation/wasm, which is listed below under its own MIT licence:
+Recast and Detour (navigation meshes and paths)  Zlib  Copyright (c) 2009 Mikko Mononen
+Baked into packages/stage/src/humanoid/kaykit-clips.ts by scripts/make-clips.ts:
+KayKit Character Pack: Adventurers 1.0 (its 15 animations)  CC0-1.0  Kay Lousberg
+  Not required by CC0; credited as KayKit asks.
+
 == Native layer (Rust, apps/desktop/src-tauri/Cargo.toml, direct dependencies) ==
 
 tauri  2  Apache-2.0 OR MIT
