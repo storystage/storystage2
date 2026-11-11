@@ -14,7 +14,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
-import { IDLE, Rehearsal, type RehearsalState } from './rehearsal.ts';
+import { IDLE, Rehearsal, type RehearsalState, type Speaker } from './rehearsal.ts';
 
 export interface SceneViewProps {
   readonly production: Production;
@@ -36,6 +36,10 @@ export interface SceneViewProps {
   /** For tests: how the stage and the runtime worker are made. */
   readonly makeStage?: StageMaker;
   readonly startWorker?: () => RuntimeWorker;
+  /** Speak lines' voices (spec 06 section 4.5): Rehearse starts each line as its block starts. */
+  readonly speaker?: Speaker | undefined;
+  /** Speak lines that are silent for now, with their captions: a note under the view. */
+  readonly silentLines?: string | null;
 }
 
 /** The models and backdrop parts one scene's set-up uses, for the model source to get ready. */
@@ -89,9 +93,12 @@ export default function SceneView(props: SceneViewProps) {
   // The App's callbacks, current for the effects below without making them run again.
   const announce = useRef(props.onAnnounce);
   const onRehearsal = useRef(props.onRehearsal);
+  // The studio's voices, read when a rehearsal is made; they last as long as the App.
+  const speaker = useRef(props.speaker);
   useEffect(() => {
     announce.current = props.onAnnounce;
     onRehearsal.current = props.onRehearsal;
+    speaker.current = props.speaker;
   });
 
   // The view's own stage, made when it opens and disposed when the learner leaves the tab. Each
@@ -128,7 +135,17 @@ export default function SceneView(props: SceneViewProps) {
   const changed = useRef<{ scene: SceneId; running: boolean } | null>(null);
   useEffect(() => {
     if (!stage) return;
-    const rehearsal = new Rehearsal({ production, scene, stage, startWorker });
+    const rehearsal = new Rehearsal({
+      production,
+      scene,
+      stage,
+      startWorker,
+      // Through the ref: the voices may load after the rehearsal is made.
+      speaker: {
+        start: (node) => speaker.current?.start(node),
+        stop: () => speaker.current?.stop(),
+      },
+    });
     if (changed.current?.running && changed.current.scene === scene)
       announce.current(words.t('production.rehearse.codeChanged'));
     slot.set(rehearsal);
@@ -286,6 +303,7 @@ export default function SceneView(props: SceneViewProps) {
         )}
       </div>
       {problem && <NeutralNote>{problem}</NeutralNote>}
+      {props.silentLines && <NeutralNote>{props.silentLines}</NeutralNote>}
       {hint && <NeutralNote>{hint}</NeutralNote>}
       {state.error && (
         <NeutralNote>
