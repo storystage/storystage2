@@ -104,6 +104,8 @@ function matching(over: Partial<FrameRun> = {}): FrameRun {
     characters: [seen('owl', OWL, at(1, 6)), seen('fox', FOX, at(-1, 6))],
     script: [line('l1', 'Here is the key.')],
     said: [{ text: 'Here is the key.', start: micros(11) }],
+    spoken: [],
+    lines: new Map(),
     otherFrames: [],
     error: null,
     missing: [],
