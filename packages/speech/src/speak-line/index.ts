@@ -1,10 +1,19 @@
 /**
- * Speak line's voices (WP14b, 14.3; spec 06, section 4; S1's part of this package). The engine,
- * Kokoro in a worker, comes in the next pull request; everything here works with any
- * `SpeechEngine`.
+ * Speak line's voices (WP14b, 14.3; spec 06, section 4; S1's part of this package): the engine,
+ * Kokoro in a worker (`KokoroEngine`), and everything that works with any `SpeechEngine`.
  */
 export { webAudioOut, type AudioContextLike } from './audio-out.ts';
 export { rpDictionary, rpToKokoro, toBritish } from './british.ts';
+export {
+  BRITISH_WORDS,
+  KOKORO_MAX_TOKENS,
+  KOKORO_SAMPLE_RATE,
+  KokoroCore,
+  type KokoroSession,
+  type KokoroText,
+} from './kokoro-core.ts';
+export { KokoroEngine, type KokoroEngineOptions, type KokoroWorker } from './kokoro-engine.ts';
+export type { KokoroOptions, KokoroPlaces } from './kokoro-protocol.ts';
 export {
   LineCache,
   LinePlayer,

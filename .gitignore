@@ -1,5 +1,7 @@
 node_modules/
 dist/
+# Test harness builds (the export and speech harnesses), with the assets copied into them.
+dist-harness/
 coverage/
 *.tsbuildinfo
 .vite/
