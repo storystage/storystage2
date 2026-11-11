@@ -7,6 +7,8 @@ import {
   SKY_RADIUS,
   SKY_TEXTURE_PX,
   averageColour,
+  expose,
+  turnPicture,
   groundTile,
   hexToRgb,
   matchColour,
@@ -168,10 +170,44 @@ describe('skyDome (spec 17 section 2)', () => {
 
   it('scales its light by its exposure, in linear light, and lights more dimly for it', async () => {
     const bright = await skyDome(await png(200, 100, sky));
-    const night = await skyDome(await png(200, 100, sky), 0.2);
+    const night = await skyDome(await png(200, 100, sky), { exposure: 0.2 });
     // A fifth of the light is about half the sRGB value, for these colours.
     expect(night.horizon[2]!).toBeLessThan(bright.horizon[2]! * 0.6);
     expect(Math.max(...night.lighting.above)).toBeLessThan(Math.max(...bright.lighting.above));
+  });
+
+  it('tints it: white becomes the tint, so a cool tint makes a night bluer', () => {
+    const white = new Uint8Array([255, 255, 255, 128, 128, 128]);
+    const tinted = expose(white, 1, hexToRgb('8ca5ff'));
+    expect([...tinted.subarray(0, 3)]).toEqual([0x8c, 0xa5, 0xff]);
+    expect(tinted[5]!).toBeGreaterThan(tinted[3]!);
+  });
+
+  it("turns it so the picture's column at ahead faces +Z, wrapping round", async () => {
+    // A picture with one bright column, a quarter of the way in from its right edge.
+    const width = 8;
+    const rgb = new Uint8Array(width * 3);
+    rgb.set([255, 255, 255], 6 * 3);
+    const turned = turnPicture(rgb, width, 6 / width);
+    expect(turned[4 * 3]!).toBe(255);
+    expect([...turned].filter((v) => v === 255)).toHaveLength(3);
+    expect(turnPicture(rgb, width, 0.5)).toBe(rgb);
+    // The dome itself: a sun at u = 0.75 is ahead once ahead is 0.75.
+    const sun = (x: number, y: number) =>
+      x >= 145 && x < 155 && y > 40 && y < 50
+        ? ([255, 240, 200] as const)
+        : ([60, 90, 140] as const);
+    const dome = await skyDome(await png(200, 100, sun), { ahead: 0.75 });
+    const pic = await sharp(primitiveOf(dome.doc).getMaterial()!.getBaseColorTexture()!.getImage()!)
+      .removeAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+    const w = pic.info.width;
+    const row = Math.round(pic.info.height * 0.45);
+    const brightest = [...Array(w).keys()].reduce((best, x) =>
+      pic.data[(row * w + x) * 3]! > pic.data[(row * w + best) * 3]! ? x : best,
+    );
+    expect(Math.abs(brightest / w - 0.5)).toBeLessThan(0.03);
   });
 
   it('reports the horizon band as its atmosphere colour, and a lighting to suit', async () => {

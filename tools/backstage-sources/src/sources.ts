@@ -58,15 +58,22 @@ export interface SourceItem {
   /**
    * For the `backdrops` section, and only there: what to make of the fetched picture (spec 17
    * section 2, `backdrops.ts`). A ground is a tile `tile` metres across, colour-matched to
-   * `look`, the stage's flat colour for it as `rrggbb`; a sky is a dome, its light scaled by
-   * `exposure` (from 0.05 to 1, default 1), since a gallery's night sky comes as bright as noon.
+   * `look`, the stage's flat colour for it as `rrggbb`; a sky is a dome. A sky's light may be
+   * scaled by `exposure` (0.05 to 1, default 1) and coloured by `tint` (what white becomes, as
+   * `rrggbb`), since a gallery's night sky comes as bright and grey as noon; `ahead` (0 to 1,
+   * default 0.5) is the picture's column that faces straight ahead, so a sunset's sun is there.
    */
   readonly backdrop?: Backdrop;
 }
 
 export type Backdrop =
   | { readonly kind: 'ground'; readonly tile: number; readonly look: string }
-  | { readonly kind: 'sky'; readonly exposure?: number };
+  | {
+      readonly kind: 'sky';
+      readonly exposure?: number;
+      readonly tint?: string;
+      readonly ahead?: number;
+    };
 
 /** The ids the stage draws backdrops under (spec 17 section 2). */
 const BACKDROP_IDS = {
@@ -229,8 +236,12 @@ function backdropProblems(item: Record<string, unknown>): string[] {
     if (typeof b.look !== 'string' || !/^[0-9a-f]{6}$/.test(b.look))
       problems.push("a ground's look must be the stage's flat colour as rrggbb.");
   } else {
-    if (!Object.keys(b).every((k) => k === 'kind' || k === 'exposure'))
-      problems.push('a sky takes only kind and exposure.');
+    if (!Object.keys(b).every((k) => ['kind', 'exposure', 'tint', 'ahead'].includes(k)))
+      problems.push('a sky takes only kind, exposure, tint and ahead.');
+    if (b.tint !== undefined && (typeof b.tint !== 'string' || !/^[0-9a-f]{6}$/.test(b.tint)))
+      problems.push("a sky's tint must be what white becomes, as rrggbb.");
+    if (b.ahead !== undefined && (typeof b.ahead !== 'number' || !(b.ahead >= 0 && b.ahead <= 1)))
+      problems.push("a sky's ahead must be the picture's column that faces ahead, from 0 to 1.");
     if (
       b.exposure !== undefined &&
       (typeof b.exposure !== 'number' || !(b.exposure >= 0.05 && b.exposure <= 1))
