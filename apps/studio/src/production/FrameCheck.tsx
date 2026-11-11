@@ -4,8 +4,8 @@
  * checklist in plain words, flags first, each item going to its block, sketch or line, and Keep
  * it on a flag. The words come from the film, so they're drawn as plain text only.
  */
-import { ITEM_ORDER, checkState } from '@storystage/check';
-import type { NodeId } from '@storystage/ast';
+import { ITEM_ORDER, checkState, scriptWords } from '@storystage/check';
+import type { EditOperation, NodeId } from '@storystage/ast';
 import type { CheckItem, Frame, Production } from '@storystage/production';
 import { Button, Icon, type IconName } from '@storystage/ui';
 import type { CheckRun } from '../check/useCheckRun.ts';
@@ -29,6 +29,8 @@ export interface FrameCheckProps {
   onGoToBlock(node: NodeId): void;
   /** Shows the frame in the Storyboard, for a sketch or a script line. */
   onGoToStoryboard(): void;
+  /** Applies a program edit as one undo step: "Use the script's words" on a speak line. */
+  onEdit(edit: EditOperation): void;
 }
 
 export function FrameCheck({
@@ -39,6 +41,7 @@ export function FrameCheck({
   readOnly,
   onGoToBlock,
   onGoToStoryboard,
+  onEdit,
 }: FrameCheckProps) {
   const state = checkState(frame, p);
   const kept = new Set(frame.check?.kept ?? []);
@@ -103,6 +106,9 @@ export function FrameCheck({
                     const toSketch =
                       item.sketch && frame.sketches.some((s) => s.id === item.sketch);
                     const toLine = item.line && p.script.some((l) => l.id === item.line);
+                    // A speak line saying other words than its script line: the script's, in one step.
+                    const useScript =
+                      item.outcome === 'flag' && !readOnly ? scriptWords(p, item) : null;
                     return (
                       <span className="pr-check-item-actions">
                         {toBlock && (
@@ -126,6 +132,18 @@ export function FrameCheck({
                             onPress={onGoToStoryboard}
                           >
                             {words.t(toLine ? 'production.check.line' : 'production.check.sketch')}
+                          </Button>
+                        )}
+                        {useScript && (
+                          <Button
+                            variant="quiet"
+                            icon="edit_note"
+                            aria-label={words.t('production.check.scriptWordsFor', {
+                              words: item.words,
+                            })}
+                            onPress={() => onEdit(useScript)}
+                          >
+                            {words.t('production.check.scriptWords')}
                           </Button>
                         )}
                         {item.outcome === 'flag' && !readOnly && (

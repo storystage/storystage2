@@ -1,4 +1,4 @@
-import { nodeId, type NodeId } from '@storystage/ast';
+import { nodeId, type NodeId, type Statement } from '@storystage/ast';
 import { basisFor } from '@storystage/check';
 import type { EditorHost } from '@storystage/editor-contract';
 import { exampleProduction, type Frame, type Production } from '@storystage/production';
@@ -45,7 +45,7 @@ const models: ModelSourceHandle = {
 };
 const host = { program: () => exampleProduction().program } as unknown as EditorHost;
 
-function stage(production: Production) {
+function stage(production: Production, editorHost: EditorHost = host) {
   const onReveal = vi.fn<(node: NodeId) => void>();
   const onPlaceChange = vi.fn<(place: Place) => void>();
   const onGoToStoryboard = vi.fn();
@@ -68,7 +68,7 @@ function stage(production: Production) {
           production={p}
           scene={p.scenes[0]!.id}
           frame={p.frames.find((f) => f.scene === p.scenes[0]!.id)!.id}
-          host={host}
+          host={editorHost}
           onGoToStoryboard={onGoToStoryboard}
           announcement=""
           models={models}
@@ -184,5 +184,74 @@ describe('the frame’s automatic check (spec 08 section 9)', () => {
     expect(within(card()).queryByRole('button', { name: /^Go to the block/ })).toBeNull();
     expect(within(card()).queryByRole('button', { name: /^Go to the sketch/ })).toBeNull();
     expect(within(card()).getByRole('button', { name: `Keep it: ${flag.words}` })).toBeTruthy();
+  });
+});
+
+describe('Use the script’s words (#357)', () => {
+  it('puts the script line’s words in the speak line, as one program edit', async () => {
+    const user = userEvent.setup();
+    const line = example.script.find((l) => l.scene === first.scene)!;
+    const speak: Statement = {
+      id: nodeId('speakb'),
+      kind: 'call',
+      target: {
+        id: nodeId('speakr'),
+        kind: 'fieldRef',
+        target: { id: nodeId('speaks'), kind: 'this' },
+        field: nodeId('scene1p'),
+      },
+      callee: { kind: 'story', name: 'speakLine' },
+      args: { text: { id: nodeId('speakx'), kind: 'text', value: 'Something else' } },
+      details: { line: { id: nodeId('speakl'), kind: 'text', value: line.id } },
+    };
+    const [type, ...types] = example.program.types;
+    const method = type!.methods[0]!;
+    const withSpeak: Production = {
+      ...example,
+      program: {
+        ...example.program,
+        types: [
+          {
+            ...type!,
+            methods: [{ ...method, body: [...method.body, speak] }, ...type!.methods.slice(1)],
+          },
+          ...types,
+        ],
+      },
+    };
+    const item = {
+      id: `speak:${speak.id}`,
+      kind: 'line',
+      outcome: 'flag',
+      words: 'Penguin’s words aren’t the same as line 1.1 in the script',
+      node: speak.id,
+      line: line.id,
+    } as const;
+    const frame = withSpeak.frames.find((f) => f.id === first.id)!;
+    const p: Production = {
+      ...withSpeak,
+      frames: withSpeak.frames.map((f) =>
+        f.id === first.id
+          ? { ...f, check: { basis: basisFor(withSpeak, frame, [item]), items: [item], kept: [] } }
+          : f,
+      ),
+    };
+    const apply = vi.fn<EditorHost['apply']>(
+      () => ({ ok: true }) as ReturnType<EditorHost['apply']>,
+    );
+    stage(p, { ...host, apply });
+    await user.click(
+      within(card()).getByRole('button', { name: `Use the script’s words: ${item.words}` }),
+    );
+    expect(apply).toHaveBeenCalledOnce();
+    const [edits, label, source] = apply.mock.calls[0]!;
+    expect(edits[0]).toMatchObject({
+      kind: 'setArgument',
+      node: speak.id,
+      param: 'text',
+      value: { kind: 'text', value: line.text },
+    });
+    expect(label).toBe('Use the script’s words for line 1.1');
+    expect(source).toBe('blocks');
   });
 });

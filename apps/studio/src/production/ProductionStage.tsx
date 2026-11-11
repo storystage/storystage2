@@ -66,6 +66,7 @@ function FrameCheckArea({
   startWorker,
   onReveal,
   onShowFrame,
+  host,
 }: {
   studio: Studio;
   models: ModelSourceHandle;
@@ -74,6 +75,8 @@ function FrameCheckArea({
   startWorker?: (() => RuntimeWorker) | undefined;
   onReveal: (node: NodeId) => void;
   onShowFrame: () => void;
+  /** The code editors' host: "Use the script's words" is a program edit, one undo step. */
+  host: EditorHost;
 }) {
   const check = useCheckRun({
     studio,
@@ -94,6 +97,7 @@ function FrameCheckArea({
       readOnly={studio.readOnly !== null}
       onGoToBlock={onReveal}
       onGoToStoryboard={onShowFrame}
+      onEdit={(edit) => void host.apply([edit], edit.label ?? '', 'blocks')}
     />
   );
 }
@@ -224,6 +228,7 @@ export function ProductionStage({
             makeStage={makeStage}
             startWorker={startWorker}
             onReveal={(node) => onReveal?.(node)}
+            host={host}
             onShowFrame={() => {
               const chosen = p.frames.find((f) => f.id === frame);
               if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });

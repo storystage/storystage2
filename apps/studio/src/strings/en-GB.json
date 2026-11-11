@@ -548,5 +548,7 @@
   "production.check.keep": "Keep it",
   "production.check.keepFor": "Keep it: {words}",
   "production.check.kept": "Kept",
-  "production.check.keptFor": "Kept: {words}. Let it go"
+  "production.check.keptFor": "Kept: {words}. Let it go",
+  "production.check.scriptWords": "Use the script’s words",
+  "production.check.scriptWordsFor": "Use the script’s words: {words}"
 }
