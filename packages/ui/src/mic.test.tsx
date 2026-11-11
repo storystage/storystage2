@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -67,7 +67,8 @@ describe('the mic on a field', () => {
     expect(speech.toggle).toHaveBeenCalledOnce();
     say('flies over the hill.');
     await screen.findByDisplayValue('A kite flies over the hill.');
-    expect(document.activeElement).toBe(field);
+    // Focus goes back to the field in an effect after the words are in: wait for it.
+    await waitFor(() => expect(document.activeElement).toBe(field));
     expect(field.selectionStart).toBe(27);
   });
 
