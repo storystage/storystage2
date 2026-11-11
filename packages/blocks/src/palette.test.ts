@@ -129,6 +129,32 @@ describe('a block dropped from the palette (3i.6)', () => {
     expect(outcome.kind === 'edits' && outcome.edits.map((e) => e.kind)).toEqual(['insert']);
   });
 
+  it('gives a loop dropped inside a loop an item name of its own', async () => {
+    // A "for each" already in the method, then another dropped into its body.
+    const outer = newControl('forEach', mint);
+    const first = await dropFromPalette(
+      program,
+      freshIn(program, blocksOf([...main.body, outer]))[0]!,
+      null,
+    );
+    expect(first.kind).toBe('edits');
+    if (first.kind !== 'edits') return;
+    const withOuter = applyEdits(program, first.edits);
+    const placed = withOuter.types[0]!.methods.find((m) => m.id === main.id)!.body.at(-1)!;
+    expect(placed.kind === 'forEach' && placed.item.name).toBe('item');
+    const inner = newControl('forEach', mint);
+    const outcome = await dropFromPalette(
+      withOuter,
+      { place: { kind: 'statement', parent: placed.id, slot: 'body', index: 0 }, node: inner },
+      null,
+    );
+    expect(outcome.kind).toBe('edits');
+    if (outcome.kind !== 'edits') return;
+    const after = applyEdits(withOuter, outcome.edits);
+    const outerAfter = after.types[0]!.methods.find((m) => m.id === main.id)!.body.at(-1)!;
+    const nested = outerAfter.kind === 'forEach' ? outerAfter.body[0] : undefined;
+    expect(nested?.kind === 'forEach' && nested.item.name).toBe('item2');
+  });
   it('is refused, in plain words, where the drop rule refuses it', async () => {
     // A block from the palette can't go into a value's place.
     const say = newSay() as Statement;

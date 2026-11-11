@@ -8,6 +8,7 @@
 import {
   idsOf,
   indexProgram,
+  isStatement,
   mintId,
   type EditOperation,
   type Expression,
@@ -16,7 +17,13 @@ import {
   type Statement,
   type StatementSlot,
 } from '@storystage/ast';
-import { canDrop, emptySlots, type Place, type ValuePlace } from '@storystage/story-api/editing';
+import {
+  canDrop,
+  emptySlots,
+  readyFor,
+  type Place,
+  type ValuePlace,
+} from '@storystage/story-api/editing';
 import { STORY_WORDS } from '@storystage/story-api';
 import { listsOf, valuesOf } from './gestures.ts';
 import type { FromBlocks } from './mapping.ts';
@@ -107,6 +114,10 @@ export async function dropFromPalette(
     return id;
   };
   let node = withNewIds(fresh.node, mint);
+  // A loop dropped inside a loop gets an item name nothing there has ("item2"), as in Tiles,
+  // rather than being refused for two `item`s.
+  if (fresh.place.kind === 'statement' && isStatement(node))
+    node = readyFor(program, fresh.place, node);
   let drop = canDrop(program, fresh.place, node);
   if (!drop.ok) return { kind: 'refused', reason: drop.reason };
   if (ask) {
