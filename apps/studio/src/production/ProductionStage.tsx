@@ -14,6 +14,10 @@ import { CodeEditor } from './CodeEditor.tsx';
 import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
+import { FrameCheck } from './FrameCheck.tsx';
+import { useCheckRun } from '../check/useCheckRun.ts';
+import type { Studio } from '../studio.ts';
+import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
 import type { Place } from '../storyboard/place.ts';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
@@ -47,6 +51,55 @@ export interface ProductionStageProps {
   /** The frames Rehearse has played since they last changed, kept by the App for the session. */
   rehearsed?: Rehearsed;
   onRehearsed?: (next: Rehearsed) => void;
+  /** The studio, for the frame's automatic check (spec 08 section 9). Without it, no check. */
+  studio?: Studio;
+  /** Opens the Code editor at a block: the check's Go to the block. */
+  onReveal?: (node: NodeId) => void;
+}
+
+/** The current frame's check, with its own run, which stops when the learner leaves the tab. */
+function FrameCheckArea({
+  studio,
+  models,
+  frameId,
+  makeStage,
+  startWorker,
+  onReveal,
+  onShowFrame,
+  host,
+}: {
+  studio: Studio;
+  models: ModelSourceHandle;
+  frameId: FrameId;
+  makeStage?: StageMaker | undefined;
+  startWorker?: (() => RuntimeWorker) | undefined;
+  onReveal: (node: NodeId) => void;
+  onShowFrame: () => void;
+  /** The code editors' host: "Use the script's words" is a program edit, one undo step. */
+  host: EditorHost;
+}) {
+  const check = useCheckRun({
+    studio,
+    models,
+    ...(makeStage ? { makeStage } : {}),
+    ...(startWorker ? { startWorker } : {}),
+  });
+  const p = studio.production;
+  const frame = p.frames.find((f) => f.id === frameId);
+  if (!frame) return null;
+  const index = sceneFrames(p, frame.scene).findIndex((f) => f.id === frame.id);
+  return (
+    <FrameCheck
+      production={p}
+      frame={frame}
+      number={`${numberOfScene(p, frame.scene)}.${index + 1}`}
+      check={check}
+      readOnly={studio.readOnly !== null}
+      onGoToBlock={onReveal}
+      onGoToStoryboard={onShowFrame}
+      onEdit={(edit) => void host.apply([edit], edit.label ?? '', 'blocks')}
+    />
+  );
 }
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
@@ -110,6 +163,8 @@ export function ProductionStage({
   onPlaceChange,
   rehearsed = NONE_REHEARSED,
   onRehearsed,
+  studio,
+  onReveal,
 }: ProductionStageProps) {
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
@@ -135,35 +190,53 @@ export function ProductionStage({
           onPlaceChange={onPlaceChange}
         />
       )}
-      {scene !== null && models && (
-        <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>
-          <SceneView
-            production={p}
-            scene={scene}
-            title={sceneTitle(p, scene)}
+      <div className="pr-top">
+        {scene !== null && models && (
+          <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>
+            <SceneView
+              production={p}
+              scene={scene}
+              title={sceneTitle(p, scene)}
+              models={models}
+              unavailable={unavailable}
+              selectedBlock={() => editorRef.current?.selection()[0] ?? null}
+              onRehearsal={(state) => {
+                setRehearsal(state);
+                // The frames this run has reached are Rehearsed until they change (section 2.3).
+                if (!onRehearsed) return;
+                const reached = framesReached(
+                  p,
+                  scene,
+                  state.ran,
+                  state.status === 'ended' && state.reachedEnd,
+                );
+                const next = withRehearsed(rehearsed, p, reached);
+                if (next !== rehearsed) onRehearsed(next);
+              }}
+              onAnnounce={onAnnounce}
+              active={active}
+              {...(makeStage ? { makeStage } : {})}
+              {...(startWorker ? { startWorker } : {})}
+            />
+          </Suspense>
+        )}
+        {studio && models && frame && open && (
+          <FrameCheckArea
+            studio={studio}
             models={models}
-            unavailable={unavailable}
-            selectedBlock={() => editorRef.current?.selection()[0] ?? null}
-            onRehearsal={(state) => {
-              setRehearsal(state);
-              // The frames this run has reached are Rehearsed until they change (section 2.3).
-              if (!onRehearsed) return;
-              const reached = framesReached(
-                p,
-                scene,
-                state.ran,
-                state.status === 'ended' && state.reachedEnd,
-              );
-              const next = withRehearsed(rehearsed, p, reached);
-              if (next !== rehearsed) onRehearsed(next);
+            frameId={frame}
+            makeStage={makeStage}
+            startWorker={startWorker}
+            onReveal={(node) => onReveal?.(node)}
+            host={host}
+            onShowFrame={() => {
+              const chosen = p.frames.find((f) => f.id === frame);
+              if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });
+              onGoToStoryboard();
             }}
-            onAnnounce={onAnnounce}
-            active={active}
-            {...(makeStage ? { makeStage } : {})}
-            {...(startWorker ? { startWorker } : {})}
           />
-        </Suspense>
-      )}
+        )}
+      </div>
       {scene === null ? (
         <div className="pr-closed">
           <p>{words.t('production.noScene')}</p>

@@ -529,6 +529,8 @@ export function App({
                 onPlaceChange={setPlace}
                 rehearsed={rehearsed}
                 onRehearsed={setRehearsed}
+                studio={studio}
+                onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}
                 host={editors}
                 onGoToStoryboard={() => setMode('storyboard')}
                 announcement={said}

@@ -141,3 +141,20 @@ test('Rehearse plays the scene on the scene view, highlights the blocks running,
     (await new AxeBuilder({ page }).include('.pr-scene').analyze()).violations.map((v) => v.id),
   ).toEqual([]);
 });
+
+test('Check this frame plays the scene on a hidden stage and lists what it found', async ({
+  page,
+}) => {
+  await openCode(page);
+  const card = page.getByRole('region', { name: /^Automatic check: frame 1\.1/ });
+  await expect(card.getByText(/^Not checked yet/)).toBeVisible();
+  await card.getByRole('button', { name: 'Check this frame' }).click();
+  await expect(card.getByRole('listitem').first()).toBeVisible({ timeout: 30_000 });
+  await expect(card.getByText(/^Not checked yet/)).toHaveCount(0);
+  // The strip shows the check's status for frame 1.1.
+  const first = page.getByRole('listbox', { name: 'Frames' }).getByRole('option').first();
+  await expect(first).toContainText(/Checked|Look at/);
+  expect(
+    (await new AxeBuilder({ page }).include('.pr-check').analyze()).violations.map((v) => v.id),
+  ).toEqual([]);
+});
