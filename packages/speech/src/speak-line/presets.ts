@@ -5,51 +5,28 @@
  * man, girl, boy, or an animal's size) is one of Kokoro's voices, changed in pitch, formant and
  * speed. The accent, British by default or American, picks which of Kokoro's voices.
  */
+import {
+  BASE_VOICES,
+  DEFAULT_ACCENT,
+  checkCastVoice,
+  type Accent,
+  type CastVoice,
+  type Preset,
+  VOICE_LIMITS,
+} from '@storystage/production/voices';
 import type { StoryClass } from '@storystage/story-api';
 
-export type Accent = 'british' | 'american';
-export const DEFAULT_ACCENT: Accent = 'british';
-
-export const PRESETS = [
-  'woman',
-  'man',
-  'girl',
-  'boy',
-  'small-animal',
-  'animal',
-  'big-animal',
-] as const;
-export type Preset = (typeof PRESETS)[number];
-
-/** A cast member's speak-line voice, as the production stores it (`03-production-format.md`). */
-export interface CastVoice {
-  readonly preset: Preset;
-  /** One of Kokoro's voices, for example `bf_emma`. */
-  readonly base: string;
-  readonly pitch: number;
-  readonly formant: number;
-  readonly speed: number;
-  readonly accent: Accent;
-}
-
-/** The limits on a voice's change, 1 meaning unchanged (spec 06, 4.3). */
-export const VOICE_LIMITS = {
-  pitch: [0.7, 1.5],
-  formant: [0.7, 1.5],
-  speed: [0.8, 1.25],
-} as const;
-
-/** Kokoro's voices, by accent and by whether the preset starts from a woman's or a man's. */
-export const BASE_VOICES: Record<Accent, { readonly woman: string[]; readonly man: string[] }> = {
-  british: {
-    woman: ['bf_emma', 'bf_isabella', 'bf_lily', 'bf_alice'],
-    man: ['bm_george', 'bm_lewis', 'bm_daniel', 'bm_fable'],
-  },
-  american: {
-    woman: ['af_heart', 'af_bella', 'af_nicole', 'af_sarah', 'af_sky', 'af_nova', 'af_river'],
-    man: ['am_adam', 'am_michael', 'am_eric', 'am_liam', 'am_onyx', 'am_echo', 'am_puck'],
-  },
-};
+// The production format's half (format 1.4.0) lives in @storystage/production, which stores the
+// voices; it's re-exported here so speech's callers don't change.
+export {
+  BASE_VOICES,
+  DEFAULT_ACCENT,
+  PRESETS,
+  VOICE_LIMITS,
+  type Accent,
+  type CastVoice,
+  type Preset,
+} from '@storystage/production/voices';
 
 /** Each preset: which kind of voice it starts from, and how it's changed (spike 14.3's values). */
 const SHAPES: Record<Preset, { from: 'woman' | 'man'; pitch: number; speed: number }> = {
@@ -133,14 +110,6 @@ export function switchAccent(voice: CastVoice, accent: Accent): CastVoice {
 }
 
 /** Is this a voice the production format may hold? */
-export function isCastVoice(v: CastVoice): boolean {
-  const within = (x: number, [lo, hi]: readonly [number, number]) => x >= lo && x <= hi;
-  return (
-    PRESETS.includes(v.preset) &&
-    (v.accent === 'british' || v.accent === 'american') &&
-    [...BASE_VOICES[v.accent].woman, ...BASE_VOICES[v.accent].man].includes(v.base) &&
-    within(v.pitch, VOICE_LIMITS.pitch) &&
-    within(v.formant, VOICE_LIMITS.formant) &&
-    within(v.speed, VOICE_LIMITS.speed)
-  );
+export function isCastVoice(v: unknown): v is CastVoice {
+  return checkCastVoice(v).length === 0;
 }

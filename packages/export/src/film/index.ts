@@ -5,3 +5,4 @@ export * from './titles.ts';
 export * from './export-film.ts';
 export * from './overlay.ts';
 export * from './size.ts';
+export * from './soundtrack.ts';

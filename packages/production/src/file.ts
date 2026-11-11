@@ -40,6 +40,7 @@ import {
   checkSceneShape,
   checkStoryboardShape,
 } from './validate.ts';
+import { keptVoices, voiceNames } from './voices.ts';
 
 /** Files a production carries besides its JSON and script, by their path inside the file. */
 export interface ProductionFiles {
@@ -154,6 +155,9 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   '1.1.0': { to: '1.2.0', manifest: (m) => m },
   // 1.3.0 lets a frame keep its latest automatic check (S2's `Frame.check`): nothing else changes.
   '1.2.0': { to: '1.3.0', manifest: (m) => m },
+  // 1.4.0 lets a production keep its characters' speak-line voices (`manifest.voices`): nothing
+  // else changes.
+  '1.3.0': { to: '1.4.0', manifest: (m) => m },
 };
 
 /**
@@ -332,8 +336,17 @@ export function openProduction(
 
   if (problems.length > 0 || program === null) return broken(DAMAGED, problems);
 
+  // Voices are a cache of the learner's choices: one that doesn't fit, or whose character no
+  // scene has, is dropped rather than refusing the file (spec 03 section 1.6).
+  const voices = keptVoices(manifest.voices, voiceNames({ scenes }));
+  const withoutVoices: { -readonly [K in keyof ProductionManifest]?: ProductionManifest[K] } = {
+    ...manifest,
+  };
+  delete withoutVoices.voices;
   const production: Production = {
-    manifest,
+    manifest: voices
+      ? { ...(withoutVoices as ProductionManifest), voices }
+      : (withoutVoices as ProductionManifest),
     program,
     // Scenes and frames in file-name order: their order carries no meaning (the running order
     // and each frame's `order` do), so the same file always opens the same way.

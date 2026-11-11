@@ -556,6 +556,8 @@ export function App({
               <Suspense fallback={null}>
                 <ScreeningTab
                   studio={studio}
+                  // The export's voices: the same sounds as Rehearse (spec 08 section 4, S2's #367).
+                  {...(voices ? { voices: voices.forFilm() } : {})}
                   host={host}
                   models={models}
                   exports={exports}

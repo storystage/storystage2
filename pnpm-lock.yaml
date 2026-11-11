@@ -302,6 +302,9 @@ importers:
         specifier: ^1.62.0
         version: 1.62.0
     devDependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
       '@storystage/runtime':
         specifier: workspace:*
         version: link:../runtime
@@ -475,6 +478,9 @@ importers:
       '@storystage/host':
         specifier: workspace:*
         version: link:../host
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api

@@ -22,6 +22,8 @@ export interface SpokenLine {
   readonly line?: string;
   readonly start: Micros;
   readonly duration: Micros;
+  /** The block's own time, before any cut at the scene's end; `duration` when not given. */
+  readonly length?: Micros;
 }
 
 export interface Caption {

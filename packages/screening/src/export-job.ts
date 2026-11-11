@@ -30,7 +30,13 @@ export type ExportJobState =
     }
   /** Made, but the learner backed out of saving it: Save again keeps the work. */
   | { readonly kind: 'unsaved'; readonly name: string }
-  | { readonly kind: 'done'; readonly name: string; readonly capped: boolean }
+  | {
+      readonly kind: 'done';
+      readonly name: string;
+      readonly capped: boolean;
+      /** The speak lines' sound, for the dialog's note (`FilmExport.sound`); always set here. */
+      readonly sound?: FilmExport['sound'];
+    }
   /** Refused before it started, each reason in plain words. */
   | { readonly kind: 'refused'; readonly reasons: readonly string[] }
   | { readonly kind: 'failed'; readonly words: string };
@@ -122,7 +128,7 @@ export class ExportJob {
       await this.options.save(film);
       this.stopping = null;
       this.made = null;
-      this.set({ kind: 'done', name: film.name, capped: film.capped });
+      this.set({ kind: 'done', name: film.name, capped: film.capped, sound: film.sound });
     } catch (e) {
       if (backedOut(e)) this.set({ kind: 'unsaved', name: film.name });
       else this.set({ kind: 'failed', words: SAVE_WORDS });
