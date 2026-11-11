@@ -71,6 +71,17 @@ export interface RehearsalOptions {
   readonly startWorker: () => RuntimeWorker;
   /** Milliseconds, for the clock: `performance.now()` unless a test gives another. */
   readonly wall?: () => number;
+  /**
+   * Speak lines' voices (spec 06 section 4.5): told each block that starts, so a speak line
+   * sounds as its block starts, and told to stop on Stop, pause, restart and leaving.
+   */
+  readonly speaker?: Speaker;
+}
+
+/** What Rehearse needs of the studio's voices. */
+export interface Speaker {
+  start(node: NodeId): void;
+  stop(): void;
 }
 
 /**
@@ -82,6 +93,8 @@ export class Rehearsal {
   private playback: Playback | null = null;
   private clock: LiveClock;
   private busy = false;
+  /** Set while Rehearse to here runs ahead: no line sounds. */
+  private quiet = false;
   private current: RehearsalState = IDLE;
   private readonly listeners = new Set<() => void>();
   /** Each run's number: events from a run that was replaced are ignored. */
@@ -123,6 +136,8 @@ export class Rehearsal {
     if (run === null || !this.playback) return;
     const playback = this.playback;
     this.busy = true;
+    // Running ahead without drawing speaks nothing either: the run pauses at the block.
+    this.quiet = true;
     try {
       const { at, reached } = await fastForward(playback, 0, { node });
       if (run !== this.run) return;
@@ -133,12 +148,14 @@ export class Rehearsal {
         playback.ended() ? { notReached: !reached } : { status: 'paused', notReached: !reached },
       );
     } finally {
+      this.quiet = false;
       if (run === this.run) this.busy = false;
     }
   }
 
   pause(): void {
     if (this.current.status !== 'playing') return;
+    this.options.speaker?.stop();
     this.clock.pause();
     this.set({ status: 'paused' });
   }
@@ -244,6 +261,7 @@ export class Rehearsal {
 
   /** Ends the run that's going, without touching the stage. */
   private end(): void {
+    this.options.speaker?.stop();
     this.run++;
     this.busy = false;
     this.clock.pause();
@@ -255,6 +273,8 @@ export class Rehearsal {
         this.set({ running: event.nodes });
         break;
       case 'ran': {
+        // Playing on after a pause speaks nothing until the next line starts (4.5).
+        if (!this.quiet) for (const b of event.blocks) this.options.speaker?.start(b.node);
         const ran = this.current.ran;
         const fresh = event.blocks.filter((b) => !ran.has(b.node));
         if (fresh.length > 0) this.set({ ran: new Set([...ran, ...fresh.map((b) => b.node)]) });

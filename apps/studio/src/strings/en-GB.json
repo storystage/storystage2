@@ -550,5 +550,8 @@
   "production.check.kept": "Kept",
   "production.check.keptFor": "Kept: {words}. Let it go",
   "production.check.scriptWords": "Use the script’s words",
-  "production.check.scriptWordsFor": "Use the script’s words: {words}"
+  "production.check.scriptWordsFor": "Use the script’s words: {words}",
+  "production.voices.unavailable": "Speak lines are silent on this device for now. Their captions still show.",
+  "production.voices.silent.one": "One speak line is silent for now. Its caption still shows.",
+  "production.voices.silent.other": "{count} speak lines are silent for now. Their captions still show."
 }

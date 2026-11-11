@@ -16,6 +16,7 @@ import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import type { Place } from '../storyboard/place.ts';
 import { NONE_REHEARSED, type Rehearsed } from './frameProgress.ts';
 import { ProductionStage } from './ProductionStage.tsx';
+import type { Voices } from '../speech/voices.ts';
 
 // The scene view and Rehearse (07-ux 7.2, 7.4) on a fake stage and a real runtime. Blockly can't
 // draw here, so a stand-in Blocks editor records the highlights it's given.
@@ -274,5 +275,35 @@ describe('the frame strip (07-ux 7.1)', () => {
       () => expect(within(list).getAllByRole('option')[0]!.textContent).toMatch(/Rehearsed/),
       { timeout: 4000 },
     );
+  });
+});
+
+describe('speak lines on the scene view (spec 06 section 4)', () => {
+  it('says when the lines are silent on this device, with their captions still showing', async () => {
+    const voices = {
+      state: { status: 'unavailable', silent: 2 },
+      subscribe: () => () => {},
+      start: () => {},
+      stop: () => {},
+    } as unknown as Voices;
+    render(
+      <ThemeRoot>
+        <ProductionStage
+          production={exampleProduction()}
+          scene={exampleProduction().scenes[0]!.id}
+          host={host}
+          onGoToStoryboard={() => {}}
+          announcement=""
+          models={models}
+          makeStage={async () => new FakeStage() as Stage}
+          voices={voices}
+        />
+      </ThemeRoot>,
+    );
+    expect(
+      await screen.findByText(
+        'Speak lines are silent on this device for now. Their captions still show.',
+      ),
+    ).toBeTruthy();
   });
 });

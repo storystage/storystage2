@@ -38,6 +38,8 @@ import { exportSlot } from './screening/exportSlot.ts';
 import { Shell } from './shell/Shell.tsx';
 import { TalkToType, TalkToTypeCard, type DictationMaker } from './speech/talkToType.tsx';
 import { useModelSource } from './stage/useModelSource.ts';
+import { useVoices } from './speech/useVoices.ts';
+import type { VoicesOptions } from './speech/voices.ts';
 import { words } from './strings.ts';
 import { newProduction } from './storyboard/edits.ts';
 import { NOWHERE, currentPlace, type Place } from './storyboard/place.ts';
@@ -150,6 +152,7 @@ export function App({
   host = browserHost,
   startAlice = startAliceWorker,
   makeDictation,
+  makeVoices,
 }: {
   start?: Production;
   host?: HostInterface;
@@ -157,6 +160,8 @@ export function App({
   startAlice?: () => ImportWorker;
   /** Talk to type's one `Dictation`; tests pass a fake. */
   makeDictation?: DictationMaker;
+  /** Speak lines' engine and sound; tests pass fakes. */
+  makeVoices?: VoicesOptions;
 }) {
   const studio = useStudio(start ?? newProduction());
   const [phase, setPhase] = useState<Phase>(start ? { kind: 'studio' } : { kind: 'starting' });
@@ -171,6 +176,12 @@ export function App({
   // One model source for every stage, and the running export, above the tabs (S5's review of
   // #317), so an export goes on when the learner changes tab, and stops when the studio closes.
   const models = useModelSource(host, studio.production, film?.files ?? NO_FILES);
+  // Speak lines' voices, for Rehearse and the export: asleep away from those two tabs.
+  const voices = useVoices(
+    studio.production,
+    mode === 'production' || mode === 'screening',
+    makeVoices,
+  );
   const [exports] = useState(() => exportSlot<ExportJob>());
   const [exportOpen, setExportOpen] = useState(false);
   useEffect(() => () => exports.get()?.stop(), [exports]);
@@ -530,6 +541,7 @@ export function App({
                 rehearsed={rehearsed}
                 onRehearsed={setRehearsed}
                 studio={studio}
+                voices={voices}
                 onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}
                 host={editors}
                 onGoToStoryboard={() => setMode('storyboard')}
