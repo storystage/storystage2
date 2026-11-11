@@ -77,7 +77,7 @@ describe('speakLines', () => {
 });
 
 describe('each character’s voice', () => {
-  it('is one per model, the same in every scene, from its class', () => {
+  it('is one per character, by name, the same in every scene, from its class', () => {
     const voices = productionVoices(example);
     const penguin1 = voiceOf(example, voices, s1.id, 'penguin');
     const s3 = example.scenes[2]!;
