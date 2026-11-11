@@ -88,6 +88,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 11 Nov: **the first museum scans** (WP3b; the owner's subjects of 11 Nov: space and flight, fossils, engines and inventions, ships): 15 CC0 objects, 7 from the Smithsonian and 8 from the Scottish Maritime Museum (downloaded through the owner's Chrome, Sketchfab needing a sign-in), each checked as CC0 on its own page. Their tools: a last, permissive simplifying step for scans the gentle steps can't fit, and older specular-glossiness materials as base-colour ones. The Wright Flyer is left out: its thin wings break at any reduction to budget.
   - 11 Nov: **the fixed sunset and night skies in the shipped Backstage**: `backstage.lock.json` pins backstage-assets cdf8d5a (backstage-assets#10).
 - Merged:
   - 11 Nov (#358, backstage-assets#10): **a sky's `tint` and `ahead`**, from S3's render on the stage: the sunset now faces its sun (`ahead: 0.622`), and the night is a dark blue moonlit sky (`exposure: 0.1, tint: '8ca5ff'`, horizon #1c2647). S3 checked both on the stage.
