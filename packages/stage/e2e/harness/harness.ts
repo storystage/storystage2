@@ -9,6 +9,7 @@ import {
   jointName,
   micros,
   objectId,
+  type BackstageId,
   type SceneSetup,
   type StageCommand,
   type StageEvent,
@@ -21,7 +22,12 @@ import shots from '../../../../tests/scenes/shots.json';
 import snowFog from '../../../../tests/scenes/snow-fog.json';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../../src/backdrops.ts';
 import { createBabylonStage, type ModelSource } from '../../src/babylon/index.ts';
-import { tinyHumanUrl, tinyModelUrl } from '../../src/babylon/tiny-model.ts';
+import {
+  tinyGroundTileUrl,
+  tinyHumanUrl,
+  tinyModelUrl,
+  tinySkyDomeUrl,
+} from '../../src/babylon/tiny-model.ts';
 import type { ObjectView } from '../../src/babylon/view.ts';
 import { loadHumanLibrary } from '../../src/humanoid/library.ts';
 import { sample as samplePose } from '../../src/humanoid/pose.ts';
@@ -543,6 +549,166 @@ async function crossfadeSky() {
   return out;
 }
 
+/** A PNG `width` by `height` pixels, each the CSS colour `colour(x, y)` gives. */
+async function png(width: number, height: number, colour: (x: number, y: number) => string) {
+  const canvas = new OffscreenCanvas(width, height);
+  const context = canvas.getContext('2d')!;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      context.fillStyle = colour(x, y);
+      context.fillRect(x, y, 1, 1);
+    }
+  const blob = await canvas.convertToBlob({ type: 'image/png' });
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
+ * One frame of an empty scene with `backdrop`, on a stage whose Backstage has only `items` (id
+ * to glTF address), seen from 2 m up looking along +Z; and what the stage couldn't find.
+ */
+async function backdropFrame(
+  backdrop: SceneSetup['backdrop'],
+  items: ReadonlyMap<BackstageId, string>,
+  commands: readonly StageCommand[] = [],
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: (id) => (items.has(id) ? { url: items.get(id)!, joints: [] } : null) },
+    offscreen: true,
+    renderer: 'webgl2',
+  });
+  await stage.load({
+    backdrop,
+    objects: [],
+    camera: { transform: { ...IDENTITY, position: { x: 0, y: 2, z: 0 } } },
+    markers: [],
+  });
+  stage.schedule(commands);
+  stage.seek(micros(0));
+  const { data } = await stage.renderFrame();
+  const missing = stage.missing();
+  stage.dispose();
+  return { data, missing };
+}
+
+/** The mean colour of a frame's rows `from` to `to`, and how far its brightness ranges. */
+function rows(data: Uint8ClampedArray, from: number, to: number) {
+  const sum = [0, 0, 0];
+  let low = 255;
+  let high = 0;
+  for (let y = from; y < to; y++)
+    for (let x = 0; x < W; x++) {
+      const p = (y * W + x) * 4;
+      for (let c = 0; c < 3; c++) sum[c]! += data[p + c]!;
+      const light = (data[p]! + data[p + 1]! + data[p + 2]!) / 3;
+      low = Math.min(low, light);
+      high = Math.max(high, light);
+    }
+  const n = (to - from) * W;
+  return { mean: sum.map((s) => Math.round(s / n)), range: Math.round(high - low) };
+}
+
+/**
+ * Spec 17 section 2: the grass template's ground, near the camera, drawn flat (no item), with a
+ * texture of its own colour, with a black and white check, and with an item that can't be read.
+ */
+async function groundTextures() {
+  const backdrop = BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop;
+  const grass = backdrop.ground!;
+  const tile = async (colour: (x: number, y: number) => string) =>
+    new Map([[grass, tinyGroundTileUrl(2, await png(8, 8, colour))]]);
+  const near = async (items: ReadonlyMap<BackstageId, string>) => {
+    const { data, missing } = await backdropFrame(backdrop, items);
+    return { ...rows(data, 300, H), missing };
+  };
+  return {
+    plain: await near(new Map()),
+    own: await near(await tile(() => '#5f9e3a')),
+    check: await near(await tile((x, y) => (((x >> 2) + (y >> 2)) % 2 ? '#ffffff' : '#000000'))),
+    broken: await near(new Map([[grass, 'data:model/gltf-binary;base64,AAAA']])),
+  };
+}
+
+/** The colour at (x, y). */
+const at = (data: Uint8ClampedArray, x: number, y: number) => {
+  const p = (y * W + x) * 4;
+  return [data[p]!, data[p + 1]!, data[p + 2]!];
+};
+
+/**
+ * Spec 17 section 2: a picture sky. Its picture is red where it faces +Z (u 0.47 to 0.53), blue
+ * towards +X, green towards -X, bright above the horizon and dim below. Seen as it is, tinted by
+ * an atmosphere colour half its own, and with no item.
+ */
+async function pictureSky() {
+  const sky = backstageId('storystage/Sky/clearDay');
+  const backdrop = { sky, lighting: backstageId('storystage/Lighting/clearDay') };
+  const picture = await png(64, 32, (x, y) => {
+    const level = y < 16 ? 'ff' : '66';
+    if (x >= 30 && x < 34) return `#${level}0000`;
+    return x < 30 ? `#0000${level}` : `#00${level}00`;
+  });
+  const items = new Map([[sky, tinySkyDomeUrl(picture)]]);
+  const seen = await backdropFrame(backdrop, items);
+  const half = await backdropFrame(backdrop, items, [
+    {
+      seq: 1,
+      object: objectId('scene'),
+      start: micros(0),
+      duration: micros(0),
+      style: 'beginAndEndAbruptly',
+      kind: 'atmosphere',
+      colour: '#576068',
+    },
+  ]);
+  const none = await backdropFrame(backdrop, new Map());
+  return {
+    middleAbove: at(seen.data, W / 2, 60),
+    middleBelow: at(seen.data, W / 2, H - 20),
+    left: at(seen.data, 10, 60),
+    right: at(seen.data, W - 10, 60),
+    tinted: at(half.data, W / 2, 60),
+    missing: seen.missing,
+    without: { colour: at(none.data, W / 2, 60), missing: none.missing },
+  };
+}
+
+/** A frame's pixels as a PNG `data:` address. */
+function pngOf(data: Uint8ClampedArray) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(data), W, H), 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * For people to look at (spec 17 section 2): the grass template with a 2 m tile of a check over
+ * its colour, and a picture sky whose picture is a grid with its middle marked.
+ */
+async function backdropPictures() {
+  const grass = BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop;
+  const check = await png(16, 16, (x, y) => (((x >> 3) + (y >> 3)) % 2 ? '#7bbd52' : '#447f26'));
+  const ground = await backdropFrame(
+    grass,
+    new Map([[grass.ground!, tinyGroundTileUrl(2, check)]]),
+  );
+  const sky = backstageId('storystage/Sky/sunset');
+  const grid = await png(128, 64, (x, y) => {
+    if (x === 63 || x === 64) return '#ffffff';
+    if (x % 8 === 0 || y % 4 === 0) return '#30204a';
+    return y < 32 ? `rgb(${200 + y}, ${90 + y * 3}, 70)` : '#2a3a2a';
+  });
+  const picture = await backdropFrame(
+    { ground: grass.ground, sky, lighting: backstageId('storystage/Lighting/sunset') },
+    new Map([[sky, tinySkyDomeUrl(grid)]]),
+  );
+  return { ground: pngOf(ground.data), sky: pngOf(picture.data) };
+}
+
 /** Milliseconds: the mean, and the slowest but one in twenty. */
 function spread(times: readonly number[]) {
   const sorted = [...times].sort((a, b) => a - b);
@@ -742,6 +908,9 @@ Object.assign(window, {
     skies,
     sample,
     darkPixels,
+    groundTextures,
+    backdropPictures,
+    pictureSky,
     subjectShare,
     rendering,
     pictureCheck,

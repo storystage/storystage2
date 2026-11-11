@@ -15,13 +15,17 @@ The automatic check against the storyboard (WP11.6): what a run did, against wha
 - `frameStatus(frame, production)`: `'checked'`, `'lookAt'`, or `null` (no result, or a stale one).
 - `checkState(frame, production)`: `{ stale, flags, kept }`.
 - `keepFlag(production, frame, itemId, keep)`: the next production, for the learner's undoable step.
-- `basisFor(production, frame)`: what a result depends on, hashed; the program's and each set-up's share are cached.
+- `basisFor(production, frame, items?)`: what a result depends on, hashed, including the script lines its items name; the program's and each set-up's share are cached.
 - `ITEM_ORDER`: flags, then notes, then passed.
+- `scriptWords(production, item)`: for a speak line whose words differ from its script line, the edit that gives the block the script's words (**Use the new words**), for the studio's undoable step; otherwise `null`.
+- `numberedLines(production)`: every script line by id, with its number ("2.3") and words.
 
 ## Inside
 
 - `geometry.ts`: where a point lands on the picture (the camera's +X on the left, the lens in turns), on screen or not, facing, and the share of the picture's height.
 - `spans.ts`: each frame's span in the film, from its links or its plan (9.3).
-- `compare.ts`: the comparisons and their words (9.4, 9.5).
+- `compare.ts`: the comparisons and their words (9.4, 9.5), speak lines against the script included (spec 06 section 4.1).
+- `script-words.ts`: Use the new words.
+- `strings.ts` and `strings/en-GB.json`: every word the learner sees, the items' and the undo label's.
 - `status.ts`: `basis`, status and keeping a flag (9.6).
 - `runner.ts`: playing a scene and gathering each frame's state.

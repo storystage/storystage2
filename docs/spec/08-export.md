@@ -227,7 +227,10 @@ Each comparison gives an item: **passed**, or a **flag**. A few give a **note**,
 - **Which way they face.** A character's facing towards the camera is front (within 30°), three-quarter (30° to 75°), side (75° to 120°) or back (beyond 120°), and for a side view, left or right. Unflipped, a side or three-quarter sketch faces the picture's left, and `flipped` turns it to the right (the sketch renderer's `VIEWS`, `packages/sketches/src/render.ts`). It's flagged only when it's two steps or more from the sketch's facing (front against side or back, say), or a side view faces the other way from the sketch's (`flipped`).
 - **The shot.** It checks that every character the shot frames is on screen. A close-up should fill at least 40% of the picture's height with its first character; a wide shot should leave each character no more than 60% of it. Medium and two-shots are checked for the characters on screen only.
 - **Pinned script lines.** Each dialogue line pinned to the frame (`pinnedFrame`) should be said (a `say`, or a speak line's `caption`) with the same words, compared as captions compare them (section 6), during the scene's run. A line never said in the scene is flagged. A line said in another frame of the scene is a note ("said in frame 2.4").
-- **The frame's length.** The frame's span is compared with `lengthSeconds`. It's flagged when it's more than half as long again, or less than half, with a second's grace either way. So a frame twice its planned length is flagged, and one a little over is not.
+- **Speak lines** (spec 06 section 4.1). Each speak line spoken during the frame (a `say` whose bubble is `caption`) is compared with the script, once for each block. The block is the `speakLine` block whose run started at the caption's start; the item names it (`node`), so the frame card can link to it.
+    - With a line (`line`, the script line it was made from): when the line's words and the block's are the same, compared as captions compare them, it's passed, unless that line is pinned to the frame and so already has its item. When they differ, it's flagged, whichever of them changed since the block was made. The frame card offers **Use the new words** (`scriptWords`, section 9.7, an undoable edit) and **Keep these** (keeping the flag). A line no longer in the script is a note.
+    - Without a line: dialogue the script hasn't got. That's allowed, so it's a note, not a flag. If its words are one of the scene's dialogue lines, it's passed instead, and names that line.
+    - A block that never runs is spoken in no frame, so it gives no item. It's flagged when it's more than half as long again, or less than half, with a second's grace either way. So a frame twice its planned length is flagged, and one a little over is not.
 - **Problems while it runs.** An error that stops the run, endless loops included, is flagged on the frame it happened in, with its words (6.3). A model the stage couldn't find (section 1's `missing`) is a note on every frame of the scene.
 
 ### 9.5 The words
@@ -243,6 +246,7 @@ Plain words, as screen 07's checklist draws them, with the character's name from
 | Facing | "Owl faces the camera, as in your sketch" | "Owl faces away; your sketch has it facing the camera" |
 | Shot | "The close-up frames Owl" | "The close-up doesn't fill the picture with Owl" |
 | Line | "Line 2.3 is said" | "Line 2.3 is never said" |
+| Speak line | "Owl says line 2.3 as written" | "Owl's words aren't the same as line 2.3 in the script" |
 | Length | "This frame lasts about 3 seconds, as planned" | "This frame lasts 6 seconds; you planned 3" |
 | Problem | | the error's own words (6.3) |
 
@@ -252,7 +256,7 @@ Each item says which block (`node`) and which sketch (`sketch`) or line (`line`)
 
 Each frame's latest result is saved on the frame (`Frame.check`, a production format change for S4), with the flags the learner chose to keep:
 
-- `basis`: a hash of what the result depends on: the program, the scene's set-up, the frame itself and the frames beside it, and the script lines pinned to it. When it no longer matches, the result is **stale**. It still shows, marked as from before the last change, but the frame isn't Checked.
+- `basis`: a hash of what the result depends on: the program, the scene's set-up, the frame itself and the frames beside it, the script lines pinned to it, and the other script lines its items name (a speak line's, so a change to that line's words makes the result stale). When it no longer matches, the result is **stale**. It still shows, marked as from before the last change, but the frame isn't Checked.
 - `items`: each item's `id` (stable across runs, such as `onScreen:owl` or `line:<lineId>`), `kind`, `outcome` (`passed`, `flag` or `note`), `words`, and `node`, `sketch` and `line` where they apply.
 - `kept`: the `id`s of the flags the learner chose to keep. A kept flag stays in the checklist but doesn't hold the frame back.
 
@@ -273,6 +277,7 @@ Agreed with S5, who builds the frame card, the frame strip and the Check buttons
 - **Writing back:** results go to `session.annotate(results)` (S4's, not an undo step). Keeping a flag is `keepFlag(production, frame, itemId, keep)`, a pure helper giving the next production, for the studio's undoable `commit`, labelled "Keep the flag on frame 2.3".
 - **Status,** cheap enough for every frame on every render: `frameStatus(frame, production)` gives `'checked'`, `'lookAt'` or `null` (no result, or a stale one, so the frame shows the studio's own status); `checkState(frame, production)` gives `{ stale, flags, kept }` or `null`. `basis` is cached per program and scene.
 - **Order:** `ITEM_ORDER` lists flags first, then notes, then passed items, so every view lists them the same way.
+- **Use the new words:** `scriptWords(production, item)` gives the edit that puts a speak line's script words into its block (`setArgument` on the block's `text`), for the studio's undoable step labelled "Use the script's words for line 2.3"; `null` when the item isn't a speak line whose line is still in the script.
 - **Rehearsed** (07-ux section 2.3) stays the studio's: a Rehearse run doesn't compare anything with the storyboard. A frame counts as rehearsed when a Rehearse run's `ran` events include one of its `links`; a frame with no links, when the run reaches the scene's end. So unlinked frames still move on.
 
 ### 9.8 Tests
@@ -283,3 +288,4 @@ Agreed with S5, who builds the frame card, the frame strip and the Check buttons
 | Each comparison, its tolerances, and its words (9.4, 9.5) | `packages/check`, from scene states made in the test | Unit |
 | The done-when: five planted differences (a missing character, a mirrored position, an unsaid line, a frame twice its planned length, a character off camera) each flagged, and no flags on a matching frame | `packages/check`, through the runner on `FakeStage` and the real runtime | Unit |
 | A stale result, kept flags and Checked (9.6) | `packages/check` | Unit |
+| Speak lines: the same words, changed words, a line taken out of the script, and words not in the script, each on the frame it's spoken in, with its block; `scriptWords` (9.4, 9.7) | `packages/check`, through the runner on `FakeStage` and the real runtime | Unit |

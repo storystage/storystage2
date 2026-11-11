@@ -263,3 +263,89 @@
   background: var(--ss-panel-3);
   box-shadow: inset 0 0 0 2px var(--ss-line-2);
 }
+
+/* The frame strip across the top (07-ux 7.1): its sketch thumbnails fill their paper square. */
+.pr-strip {
+  flex: none;
+  padding-bottom: 4px;
+}
+.pr-strip .sb-picture {
+  width: 100%;
+  height: 100%;
+}
+
+/* The scene view and the frame's automatic check side by side (spec 08 section 9). */
+.pr-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 16px;
+  align-items: start;
+}
+.pr-top > :only-child {
+  grid-column: 1 / -1;
+}
+.pr-check {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  color: var(--ss-text);
+  text-align: start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-check-title {
+  margin: 0;
+  color: var(--ss-text);
+  font-family: var(--ss-font-display);
+  font-size: 18px;
+}
+.pr-check-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pr-check-summary {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-check-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 40vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.pr-check-items[data-stale] {
+  opacity: 0.75;
+}
+.pr-check-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: start;
+}
+.pr-check-item[data-outcome='flag'] > .ss-icon {
+  color: var(--ss-stop);
+}
+.pr-check-item[data-outcome='passed'] > .ss-icon {
+  color: var(--ss-ok);
+}
+.pr-check-item[data-kept] > .ss-icon {
+  color: var(--ss-muted);
+}
+.pr-check-words {
+  overflow-wrap: anywhere;
+}
+.pr-check-item-actions {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  grid-column: 2;
+  gap: 4px;
+}

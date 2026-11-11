@@ -16,7 +16,7 @@ import {
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
 import {
-  CheckSoon,
+  CheckPanel,
   Compare,
   ExportDialog,
   ExportJob,
@@ -24,6 +24,7 @@ import {
   RoughCut,
   ScreeningPlayer,
   currentFrame,
+  filmFlags,
   framesInOrder,
   sceneAt,
   segments,
@@ -39,6 +40,7 @@ import { Button, NeutralNote } from '@storystage/ui';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import { frameDrawer } from '../storyboard/FramePicture.tsx';
+import { useCheckRun } from '../check/useCheckRun.ts';
 import { makeStage, hiddenCanvas, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import type { ExportSlot } from './exportSlot.ts';
@@ -314,6 +316,32 @@ export function ScreeningTab(props: ScreeningTabProps) {
     props.onExportOpenChange?.(open);
   };
 
+  // Check the whole film (WP11c, spec 08 section 9.1), on the studio's one check run: a hidden
+  // stage for the run, results saved with `annotate` (no undo step), and Keep as an undo step.
+  const readOnly = studio.readOnly !== null;
+  const check = useCheckRun({ studio, models, makeStage: make, startWorker });
+  const checking = check.running && { done: check.running.done, total: check.running.total };
+  const checkFailed = check.failed;
+  const runFilmCheck = () => check.run({ kind: 'film' });
+  const flagged = filmFlags(production);
+  const keep = (frame: FrameId, itemId: string, keepIt: boolean) =>
+    check.keep(
+      frame,
+      itemId,
+      keepIt,
+      flagged.flags.find((f) => f.frame === frame)?.frameNumber ?? '',
+    );
+  // Opening Export film checks the frames not checked since they changed first (section 4), and
+  // the dialog lists what it found; the learner can export anyway.
+  useEffect(() => {
+    if (!exportOpen || flagged.unchecked === 0) return;
+    // Started just after the dialog opens, as from a press; once started it runs to its end.
+    const start = setTimeout(() => void runFilmCheck());
+    return () => clearTimeout(start);
+    // Only as the dialog opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [exportOpen]);
+
   return (
     <div className="sr-tab sr-room">
       <div className="sr-main">
@@ -328,6 +356,16 @@ export function ScreeningTab(props: ScreeningTabProps) {
           production={production}
           timeline={state.timeline}
           refusals={exportOpen ? distributionProblems(production, models.item) : []}
+          check={
+            checking
+              ? { kind: 'checking' }
+              : flagged.unchecked === 0
+                ? { kind: 'ready', flags: flagged.flags }
+                : checkFailed
+                  ? { kind: 'failed' }
+                  : null
+          }
+          onCheck={() => void runFilmCheck()}
           job={exportState}
           onExport={(chosen) => job.start(exportRun(chosen))}
           onStop={() => job.stop()}
@@ -379,13 +417,20 @@ export function ScreeningTab(props: ScreeningTabProps) {
           drawFrame={drawFrame}
           still={still}
         />
-        <CheckSoon />
+        <CheckPanel
+          production={production}
+          running={checking}
+          failed={checkFailed}
+          onCheck={() => void runFilmCheck()}
+          onKeep={keep}
+          readOnly={readOnly}
+        />
         <RetakeNotes
           production={production}
           scene={notesScene}
           onChange={writeNotes}
           onDone={() => studio.seal()}
-          readOnly={studio.readOnly !== null}
+          readOnly={readOnly}
         />
       </aside>
     </div>

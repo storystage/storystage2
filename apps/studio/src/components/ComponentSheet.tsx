@@ -191,6 +191,29 @@ function Sheet({ theme }: { theme: Theme }) {
             onSpeak={() => {}}
           />
           <TextField
+            label="Synopsis"
+            multiline
+            value="A penguin wakes to find the ice moving."
+            speech={{
+              phase: 'listening',
+              level: 0.55,
+              problem: null,
+              toggle: () => {},
+              cancel: () => {},
+            }}
+          />
+          <TextField
+            label="Scene heading"
+            value="Ice shelf"
+            speech={{
+              phase: 'idle',
+              level: 0,
+              problem: "I didn't catch that. Try again, a little closer.",
+              toggle: () => {},
+              cancel: () => {},
+            }}
+          />
+          <TextField
             label="Claude key"
             placeholder="sk-…"
             description="Adults only. Never spoken aloud."

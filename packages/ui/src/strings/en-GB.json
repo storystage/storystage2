@@ -48,5 +48,8 @@
   "count.frames.one": "{count} frame",
   "count.frames.other": "{count} frames",
   "count.scenes.one": "{count} scene",
-  "count.scenes.other": "{count} scenes"
+  "count.scenes.other": "{count} scenes",
+  "field.stopSpeaking": "Stop listening: {label}",
+  "field.listening": "Listening… Tap the mic again when you’ve finished.",
+  "field.working": "Working out the words…"
 }

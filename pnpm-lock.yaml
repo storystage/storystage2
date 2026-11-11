@@ -66,6 +66,9 @@ importers:
       '@storystage/blocks':
         specifier: workspace:*
         version: link:../../packages/blocks
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../../packages/check
       '@storystage/editor-contract':
         specifier: workspace:*
         version: link:../../packages/editor-contract
@@ -87,6 +90,9 @@ importers:
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
+      '@storystage/speech':
+        specifier: workspace:*
+        version: link:../../packages/speech
       '@storystage/stage':
         specifier: workspace:*
         version: link:../../packages/stage
@@ -377,6 +383,9 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../check
       '@storystage/export':
         specifier: workspace:*
         version: link:../export
@@ -466,6 +475,9 @@ importers:
       '@storystage/host':
         specifier: workspace:*
         version: link:../host
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
     devDependencies:
       vite:
         specifier: ^8.3.4

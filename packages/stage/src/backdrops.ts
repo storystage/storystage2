@@ -1,7 +1,8 @@
 /**
  * WP5.2: Backstage's Backdrops section, built in: ground types, skies and lighting, and the
  * starting templates that combine them. The templates' numbers are Alice's. Her ground textures
- * aren't ours to copy, so each surface is a flat colour until WP3's textures arrive.
+ * aren't ours to copy, so each surface is a flat colour, unless Backstage has a CC0 texture for it
+ * under the same id (spec 17 section 2). Picture skies come from Backstage too.
  */
 import { StageError, backstageId, type BackstageId, type SceneSetup } from '@storystage/story-api';
 
@@ -23,8 +24,13 @@ export interface Ground {
 }
 
 export interface Sky {
-  /** The sky's colour, which fog fades to. Alice calls it the atmosphere colour. */
+  /**
+   * The sky's colour, which fog fades to. Alice calls it the atmosphere colour. For a picture sky,
+   * the average of its horizon.
+   */
   readonly atmosphere: Colour;
+  /** True for a picture sky: a dome from Backstage under the sky's id (spec 17 section 2). */
+  readonly picture?: true;
 }
 
 export interface Lighting {
@@ -52,6 +58,12 @@ const DEFAULT_LIGHTING: Lighting = { above: WHITE, below: BLACK };
 
 /** Under Alice's white lights a surface facing up is this much brighter than its colour. */
 const BRIGHTNESS_FACING_UP = 0.3 + 3 * 0.533 * Math.SQRT1_2;
+
+/**
+ * What a ground's texture is multiplied by, so it shows on screen as its pixels are: its average
+ * then looks like the flat ground's `look` (spec 17 section 2).
+ */
+export const TEXTURE_SHADE = 1 / BRIGHTNESS_FACING_UP;
 
 /** A ground that looks like `rrggbb` under white light, so the table says what you'll see. */
 const surface = (rrggbb: string, opacity = 1): Ground => {
@@ -180,6 +192,19 @@ const GROUNDS = new Map<BackstageId, Ground>(
 const SKIES = new Map<BackstageId, Sky>();
 const LIGHTING = new Map<BackstageId, Lighting>();
 
+/**
+ * The picture skies (the owner's choice, 10 Nov 2026), each with a lighting of the same name.
+ * Each atmosphere colour is the average of its picture's band just above the horizon, and each
+ * lighting suits its picture: both from S4's build (backstage-assets#9, 10 Nov 2026), the
+ * sunset's lighting warm, with its sun low ahead.
+ */
+const PICTURE_SKIES: readonly (readonly [name: string, horizon: Colour, lighting: Lighting])[] = [
+  ['clearDay', hex('aebfd0'), { above: hex('99bdec'), below: hex('454c53') }],
+  ['cloudy', hex('99a1b3'), { above: hex('acbfe9'), below: hex('3d4048') }],
+  ['sunset', hex('c6c1b4'), { above: hex('f2c08c'), below: hex('4f4d48') }],
+  ['night', hex('1c2647'), { above: hex('374d8f'), below: hex('0b0f1c') }],
+];
+
 export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map(
   ([id, name, ground, sky, fog = 0, above, below]) => {
     SKIES.set(skyId(id), { atmosphere: sky ?? DEFAULT_SKY });
@@ -194,6 +219,14 @@ export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map
     };
   },
 );
+
+for (const [name, horizon, lighting] of PICTURE_SKIES) {
+  SKIES.set(skyId(name), { atmosphere: horizon, picture: true });
+  LIGHTING.set(lightingId(name), lighting);
+}
+
+/** The picture skies' ids, each also a lighting's name (`storystage/Lighting/<name>`). */
+export const PICTURE_SKY_TYPES: readonly BackstageId[] = PICTURE_SKIES.map(([name]) => skyId(name));
 
 /** Every built-in ground type, for Backstage's Backdrops section. */
 export const GROUND_TYPES: readonly BackstageId[] = [...GROUNDS.keys()];
@@ -213,6 +246,8 @@ export const groundColour = (id: BackstageId): Colour | null => GROUNDS.get(id)?
 export interface Backdrop {
   /** Null if the scene has no ground. */
   readonly ground: Ground | null;
+  /** The ground's and sky's ids, which a ground texture or a picture sky comes under. */
+  readonly ids: { readonly ground: BackstageId | null; readonly sky: BackstageId | null };
   readonly sky: Sky;
   readonly lighting: Lighting;
   readonly fogDensity: number;
@@ -259,6 +294,7 @@ export function resolveBackdrop(backdrop: SceneSetup['backdrop']): Backdrop {
   };
   return {
     ground: backdrop.ground ? find(GROUNDS, backdrop.ground) : null,
+    ids: { ground: backdrop.ground ?? null, sky: backdrop.sky ?? null },
     sky: backdrop.sky ? find(SKIES, backdrop.sky) : { atmosphere: DEFAULT_SKY },
     lighting: backdrop.lighting ? find(LIGHTING, backdrop.lighting) : DEFAULT_LIGHTING,
     fogDensity: fogDensity(backdrop.fog ?? 0),

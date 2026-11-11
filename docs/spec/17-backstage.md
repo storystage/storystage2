@@ -45,7 +45,43 @@ _To be written._
 
 ### Grounds, skies and lighting (Backdrops)
 
-The grounds, skies and lighting are built into the stage (`packages/stage/src/backdrops.ts`, S3), with ids `storystage/Ground/<name>`, `storystage/Sky/<name>` and `storystage/Lighting/<name>`. They follow Alice's ground appearances and starting templates, as flat colours, because Alice's textures are CMU's. CC0 textures can replace the colours later (WP3b) under the same ids.
+The grounds, skies and lighting are built into the stage (`packages/stage/src/backdrops.ts`, S3), with ids `storystage/Ground/<name>`, `storystage/Sky/<name>` and `storystage/Lighting/<name>`. They follow Alice's ground appearances and starting templates, as flat colours, because Alice's textures are CMU's.
+
+**CC0 textures** (WP3b, workplan 3.7; agreed by S3 and S4, 10 Nov 2026) come as ordinary Backstage items in the `backdrops` section, so the manifest's format doesn't change. The stage finds them through the same `ModelSource` as any model (`find(id)`), under the backdrop's own id. Where there's no item, or the shipped Backstage isn't there, the stage draws the flat colour as before.
+
+**Grounds**, under the existing ids `storystage/Ground/<name>`:
+
+1. **The item:** a `.glb` holding one square in the XZ plane, centred on the origin, facing +Y (two triangles), with texture coordinates 0 to 1 across it. Its X extent is the size of one tile in metres, the texture's real-world size, about 2 to 4 m.
+2. **One material, and only its base-colour texture:** WebP, sRGB, seamless, at most 1,024 pixels, with no alpha channel. No normal or roughness maps, because the stage doesn't use them. The ground's opacity stays the stage's (swamp and ice are 0.7).
+3. **Its average colour matches the flat colour,** the hex in the stage's ground table (`GROUND_LIST`, `packages/stage/src/backdrops.ts`), within 10% on each channel in sRGB. That hex is how the ground looks on screen, so a scene looks the same family with or without textures. The build shifts a texture's colour to match, and reports each one's average.
+4. **Which grounds:**
+    - first, those the starter templates use: grass, darkGrass, dryGrass, oceanFloor, moon, mars, snow, desert, sandyDesert, rockyBrown, forestFloor, jungle, swamp, ice, and the room's floor (`room`, a wooden floor);
+    - then the rest of `ALICE_GROUNDS`;
+    - then the others.
+    - **goldCoins and the open water** (ocean, islandOcean, oceanNight, water) **stay colours,** with no item.
+5. **What the stage does with it** (S3):
+    - It puts the texture on the stage's own ground material, not the glTF's, so Alice's lights colour it as they colour a flat ground.
+    - It tiles it, with `uScale` and `vScale` the ground's size divided by the tile's, on the 600 m ground and on the room's floor alike. Walls and ceiling stay colours.
+    - It uses mipmaps and anisotropic filtering, up to 8 or the device's limit, so distant ground doesn't shimmer.
+    - `load()` and `preload` wait for the texture, so the first frame is the same every time.
+    - **A missing item is normal and isn't reported.** An item that's found but fails to load falls back to the colour and is reported as `{ kind: 'backdrop', id }`, so a broken Backstage shows.
+    - **`paint` keeps the colours:** painting a model "grass" tints it, it doesn't texture it.
+
+**Picture skies** (the owner's choice, 10 Nov 2026: a few new picture skies, with the 20 template skies staying colours, because code sets the atmosphere colour and fog fades to it):
+
+1. **New ids,** `storystage/Sky/<name>`, that don't clash with the templates' (for example `storystage/Sky/clearDay`): a clear day, a cloudy day, a sunset and a night sky to start with.
+2. **The item:** a `.glb` sky dome, an inward-facing sphere centred on the origin with a radius of 200 m (inside the 256 m far clip), about 1,000 triangles. It has one unlit material with an equirectangular picture of at most 2,048 pixels, WebP and sRGB. The middle of the picture (u = 0.5) faces +Z, the way the default camera looks, with +Y up.
+3. **Its atmosphere colour** is the average of the picture's horizon band. The build reports it, and the stage's sky table (`SKIES`) gets an entry for each picture sky with that colour, so fog fades distant things into the picture rather than against it.
+4. **Its lighting:** each picture sky comes with a lighting of the same name (`storystage/Lighting/clearDay` for `storystage/Sky/clearDay`), which the stage adds with its `SKIES` entry, as each template pairs a sky with a lighting. Its colours from above and below suit the picture: warm for the sunset, dim and blue for the night. The build suggests a pair with each sky, so a sunset doesn't light a scene like noon.
+5. **What the stage does with it** (S3):
+    - It keeps the dome on the camera, as if infinitely far, and draws it unlit, without fog, behind everything. It's in pictures, crossfades and fades like everything else.
+    - Fog and the background colour follow the atmosphere colour, as for any sky.
+    - **Setting the atmosphere colour tints the picture** (the owner's choice, 10 Nov 2026): by the new colour divided by the sky's own, capped at 1. A program that darkens the sky at dusk sees it darken, and setting it back shows the picture unchanged.
+    - **A picture sky without its item is reported,** unlike a ground. It has nothing to fall back to but its atmosphere colour, so when its id is in `SKIES` but Backstage has no item (the web build without a shipped Backstage, or an older Backstage), the stage draws that colour, the scene plays on, and it's reported as `{ kind: 'backdrop', id }`, the same as an item that fails to load.
+
+**Sources:** ambientCG and Poly Haven, both CC0, checked item by item as in section 3. The files are kept in the assets repository, pinned like the other sources' originals. Poly Haven's API asks for a User-Agent naming the client; the tools send a generic one. Each item's credit names its maker and the site, although CC0 doesn't ask for it.
+
+**Sketches and the Prompter:** each item gets the backdrop sketch of section 7 (rule 6), and the Prompter's catalogue lists it under Backdrops with its description, as for any item.
 
 **Alice's grounds** (`ALICE_GROUNDS`, `@storystage/backstage`): each `SGround.SurfaceAppearance` an Alice world uses, mapped to its ground, so an imported world keeps its ground (spec 19, S6). It covers the ten that Alice's 34 starter worlds use, in Alice's own spelling (`BROWN_SAVANA_GRASS`). Any other gives the default ground, and the import reports it. A test checks every id against the stage's `GROUND_TYPES`.
 
@@ -120,6 +156,12 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - **Real sizes:** an item may give its real `height` in metres. The build scales a glTF model to it under one new root node, since models from galleries such as Poly Pizza come at every scale their makers used (a kite of 6 km, an aeroplane of 30 cm). The manifest's `defaultSize.height` is then that height. VRM files are kept as they are.
     - **Facing:** an item may give a `turn` in whole degrees (`x` first, to stand it up, then `y`), so a glTF model faces +Z and stands up as every Backstage model does (section 1). It's applied before the height is measured. Galleries' models face every way their makers chose. A turn is usually a quarter turn, but a model that leans in its own data takes whatever stands it up: Poly Pizza's crutches take `x: -34`.
     - **Copies are dropped:** a mesh placed twice in the same place, as some converted models carry it, is removed before reduction (`dropDuplicateInstances`, in `reduceModel`, so imports get it too). It costs triangles, and its sketches would show nothing clean.
+    - **Backdrops are made from pictures** (section 2, `backdrops.ts`):
+        - An item in the `backdrops` section gives `backdrop: { kind: 'ground', tile, look }` or `{ kind: 'sky', exposure?, tint?, ahead? }`, and fetches its picture (`.jpg`, `.png` or `.webp`), pinned like a model. A sky's `exposure` (0.05 to 1) scales its light in linear light and its `tint` (`rrggbb`, what white becomes) colours it, because a gallery's tonemapped pictures are each exposed to look bright, so a night sky comes as bright and grey as noon. Its `ahead` (0 to 1) is the picture's column that faces straight ahead (+Z), so a sunset's sun is in front of the default camera, not off to one side.
+        - Its id is the stage's: `storystage/Ground/<name>` with the class `Ground`, or `storystage/Sky/<name>` with the class `Scene`, since a sky belongs to the scene and the Story API has no sky class. It takes no `height`, `turn` or `exclude`.
+        - The build makes the ground's tile, colour-matched to `look` in linear light, or the sky's dome. The thumbnail is the picture itself, since a flat tile seen from the front shows nothing.
+        - `sources-report.md` and `provenance.json` give each ground's average colour as fetched and as shipped, and each sky's horizon colour with a suggested lighting, for the stage's tables.
+        - The Prompter's catalogue lists backdrops without a size or joints, and says they're set as a scene's backdrop, not added.
     - It writes the manifest items, `provenance.json` (every file fetched, with its SHA-256) and the sketches.
     - **VRM 0.x avatars face -Z.** The sketches turn them; the stage's loader must too (S3).
     - Before a build is merged, a person looks at each new item's sketches for respectful, age-appropriate representation.
@@ -128,7 +170,7 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - A workflow in the assets repository runs Blender with MPFB2, headless. These are GPL build tools, never linked into the app; the people they make from CC0 assets are CC0.
     - Each person is rigged to the `game_engine` skeleton, which the joint map reads by its `unreal` convention.
     - **Colours change the texture's pixels,** because a shader tint would not survive glTF. An outfit's shirt and jeans share one texture, so denim is told apart by being blue and left alone.
-    - **Only hair, eyebrows and eyelashes are see-through.** MPFB2's game material marks everything see-through; the script makes the rest solid.
+    - **Only hair, eyebrows and eyelashes are see-through,** and glasses' lenses. MPFB2's game material marks everything see-through, and the script makes the rest solid. Glasses are written as glTF's MASK, so their frames are solid and their lenses clear (the community's CC0 `glasses01` pack, 10 Nov 2026).
     - Textures are shrunk to 1024 pixels here. Triangles (33,000 to 47,000 each) are reduced in WP3c.
 - **Where Backstage's files live** (owner's decision, 25 Oct 2026): the public repository `storystage/backstage-assets`. It holds the shipped glTF files, `backstage.json`, the sketches and each item's provenance. A GitHub Actions job there downloads the CC0 sources, converts them and commits the results, so nothing large is fetched to a developer's PC. The MakeHuman people are made there too, headless, with MPFB2 in Blender (owner's decision, 25 Oct 2026). Both tools are GPL and are build tools only (CLAUDE.md, rule 8).
 

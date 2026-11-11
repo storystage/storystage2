@@ -1,6 +1,6 @@
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { ShotType } from '@storystage/story-api';
-import { Button, Dialog, Icon, Segmented, TextField, messages } from '@storystage/ui';
+import { Button, Dialog, Icon, Segmented, messages } from '@storystage/ui';
 import { useState } from 'react';
 import {
   Button as AriaButton,
@@ -14,6 +14,7 @@ import {
   type Key,
   type Selection,
 } from 'react-aria-components';
+import { SpokenField } from '../speech/SpokenField.tsx';
 import { words } from '../strings.ts';
 import { LIMITS, sceneNumber } from './edits.ts';
 import { FrameCanvas } from './FrameCanvas.tsx';
@@ -239,7 +240,8 @@ export function FramePanel({
             </NumberField>
           </div>
           <div className="sb-row">
-            <TextField
+            <SpokenField
+              field={`caption:${frame.id}`}
               label={words.t('storyboard.caption')}
               placeholder={words.t('storyboard.captionPlaceholder')}
               value={frame.caption}

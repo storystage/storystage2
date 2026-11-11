@@ -8,7 +8,7 @@
  * The caller makes, prepares and disposes of the hidden stage; the runner never disposes of it.
  * No picture is taken, and nothing is sent anywhere.
  */
-import type { NodeId } from '@storystage/ast';
+import { indexProgram, type NodeId, type Program } from '@storystage/ast';
 import {
   FILM_CAP,
   Playback,
@@ -21,6 +21,7 @@ import type {
   CheckResult,
   Frame,
   FrameId,
+  LineId,
   Production,
   SceneId,
 } from '@storystage/production';
@@ -35,7 +36,7 @@ import {
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
-import { compareFrame, type Seen } from './compare.ts';
+import { compareFrame, type NumberedLine, type Seen, type Spoken } from './compare.ts';
 import { project } from './geometry.ts';
 import { frameSpans, type FrameSpan } from './spans.ts';
 import { basisFor } from './status.ts';
@@ -74,6 +75,8 @@ interface SceneRun {
   readonly samples: readonly Sample[];
   readonly blocks: readonly MeasuredBlock[];
   readonly said: readonly { readonly text: string; readonly start: Micros }[];
+  /** The speak lines' captions, before they're matched with their blocks. */
+  readonly captions: readonly Omit<Spoken, 'node' | 'name'>[];
   readonly error: {
     readonly at: Micros;
     readonly node: NodeId | null;
@@ -113,6 +116,7 @@ async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
   });
   const blocks: MeasuredBlock[] = [];
   const said: { text: string; start: Micros }[] = [];
+  const captions: Omit<Spoken, 'node' | 'name'>[] = [];
   let error: SceneRun['error'] = null;
   let missing: readonly Missing[] = [];
   let now: Micros = 0;
@@ -122,8 +126,17 @@ async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
         for (const b of e.blocks) blocks.push({ scene, node: b.node, at: b.at });
         break;
       case 'commands':
-        for (const c of e.commands)
-          if (c.kind === 'say' && c.bubble !== 'think') said.push({ text: c.text, start: c.start });
+        for (const c of e.commands) {
+          if (c.kind !== 'say' || c.bubble === 'think') continue;
+          said.push({ text: c.text, start: c.start });
+          if (c.bubble === 'caption')
+            captions.push({
+              object: c.object,
+              text: c.text,
+              line: (c.line ?? null) as LineId | null,
+              start: c.start,
+            });
+        }
         break;
       case 'error':
         error = { at: now, node: e.error.node, words: e.words };
@@ -180,7 +193,7 @@ async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
   } finally {
     playback.dispose();
   }
-  return { length: now, samples, blocks, said, error, missing, heights };
+  return { length: now, samples, blocks, said, captions, error, missing, heights };
 }
 
 /** The sample at or just before `t`. */
@@ -199,6 +212,46 @@ const nameOf = (id: string) => {
   return words.charAt(0).toUpperCase() + words.slice(1);
 };
 
+/** The program's `speakLine` blocks, found once for each program. */
+const speakBlocks = new WeakMap<Program, ReadonlySet<NodeId>>();
+function speakLinesOf(program: Program): ReadonlySet<NodeId> {
+  let found = speakBlocks.get(program);
+  if (!found) {
+    const ids = new Set<NodeId>();
+    for (const [id, { node }] of indexProgram(program))
+      if (node.kind === 'call' && node.callee.kind === 'story' && node.callee.name === 'speakLine')
+        ids.add(id);
+    speakBlocks.set(program, (found = ids));
+  }
+  return found;
+}
+
+/**
+ * Each caption with the `speakLine` block that spoke it: the block whose run started at the
+ * caption's start, taken in order, so a block run twice is matched twice.
+ */
+function withBlocks(production: Production, done: SceneRun): Spoken[] {
+  const speakers = speakLinesOf(production.program);
+  const runs = done.blocks.filter((b) => speakers.has(b.node));
+  const used = new Set<number>();
+  return done.captions.map((c) => {
+    const at = runs.findIndex((b, i) => !used.has(i) && b.at === c.start);
+    if (at >= 0) used.add(at);
+    return { ...c, node: at >= 0 ? runs[at]!.node : null, name: nameOf(c.object) };
+  });
+}
+
+/** Every script line of the film by id, numbered as "2.3": its scene's place, then its own. */
+export function numberedLines(production: Production): ReadonlyMap<LineId, NumberedLine> {
+  const lines = new Map<LineId, NumberedLine>();
+  production.manifest.runningOrder.forEach((r, s) => {
+    production.script
+      .filter((l) => l.scene === r.scene)
+      .forEach((l, i) => lines.set(l.id, { number: `${s + 1}.${i + 1}`, text: l.text }));
+  });
+  return lines;
+}
+
 /** Compares every frame of one scene with what its run did. */
 function judge(production: Production, scene: SceneId, done: SceneRun): Map<FrameId, CheckResult> {
   const sceneNumber = production.manifest.runningOrder.findIndex((r) => r.scene === scene) + 1;
@@ -214,6 +267,8 @@ function judge(production: Production, scene: SceneId, done: SceneRun): Map<Fram
   const card = production.storyboard.cards.find((c) => c.id === scene);
   const script = production.script.filter((l) => l.scene === scene);
   const numberOf = (f: Frame) => `${sceneNumber}.${f.order + 1}`;
+  const spoken = withBlocks(production, done);
+  const lines = numberedLines(production);
   const results = new Map<FrameId, CheckResult>();
 
   for (const frame of frames) {
@@ -260,6 +315,8 @@ function judge(production: Production, scene: SceneId, done: SceneRun): Map<Fram
         characters,
         script,
         said: done.said,
+        spoken,
+        lines,
         otherFrames: frames
           .filter((f) => f.id !== frame.id)
           .map((f) => ({ frameNumber: numberOf(f), span: spans.get(f.id)! })),
@@ -268,7 +325,7 @@ function judge(production: Production, scene: SceneId, done: SceneRun): Map<Fram
         cast: card?.cast ?? [],
       });
     }
-    results.set(frame.id, { basis: basisFor(production, frame), items });
+    results.set(frame.id, { basis: basisFor(production, frame, items), items });
   }
   return results;
 }

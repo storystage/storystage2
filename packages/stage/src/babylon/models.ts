@@ -75,12 +75,29 @@ export class ModelLibrary {
     this.source = source;
   }
 
-  /** Starts fetching and reading a model, for a scene that may come next. Never rejects. */
+  /** Starts fetching and reading a model, or a backdrop's item, for a scene that may come next. Never rejects. */
   prefetch(id: BackstageId): Promise<void> {
     return this.load(id).then(
       () => {},
       () => {},
     );
+  }
+
+  /** Whether Backstage has an item under `id`, without reading it. */
+  async has(id: BackstageId): Promise<boolean> {
+    try {
+      return !!(await this.source.find(id));
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * An item's file, read but not placed: a ground's texture or a picture sky (spec 17 section 2).
+   * Rejects with `unknown_model` if it can't be had.
+   */
+  async asset(id: BackstageId): Promise<AssetContainer> {
+    return (await this.load(id)).container;
   }
 
   private load(id: BackstageId): Promise<LoadedModel> {
@@ -92,6 +109,10 @@ export class ModelLibrary {
     return model;
   }
 
+  /**
+   * Pictures are kept as their pixels are, in sRGB, as the stage's plain materials take a colour.
+   * An sRGB buffer would hand them linear values, which show darker.
+   */
   private async fetch(id: BackstageId): Promise<LoadedModel> {
     const file = await this.source.find(id);
     if (!file) throw noModel(id);
@@ -100,7 +121,10 @@ export class ModelLibrary {
       const options = {
         pluginExtension: '.glb',
         pluginOptions: {
-          gltf: { onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson) },
+          gltf: {
+            onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson),
+            useSRGBBuffers: false,
+          },
         },
       };
       const container = await LoadAssetContainerAsync(file.url, this.scene, options);
@@ -199,7 +223,7 @@ function plainSurfaces(
     if (!source) continue;
     let plain = made.get(source);
     if (!plain) {
-      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor, scene);
+      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor.toGammaSpace(), scene);
       plain.diffuseTexture = source.albedoTexture;
       plain.alpha = source.alpha;
       plain.useAlphaFromDiffuseTexture = source.useAlphaFromAlbedoTexture;
