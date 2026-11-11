@@ -128,7 +128,7 @@ The right column, as on screen 03.
     - **Resolution:** 720p (the default) or 1080p.
     - **File size:** an estimate from the length and the resolution.
     - The choices are locked while exporting.
-- **Progress** comes in three steps, as drawn: drawing every frame, adding captions and credits, and saving the MP4 file. A bar shows the time left. **Stop export** stops at once and keeps nothing. **Keep working** closes the dialog while the export goes on.
+- **Progress** comes in three steps, as drawn: drawing every frame, adding captions and credits, and saving the MP4 file. A film with speak lines has a step before them, preparing the voices. A bar shows the time left. **Stop export** stops at once and keeps nothing. **Keep working** closes the dialog while the export goes on.
 - **Frames.** The driver plays the production in fixed steps at 30 frames a second, on a second stage that's never shown. For each frame:
     - the stage draws (`renderFrame`);
     - the export adds the captions, and the title or credits where they fall;
@@ -136,7 +136,12 @@ The right column, as on screen 03.
 - **Waiting for the scene.** Each new scene waits for its stage to be ready before its first frame (spike 1.4, rule 5).
 - **Measuring first.** The export measures the film on the same hidden stage, with the export's own `viewerWait` of 5 seconds, so its timeline is the film it makes: the length, and the lines the captions come from. A film that stops with an error, or that the player gives up on, isn't exported: the dialog gives the error in plain words.
 - **In code:** `exportFilm` in `packages/export`. The title card fades in from black and out into the film over half a second each way. The credits roll at about 3 seconds a screenful of 12 rows, with a screen more to clear.
-- **Sound:** the learner's recorded lines and narration, mixed at their scene times. Not yet: recordings need their times in the film first, and speak line's voices come with WP14. Until then the film is silent. AAC first, Opus if AAC can't be encoded (the export audio choice still open with S1 and the owner).
+- **Sound: speak lines** (spec 06 sections 4.5 to 4.7). Each speak line the measuring run spoke (a line of `kind: 'caption'`) is voiced at its caption's start, on the film's clock after the title card, with the sound the studio's line cache made for it (`LineCache` in `@storystage/speech`, S1). The export is the same as Rehearse:
+    - **Which sound:** the export asks the studio for each line's sound by its scene, speaker (`object`), words, script line and the block's own time in seconds (`seconds`, before any cut at the scene's end), so it finds the sound Rehearse plays. Choosing the character's voice is the studio's, not the export's. `exportFilm` takes `voices: { sampleRate, prepare(lines, signal), sound(line) }`: `prepare` is given every line the film speaks, and `sound` gives a line's samples, already fitted to its time, or `undefined`.
+    - **One at a time:** a line is cut where the next speak line starts, as Rehearse's `LinePlayer` does, and where the scene ends, fading out over 10 ms so the cut doesn't click.
+    - **Preparing first:** before drawing anything, the export has the studio prepare every line's sound (`voices.prepare`, which the studio does with `LineCache.prepare`), shown as a first step, **Preparing the voices**. A line that couldn't be made, or isn't ready, is silent, and keeps its caption (rule 7). When it's done, the dialog says how many lines are silent.
+    - **The track:** one channel at 48 kHz, encoded as AAC. The cache's sounds (24 kHz) are resampled to it, since AAC encoders in browsers take 44.1 or 48 kHz. A film with no voiced line has no sound track. On a device that can't encode AAC, the film is saved silent, and the dialog says so; Opus as a fallback is still the owner's and S1's choice.
+    - **Not yet:** the learner's recorded lines and narration, which need their times in the film first, and music.
 - **A scene that waits on the viewer** can't be exported as it plays, because there's no viewer. The dialog says so first, in plain words. The export gives the player `viewerWait` of 5 seconds (`PlayerOptions`, S4): such a scene ends as if it had finished 5 seconds after its last stage command, and goes on with its transition. A later command (a timer, a collision) moves that moment later. Agreed with S4, who changes spec 03 rule 11 to match. The rough cut and Rehearse leave it unset, so there a scene waits for the viewer.
 - **Length cap:** 10 minutes. A longer film stops at the cap with a plain message.
 - **Licences (3.12).** If the production uses a model whose licence is non-commercial or "not sure", **Export for distribution** is refused before it starts, with the reason and the models named. Watching the rough cut is never refused.
@@ -190,6 +195,7 @@ The credits are the same whatever language the interface is in, apart from the h
 | Compare picks the right moment for a frame (section 3) | `packages/screening` | Unit |
 | Export: frame count, title card and credits where they fall, cancel, refusal for licences (section 4) | `packages/export`, with a fake encoder | Unit |
 | Captions: who says it, timing, stacking, WebVTT and SRT, escaping (section 6) | `packages/export` | Unit |
+| Sound: each speak line at its caption's start after the title card, cut by the next line and the scene's end with a fade, silent lines counted, no track with no voiced line, silent with a note when AAC can't be encoded (section 4) | `packages/export`, with a fake line source and encoder | Unit |
 | Credits: order, grouping, imported models, notices (section 7) | `packages/export` | Unit |
 | A three-scene production exports to an MP4 that plays, with captions and credits (WP11 done-when) | Playwright in CI, then the owner's device run on Windows, macOS, iPad and ChromeOS | End to end, device |
 | Keyboard path through the Screening room, axe clean, at the three sizes | Playwright | End to end |

@@ -114,6 +114,67 @@ describe('ExportDialog', () => {
     expect(screen.getByText(/stops there/)).toBeTruthy();
   });
 
+  it('says how many speak lines are silent, with their captions', () => {
+    setup({
+      job: {
+        kind: 'done',
+        name: 'Kite',
+        capped: false,
+        sound: { voiced: 3, silent: 2, unencoded: false },
+      },
+    });
+    expect(
+      screen.getByText(/2 speak lines are silent, because their voices weren’t ready/),
+    ).toBeTruthy();
+  });
+
+  it('says when this device can’t put sound into a film', () => {
+    setup({
+      job: {
+        kind: 'done',
+        name: 'Kite',
+        capped: false,
+        sound: { voiced: 3, silent: 0, unencoded: true },
+      },
+    });
+    expect(screen.getByText(/This device can’t put sound into a film/)).toBeTruthy();
+  });
+
+  it('says nothing of sound when every line is voiced', () => {
+    setup({
+      job: {
+        kind: 'done',
+        name: 'Kite',
+        capped: false,
+        sound: { voiced: 3, silent: 0, unencoded: false },
+      },
+    });
+    expect(screen.queryByText(/silent/)).toBeNull();
+  });
+
+  it('shows Preparing the voices as the first step for a film with speak lines', () => {
+    const t = timeline();
+    setup({
+      timeline: {
+        ...t,
+        lines: [
+          {
+            scene: sceneId('s1'),
+            object: 'owl',
+            text: 'Hello',
+            kind: 'caption',
+            start: 0,
+            duration: micros(1),
+            length: micros(1),
+          },
+        ],
+      },
+      job: { kind: 'running', step: 'voices', fraction: 0, secondsLeft: null },
+    });
+    const steps = screen.getAllByRole('listitem').map((li) => li.textContent);
+    expect(steps.slice(0, 2)).toEqual(['Preparing the voices', 'Drawing every frame']);
+  });
+
   it('offers to save again when the learner backed out of saving', async () => {
     const props = setup({ job: { kind: 'unsaved', name: 'The Lost Penguin' } });
     await userEvent.click(screen.getByRole('button', { name: 'Save it' }));
