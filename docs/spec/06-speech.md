@@ -321,7 +321,7 @@ Recording the learner's own voice for a line, and lip sync driving the mouth (14
 | The `speech.dictation` policy key, with `host.speech` following it (#152), in spec 05 and workplan 15.3 | S8 (WP15) | Section 1.1 |
 | The bundled model in the app's resources, the optional download, the check on every load, and their rows in the threat model (spec 15) | S8 (WP15) | Section 1.4 |
 | Running the `Speech models` workflow once, before the first build that offers the optional model (decision 0061) | Owner | Section 1.4 |
-| The mic button beside every field (`TextField`'s `onSpeak`), inserting the words as one undo step, and the Talk to type and model Settings | S5 (WP12) | Sections 1.5, 1.7, 1.11 |
+| The mic button beside every field (`TextField`'s `speech`), inserting the words as one undo step, and the Talk to type and model Settings. Done for the Storyboard's fields and Talk to type (S5, 10 Nov); the model choice and the Prompter's input are still to come. The studio asks for `whisper.js` at `<base>/speech/whisper.js` | S5 (WP12) | Sections 1.5, 1.7, 1.11 |
 | Bundling `whisper.js` (the `speech` workflow's `whisper-wasm` artifact, with its SHA-256) in the Tauri apps, served from the app itself so the content security policy needs nothing new | S8 (WP15) | Section 1.11 |
 | The model weights' licence confirmed for shipping (MIT), in `NOTICE` | D (WP17) | Section 1.3 |
 | The device runs in section 1.9 added to the M1 script | S1 (WP18) | Section 1.9 |

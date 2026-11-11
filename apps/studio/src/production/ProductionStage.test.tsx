@@ -36,6 +36,9 @@ beforeEach(() => {
   ask = undefined;
 });
 
+/** The Blocks editor loads on demand: under a full run's load that can take a few seconds. */
+const LOADED = { timeout: 5000 };
+
 const openStage = async (user: ReturnType<typeof userEvent.setup>) =>
   user.click(screen.getByRole('tab', { name: /Production stage/ }));
 
@@ -63,7 +66,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
       'tab',
     );
     expect(tabs[0]!.getAttribute('aria-selected')).toBe('true');
-    expect(await screen.findByText('blocks')).toBeTruthy();
+    expect(await screen.findByText('blocks', {}, LOADED)).toBeTruthy();
     const p = exampleProduction();
     expect(mounted.at(-1)!.method).toBe(p.scenes[0]!.method);
   });
@@ -75,7 +78,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     await user.click(scenes[1]!);
     await openStage(user);
     expect(screen.getByRole('tablist', { name: 'Methods in scene 2' })).toBeTruthy();
-    await screen.findByText('blocks');
+    await screen.findByText('blocks', {}, LOADED);
     expect(mounted.at(-1)!.method).toBe(exampleProduction().scenes[1]!.method);
   });
 
@@ -107,7 +110,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     const user = userEvent.setup();
     render(<App start={exampleProduction()} />);
     await openStage(user);
-    await screen.findByText('blocks');
+    await screen.findByText('blocks', {}, LOADED);
     const { host } = mounted.at(-1)!;
     const node = host.program().types[0]!.methods[0]!.body[0]!.id;
     host.apply(
@@ -123,7 +126,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     const user = userEvent.setup();
     render(<App start={exampleProduction()} />);
     await openStage(user);
-    await screen.findByText('blocks');
+    await screen.findByText('blocks', {}, LOADED);
     expect(palettes.at(-1)).toMatchObject({ tab: 'actions', target: { kind: 'this' } });
     await user.click(screen.getByRole('button', { name: /Blocks for/ }));
     // The object picker's choices, not the frame strip's cards.
@@ -142,7 +145,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     const p = exampleProduction();
     render(<App start={p} />);
     await openStage(user);
-    await screen.findByText('blocks');
+    await screen.findByText('blocks', {}, LOADED);
     const method = p.program.types
       .flatMap((t) => t.methods)
       .find((m) => m.id === p.scenes[0]!.method)!;
@@ -168,7 +171,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     const p = exampleProduction();
     render(<App start={p} />);
     await openStage(user);
-    await screen.findByText('blocks');
+    await screen.findByText('blocks', {}, LOADED);
     const say = p.program.types.flatMap((t) => t.methods).find((m) => m.id === p.scenes[0]!.method)!
       .body[0]!;
     let answer: unknown = 'none yet';

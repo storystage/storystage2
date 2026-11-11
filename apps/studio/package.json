@@ -25,6 +25,7 @@
     "@storystage/production": "workspace:*",
     "@storystage/screening": "workspace:*",
     "@storystage/sketches": "workspace:*",
+    "@storystage/speech": "workspace:*",
     "@storystage/stage": "workspace:*",
     "@storystage/story-api": "workspace:*",
     "@storystage/tiles": "workspace:*",
