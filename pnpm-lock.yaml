@@ -90,6 +90,9 @@ importers:
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
+      '@storystage/speech':
+        specifier: workspace:*
+        version: link:../../packages/speech
       '@storystage/stage':
         specifier: workspace:*
         version: link:../../packages/stage

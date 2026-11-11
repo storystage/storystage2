@@ -4,7 +4,7 @@
  * render: the program's and each set-up's share of `basis` are hashed once and cached.
  */
 import type { Program } from '@storystage/ast';
-import type { Frame, FrameId, Production, Scene } from '@storystage/production';
+import type { CheckItem, Frame, FrameId, Production, Scene } from '@storystage/production';
 
 /** A short, stable hash of text (53 bits, as hex). Not for security: only to see a change. */
 function hash(text: string): string {
@@ -38,10 +38,15 @@ const setupHash = (s: Scene) => {
 const frameWithoutCheck = ({ check: _, ...rest }: Frame) => rest;
 
 /**
- * The frame's `basis`: the program, the scene's set-up, the frame and the frames beside it, and
- * the script lines pinned to it. A result whose `basis` differs is stale.
+ * The frame's `basis`: the program, the scene's set-up, the frame and the frames beside it, the
+ * script lines pinned to it, and the other script lines its result's items name (a speak line's).
+ * A result whose `basis` differs is stale. `items` are the result's: the saved ones by default.
  */
-export function basisFor(production: Production, frame: Frame): string {
+export function basisFor(
+  production: Production,
+  frame: Frame,
+  items: readonly CheckItem[] = frame.check?.items ?? [],
+): string {
   const scene = production.scenes.find((s) => s.id === frame.scene);
   const siblings = production.frames
     .filter((f) => f.scene === frame.scene)
@@ -49,12 +54,16 @@ export function basisFor(production: Production, frame: Frame): string {
   const at = siblings.findIndex((f) => f.id === frame.id);
   const near = siblings.slice(Math.max(0, at - 1), at + 2).map(frameWithoutCheck);
   const lines = production.script.filter((l) => l.pinnedFrame === frame.id);
+  const named = new Set(items.flatMap((i) => (i.line ? [i.line] : [])));
+  const others = production.script.filter((l) => named.has(l.id) && l.pinnedFrame !== frame.id);
   return hash(
     [
       programHash(production.program),
       scene ? setupHash(scene) : '',
       JSON.stringify(near),
       JSON.stringify(lines),
+      // Only when there are any, so a result without speak lines keeps the basis it had.
+      ...(others.length > 0 ? [JSON.stringify(others)] : []),
     ].join('|'),
   );
 }

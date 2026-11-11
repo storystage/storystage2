@@ -9,12 +9,14 @@ import type {
   CheckItem,
   CheckOutcome,
   Frame,
+  LineId,
   PlacedSketch,
   ScriptLine,
 } from '@storystage/production';
 import type { BackstageId, Micros, StandIn, Transform } from '@storystage/story-api';
 import { facing, heightOnPicture, project, type OnPicture, type View } from './geometry.ts';
 import type { FrameSpan } from './spans.ts';
+import { plural, t } from './strings.ts';
 
 /** Flags first, then notes, then passed items, so every view lists them the same way. */
 export const ITEM_ORDER: readonly CheckOutcome[] = ['flag', 'note', 'passed'];
@@ -37,6 +39,25 @@ export interface Seen {
   readonly seenDuring: boolean;
 }
 
+/** A speak line spoken in the scene's run: a `say` whose bubble is `caption` (spec 06 section 4.7). */
+export interface Spoken {
+  /** The `speakLine` block that spoke it, when its run is found. */
+  readonly node: NodeId | null;
+  /** The speaker's object id, and its name for the learner. */
+  readonly object: string;
+  readonly name: string;
+  readonly text: string;
+  /** The script line the block was made from, if any. */
+  readonly line: LineId | null;
+  readonly start: Micros;
+}
+
+/** A dialogue line of the film, by id: its number ("2.3") and words. */
+export interface NumberedLine {
+  readonly number: string;
+  readonly text: string;
+}
+
 export interface FrameRun {
   readonly frame: Frame;
   /** The scene's place in the running order, and the frame's number ("2.1"). */
@@ -51,6 +72,10 @@ export interface FrameRun {
   readonly script: readonly ScriptLine[];
   /** What was said or spoken in the scene's run, on the film's clock. */
   readonly said: readonly { readonly text: string; readonly start: Micros }[];
+  /** The speak lines spoken in the scene's run, on the film's clock. */
+  readonly spoken: readonly Spoken[];
+  /** Every script line of the film by id, numbered by its scene, for speak lines from any scene. */
+  readonly lines: ReadonlyMap<LineId, NumberedLine>;
   /** The scene's other frames, for "said in frame 2.4". */
   readonly otherFrames: readonly { readonly frameNumber: string; readonly span: FrameSpan }[];
   /** The error that stopped the scene's run, if any. */
@@ -166,14 +191,14 @@ export function compareFrame(run: FrameRun): CheckItem[] {
               id: `onScreen:${sketch.id}`,
               kind: 'offCamera',
               outcome: 'flag',
-              words: `${name} walks off camera during this frame`,
+              words: t('offCamera.flag', { name }),
               ...base,
             }
           : {
               id: `onScreen:${sketch.id}`,
               kind: 'onScreen',
               outcome: 'flag',
-              words: `${name} isn't on screen at the end of this frame`,
+              words: t('onScreen.flag', { name }),
               ...base,
             },
       );
@@ -183,7 +208,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
       id: `onScreen:${sketch.id}`,
       kind: 'onScreen',
       outcome: 'passed',
-      words: `${name} is on screen`,
+      words: t('onScreen.passed', { name }),
       ...base,
     });
 
@@ -194,7 +219,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         id: `position:${sketch.id}`,
         kind: 'position',
         outcome: 'flag',
-        words: `${name} ends on the ${got}; your sketch has it on the ${wanted}`,
+        words: t('position.flag', { name, side: t(`side.${got}`), planned: t(`side.${wanted}`) }),
         ...base,
       });
     else if (wanted && got)
@@ -202,7 +227,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         id: `position:${sketch.id}`,
         kind: 'position',
         outcome: 'passed',
-        words: `${name} is on the ${got}, as in your sketch`,
+        words: t('position.passed', { name, side: t(`side.${got}`) }),
         ...base,
       });
 
@@ -220,21 +245,21 @@ export function compareFrame(run: FrameRun): CheckItem[] {
     if (steps >= 2 || wrongWay) {
       const was =
         now.view === 'back'
-          ? 'faces away'
+          ? t('facing.now.away')
           : now.view === 'front'
-            ? 'faces the camera'
-            : `faces ${now.towards ?? 'sideways'}`;
+            ? t('facing.now.camera')
+            : t(`facing.now.${now.towards ?? 'sideways'}`);
       const plan =
         sketch.facing === 'front'
-          ? 'facing the camera'
+          ? t('facing.planned.camera')
           : sketch.facing === 'back'
-            ? 'facing away'
-            : `facing ${sketchTowards ?? 'sideways'}`;
+            ? t('facing.planned.away')
+            : t(`facing.planned.${sketchTowards ?? 'sideways'}`);
       add({
         id: `facing:${sketch.id}`,
         kind: 'facing',
         outcome: 'flag',
-        words: `${name} ${was}; your sketch has it ${plan}`,
+        words: t('facing.flag', { name, now: was, planned: plan }),
         ...base,
       });
     } else
@@ -242,7 +267,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         id: `facing:${sketch.id}`,
         kind: 'facing',
         outcome: 'passed',
-        words: `${name} faces as in your sketch`,
+        words: t('facing.passed', { name }),
         ...base,
       });
   }
@@ -266,7 +291,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
           id: `order:${left.sketch.id}:${right.sketch.id}`,
           kind: 'order',
           outcome: 'flag',
-          words: `${left.seen.name} and ${right.seen.name} are the other way round from your sketch`,
+          words: t('order.flag', { left: left.seen.name, right: right.seen.name }),
           sketch: left.sketch.id,
         });
       }
@@ -279,7 +304,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         id: `extra:${c.object}`,
         kind: 'onScreen',
         outcome: 'note',
-        words: `${c.name} is on screen, but not in your sketch`,
+        words: t('onScreen.extra', { name: c.name }),
       });
 
   // The shot.
@@ -292,14 +317,14 @@ export function compareFrame(run: FrameRun): CheckItem[] {
             id: 'shot',
             kind: 'shot',
             outcome: 'passed',
-            words: `The close-up frames ${first.seen.name}`,
+            words: t('shot.closeUp.passed', { name: first.seen.name }),
             sketch: first.sketch.id,
           }
         : {
             id: 'shot',
             kind: 'shot',
             outcome: 'flag',
-            words: `The close-up doesn't fill the picture with ${first.seen.name}`,
+            words: t('shot.closeUp.flag', { name: first.seen.name }),
             sketch: first.sketch.id,
           },
     );
@@ -313,10 +338,10 @@ export function compareFrame(run: FrameRun): CheckItem[] {
             id: 'shot',
             kind: 'shot',
             outcome: 'flag',
-            words: `The wide shot is too close to ${tooClose.seen.name}`,
+            words: t('shot.wide.flag', { name: tooClose.seen.name }),
             sketch: tooClose.sketch.id,
           }
-        : { id: 'shot', kind: 'shot', outcome: 'passed', words: 'The wide shot shows everyone' },
+        : { id: 'shot', kind: 'shot', outcome: 'passed', words: t('shot.wide.passed') },
     );
   }
 
@@ -327,7 +352,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
     const base = { id: `line:${l.id}`, kind: 'line' as const, line: l.id };
     const when = run.said.filter((s) => sameWords(s.text, l.text)).map((s) => s.start);
     if (when.some((t) => t >= run.span.start && t < run.span.end))
-      add({ ...base, outcome: 'passed', words: `Line ${number} is said` });
+      add({ ...base, outcome: 'passed', words: t('line.passed', { number }) });
     else if (when.length > 0) {
       const other = run.otherFrames.find((f) =>
         when.some((t) => t >= f.span.start && t < f.span.end),
@@ -336,11 +361,57 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         ...base,
         outcome: 'note',
         words: other
-          ? `Line ${number} is said in frame ${other.frameNumber}`
-          : `Line ${number} is said in another frame`,
+          ? t('line.saidIn', { number, frame: other.frameNumber })
+          : t('line.saidElsewhere', { number }),
       });
-    } else add({ ...base, outcome: 'flag', words: `Line ${number} is never said` });
+    } else add({ ...base, outcome: 'flag', words: t('line.flag', { number }) });
   });
+
+  // Speak lines spoken in the frame, against the script (spec 06 section 4.1): once a block.
+  const pinned = new Set(
+    run.script.filter((l) => l.kind === 'dialogue' && l.pinnedFrame === frame.id).map((l) => l.id),
+  );
+  const spokenHere = new Set<string>();
+  for (const s of run.spoken) {
+    if (s.start < run.span.start || s.start >= run.span.end) continue;
+    const id = `speak:${s.node ?? `${s.object}:${s.line ?? ''}`}`;
+    if (spokenHere.has(id)) continue;
+    spokenHere.add(id);
+    const base = { id, kind: 'line' as const, ...(s.node ? { node: s.node } : {}) };
+    const said = (line: LineId, number: string) =>
+      // A line pinned to the frame has its own item already.
+      pinned.has(line)
+        ? null
+        : add({
+            ...base,
+            outcome: 'passed',
+            words: t('speak.passed', { name: s.name, number }),
+            line,
+          });
+    if (s.line !== null) {
+      const line = run.lines.get(s.line);
+      if (!line)
+        add({
+          ...base,
+          outcome: 'note',
+          words: t('speak.gone', { name: s.name }),
+        });
+      else if (sameWords(s.text, line.text)) said(s.line, line.number);
+      else
+        add({
+          ...base,
+          outcome: 'flag',
+          words: t('speak.changed', { name: s.name, number: line.number }),
+          line: s.line,
+        });
+      continue;
+    }
+    // Dialogue the script hasn't got is allowed: advice, not a flag.
+    const match = run.script.find((l) => l.kind === 'dialogue' && sameWords(l.text, s.text));
+    const number = match && run.lines.get(match.id)?.number;
+    if (match && number) said(match.id, number);
+    else add({ ...base, outcome: 'note', words: t('speak.notInScript', { name: s.name }) });
+  }
 
   // The frame's length.
   const lasts = (run.span.end - run.span.start) / 1_000_000;
@@ -353,13 +424,13 @@ export function compareFrame(run: FrameRun): CheckItem[] {
           id: 'length',
           kind: 'length',
           outcome: 'flag',
-          words: `This frame lasts ${Math.round(lasts)} seconds; you planned ${planned}`,
+          words: plural('length.flag', Math.round(lasts), { planned }),
         }
       : {
           id: 'length',
           kind: 'length',
           outcome: 'passed',
-          words: `This frame lasts about ${Math.round(lasts)} seconds, as planned`,
+          words: plural('length.passed', Math.round(lasts)),
         },
   );
 
@@ -378,7 +449,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         id: `missing:${m.object}`,
         kind: 'missing',
         outcome: 'note',
-        words: `${m.object} can't be found on this device, so it shows as an outline`,
+        words: t('missing.note', { name: m.object }),
       });
 
   return items.sort((a, b) => ITEM_ORDER.indexOf(a.outcome) - ITEM_ORDER.indexOf(b.outcome));

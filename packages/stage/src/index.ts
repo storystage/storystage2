@@ -8,4 +8,9 @@
  * importing this entry doesn't load Babylon.js.
  */
 export type { FrameImage, Speech, Stage } from './contract.ts';
-export { BACKDROP_TEMPLATES, GROUND_TYPES, type BackdropTemplate } from './backdrops.ts';
+export {
+  BACKDROP_TEMPLATES,
+  GROUND_TYPES,
+  PICTURE_SKY_TYPES,
+  type BackdropTemplate,
+} from './backdrops.ts';
