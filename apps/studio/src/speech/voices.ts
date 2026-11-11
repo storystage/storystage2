@@ -4,9 +4,9 @@
  * speak lines. Each line's sound is made in the background as the code changes; Rehearse starts a
  * line's sound as its block starts, and a line not made yet stays silent with its caption.
  *
- * Until the production format has a voice for each cast member (S4, `03-production-format.md`),
- * each character takes its Backstage class's preset, keyed by its model so it sounds the same in
- * every scene, in the default accent, British.
+ * Until the production format has a voice for each character (`manifest.voices[name]`, S4's
+ * #366), each takes its Backstage class's preset, keyed by its name, so it sounds the same in every
+ * scene and two knights sound different (spec 06 section 4.3), in the default accent, British.
  */
 import type { NodeId } from '@storystage/ast';
 import type { Production, SceneId } from '@storystage/production';
@@ -32,6 +32,9 @@ export const KOKORO_PLACES = {
   wasm: `${import.meta.env.BASE_URL}speech/ort/`,
 };
 
+/** What S1's engine says of a line cut off by `dispose`. */
+const CLOSED = 'Speak line was closed.';
+
 /** A speak line as the export names it (S2's `VoicedLine`). */
 export interface VoicedLineLike {
   readonly scene: SceneId;
@@ -47,28 +50,29 @@ export interface VoicesState {
   readonly silent: number;
 }
 
-/** A set-up object's model, as a key: a Backstage id, or its stand-in's kind. */
-const modelKey = (model: unknown): string =>
-  typeof model === 'string' ? model : `standIn:${(model as { standIn?: string }).standIn ?? ''}`;
-
 /**
- * Each character's voice: every set-up object's model, in running order, once, given its class's
- * preset by S1's `castVoices` (people alternating woman and man, no two the same while there are
- * voices to spare).
+ * Each character's voice: every set-up object by name, in running order, once, with the class it
+ * has in the first scene it's in, given its class's preset by S1's `castVoices` (people
+ * alternating woman and man, no two the same while there are voices to spare).
  */
 export function productionVoices(p: Production): Map<string, CastVoice> {
+  // The film's own voices first (format 1.4.0, `manifest.voices`), so it sounds the same on
+  // every device; the class decides only for a character the film has no voice for yet.
+  const stored = p.manifest.voices ?? {};
+  const accent = Object.values(stored)[0]?.accent ?? DEFAULT_ACCENT;
   const cast: CastMember[] = [];
-  const seen = new Set<string>();
+  const seen = new Set<string>(Object.keys(stored));
   for (const { scene } of p.manifest.runningOrder) {
     const setup = p.scenes.find((s) => s.id === scene)?.setup;
     for (const o of setup?.objects ?? []) {
-      const id = modelKey(o.model);
-      if (seen.has(id)) continue;
-      seen.add(id);
-      cast.push({ id, storyClass: o.class });
+      if (seen.has(o.id)) continue;
+      seen.add(o.id);
+      cast.push({ id: o.id, storyClass: o.class });
     }
   }
-  return castVoices(cast, DEFAULT_ACCENT);
+  const voices = castVoices(cast, accent);
+  for (const [name, voice] of Object.entries(stored)) voices.set(name, voice);
+  return voices;
 }
 
 /** The voice of `object` in `scene`, or `null` for one that isn't in the scene's set-up. */
@@ -78,8 +82,8 @@ export function voiceOf(
   scene: SceneId,
   object: string,
 ): CastVoice | null {
-  const o = p.scenes.find((s) => s.id === scene)?.setup.objects.find((x) => x.id === object);
-  return o ? (voices.get(modelKey(o.model)) ?? null) : null;
+  const there = p.scenes.find((s) => s.id === scene)?.setup.objects.some((x) => x.id === object);
+  return there ? (voices.get(object) ?? null) : null;
 }
 
 /** S1's `Line` for a speak line, or `null` if its speaker has no voice. */
@@ -196,7 +200,8 @@ export class Voices {
     if (!cache) return this.#set({ status: 'unavailable', silent: lines.length });
     this.#set({ status: 'making', silent: this.#state.silent });
     try {
-      const failures = await cache.prepare(lines);
+      // A line cut off by letting the engine go is made again next time: it isn't silent.
+      const failures = (await cache.prepare(lines)).filter((f) => f.message !== CLOSED);
       if (cache !== this.#cache) return;
       this.#set({
         status: failures.length === lines.length ? 'unavailable' : 'ready',
