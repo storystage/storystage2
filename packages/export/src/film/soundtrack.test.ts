@@ -1,5 +1,5 @@
 import { sceneId } from '@storystage/production';
-import { micros } from '@storystage/story-api';
+import { lineDuration, micros } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import type { SpokenLine } from './captions.ts';
 import { FADE, TRACK_RATE, soundtrack, voicedLines, type FilmVoices } from './soundtrack.ts';
@@ -95,6 +95,29 @@ describe('soundtrack', () => {
     expect(TRACK_RATE).toBe(48_000);
     expect(track.samples[at(0.5)]).toBeCloseTo(0.5);
     expect(track.samples[at(1) + 10]).toBe(0);
+  });
+
+  it('asks with the same seconds the line cache is keyed by, so it finds the sound (S5)', () => {
+    // The cache keys a line by `lineSeconds(text, duration)`: `lineDuration(text)` without a
+    // duration detail. The stage command carries `micros` of it, which comes back exactly.
+    const text = (words: number) => Array.from({ length: words }, () => 'word').join(' ');
+    for (let words = 0; words <= 200; words++) {
+      const seconds = lineDuration(text(words));
+      const [asked] = voicedLines([line(0, 0, { duration: micros(seconds) })]);
+      expect(asked!.seconds).toBe(seconds);
+    }
+    for (const detail of [0.5, 1, 1.25, 2.7, 3.333, 10.1])
+      expect(voicedLines([line(0, 0, { duration: micros(detail) })])[0]!.seconds).toBe(detail);
+  });
+
+  it('keeps the track within ±1', () => {
+    const v: FilmVoices = {
+      sampleRate: TRACK_RATE,
+      prepare: async () => undefined,
+      sound: () => new Float32Array(TRACK_RATE).fill(1.5),
+    };
+    const track = soundtrack([line(0, 1)], v, { offset: 0, total: micros(2) });
+    expect(Math.max(...track.samples.subarray(0, at(1)))).toBe(1);
   });
 
   it('lists the lines the film speaks, for the studio to prepare', () => {

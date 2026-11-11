@@ -103,7 +103,8 @@ export function soundtrack(
     const until = Math.min(sampleAt(options.offset + end), samples.length);
     const track = resample(sound, voices.sampleRate);
     const n = Math.max(0, Math.min(track.length, until - from));
-    samples.set(track.subarray(0, n), from);
+    // Lines never overlap here, each cut at the next; kept within ±1 all the same (S1).
+    for (let k = 0; k < n; k++) samples[from + k] = Math.max(-1, Math.min(1, track[k]!));
     if (n < track.length) {
       // Cut: fade out the last stretch, so it doesn't click.
       const fade = Math.min(FADE, n);
