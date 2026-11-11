@@ -242,3 +242,111 @@ export function tinyHumanUrl({
     facing === 'back' ? { extensions: { VRM: { specVersion: '0.0' } } } : {},
   );
 }
+
+/** A glTF file of one textured mesh, the picture embedded, as a `data:` address. */
+function texturedUrl(
+  positions: readonly number[],
+  uvs: readonly number[],
+  indices: readonly number[],
+  png: Uint8Array,
+  unlit: boolean,
+): string {
+  const floats = (a: readonly number[]) => new Uint8Array(new Float32Array(a).buffer);
+  const parts = [
+    floats(positions),
+    floats(uvs),
+    new Uint8Array(new Uint32Array(indices).buffer),
+    png,
+  ];
+  const offsets: number[] = [];
+  let length = 0;
+  for (const p of parts) {
+    offsets.push(length);
+    length = pad4(length + p.length);
+  }
+  const bin = new Uint8Array(length);
+  parts.forEach((p, i) => bin.set(p, offsets[i]));
+  const count = positions.length / 3;
+  const axis = (k: number, f: (a: number, b: number) => number) =>
+    positions.filter((_, i) => i % 3 === k).reduce(f);
+  const json = {
+    asset: { version: '2.0' },
+    ...(unlit ? { extensionsUsed: ['KHR_materials_unlit'] } : {}),
+    scene: 0,
+    scenes: [{ nodes: [0] }],
+    nodes: [{ name: unlit ? 'Sky' : 'Tile', mesh: 0 }],
+    meshes: [
+      { primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: 1 }, indices: 2, material: 0 }] },
+    ],
+    materials: [
+      {
+        pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicFactor: 0 },
+        ...(unlit ? { extensions: { KHR_materials_unlit: {} } } : {}),
+      },
+    ],
+    textures: [{ source: 0, sampler: 0 }],
+    samplers: [{ wrapS: 10497, wrapT: 10497 }],
+    images: [{ bufferView: 3, mimeType: 'image/png' }],
+    buffers: [{ byteLength: length }],
+    bufferViews: parts.map((p, i) => ({ buffer: 0, byteOffset: offsets[i], byteLength: p.length })),
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count,
+        type: 'VEC3',
+        min: [0, 1, 2].map((k) => axis(k, Math.min)),
+        max: [0, 1, 2].map((k) => axis(k, Math.max)),
+      },
+      { bufferView: 1, componentType: 5126, count, type: 'VEC2' },
+      { bufferView: 2, componentType: 5125, count: indices.length, type: 'SCALAR' },
+    ],
+  };
+  const text = glb(json, bin).reduce((s, b) => s + String.fromCharCode(b), '');
+  return `data:model/gltf-binary;base64,${btoa(text)}`;
+}
+
+/**
+ * A ground tile (spec 17 section 2): one square `tile` metres across in the XZ plane, centred on
+ * the origin and facing +Y, with the picture `png` across it once.
+ */
+export function tinyGroundTileUrl(tile: number, png: Uint8Array): string {
+  const h = tile / 2;
+  const positions = [-h, 0, -h, h, 0, -h, h, 0, h, -h, 0, h];
+  return texturedUrl(positions, [0, 0, 1, 0, 1, 1, 0, 1], [0, 2, 1, 0, 3, 2], png, false);
+}
+
+/**
+ * A sky dome (spec 17 section 2): a sphere of radius 200 m facing in, unlit, with an
+ * equirectangular picture whose middle (u = 0.5) faces +Z, u = 0.75 faces -X, and top +Y.
+ */
+export function tinySkyDomeUrl(png: Uint8Array, across = 32, down = 16): string {
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  for (let j = 0; j <= down; j++)
+    for (let i = 0; i <= across; i++) {
+      const u = i / across;
+      const v = j / down;
+      const turn = (u - 0.5) * 2 * Math.PI;
+      const ring = Math.sin(v * Math.PI);
+      positions.push(
+        -Math.sin(turn) * ring * 200,
+        Math.cos(v * Math.PI) * 200,
+        Math.cos(turn) * ring * 200,
+      );
+      uvs.push(u, v);
+    }
+  const at = (i: number, j: number) => j * (across + 1) + i;
+  for (let j = 0; j < down; j++)
+    for (let i = 0; i < across; i++)
+      indices.push(
+        at(i, j),
+        at(i + 1, j),
+        at(i + 1, j + 1),
+        at(i, j),
+        at(i + 1, j + 1),
+        at(i, j + 1),
+      );
+  return texturedUrl(positions, uvs, indices, png, true);
+}

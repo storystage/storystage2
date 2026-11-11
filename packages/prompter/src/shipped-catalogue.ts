@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '1d4e7849a33fdf624a6808cb8865b87050ef4cb3';
+export const SHIPPED_CATALOGUE_COMMIT = '1b53a3dedb931b3ef9c88684de3dc6413d6aeab8';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -28,7 +28,7 @@ Cast
     kaykit/Biped/skeleton-warrior: Skeleton warrior, a skeleton in a horned helmet and armour [fantasy, spooky] 2.59 m, joints J1
     makehuman/Biped/p01: Alfie, a boy of 6 with short brown hair, in a blue shirt and jeans [everyday, children] 1 m, joints J2
     makehuman/Biped/p02: Amara, a girl of 7 with short curly black hair, in a yellow jacket and jeans [everyday, children] 1.07 m, joints J2
-    makehuman/Biped/p03: Kai, a child of 8 with a brown side fringe, in a teal striped shirt and jeans [everyday, children] 1.1 m, joints J2
+    makehuman/Biped/p03: Kai, a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and jeans [everyday, children] 1.1 m, joints J2
     makehuman/Biped/p04: Aisha, a girl of 9 with short black hair, in a purple striped shirt and jeans [everyday, children] 1.16 m, joints J2
     makehuman/Biped/p05: Rhys, a boy of 10 with short dark hair, in a dark red striped shirt and jeans [everyday, children] 1.27 m, joints J2
     makehuman/Biped/p06: Niamh, a tall girl of 11 with short light brown hair, in a green jacket and jeans [everyday, children] 1.53 m, joints J2
@@ -38,20 +38,20 @@ Cast
     makehuman/Biped/p10: Isla, a girl of 9 with long brown hair, in a green striped shirt and jeans [everyday, children] 1.17 m, joints J2
     makehuman/Biped/p11: Jayden, a tall boy of 14 with short brown hair, in a coral jacket and jeans [everyday, teenagers] 1.68 m, joints J2
     makehuman/Biped/p12: Priya, a girl of 15 with long brown hair, in a purple jacket and jeans [everyday, teenagers] 1.36 m, joints J2
-    makehuman/Biped/p13: Oskar, a boy of 13 with short dark hair, in a blue shirt and grey jeans [everyday, teenagers] 1.4 m, joints J2
+    makehuman/Biped/p13: Oskar, a boy of 13 with short dark hair and black glasses, in a blue shirt and grey jeans [everyday, teenagers] 1.4 m, joints J2
     makehuman/Biped/p14: Leah, a girl of 16 with short brown hair, in a pink striped shirt and jeans [everyday, teenagers] 1.44 m, joints J2
     makehuman/Biped/p15: Hamza, a boy of 17 with short brown hair, in an orange jacket and jeans [everyday, teenagers] 1.6 m, joints J2
     makehuman/Biped/p16: Sam, a teenager of 15 with short black hair, in a yellow striped shirt and jeans [everyday, teenagers] 1.41 m, joints J2
     makehuman/Biped/p17: Grace, a woman of 28 with short curly black hair, in a striped blouse, grey skirt and white socks [everyday, adults] 1.79 m, joints J2
     makehuman/Biped/p18: Tom, a tall man of 32 with short brown hair, in blue dungarees and a white T-shirt [everyday, adults] 2.1 m, joints J2
     makehuman/Biped/p19: Yusuf, a man of 40 with short black hair, in a dark suit and striped tie [everyday, adults] 1.7 m, joints J2
-    makehuman/Biped/p20: Hannah, a woman of 36 with a black bob, in a teal striped shirt and jeans [everyday, adults] 1.64 m, joints J2
-    makehuman/Biped/p21: Chen, a man of 45 with a brown side fringe, in a green striped shirt and jeans [everyday, adults] 1.6 m, joints J2
+    makehuman/Biped/p20: Hannah, a woman of 36 with a black bob and rimless glasses, in a teal striped shirt and jeans [everyday, adults] 1.64 m, joints J2
+    makehuman/Biped/p21: Chen, a man of 45 with a brown side fringe and thin metal glasses, in a green striped shirt and jeans [everyday, adults] 1.6 m, joints J2
     makehuman/Biped/p22: Tunde, a bald man of 50, in a khaki jacket and jeans [everyday, adults] 1.89 m, joints J2
     makehuman/Biped/p23: Fatima, a woman of 30 with a short black bob, in a purple striped blouse and purple skirt [everyday, adults] 1.58 m, joints J2
     makehuman/Biped/p24: Morgan, an adult of 26 with short dark hair, in a purple striped shirt and jeans [everyday, adults] 1.76 m, joints J2
     makehuman/Biped/p25: Siân, a woman of 55 with a silver-blonde bob, in a dark red striped blouse and grey skirt [everyday, adults] 1.59 m, joints J2
-    makehuman/Biped/p26: Margaret, an older woman of 72 with a grey bob, in a pink striped blouse and pink skirt [everyday, older people] 1.58 m, joints J2
+    makehuman/Biped/p26: Margaret, an older woman of 72 with a grey bob and glasses, in a pink striped blouse and pink skirt [everyday, older people] 1.58 m, joints J2
     makehuman/Biped/p27: Winston, an older man of 78 in a grey hat, dark suit and striped tie [everyday, older people] 1.86 m, joints J2
     makehuman/Biped/p28: Lin, an older woman of 68 with a grey bob, in a teal striped blouse and teal skirt [everyday, older people] 1.44 m, joints J2
     makehuman/Biped/p29: Ravi, an older man of 70 with short grey hair, in an orange striped shirt and jeans [everyday, older people] 1.68 m, joints J2
@@ -145,5 +145,26 @@ Set
     polypizza/Prop/wooden-fence: Wooden fence, a short wooden rail fence [farm, countryside] 1.11 m, no joints
 
 Backdrops
-  (none yet)
+  A scene's ground or sky: set it as the scene's backdrop, never add it as a model.
+  Ground
+    storystage/Ground/darkGrass: Dark grass, dark green grass [nature, fantasy]
+    storystage/Ground/desert: Desert, pale cream sand [desert]
+    storystage/Ground/dryGrass: Dry grass, dry yellow grass [nature, countryside]
+    storystage/Ground/forestFloor: Forest floor, brown earth with fallen leaves [forest, nature]
+    storystage/Ground/grass: Grass, short green grass [nature, countryside]
+    storystage/Ground/ice: Ice, pale blue cracked ice [winter]
+    storystage/Ground/jungle: Jungle, mossy green forest ground [jungle, forest]
+    storystage/Ground/mars: Mars, orange-red gravel [space]
+    storystage/Ground/moon: Moon, fine, dusty grey ground [space]
+    storystage/Ground/oceanFloor: Sea floor, pale sand on the sea floor [sea, nature]
+    storystage/Ground/rockyBrown: Rocky brown, brown earth with small stones [nature, countryside]
+    storystage/Ground/room: Room, a wooden plank floor, for a room [home, school]
+    storystage/Ground/sandyDesert: Sandy desert, golden sand in small ripples [desert]
+    storystage/Ground/snow: Snow, smooth white snow [winter, nature]
+    storystage/Ground/swamp: Swamp, muddy green ground with twigs [swamp, nature]
+  Scene
+    storystage/Sky/clearDay: Clear day, a clear blue sky with the sun high [day]
+    storystage/Sky/cloudy: Cloudy, a blue sky with white clouds [day]
+    storystage/Sky/night: Night, a dark moonlit night sky [night]
+    storystage/Sky/sunset: Sunset, a sunset with the sun low on the horizon [evening]
 `;

@@ -6,8 +6,9 @@ import {
   type SceneStep,
 } from '@storystage/production';
 import type { StandIn } from '@storystage/story-api';
-import { Button, Dialog, NeutralNote, Segmented, TextField } from '@storystage/ui';
+import { Button, Dialog, NeutralNote, Segmented } from '@storystage/ui';
 import { useState } from 'react';
+import { SpokenField } from '../speech/SpokenField.tsx';
 import { words } from '../strings.ts';
 import {
   LIMITS,
@@ -79,7 +80,8 @@ export function SceneDetails({
         {words.t('storyboard.scene.details', { n })}
       </h2>
       <div className="sb-row">
-        <TextField
+        <SpokenField
+          field={`heading:${scene}`}
           label={words.t('storyboard.scene.heading')}
           placeholder={words.t('storyboard.scene.headingPlaceholder')}
           value={card.heading}

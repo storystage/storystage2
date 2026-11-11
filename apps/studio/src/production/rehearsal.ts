@@ -37,6 +37,10 @@ export interface RehearsalState {
   readonly missing: readonly Missing[];
   /** "Rehearse to here" went to a block that never ran. */
   readonly notReached: boolean;
+  /** Every block that has started in this run (the driver's `ran` trace): frames it reached. */
+  readonly ran: ReadonlySet<NodeId>;
+  /** The run got to the scene's end: finished, or went on to the next scene. Not stopped, no error. */
+  readonly reachedEnd: boolean;
   /** What the scene's objects are saying or thinking now, in the set-up's order: the captions. */
   readonly speech: readonly Said[];
 }
@@ -55,6 +59,8 @@ export const IDLE: RehearsalState = {
   next: null,
   missing: [],
   notReached: false,
+  ran: new Set(),
+  reachedEnd: false,
   speech: [],
 };
 
@@ -248,6 +254,12 @@ export class Rehearsal {
       case 'running':
         this.set({ running: event.nodes });
         break;
+      case 'ran': {
+        const ran = this.current.ran;
+        const fresh = event.blocks.filter((b) => !ran.has(b.node));
+        if (fresh.length > 0) this.set({ ran: new Set([...ran, ...fresh.map((b) => b.node)]) });
+        break;
+      }
       case 'error':
         this.set({ error: { node: event.error.node, words: event.words } });
         break;
@@ -255,14 +267,19 @@ export class Rehearsal {
         this.set({ error: { node: null, words: event.message } });
         break;
       case 'next':
-        this.set({ next: event.heading });
+        this.set({ next: event.heading, reachedEnd: true });
         break;
       case 'missing':
         this.set({ missing: event.missing });
         break;
       case 'ended':
         this.clock.pause();
-        this.set({ status: 'ended', running: [], speech: [] });
+        this.set({
+          status: 'ended',
+          running: [],
+          speech: [],
+          reachedEnd: this.current.reachedEnd || (!event.stopped && this.current.error === null),
+        });
         break;
       default:
     }

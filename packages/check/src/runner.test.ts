@@ -4,7 +4,7 @@
  * is flagged: a missing character, a mirrored position, an unsaid line, a frame twice its planned
  * length, and a character off camera.
  */
-import { nodeId, type Statement } from '@storystage/ast';
+import { applyEdit, nodeId, type Statement } from '@storystage/ast';
 import {
   exampleProduction,
   frameId,
@@ -25,6 +25,8 @@ import { FakeStage } from '@storystage/stage/testing';
 import { IDENTITY, STORY_LIBRARY, objectId, type Quat, type StandIn } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { checkFilm, checkFrame, checkScene, sameOrNew } from './runner.ts';
+import { scriptWords } from './script-words.ts';
+import { checkState } from './status.ts';
 
 const settle = async () => {
   for (let i = 0; i < 50; i++) await Promise.resolve();
@@ -48,6 +50,23 @@ const say = (words: string, seconds: number): Statement => ({
   callee: { kind: 'story', name: 'say' },
   args: { text: { id: nodeId('scene1x'), kind: 'text', value: words } },
   details: { duration: { id: nodeId('scene1d'), kind: 'number', value: seconds } },
+});
+/** The penguin's speak line (spec 06 section 4.1), from script line `line` if given. */
+const speak = (n: string, words: string, line?: string): Statement => ({
+  id: nodeId(`speak${n}b`),
+  kind: 'call',
+  target: {
+    id: nodeId(`speak${n}r`),
+    kind: 'fieldRef',
+    target: { id: nodeId(`speak${n}s`), kind: 'this' },
+    field: nodeId('scene1p'),
+  },
+  callee: { kind: 'story', name: 'speakLine' },
+  args: { text: { id: nodeId(`speak${n}x`), kind: 'text', value: words } },
+  details: {
+    duration: { id: nodeId(`speak${n}d`), kind: 'number', value: 1 },
+    ...(line ? { line: { id: nodeId(`speak${n}l`), kind: 'text', value: line } } : {}),
+  },
 });
 /** The fox moving sideways, a long way, quickly. */
 const foxLeaves: Statement = {
@@ -75,6 +94,8 @@ interface Plant {
   readonly line?: string;
   readonly planned?: number;
   readonly body?: readonly Statement[];
+  /** A second dialogue line, not pinned, for speak lines to come from. */
+  readonly line2?: string;
 }
 
 /**
@@ -159,6 +180,18 @@ function film(plant: Plant = {}): Production {
         text: plant.line ?? 'Here is the key.',
         pinnedFrame: F1,
       },
+      ...(plant.line2 === undefined
+        ? []
+        : [
+            {
+              id: lineId('l2'),
+              scene: S1,
+              kind: 'dialogue' as const,
+              character: 'PIP',
+              text: plant.line2,
+              pinnedFrame: null,
+            },
+          ]),
       ...p.script.filter((l) => l.scene !== S1),
     ],
   };
@@ -298,5 +331,127 @@ describe('running the check', () => {
     const previous = { basis: 'b', items, kept: [] };
     expect(sameOrNew(previous, { basis: 'b', items: [...items] }).items).toBe(items);
     expect(sameOrNew(previous, { basis: 'c', items: [...items] }).items).not.toBe(items);
+  });
+});
+
+describe('speak lines against the script (spec 06 section 4.1)', () => {
+  /** The frame's items about speak lines: those that name a block other than the say. */
+  async function speakItems(production: Production) {
+    await settle();
+    const result = await checkFrame({
+      production,
+      stage: new FakeStage(),
+      startWorker: workers().start,
+      frame: F1,
+    });
+    return { result, items: result.items.filter((i) => i.id.startsWith('speak:')) };
+  }
+  const body = (...more: Statement[]) => [say('Here is the key.', 6), ...more];
+
+  it('passes a speak line whose words are its script line’s, naming the block and the line', async () => {
+    const { items } = await speakItems(
+      film({ line2: 'Come with me!', body: body(speak('a', 'Come with me!', 'l2')) }),
+    );
+    expect(items).toEqual([
+      {
+        id: 'speak:speakab',
+        kind: 'line',
+        outcome: 'passed',
+        words: 'Penguin says line 1.2 as written',
+        node: 'speakab',
+        line: 'l2',
+      },
+    ]);
+  });
+
+  it('flags a speak line whose words differ from its script line, whichever changed', async () => {
+    const { items } = await speakItems(
+      film({ line2: 'Come with me, Fox!', body: body(speak('a', 'Come with me!', 'l2')) }),
+    );
+    expect(items).toMatchObject([
+      {
+        outcome: 'flag',
+        words: "Penguin's words aren't the same as line 1.2 in the script",
+        node: 'speakab',
+        line: 'l2',
+      },
+    ]);
+  });
+
+  it('notes a speak line whose line has been taken out of the script', async () => {
+    const { items } = await speakItems(film({ body: body(speak('a', 'Come with me!', 'l9')) }));
+    expect(items).toMatchObject([
+      {
+        outcome: 'note',
+        words: "Penguin says a line that's no longer in the script",
+        node: 'speakab',
+      },
+    ]);
+    expect(items[0]).not.toHaveProperty('line');
+  });
+
+  it('notes words the script hasn’t got, and passes ones it has, as advice', async () => {
+    const { items } = await speakItems(
+      film({
+        line2: 'Come with me!',
+        body: body(speak('a', 'Look out!'), speak('b', 'Come with me!')),
+      }),
+    );
+    expect(items).toMatchObject([
+      {
+        id: 'speak:speakab',
+        outcome: 'note',
+        words: "Penguin says words that aren't in the script",
+      },
+      {
+        id: 'speak:speakbb',
+        outcome: 'passed',
+        words: 'Penguin says line 1.2 as written',
+        line: 'l2',
+      },
+    ]);
+  });
+
+  it('gives no second item for a line pinned to the frame, which has its own', async () => {
+    const { result, items } = await speakItems(
+      // The frame starts at its linked block, the `say`, so the speak line comes after it.
+      film({ body: [say('Hello.', 1), speak('a', 'Here is the key.', 'l1')] }),
+    );
+    expect(items).toEqual([]);
+    expect(result.items.find((i) => i.id === 'line:l1')?.words).toBe('Line 1.1 is said');
+  });
+
+  it('goes stale when the script line its item names changes', async () => {
+    const p = film({ line2: 'Come with me!', body: body(speak('a', 'Come with me!', 'l2')) });
+    const { result } = await speakItems(p);
+    const saved: Production = {
+      ...p,
+      frames: p.frames.map((f) => (f.id === F1 ? { ...f, check: { ...result, kept: [] } } : f)),
+    };
+    expect(checkState(saved.frames[0]!, saved)?.stale).toBe(false);
+    const changed: Production = {
+      ...saved,
+      script: saved.script.map((l) => (l.id === 'l2' ? { ...l, text: 'Come on!' } : l)),
+    };
+    expect(checkState(changed.frames[0]!, changed)?.stale).toBe(true);
+  });
+
+  it('gives the edit that puts the script’s words in the block, for Use the new words', async () => {
+    const p = film({ line2: 'Come with me, Fox!', body: body(speak('a', 'Come with me!', 'l2')) });
+    const { items } = await speakItems(p);
+    const edit = scriptWords(p, items[0]!);
+    expect(edit).toMatchObject({
+      kind: 'setArgument',
+      node: 'speakab',
+      slot: 'args',
+      param: 'text',
+      value: { kind: 'text', value: 'Come with me, Fox!' },
+      label: 'Use the script’s words for line 1.2',
+    });
+    const next = applyEdit(p.program, edit!);
+    expect(JSON.stringify(next.program)).toContain('Come with me, Fox!');
+    expect(scriptWords(p, { id: 'length', kind: 'length', outcome: 'passed', words: 'x' })).toBe(
+      null,
+    );
   });
 });

@@ -42,7 +42,7 @@ import { mul } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, standInBox, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
-import { buildBackdrop, type ShowSky } from './backdrop.ts';
+import { backdropItems, buildBackdrop, loadBackdropParts, type ShowSky } from './backdrop.ts';
 import { buildFade } from './fade.ts';
 import type { Quality, Renderer } from './quality.ts';
 import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
@@ -199,6 +199,9 @@ export class BabylonStage implements Stage {
       ...setup.objects.flatMap((o) =>
         typeof o.model === 'string' ? [library.prefetch(o.model)] : [],
       ),
+      ...backdropItems(resolveBackdropKnown(setup.backdrop).backdrop).map(async (id) => {
+        if (await library.has(id)) await library.prefetch(id);
+      }),
       humanoidsFor(setup).then(
         () => {},
         () => {},
@@ -229,7 +232,8 @@ export class BabylonStage implements Stage {
       );
     }
     try {
-      const showSky = buildBackdrop(scene, backdrop);
+      const parts = await loadBackdropParts(scene, backdrop, library, missing);
+      const showSky = buildBackdrop(scene, backdrop, parts);
       const camera = new FreeCamera('camera', Vector3.Zero(), scene);
       camera.minZ = NEAR;
       camera.maxZ = FAR;

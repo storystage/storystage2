@@ -664,3 +664,43 @@
 .ss-frame-number {
   font-weight: 700;
 }
+
+/* Talk to type (spec 06 section 1.5): the mic shows it's on, with a level meter under it. */
+.ss-mic {
+  position: relative;
+  display: inline-flex;
+}
+.ss-mic[data-phase='listening'] .ss-button {
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+}
+.ss-mic-level {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  left: 6px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--ss-line-2);
+  pointer-events: none;
+}
+.ss-mic-level > span {
+  display: block;
+  height: 100%;
+  background: var(--ss-amber);
+  transform-origin: left;
+  transition: transform 80ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-mic-level > span {
+    transition: none;
+  }
+}
+.ss-field-status {
+  font-size: 14px;
+  color: var(--ss-text);
+}
+.ss-field-status:empty {
+  display: none;
+}
