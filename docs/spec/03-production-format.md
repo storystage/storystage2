@@ -59,7 +59,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 ### 1.2 Versions
 
-`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.3.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
+`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.4.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
 - **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
@@ -69,7 +69,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 A reader takes the older-is-migrated, newer-is-read-only decision on `formatVersion` first, then opens the program with `openProgram`. If either is newer, the whole production is read-only.
 
-**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0, 1.1.0 to 1.2.0, and 1.2.0 to 1.3.0, are three.
+**Format migrations** (`FORMAT_MIGRATIONS`, `file.ts`) go one version at a time, each step keyed by the version it starts from. A migrated file is checked against the version it was migrated to, so its fields must all be ones that version names. An older version with no step to the next is refused in plain words. A minor version that only adds optional fields has a step that changes nothing but `formatVersion`: 1.0.0 to 1.1.0, 1.1.0 to 1.2.0, 1.2.0 to 1.3.0, and 1.3.0 to 1.4.0, are four.
 
 ### 1.3 Models
 
@@ -106,6 +106,15 @@ At the end of a unit, the teacher **collects** every pupil's productions into a 
 2. **Collect copies each production as saved,** byte for byte.
 3. **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5). It writes each good one into its pupil's folder as a new production called "<title> (handed back)", so it never overwrites the pupil's own work. The title is shortened to make room, so the whole name fits the host's 80 characters (`fitName`); so is any title a save writes. A file that fails, or whose folder names no pupil, is skipped, and the teacher sees why in plain words.
 
+### 1.6 Voices
+
+Each character's speak-line voice (format 1.4.0; spec 06 section 4.3; agreed with S1, 11 Nov 2026) is in `manifest.voices`, by **the name of its set-up objects**: their field name in the scene's type, exactly as written. Every object of that name, in any scene, speaks with that voice, so "the fox" in scenes 1 and 3 is one character with one voice, as a learner thinks of it, and as the caption and script name it.
+
+- **A voice** is `CastVoice` (`voices.ts`): a preset, one of Kokoro's voices that StoryStage ships (`BASE_VOICES`), a pitch and formant from 0.7 to 1.5 and a speed from 0.8 to 1.25 (`VOICE_LIMITS`), and its accent. The accent is stored with each voice, so a film sounds the same on every device; Settings › Voices sets it for new productions and can switch the open one (spec 06 section 4.3).
+- **The type lives here**, and `@storystage/speech` imports it: speech depends on the host, which depends on the Prompter, which depends on this package. Speech makes the voices (`castVoices`, `voiceFor`, `switchAccent`).
+- **Only learners' choices, so dropped rather than refused.** When the file opens, a voice that doesn't fit `checkCastVoice` (a base voice we don't ship included) or whose name no scene's set-up object has is dropped, and the film opens. More than 200 voices (`VOICES_MAX`) is a malformed field, and none are kept. A character whose voice is dropped falls back to its class's preset. A name whose object has no speak line yet keeps its voice.
+- **A rename takes the voice with it,** in the same undo step (section 2.1). If an object of the old name is still in another scene, it keeps its voice too. If the new name already has a voice, that voice stays.
+
 ## 2. Scenes
 
 A scene is two things, kept in step:
@@ -132,6 +141,7 @@ So the production has its own session, `ProductionSession` (`session.ts`, WP8.2)
 - **`apply`, `begin`, `commit`, `cancel`, `undo`, `redo`, `history` and `goTo` behave as `EditSession`'s do,** so the code editors' host uses the production session in its place. `step` takes a step from the scene functions below, and `change` takes a change to anything but the program, such as moving an object on the stage, which then appears in the history like any other. A group (`begin` to `commit`) can mix all three: a whole Prompter request is one undo step.
 - **Renaming a scene object** is one step: a `rename` edit, and the set-up with that object's `id` changed, along with any `vehicle` pointing at it. A rename typed in the code editor does the same: the session renames the object in its scene's set-up in the same step. **Removing** the field takes the object out of the set-up, and whatever rode on it rides on the scene.
 - **A scene's script method can't be removed** (`sceneMethodCheck`), and a production opened read-only refuses every change, with the reason.
+- **Renaming a scene object renames its voice too** (section 1.6), in the same step.
 - **A frame's automatic check goes around the history** (`annotate`; spec 08 section 9.6). Running a check isn't the learner's change, so it's no undo step: `annotate` saves each frame's latest result (its `basis` and `items`) on the frame, and undo and redo keep it, laid over what they put back. That stays right because the result's `basis` says whether it still fits what's there. The flags kept are the learner's choice: keeping one is an ordinary `change`, and a new result keeps the frame's `kept`. `null` removes a frame's result, a frame that isn't there is skipped, and opening another production forgets them all. Listeners hear it with the source `check`.
 
 **Adding, deleting and moving a scene** are `addScene`, `deleteScene` and `moveScene` (`scenes.ts`, written by S5 for the Storyboard). Each is one step across the type, the set-up, the card, the frames and lines, and the running order, and returns the program edits it made with their inverses, for the session to hold. A new scene is a type from `newSceneType` (`SceneN`, the first free name), an empty set-up and a card, with a scene id `sN`, the first free one; it waits for the logline and synopsis (WP10.1), and a production holds at most 50 scenes. Deleting unpins lines elsewhere that were pinned to its frames and keeps the learner's recordings, no longer tied to the scene; it is refused, in the AST's plain words, while other code still uses the scene's type. Moving changes only the running order.
@@ -274,6 +284,7 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | Fountain reads and writes as section 5 says, including scripts from other tools and the limits | `fountain.test.ts` | Unit |
 | A production saves and reopens identically, and saves to the same bytes again (section 1) | `file.test.ts`: the WP8 round-trip test | Unit |
 | A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
+| Voices: `checkCastVoice`'s limits and base voices; kept through an open and a save; one that doesn't fit, or whose character is gone, dropped, not the file; over 200 drops the field; a rename carries its voice in the same undo step, keeping it where the old name remains (section 1.6) | `voices.test.ts` | Unit |
 | A frame's check is kept through an open and a save, stale or not; one that doesn't fit its shape or limits is dropped, not the file; what it names isn't checked (section 6) | `file.test.ts` | Unit |
 | `annotate`: no undo step, kept through undo and redo, the frame's `kept` left to the history, `null` and missing frames, forgotten on load, refused read-only (section 2.1) | `session.test.ts` | Unit |
 | A read-only file is never written (section 1.2) | `saving.test.ts` | Unit |

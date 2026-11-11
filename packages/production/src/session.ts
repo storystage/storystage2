@@ -41,6 +41,7 @@ import {
   type Production,
   type Scene,
 } from './types.ts';
+import { renameVoices, voiceNames } from './voices.ts';
 
 /** Everything in a production but its program. */
 export type ProductionRest = Omit<Production, 'program'>;
@@ -119,9 +120,19 @@ export class ProductionSession<Source extends string = string> {
       throw e;
     }
     const before = restOf(this.current);
+    const kept = keepSetupsInStep(this.current.program, scenes, edits);
+    // A character's voice goes with its name, in the same step (spec 03 section 1.6).
+    const voices = renameVoices(
+      before.manifest.voices,
+      kept.renamed,
+      voiceNames({ scenes: kept.scenes }),
+    );
     const after: ProductionRest = {
       ...before,
-      scenes: keepSetupsInStep(this.current.program, scenes, edits),
+      scenes: kept.scenes,
+      ...(voices !== before.manifest.voices && voices
+        ? { manifest: { ...before.manifest, voices } }
+        : {}),
     };
     this.record(label, source, [...edits], [...applied.inverses].reverse(), before, after);
     this.set({ ...after, program: applied.program }, edits, label, source);
@@ -319,13 +330,14 @@ const run = (program: Program, edits: readonly EditOperation[]): Program =>
 /**
  * The set-ups after `edits`, which ran on `program`: a field holding a scene object that is
  * renamed renames the object, and any vehicle pointing at it; one that is removed takes its
- * object out of the set-up, and whatever rode on it now rides on the scene.
+ * object out of the set-up, and whatever rode on it now rides on the scene. `renamed` lists the
+ * objects renamed, old name to new, for their voices to follow.
  */
 function keepSetupsInStep(
   program: Program,
   scenes: readonly Scene[],
   edits: readonly EditOperation[],
-): readonly Scene[] {
+): { scenes: readonly Scene[]; renamed: [string, string][] } {
   const index = indexProgram(program);
   /** The scene whose type holds this field, if the field holds one of its objects. */
   const sceneOfField = (field: string): { scene: Scene; name: string } | null => {
@@ -342,6 +354,7 @@ function keepSetupsInStep(
     result = result.map((s) => (s.id === scene.id ? { ...s, setup } : s));
   };
   const setupOf = (scene: Scene) => result.find((s) => s.id === scene.id)!.setup;
+  const renamed: [string, string][] = [];
   for (const edit of edits) {
     if (edit.kind !== 'rename' && edit.kind !== 'remove') continue;
     const owner = sceneOfField(edit.node);
@@ -351,6 +364,7 @@ function keepSetupsInStep(
     const was = owner.name as ObjectId;
     if (edit.kind === 'rename') {
       const now = edit.name as ObjectId;
+      renamed.push([was, now]);
       update(owner.scene, {
         ...setup,
         objects: setup.objects.map((o) => ({
@@ -368,5 +382,5 @@ function keepSetupsInStep(
       });
     }
   }
-  return result;
+  return { scenes: result, renamed };
 }

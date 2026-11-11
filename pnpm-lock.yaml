@@ -478,6 +478,9 @@ importers:
       '@storystage/host':
         specifier: workspace:*
         version: link:../host
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api

@@ -96,8 +96,9 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 11 Nov: **the fixed sunset and night skies in the shipped Backstage**: `backstage.lock.json` pins backstage-assets cdf8d5a (backstage-assets#10).
+  - 11 Nov (contract, agreed with S1): **production format 1.4.0, the characters' voices** (spec 03 §1.6; spec 06 §4.3, WP14b): `manifest.voices`, each character's `CastVoice` by the name of its set-up objects, dropped when a file opens if it doesn't fit; a rename carries its voice in the same undo step. The voice types move to `@storystage/production`, and speech re-exports them. **S1: castVoices works on unique names.**
 - Merged:
+  - 11 Nov (#360): **the fixed sunset and night skies in the shipped Backstage**: `backstage.lock.json` pins backstage-assets cdf8d5a (backstage-assets#10).
   - 11 Nov (#358, backstage-assets#10): **a sky's `tint` and `ahead`**, from S3's render on the stage: the sunset now faces its sun (`ahead: 0.622`), and the night is a dark blue moonlit sky (`exposure: 0.1, tint: '8ca5ff'`, horizon #1c2647). S3 checked both on the stage.
   - 11 Nov (#356): **the first CC0 backdrops in the shipped Backstage** (backstage-assets#9; WP3b): the 15 grounds the starter templates use, from ambientCG, each matched exactly to the stage's flat colour, and four picture skies from Poly Haven (clear day, cloudy, sunset, night), 138 models. The Prompter's catalogue lists them under Backdrops. S3 has their atmosphere colours and lighting in #352.
   - 10 Nov (#353): **a sky's `exposure`** (spec 17 §3): a gallery's tonemapped night sky comes as bright as noon, so a sky item may scale its light (0.05 to 1).
