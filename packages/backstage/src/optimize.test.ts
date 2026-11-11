@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Document, type Node } from '@gltf-transform/core';
+import { KHRMaterialsPBRSpecularGlossiness } from '@gltf-transform/extensions';
 import { countTriangles, largestTexture, reduceModel, type TextureEncoder } from './optimize.ts';
 
 /**
@@ -305,6 +306,36 @@ describe('reduceModel', () => {
         .filter((n) => n.getMesh())
         .map((n) => n.getName()),
     ).toEqual([node!.getName(), 'moved']);
+  });
+
+  it('makes an older specular-glossiness material an ordinary base-colour one', async () => {
+    const doc = sphere(4, 8);
+    const picture = doc.createTexture('hull').setImage(png(64, 64)).setMimeType('image/png');
+    const sg = doc.createExtension(KHRMaterialsPBRSpecularGlossiness);
+    const material = doc
+      .createMaterial('hull')
+      .setExtension(
+        'KHR_materials_pbrSpecularGlossiness',
+        sg
+          .createPBRSpecularGlossiness()
+          .setDiffuseFactor([0.5, 0.25, 1, 1])
+          .setDiffuseTexture(picture)
+          .setGlossinessFactor(0.2),
+      );
+    doc.getRoot().listMeshes()[0]!.listPrimitives()[0]!.setMaterial(material);
+    await reduceModel(doc, { triangles: 10_000, textureMaxPx: 1024 });
+    const after = doc.getRoot().listMaterials()[0]!;
+    expect(after.getBaseColorTexture()).toBe(picture);
+    expect(after.getBaseColorFactor()).toEqual([0.5, 0.25, 1, 1]);
+    expect(after.getMetallicFactor()).toBe(0);
+    expect(after.getRoughnessFactor()).toBeCloseTo(0.8);
+    expect(after.getExtension('KHR_materials_pbrSpecularGlossiness')).toBeNull();
+    expect(
+      doc
+        .getRoot()
+        .listExtensionsUsed()
+        .map((e) => e.extensionName),
+    ).not.toContain('KHR_materials_pbrSpecularGlossiness');
   });
 
   it('drops what nothing uses', async () => {

@@ -207,6 +207,7 @@ Every model is reduced to a budget, and every scene is checked against one, so a
 
 1. **Every glTF model is reduced to its section's budget** when it enters Backstage: by `tools/backstage-sources` for the shipped catalogue, and in a Web Worker for imports (section 5). It's the same code in both. The manifest's `budget` records the result (section 1).
 2. **The reduction, in order:**
+    - make materials in glTF's older specular-glossiness workflow ordinary base-colour ones, which every renderer reads, our thumbnails and sketches included: the diffuse picture and colour become the base colour, and roughness is one less glossiness (MV Spartan's scan, 11 Nov 2026);
     - drop what nothing uses;
     - replace a texture of one solid colour with a plain colour on its material;
     - join duplicate corners;
