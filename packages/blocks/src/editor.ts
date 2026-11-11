@@ -78,6 +78,26 @@ function quietPalette(ws: Blockly.WorkspaceSvg) {
 /** The scene itself, the palette's object until the learner picks one. */
 const THE_SCENE: Expression = { id: 'palscene' as NodeId, kind: 'this' };
 
+/**
+ * Words broken into lines of about `width` characters, at spaces: Blockly's warning bubble draws
+ * one line per line of text, so a long error would otherwise run across the whole workspace.
+ */
+export function wrapped(text: string, width = 50): string {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(/\s+/u).filter(Boolean)) {
+    if (line && line.length + 1 + word.length > width) {
+      lines.push(line);
+      line = word;
+    } else line = line ? `${line} ${word}` : word;
+  }
+  if (line) lines.push(line);
+  return lines.join('\n');
+}
+
+/** The id of an error's warning on its block, so clearing it leaves any other warning alone. */
+const ERROR_WARNING = 'ss-error';
+
 export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEditor {
   let ws: Blockly.WorkspaceSvg | null = null;
   let host: EditorHost | null = null;
@@ -85,7 +105,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   let loading = false;
   let settling: ReturnType<typeof setTimeout> | null = null;
   let stopListening: (() => void) | null = null;
-  const highlights = new Map<HighlightKind, readonly NodeId[]>();
+  const highlights = new Map<HighlightKind, readonly HighlightMark[]>();
   let target: Expression = THE_SCENE;
   let tab: PaletteTab = 'actions';
   /** While the cascade asks about a dropped block, the workspace waits. */
@@ -118,7 +138,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       Blockly.Events.enable();
       loading = false;
     }
-    for (const [kind, nodes] of highlights) paint(kind, nodes);
+    for (const [kind, marks] of highlights) paint(kind, marks);
     updatePalette();
   }
 
@@ -189,10 +209,24 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     if (settling === null) settling = setTimeout(settle, 0);
   }
 
-  function paint(kind: HighlightKind, nodes: readonly NodeId[]) {
+  function paint(kind: HighlightKind, marks: readonly HighlightMark[]) {
     if (!ws) return;
-    for (const block of ws.getAllBlocks(false)) block.removeClass(`ss-highlight-${kind}`);
-    for (const id of nodes) ws.getBlockById(id)?.addClass(`ss-highlight-${kind}`);
+    for (const block of ws.getAllBlocks(false)) {
+      block.removeClass(`ss-highlight-${kind}`);
+      if (kind === 'error') block.setWarningText(null, ERROR_WARNING);
+    }
+    for (const mark of marks) {
+      const block = ws.getBlockById(mark.node);
+      if (!block) continue;
+      block.addClass(`ss-highlight-${kind}`);
+      // An error explains itself beside its block, in plain words (07-ux section 7.4): Blockly's
+      // warning, open, so it's seen without a click, and read with the block.
+      if (kind === 'error' && mark.message) {
+        block.setWarningText(wrapped(mark.message), ERROR_WARNING);
+        const icon = block.getIcon(Blockly.icons.IconType.WARNING);
+        if (icon && 'setBubbleVisible' in icon) void icon.setBubbleVisible(true);
+      }
+    }
   }
 
   const selected = (): NodeId[] => {
@@ -256,9 +290,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     },
 
     highlight(marks: readonly HighlightMark[], kind: HighlightKind) {
-      const nodes = marks.map((m) => m.node);
-      highlights.set(kind, nodes);
-      paint(kind, nodes);
+      highlights.set(kind, marks);
+      paint(kind, marks);
     },
 
     focus(node?: NodeId) {
