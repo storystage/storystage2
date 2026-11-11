@@ -13,7 +13,7 @@ import {
   type CastVoice,
   type Preset,
   VOICE_LIMITS,
-} from '@storystage/production';
+} from '@storystage/production/voices';
 import type { StoryClass } from '@storystage/story-api';
 
 // The production format's half (format 1.4.0) lives in @storystage/production, which stores the
@@ -26,7 +26,7 @@ export {
   type Accent,
   type CastVoice,
   type Preset,
-} from '@storystage/production';
+} from '@storystage/production/voices';
 
 /** Each preset: which kind of voice it starts from, and how it's changed (spike 14.3's values). */
 const SHAPES: Record<Preset, { from: 'woman' | 'man'; pitch: number; speed: number }> = {

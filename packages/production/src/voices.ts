@@ -66,7 +66,7 @@ const isObject = (x: unknown): x is Record<string, unknown> =>
 
 /** What's wrong with `v` as a stored voice, or nothing. It may come from a file, so it's unknown. */
 export function checkCastVoice(v: unknown): string[] {
-  if (!isObject(v)) return ['A voice should be an object.'];
+  if (!isObject(v)) return ['should be an object'];
   const problems: string[] = [];
   const keys = ['preset', 'base', 'pitch', 'formant', 'speed', 'accent'];
   for (const k of Object.keys(v)) if (!keys.includes(k)) problems.push(`has an unknown field ${k}`);
@@ -106,10 +106,12 @@ export function keptVoices(
   names: ReadonlySet<string>,
 ): Readonly<Record<string, CastVoice>> | undefined {
   if (!isObject(voices) || Object.keys(voices).length > VOICES_MAX) return undefined;
-  const kept: Record<string, CastVoice> = {};
-  for (const [name, voice] of Object.entries(voices))
-    if (names.has(name) && checkCastVoice(voice).length === 0) kept[name] = voice as CastVoice;
-  return Object.keys(kept).length ? kept : undefined;
+  // Built with `Object.fromEntries`, which defines each name as its own key, so a character
+  // named `__proto__` keeps its voice rather than setting the object's prototype.
+  const kept = Object.entries(voices).filter(
+    ([name, voice]) => names.has(name) && checkCastVoice(voice).length === 0,
+  );
+  return kept.length ? (Object.fromEntries(kept) as Record<string, CastVoice>) : undefined;
 }
 
 /**
@@ -124,12 +126,14 @@ export function renameVoices(
   names: ReadonlySet<string>,
 ): Readonly<Record<string, CastVoice>> | undefined {
   if (!voices || renamed.length === 0) return voices;
-  const next: Record<string, CastVoice> = { ...voices };
+  // A Map, not an object, so names such as `constructor` or `__proto__`, which a field may have,
+  // are names like any other and never Object.prototype's members.
+  const next = new Map(Object.entries(voices));
   for (const [was, now] of renamed) {
-    const voice = next[was];
+    const voice = next.get(was);
     if (!voice) continue;
-    if (!Object.hasOwn(next, now)) next[now] = voice;
-    if (!names.has(was)) delete next[was];
+    if (!next.has(now)) next.set(now, voice);
+    if (!names.has(was)) next.delete(was);
   }
-  return next;
+  return Object.fromEntries(next);
 }

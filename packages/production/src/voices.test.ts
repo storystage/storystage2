@@ -121,6 +121,27 @@ describe('renaming a character (spec 03 section 1.6)', () => {
     expect(renameVoices(undefined, [['fox', 'rusty']], new Set())).toBeUndefined();
   });
 
+  it("treats names that are also Object.prototype's members as names like any other", () => {
+    // A field may be called constructor: renaming it must not find Object's own function.
+    expect(renameVoices({ fox }, [['constructor', 'fox']], new Set(['fox']))).toEqual({ fox });
+    expect(
+      renameVoices({ constructor: fox }, [['constructor', 'rusty']], new Set(['rusty'])),
+    ).toEqual({
+      rusty: fox,
+    });
+    // __proto__ is kept as a character's own name, not set as the object's prototype.
+    const proto = JSON.parse(
+      `{"__proto__": ${JSON.stringify(penguin)}, "fox": ${JSON.stringify(fox)}}`,
+    );
+    const kept = keptVoices(proto, new Set(['__proto__', 'fox']))!;
+    expect(Object.hasOwn(kept, '__proto__')).toBe(true);
+    expect(Object.getPrototypeOf(kept)).toBe(Object.prototype);
+    expect(Object.keys(kept).sort()).toEqual(['__proto__', 'fox']);
+    const moved = renameVoices(kept, [['__proto__', 'owl']], new Set(['owl', 'fox']))!;
+    expect(Object.keys(moved).sort()).toEqual(['fox', 'owl']);
+    expect(moved.owl).toEqual(penguin);
+  });
+
   it('happens in the same undo step as the rename in code', () => {
     const s = new ProductionSession(withVoices({ fox, penguin }));
     // Scene 1's fox field: scenes 2 and 3 keep their foxes.
