@@ -1,6 +1,12 @@
 import { StageError, backstageId } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import { BACKDROP_TEMPLATES, GROUND_TYPES, fogDensity, resolveBackdrop } from './backdrops.ts';
+import {
+  BACKDROP_TEMPLATES,
+  GROUND_TYPES,
+  PICTURE_SKY_TYPES,
+  fogDensity,
+  resolveBackdrop,
+} from './backdrops.ts';
 
 const template = (id: string) => {
   const found = BACKDROP_TEMPLATES.find((t) => t.id === id);
@@ -71,6 +77,24 @@ describe('backdrops', () => {
       expect(error).toBeInstanceOf(StageError);
       expect((error as StageError).code).toBe('unknown_model');
     }
+  });
+
+  it('has the picture skies, each with a lighting of its name (spec 17 §2)', () => {
+    expect(PICTURE_SKY_TYPES.map(String)).toEqual([
+      'storystage/Sky/clearDay',
+      'storystage/Sky/cloudy',
+      'storystage/Sky/sunset',
+      'storystage/Sky/night',
+    ]);
+    for (const sky of PICTURE_SKY_TYPES) {
+      const lighting = backstageId(sky.replace('/Sky/', '/Lighting/'));
+      const b = resolveBackdrop({ sky, lighting });
+      expect(b.sky.picture, sky).toBe(true);
+      expect(b.ids).toEqual({ ground: null, sky });
+    }
+    // Alice's template skies stay colours.
+    for (const t of BACKDROP_TEMPLATES)
+      expect(resolveBackdrop(t.backdrop).sky.picture).toBeUndefined();
   });
 
   it("lists every ground, with Alice's surfaces all there", () => {

@@ -75,24 +75,48 @@ export class ModelLibrary {
     this.source = source;
   }
 
-  /** Starts fetching and reading a model, for a scene that may come next. Never rejects. */
-  prefetch(id: BackstageId): Promise<void> {
-    return this.load(id).then(
+  /**
+   * Starts fetching and reading a model, or with `backdrop` a backdrop's item, for a scene that
+   * may come next. Never rejects.
+   */
+  prefetch(id: BackstageId, backdrop = false): Promise<void> {
+    return this.load(id, backdrop).then(
       () => {},
       () => {},
     );
   }
 
-  private load(id: BackstageId): Promise<LoadedModel> {
+  /** Whether Backstage has an item under `id`, without reading it. */
+  async has(id: BackstageId): Promise<boolean> {
+    try {
+      return !!(await this.source.find(id));
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * An item's file, read but not placed: a ground's texture or a picture sky (spec 17 section 2).
+   * Rejects with `unknown_model` if it can't be had.
+   */
+  async asset(id: BackstageId): Promise<AssetContainer> {
+    return (await this.load(id, true)).container;
+  }
+
+  private load(id: BackstageId, backdrop = false): Promise<LoadedModel> {
     let model = this.loaded.get(id);
     if (!model) {
-      model = this.fetch(id);
+      model = this.fetch(id, backdrop);
       this.loaded.set(id, model);
     }
     return model;
   }
 
-  private async fetch(id: BackstageId): Promise<LoadedModel> {
+  /**
+   * A backdrop's picture is kept as its pixels are, in sRGB, as the stage's plain materials take a
+   * colour. An sRGB buffer would hand them linear values, which show darker (spec 17 section 2).
+   */
+  private async fetch(id: BackstageId, backdrop: boolean): Promise<LoadedModel> {
     const file = await this.source.find(id);
     if (!file) throw noModel(id);
     try {
@@ -100,7 +124,10 @@ export class ModelLibrary {
       const options = {
         pluginExtension: '.glb',
         pluginOptions: {
-          gltf: { onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson) },
+          gltf: {
+            onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson),
+            ...(backdrop ? { useSRGBBuffers: false } : {}),
+          },
         },
       };
       const container = await LoadAssetContainerAsync(file.url, this.scene, options);

@@ -82,10 +82,12 @@ export class FakeStage implements Stage {
     this.record('load', options ? [setup, options] : [setup]);
     // What it can't find shows as a stand-in, and the scene plays on (spec 03 section 1.3).
     const known = this.options.knownModels;
-    const lost: Missing[] = resolveBackdropKnown(setup.backdrop).missing.map((id) => ({
-      kind: 'backdrop',
-      id,
-    }));
+    const resolved = resolveBackdropKnown(setup.backdrop);
+    const lost: Missing[] = resolved.missing.map((id) => ({ kind: 'backdrop', id }));
+    // A picture sky is a Backstage item; a ground's texture is optional (spec 17 section 2).
+    const { sky, ids } = resolved.backdrop;
+    if (known && sky.picture && ids.sky && !known.includes(ids.sky))
+      lost.push({ kind: 'backdrop', id: ids.sky });
     for (const o of setup.objects)
       if (known && typeof o.model === 'string' && !known.includes(o.model))
         lost.push({ kind: 'model', object: o.id, model: o.model });

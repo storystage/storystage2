@@ -68,6 +68,21 @@ describe('FakeStage', () => {
     ]);
   });
 
+  it('says a picture sky its Backstage lacks is missing, but not a ground (spec 17 §2)', async () => {
+    const clearDay = backstageId('storystage/Sky/clearDay');
+    const backdrop = {
+      ground: backstageId('storystage/Ground/grass'),
+      sky: clearDay,
+      lighting: backstageId('storystage/Lighting/clearDay'),
+    };
+    const without = new FakeStage({ knownModels: [] });
+    await without.load({ ...SETUP, objects: [], backdrop });
+    expect(without.missing()).toEqual([{ kind: 'backdrop', id: clearDay }]);
+    const withIt = new FakeStage({ knownModels: [clearDay] });
+    await withIt.load({ ...SETUP, objects: [], backdrop });
+    expect(withIt.missing()).toEqual([]);
+  });
+
   it('turns to face the other way round the short way', async () => {
     const stage = new FakeStage();
     await stage.load(SETUP);
