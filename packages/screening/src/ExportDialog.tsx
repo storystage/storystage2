@@ -41,6 +41,8 @@ export interface ExportDialogProps {
 }
 
 const STEPS = ['frames', 'credits', 'saving'] as const;
+/** A film with speak lines prepares their voices first (section 4). */
+const VOICED_STEPS = ['voices', ...STEPS] as const;
 
 /** The flags the learner hasn't kept: those are the ones to look at before exporting. */
 const open = (flags: readonly FilmFlag[]) => flags.filter((f) => !f.kept);
@@ -72,6 +74,7 @@ export function ExportDialog(props: ExportDialogProps) {
   const waiting = (timeline?.scenes ?? []).filter((s) => s.waits);
   const seconds = (timeline?.length ?? 0) / 1_000_000 + (titleCard ? 4 : 0);
   const canStart = timeline !== null && props.refusals.length === 0 && !running;
+  const steps = timeline?.lines.some((l) => l.kind === 'caption') ? VOICED_STEPS : STEPS;
 
   return (
     <Dialog
@@ -166,7 +169,7 @@ export function ExportDialog(props: ExportDialogProps) {
         {job.kind === 'running' && (
           <div className="sr-export-progress">
             <ol className="sr-export-steps">
-              {STEPS.map((step) => (
+              {steps.map((step) => (
                 <li key={step} aria-current={step === job.step ? 'step' : undefined}>
                   {words.t(`export.step.${step}`)}
                 </li>
@@ -189,6 +192,11 @@ export function ExportDialog(props: ExportDialogProps) {
           <NeutralNote>
             <span role="status">{words.t('export.done', { name: job.name })}</span>
             {job.capped && <> {words.t('export.capped')}</>}
+            {job.sound?.unencoded ? (
+              <> {words.t('export.noSound')}</>
+            ) : job.sound && job.sound.silent > 0 ? (
+              <> {words.plural('export.silent', job.sound.silent)}</>
+            ) : null}
           </NeutralNote>
         )}
         {job.kind === 'unsaved' && (

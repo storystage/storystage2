@@ -9,6 +9,7 @@ const FILM: FilmExport = {
   name: 'The Lost Penguin',
   capped: false,
   seconds: 12,
+  sound: null,
 };
 
 /** A run the test moves on by hand. */
@@ -67,7 +68,12 @@ describe('ExportJob', () => {
     r.finish();
     await settle();
     expect(saved).toEqual([FILM]);
-    expect(job.state).toEqual({ kind: 'done', name: 'The Lost Penguin', capped: false });
+    expect(job.state).toEqual({
+      kind: 'done',
+      name: 'The Lost Penguin',
+      capped: false,
+      sound: null,
+    });
   });
 
   it('stops at once and keeps nothing', async () => {

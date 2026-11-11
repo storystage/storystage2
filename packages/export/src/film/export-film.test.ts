@@ -1,3 +1,4 @@
+import { nodeId, type Statement } from '@storystage/ast';
 import { exampleProduction, type Production } from '@storystage/production';
 import {
   inMemoryPorts,
@@ -10,7 +11,7 @@ import {
 import { FakeStage } from '@storystage/stage/testing';
 import { STORY_LIBRARY, micros, type BackstageId } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import type { EncoderBackend, Frame, SessionConfig } from '../encoder/backend.ts';
+import type { AudioChunk, EncoderBackend, Frame, SessionConfig } from '../encoder/backend.ts';
 import { ExportError } from '../encoder/export-mp4.ts';
 import {
   EXPORT_VIEWER_WAIT,
@@ -21,17 +22,24 @@ import {
   type FilmModel,
 } from './export-film.ts';
 import type { FramePart } from './overlay.ts';
+import type { FilmVoices, VoicedLine } from './soundtrack.ts';
 
 const settle = async () => {
   for (let i = 0; i < 50; i++) await Promise.resolve();
 };
 
 /** A backend that keeps nothing but counts: what the "device" encodes. */
-function backend() {
-  const log = { config: null as SessionConfig | null, frames: 0, opened: 0, cancelled: false };
+function backend(canAudio = true) {
+  const log = {
+    config: null as SessionConfig | null,
+    frames: 0,
+    opened: 0,
+    cancelled: false,
+    audio: [] as AudioChunk[],
+  };
   const b: EncoderBackend = {
     canEncodeVideo: async () => true,
-    canEncodeAudio: async () => true,
+    canEncodeAudio: async () => canAudio,
     open: async (config) => {
       log.config = config;
       log.opened++;
@@ -39,7 +47,9 @@ function backend() {
         addFrame: async () => {
           log.frames++;
         },
-        addAudio: async () => undefined,
+        addAudio: async (chunk) => {
+          log.audio.push(chunk);
+        },
         finish: async () => new ArrayBuffer(8),
         cancel: async () => {
           log.cancelled = true;
@@ -59,11 +69,11 @@ const PENGUIN: FilmModel = {
   displayName: 'Penguin',
 };
 
-function setup(over: Partial<ExportFilmOptions> = {}, model: FilmModel = PENGUIN) {
+function setup(over: Partial<ExportFilmOptions> = {}, model: FilmModel = PENGUIN, canAudio = true) {
   let started = 0;
   let ended = 0;
   const parts: FramePart[] = [];
-  const encoder = backend();
+  const encoder = backend(canAudio);
   const options: ExportFilmOptions = {
     production: exampleProduction(),
     find: (id) => (id === model.id ? model : undefined),
@@ -241,5 +251,105 @@ describe('exportFilm', () => {
 
   it('waits 5 seconds for a scene that waits on the viewer', () => {
     expect(EXPORT_VIEWER_WAIT).toBe(micros(5));
+  });
+});
+
+/** The example with the penguin speaking a line at the end of scene 1 (spec 06, 4.7). */
+function speaking(): Production {
+  const p = exampleProduction();
+  const [type1, ...types] = p.program.types;
+  const [method, ...methods] = type1!.methods;
+  const speak: Statement = {
+    id: nodeId('speakexb'),
+    kind: 'call',
+    target: {
+      id: nodeId('speakexr'),
+      kind: 'fieldRef',
+      target: { id: nodeId('speakexs'), kind: 'this' },
+      field: nodeId('scene1p'),
+    },
+    callee: { kind: 'story', name: 'speakLine' },
+    args: { text: { id: nodeId('speakexx'), kind: 'text', value: 'Wait for me!' } },
+    details: { duration: { id: nodeId('speakexd'), kind: 'number', value: 2 } },
+  };
+  return {
+    ...p,
+    program: {
+      ...p.program,
+      types: [
+        { ...type1!, methods: [{ ...method!, body: [...method!.body, speak] }, ...methods] },
+        ...types,
+      ],
+    },
+  };
+}
+
+/** Voices that give each line a steady 0.5 for its time, or nothing for the words in `silent`. */
+function fakeVoices(silent: readonly string[] = []) {
+  const prepared: VoicedLine[][] = [];
+  const voices: FilmVoices = {
+    sampleRate: 24_000,
+    prepare: async (lines) => void prepared.push([...lines]),
+    sound: (l) =>
+      silent.includes(l.text)
+        ? undefined
+        : new Float32Array(Math.round(l.seconds * 24_000)).fill(0.5),
+  };
+  return { voices, prepared };
+}
+
+describe('exportFilm: the speak lines’ sound (spec 08 section 4)', () => {
+  it('prepares the voices first, as its own step, then encodes one track at 48 kHz', async () => {
+    await settle();
+    const seen: ExportProgress[] = [];
+    const { voices, prepared } = fakeVoices();
+    const { options, encoder } = setup({
+      production: speaking(),
+      voices,
+      onProgress: (p) => seen.push(p),
+    });
+    const film = await exportFilm(options);
+    expect(prepared).toEqual([[expect.objectContaining({ text: 'Wait for me!', seconds: 2 })]]);
+    expect(seen[0]!.step).toBe('voices');
+    expect(encoder.log.config?.audio).toEqual({ codec: 'aac', channels: 1, sampleRate: 48_000 });
+    const samples = encoder.log.audio.reduce((n, c) => n + c.channels[0]!.length, 0);
+    expect(samples).toBe(Math.round(film.seconds * 48_000));
+    expect(encoder.log.audio.some((c) => c.channels[0]!.some((s) => s > 0.4))).toBe(true);
+    expect(film.sound).toEqual({ voiced: 1, silent: 0, unencoded: false });
+  });
+
+  it('leaves a line with no sound silent, with no track when no line is voiced', async () => {
+    await settle();
+    const { voices } = fakeVoices(['Wait for me!']);
+    const { options, encoder } = setup({ production: speaking(), voices });
+    const film = await exportFilm(options);
+    expect(encoder.log.config?.audio).toBeNull();
+    expect(film.sound).toEqual({ voiced: 0, silent: 1, unencoded: false });
+    expect(film.vtt).toContain('Wait for me!');
+  });
+
+  it('saves the film silent, and says so, on a device that can’t encode AAC', async () => {
+    await settle();
+    const { voices } = fakeVoices();
+    const { options, encoder } = setup({ production: speaking(), voices }, PENGUIN, false);
+    const film = await exportFilm(options);
+    expect(encoder.log.config?.audio).toBeNull();
+    expect(film.sound).toEqual({ voiced: 1, silent: 0, unencoded: true });
+  });
+
+  it('counts speak lines as silent when the studio has no voices', async () => {
+    await settle();
+    const { options } = setup({ production: speaking() });
+    expect((await exportFilm(options)).sound).toEqual({ voiced: 0, silent: 1, unencoded: false });
+  });
+
+  it('has no sound to speak of for a film with no speak lines, and prepares nothing', async () => {
+    await settle();
+    const { voices, prepared } = fakeVoices();
+    const { options, encoder } = setup({ voices });
+    const film = await exportFilm(options);
+    expect(prepared).toEqual([]);
+    expect(film.sound).toBeNull();
+    expect(encoder.log.config?.audio).toBeNull();
   });
 });

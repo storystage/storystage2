@@ -20,6 +20,7 @@
     "mediabunny": "^1.62.0"
   },
   "devDependencies": {
+    "@storystage/ast": "workspace:*",
     "@storystage/runtime": "workspace:*",
     "vite": "^8.3.4"
   }

@@ -12,6 +12,7 @@ import {
   exportFilm,
   usedModels,
   type FilmExport,
+  type FilmVoices,
 } from '@storystage/export';
 import { startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { HostInterface } from '@storystage/host';
@@ -76,6 +77,12 @@ export interface ScreeningTabProps {
   readonly active?: boolean;
   /** Fix on the Production stage: the App changes tab and puts the place there. */
   onOpenProductionStage(node: NodeId, place: Place | null): void;
+  /**
+   * The studio's voices for speak lines (spec 08 section 4), from the line cache Rehearse plays
+   * from, so an exported film sounds as Rehearse does. Without them, speak lines are silent in
+   * the export, with their captions, and the dialog says so.
+   */
+  readonly voices?: FilmVoices;
   /** For tests: how stages and runtime workers are made, and Backstage fetched. */
   readonly makeStage?: StageMaker;
   readonly startWorker?: () => RuntimeWorker;
@@ -299,6 +306,7 @@ export function ScreeningTab(props: ScreeningTabProps) {
           ...chosen,
           signal,
           onProgress,
+          ...(props.voices ? { voices: props.voices } : {}),
           ...props.exportOptions,
         });
       } finally {
