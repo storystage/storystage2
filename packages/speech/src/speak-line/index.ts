@@ -9,6 +9,7 @@ export {
   KOKORO_MAX_TOKENS,
   KOKORO_SAMPLE_RATE,
   KokoroCore,
+  KokoroError,
   type KokoroSession,
   type KokoroText,
 } from './kokoro-core.ts';
@@ -22,6 +23,7 @@ export {
   makeLine,
   type AudioOut,
   type Line,
+  type LineFailure,
   type SpeechEngine,
 } from './lines.ts';
 export {

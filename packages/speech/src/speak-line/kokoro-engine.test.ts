@@ -89,6 +89,21 @@ describe('KokoroEngine', () => {
     expect(f.started()).toBe(2);
   });
 
+  it('fails a line waiting for Kokoro to load, if Kokoro is let go first', async () => {
+    let terminated = false;
+    const silent: KokoroWorker = {
+      onmessage: null,
+      onerror: null,
+      postMessage: () => {}, // never says ready, like a worker still loading
+      terminate: () => void (terminated = true),
+    };
+    const engine = new KokoroEngine(places, { start: () => silent });
+    const pending = engine.speak('Hello.', emma);
+    engine.dispose();
+    await expect(pending).rejects.toThrow('Speak line was closed.');
+    expect(terminated).toBe(true);
+  });
+
   it('lets Kokoro go on dispose, failing lines still waiting', async () => {
     const f = fakeWorker();
     const engine = new KokoroEngine(places, { start: f.start });

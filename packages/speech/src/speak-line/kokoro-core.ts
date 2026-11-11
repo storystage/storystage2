@@ -105,12 +105,34 @@ export class KokoroCore {
       : this.#american.generate(text).phonemes.join('');
   }
 
-  /** The token ids: one per phoneme Kokoro knows, at most 510. */
+  /** The token ids: one per phoneme Kokoro knows. */
   tokens(phonemes: string): number[] {
-    return [...phonemes]
-      .map((c) => this.#vocab[c])
-      .filter((id): id is number => id !== undefined)
-      .slice(0, KOKORO_MAX_TOKENS);
+    return [...phonemes].map((c) => this.#vocab[c]).filter((id): id is number => id !== undefined);
+  }
+
+  /**
+   * The parts of `text` Kokoro speaks one at a time: the whole line if it fits in 510 tokens,
+   * otherwise its sentences, then its clauses, then its words, put back together as far as each
+   * part fits. Nothing is cut.
+   */
+  parts(text: string, accent: Accent): string[] {
+    const fits = (t: string) => this.tokens(this.phonemes(t, accent)).length <= KOKORO_MAX_TOKENS;
+    const split = (t: string, level: number): string[] => {
+      if (fits(t)) return [t];
+      const pattern = [/(?<=[.!?…])\s+/, /(?<=[,;:—])\s+/, /\s+/][level];
+      if (!pattern) throw new KokoroError('A word in this line is too long to speak.');
+      const pieces = t.split(pattern).filter(Boolean);
+      if (pieces.length < 2) return split(t, level + 1);
+      // Join neighbours back while they still fit, so Kokoro hears as much at once as it can.
+      const out: string[] = [];
+      for (const piece of pieces.flatMap((p) => split(p, level + 1))) {
+        const joined = out.length ? `${out[out.length - 1]} ${piece}` : '';
+        if (joined && fits(joined)) out[out.length - 1] = joined;
+        else out.push(piece);
+      }
+      return out;
+    };
+    return split(text.trim(), 0);
   }
 
   /** Speaks `text` in one of Kokoro's voices, giving 24 kHz samples. */
@@ -118,12 +140,28 @@ export class KokoroCore {
     text: string,
     voice: { readonly base: string; readonly accent: Accent },
   ): Promise<Float32Array> {
-    const ids = this.tokens(this.phonemes(text, voice.accent));
     const styles = await this.#voice(voice.base);
-    // The style vector depends on the number of tokens (Kokoro's model card).
-    const at = Math.min(ids.length, styles.length / STYLE_SIZE - 1);
-    const style = styles.slice(at * STYLE_SIZE, (at + 1) * STYLE_SIZE);
-    const padded = BigInt64Array.from([0, ...ids, 0].map(BigInt));
-    return this.#session.run(padded, style, 1);
+    const sounds: Float32Array[] = [];
+    for (const part of this.parts(text, voice.accent)) {
+      const ids = this.tokens(this.phonemes(part, voice.accent));
+      // The style vector depends on the number of tokens (Kokoro's model card).
+      const at = Math.min(ids.length, styles.length / STYLE_SIZE - 1);
+      const style = styles.slice(at * STYLE_SIZE, (at + 1) * STYLE_SIZE);
+      const padded = BigInt64Array.from([0, ...ids, 0].map(BigInt));
+      const sound = await this.#session.run(padded, style, 1);
+      // A model can overflow and give NaN or infinity; never hand that on to be played.
+      if (!sound.every(Number.isFinite))
+        throw new KokoroError('Kokoro made no usable sound for this line.');
+      sounds.push(sound);
+    }
+    if (sounds.length === 1) return sounds[0]!;
+    const out = new Float32Array(sounds.reduce((n, s) => n + s.length, 0));
+    sounds.reduce((at, s) => (out.set(s, at), at + s.length), 0);
+    return out;
   }
+}
+
+/** A line Kokoro couldn't speak, in words the studio can show. */
+export class KokoroError extends Error {
+  override readonly name = 'KokoroError';
 }

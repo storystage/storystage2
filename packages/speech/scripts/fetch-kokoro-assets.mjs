@@ -3,7 +3,7 @@
  * Speak line's engine files (decision 0068; spec 06, 4.6), each pinned and checked, laid out as
  * `KokoroEngine` expects (`src/speak-line/kokoro-protocol.ts`):
  *
- *   <out>/kokoro/model_q8f16.onnx, tokenizer.json   Kokoro-82M, 8-bit (Apache-2.0)
+ *   <out>/kokoro/model_quantized.onnx, tokenizer.json   Kokoro-82M, 8-bit (Apache-2.0)
  *   <out>/kokoro/voices/<name>.bin                    its British and American voices
  *   <out>/kokoro/en-us.txt                            the CMU dictionary in Kokoro's phonemes
  *                                                     (BSD), from HeadTTS 1.3.0's npm package
@@ -51,9 +51,13 @@ function place(from, to) {
 }
 
 // --- Kokoro-82M (onnx-community/Kokoro-82M-v1.0-ONNX) ----------------------------------------
-const HF = 'https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/main';
+// Pinned to a commit, so an upstream change can't break the build (the SHA-256s keep it out anyway).
+const HF =
+  'https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231';
 const KOKORO = {
-  'onnx/model_q8f16.onnx': '04c658aec1b6008857c2ad10f8c589d4180d0ec427e7e6118ceb487e215c3cd0',
+  // 8-bit weights, full-precision activations. Not model_q8f16: its half-precision maths gave
+  // NaN for some voices and lines in the worker (bf_isabella's "Here is the key.", 11 Nov 2026).
+  'onnx/model_quantized.onnx': 'fbae9257e1e05ffc727e951ef9b9c98418e6d79f1c9b6b13bd59f5c9028a1478',
   'tokenizer.json': '77a02c8e164413299b4b4c403b14f8e0e1c1b727db4d46a09d6327b861060a34',
   // British (presets.ts BASE_VOICES.british)
   'voices/bf_emma.bin': '669fe0647f9dd04fcab92f1439a40eeb4c8b4ab1f82e4996fe3d918ce4a63b73',

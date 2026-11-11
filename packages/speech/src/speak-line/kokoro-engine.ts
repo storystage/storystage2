@@ -36,6 +36,8 @@ export class KokoroEngine implements SpeechEngine {
   readonly #start: () => KokoroWorker;
   #worker: KokoroWorker | null = null;
   #ready: Promise<number> | null = null;
+  /** Fails the load still under way, if any: a terminated worker says nothing more. */
+  #abandonLoad: ((e: Error) => void) | null = null;
   #next = 1;
   readonly #waiting = new Map<
     number,
@@ -54,6 +56,7 @@ export class KokoroEngine implements SpeechEngine {
     const worker = this.#start();
     this.#worker = worker;
     this.#ready = new Promise<number>((resolve, reject) => {
+      this.#abandonLoad = reject;
       const fail = (message: string) => {
         reject(new Error(message));
         this.dispose();
@@ -61,8 +64,10 @@ export class KokoroEngine implements SpeechEngine {
       worker.onerror = (e) => fail(e.message || 'The speak line worker failed to start.');
       worker.onmessage = ({ data: m }) => {
         if (m.type === 'log') this.#options.onLog?.(m.line);
-        else if (m.type === 'ready') resolve(m.loadMs);
-        else if (m.type === 'spoken') this.#settle(m.id)?.resolve(m.samples);
+        else if (m.type === 'ready') {
+          this.#abandonLoad = null;
+          resolve(m.loadMs);
+        } else if (m.type === 'spoken') this.#settle(m.id)?.resolve(m.samples);
         else if (m.id === undefined) fail(m.message);
         else this.#settle(m.id)?.reject(new Error(m.message));
       };
@@ -99,6 +104,10 @@ export class KokoroEngine implements SpeechEngine {
 
   /** Lets Kokoro go: the worker ends, and lines still waiting fail. */
   dispose(): void {
+    // Lines waiting for Kokoro to load fail too (spec 06, 4.6: the studio lets Kokoro go when
+    // whisper needs the memory, which can be while it is still loading).
+    this.#abandonLoad?.(new Error('Speak line was closed.'));
+    this.#abandonLoad = null;
     this.#worker?.terminate();
     this.#worker = null;
     this.#ready = null;

@@ -39,7 +39,7 @@ async function load(places: KokoroPlaces, options: KokoroOptions = {}): Promise<
     text('tokenizer.json'),
     text('en-us.txt'),
     text('en-GB-x-rp.dict'),
-    bytes('model_q8f16.onnx'),
+    bytes('model_quantized.onnx'),
   ]);
   log(`files fetched, model ${model.byteLength} bytes`);
   const ortSession = await ort.InferenceSession.create(model, { executionProviders: ['wasm'] });
@@ -72,7 +72,10 @@ let core: Promise<KokoroCore> | null = null;
 let queue = Promise.resolve();
 
 scope.addEventListener('message', (event) => {
-  const m = event.data;
+  const m = event.data as ToKokoro | undefined;
+  // Only our own messages: an Emscripten build's thread workers can talk to the worker that
+  // started them (whisper's worker learnt this, #187), and ONNX Runtime's threaded build is one.
+  if (m?.type !== 'load' && m?.type !== 'speak') return;
   if (m.type === 'load') {
     const started = performance.now();
     core = load(m.places, m.options);

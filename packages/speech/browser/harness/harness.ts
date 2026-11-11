@@ -3,7 +3,8 @@
  * clip through the real path: dictation, the whisper worker and whisper.cpp itself, with only
  * the microphone replaced by the clip; `&threads=1` limits whisper to one thread. `?run=page`
  * runs whisper.cpp on the page instead, as spike 1.3 did, for diagnosis by hand. `?run=speak`
- * speaks four lines with Kokoro (speak line) and has whisper hear them.
+ * speaks four lines with Kokoro (speak line) and has whisper hear them; `&only=sound` stops
+ * before whisper, reporting each line's sound (for a machine without the whisper build).
  * `?run=microphone` opens the browser's microphone (a fake device in CI) through the real
  * worklet. The result goes on `window.harnessResult`.
  */
@@ -173,6 +174,15 @@ async function speak() {
   await cache.prepare(lines);
   const prepareMs = Math.round(performance.now() - started);
   stage(`${cache.size} lines prepared in ${prepareMs} ms`);
+  // Each line's sound before whisper, so a bad one shows even where whisper isn't built.
+  for (const line of lines) {
+    const s = cache.get(line);
+    const bad = s ? s.filter((x) => !Number.isFinite(x)).length : -1;
+    stage(
+      `${line.voice.accent} ${line.voice.preset}: ${s ? s.length : 'none'} samples, ${bad} not finite`,
+    );
+  }
+  if (params.get('only') === 'sound') return { prepareMs, sounds: lines.length };
   const whisper = await pageWhisper(await (await fetch('/model.bin')).arrayBuffer());
   const heard = [];
   for (const line of lines) {

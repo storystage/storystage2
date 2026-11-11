@@ -3,7 +3,7 @@ import type { Accent } from './presets.ts';
 
 /**
  * Where Kokoro's files are (`scripts/fetch-kokoro-assets.mjs` lays them out): `assets` holds
- * `model_q8f16.onnx`, `tokenizer.json`, `en-us.txt`, `en-GB-x-rp.dict` and `voices/<name>.bin`;
+ * `model_quantized.onnx`, `tokenizer.json`, `en-us.txt`, `en-GB-x-rp.dict` and `voices/<name>.bin`;
  * `wasm` holds ONNX Runtime's `ort-wasm-simd-threaded.{mjs,wasm}`. Both end in `/`.
  */
 export interface KokoroPlaces {

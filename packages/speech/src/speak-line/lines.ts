@@ -28,6 +28,12 @@ export interface Line {
 /** A speak block's time: its `duration` detail if it has one, otherwise from its words (4.2). */
 export const lineSeconds = (text: string, duration?: number) => duration ?? lineDuration(text);
 
+/** A line `LineCache.prepare` couldn't make, and why, in words the studio can show. */
+export interface LineFailure {
+  readonly line: Line;
+  readonly message: string;
+}
+
 /** What makes two lines sound the same: the same words, voice and time share one sound. */
 export function lineKey(l: Line): string {
   const v = l.voice;
@@ -62,19 +68,31 @@ export class LineCache {
     return this.#engine.sampleRate;
   }
 
-  /** Makes every line's sound that isn't made yet. Resolves when done, or when overtaken. */
-  async prepare(lines: readonly Line[]): Promise<void> {
+  /**
+   * Makes every line's sound that isn't made yet. Resolves when done, or when overtaken, with the
+   * lines that couldn't be made: they stay silent, with their captions (rule 7), and are tried
+   * again by the next `prepare`. One line failing doesn't stop the others.
+   */
+  async prepare(lines: readonly Line[]): Promise<LineFailure[]> {
+    const failures: LineFailure[] = [];
     const generation = ++this.#generation;
     const wanted = new Map(lines.map((l) => [lineKey(l), l]));
     this.#wanted = new Set(wanted.keys());
     for (const key of this.#sounds.keys()) if (!wanted.has(key)) this.#sounds.delete(key);
     for (const [key, line] of wanted) {
-      if (generation !== this.#generation) return; // newer code: that call takes over
+      if (generation !== this.#generation) return failures; // newer code: that call takes over
       if (this.#sounds.has(key)) continue;
-      const sound = await makeLine(this.#engine, line);
+      let sound: Float32Array;
+      try {
+        sound = await makeLine(this.#engine, line);
+      } catch (e) {
+        failures.push({ line, message: e instanceof Error ? e.message : String(e) });
+        continue;
+      }
       // Kept only if the code still has the line once it's made.
       if (this.#wanted.has(key)) this.#sounds.set(key, sound);
     }
+    return failures;
   }
 
   /** The line's sound, if it's ready. */
