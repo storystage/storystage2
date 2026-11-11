@@ -200,7 +200,7 @@ export class BabylonStage implements Stage {
         typeof o.model === 'string' ? [library.prefetch(o.model)] : [],
       ),
       ...backdropItems(resolveBackdropKnown(setup.backdrop).backdrop).map(async (id) => {
-        if (await library.has(id)) await library.prefetch(id, true);
+        if (await library.has(id)) await library.prefetch(id);
       }),
       humanoidsFor(setup).then(
         () => {},

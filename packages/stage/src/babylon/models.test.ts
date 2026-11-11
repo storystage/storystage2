@@ -22,6 +22,8 @@ import { tinyModelUrl } from './tiny-model.ts';
 const head = jointName('head');
 const robot = backstageId('test/Biped/robot');
 const url = tinyModelUrl(['hips', 'spine', 'chest', 'neck', 'head']);
+/** The tiny model's blue, 0.6 in its file (linear), as it shows on screen (sRGB). */
+const SHOWN_BLUE = Math.pow(0.6, 1 / 2.2);
 const source: ModelSource = {
   find: (id) => (id === robot ? { url, joints: [jointName('neck'), head] } : null),
 };
@@ -96,11 +98,12 @@ describe('models', () => {
     expect(body(ann).skeleton).not.toBe(body(bob).skeleton);
   });
 
-  it('become plain surfaces that keep their colour', async () => {
+  it('become plain surfaces that keep their colour, as it shows on screen', async () => {
     const { body } = await loaded();
     const surface = body(ann).material as StandardMaterial;
     expect(surface.getClassName()).toBe('StandardMaterial');
-    expect(surface.diffuseColor.b).toBeCloseTo(0.6, 5);
+    // glTF gives a linear colour (0.6); a plain surface takes it as it shows, in sRGB.
+    expect(surface.diffuseColor.b).toBeCloseTo(SHOWN_BLUE, 5);
     expect(surface.specularColor.r).toBe(0);
   });
 
@@ -186,7 +189,7 @@ describe('opacity and paint', () => {
     stage.seek(micros(2));
     expect(colour().r).toBeCloseTo(0.2, 5);
     stage.seek(0);
-    expect(colour().b).toBeCloseTo(0.6, 5);
+    expect(colour().b).toBeCloseTo(SHOWN_BLUE, 5);
   });
 
   it('paint a stand-in, but leave its nose', async () => {

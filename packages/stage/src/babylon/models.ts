@@ -75,12 +75,9 @@ export class ModelLibrary {
     this.source = source;
   }
 
-  /**
-   * Starts fetching and reading a model, or with `backdrop` a backdrop's item, for a scene that
-   * may come next. Never rejects.
-   */
-  prefetch(id: BackstageId, backdrop = false): Promise<void> {
-    return this.load(id, backdrop).then(
+  /** Starts fetching and reading a model, or a backdrop's item, for a scene that may come next. Never rejects. */
+  prefetch(id: BackstageId): Promise<void> {
+    return this.load(id).then(
       () => {},
       () => {},
     );
@@ -100,23 +97,23 @@ export class ModelLibrary {
    * Rejects with `unknown_model` if it can't be had.
    */
   async asset(id: BackstageId): Promise<AssetContainer> {
-    return (await this.load(id, true)).container;
+    return (await this.load(id)).container;
   }
 
-  private load(id: BackstageId, backdrop = false): Promise<LoadedModel> {
+  private load(id: BackstageId): Promise<LoadedModel> {
     let model = this.loaded.get(id);
     if (!model) {
-      model = this.fetch(id, backdrop);
+      model = this.fetch(id);
       this.loaded.set(id, model);
     }
     return model;
   }
 
   /**
-   * A backdrop's picture is kept as its pixels are, in sRGB, as the stage's plain materials take a
-   * colour. An sRGB buffer would hand them linear values, which show darker (spec 17 section 2).
+   * Pictures are kept as their pixels are, in sRGB, as the stage's plain materials take a colour.
+   * An sRGB buffer would hand them linear values, which show darker.
    */
-  private async fetch(id: BackstageId, backdrop: boolean): Promise<LoadedModel> {
+  private async fetch(id: BackstageId): Promise<LoadedModel> {
     const file = await this.source.find(id);
     if (!file) throw noModel(id);
     try {
@@ -126,7 +123,7 @@ export class ModelLibrary {
         pluginOptions: {
           gltf: {
             onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson),
-            ...(backdrop ? { useSRGBBuffers: false } : {}),
+            useSRGBBuffers: false,
           },
         },
       };
@@ -226,7 +223,7 @@ function plainSurfaces(
     if (!source) continue;
     let plain = made.get(source);
     if (!plain) {
-      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor, scene);
+      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor.toGammaSpace(), scene);
       plain.diffuseTexture = source.albedoTexture;
       plain.alpha = source.alpha;
       plain.useAlphaFromDiffuseTexture = source.useAlphaFromAlbedoTexture;
