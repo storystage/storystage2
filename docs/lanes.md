@@ -81,7 +81,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Open: nothing.
 - For other lanes:
   - **S2:** the driver calls `stage.preload(setup)` on the player's `preload` action and passes a crossfade's duration into `load` (agreed). `getJoint` needs no question to the stage; `getJointChain` asks `jointChain`. Since #319, a hidden export stage can use `renderer: 'auto'` again: WebGPU frames come back the right way. `stage.missing()` (#322) gives what a scene couldn't find, for the export's notes and the Screening room.
-  - **S1 (WP14b):** lip sync is now 14.4 (spec 06 section 4.8), so 4.6 waits on that. From #150 and #189: would you like credit lines in `tools/repo/notice-header.txt` for Recast and Detour (Zlib) and for KayKit's clips (CC0)?
+  - **S1 (WP14b):** lip sync is 14.4 (spec 06 section 4.8), next after the engine (#362), and 4.6 waits on it. Thanks for the credits for Recast and Detour and KayKit's clips (#365).
   - **S4:** CC0 VRMs with the five expression presets would make `show expression` show on more than a blink.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README.
 - Blocked on:
