@@ -181,7 +181,7 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
   it("opens a newer file read-only, allowing fields it doesn't know", () => {
     const newer = changed('manifest.json', (m) => ({
       ...m,
-      formatVersion: '1.4.0',
+      formatVersion: '1.5.0',
       laterField: true,
     }));
     const opened = openProduction(newer);
@@ -223,15 +223,15 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
     });
   });
 
-  it('migrates a 1.0.0, 1.1.0 or 1.2.0 file to this version, and hands back the original to keep', () => {
+  it('migrates a 1.0.0 to 1.3.0 file to this version, and hands back the original to keep', () => {
     const old = changed('manifest.json', (m) => ({ ...m, formatVersion: '1.0.0' }));
     const opened = openProduction(old);
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.original).toBe(old);
-    expect(opened.production.manifest.formatVersion).toBe('1.3.0');
+    expect(opened.production.manifest.formatVersion).toBe('1.4.0');
     expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
-    for (const version of ['1.1.0', '1.2.0']) {
+    for (const version of ['1.1.0', '1.2.0', '1.3.0']) {
       const older = changed('manifest.json', (m) => ({ ...m, formatVersion: version }));
       expect(openProduction(older)).toMatchObject({ status: 'migrated', original: older });
     }
@@ -249,21 +249,21 @@ describe('openProduction and versions (spec 03, 1.2)', () => {
 
   it('migrates step by step, and refuses a version with no step', () => {
     const migrations = {
-      '1.3.0': { to: '1.4.0', manifest: (m: object) => m },
-      '1.4.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
+      '1.4.0': { to: '1.5.0', manifest: (m: object) => m },
+      '1.5.0': { to: '2.0.0', manifest: (m: object) => ({ ...m, title: 'Moved on' }) },
     };
     const opened = openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations });
     expect(opened.status).toBe('migrated');
     if (opened.status === 'broken') return;
     expect(opened.production.manifest).toMatchObject({ formatVersion: '2.0.0', title: 'Moved on' });
-    const stuck = { '1.3.0': { to: '1.3.0', manifest: (m: object) => m } };
+    const stuck = { '1.4.0': { to: '1.4.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: stuck }),
     ).toMatchObject({ status: 'broken' });
-    const gap = { '1.3.0': { to: '1.5.0', manifest: (m: object) => m } };
+    const gap = { '1.4.0': { to: '1.6.0', manifest: (m: object) => m } };
     expect(
       openProduction(saveProduction(p), { formatVersion: '2.0.0', migrations: gap }),
-    ).toMatchObject({ status: 'broken', problems: ['Nothing migrates format 1.5.0 to 2.0.0.'] });
+    ).toMatchObject({ status: 'broken', problems: ['Nothing migrates format 1.6.0 to 2.0.0.'] });
   });
 
   it('carries a stand-in’s size (format 1.2.0), and refuses one misshapen', () => {
