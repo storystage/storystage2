@@ -13,7 +13,10 @@ export interface Colour {
 }
 
 export interface Ground {
+  /** Its material's colour: `look` divided by how much brighter Alice's lights make it. */
   readonly colour: Colour;
+  /** How it looks on screen under white light, `#rrggbb` in sRGB: the table's own hex. */
+  readonly look: string;
   /** Below 1 you can see into it: water, ice and swamp. */
   readonly opacity: number;
   /** Set for a room: its walls and ceiling. The ground is then its floor. */
@@ -66,7 +69,7 @@ export const TEXTURE_SHADE = 1 / BRIGHTNESS_FACING_UP;
 const surface = (rrggbb: string, opacity = 1): Ground => {
   const { r, g, b } = hex(rrggbb);
   const k = 1 / BRIGHTNESS_FACING_UP;
-  return { colour: rgb(r * k, g * k, b * k), opacity };
+  return { colour: rgb(r * k, g * k, b * k), look: `#${rrggbb}`, opacity };
 };
 
 /** Alice's surface appearances, as flat colours. */
@@ -230,6 +233,12 @@ export const GROUND_TYPES: readonly BackstageId[] = [...GROUNDS.keys()];
 
 /** Alice's room, in metres: its floor is centred on the origin. */
 export const ROOM = { width: 10, height: 3, depth: 10 } as const;
+
+/**
+ * How a built-in ground looks on screen under white light, `#rrggbb` in sRGB, or null if there's
+ * no such ground. A ground's texture (spec 17 section 2) is made to match it on average.
+ */
+export const groundLook = (id: BackstageId): string | null => GROUNDS.get(id)?.look ?? null;
 
 /** A built-in ground's colour, for painting something with a surface. */
 export const groundColour = (id: BackstageId): Colour | null => GROUNDS.get(id)?.colour ?? null;

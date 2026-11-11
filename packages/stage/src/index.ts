@@ -12,5 +12,6 @@ export {
   BACKDROP_TEMPLATES,
   GROUND_TYPES,
   PICTURE_SKY_TYPES,
+  groundLook,
   type BackdropTemplate,
 } from './backdrops.ts';
