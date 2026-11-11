@@ -87,6 +87,21 @@ describe('each character’s voice', () => {
     expect(penguin1!.accent).toBe('british');
     expect(voiceOf(example, voices, s1.id, 'nobody')).toBeNull();
   });
+
+  it('is the film’s own when it has one, and the rest follow its accent', () => {
+    const fox = {
+      preset: 'animal',
+      base: 'am_adam',
+      pitch: 0.9,
+      formant: 1.1,
+      speed: 1,
+      accent: 'american',
+    } as const;
+    const p: Production = { ...example, manifest: { ...example.manifest, voices: { fox } } };
+    const voices = productionVoices(p);
+    expect(voiceOf(p, voices, s1.id, 'fox')).toEqual(fox);
+    expect(voiceOf(p, voices, s1.id, 'penguin')!.accent).toBe('american');
+  });
 });
 
 function fakes(fail = false) {

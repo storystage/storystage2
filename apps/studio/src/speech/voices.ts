@@ -56,8 +56,12 @@ export interface VoicesState {
  * alternating woman and man, no two the same while there are voices to spare).
  */
 export function productionVoices(p: Production): Map<string, CastVoice> {
+  // The film's own voices first (format 1.4.0, `manifest.voices`), so it sounds the same on
+  // every device; the class decides only for a character the film has no voice for yet.
+  const stored = p.manifest.voices ?? {};
+  const accent = Object.values(stored)[0]?.accent ?? DEFAULT_ACCENT;
   const cast: CastMember[] = [];
-  const seen = new Set<string>();
+  const seen = new Set<string>(Object.keys(stored));
   for (const { scene } of p.manifest.runningOrder) {
     const setup = p.scenes.find((s) => s.id === scene)?.setup;
     for (const o of setup?.objects ?? []) {
@@ -66,7 +70,9 @@ export function productionVoices(p: Production): Map<string, CastVoice> {
       cast.push({ id: o.id, storyClass: o.class });
     }
   }
-  return castVoices(cast, DEFAULT_ACCENT);
+  const voices = castVoices(cast, accent);
+  for (const [name, voice] of Object.entries(stored)) voices.set(name, voice);
+  return voices;
 }
 
 /** The voice of `object` in `scene`, or `null` for one that isn't in the scene's set-up. */
