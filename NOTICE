@@ -14,6 +14,19 @@ Backstage models and sketches carry their licence, credit line and source in bac
 
 Each line: package  version(s)  licence.
 
+== Speak line's voices (packages/speech; decision 0068; kept by hand) ==
+
+Vendored code, as published apart from the changes its README lists:
+HeadTTS (English phonemiser)  1.3.0  MIT  Copyright (c) 2025 Mika Suominen
+  packages/speech/src/speak-line/vendor/headtts/
+
+Files fetched pinned by SHA-256 (packages/speech/scripts/fetch-kokoro-assets.mjs) and bundled
+with the apps:
+Kokoro-82M (8-bit ONNX, and its voices)  1.0  Apache-2.0  hexgrad; ONNX by onnx-community
+  Trained in part on Koniwa (CC BY 3.0) and SIWIS (CC BY 4.0), credited as their licences ask.
+CMU Pronouncing Dictionary 0.7b (as HeadTTS's en-us.txt)  BSD-2-Clause  Carnegie Mellon University
+en-GB-x-rp.dict (RP pronunciations)  BSD-2-Clause  Copyright (C) 2017 Reece H. Dunn
+
 == Native layer (Rust, apps/desktop/src-tauri/Cargo.toml, direct dependencies) ==
 
 tauri  2  Apache-2.0 OR MIT
@@ -41,7 +54,7 @@ tauri-plugin-fs  2  Apache-2.0 OR MIT
 
 ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cpp  MIT
 
-== Linked into the app (81) ==
+== Linked into the app (99) ==
 
 @asamuzakjp/css-color  7.1.7  MIT
 @asamuzakjp/dom-selector  10.0.4  MIT
@@ -64,6 +77,15 @@ ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cp
 @internationalized/number  3.6.9  Apache-2.0
 @internationalized/string  3.2.10  Apache-2.0
 @material-symbols/svg-400  0.48.1  Apache-2.0
+@protobufjs/aspromise  1.1.2  BSD-3-Clause
+@protobufjs/base64  1.1.2  BSD-3-Clause
+@protobufjs/codegen  2.0.5  BSD-3-Clause
+@protobufjs/eventemitter  1.1.1  BSD-3-Clause
+@protobufjs/fetch  1.1.1  BSD-3-Clause
+@protobufjs/float  1.0.2  BSD-3-Clause
+@protobufjs/path  1.1.2  BSD-3-Clause
+@protobufjs/pool  1.1.0  BSD-3-Clause
+@protobufjs/utf8  1.1.2  BSD-3-Clause
 @react-types/shared  3.37.0  Apache-2.0
 @recast-navigation/core  0.43.1  MIT
 @recast-navigation/generators  0.43.1  MIT
@@ -72,6 +94,7 @@ ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cp
 @types/dom-mediacapture-transform  0.1.12  MIT
 @types/dom-webcodecs  0.1.13  MIT
 @types/ndarray  1.1.0  MIT
+@types/node  26.6.5  MIT
 aria-hidden  1.2.6  MIT
 babylonjs-gltf2interface  9.31.3  Apache-2.0
 bidi-js  1.1.0  MIT
@@ -84,12 +107,15 @@ data-urls  8.0.0  MIT
 decimal.js  10.6.0  MIT
 entities  8.1.0  BSD-2-Clause
 fflate  0.8.3  MIT
+flatbuffers  25.9.23  Apache-2.0
+guid-typescript  1.0.9  ISC
 html-encoding-sniffer  7.0.0  MIT
 iota-array  1.0.0  MIT
 is-buffer  1.1.6  MIT
 is-potential-custom-element-name  1.0.1  MIT
 jsdom  30.1.3  MIT
 ktx-parse  1.1.0  MIT
+long  5.3.2  Apache-2.0
 lru-cache  11.5.3  BlueOak-1.0.0
 mdn-data  2.27.1  CC0-1.0
 mediabunny  1.62.0  MPL-2.0
@@ -98,8 +124,12 @@ ndarray  1.1.1  MIT
 ndarray-lanczos  0.3.0  MIT
 ndarray-ops  1.2.2  MIT
 ndarray-pixels  5.2.0  MIT
+onnxruntime-common  1.30.0  MIT
+onnxruntime-web  1.30.0  MIT
 parse5  8.0.1  MIT
+platform  1.3.6  MIT
 property-graph  4.1.0  MIT
+protobufjs  7.6.6  BSD-3-Clause
 punycode  2.3.1  MIT
 react  19.3.1  MIT
 react-aria  3.53.1  Apache-2.0
@@ -116,6 +146,7 @@ tough-cookie  6.0.2  BSD-3-Clause
 tr46  7.0.0  MIT
 tslib  2.8.1  0BSD
 undici  8.12.3  MIT
+undici-types  8.9.0  MIT
 uniq  1.0.1  MIT
 use-sync-external-store  1.7.0  MIT
 w3c-xmlserializer  6.0.0  MIT
@@ -125,7 +156,7 @@ whatwg-url  17.3.0  MIT
 xml-name-validator  5.0.0  Apache-2.0
 xmlchars  2.2.0  MIT
 
-== Build and test tools, not shipped (216) ==
+== Build and test tools, not shipped (198) ==
 
 @axe-core/playwright  4.14.0  MPL-2.0
 @babel/code-frame  7.29.7  MIT
@@ -171,15 +202,6 @@ xmlchars  2.2.0  MIT
 @keyv/serialize  1.1.1  MIT
 @oxc-project/types  0.154.0  MIT
 @playwright/test  1.64.1  Apache-2.0
-@protobufjs/aspromise  1.1.2  BSD-3-Clause
-@protobufjs/base64  1.1.2  BSD-3-Clause
-@protobufjs/codegen  2.0.5  BSD-3-Clause
-@protobufjs/eventemitter  1.1.1  BSD-3-Clause
-@protobufjs/fetch  1.1.1  BSD-3-Clause
-@protobufjs/float  1.0.2  BSD-3-Clause
-@protobufjs/path  1.1.2  BSD-3-Clause
-@protobufjs/pool  1.1.0  BSD-3-Clause
-@protobufjs/utf8  1.1.2  BSD-3-Clause
 @rolldown/pluginutils  1.0.1  MIT
 @tauri-apps/api  2.12.4  Apache-2.0 OR MIT
 @tauri-apps/cli  2.12.3  Apache-2.0 OR MIT
@@ -192,7 +214,6 @@ xmlchars  2.2.0  MIT
 @types/esrecurse  4.3.1  MIT
 @types/estree  1.0.9  MIT
 @types/json-schema  7.0.15  MIT
-@types/node  26.6.5  MIT
 @types/react  19.3.0  MIT
 @types/react-dom  19.3.0  MIT
 @types/whatwg-mimetype  3.0.2  MIT
@@ -260,12 +281,10 @@ fdir  6.5.0  MIT
 file-entry-cache  11.1.5  MIT
 find-up  5.0.0  MIT
 flat-cache  6.1.23  MIT
-flatbuffers  25.9.23  Apache-2.0
 flatted  3.4.4  ISC
 gensync  1.0.0-beta.2  MIT
 glob-parent  6.0.2  ISC
 globals  17.13.0  MIT
-guid-typescript  1.0.9  ISC
 happy-dom  21.0.4  MIT
 hashery  1.5.1  MIT
 hermes-estree  0.25.1  MIT
@@ -285,7 +304,6 @@ keyv  5.6.0  MIT
 levn  0.4.1  MIT
 lightningcss  1.33.0  MPL-2.0
 locate-path  6.0.0  MIT
-long  5.3.2  Apache-2.0
 lru-cache  5.1.1  ISC
 lz-string  1.5.0  MIT
 magic-string  1.4.3  MIT
@@ -295,8 +313,6 @@ nanoid  3.3.20  MIT
 natural-compare  1.4.0  MIT
 node-releases  2.0.59  MIT
 obug  3.0.0  MIT
-onnxruntime-common  1.30.0  MIT
-onnxruntime-web  1.30.0  MIT
 optionator  0.9.4  MIT
 p-limit  3.1.0  MIT
 p-locate  5.0.0  MIT
@@ -304,14 +320,12 @@ path-exists  4.0.0  MIT
 path-key  3.1.1  MIT
 picocolors  1.1.1  ISC
 picomatch  4.0.7  MIT
-platform  1.3.6  MIT
 playwright  1.64.1  Apache-2.0
 playwright-core  1.64.1  Apache-2.0
 postcss  8.5.31  MIT
 prelude-ls  1.2.1  MIT
 prettier  3.9.10  MIT
 pretty-format  27.5.1  MIT
-protobufjs  7.6.6  BSD-3-Clause
 pure-rand  8.4.2  MIT
 qified  0.10.1  MIT
 react-is  17.0.2  MIT
@@ -328,7 +342,6 @@ ts-api-utils  2.5.0  MIT
 type-check  0.4.0  MIT
 typescript  6.0.3  Apache-2.0
 typescript-eslint  8.72.0  MIT
-undici-types  8.9.0  MIT
 update-browserslist-db  1.3.4  MIT
 uri-js  4.4.1  BSD-2-Clause
 vite  8.3.4  MIT

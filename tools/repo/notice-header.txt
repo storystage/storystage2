@@ -14,6 +14,19 @@ Backstage models and sketches carry their licence, credit line and source in bac
 
 Each line: package  version(s)  licence.
 
+== Speak line's voices (packages/speech; decision 0068; kept by hand) ==
+
+Vendored code, as published apart from the changes its README lists:
+HeadTTS (English phonemiser)  1.3.0  MIT  Copyright (c) 2025 Mika Suominen
+  packages/speech/src/speak-line/vendor/headtts/
+
+Files fetched pinned by SHA-256 (packages/speech/scripts/fetch-kokoro-assets.mjs) and bundled
+with the apps:
+Kokoro-82M (8-bit ONNX, and its voices)  1.0  Apache-2.0  hexgrad; ONNX by onnx-community
+  Trained in part on Koniwa (CC BY 3.0) and SIWIS (CC BY 4.0), credited as their licences ask.
+CMU Pronouncing Dictionary 0.7b (as HeadTTS's en-us.txt)  BSD-2-Clause  Carnegie Mellon University
+en-GB-x-rp.dict (RP pronunciations)  BSD-2-Clause  Copyright (C) 2017 Reece H. Dunn
+
 == Native layer (Rust, apps/desktop/src-tauri/Cargo.toml, direct dependencies) ==
 
 tauri  2  Apache-2.0 OR MIT

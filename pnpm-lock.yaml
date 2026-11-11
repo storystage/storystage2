@@ -478,6 +478,9 @@ importers:
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
+      onnxruntime-web:
+        specifier: 1.30.0
+        version: 1.30.0
     devDependencies:
       vite:
         specifier: ^8.3.4

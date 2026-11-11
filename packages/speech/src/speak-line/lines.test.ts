@@ -93,6 +93,21 @@ describe('LineCache', () => {
     expect(cache.get(line('Kept.'))).toBeDefined();
   });
 
+  it('carries on past a line it can’t make, and says which', async () => {
+    const f = fakeEngine();
+    const failing: SpeechEngine = {
+      sampleRate: RATE,
+      speak: (text, voice) =>
+        text === 'Broken.' ? Promise.reject(new Error('no sound')) : f.engine.speak(text, voice),
+    };
+    const cache = new LineCache(failing);
+    const failures = await cache.prepare([line('Before.'), line('Broken.'), line('After.')]);
+    expect(failures).toEqual([{ line: line('Broken.'), message: 'no sound' }]);
+    expect(cache.get(line('Before.'))).toBeDefined();
+    expect(cache.get(line('After.'))).toBeDefined();
+    expect(cache.get(line('Broken.'))).toBeUndefined();
+  });
+
   it('forgets everything on clear, as after an accent change', async () => {
     const cache = new LineCache(fakeEngine().engine);
     await cache.prepare([line('Hello.')]);

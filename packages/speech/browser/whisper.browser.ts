@@ -1,7 +1,8 @@
 /**
  * Dictation in a real browser (spec 06, section 5): whisper.cpp built from pinned sources, in
  * the real worker, hearing a recorded clip; and the browser's microphone through the real
- * worklet. Run by `.github/workflows/speech.yml`, which builds whisper first.
+ * worklet. And speak line: Kokoro speaking through the real worker, heard by whisper. Run by
+ * `.github/workflows/speech.yml`, which builds whisper and fetches Kokoro's files first.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
@@ -31,7 +32,7 @@ function wordErrorRate(said: string, heard: string): number {
 const KENNEDY =
   'And so my fellow Americans, ask not what your country can do for you, ask what you can do for your country.';
 
-async function resultOf(page: Page, run: string) {
+async function resultOf(page: Page, run: string, timeout = 90_000) {
   page.on('console', (m) => console.log(`page ${m.type()}: ${m.text()}`));
   page.on('worker', (worker) =>
     worker.on('console', (m) => console.log(`worker ${m.type()}: ${m.text()}`)),
@@ -42,7 +43,7 @@ async function resultOf(page: Page, run: string) {
     const handle = await page.waitForFunction(
       () => (window as unknown as { harnessResult?: unknown }).harnessResult,
       undefined,
-      { timeout: 90_000 },
+      { timeout },
     );
     return (await handle.jsonValue()) as Record<string, unknown>;
   } finally {
@@ -78,4 +79,37 @@ test('the browser microphone passes on samples, and stops when closed', async ({
   expect(r.blocks).toBeGreaterThan(10);
   expect(r.rate).toBeGreaterThan(0);
   expect(r.afterClose).toBe(0);
+});
+
+interface Spoken {
+  text: string;
+  preset: string;
+  accent: string;
+  seconds: number;
+  soundSeconds: number;
+  peak: number;
+  heard: string;
+}
+
+test('speak line: Kokoro speaks in the real worker, British and American, and whisper understands it', async ({
+  page,
+}) => {
+  test.setTimeout(900_000);
+  const r = await resultOf(page, 'speak', 880_000);
+  mkdirSync('test-results', { recursive: true });
+  writeFileSync('test-results/speak-line.json', JSON.stringify(r, null, 2));
+  console.log(JSON.stringify(r, null, 2));
+  expect(r.error).toBeUndefined();
+  const lines = r.lines as Spoken[];
+  expect(lines).toHaveLength(8);
+  for (const l of lines) {
+    const what = `${l.accent} ${l.preset}: ${l.text}`;
+    // Real sound, fitted to the block's time (spec 06, 4.2).
+    expect(l.peak, what).toBeGreaterThan(0.05);
+    expect(l.soundSeconds, what).toBeLessThanOrEqual(l.seconds + 0.01);
+    expect(l.soundSeconds, what).toBeGreaterThan(0.5);
+  }
+  // Understood: whisper gets most words right, across all eight.
+  const wer = lines.map((l) => wordErrorRate(l.text, l.heard));
+  expect(wer.reduce((a, b) => a + b, 0) / wer.length).toBeLessThan(0.2);
 });
