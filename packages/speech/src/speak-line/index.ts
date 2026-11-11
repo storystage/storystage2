@@ -13,6 +13,19 @@ export {
   type KokoroSession,
   type KokoroText,
 } from './kokoro-core.ts';
+export {
+  KOKORO_CACHE,
+  KokoroDownloadError,
+  downloadKokoro,
+  fileUrl,
+  kokoroFileList,
+  kokoroToDownload,
+  type CacheLike,
+  type CachesLike,
+  type DownloadOptions,
+  type KokoroFile,
+  type KokoroFilesOptions,
+} from './kokoro-files.ts';
 export { KokoroEngine, type KokoroEngineOptions, type KokoroWorker } from './kokoro-engine.ts';
 export type { KokoroOptions, KokoroPlaces } from './kokoro-protocol.ts';
 export {

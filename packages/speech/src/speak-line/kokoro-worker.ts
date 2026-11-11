@@ -5,6 +5,7 @@
 // The WebAssembly-only build: no GPU code, and only ort-wasm-simd-threaded.{mjs,wasm} to serve.
 import * as ort from 'onnxruntime-web/wasm';
 import { KokoroCore, type KokoroSession } from './kokoro-core.ts';
+import { kokoroFiles } from './kokoro-files.ts';
 import type { FromKokoro, KokoroOptions, KokoroPlaces, ToKokoro } from './kokoro-protocol.ts';
 
 interface WorkerScope {
@@ -19,17 +20,13 @@ const send = (m: FromKokoro, transfer: Transferable[] = []) => scope.postMessage
 const log = (line: string) => send({ type: 'log', line });
 
 async function load(places: KokoroPlaces, options: KokoroOptions = {}): Promise<KokoroCore> {
-  const text = async (file: string) => {
-    const res = await fetch(`${places.assets}${file}`);
-    if (!res.ok) throw new Error(`${file}: ${res.status}`);
-    return res.text();
-  };
-  const bytes = async (file: string) => {
-    const res = await fetch(`${places.assets}${file}`);
-    if (!res.ok) throw new Error(`${file}: ${res.status}`);
-    return res.arrayBuffer();
-  };
+  // The copy kept on this device if the browser downloaded them (kokoro-files.ts), else the network.
+  const file = await kokoroFiles(places);
+  const text = async (name: string) => (await file(`kokoro/${name}`)).text();
+  const bytes = async (name: string) => (await file(`kokoro/${name}`)).arrayBuffer();
   ort.env.wasm.wasmPaths = places.wasm;
+  // ONNX Runtime's WebAssembly from the same place as the model, so it's downloaded once too.
+  ort.env.wasm.wasmBinary = await (await file('ort/ort-wasm-simd-threaded.wasm')).arrayBuffer();
   // One thread unless asked for more: with several, ONNX Runtime's own thread start-up hangs
   // inside this worker (seen in Chromium and Edge, 11 Nov 2026), and lines are prepared in the
   // background anyway, leaving the other cores to the stage and the interface.
