@@ -16,7 +16,7 @@ import type {
 import type { BackstageId, Micros, StandIn, Transform } from '@storystage/story-api';
 import { facing, heightOnPicture, project, type OnPicture, type View } from './geometry.ts';
 import type { FrameSpan } from './spans.ts';
-import { t } from './strings.ts';
+import { plural, t } from './strings.ts';
 
 /** Flags first, then notes, then passed items, so every view lists them the same way. */
 export const ITEM_ORDER: readonly CheckOutcome[] = ['flag', 'note', 'passed'];
@@ -424,13 +424,13 @@ export function compareFrame(run: FrameRun): CheckItem[] {
           id: 'length',
           kind: 'length',
           outcome: 'flag',
-          words: t('length.flag', { seconds: Math.round(lasts), planned }),
+          words: plural('length.flag', Math.round(lasts), { planned }),
         }
       : {
           id: 'length',
           kind: 'length',
           outcome: 'passed',
-          words: t('length.passed', { seconds: Math.round(lasts) }),
+          words: plural('length.passed', Math.round(lasts)),
         },
   );
 
