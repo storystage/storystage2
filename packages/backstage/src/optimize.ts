@@ -113,6 +113,51 @@ export function dropDuplicateInstances(doc: Document): number {
 /** How far meshoptimizer may move the surface, as a share of the model's size: gentle first. */
 const ERRORS = [0.005, 0.01, 0.02, 0.05, 0.1];
 
+/**
+ * The last step, only when the gentle ones stall above `target`: meshoptimizer's attribute-aware
+ * simplifier in its Permissive mode, which may collapse edges across a picture's seams, weighing
+ * the texture coordinates so the picture still lands where it should. Each primitive takes its
+ * share of the target. It keeps a subset of the original corners, as the gentle steps do, so
+ * joints and weights carry over. A primitive with no indices, or with positions not stored as
+ * plain floats, is left as it is.
+ */
+function permissive(doc: Document, target: number): void {
+  const total = countTriangles(doc);
+  for (const mesh of doc.getRoot().listMeshes())
+    for (const prim of mesh.listPrimitives()) {
+      const indices = prim.getIndices()?.getArray();
+      const positions = prim.getAttribute('POSITION')?.getArray();
+      if (prim.getMode() !== 4 || !indices || !(positions instanceof Float32Array)) continue;
+      const want = Math.max(3, Math.floor((indices.length * target) / total / 3) * 3);
+      if (indices.length <= want) continue;
+      const uv = prim.getAttribute('TEXCOORD_0')?.getArray();
+      const triangles = new Uint32Array(indices);
+      let kept = triangles;
+      for (const error of [0.02, 0.05, 0.1]) {
+        [kept] =
+          uv instanceof Float32Array
+            ? MeshoptSimplifier.simplifyWithAttributes(
+                triangles,
+                positions,
+                3,
+                uv,
+                2,
+                [1, 1],
+                null,
+                want,
+                error,
+                ['Permissive'],
+              )
+            : MeshoptSimplifier.simplify(triangles, positions, 3, want, error, ['Permissive']);
+        if (kept.length <= want) break;
+      }
+      const old = prim.getIndices()!;
+      prim.setIndices(
+        doc.createAccessor().setType('SCALAR').setArray(kept).setBuffer(old.getBuffer()),
+      );
+    }
+}
+
 export async function reduceModel(
   doc: Document,
   budget: Budget,
@@ -132,6 +177,9 @@ export async function reduceModel(
       simplified = true;
       if (countTriangles(doc) <= budget.triangles) break;
     }
+    // Scans whose pictures are cut into many small pieces stall above the budget, because the
+    // gentle steps never collapse an edge along a picture's seam (museum scans, 11 Nov 2026).
+    if (countTriangles(doc) > budget.triangles) permissive(doc, budget.triangles);
     await doc.transform(prune());
   }
 
