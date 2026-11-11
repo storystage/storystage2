@@ -115,7 +115,8 @@ export class LineCache {
 
 /** Plays sound. The browser's is in `browser.ts`; tests use a fake. */
 export interface AudioOut {
-  play(samples: Float32Array, sampleRate: number): void;
+  /** Plays `samples`, cutting what was playing, starting `delay` seconds from now (0 by default). */
+  play(samples: Float32Array, sampleRate: number, delay?: number): void;
   stop(): void;
 }
 
@@ -132,12 +133,15 @@ export class LinePlayer {
     this.#out = out;
   }
 
-  /** Starts a line as its block starts. Returns whether it has sound. */
-  start(line: Line): boolean {
+  /**
+   * Starts a line as its block starts, or `delay` seconds from now when the block is known ahead
+   * of its picture (Rehearse's lookahead). Returns whether it has sound.
+   */
+  start(line: Line, delay = 0): boolean {
     this.#out.stop();
     const sound = this.#cache.get(line);
     if (!sound) return false;
-    this.#out.play(sound, this.#cache.sampleRate);
+    this.#out.play(sound, this.#cache.sampleRate, delay);
     return true;
   }
 

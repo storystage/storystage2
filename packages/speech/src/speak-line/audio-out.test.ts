@@ -7,6 +7,7 @@ function fakeContext(state = 'running') {
   const context: AudioContextLike = {
     destination: 'speakers',
     state,
+    currentTime: 10,
     resume: async () => void log.push('resume'),
     createBuffer: (channels, length, rate) => ({
       copyToChannel: () => log.push(`buffer ${channels}ch ${length / rate}s`),
@@ -16,7 +17,8 @@ function fakeContext(state = 'running') {
       return {
         buffer: null,
         connect: (d: unknown) => log.push(`${id} to ${String(d)}`),
-        start: () => log.push(`${id} start`),
+        start: (when?: number) =>
+          log.push(when === undefined ? `${id} start` : `${id} start at ${when}`),
         stop: () => log.push(`${id} stop`),
       };
     },
@@ -43,6 +45,14 @@ describe('webAudioOut', () => {
       '2 start',
       '2 stop',
     ]);
+  });
+
+  it('starts a line after a delay on the audio clock, and stop cuts it while it waits', () => {
+    const { context, log } = fakeContext();
+    const out = webAudioOut(context);
+    out.play(new Float32Array(24_000), 24_000, 0.1);
+    out.stop();
+    expect(log).toEqual(['buffer 1ch 1s', '1 to speakers', '1 start at 10.1', '1 stop']);
   });
 
   it('wakes a suspended context before playing', () => {
