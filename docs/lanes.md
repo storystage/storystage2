@@ -96,6 +96,15 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 12 Nov: **WP3's status** (the owner's choices of 12 Nov): **3.7 ticked**, Kenney's rigged characters left out (kenney.nl refuses scripts; KayKit's cover them); the owner approved the borderline sections so far (3.10). What the rest still need:
+    - 3.1 (licence audit): the owner's sign-off, and CMU's answer on Alice's models (WP17.1).
+    - 3.2 (Alice converter): built; publishing waits on CMU.
+    - 3.6 (storybook cast) and 3.8 (Blender Studio): not started; 3.6 is the owner's commission.
+    - 3.9 (budgets): the code is done; the budgets and the scene memory budget wait for the reference devices (#6).
+    - 3.10 (sections): every model has one; each section's own browse view and thumbnail style are the studio's (S5).
+    - 3.11 (import): built (S4) with its screens (S5); the done-when run on a 4 GB Chromebook waits for the device.
+    - 3.12 (licence capture): built; still needed: **S5**, the studio applying the `backstage.import` policy (off, teacher, learners; asked 12 Nov); **S2**, Export for distribution refusing films that use CC BY-NC or "not sure" models, with a plain-words reason; the owner, `backstage.search`'s default after the DPIA.
+  - 12 Nov: **a ground's colour from the stage's own table** (#376; S3's `groundLook`): a ground item's `look` is optional and must agree with the stage; a ground the stage doesn't have is refused.
   - 12 Nov: **the museum scans in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 8c5e278 (153 models), and the Prompter's catalogue and pins are refreshed.
 - Merged:
   - 12 Nov (#373, backstage-assets#11): **the first museum scans** (WP3b; the owner's subjects of 11 Nov: space and flight, fossils, engines and inventions, ships): 15 CC0 objects, 7 from the Smithsonian and 8 from the Scottish Maritime Museum (downloaded through the owner's Chrome, Sketchfab needing a sign-in), each checked as CC0 on its own page. Their tools: a last, permissive simplifying step for scans the gentle steps can't fit, and older specular-glossiness materials as base-colour ones. The Wright Flyer is left out: its thin wings break at any reduction to budget.
