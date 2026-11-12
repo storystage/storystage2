@@ -50,6 +50,11 @@ function typeOf(program: Program, id: NodeId | null): NodeId | null {
 
 export interface BlocksEditorOptions {
   /**
+   * How big the blocks are drawn: Settings › Accessibility's text size (1, 1.25 or 1.5; decision
+   * 0035). Blockly lays blocks out from its own text, so the whole workspace scales. Default 1.
+   */
+  readonly scale?: number;
+  /**
    * Asks the learner for one value of a block just dropped (the shared cascade, section 2.3),
    * shown at `anchor`, the block's own element. Resolves to `null` for Escape, which cancels
    * the drop. Without it, a dropped block keeps its empty values.
@@ -251,7 +256,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         trashcan: false,
         sounds: false,
         move: { scrollbars: true, drag: true, wheel: true },
-        zoom: { controls: false, wheel: false, startScale: 1 },
+        zoom: { controls: false, wheel: false, startScale: options.scale ?? 1 },
       });
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {

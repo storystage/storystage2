@@ -9,7 +9,8 @@ import { createBlocksEditor, type AskRequest, type BlocksEditor } from '@storyst
 import type { EditorHost, HighlightMark } from '@storystage/editor-contract';
 import type { Ask as AskKind, PaletteTab } from '@storystage/story-api/editing';
 import { AskValue, ValueMenu } from '@storystage/tiles/cascade';
-import { useEffect, useRef, useState } from 'react';
+import { useThemeStyle } from '@storystage/ui';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
 
 export interface BlocksPanelProps {
@@ -53,6 +54,8 @@ export default function BlocksPanel({
 }: BlocksPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<BlocksEditor | null>(null);
+  // The text size scales the blocks too; a new size draws the method again at that size.
+  const scale = Number(useThemeStyle()['--ss-text-size' as keyof CSSProperties] ?? 1) || 1;
   const [ready, setReady] = useState(false);
   const [question, setQuestion] = useState<Question | null>(null);
   // Choosing "Other words…" closes the menu on its way to the typing field: not an Escape.
@@ -61,6 +64,7 @@ export default function BlocksPanel({
   useEffect(() => {
     if (!box.current) return;
     const blocks = createBlocksEditor({
+      scale,
       // Each question opens Tiles' menu at the dropped block; Escape cancels the drop.
       ask: (request) =>
         new Promise((resolve) => {
@@ -86,7 +90,7 @@ export default function BlocksPanel({
     };
     // `focus` is for opening only: the Code editor opens afresh for each block it's asked to show.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [method, host]);
+  }, [method, host, scale]);
 
   useEffect(() => {
     editor.current?.setPalette(target, tab);

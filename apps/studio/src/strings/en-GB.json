@@ -579,5 +579,13 @@
   "voices.download": "Download the voices",
   "voices.tryAgain": "Try again",
   "voices.downloading": "Downloading the voices… {percent}%",
-  "voices.progress": "How much of the voices has downloaded"
+  "voices.progress": "How much of the voices has downloaded",
+  "settings.access": "Accessibility",
+  "settings.theme": "Theme",
+  "settings.theme.dark": "Dark",
+  "settings.theme.light": "Light",
+  "settings.theme.device": "Match this device",
+  "settings.textSize": "Text size",
+  "settings.textSize.percent": "{percent}%",
+  "settings.access.help": "For everyone who uses this device. Bigger text keeps the studio as wide as it is."
 }

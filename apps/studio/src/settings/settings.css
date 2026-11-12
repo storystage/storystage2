@@ -19,7 +19,7 @@
 .st-page-title {
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 26px;
+  font-size: calc(26px * var(--ss-text-size, 1));
   font-weight: 800;
 }
 .st-page-sub {
@@ -64,12 +64,12 @@
 }
 .st-card-title {
   margin: 0;
-  font-size: 19px;
+  font-size: calc(19px * var(--ss-text-size, 1));
   font-weight: 800;
 }
 .st-subtitle {
   margin: 4px 0 0;
-  font-size: 16px;
+  font-size: calc(16px * var(--ss-text-size, 1));
   font-weight: 700;
 }
 .st-note {
@@ -159,7 +159,7 @@
 .st-pupil-name {
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 22px;
+  font-size: calc(22px * var(--ss-text-size, 1));
   font-weight: 800;
 }
 .st-films,
@@ -185,7 +185,7 @@
   padding: 6px 0;
 }
 .st-binned-text .st-row-count {
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
 }
 .st-skipped li {
   display: flex;
@@ -206,7 +206,7 @@
   border-bottom: 1px solid var(--ss-line-1);
 }
 .st-usage th {
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   color: var(--ss-muted);
 }
 
@@ -227,7 +227,7 @@
 }
 .cm-credit {
   overflow: hidden;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -301,4 +301,15 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+/* Settings › Accessibility: each choice under its visible name. */
+.st-access {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.st-label {
+  font-weight: 700;
 }
