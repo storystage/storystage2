@@ -718,7 +718,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- /schedule:wp11 -->
 - [x] 11.1 Rough-cut playback of the whole running order with transitions; jump between scenes; frame strip alongside showing the current frame. (C)
 - [x] 11.2 **Compare:** a frame's sketch layout beside a still from the rough cut; notes per scene for retakes. (C)
-- [ ] 11.3 **Export for distribution:** a frame-by-frame offscreen render at a fixed rate (30 fps, 1280×720 by default), encoded to MP4 with H.264 video and AAC audio. Progress bar and cancel. (C)
+- [x] 11.3 **Export for distribution:** a frame-by-frame offscreen render at a fixed rate (30 fps, 1280×720 by default), encoded to MP4 with H.264 video and AAC audio. Progress bar and cancel. (C)
 - [x] 11.4 Title card from the title and logline. End credits listing the learner's chosen names (optional), music and model credits from the manifest grouped as Cast, Props, Set and Backdrops, and the required notices (for example CMU's acknowledgement for Alice-derived models). Captions file (WebVTT and SRT) from the script's dialogue and say/speak blocks. (C)
 - [ ] 11.5 Fallback where WebCodecs isn't available, as decided in WP1.8. (C)
 - [ ] 11.6 **Automatic check against the storyboard** (from Roblox Studio's automated playtesting; works without the Prompter and without a network):
