@@ -148,6 +148,14 @@ So the production has its own session, `ProductionSession` (`session.ts`, WP8.2)
 
 **Renaming a scene** (`renameScene`) changes its card's heading, which the Storyboard, the script and the running order show; its type keeps its name. **Duplicating a scene** (`duplicateScene`) places a copy straight after it in the running order, with the same transition: a copy of its type (fields, methods and listeners with new ids, named `SceneN`), its set-up, its card with a new heading, and its frames and lines with new ids (`fN`, `lN`, the first free). The copied frames' links follow the copied blocks, and the copied lines stay pinned to the copied frames. Recordings aren't copied.
 
+**Adding, removing and changing a scene's objects** (`objects.ts`; 07-ux section 7.2, for the Production stage, the shape S5 proposed on 12 Nov 2026) are steps of the same kind, for `session.step`:
+
+- **`addObject`** adds a field of the object's Story API class to the scene's type (`owl: Flyer`, with no initial value, since how it starts is in the set-up) and an entry in its set-up with its model (a Backstage item or a stand-in) and transform, as one step ("Add owl").
+- **Its name** comes from the model's display name, made a field name the code can use and unique in that scene's type only (`objectName`: "Woolly mammoth skeleton" is `woollyMammothSkeleton`, a second owl `owl2`). So the same character in another scene can have the same name, and with it the same voice (section 1.6) and the same place in the automatic check.
+- **`removeObject`** takes out the field and the entry; whatever rode on it rides on the scene. It is refused while code uses the object, and the refusal carries the blocks that do (`objectInUse`, with `uses`), so the studio can say where, as deleting a scene is refused.
+- **`setObject`** changes how an object starts (its transform, opacity or paint): the set-up only, so the program doesn't change ("Move owl"). `withObject` gives the production alone, for `session.change`.
+- A scene holds at most 100 objects (`OBJECT_LIMIT`), a guard well above what the device budget lets a scene draw.
+
 A scene's script method can't be removed by an edit: `sceneMethodCheck` is the `check` for `EditSession` that refuses it, in plain words (`01-ast.md` section 4.5). Deleting a scene takes its whole `type`, in the production's own step (WP8.2).
 
 ## 3. Running order
