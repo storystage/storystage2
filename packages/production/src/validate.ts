@@ -169,7 +169,8 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
     'audio',
     'models',
   ];
-  if (!s.object(v, '', keys, ['credits'])) return s.problems;
+  // `voices` is only allowed here: `keptVoices` keeps what fits when the file opens (format 1.4.0).
+  if (!s.object(v, '', keys, ['credits', 'voices'])) return s.problems;
   if (v.credits !== undefined && s.object(v.credits, 'credits', ['names'])) {
     const names = v.credits.names;
     if (s.array(names, 'credits.names', (n, p) => s.string(n, p, TEXT_LIMITS.creditName)))

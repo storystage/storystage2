@@ -2,7 +2,8 @@ import { basisFor } from '@storystage/check';
 import { browserHost, type HostInterface } from '@storystage/host';
 import { exampleProduction, type Production, type ProductionFiles } from '@storystage/production';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
-import type { EncoderBackend, FilmExport, Frame } from '@storystage/export';
+import type { EncoderBackend, FilmExport, FilmVoices, Frame, VoicedLine } from '@storystage/export';
+import { nodeId, type Statement } from '@storystage/ast';
 import {
   inMemoryPorts,
   serve,
@@ -80,6 +81,7 @@ function harness(
     files?: ProductionFiles;
     importWorker?: () => ImportWorker;
     saveFilm?: (film: FilmExport) => Promise<void>;
+    voices?: FilmVoices;
   } = {},
 ) {
   const made: { hidden: boolean; stage: FakeStage }[] = [];
@@ -127,6 +129,7 @@ function harness(
         makeStage={makeStage}
         startWorker={startWorker}
         {...(over.saveFilm ? { saveFilm: over.saveFilm } : {})}
+        {...(over.voices ? { voices: over.voices } : {})}
         exportOptions={FAKE_ENCODING}
       />
     );
@@ -443,6 +446,50 @@ describe('ScreeningTab', () => {
     expect(screen.queryByText(/couldn’t finish/)).toBeNull();
     quiet.mockRestore();
   }, 20_000);
+
+  it('voices an exported film’s speak lines with the studio’s voices, prepared first', async () => {
+    const p = exampleProduction();
+    const [type1, ...types] = p.program.types;
+    const [method, ...methods] = type1!.methods;
+    const speak: Statement = {
+      id: nodeId('speaktbb'),
+      kind: 'call',
+      target: {
+        id: nodeId('speaktbr'),
+        kind: 'fieldRef',
+        target: { id: nodeId('speaktbs'), kind: 'this' },
+        field: nodeId('scene1p'),
+      },
+      callee: { kind: 'story', name: 'speakLine' },
+      args: { text: { id: nodeId('speaktbx'), kind: 'text', value: 'Wait for me!' } },
+      details: {},
+    };
+    const production: Production = {
+      ...p,
+      program: {
+        ...p.program,
+        types: [
+          { ...type1!, methods: [{ ...method!, body: [...method!.body, speak] }, ...methods] },
+          ...types,
+        ],
+      },
+    };
+    const prepared: VoicedLine[] = [];
+    const voices: FilmVoices = {
+      sampleRate: 24_000,
+      prepare: async (lines) => void prepared.push(...lines),
+      sound: (l) => new Float32Array(Math.round(l.seconds * 24_000)).fill(0.5),
+    };
+    const saved: FilmExport[] = [];
+    harness({ production, voices, saveFilm: async (film) => void saved.push(film) });
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
+    await waitFor(() => expect(saved).toHaveLength(1), { timeout: 15_000 });
+    expect(prepared.map((l) => l.text)).toEqual(['Wait for me!']);
+    expect(saved[0]!.sound).toEqual({ voiced: 1, silent: 0, unencoded: false });
+  }, 30_000);
 
   it("says so in plain words when this device can't make a stage", async () => {
     harness({ stage: async () => Promise.reject(new Error('no WebGL')) });

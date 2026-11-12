@@ -125,7 +125,8 @@ describe('LinePlayer', () => {
   function fakeOut() {
     const log: string[] = [];
     const out: AudioOut = {
-      play: (s, rate) => log.push(`play ${s.length / rate}s`),
+      play: (s, rate, delay = 0) =>
+        log.push(`play ${s.length / rate}s${delay ? ` in ${delay}s` : ''}`),
       stop: () => log.push('stop'),
     };
     return { out, log };
@@ -140,6 +141,14 @@ describe('LinePlayer', () => {
     expect(player.start(line('Thank you.'))).toBe(true);
     player.stop();
     expect(log).toEqual(['stop', 'play 1.2s', 'stop', 'play 0.6s', 'stop']);
+  });
+
+  it('passes a delay on, for a line known ahead of its picture', async () => {
+    const cache = new LineCache(fakeEngine().engine);
+    await cache.prepare([line('Thank you.')]);
+    const { out, log } = fakeOut();
+    expect(new LinePlayer(cache, out).start(line('Thank you.'), 0.1)).toBe(true);
+    expect(log).toEqual(['stop', 'play 0.6s in 0.1s']);
   });
 
   it('is silent for a line not ready yet: the caption shows without it', () => {

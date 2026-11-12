@@ -23,6 +23,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "backstage:fetch": "node tools/backstage-sources/src/bundle-cli.ts",
+    "speech:fetch": "pnpm --filter @storystage/speech exec node scripts/fetch-kokoro-assets.mjs ../../.speech-cache ../../.speech",
     "prompter:pins": "node packages/prompter/scripts/pins-cli.ts"
   },
   "devDependencies": {

@@ -52,13 +52,23 @@ export function contentType(path: string): string {
   return (dot >= 0 && TYPES[path.slice(dot + 1).toLowerCase()]) || 'application/octet-stream';
 }
 
-/** Answers a request under `/backstage/` from `folder`; anything else is passed on. */
-export function serveFrom(folder: string) {
+/** How `serveFrom` serves a folder; the defaults are the Backstage's. */
+export interface ServeOptions {
+  /** The address the folder is at, beginning and ending in `/`. */
+  readonly prefix?: string;
+  readonly contentType?: (path: string) => string;
+  /** Pass a missing file on, for another server to answer, instead of a 404. */
+  readonly passOnMissing?: boolean;
+}
+
+/** Answers a request under `prefix` (`/backstage/`) from `folder`; anything else is passed on. */
+export function serveFrom(folder: string, options: ServeOptions = {}) {
+  const { prefix = PREFIX, contentType: typeOf = contentType, passOnMissing = false } = options;
   return (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     const url = req.url ?? '';
-    if (!url.startsWith(PREFIX)) return next();
+    if (!url.startsWith(prefix)) return next();
     // A cache-buster or a reload may add a query or a hash; they name no file.
-    const path = url.slice(PREFIX.length).split(/[?#]/)[0] ?? '';
+    const path = url.slice(prefix.length).split(/[?#]/)[0] ?? '';
     const file = join(folder, path);
     const found =
       (req.method === 'GET' || req.method === 'HEAD') &&
@@ -66,12 +76,13 @@ export function serveFrom(folder: string) {
       existsSync(file) &&
       statSync(file).isFile();
     if (!found) {
+      if (passOnMissing) return next();
       res.statusCode = 404;
       res.end();
       return;
     }
     const body = readFileSync(file);
-    res.setHeader('Content-Type', contentType(path));
+    res.setHeader('Content-Type', typeOf(path));
     res.setHeader('Content-Length', body.length);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.end(req.method === 'HEAD' ? undefined : body);

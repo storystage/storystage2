@@ -6,7 +6,8 @@
  *
  * Refused before anything is drawn when a model may not leave the school (3.12), or when the
  * film stops with an error. A film longer than 10 minutes stops at the cap and says so.
- * Sound comes later: recorded lines need their times, and speak line's voices come with WP14.
+ * Speak lines are voiced with the studio's sounds (`voices`, spec 08 section 4): prepared first,
+ * then mixed into one track. Recorded lines and narration come later: they need their times.
  */
 import { mayDistribute, type BackstageItem } from '@storystage/backstage';
 import { FILM_CAP, Playback, measure, type RuntimeWorker } from '@storystage/playback';
@@ -14,10 +15,11 @@ import type { Production } from '@storystage/production';
 import type { FrameImage, Stage } from '@storystage/stage';
 import { micros, type BackstageId, type Micros } from '@storystage/story-api';
 import type { AudioCodecChoice, EncoderBackend, Frame } from '../encoder/backend.ts';
-import { ExportError, exportMp4 } from '../encoder/export-mp4.ts';
+import { ExportError, exportMp4, probeExport } from '../encoder/export-mp4.ts';
 import { captionsFor, srt, webVtt } from './captions.ts';
 import { filmCredits, usedModels, type CreditOptions, type FilmCreditable } from './credits.ts';
 import { drawPart, filmPlan, partAt, type FramePart } from './overlay.ts';
+import { TRACK_RATE, soundtrack, voicedLines, type FilmVoices } from './soundtrack.ts';
 import { bylineFor, titleCard } from './titles.ts';
 
 /** A scene that waits on the viewer ends this long after its last stage command (rule 11). */
@@ -39,9 +41,12 @@ export interface Compositor {
   frame(part: FramePart, picture: FrameImage | null): Frame | Promise<Frame>;
 }
 
-export type ExportStep = 'frames' | 'credits' | 'saving';
+export type ExportStep = 'voices' | 'frames' | 'credits' | 'saving';
 export interface ExportProgress {
-  /** Drawing the film's frames, adding the credits, then saving the MP4 file. */
+  /**
+   * Preparing the speak lines' voices (a film with speak lines), drawing the film's frames, adding
+   * the credits, then saving the MP4 file.
+   */
   readonly step: ExportStep;
   /** Of the whole export, 0 to 1. */
   readonly fraction: number;
@@ -68,6 +73,8 @@ export interface ExportFilmOptions extends CreditOptions {
   readonly compositor?: (size: { readonly width: number; readonly height: number }) => Compositor;
   readonly backend?: EncoderBackend;
   readonly audioCodecs?: readonly AudioCodecChoice[];
+  /** The studio's voices for speak lines. Without them, speak lines are silent, with captions. */
+  readonly voices?: FilmVoices;
   readonly signal?: AbortSignal;
   readonly onProgress?: (progress: ExportProgress) => void;
   /** Default 10 minutes. */
@@ -84,6 +91,16 @@ export interface FilmExport {
   /** The film was longer than 10 minutes, so it stops there. */
   readonly capped: boolean;
   readonly seconds: number;
+  /**
+   * The speak lines' sound, for the dialog's note; `null` when the film has none. `silent`
+   * lines had no sound ready; `unencoded` means this device can't encode the track, so the
+   * film is silent.
+   */
+  readonly sound: {
+    readonly voiced: number;
+    readonly silent: number;
+    readonly unencoded: boolean;
+  } | null;
 }
 
 /** The export can't start. Each reason is in plain words. */
@@ -165,6 +182,40 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
   });
 
   const size = RESOLUTIONS[options.resolution ?? '720p'];
+  const report = (step: ExportStep, fraction: number) => options.onProgress?.({ step, fraction });
+
+  // The speak lines' voices: prepared first, then one track (section 4).
+  const speaking = voicedLines(timeline.lines);
+  let audio: { channels: Float32Array[]; sampleRate: number } | null = null;
+  let sound: FilmExport['sound'] = null;
+  if (speaking.length > 0) {
+    const voices = options.voices;
+    if (voices) {
+      report('voices', 0);
+      await voices.prepare(speaking, signal);
+      if (signal?.aborted) throw new ExportError('cancelled');
+    }
+    const track = voices
+      ? soundtrack(timeline.lines, voices, { offset: title?.duration ?? 0, total: plan.total })
+      : null;
+    let unencoded = false;
+    if (track && track.voiced > 0) {
+      const probe = await probeExport({
+        ...size,
+        audio: { channels: 1, sampleRate: TRACK_RATE },
+        ...(options.backend ? { backend: options.backend } : {}),
+        ...(options.audioCodecs ? { audioCodecs: options.audioCodecs } : {}),
+      });
+      if (probe.audioCodec) audio = { channels: [track.samples], sampleRate: TRACK_RATE };
+      else unencoded = true;
+    }
+    sound = {
+      voiced: track?.voiced ?? 0,
+      silent: track?.silent ?? speaking.length,
+      unencoded,
+    };
+  }
+
   const compositor = (options.compositor ?? canvasCompositor)(size);
   const playing = options.startWorker();
   const playback = new Playback({
@@ -177,7 +228,6 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
     viewerWait: EXPORT_VIEWER_WAIT,
   });
   const seconds = plan.total / 1_000_000;
-  const report = (step: ExportStep, fraction: number) => options.onProgress?.({ step, fraction });
   try {
     await playback.start();
     const result = await exportMp4({
@@ -200,6 +250,7 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
       },
       ...(options.backend ? { backend: options.backend } : {}),
       ...(options.audioCodecs ? { audioCodecs: options.audioCodecs } : {}),
+      ...(audio ? { audio } : {}),
       ...(signal ? { signal } : {}),
     });
     return {
@@ -209,6 +260,7 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
       name: fileName(production.manifest.title),
       capped: timeline.end.kind === 'cap',
       seconds,
+      sound,
     };
   } catch (e) {
     throw cancelled(e) ? new ExportError('cancelled') : e;

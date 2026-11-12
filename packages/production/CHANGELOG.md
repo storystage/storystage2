@@ -2,6 +2,13 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.4.0
+
+A production keeps its characters' speak-line voices (S1, WP14b; spec 06 section 4.3). Optional, so an older file opens, is migrated, and keeps its original.
+
+- On the manifest: `voices`, each character's `CastVoice` by the name of its set-up objects, within `VOICE_LIMITS` and `BASE_VOICES` (`voices.ts`, which `@storystage/speech` now imports). Only learners' choices: a voice that doesn't fit, or whose character is gone, is dropped when the file opens, never refused.
+- Renaming a scene object in code carries its voice to the new name in the same undo step.
+
 ## 1.3.0
 
 A frame can keep its latest automatic check against the storyboard (S2, WP11c; spec 08 section 9.6). Optional, so an older file opens, is migrated, and keeps its original.

@@ -10,6 +10,8 @@
  *   <out>/kokoro/en-GB-x-rp.dict                      Reece Dunn's RP list (BSD-2-Clause)
  *   <out>/kokoro/licences/…                           the licence and notice files
  *   <out>/ort/ort-wasm-simd-threaded.{mjs,wasm}       ONNX Runtime Web (MIT), from node_modules
+ *   <out>/kokoro/SHA256SUMS, files.json               every file's SHA-256; files.json adds its
+ *                                                     size, for the browser's one download
  *
  * For the browser test now; the apps bundle the same files (WP15, S8).
  * Usage (from packages/speech): node scripts/fetch-kokoro-assets.mjs <cache-dir> <out-dir>
@@ -31,6 +33,8 @@ if (!cacheArg || !outArg) throw new Error('Usage: fetch-kokoro-assets.mjs <cache
 const cache = resolve(cacheArg);
 const out = resolve(outArg);
 const sums = [];
+/** Each file, its size and SHA-256, for the browser's download (src/speak-line/kokoro-files.ts). */
+const files = [];
 
 const sha256 = (b) => createHash('sha256').update(b).digest('hex');
 async function fetchChecked(url, name, pin) {
@@ -47,7 +51,9 @@ async function fetchChecked(url, name, pin) {
 function place(from, to) {
   mkdirSync(dirname(join(out, to)), { recursive: true });
   copyFileSync(from, join(out, to));
-  sums.push(`${sha256(readFileSync(from))}  ${to}`);
+  const bytes = readFileSync(from);
+  sums.push(`${sha256(bytes)}  ${to}`);
+  files.push({ path: to, bytes: bytes.length, sha256: sha256(bytes) });
 }
 
 // --- Kokoro-82M (onnx-community/Kokoro-82M-v1.0-ONNX) ----------------------------------------
@@ -134,4 +140,5 @@ for (const f of readdirSync(ortDist).filter((f) => /^ort-wasm-simd-threaded\.(wa
   place(join(ortDist, f), `ort/${f}`);
 
 writeFileSync(join(out, 'kokoro', 'SHA256SUMS'), `${sums.join('\n')}\n`);
+writeFileSync(join(out, 'kokoro', 'files.json'), `${JSON.stringify(files, null, 1)}\n`);
 console.log(`Kokoro's files ready in ${out} (${sums.length} files)`);

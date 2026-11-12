@@ -19,9 +19,10 @@ import {
   type TypeDecl,
 } from '@storystage/ast';
 import type { BackstageItem, Facing } from '@storystage/backstage';
+import type { CastVoice } from './voices.ts';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.3.0';
+export const FORMAT_VERSION = '1.4.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -92,6 +93,12 @@ export interface ProductionManifest {
    * learners' own words, in a film they'll share (spec section 1.1). Format 1.1.0.
    */
   readonly credits?: { readonly names: readonly string[] };
+  /**
+   * Each character's speak-line voice, by the name of its set-up objects (their field name, as
+   * written), so every object of that name in any scene speaks with it (spec 06 section 4.3,
+   * `voices.ts`). Optional. Format 1.4.0. A voice that doesn't fit is dropped when the file opens.
+   */
+  readonly voices?: Readonly<Record<string, CastVoice>>;
 }
 
 /** Arc templates (WP10.2): free, 3-part, 5-part, or a curriculum template by id (WP16). */

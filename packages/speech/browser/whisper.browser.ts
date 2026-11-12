@@ -100,6 +100,9 @@ test('speak line: Kokoro speaks in the real worker, British and American, and wh
   writeFileSync('test-results/speak-line.json', JSON.stringify(r, null, 2));
   console.log(JSON.stringify(r, null, 2));
   expect(r.error).toBeUndefined();
+  // Downloaded once (the model alone is 92 MB), then nothing left: the worker read the kept copy.
+  expect(r.downloadBytes).toBeGreaterThan(90_000_000);
+  expect(r.leftBytes).toBe(0);
   const lines = r.lines as Spoken[];
   expect(lines).toHaveLength(8);
   for (const l of lines) {

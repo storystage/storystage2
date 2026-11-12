@@ -3,7 +3,8 @@ import type { EditorHost } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon } from '@storystage/ui';
-import { Suspense, lazy, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import type { Voices } from '../speech/voices.ts';
 import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
@@ -44,6 +45,8 @@ export interface ProductionStageProps {
   /** For tests: how the scene view's stage and runtime worker are made. */
   makeStage?: StageMaker;
   startWorker?: () => RuntimeWorker;
+  /** Speak lines' voices, for Rehearse (spec 06 section 4.5). */
+  voices?: Voices | null;
   /** The current frame, shared with the other tabs; the strip shows it chosen. */
   frame?: FrameId | null;
   /** The learner chose a frame on the strip. Without it there's no strip. */
@@ -165,7 +168,18 @@ export function ProductionStage({
   onRehearsed,
   studio,
   onReveal,
+  voices = null,
 }: ProductionStageProps) {
+  const voicesState = useSyncExternalStore(
+    (l) => voices?.subscribe(l) ?? (() => {}),
+    () => voices?.state ?? null,
+  );
+  const silentLines =
+    voicesState?.status === 'unavailable'
+      ? words.t('production.voices.unavailable')
+      : voicesState && voicesState.silent > 0
+        ? words.plural('production.voices.silent', voicesState.silent)
+        : null;
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
   const [rehearsal, setRehearsal] = useState<RehearsalState | null>(null);
@@ -217,6 +231,8 @@ export function ProductionStage({
               active={active}
               {...(makeStage ? { makeStage } : {})}
               {...(startWorker ? { startWorker } : {})}
+              speaker={voices ?? undefined}
+              silentLines={silentLines}
             />
           </Suspense>
         )}

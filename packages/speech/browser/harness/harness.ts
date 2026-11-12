@@ -12,6 +12,7 @@ import type { SpeechModels } from '@storystage/host';
 import { createDictation, type Microphone } from '../../src/dictation.ts';
 import { browserMicrophone, defaultMicrophoneBrowser } from '../../src/microphone.ts';
 import { KokoroEngine } from '../../src/speak-line/kokoro-engine.ts';
+import { downloadKokoro, kokoroToDownload } from '../../src/speak-line/kokoro-files.ts';
 import { LineCache, lineSeconds } from '../../src/speak-line/lines.ts';
 import { castVoices, switchAccent } from '../../src/speak-line/presets.ts';
 import { WhisperCore, type WhisperModule } from '../../src/whisper-core.ts';
@@ -143,6 +144,17 @@ async function speak() {
     assets: new URL('/kokoro/', location.href).href,
     wasm: new URL('/ort/', location.href).href,
   };
+  // The browser version's one download (spec 06, 4.6), so the worker then reads the kept copy.
+  const downloadBytes = await kokoroToDownload(places);
+  let shown = -1;
+  await downloadKokoro(places, {
+    onProgress: (done, total) => {
+      const tenth = Math.floor((10 * done) / total);
+      if (tenth !== shown) stage(`download: ${(shown = tenth) * 10}%`);
+    },
+  });
+  const leftBytes = await kokoroToDownload(places);
+  stage(`downloaded ${downloadBytes} bytes; ${leftBytes} left`);
   const threads = Number(params.get('threads')) || undefined;
   const engine = new KokoroEngine(places, {
     ...(threads ? { threads } : {}),
@@ -182,7 +194,8 @@ async function speak() {
       `${line.voice.accent} ${line.voice.preset}: ${s ? s.length : 'none'} samples, ${bad} not finite`,
     );
   }
-  if (params.get('only') === 'sound') return { prepareMs, sounds: lines.length };
+  if (params.get('only') === 'sound')
+    return { downloadBytes, leftBytes, prepareMs, sounds: lines.length };
   const whisper = await pageWhisper(await (await fetch('/model.bin')).arrayBuffer());
   const heard = [];
   for (const line of lines) {
@@ -199,7 +212,7 @@ async function speak() {
     });
   }
   engine.dispose();
-  return { loadMs, prepareMs, lines: heard };
+  return { downloadBytes, leftBytes, loadMs, prepareMs, lines: heard };
 }
 
 const which = params.get('run');

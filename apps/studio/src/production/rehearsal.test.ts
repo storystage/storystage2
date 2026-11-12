@@ -3,8 +3,8 @@ import { exampleProduction, type Production } from '@storystage/production';
 import { inMemoryPorts, serve, type Timers } from '@storystage/runtime';
 import { FakeStage } from '@storystage/stage/testing';
 import { STORY_LIBRARY } from '@storystage/story-api';
-import { describe, expect, it } from 'vitest';
-import { Rehearsal } from './rehearsal.ts';
+import { describe, expect, it, vi } from 'vitest';
+import { Rehearsal, type Speaker } from './rehearsal.ts';
 
 // Rehearse (07-ux 7.4) on S2's driver, a fake stage and a real runtime over in-memory ports.
 
@@ -34,7 +34,7 @@ function withSceneOne(body: readonly Statement[]): Production {
   };
 }
 
-function rehearse(production: Production) {
+function rehearse(production: Production, speaker?: Speaker) {
   const stage = new FakeStage();
   let ms = 0;
   let ended = 0;
@@ -43,6 +43,7 @@ function rehearse(production: Production) {
     scene: production.scenes[0]!.id,
     stage,
     wall: () => ms,
+    ...(speaker ? { speaker } : {}),
     startWorker: () => {
       const { main, worker } = inMemoryPorts();
       const timers: Timers = { now: () => 0, every: () => () => undefined };
@@ -175,5 +176,34 @@ describe('Rehearsal', () => {
     expect(rehearsal.state.status).toBe('playing');
     expect(loads(stage).at(-1)?.args[0]).toEqual(p.scenes[0]!.setup);
     expect(ended()).toBe(1);
+  });
+});
+
+describe('Rehearsal’s speak lines (spec 06 section 4.5)', () => {
+  const speaker = () => ({ start: vi.fn<(node: NodeId) => void>(), stop: vi.fn() });
+
+  it('tells the voices each block as it starts, and goes quiet on pause and Stop', async () => {
+    const first = say(words('One'));
+    const second = say(words('Two'));
+    const s = speaker();
+    const { rehearsal, frames } = rehearse(withSceneOne([first, second]), s);
+    await rehearsal.start();
+    await frames(0.2);
+    expect(s.start).toHaveBeenCalledWith(first.id);
+    const quietBefore = s.stop.mock.calls.length;
+    rehearsal.pause();
+    expect(s.stop.mock.calls.length).toBeGreaterThan(quietBefore);
+    rehearsal.play();
+    await rehearsal.stop();
+    expect(s.stop.mock.calls.length).toBeGreaterThan(quietBefore + 1);
+  });
+
+  it('says nothing while it runs ahead to a block', async () => {
+    const third = say(words('Three'));
+    const s = speaker();
+    const { rehearsal } = rehearse(withSceneOne([say(words('One')), say(words('Two')), third]), s);
+    await rehearsal.toHere(third.id);
+    expect(rehearsal.state.status).toBe('paused');
+    expect(s.start).not.toHaveBeenCalled();
   });
 });

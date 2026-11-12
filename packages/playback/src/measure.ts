@@ -42,6 +42,8 @@ export interface MeasuredLine {
   readonly start: Micros;
   /** Cut short if the scene ends first. */
   readonly duration: Micros;
+  /** The block's own time, never cut: a speak line's sound is fitted to it (spec 06, 4.2). */
+  readonly length: Micros;
 }
 
 /** A block starting to run, on the film's clock. A block that runs again is here again. */
@@ -119,6 +121,7 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
               ...(c.line === undefined ? {} : { line: c.line }),
               start: start + c.start,
               duration: c.duration,
+              length: c.duration,
             });
         break;
       }
