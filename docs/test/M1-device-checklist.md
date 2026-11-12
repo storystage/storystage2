@@ -23,7 +23,7 @@ The steps around the device runs: getting the devices ready, the order to run th
 
 ## 3. The runs, in this order
 
-Browser spikes first, then spike 1.7 last on the Chromebook, because turning its developer settings off again erases the Chromebook. The times are rough and include reading the results.
+Browser spikes first, then spike 1.7 last on the Chromebook, because turning its developer settings off again erases the Chromebook. The Chromebook's runs needn't wait for the iPad: do rows 1 to 5a and 7 when it arrives, and row 6 once the iPad is chosen. The times are rough and include reading the results.
 
 | Order | Device | Spike (steps in M1-spikes.md) | About | ✓ |
 |---|---|---|---|---|
@@ -32,6 +32,7 @@ Browser spikes first, then spike 1.7 last on the Chromebook, because turning its
 | 3 | Chromebook, Chrome | **1.2** characters, budget sweep | 10 min | |
 | 4 | Chromebook, Chrome | **1.8** MP4 export, including the **AAC** answer | 10 min | |
 | 5 | Chromebook, Chrome | **1.3** speech to text, including airplane mode | 20 min | |
+| 5a | Chromebook, Chrome | Optional: **14.3** voices. Tap **Speak the test lines**, wait for the ten lines, and note `loadMs` and each line's `speakMs` and `realTimeFactor`: how much slower than real time Kokoro is on the Chromebook decides how long a film's lines take to prepare (spec 06, 4.6) | 10 min | |
 | 6 | iPad, Safari | **1.4**, **1.5** (touch), **1.2**, **1.8**, **1.3**, in that order | 1 hour | |
 | 7 | Chromebook | **1.7** the Android app: developer settings, install, run | 45 min | |
 
