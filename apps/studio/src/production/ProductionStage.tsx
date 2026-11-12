@@ -17,6 +17,7 @@ import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
+import { ObjectsPanel } from './ObjectsPanel.tsx';
 import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
@@ -241,21 +242,34 @@ export function ProductionStage({
             />
           </Suspense>
         )}
-        {studio && models && frame && open && (
-          <FrameCheckArea
-            studio={studio}
-            models={models}
-            frameId={frame}
-            makeStage={makeStage}
-            startWorker={startWorker}
-            onReveal={(node) => onReveal?.(node)}
-            host={host}
-            onShowFrame={() => {
-              const chosen = p.frames.find((f) => f.id === frame);
-              if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });
-              onGoToStoryboard();
-            }}
-          />
+        {studio && models && scene !== null && (
+          <div className="pr-side">
+            <ObjectsPanel
+              studio={studio}
+              scene={scene}
+              modelName={(o) =>
+                typeof o.model === 'string'
+                  ? (models.item(o.model)?.displayName ?? null)
+                  : words.t('production.objects.standIn', { kind: o.model.standIn })
+              }
+            />
+            {frame && open && (
+              <FrameCheckArea
+                studio={studio}
+                models={models}
+                frameId={frame}
+                makeStage={makeStage}
+                startWorker={startWorker}
+                onReveal={(node) => onReveal?.(node)}
+                host={host}
+                onShowFrame={() => {
+                  const chosen = p.frames.find((f) => f.id === frame);
+                  if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });
+                  onGoToStoryboard();
+                }}
+              />
+            )}
+          </div>
         )}
       </div>
       {scene === null ? (

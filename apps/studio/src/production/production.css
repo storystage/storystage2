@@ -349,3 +349,82 @@
   grid-column: 2;
   gap: 4px;
 }
+
+/* The right-hand column: the objects in the scene, then the frame's check (07-ux 7.2). */
+.pr-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.pr-objects {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-objects-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(18px * var(--ss-text-size, 1));
+}
+.pr-objects-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-objects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  outline: none;
+}
+.pr-object {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+}
+.pr-object[data-hovered] {
+  background: var(--ss-panel-4);
+}
+.pr-object[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.pr-object[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.pr-object-name {
+  font-weight: 700;
+}
+.pr-object-model {
+  color: var(--ss-text-2);
+}
+.pr-object-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 8px;
+}
+.pr-number {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pr-number-label {
+  font-size: calc(14px * var(--ss-text-size, 1));
+  color: var(--ss-text-2);
+}
+.pr-number-input {
+  /* The shared input grows along a row; in this column it keeps its height. */
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+}
