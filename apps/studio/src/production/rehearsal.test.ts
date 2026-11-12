@@ -180,7 +180,7 @@ describe('Rehearsal', () => {
 });
 
 describe('Rehearsal’s speak lines (spec 06 section 4.5)', () => {
-  const speaker = () => ({ start: vi.fn<(node: NodeId) => void>(), stop: vi.fn() });
+  const speaker = () => ({ start: vi.fn<(node: NodeId, delay: number) => void>(), stop: vi.fn() });
 
   it('tells the voices each block as it starts, and goes quiet on pause and Stop', async () => {
     const first = say(words('One'));
@@ -189,7 +189,11 @@ describe('Rehearsal’s speak lines (spec 06 section 4.5)', () => {
     const { rehearsal, frames } = rehearse(withSceneOne([first, second]), s);
     await rehearsal.start();
     await frames(0.2);
-    expect(s.start).toHaveBeenCalledWith(first.id);
+    // Told when the picture gets there: the driver runs a little ahead.
+    expect(s.start).toHaveBeenCalledWith(first.id, expect.any(Number));
+    const delay = s.start.mock.calls.find(([n]) => n === first.id)![1];
+    expect(delay).toBeGreaterThanOrEqual(0);
+    expect(delay).toBeLessThanOrEqual(0.5);
     const quietBefore = s.stop.mock.calls.length;
     rehearsal.pause();
     expect(s.stop.mock.calls.length).toBeGreaterThan(quietBefore);

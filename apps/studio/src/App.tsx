@@ -39,6 +39,8 @@ import { Shell } from './shell/Shell.tsx';
 import { TalkToType, TalkToTypeCard, type DictationMaker } from './speech/talkToType.tsx';
 import { useModelSource } from './stage/useModelSource.ts';
 import { useVoices } from './speech/useVoices.ts';
+import { accentSetting } from './speech/accentSetting.ts';
+import { VoicesCard } from './speech/VoicesCard.tsx';
 import type { VoicesOptions } from './speech/voices.ts';
 import { words } from './strings.ts';
 import { newProduction } from './storyboard/edits.ts';
@@ -180,7 +182,8 @@ export function App({
   const voices = useVoices(
     studio.production,
     mode === 'production' || mode === 'screening',
-    makeVoices,
+    // The browser version downloads the voices once, with agreement; the apps bundle them.
+    { browser: host.version === null, accent: accentSetting.get, ...makeVoices },
   );
   const [exports] = useState(() => exportSlot<ExportJob>());
   const [exportOpen, setExportOpen] = useState(false);
@@ -524,6 +527,7 @@ export function App({
           settings={
             <>
               <TalkToTypeCard host={host} />
+              <VoicesCard studio={phase.kind === 'studio' ? studio : null} voices={voices} />
               <ClassSetup
                 host={host}
                 open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}

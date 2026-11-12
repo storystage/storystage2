@@ -5,6 +5,7 @@ import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Voices } from '../speech/voices.ts';
+import { VoicesDownload } from '../speech/VoicesDownload.tsx';
 import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
@@ -177,7 +178,10 @@ export function ProductionStage({
   const silentLines =
     voicesState?.status === 'unavailable'
       ? words.t('production.voices.unavailable')
-      : voicesState && voicesState.silent > 0
+      : voicesState &&
+          voicesState.silent > 0 &&
+          voicesState.status !== 'ask' &&
+          voicesState.status !== 'downloading'
         ? words.plural('production.voices.silent', voicesState.silent)
         : null;
   const checks = scene ? storyboardChecks(p, scene) : [];
@@ -204,6 +208,7 @@ export function ProductionStage({
           onPlaceChange={onPlaceChange}
         />
       )}
+      {voices && <VoicesDownload voices={voices} />}
       <div className="pr-top">
         {scene !== null && models && (
           <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>

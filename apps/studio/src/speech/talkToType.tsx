@@ -133,9 +133,9 @@ export function TalkToTypeCard({ host }: { host: HostInterface }) {
   return (
     <div className="st-page">
       <section className="st-card" aria-labelledby="st-talk-title">
-        <h3 id="st-talk-title" className="st-card-title">
+        <h2 id="st-talk-title" className="st-card-title">
           {words.t('settings.talkToType')}
-        </h3>
+        </h2>
         <Toggle isSelected={on} onChange={setOn}>
           {words.t('settings.talkToType.switch')}
         </Toggle>

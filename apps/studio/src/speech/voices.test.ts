@@ -3,7 +3,7 @@ import { exampleProduction, type Production } from '@storystage/production';
 import type { AudioOut } from '@storystage/speech';
 import { describe, expect, it, vi } from 'vitest';
 import { hasSpeakLines, speakLines } from './speakLines.ts';
-import { Voices, productionVoices, voiceOf } from './voices.ts';
+import { Voices, productionVoices, voiceOf, withAccent, withPreset } from './voices.ts';
 
 // Speak lines' voices in the studio (spec 06 sections 4.3, 4.5, 4.6) on a fake engine.
 
@@ -116,8 +116,15 @@ function fakes(fail = false) {
     dispose: vi.fn(),
   };
   const played: Float32Array[] = [];
-  const out: AudioOut = { play: (s) => void played.push(s), stop: vi.fn() };
-  return { engine, out, said, played };
+  const delays: (number | undefined)[] = [];
+  const out: AudioOut = {
+    play: (s, _rate, delay) => {
+      played.push(s);
+      delays.push(delay);
+    },
+    stop: vi.fn(),
+  };
+  return { engine, out, said, played, delays };
 }
 
 const settle = async () => {
@@ -173,5 +180,104 @@ describe('Voices', () => {
     await settle();
     voices.sleep();
     expect(f.engine.dispose).toHaveBeenCalled();
+  });
+});
+
+/** The browser version's files: `bytes` to download, and a download that reports progress. */
+function files(bytes: number, fail = false) {
+  return {
+    toDownload: vi.fn(async () => bytes),
+    download: vi.fn(async (onProgress: (done: number, total: number) => void) => {
+      onProgress(bytes / 2, bytes);
+      if (fail) throw new Error('offline');
+      onProgress(bytes, bytes);
+    }),
+  };
+}
+
+describe('the browser version’s voices (spec 06 section 4.6)', () => {
+  it('asks before downloading, makes nothing until agreed, then downloads with progress', async () => {
+    const f = fakes();
+    const make = vi.fn(() => f.engine);
+    const kokoro = files(121_000_000);
+    const voices = new Voices({ engine: make, out: () => f.out, settle: 0, files: kokoro });
+    voices.update(withLines(one));
+    await settle();
+    expect(voices.state).toMatchObject({ status: 'ask', download: { total: 121_000_000 } });
+    expect(make).not.toHaveBeenCalled();
+    voices.start(one.id);
+    expect(f.played).toHaveLength(0);
+    const seen: string[] = [];
+    voices.subscribe(() => seen.push(voices.state.status));
+    await voices.download();
+    await settle();
+    expect(seen).toContain('downloading');
+    expect(voices.state).toMatchObject({ status: 'ready', silent: 0 });
+    expect(f.said).toEqual(['Oh no, the ice is moving!']);
+  });
+
+  it('doesn’t ask when the voices are already on this device', async () => {
+    const f = fakes();
+    const voices = new Voices({
+      engine: () => f.engine,
+      out: () => f.out,
+      settle: 0,
+      files: files(0),
+    });
+    voices.update(withLines(one));
+    await settle();
+    expect(voices.state.status).toBe('ready');
+  });
+
+  it('says so when the download fails, and asks again', async () => {
+    const f = fakes();
+    const voices = new Voices({
+      engine: () => f.engine,
+      out: () => f.out,
+      settle: 0,
+      files: files(1000, true),
+    });
+    voices.update(withLines(one));
+    await settle();
+    await voices.download();
+    expect(voices.state).toMatchObject({ status: 'ask', problem: expect.stringMatching(/\w/) });
+  });
+});
+
+describe('Rehearse’s timing and Settings › Voices', () => {
+  it('starts a line when the picture gets there', async () => {
+    const f = fakes();
+    const voices = new Voices({ engine: () => f.engine, out: () => f.out, settle: 0 });
+    voices.update(withLines(one));
+    await settle();
+    voices.start(one.id, 0.1);
+    expect(f.delays).toEqual([0.1]);
+  });
+
+  it('gives a character a preset and keeps every voice in the film', () => {
+    const before = productionVoices(example);
+    const p = withPreset(example, 'penguin', 'girl');
+    expect(p.manifest.voices?.penguin?.preset).toBe('girl');
+    expect(p.manifest.voices?.fox).toEqual(before.get('fox'));
+    expect(p.manifest.voices?.penguin?.base).not.toBe(p.manifest.voices?.fox?.base);
+  });
+
+  it('changes every voice to the other accent, with the same presets', () => {
+    const p = withAccent(example, 'american');
+    const voices = Object.values(p.manifest.voices ?? {});
+    expect(voices.length).toBeGreaterThan(1);
+    expect(voices.every((v) => v.accent === 'american')).toBe(true);
+    expect(voices.map((v) => v.preset)).toEqual(
+      [...productionVoices(example).values()].map((v) => v.preset),
+    );
+  });
+
+  it('plays a sample in a character’s voice', async () => {
+    const f = fakes();
+    const voices = new Voices({ engine: () => f.engine, out: () => f.out, settle: 0 });
+    voices.update(example);
+    expect(await voices.sample('penguin', 'Hello, I’m penguin.')).toBe(true);
+    expect(f.said).toEqual(['Hello, I’m penguin.']);
+    expect(f.played).toHaveLength(1);
   });
 });

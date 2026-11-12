@@ -80,7 +80,8 @@ export interface RehearsalOptions {
 
 /** What Rehearse needs of the studio's voices. */
 export interface Speaker {
-  start(node: NodeId): void;
+  /** A block started, `delay` seconds before the picture gets there. */
+  start(node: NodeId, delay: number): void;
   stop(): void;
 }
 
@@ -274,7 +275,15 @@ export class Rehearsal {
         break;
       case 'ran': {
         // Playing on after a pause speaks nothing until the next line starts (4.5).
-        if (!this.quiet) for (const b of event.blocks) this.options.speaker?.start(b.node);
+        // The driver runs ahead of the picture: each line waits until the picture is there.
+        if (!this.quiet)
+          for (const b of event.blocks) {
+            const ahead = (b.at - this.clock.time()) / 1_000_000;
+            this.options.speaker?.start(
+              b.node,
+              Math.min(0.5, Math.max(0, ahead / this.clock.speed)),
+            );
+          }
         const ran = this.current.ran;
         const fresh = event.blocks.filter((b) => !ran.has(b.node));
         if (fresh.length > 0) this.set({ ran: new Set([...ran, ...fresh.map((b) => b.node)]) });
