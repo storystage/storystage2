@@ -4,9 +4,9 @@
  * **Import a model…**, **Move to the bin**, and **Save models** and **Open models** (the pack). A pupil's own import says whose it is, with
  * **Make it the class's** (`promote`).
  */
-import type { ClassFolders, FilePicker, StoredModel } from '@storystage/host';
+import type { BackstageImport, ClassFolders, FilePicker, StoredModel } from '@storystage/host';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
-import { Button, Icon } from '@storystage/ui';
+import { Button, Icon, NeutralNote } from '@storystage/ui';
 import { useEffect, useState } from 'react';
 import { words, type WordKey } from '../strings.ts';
 import { ImportModel } from './ImportModel.tsx';
@@ -88,6 +88,7 @@ export function ClassModelsCard({
   startWorker,
   act,
   onSaid,
+  importing = 'teacher',
 }: {
   classes: ClassFolders;
   /** The system's picker, for Save models (07-ux 9.6). */
@@ -98,8 +99,14 @@ export function ClassModelsCard({
   startWorker: () => ImportWorker;
   act: (work: () => Promise<unknown>) => Promise<boolean>;
   onSaid: (said: string) => void;
+  /**
+   * Who may import, from the school's policy (`backstage.import`): `off` means nobody, so no
+   * Import a model… and no Open models… here. `teacher` and `learners` both let the teacher.
+   */
+  importing?: BackstageImport;
 }) {
-  const [importing, setImporting] = useState(false);
+  const [open, setOpen] = useState(false);
+  const canImport = importing !== 'off';
   const ownerName = (owner: string) => pupils.find((p) => p.pupil.id === owner)?.pupil.name;
   return (
     <section className="st-card" aria-labelledby="st-models-title">
@@ -107,11 +114,14 @@ export function ClassModelsCard({
         <h3 id="st-models-title" className="st-card-title">
           {words.t('models.title')}
         </h3>
-        <Button variant="secondary" icon="upload_file" onPress={() => setImporting(true)}>
-          {words.t('models.import')}
-        </Button>
+        {canImport && (
+          <Button variant="secondary" icon="upload_file" onPress={() => setOpen(true)}>
+            {words.t('models.import')}
+          </Button>
+        )}
       </div>
       <p className="st-note">{words.t('models.help')}</p>
+      {!canImport && <NeutralNote>{words.t('models.importOff')}</NeutralNote>}
       {models.length === 0 ? (
         <p className="st-note">{words.t('models.none')}</p>
       ) : (
@@ -163,9 +173,10 @@ export function ClassModelsCard({
         taken={taken}
         hasClassModels={models.some((m) => m.owner === 'class')}
         startWorker={startWorker}
+        canOpen={canImport}
         onChanged={() => void act(async () => {})}
       />
-      {importing && (
+      {open && canImport && (
         <ImportModel
           classes={classes}
           taken={taken}
@@ -174,7 +185,7 @@ export function ClassModelsCard({
             onSaid(words.t('models.added', { name }));
             void act(async () => {});
           }}
-          onClose={() => setImporting(false)}
+          onClose={() => setOpen(false)}
         />
       )}
     </section>

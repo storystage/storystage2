@@ -128,6 +128,7 @@ export function ClassSetup({
               startWorker={startWorker}
               act={act}
               onSaid={setSaid}
+              importing={host.policy.backstage.import}
             />
           </div>
           <div className="st-column">
