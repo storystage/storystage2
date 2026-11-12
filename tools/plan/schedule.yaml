@@ -457,6 +457,7 @@ items:
     weeks: 2
     basis: first plan
     after: [WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b]
+    started: 2026-11-12
   - id: RC
     label: Release candidate (first release)
     lane: Foundations
