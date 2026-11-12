@@ -588,5 +588,17 @@
   "settings.textSize": "Text size",
   "settings.textSize.percent": "{percent}%",
   "settings.access.help": "For everyone who uses this device. Bigger text keeps the studio as wide as it is.",
-  "models.importOff": "Your school has switched off importing models on this device. Models already in the class stay."
+  "models.importOff": "Your school has switched off importing models on this device. Models already in the class stay.",
+  "production.objects.title": "Objects in this scene",
+  "production.objects.none": "Nothing in this scene yet.",
+  "production.objects.standIn": "Stand-in {kind}",
+  "production.objects.fieldsOf": "Where {name} is",
+  "production.objects.x": "x (m)",
+  "production.objects.y": "y (m)",
+  "production.objects.z": "z (m)",
+  "production.objects.turn": "Turn (turns)",
+  "production.objects.size": "Size",
+  "production.objects.moveStep": "Move {name}",
+  "production.objects.turnStep": "Turn {name}",
+  "production.objects.sizeStep": "Resize {name}"
 }

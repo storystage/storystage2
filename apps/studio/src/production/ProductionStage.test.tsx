@@ -129,8 +129,11 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     await screen.findByText('blocks', {}, LOADED);
     expect(palettes.at(-1)).toMatchObject({ tab: 'actions', target: { kind: 'this' } });
     await user.click(screen.getByRole('button', { name: /Blocks for/ }));
-    // The object picker's choices, not the frame strip's cards.
-    const picker = () => screen.getAllByRole('option').filter((o) => !o.closest('.ss-frame-strip'));
+    // The object picker's choices, not the frame strip's cards or the scene's objects list.
+    const picker = () =>
+      screen
+        .getAllByRole('option')
+        .filter((o) => !o.closest('.ss-frame-strip') && !o.closest('.pr-objects'));
     const options = picker().map((o) => o.textContent);
     expect(options[0]).toBe('the scene');
     expect(options.length).toBeGreaterThan(1);

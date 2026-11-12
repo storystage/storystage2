@@ -255,3 +255,49 @@ describe('Use the script’s words (#357)', () => {
     expect(source).toBe('blocks');
   });
 });
+
+describe('Objects in this scene (07-ux 7.2)', () => {
+  const panel = () => screen.getByRole('region', { name: 'Objects in this scene' });
+
+  it('lists the scene’s objects, and a typed place moves one as one undo step', async () => {
+    const user = userEvent.setup();
+    const { studio } = stage(example);
+    const list = within(panel()).getByRole('listbox', { name: 'Objects in this scene' });
+    const names = within(list)
+      .getAllByRole('option')
+      .map((o) => o.querySelector('.pr-object-name')?.textContent);
+    expect(names).toEqual(['penguin', 'fox']);
+    await user.click(within(list).getByRole('option', { name: /penguin/ }));
+    const x = within(panel()).getByRole('textbox', { name: 'x (m)' });
+    await user.clear(x);
+    await user.type(x, '2.5');
+    await user.tab();
+    const penguin = () =>
+      studio().production.scenes[0]!.setup.objects.find((o) => o.id === 'penguin')!;
+    expect(penguin().transform.position.x).toBe(2.5);
+    expect(studio().undoLabel).toBe('Move penguin');
+    // The typing was one step: one Undo puts it back.
+    await act(async () => studio().undo());
+    expect(penguin().transform.position.x).toBe(
+      example.scenes[0]!.setup.objects.find((o) => o.id === 'penguin')!.transform.position.x,
+    );
+  });
+
+  it('turns and resizes, each named for what it did', async () => {
+    const user = userEvent.setup();
+    const { studio } = stage(example);
+    await user.click(within(panel()).getByRole('option', { name: /fox/ }));
+    const turn = within(panel()).getByRole('textbox', { name: 'Turn (turns)' });
+    await user.clear(turn);
+    await user.type(turn, '0.25');
+    await user.tab();
+    expect(studio().undoLabel).toBe('Turn fox');
+    const size = within(panel()).getByRole('textbox', { name: 'Size' });
+    await user.clear(size);
+    await user.type(size, '2');
+    await user.tab();
+    expect(studio().undoLabel).toBe('Resize fox');
+    const fox = studio().production.scenes[0]!.setup.objects.find((o) => o.id === 'fox')!;
+    expect(fox.transform.scale).toEqual({ x: 2, y: 2, z: 2 });
+  });
+});
