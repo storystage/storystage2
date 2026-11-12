@@ -103,7 +103,7 @@ Each session keeps its own section current. Newest entries first. One line each.
     - 3.9 (budgets): the code is done; the budgets and the scene memory budget wait for the reference devices (#6).
     - 3.10 (sections): every model has one; each section's own browse view and thumbnail style are the studio's (S5).
     - 3.11 (import): built (S4) with its screens (S5); the done-when run on a 4 GB Chromebook waits for the device.
-    - 3.12 (licence capture): built; still needed: **S5**, the studio applying the `backstage.import` policy (off, teacher, learners; asked 12 Nov); **S2**, Export for distribution refusing films that use CC BY-NC or "not sure" models, with a plain-words reason; the owner, `backstage.search`'s default after the DPIA.
+    - 3.12 (licence capture): built; still needed: **S5** (confirmed 12 Nov), the studio applying the `backstage.import` policy: off hides Import a model… and Make it the class's; teacher shows them on the teacher's Class set-up only (S5's next piece); learners lets pupils import from the Production stage's Backstage rail, which waits on that rail being built; **S2**, Export for distribution refusing films that use CC BY-NC or "not sure" models, with a plain-words reason; the owner, `backstage.search`'s default after the DPIA.
   - 12 Nov: **a ground's colour from the stage's own table** (#376; S3's `groundLook`): a ground item's `look` is optional and must agree with the stage; a ground the stage doesn't have is refused.
   - 12 Nov: **the museum scans in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 8c5e278 (153 models), and the Prompter's catalogue and pins are refreshed.
 - Merged:
