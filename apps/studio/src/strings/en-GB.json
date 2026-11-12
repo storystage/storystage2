@@ -587,5 +587,6 @@
   "settings.theme.device": "Match this device",
   "settings.textSize": "Text size",
   "settings.textSize.percent": "{percent}%",
-  "settings.access.help": "For everyone who uses this device. Bigger text keeps the studio as wide as it is."
+  "settings.access.help": "For everyone who uses this device. Bigger text keeps the studio as wide as it is.",
+  "models.importOff": "Your school has switched off importing models on this device. Models already in the class stay."
 }

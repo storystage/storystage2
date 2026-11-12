@@ -1,6 +1,11 @@
 import { importModel, type ImportTools } from '@storystage/backstage-import';
 import type { ImportMessage, ImportWorker } from '@storystage/backstage-import/worker-client';
-import { browserHost, type ClassFolders, type HostInterface } from '@storystage/host';
+import {
+  browserHost,
+  type BackstageImport,
+  type ClassFolders,
+  type HostInterface,
+} from '@storystage/host';
 import { memoryClassFolders, memoryFilePicker } from '@storystage/host/testing';
 import { box, glbFromMesh } from '@storystage/sketches/testing';
 import { render, screen, waitFor, within } from '@testing-library/react';
@@ -35,9 +40,13 @@ function inPageWorker(): ImportWorker & { started: number } {
   return worker;
 }
 
-function hostWith(classes: ClassFolders): HostInterface {
+function hostWith(classes: ClassFolders, importing: BackstageImport = 'teacher'): HostInterface {
   return {
     ...browserHost,
+    policy: {
+      ...browserHost.policy,
+      backstage: { ...browserHost.policy.backstage, import: importing },
+    },
     version: '1.0.0',
     classes,
     picker: memoryFilePicker(),
@@ -220,5 +229,25 @@ describe('nameFrom', () => {
   it('makes a name from a file’s name', () => {
     expect(nameFrom('red-dragon_v2.glb')).toBe('Red dragon v2');
     expect(nameFrom('robot.vrm')).toBe('Robot');
+  });
+});
+
+describe('who may import (policy backstage.import; workplan 3.12)', () => {
+  it('offers Import a model… and Open models… to the teacher by default', async () => {
+    const classes = memoryClassFolders();
+    render(<ClassSetup host={hostWith(classes)} startWorker={inPageWorker} />);
+    await screen.findByRole('region', { name: 'Class models' });
+    expect(await within(card()).findByRole('button', { name: 'Import a model…' })).toBeTruthy();
+    expect(within(card()).getByRole('button', { name: 'Open models…' })).toBeTruthy();
+  });
+
+  it('offers neither when the school has importing off, and says so', async () => {
+    const classes = memoryClassFolders();
+    render(<ClassSetup host={hostWith(classes, 'off')} startWorker={inPageWorker} />);
+    await screen.findByRole('region', { name: 'Class models' });
+    expect(await within(card()).findByText(/switched off importing models/)).toBeTruthy();
+    expect(within(card()).queryByRole('button', { name: 'Import a model…' })).toBeNull();
+    expect(within(card()).queryByRole('button', { name: 'Open models…' })).toBeNull();
+    expect(within(card()).getByRole('button', { name: 'Save models…' })).toBeTruthy();
   });
 });

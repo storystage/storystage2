@@ -35,6 +35,7 @@ export function ModelPack({
   hasClassModels,
   startWorker,
   onChanged,
+  canOpen = true,
 }: {
   classes: ClassFolders;
   picker: FilePicker;
@@ -44,6 +45,8 @@ export function ModelPack({
   hasClassModels: boolean;
   startWorker: () => ImportWorker;
   onChanged: () => void;
+  /** Opening a pack imports its models: not offered when the school's policy has importing off. */
+  canOpen?: boolean;
 }) {
   const [said, setSaid] = useState<Said | null>(null);
   const input = useRef<HTMLInputElement>(null);
@@ -106,14 +109,16 @@ export function ModelPack({
         >
           {words.t('pack.save')}
         </Button>
-        <Button
-          variant="secondary"
-          icon="upload"
-          isDisabled={busy}
-          onPress={() => input.current?.click()}
-        >
-          {words.t('pack.open')}
-        </Button>
+        {canOpen && (
+          <Button
+            variant="secondary"
+            icon="upload"
+            isDisabled={busy}
+            onPress={() => input.current?.click()}
+          >
+            {words.t('pack.open')}
+          </Button>
+        )}
         <input
           ref={input}
           type="file"
