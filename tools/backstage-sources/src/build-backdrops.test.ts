@@ -8,7 +8,7 @@ import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { validateManifest, type BackstageManifest } from '@storystage/backstage';
 import { buildSources } from './build.ts';
 import type { Fetcher } from './fetch.ts';
-import { validateSources } from './sources.ts';
+import { stageLook, validateSources } from './sources.ts';
 
 const COMMIT = 'c'.repeat(40);
 const raw = (path: string) =>
@@ -39,7 +39,7 @@ const backdrop = (over: Record<string, unknown>): Record<string, unknown> => ({
 const grass = backdrop({
   id: 'storystage/Ground/grass',
   class: 'Ground',
-  backdrop: { kind: 'ground', tile: 2, look: '5f9e3a' },
+  backdrop: { kind: 'ground', tile: 2 },
   fetch: { github: 'storystage/backstage-assets', commit: COMMIT, path: 'originals/grass.jpg' },
 });
 const clearDay = backdrop({
@@ -77,6 +77,17 @@ describe('backdrop source items (spec 17 section 2)', () => {
     expect(errors({ ...grass, backdrop: { kind: 'ground', tile: 2, look: 'green' } })).toMatch(
       /look/,
     );
+    // The stage's own table is the colour: a look that disagrees with it is refused, and a ground
+    // the stage doesn't have is refused even without one.
+    expect(errors({ ...grass, backdrop: { kind: 'ground', tile: 2, look: 'ff0000' } })).toMatch(
+      /stage draws it #5f9e3a/,
+    );
+    expect(
+      errors({ ...grass, id: 'storystage/Ground/lava', backdrop: { kind: 'ground', tile: 2 } }),
+    ).toMatch(/no ground called storystage\/Ground\/lava/);
+    expect(ok({ ...grass, backdrop: { kind: 'ground', tile: 2 } }).ok).toBe(true);
+    expect(stageLook('storystage/Ground/grass')).toBe('5f9e3a');
+    expect(stageLook('storystage/Ground/lava')).toBeNull();
     expect(errors({ ...grass, height: 1 })).toMatch(/no height, turn or exclude/);
     expect(ok({ ...clearDay, backdrop: { kind: 'sky', exposure: 0.2 } }).ok).toBe(true);
     expect(errors({ ...clearDay, backdrop: { kind: 'sky', exposure: 2 } })).toMatch(/exposure/);

@@ -6,7 +6,8 @@
  * means a build fetches exactly what was reviewed.
  */
 import { SECTIONS, descriptionProblem, type Section } from '@storystage/backstage';
-import { STORY_CLASSES, type StoryClass } from '@storystage/story-api';
+import { groundLook } from '@storystage/stage';
+import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
 import type { Exclude } from './exclude.ts';
 
 /** Licences the audit allows in the shipped catalogue (audit, section 2, rule 1). */
@@ -67,13 +68,21 @@ export interface SourceItem {
 }
 
 export type Backdrop =
-  | { readonly kind: 'ground'; readonly tile: number; readonly look: string }
+  | { readonly kind: 'ground'; readonly tile: number; readonly look?: string }
   | {
       readonly kind: 'sky';
       readonly exposure?: number;
       readonly tint?: string;
       readonly ahead?: number;
     };
+
+/**
+ * How the stage draws ground `id` flat, as `rrggbb` (S3's `groundLook`, from the stage's own table),
+ * or null if the stage has no such ground. A ground's picture is matched to it.
+ */
+export function stageLook(id: string): string | null {
+  return groundLook(backstageId(id))?.replace(/^#/, '').toLowerCase() ?? null;
+}
 
 /** The ids the stage draws backdrops under (spec 17 section 2). */
 const BACKDROP_IDS = {
@@ -219,7 +228,7 @@ export function validateSources(json: unknown): Result {
 function backdropProblems(item: Record<string, unknown>): string[] {
   const b = item.backdrop;
   if (!isObject(b) || (b.kind !== 'ground' && b.kind !== 'sky'))
-    return ["a backdrop needs backdrop: { kind: 'ground', tile, look } or { kind: 'sky' }."];
+    return ["a backdrop needs backdrop: { kind: 'ground', tile, look? } or { kind: 'sky' }."];
   const problems: string[] = [];
   const kind = b.kind;
   if (typeof item.id === 'string' && !BACKDROP_IDS[kind].test(item.id))
@@ -233,8 +242,17 @@ function backdropProblems(item: Record<string, unknown>): string[] {
       problems.push('a ground takes only kind, tile and look.');
     if (typeof b.tile !== 'number' || !(b.tile >= 0.5 && b.tile <= 20))
       problems.push("a ground's tile must be its size in metres, from 0.5 to 20.");
-    if (typeof b.look !== 'string' || !/^[0-9a-f]{6}$/.test(b.look))
-      problems.push("a ground's look must be the stage's flat colour as rrggbb.");
+    // The stage's table is the one source of the colour: a list may leave it out, and one it gives
+    // must agree, so the two can't drift apart.
+    const stage = typeof item.id === 'string' ? stageLook(item.id) : null;
+    if (typeof item.id === 'string' && BACKDROP_IDS.ground.test(item.id) && stage === null)
+      problems.push(`the stage has no ground called ${item.id}.`);
+    if (b.look !== undefined) {
+      if (typeof b.look !== 'string' || !/^[0-9a-f]{6}$/.test(b.look))
+        problems.push("a ground's look must be the stage's flat colour as rrggbb.");
+      else if (stage !== null && b.look !== stage)
+        problems.push(`a ground's look is #${b.look}, but the stage draws it #${stage}.`);
+    }
   } else {
     if (!Object.keys(b).every((k) => ['kind', 'exposure', 'tint', 'ahead'].includes(k)))
       problems.push('a sky takes only kind, exposure, tint and ahead.');

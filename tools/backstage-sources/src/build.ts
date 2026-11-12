@@ -53,7 +53,7 @@ import { groundTile, hexToRgb, rgbToHex, skyDome } from './backdrops.ts';
 import { fetchModel, fetchPicture, httpFetch, type Fetcher, type Fetched } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
 import { sharpDecoder, sharpEncoder, thumbnailWebp } from './sharp-encoder.ts';
-import { excludesFor, validateSources, type SourceItem } from './sources.ts';
+import { excludesFor, stageLook, validateSources, type SourceItem } from './sources.ts';
 
 export interface Provenance {
   readonly source: string;
@@ -315,13 +315,15 @@ async function makeBackdrop(
   const picture = await fetchPicture(item, fetcher);
   const b = item.backdrop!;
   if (b.kind === 'ground') {
-    const tile = await groundTile(picture.bytes, b.tile, hexToRgb(b.look));
+    // Validated: the stage has this ground, and a look the list gives agrees with it.
+    const look = b.look ?? stageLook(item.id)!;
+    const tile = await groundTile(picture.bytes, b.tile, hexToRgb(look));
     return {
       bytes: await io.writeBinary(tile.doc),
       ext: 'glb',
       fetched: picture.fetched,
       thumbnail: tile.thumbnail,
-      colours: { look: b.look, before: rgbToHex(tile.before), after: rgbToHex(tile.after) },
+      colours: { look, before: rgbToHex(tile.before), after: rgbToHex(tile.after) },
     };
   }
   const dome = await skyDome(picture.bytes, {

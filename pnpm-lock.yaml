@@ -764,6 +764,9 @@ importers:
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../../packages/stage
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
