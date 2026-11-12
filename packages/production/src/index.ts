@@ -12,6 +12,7 @@ export * from './types.ts';
 export * from './voices.ts';
 export { demoProduction, exampleProduction } from './example.ts';
 export * from './scenes.ts';
+export * from './objects.ts';
 export * from './archive.ts';
 export * from './session.ts';
 export * from './fountain.ts';

@@ -47,6 +47,11 @@ export type SceneRefusal =
   | { readonly code: 'tooManyScenes'; readonly limit: number }
   | { readonly code: 'noSuchScene' }
   | { readonly code: 'noSuchPlace' }
+  /** A scene object that isn't in the scene's set-up (`objects.ts`). */
+  | { readonly code: 'noSuchObject' }
+  | { readonly code: 'tooManyObjects'; readonly limit: number }
+  /** Code still uses the object: `uses` are the blocks that do, so the studio can say where. */
+  | { readonly code: 'objectInUse'; readonly uses: readonly NodeId[] }
   /** The program refused the change; `reason` is in plain words (`EditRefused`). */
   | { readonly code: 'refused'; readonly reason: string };
 
@@ -80,7 +85,7 @@ function freeTypeName(p: Production): string {
 }
 
 /** Applies program edits, turning a refusal into the learner's words. */
-function edit(
+export function applyProgramEdits(
   p: Production,
   edits: readonly EditOperation[],
 ): { program: Production['program']; inverses: readonly EditOperation[] } | SceneRefusal {
@@ -121,7 +126,7 @@ export function addScene(
       node: type,
     },
   ];
-  const applied = edit(p, edits);
+  const applied = applyProgramEdits(p, edits);
   if ('code' in applied) return refuse(applied);
 
   const runningOrder = [...p.manifest.runningOrder];
@@ -157,7 +162,7 @@ export function deleteScene(p: Production, id: SceneId, label: string): SceneSte
   if (!scene) return refuse({ code: 'noSuchScene' });
   const type = p.program.types.find((t) => t.methods.some((m) => m.id === scene.method));
   const edits: EditOperation[] = type ? [{ kind: 'remove', label, node: type.id }] : [];
-  const applied = edit(p, edits);
+  const applied = applyProgramEdits(p, edits);
   if ('code' in applied) return refuse(applied);
 
   const gone = new Set<string>(p.frames.filter((f) => f.scene === id).map((f) => f.id));
@@ -284,7 +289,7 @@ export function duplicateScene(
       node: copy,
     },
   ];
-  const applied = edit(p, edits);
+  const applied = applyProgramEdits(p, edits);
   if ('code' in applied) return refuse(applied);
 
   const frameIds = new Set<string>(p.frames.map((f) => f.id));
