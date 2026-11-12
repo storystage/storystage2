@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = 'cdf8d5aa10e1b1a75563189f90cba0fe4c60f818';
+export const SHIPPED_CATALOGUE_COMMIT = '8c5e278fafcb24857b167c2c6fa479dbe1c38bc0';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -110,6 +110,11 @@ Props
     polypizza/Prop/umbrella: Umbrella, an open dark blue umbrella [weather] 1 m, no joints
     polypizza/Prop/watering-can: Watering can, a yellow watering can [garden] 0.3 m, no joints
     polypizza/Prop/wheelchair: Wheelchair, a manual wheelchair with a dark blue seat and big spoked wheels [everyday, health] 0.9 m, no joints
+    scottishmaritime/Prop/locomotive-headlamp: Locomotive headlamp, a steam train's old metal headlamp [trains, engines, history] 0.37 m, no joints
+    scottishmaritime/Prop/safety-lamp: Miner's safety lamp, a brass miner's safety lamp with a glass cylinder [inventions, history, mining] 0.28 m, no joints
+    scottishmaritime/Prop/snow-goggles: Captain Scott's snow goggles, wooden snow goggles with thin eye slits, from a polar expedition [exploration, history, polar] 0.09 m, no joints
+    smithsonian/Prop/lincoln-patent-model: Lincoln's patent model, Abraham Lincoln's wooden model of a boat with floats to lift it over shallow water [inventions, history] 0.25 m, no joints
+    smithsonian/Prop/morse-telegraph-key: Morse telegraph key, an early telegraph key on a wooden base, for sending Morse code [inventions, history] 0.08 m, no joints
   Transport
     polypizza/Transport/aeroplane: Aeroplane, a white passenger aeroplane [transport] 11.83 m, no joints
     polypizza/Transport/bicycle: Bicycle, an orange bicycle [transport] 1 m, no joints
@@ -118,6 +123,8 @@ Props
     polypizza/Transport/rocket: Rocket, a white rocket with red fins and a round window [space] 11.95 m, no joints
     polypizza/Transport/rowing-boat: Rowing boat, a small white rowing boat [transport, sea] 0.6 m, no joints
     polypizza/Transport/steam-train: Steam train, a small steam engine with its coal wagon [transport, history] 4 m, no joints
+    scottishmaritime/Transport/mary-chalmers: Rowing boat, a small red wooden rowing boat [sea, boats, history] 0.41 m, no joints
+    scottishmaritime/Transport/venus: Shetland rowing boat, a wooden Shetland rowing boat on a wooden stand [sea, boats, history] 1.62 m, no joints
 
 Set
   Prop
@@ -143,6 +150,15 @@ Set
     polypizza/Prop/tree: Tree, a tree with a twisty trunk and round green leaves [nature] 6 m, no joints
     polypizza/Prop/well: Well, a stone well with a red roof and a bucket [fairy tale, countryside] 2.2 m, no joints
     polypizza/Prop/wooden-fence: Wooden fence, a short wooden rail fence [farm, countryside] 1.11 m, no joints
+    scottishmaritime/Prop/steam-hammer: Steam hammer, a tall iron steam hammer from a shipyard [engines, inventions, history] 3.45 m, no joints
+    smithsonian/Prop/triceratops: Triceratops skeleton, a Triceratops skeleton, with three horns and a bony frill [fossils, dinosaurs, museum] 1.65 m, no joints
+    smithsonian/Prop/woolly-mammoth: Woolly mammoth skeleton, a woolly mammoth's skeleton, with long curved tusks [fossils, museum, science] 3.4 m, no joints
+  Transport
+    scottishmaritime/Transport/mv-spartan: Puffer ship, a small old cargo ship with a tall funnel [sea, boats, history] 9.14 m, no joints
+    scottishmaritime/Transport/rnlb-jane-anne: Lifeboat, an old wooden lifeboat with a dark hull [sea, boats, history] 2.74 m, no joints
+    smithsonian/Transport/apollo-11-command-module: Apollo 11 command module, the cone-shaped Apollo 11 spacecraft that brought three astronauts home from the Moon [space, history] 3.2 m, no joints
+    smithsonian/Transport/bell-x-1: Bell X-1, the orange rocket plane that first flew faster than sound [flight, history] 3.2 m, no joints
+    smithsonian/Transport/space-shuttle-discovery: Space Shuttle Discovery, the white Space Shuttle Discovery, with black tiles underneath [space, history] 15.8 m, no joints
 
 Backdrops
   A scene's ground or sky: set it as the scene's backdrop, never add it as a model.
