@@ -96,7 +96,9 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 12 Nov: **WP3's status** (the owner's choices of 12 Nov): **3.7 ticked**, Kenney's rigged characters left out (kenney.nl refuses scripts; KayKit's cover them); the owner approved the borderline sections so far (3.10). What the rest still need:
+  - 12 Nov: **all 27 textured grounds in the shipped Backstage** (backstage-assets#12; WP3b): the remaining 12, their colours from the stage's own table. `backstage.lock.json` pins backstage-assets e2edf86 (165 models), and the Prompter's catalogue and pins are refreshed. Gold coins and the four open waters stay colours, as agreed with S3.
+- Merged:
+  - 12 Nov (#377): **WP3's status** (the owner's choices of 12 Nov): **3.7 ticked**, Kenney's rigged characters left out (kenney.nl refuses scripts; KayKit's cover them); the owner approved the borderline sections so far (3.10). What the rest still need:
     - 3.1 (licence audit): the owner's sign-off, and CMU's answer on Alice's models (WP17.1).
     - 3.2 (Alice converter): built; publishing waits on CMU.
     - 3.6 (storybook cast) and 3.8 (Blender Studio): not started; 3.6 is the owner's commission.
@@ -104,9 +106,8 @@ Each session keeps its own section current. Newest entries first. One line each.
     - 3.10 (sections): every model has one; each section's own browse view and thumbnail style are the studio's (S5).
     - 3.11 (import): built (S4) with its screens (S5); the done-when run on a 4 GB Chromebook waits for the device.
     - 3.12 (licence capture): built; still needed: **S5** (confirmed 12 Nov), the studio applying the `backstage.import` policy: off hides Import a model… and Make it the class's; teacher shows them on the teacher's Class set-up only (S5's next piece); learners lets pupils import from the Production stage's Backstage rail, which waits on that rail being built; **S2**, Export for distribution refusing films that use CC BY-NC or "not sure" models, with a plain-words reason; the owner, `backstage.search`'s default after the DPIA.
-  - 12 Nov: **a ground's colour from the stage's own table** (#376; S3's `groundLook`): a ground item's `look` is optional and must agree with the stage; a ground the stage doesn't have is refused.
-  - 12 Nov: **the museum scans in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 8c5e278 (153 models), and the Prompter's catalogue and pins are refreshed.
-- Merged:
+  - 12 Nov (#376): **a ground's colour from the stage's own table** (S3's `groundLook`): a ground item's `look` is optional and must agree with the stage; a ground the stage doesn't have is refused.
+  - 12 Nov (#374): **the museum scans in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 8c5e278 (153 models), and the Prompter's catalogue and pins are refreshed.
   - 12 Nov (#373, backstage-assets#11): **the first museum scans** (WP3b; the owner's subjects of 11 Nov: space and flight, fossils, engines and inventions, ships): 15 CC0 objects, 7 from the Smithsonian and 8 from the Scottish Maritime Museum (downloaded through the owner's Chrome, Sketchfab needing a sign-in), each checked as CC0 on its own page. Their tools: a last, permissive simplifying step for scans the gentle steps can't fit, and older specular-glossiness materials as base-colour ones. The Wright Flyer is left out: its thin wings break at any reduction to budget.
   - 11 Nov (#366, contract, agreed with S1): **production format 1.4.0, the characters' voices** (spec 03 §1.6; spec 06 §4.3, WP14b): `manifest.voices`, each character's `CastVoice` by the name of its set-up objects, dropped when a file opens if it doesn't fit; a rename carries its voice in the same undo step. The voice types move to `@storystage/production`, and speech re-exports them. **S1: castVoices works on unique names.**
   - 11 Nov (#360): **the fixed sunset and night skies in the shipped Backstage**: `backstage.lock.json` pins backstage-assets cdf8d5a (backstage-assets#10).
