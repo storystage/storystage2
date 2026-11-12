@@ -142,7 +142,7 @@ export default function SceneView(props: SceneViewProps) {
       startWorker,
       // Through the ref: the voices may load after the rehearsal is made.
       speaker: {
-        start: (node) => speaker.current?.start(node),
+        start: (node, delay) => speaker.current?.start(node, delay),
         stop: () => speaker.current?.stop(),
       },
     });
