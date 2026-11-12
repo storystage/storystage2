@@ -12,7 +12,7 @@
  * section 5). Without one, textures are left as they are and the report says the model doesn't fit.
  */
 import type { Document } from '@gltf-transform/core';
-import { EXTTextureWebP } from '@gltf-transform/extensions';
+import { EXTTextureWebP, type PBRSpecularGlossiness } from '@gltf-transform/extensions';
 import { dedup, prune, simplify, weld } from '@gltf-transform/functions';
 import { MeshoptSimplifier } from 'meshoptimizer';
 import type { Budget } from './budget.ts';
@@ -110,8 +110,90 @@ export function dropDuplicateInstances(doc: Document): number {
   return dropped;
 }
 
+/**
+ * Materials in glTF's older specular-glossiness workflow (`KHR_materials_pbrSpecularGlossiness`,
+ * which some scans still use) as ordinary base-colour ones, which every renderer reads, our
+ * thumbnails and sketches included: the diffuse picture and colour become the base colour, the
+ * surface isn't metal, and its roughness is one less its glossiness. No pixel is touched.
+ */
+function plainMaterials(doc: Document): void {
+  const name = 'KHR_materials_pbrSpecularGlossiness';
+  const extension = doc
+    .getRoot()
+    .listExtensionsUsed()
+    .find((e) => e.extensionName === name);
+  if (!extension) return;
+  for (const material of doc.getRoot().listMaterials()) {
+    const sg = material.getExtension<PBRSpecularGlossiness>(name);
+    if (!sg) continue;
+    material.setBaseColorFactor(sg.getDiffuseFactor());
+    const picture = sg.getDiffuseTexture();
+    if (picture) {
+      material.setBaseColorTexture(picture);
+      const from = sg.getDiffuseTextureInfo()!;
+      material
+        .getBaseColorTextureInfo()!
+        .setTexCoord(from.getTexCoord())
+        .setWrapS(from.getWrapS())
+        .setWrapT(from.getWrapT());
+    }
+    material.setMetallicFactor(0).setRoughnessFactor(1 - sg.getGlossinessFactor());
+    material.setExtension(name, null);
+  }
+  extension.dispose();
+}
+
 /** How far meshoptimizer may move the surface, as a share of the model's size: gentle first. */
 const ERRORS = [0.005, 0.01, 0.02, 0.05, 0.1];
+
+/**
+ * The last step, only when the gentle ones stall above `target`: meshoptimizer's attribute-aware
+ * simplifier in its Permissive mode, which may collapse edges across a picture's seams, weighing
+ * the texture coordinates so the picture still lands where it should. Each primitive takes its
+ * share of the target. It keeps a subset of the original corners, as the gentle steps do, so
+ * joints and weights carry over. A primitive with no indices, or with positions not stored as
+ * plain floats, is left as it is.
+ */
+function permissive(doc: Document, target: number): void {
+  const total = countTriangles(doc);
+  for (const mesh of doc.getRoot().listMeshes())
+    for (const prim of mesh.listPrimitives()) {
+      const indices = prim.getIndices()?.getArray();
+      const positions = prim.getAttribute('POSITION')?.getArray();
+      if (prim.getMode() !== 4 || !indices || !(positions instanceof Float32Array)) continue;
+      const want = Math.max(3, Math.floor((indices.length * target) / total / 3) * 3);
+      if (indices.length <= want) continue;
+      const uv = prim.getAttribute('TEXCOORD_0')?.getArray();
+      const triangles = new Uint32Array(indices);
+      let kept: Uint32Array = triangles;
+      for (const error of [0.02, 0.05, 0.1]) {
+        [kept] =
+          uv instanceof Float32Array
+            ? MeshoptSimplifier.simplifyWithAttributes(
+                triangles,
+                positions,
+                3,
+                uv,
+                2,
+                [1, 1],
+                null,
+                want,
+                error,
+                ['Permissive'],
+              )
+            : MeshoptSimplifier.simplify(triangles, positions, 3, want, error, ['Permissive']);
+        if (kept.length <= want) break;
+      }
+      const old = prim.getIndices()!;
+      prim.setIndices(
+        doc
+          .createAccessor()
+          .setType('SCALAR')
+          .setArray(new Uint32Array(kept))
+          .setBuffer(old.getBuffer()),
+      );
+    }
+}
 
 export async function reduceModel(
   doc: Document,
@@ -119,6 +201,7 @@ export async function reduceModel(
   options: { readonly encodeTexture?: TextureEncoder } = {},
 ): Promise<ReduceReport> {
   const before = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
+  plainMaterials(doc);
   await doc.transform(prune(), dedup());
   if (dropDuplicateInstances(doc) > 0) await doc.transform(prune());
   await doc.transform(weld());
@@ -132,6 +215,10 @@ export async function reduceModel(
       simplified = true;
       if (countTriangles(doc) <= budget.triangles) break;
     }
+    // Scans whose pictures are cut into many small pieces stall above the budget, because the
+    // gentle steps never collapse an edge along a picture's seam (museum scans, 11 Nov 2026).
+    // Aimed a little under, since each primitive's share is rounded.
+    if (countTriangles(doc) > budget.triangles) permissive(doc, budget.triangles * 0.98);
     await doc.transform(prune());
   }
 
