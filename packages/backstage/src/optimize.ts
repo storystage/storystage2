@@ -165,7 +165,7 @@ function permissive(doc: Document, target: number): void {
       if (indices.length <= want) continue;
       const uv = prim.getAttribute('TEXCOORD_0')?.getArray();
       const triangles = new Uint32Array(indices);
-      let kept = triangles;
+      let kept: Uint32Array = triangles;
       for (const error of [0.02, 0.05, 0.1]) {
         [kept] =
           uv instanceof Float32Array
@@ -186,7 +186,11 @@ function permissive(doc: Document, target: number): void {
       }
       const old = prim.getIndices()!;
       prim.setIndices(
-        doc.createAccessor().setType('SCALAR').setArray(kept).setBuffer(old.getBuffer()),
+        doc
+          .createAccessor()
+          .setType('SCALAR')
+          .setArray(new Uint32Array(kept))
+          .setBuffer(old.getBuffer()),
       );
     }
 }
