@@ -27,7 +27,10 @@ body,
 }
 
 /* Header: 64 px, items on the bottom edge so the active tab sits on the amber frame. */
+/* The header is the studio's chrome: its type stays its size at every text size, so the mode
+   tabs stay on one line at 1180 px (07-ux 2.1; decision 0035 scales what's under it). */
 .studio-header {
+  font-size: 16px;
   display: flex;
   flex: none;
   align-items: flex-end;
@@ -204,7 +207,7 @@ body,
 .studio-overlay-title {
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 28px;
+  font-size: calc(28px * var(--ss-text-size, 1));
   font-weight: 800;
   letter-spacing: -0.01em;
 }

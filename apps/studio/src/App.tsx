@@ -33,6 +33,8 @@ import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
+import { AccessibilityCard } from './settings/AccessibilityCard.tsx';
+import { useAppearance } from './settings/appearance.ts';
 import type { ExportJob, ExportJobState } from '@storystage/screening';
 import { exportSlot } from './screening/exportSlot.ts';
 import { Shell } from './shell/Shell.tsx';
@@ -166,6 +168,8 @@ export function App({
   makeVoices?: VoicesOptions;
 }) {
   const studio = useStudio(start ?? newProduction());
+  // Settings › Accessibility on this device: the theme and the text size, for every screen.
+  const appearance = useAppearance();
   const [phase, setPhase] = useState<Phase>(start ? { kind: 'studio' } : { kind: 'starting' });
   const [folder, setFolder] = useState<PupilFolder | null>(null);
   const [hasClass, setHasClass] = useState(false);
@@ -366,7 +370,7 @@ export function App({
 
   if (phase.kind !== 'studio') {
     return (
-      <ThemeRoot>
+      <ThemeRoot theme={appearance.theme} textSize={appearance.textSize}>
         <div className="ls-shell">
           {phase.kind === 'names' && (
             <NamePage
@@ -446,7 +450,7 @@ export function App({
   const failed = saving.status.kind === 'failed' ? saving.status.problem.message : null;
   const missing = saving.status.kind === 'saved' ? saving.status.missing : [];
   return (
-    <ThemeRoot>
+    <ThemeRoot theme={appearance.theme} textSize={appearance.textSize}>
       <input
         ref={aliceInput}
         type="file"
@@ -526,6 +530,7 @@ export function App({
           }}
           settings={
             <>
+              <AccessibilityCard />
               <TalkToTypeCard host={host} />
               <VoicesCard studio={phase.kind === 'studio' ? studio : null} voices={voices} />
               <ClassSetup

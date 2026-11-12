@@ -51,13 +51,13 @@
 .ls-title {
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 34px;
+  font-size: calc(34px * var(--ss-text-size, 1));
   font-weight: 800;
   text-align: center;
 }
 .ls-subtitle {
   margin: 8px 0 0;
-  font-size: 20px;
+  font-size: calc(20px * var(--ss-text-size, 1));
   font-weight: 700;
 }
 .ls-search {
@@ -104,7 +104,7 @@
   min-height: 64px;
   padding: 10px 16px;
   border-radius: 12px;
-  font-size: 19px;
+  font-size: calc(19px * var(--ss-text-size, 1));
   font-weight: 700;
   color: var(--ss-text);
   background: var(--ss-panel-4);
@@ -125,7 +125,7 @@
 }
 .ls-film-when {
   flex-basis: 100%;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 400;
   color: var(--ss-muted);
 }
@@ -199,7 +199,7 @@
 }
 .al-kind {
   margin: 0 0 6px;
-  font-size: 17px;
+  font-size: calc(17px * var(--ss-text-size, 1));
   font-weight: 800;
 }
 .al-gaps {
@@ -221,7 +221,7 @@
 }
 .al-where,
 .al-why {
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   color: var(--ss-muted);
 }
 .al-actions {

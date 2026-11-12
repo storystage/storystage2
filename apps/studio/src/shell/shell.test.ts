@@ -24,7 +24,14 @@ describe.each(STYLESHEETS)('%s', (path) => {
 
   it('names only tokens that exist', () => {
     const used = new Set([...rules.matchAll(/var\(--ss-([a-z0-9-]+)/g)].map((m) => m[1]));
-    const known = new Set<string>([...COLOR_TOKENS, 'surface', 'font-display', 'font-body']);
+    // ThemeRoot's own: the fonts, and Settings › Accessibility's text size (decision 0035).
+    const known = new Set<string>([
+      ...COLOR_TOKENS,
+      'surface',
+      'font-display',
+      'font-body',
+      'text-size',
+    ]);
     expect([...used].filter((name) => name && !known.has(name))).toEqual([]);
   });
 });

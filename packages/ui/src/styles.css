@@ -116,7 +116,7 @@
   align-items: center;
   padding: 1px 6px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 700;
   line-height: 1.2;
   color: var(--ss-on-prompter);
@@ -128,7 +128,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 700;
   line-height: 1;
 }
@@ -375,7 +375,7 @@
 }
 .ss-group-label {
   font-family: var(--ss-font-display);
-  font-size: 19px;
+  font-size: calc(19px * var(--ss-text-size, 1));
   font-weight: 700;
 }
 .ss-radio-card {
@@ -469,7 +469,7 @@
 }
 .ss-field-description {
   color: var(--ss-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ss-text-size, 1));
 }
 
 /* Dialog: radius 20 over a dark scrim. Scrims stay dark in both themes. */
@@ -507,7 +507,7 @@
   flex: 1;
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 28px;
+  font-size: calc(28px * var(--ss-text-size, 1));
   font-weight: 800;
   letter-spacing: -0.01em;
 }
@@ -604,13 +604,13 @@
   position: relative;
   display: flex;
   gap: 6px;
-  padding-top: 20px;
+  padding-top: calc(20px * var(--ss-text-size, 1));
 }
 .ss-frame-scene-title {
   position: absolute;
   top: 0;
   left: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 700;
   color: var(--ss-muted);
 }
@@ -620,8 +620,8 @@
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
-  width: 140px;
-  height: 52px;
+  width: calc(140px * var(--ss-text-size, 1));
+  min-height: calc(52px * var(--ss-text-size, 1));
   padding: 0 6px;
   border-radius: 10px;
   background: var(--ss-panel-3);
@@ -698,7 +698,7 @@
   }
 }
 .ss-field-status {
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   color: var(--ss-text);
 }
 .ss-field-status:empty {
