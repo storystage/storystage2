@@ -16,6 +16,7 @@ Session D keeps this folder. It shows where StoryStage 2 meets each nation's cur
 | [wales.md](wales.md) | 16.3 | Curriculum for Wales: science and technology; languages, literacy and communication; expressive arts; the Digital Competence Framework |
 | [northern-ireland.md](northern-ireland.md) | 16.4 | The Northern Ireland Curriculum: language and literacy, the arts, Using ICT |
 | [mapping.md](mapping.md) | 16.5 | All four together: each statement against feature, activity, arc template and age, with the most-touched statements highlighted |
+| [pathway-first-rung.md](pathway-first-rung.md) | 16.8 | From blocks to Python: what the text view carries over, where it meets KS3, GCSE, National 5 and Wales's step 4, and a three-lesson bridge activity |
 
 Each page arrives in its own pull request (#64 to #68); merge this one first.
 
