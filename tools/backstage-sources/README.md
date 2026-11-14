@@ -20,3 +20,18 @@ The folder is normally the [storystage/backstage-assets](https://github.com/stor
 6. writes `provenance.json` and `sources-report.md` for the reviewer.
 
 The lists accept only licences the audit allows to ship (CC0, CC BY 3.0 or 4.0).
+
+## Rigging a found character (`blender/autorig.py`)
+
+A character found with no skeleton, or one the joint map can't read, is rigged first by the assets repository's **Rig found characters** workflow. It runs this script in Blender, headless. Blender is a GPL build tool, never linked into the app.
+
+```
+blender -b --python-exit-code 1 --python tools/backstage-sources/blender/autorig.py -- \
+  <assets>/originals/autorig/rigs.json <assets>/generated/autorig <assets>/previews/autorig
+```
+
+- **What it does:** it finds the joints from the model's shape, as a person standing in a T-pose. It makes a skeleton with our joint names, binds the mesh with automatic weights, and renders the model at rest and posed.
+- **What it writes:** `rig-report.json`, giving each joint found and how it was found.
+- **Using the result:** the item's source list fetches it as `generated: "autorig/<name>.glb"`.
+
+Spec 17, section 3, has the rules.
