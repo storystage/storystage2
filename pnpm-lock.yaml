@@ -84,6 +84,9 @@ importers:
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
+      '@storystage/prompter':
+        specifier: workspace:*
+        version: link:../../packages/prompter
       '@storystage/screening':
         specifier: workspace:*
         version: link:../../packages/screening
@@ -105,6 +108,9 @@ importers:
       '@storystage/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@tauri-apps/api':
+        specifier: ^2.12.4
+        version: 2.12.4
       react:
         specifier: ^19.3.1
         version: 19.3.1
