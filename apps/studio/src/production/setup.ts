@@ -4,7 +4,7 @@
  * one production to the next, for `studio.commit`; the program isn't touched.
  */
 import type { Production, SceneId } from '@storystage/production';
-import type { Quat, Transform } from '@storystage/story-api';
+import type { Quat, SceneSetup, Transform, Vec3 } from '@storystage/story-api';
 
 /** How far round an object faces, about the vertical: 0 to just under 1 turn. */
 export function turnOf(rotation: Quat): number {
@@ -120,10 +120,19 @@ export function inFrontOfCamera(camera: Transform, nth = 0): Transform {
   const side = nth === 0 ? 0 : Math.ceil(nth / 2) * (nth % 2 === 1 ? 1 : -1) * 1.2;
   const x = camera.position.x + fx * ADD_DISTANCE - fz * side;
   const z = camera.position.z + fz * ADD_DISTANCE + fx * side;
+  return facingCamera(camera, { x, y: 0, z });
+}
+
+/**
+ * Where a model dropped from Backstage goes: the point of the ground under the pointer (the
+ * stage's `pick`), facing the camera, at its own size.
+ */
+export function facingCamera(camera: Transform, at: Vec3): Transform {
+  const round = (n: number) => Math.round(n * 1000) / 1000;
   // Facing the camera: the model's +Z turned towards it.
-  const towards = Math.atan2(camera.position.x - x, camera.position.z - z);
+  const towards = Math.atan2(camera.position.x - at.x, camera.position.z - at.z);
   return {
-    position: { x: Math.round(x * 1000) / 1000, y: 0, z: Math.round(z * 1000) / 1000 },
+    position: { x: round(at.x), y: round(at.y), z: round(at.z) },
     rotation: { x: 0, y: Math.sin(towards / 2), z: 0, w: Math.cos(towards / 2) },
     scale: { x: 1, y: 1, z: 1 },
   };
@@ -154,4 +163,48 @@ export function withBackdrop(
         : { ...s, setup: { ...s.setup, backdrop: { ...s.setup.backdrop, [part]: id } } },
     ),
   };
+}
+
+/** One scene's set-up changed by `change`. */
+function withSetup(
+  p: Production,
+  scene: SceneId,
+  change: (setup: SceneSetup) => SceneSetup,
+): Production {
+  return {
+    ...p,
+    scenes: p.scenes.map((s) => (s.id !== scene ? s : { ...s, setup: change(s.setup) })),
+  };
+}
+
+/** The production with the scene's camera moved: Move the camera here, or its handles. */
+export function withCamera(p: Production, scene: SceneId, transform: Transform): Production {
+  return withSetup(p, scene, (setup) => ({ ...setup, camera: { ...setup.camera, transform } }));
+}
+
+/** The production with one of the scene's markers moved. */
+export function withMarker(
+  p: Production,
+  scene: SceneId,
+  id: string,
+  transform: Transform,
+): Production {
+  return withSetup(p, scene, (setup) => ({
+    ...setup,
+    markers: setup.markers.map((m) => (m.id === id ? { ...m, transform } : m)),
+  }));
+}
+
+/**
+ * What a handle drag did, for its undo step's name: a move along the ground or up and down, a
+ * turn, or a resize. The handles do one at a time; a move wins if more than one changed.
+ */
+export function dragKind(before: Transform, after: Transform): 'move' | 'turn' | 'size' {
+  const close = (a: number, b: number) => Math.abs(a - b) < 1e-6;
+  const moved = (['x', 'y', 'z'] as const).some(
+    (k) => !close(before.position[k], after.position[k]),
+  );
+  if (moved) return 'move';
+  if (!close(before.scale.x, after.scale.x)) return 'size';
+  return 'turn';
 }

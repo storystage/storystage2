@@ -2,13 +2,17 @@
  * The scene view (`07-ux.md` section 7.2) and Rehearse (section 7.4): the current scene's set-up
  * on a stage of the Production stage's own, through the scene's camera, with Rehearse's controls
  * on its title band. Loaded on demand, as the Blocks editor is, so the Storyboard opens without
- * Babylon.js or the runtime. Editing the set-up here (adding, choosing, moving) waits on the
- * stage's editing contract (section 7.2, S3).
+ * Babylon.js or the runtime. While nothing runs, the stage is in edit mode (S3's `EditableStage`):
+ * a click chooses an object, its handles move, turn and resize it, Look around orbits a camera of
+ * its own, and "In this shot:" names what the scene's camera sees. Rehearse plays in Camera view.
  */
 import type { NodeId } from '@storystage/ast';
 import { SPEEDS, startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { Production, SceneId } from '@storystage/production';
-import type { SceneSetup } from '@storystage/story-api';
+import type { EditTarget, EditableStage, Stage } from '@storystage/stage';
+import type { SceneSetup, Transform, Vec3 } from '@storystage/story-api';
+import { DropZone } from 'react-aria-components';
+import { MODEL_DRAG_TYPE } from './BackstageRail.tsx';
 import { Button, NeutralNote, Segmented } from '@storystage/ui';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
@@ -40,7 +44,26 @@ export interface SceneViewProps {
   readonly speaker?: Speaker | undefined;
   /** Speak lines that are silent for now, with their captions: a note under the view. */
   readonly silentLines?: string | null;
+  /** What's chosen, on the stage or in Objects in this scene. */
+  readonly chosen?: EditTarget | null;
+  /** The learner clicked something on the stage, or the ground (null). */
+  onChoose?(target: EditTarget | null): void;
+  /** A handle drag was let go: the target's whole new transform, for one undo step. */
+  onMoved?(target: EditTarget, transform: Transform): void;
+  /** Move the camera here: Look around's view, for the scene's camera. */
+  onMoveCamera?(transform: Transform): void;
+  /** False on a film that can't be changed: no handles and no Move the camera here. */
+  readonly canEdit?: boolean;
+  /**
+   * A model dragged from Backstage was dropped on the view: its id, and where the ground is under
+   * the pointer (null above the horizon).
+   */
+  onDropModel?(id: string, ground: Vec3 | null): void;
 }
+
+/** The stage's editing half, when it has one (S3's Babylon stage and `FakeStage` do). */
+const editableOf = (stage: Stage | null): EditableStage | null =>
+  stage && 'editing' in stage ? (stage as EditableStage) : null;
 
 /** The models and backdrop parts one scene's set-up uses, for the model source to get ready. */
 export function setupModels(setup: SceneSetup): string[] {
@@ -95,11 +118,19 @@ export default function SceneView(props: SceneViewProps) {
   const onRehearsal = useRef(props.onRehearsal);
   // The studio's voices, read when a rehearsal is made; they last as long as the App.
   const speaker = useRef(props.speaker);
+  const onChoose = useRef(props.onChoose);
+  const onMoved = useRef(props.onMoved);
   useEffect(() => {
     announce.current = props.onAnnounce;
     onRehearsal.current = props.onRehearsal;
     speaker.current = props.speaker;
+    onChoose.current = props.onChoose;
+    onMoved.current = props.onMoved;
   });
+  // Counts each time the set-up has been shown, so what asks the stage about it asks again.
+  const [shown, setShown] = useState(0);
+  const [looking, setLooking] = useState(false);
+  const [shot, setShot] = useState<readonly string[] | null>(null);
 
   // The view's own stage, made when it opens and disposed when the learner leaves the tab. Each
   // stage gets a canvas of its own, as the Screening tab's does.
@@ -153,6 +184,12 @@ export default function SceneView(props: SceneViewProps) {
     void models
       .prepare(setup ? setupModels(setup) : [])
       .then(() => rehearsal.showSetup())
+      .then(() => {
+        setShown((n) => n + 1);
+        // "In this shot:", asked again each time the set-up is shown.
+        const shownOn = editableOf(stage);
+        if (shownOn) setShot(shownOn.inShot().map(String));
+      })
       .catch((e: unknown) => {
         console.error('The scene view could not show the set-up.', e);
         setProblem(words.t('production.sceneView.noSetup'));
@@ -187,6 +224,45 @@ export default function SceneView(props: SceneViewProps) {
 
   const state = useSyncExternalStore(slot.subscribe, slot.state);
 
+  // Edit mode while nothing runs; Rehearse plays in Camera view, with no handles.
+  const editable = editableOf(stage);
+  const idle = state.status === 'idle';
+  const canEdit = props.canEdit ?? false;
+  useEffect(() => {
+    editable?.editing(idle && canEdit);
+  }, [editable, idle, canEdit]);
+  /** Before a run: no handles, and Camera view. */
+  const quiet = () => {
+    editable?.editing(false);
+    editable?.lookAround(false);
+    setLooking(false);
+  };
+
+  // Clicks and handle drags on the stage. A drag moves the object live; only its end is written.
+  useEffect(() => {
+    if (!editable) return;
+    const offTap = editable.onTap((picked) => onChoose.current?.(picked.target));
+    const offEdit = editable.onEdit((e) => {
+      if (e.final) onMoved.current?.(e.target, e.transform);
+    });
+    return () => {
+      offTap();
+      offEdit();
+    };
+  }, [editable]);
+
+  // What's chosen in the list has the stage's outline and handles, once the set-up is shown.
+  const chosen = props.chosen ?? null;
+  useEffect(() => {
+    if (!editable || shown === 0) return;
+    try {
+      editable.choose(chosen);
+    } catch {
+      // Not on the stage: gone in a change the stage hasn't been shown yet.
+      editable.choose(null);
+    }
+  }, [editable, chosen, shown]);
+
   // The Code editor's highlights, and what the live region says as a run goes.
   const said = useRef<RehearsalState>(IDLE);
   useEffect(() => {
@@ -217,6 +293,7 @@ export default function SceneView(props: SceneViewProps) {
       return;
     }
     setHint(null);
+    quiet();
     void rehearsal()?.toHere(node);
   };
   const running = state.status === 'playing' || state.status === 'paused';
@@ -236,6 +313,7 @@ export default function SceneView(props: SceneViewProps) {
                 isDisabled={unavailable !== null}
                 onPress={() => {
                   setHint(null);
+                  quiet();
                   void rehearsal()?.start();
                 }}
               >
@@ -285,7 +363,23 @@ export default function SceneView(props: SceneViewProps) {
       {state.status === 'idle' && props.unavailable && (
         <p className="pr-scene-why">{props.unavailable}</p>
       )}
-      <div className="pr-scene-view" data-running={running || undefined}>
+      <DropZone
+        className={running ? 'pr-scene-view pr-scene-running' : 'pr-scene-view'}
+        aria-label={words.t('production.view.drop')}
+        isDisabled={!(idle && canEdit && editable && props.onDropModel)}
+        getDropOperation={(types) => (types.has(MODEL_DRAG_TYPE) ? 'copy' : 'cancel')}
+        onDrop={(e) => {
+          void (async () => {
+            for (const dropped of e.items) {
+              if (dropped.kind !== 'text' || !dropped.types.has(MODEL_DRAG_TYPE)) continue;
+              const id = await dropped.getText(MODEL_DRAG_TYPE);
+              // The drop's point is from the view's top left, as the stage's `pick` wants it.
+              props.onDropModel?.(id, editable?.pick(e.x, e.y).ground ?? null);
+              return;
+            }
+          })();
+        }}
+      >
         <div ref={canvasRef} className="pr-canvas" />
         {state.speech.length > 0 && (
           <div className="pr-captions">
@@ -300,6 +394,38 @@ export default function SceneView(props: SceneViewProps) {
               </p>
             ))}
           </div>
+        )}
+      </DropZone>
+      {/* Always there, so the Code editor below doesn't move as the stage gets ready or a run starts. */}
+      <div className="pr-scene-tools">
+        <Segmented
+          label={words.t('production.view.label')}
+          isDisabled={!idle || !editable}
+          options={[
+            { id: 'camera', label: words.t('production.view.camera') },
+            { id: 'look', label: words.t('production.view.look') },
+          ]}
+          value={looking ? 'look' : 'camera'}
+          onChange={(v) => {
+            editable?.lookAround(v === 'look');
+            setLooking(v === 'look');
+          }}
+        />
+        {editable && idle && looking && canEdit && props.onMoveCamera && (
+          <Button
+            variant="secondary"
+            icon="videocam"
+            onPress={() => props.onMoveCamera?.(editable.viewTransform())}
+          >
+            {words.t('production.view.moveCamera')}
+          </Button>
+        )}
+        {shot && (
+          <p className="pr-in-shot">
+            {shot.length > 0
+              ? words.t('production.view.inShot', { names: shot.join(', ') })
+              : words.t('production.view.inShotNone')}
+          </p>
         )}
       </div>
       {problem && <NeutralNote>{problem}</NeutralNote>}

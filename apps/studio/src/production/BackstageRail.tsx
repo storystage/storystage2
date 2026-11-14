@@ -15,8 +15,12 @@ import {
   Label,
   SearchField,
   ToggleButton,
+  useDragAndDrop,
 } from 'react-aria-components';
 import { words } from '../strings.ts';
+
+/** A Backstage item dragged from the rail: its id. */
+export const MODEL_DRAG_TYPE = 'application/x-storystage-model';
 
 const SECTIONS: readonly { id: Section; icon: IconName }[] = [
   { id: 'cast', icon: 'groups' },
@@ -45,6 +49,15 @@ export interface BackstageRailProps {
 
 export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: BackstageRailProps) {
   const [open, setOpen] = useState<Section | null>(null);
+  // An item dragged onto the scene view lands where it's dropped (07-ux section 7.2).
+  const { dragAndDropHooks } = useDragAndDrop({
+    getItems: (keys) =>
+      [...keys].map((key) => ({
+        [MODEL_DRAG_TYPE]: String(key),
+        'text/plain': catalogue.find((i) => i.id === key)?.displayName ?? String(key),
+      })),
+    getAllowedDropOperations: () => ['copy'],
+  });
   const [search, setSearch] = useState('');
   // Searching looks across all four sections (decision 0058); otherwise the open one.
   const shown = catalogue.filter((i) => (search.trim() ? matches(i, search) : i.section === open));
@@ -97,6 +110,7 @@ export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: Backstage
               layout="grid"
               disabledBehavior="all"
               disabledKeys={canAdd ? [] : shown.map((i) => i.id)}
+              {...(canAdd ? { dragAndDropHooks } : {})}
               onAction={(key) => {
                 const item = catalogue.find((i) => i.id === key);
                 if (item && canAdd) onUse(item);
@@ -118,6 +132,16 @@ export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: Backstage
                         <Icon name="view_in_ar" size={32} />
                       )}
                     </span>
+                    {canAdd && (
+                      <Button
+                        slot="drag"
+                        variant="quiet"
+                        icon="drag_indicator"
+                        aria-label={words.t('production.backstage.dragNamed', {
+                          name: item.displayName,
+                        })}
+                      />
+                    )}
                     <span className="pr-backstage-name">{item.displayName}</span>
                     <Button
                       slot={null}

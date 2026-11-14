@@ -2,8 +2,9 @@
  * Objects in this scene (`07-ux.md` section 7.2): the scene's set-up as a list beside the view,
  * its keyboard path, as the sketches are on a frame. Choosing an object shows its fields: x, y and
  * z in metres, its turn in turns (Alice's unit) and its size. Typing in a field moves it on the
- * stage, as one undo step for each run of typing ("Move penguin"). Choosing on the stage itself,
- * and handles, wait on the stage's editing contract (S3).
+ * stage, as one undo step for each run of typing ("Move penguin"). The choice is the scene view's
+ * too: clicking an object on the stage chooses it here, and choosing it here gives it the stage's
+ * outline and handles.
  */
 import type { Production, SceneId } from '@storystage/production';
 import { useState } from 'react';
@@ -34,8 +35,13 @@ export function ObjectsPanel({
   scene,
   modelName,
   onReveal,
+  chosen,
+  onChoose,
 }: {
   studio: Studio;
+  /** The object chosen, here or on the stage, by its name. */
+  chosen: string | null;
+  onChoose: (name: string | null) => void;
   /** Opens the Code editor at a block: Remove says where the code uses an object. */
   onReveal?: (node: NodeId) => void;
   scene: SceneId;
@@ -44,7 +50,6 @@ export function ObjectsPanel({
 }) {
   const p = studio.production;
   const objects = p.scenes.find((s) => s.id === scene)?.setup.objects ?? [];
-  const [chosen, setChosen] = useState<Key | null>(null);
   const object = objects.find((o) => o.id === chosen) ?? null;
   const readOnly = studio.readOnly !== null;
   // What the last Remove said: refused while code uses the object, with where.
@@ -55,7 +60,7 @@ export function ObjectsPanel({
     const done = studio.step(result.step);
     if (!done.ok) return setRefusal({ name, refusal: { code: 'refused', reason: done.reason } });
     setRefusal(null);
-    setChosen(null);
+    onChoose(null);
   };
 
   return (
@@ -70,11 +75,12 @@ export function ObjectsPanel({
           className="pr-objects-list"
           aria-labelledby="pr-objects-title"
           selectionMode="single"
+          disallowEmptySelection
           selectedKeys={chosen === null ? [] : [chosen]}
           onSelectionChange={(keys) => {
             if (keys === 'all') return;
             const [key] = keys as Set<Key>;
-            setChosen(key ?? null);
+            onChoose(key === undefined ? null : String(key));
           }}
           items={objects.map((o) => ({ id: o.id, o }))}
         >
