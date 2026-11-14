@@ -5,9 +5,13 @@
  *
  * Approximations, listed so tests don't rely on them: collisions are "closer than 0.5 m"; every
  * object has a stand-in's size; the camera's shot is recorded, not framed; the rendered frame is a
- * few bytes derived from the state hash.
+ * few bytes derived from the state hash. As the scene view's stage it picks by the same rays as the
+ * real stage, against those sizes; a marker is a 30 cm box; it has no handles, so a test drags
+ * with `drag`, taps with `tap` and moves Look around's camera with `moveView`.
  */
 import {
+  CAMERA,
+  StageError,
   type BackstageId,
   type JointName,
   type Micros,
@@ -22,8 +26,20 @@ import {
   type Watch,
   jointName,
 } from '@storystage/story-api';
-import type { FrameImage, Speech, Stage, LoadOptions, Missing } from '../contract.ts';
-import { length, sub } from '../math.ts';
+import type {
+  EditEvent,
+  EditTarget,
+  EditableStage,
+  FrameImage,
+  LoadOptions,
+  Missing,
+  ObjectChange,
+  Picked,
+  Speech,
+} from '../contract.ts';
+import { boxPoints, groundPoint, inViewOf, rayHitsBox, viewRay } from '../editing.ts';
+import type { Box } from '../hull.ts';
+import { length, sub, v } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
@@ -44,7 +60,12 @@ export interface FakeStageOptions {
     cls: StoryClass,
     model: SceneSetup['objects'][number]['model'],
   ) => readonly JointName[];
+  /** The view's size in pixels, for `pick`, `tap` and `inShot`. Default 640 by 360. */
+  readonly view?: { readonly width: number; readonly height: number };
 }
+
+/** What a marker is, to pick, while editing. */
+const MARKER_BOX: Box = { min: v(-0.15, -0.15, -0.15), max: v(0.15, 0.15, 0.15) };
 
 const ACTORS: readonly StoryClass[] = ['Biped', 'Quadruped', 'Flyer', 'Swimmer', 'Slitherer'];
 const defaultJoints: NonNullable<FakeStageOptions['jointsFor']> = (cls) =>
@@ -52,13 +73,19 @@ const defaultJoints: NonNullable<FakeStageOptions['jointsFor']> = (cls) =>
 
 const closeBy: Touching = (a, b) => length(sub(a.transform.position, b.transform.position)) < 0.5;
 
-export class FakeStage implements Stage {
+export class FakeStage implements EditableStage {
   readonly calls: FakeStageCall[] = [];
   private readonly timeline = new Timeline();
   /** What the last `load` couldn't find. */
   private lost: readonly Missing[] = [];
   private listeners = new Set<(e: StageEvent) => void>();
   private readonly options: FakeStageOptions;
+  private isEditing = false;
+  private chosenTarget: EditTarget | null = null;
+  /** Look around's camera while it's on. */
+  private around: Transform | null = null;
+  private editListeners = new Set<(e: EditEvent) => void>();
+  private tapListeners = new Set<(p: Picked) => void>();
 
   constructor(options: FakeStageOptions = {}) {
     this.options = options;
@@ -102,6 +129,10 @@ export class FakeStage implements Stage {
     const { library, navigation } = await humanoidsFor(setup);
     this.timeline.useHumanoids(library, navigation);
     this.lost = lost;
+    // The scene view stays as it was: edit mode, what's chosen if it's still here, Look around.
+    if (this.isEditing) this.timeline.reset();
+    const chosen = this.chosenTarget;
+    if (chosen && !this.has(chosen)) this.chosenTarget = null;
   }
 
   objects(): readonly ObjectId[] {
@@ -182,6 +213,132 @@ export class FakeStage implements Stage {
   dispose(): void {
     this.record('dispose', []);
     this.listeners.clear();
+    this.editListeners.clear();
+    this.tapListeners.clear();
+  }
+
+  editing(on: boolean): void {
+    this.record('editing', [on]);
+    this.isEditing = on;
+    if (on) this.timeline.reset();
+  }
+
+  /** Whether edit mode is on, for a test. */
+  isEditingNow(): boolean {
+    return this.isEditing;
+  }
+
+  pick(x: number, y: number): Picked {
+    const { width, height } = this.size();
+    const ray = viewRay(this.viewTransform(), this.timeline.lens(), width, height, x, y);
+    let nearest: { target: EditTarget; distance: number } | null = null;
+    const consider = (target: EditTarget, box: Box, t: Transform) => {
+      const distance = rayHitsBox(ray, box, t);
+      if (distance !== null && (!nearest || distance < nearest.distance))
+        nearest = { target, distance };
+    };
+    for (const object of this.objects()) {
+      const box = this.timeline.box(object);
+      if (object !== CAMERA && box && this.showing(object))
+        consider({ object }, box, this.timeline.transform(object));
+    }
+    if (this.isEditing)
+      for (const [marker, pose] of this.timeline.markerPlaces())
+        consider({ marker }, MARKER_BOX, { ...pose, scale: v(1, 1, 1) });
+    const found = nearest as { target: EditTarget; distance: number } | null;
+    return { target: found?.target ?? null, ground: groundPoint(ray, this.timeline.ground()) };
+  }
+
+  choose(target: EditTarget | null): void {
+    this.record('choose', [target]);
+    if (target && !this.has(target))
+      throw new StageError(
+        'unknown_object',
+        'object' in target
+          ? `There is nothing called ${target.object} in this scene.`
+          : `There is no marker called ${target.marker} in this scene.`,
+      );
+    this.chosenTarget = target;
+  }
+
+  private has(target: EditTarget): boolean {
+    return 'object' in target
+      ? this.objects().includes(target.object)
+      : this.timeline.markerPlaces().has(target.marker);
+  }
+
+  /** What's chosen, for a test. */
+  chosen(): EditTarget | null {
+    return this.chosenTarget;
+  }
+
+  onEdit(listener: (event: EditEvent) => void): () => void {
+    this.editListeners.add(listener);
+    return () => this.editListeners.delete(listener);
+  }
+
+  onTap(listener: (picked: Picked) => void): () => void {
+    this.tapListeners.add(listener);
+    return () => this.tapListeners.delete(listener);
+  }
+
+  /** Test helper: a handle drag, as the real stage's handles report one. */
+  drag(event: EditEvent): void {
+    for (const l of [...this.editListeners]) l(event);
+  }
+
+  /** Test helper: a click or tap at (x, y), reported only while editing. */
+  tap(x: number, y: number): void {
+    if (!this.isEditing) return;
+    const picked = this.pick(x, y);
+    for (const l of [...this.tapListeners]) l(picked);
+  }
+
+  setObject(object: ObjectId, change: ObjectChange): void {
+    this.record('setObject', [object, change]);
+    this.timeline.setObject(object, change);
+  }
+
+  setMarker(id: string, transform: Transform): void {
+    this.record('setMarker', [id, transform]);
+    this.timeline.setMarker(id, transform);
+  }
+
+  lookAround(on: boolean): void {
+    this.record('lookAround', [on]);
+    this.around = on ? this.timeline.transform(CAMERA) : null;
+  }
+
+  /** Test helper: moves Look around's camera, as the pointer or the keys would. */
+  moveView(transform: Transform): void {
+    if (this.around) this.around = transform;
+  }
+
+  viewTransform(): Transform {
+    return this.around ?? this.timeline.transform(CAMERA);
+  }
+
+  inShot(): readonly ObjectId[] {
+    const { width, height } = this.size();
+    const camera = this.timeline.transform(CAMERA);
+    const lens = this.timeline.lens();
+    return this.objects().filter((object) => {
+      const box = this.timeline.box(object);
+      if (object === CAMERA || !box || !this.showing(object)) return false;
+      return boxPoints(box, this.timeline.transform(object)).some((p) =>
+        inViewOf(camera, lens, width / height, p),
+      );
+    });
+  }
+
+  private size() {
+    return this.options.view ?? { width: 640, height: 360 };
+  }
+
+  /** Not faded to nothing. */
+  private showing(object: ObjectId): boolean {
+    const q = { kind: 'isVisible', object, at: this.timeline.time() } as const;
+    return this.timeline.answer(q, closeBy).value === true;
   }
 }
 
