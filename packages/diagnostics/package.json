@@ -1,0 +1,16 @@
+{
+  "name": "@storystage/diagnostics",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Report a problem: the studio's recent problems, scrubbed, and the problem report.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/host": "workspace:*"
+  }
+}

@@ -243,6 +243,18 @@
   align-items: center;
   gap: 8px;
 }
+/* Under the view: Camera view or Look around, Move the camera here, and In this shot. */
+.pr-scene-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.pr-in-shot {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+
 /* Waiting for the scene view: as tall as its buttons. */
 .pr-scene-controls-waiting {
   min-height: 44px;
@@ -262,7 +274,7 @@
   background: var(--ss-panel-3);
   box-shadow: inset 0 0 0 1px var(--ss-line-1);
 }
-.pr-scene-view[data-running] {
+.pr-scene-view.pr-scene-running {
   box-shadow: 0 0 0 3px var(--ss-amber);
 }
 .pr-canvas,
