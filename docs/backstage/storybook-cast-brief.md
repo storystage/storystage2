@@ -1,6 +1,6 @@
 # The storybook cast: shortlist, sources and brief (WP3.6)
 
-- **Status:** S4, 14 Nov 2026. **The owner's decisions of 14 Nov:** the 20 below, **no budget (£0)**: each character comes from open models or Alice 3's own, not a commission. Section 3 says where each one comes from; section 5 lists the gaps.
+- **Status:** S4, 14 Nov 2026. **The owner's decisions of 14 Nov:** the 20 below, **no budget (£0)**: each character comes from open models or Alice 3's own, not a commission. Section 3 says where each one comes from; section 5 lists the gaps. **Also 14 Nov:** the five KayKit characters go in now (backstage-assets, `sources/storybook.json`); CMU has replied and is taking legal advice, so Alice 3's seven are converted for internal testing only, marked as waiting for CMU (section 3); the owner asked for the Sketchfab finds to be checked (section 3a).
 - **Workplan:** 3.6 (C drafts the brief and shortlist; U decides). Every character still needs its **17.8** decision (`docs/legal/storybook-characters.md`, PR #54). With no commission, 17.9's contract (PR #55) is needed only if someone makes a character for us (section 5). The schedule has WP3d at weeks 5 to 9 (forecast 9 Nov to 18 Jan).
 - **Specs it relies on:** 17-backstage §2a (the joint map, `packages/backstage/src/joints.ts`), §3 (licences: CC0 and CC BY ship; Alice 3's models and anything made for us ship as `licence: "permission"` with a record in `docs/legal/permissions/`), §4 (budgets) and §5 (the import report); 02-story-api rules 4.6 and 6 (faces are the model's own VRM expressions); the WP4c clip decision (KayKit's walk, run, sit and the rest, retargeted onto VRM bones; wave, nod, shrug, clap, point and fall written in code).
 
@@ -54,39 +54,57 @@ From the Include and Include-with-care rows of the rights check. **Wave 1** (12)
 
 Three places, in order of preference:
 
-- **Alice 3's own models,** which CMU's letter (17.1, sent 8 Nov 2026) asks to convert and ship. Their converter is built (3.2), so they're ready the day CMU says yes, and they ship as `licence: "permission"`. Until then they're only for testing. If CMU says no, or never answers, these rows fall back to the next column.
-- **CC0 models already in the shipped Backstage,** mostly KayKit's adventurers, which fit a character's type. They ship today, and paint and a hand-held prop make them the character.
+- **Alice 3's own models,** which CMU's letter (17.1, sent 8 Nov 2026) asks to convert and ship. **CMU has replied and is taking legal advice internally** (the owner, 14 Nov 2026). Until CMU agrees in writing, they're for **internal testing only**: converted by the converter (3.2), kept out of every public repository and the shipped Backstage, and opened in the studio as a private model pack (17-backstage §5) whose records say "Alice 3 gallery model: CMU's approval outstanding" and whose licence is "not sure", so the studio flags them and the exports refuse them. When CMU agrees, they ship as `licence: "permission"`; if CMU says no, these rows fall back to the next column.
+- **CC0 models already in the shipped Backstage,** mostly KayKit's adventurers, which fit a character's type. Each becomes the character by its name, its description for the Prompter, and which of the model's own parts it keeps (King Arthur without the helmet, Fionn without the bear hood and five metres tall). KayKit's textures are one picture per model, so a different colour would mean a new picture; learners can still paint them on the stage. KayKit's weapons stay out, as for the KayKit list.
 - **CC BY models found on Sketchfab,** case by case. Each is checked like the museum scans (3.7): its own page says CC BY or CC0; it isn't a copy of a film, game or modern book version (17.8's rules apply to found models too); it's rigged, or can be; and it fits the Cast budget once reduced. Searched 14 Nov 2026: most named storybook characters there are fan copies of films (Disney's 1973 Robin Hood animals, for example), which are out whatever their tag says, or unrigged statues. Generic types (Vikings, knights, medieval women) are easier to find.
 
 | # | Character | Alice 3 (when CMU agrees) | Shipped CC0 today | Found CC BY (to check) | Status |
 |---|---|---|---|---|---|
 | 1 | Alice | `Alice` (Wonderland variant) | — | — | **Alice 3.** Check its dress against 17.8's rule (not Disney's blue dress, white pinafore and black hairband) |
 | 2 | The White Rabbit | `WhiteRabbit` | — | — | **Alice 3** |
-| 3 | Little Red Riding Hood | — | A MakeHuman child, without the hood (the CC0 pack has no headwear) | Several unrigged ones, all to check | **Gap** |
+| 3 | Little Red Riding Hood | — | A MakeHuman child, without the hood (the CC0 pack has no headwear) | **leafar112's**, CC BY, made for a children's AR app, 11,596 triangles, **not rigged** (section 3a) | **Gap** until it's rigged |
 | 4 | The Wolf | `BigBadWolf` (on two legs, the storybook wolf) and `Wolf` (on four) | — | — | **Alice 3** |
-| 5 | Robin Hood | — | **KayKit `rogue-hooded`**, painted green, with a bow | — | **Shipped CC0** |
-| 6 | Sherlock Holmes | — | — | None usable (statues, a teddy, a cartoon dog) | **Gap** |
-| 7 | King Arthur | — | **KayKit `knight`**, with a crown | — | **Shipped CC0** |
-| 8 | Merlin | — | **KayKit `mage`** | — | **Shipped CC0** |
-| 9 | Beowulf | — | **KayKit `barbarian`** | "Stylized viking (rigify rig)", slagperch3d, CC BY, 45,888 triangles before reduction | **Shipped CC0**, or the Viking if it passes |
-| 10 | Fionn mac Cumhaill | — | KayKit `barbarian`, scaled up as a giant (the same model as Beowulf) | "Celt, rigged", Andywoodhead, CC BY, 124,012 triangles, realistic | **Shipped CC0, shared**; better if the Celt passes |
-| 11 | Branwen | `Freya` would do in a pinch, but she's a Norse goddess | — | "Medieval warrior girl", asset_for_games, CC BY, to check | **Gap** |
+| 5 | Robin Hood | — | **KayKit `rogue-hooded`**, in its own green hood and cloak (`storybook/Biped/robin-hood`) | — | **CC0, in now** |
+| 6 | Sherlock Holmes | — | — | None usable: statues, a teddy, a cartoon dog, and a blank grey figure | **Gap** |
+| 7 | King Arthur | — | **KayKit `knight`**, without the helmet (`storybook/Biped/king-arthur`) | — | **CC0, in now** |
+| 8 | Merlin | — | **KayKit `mage`**, a young wizard (`storybook/Biped/merlin`) | — | **CC0, in now** |
+| 9 | Beowulf | — | **KayKit `barbarian`**, in the bear hood (`storybook/Biped/beowulf`) | "Viking (lowpoly)", slagperch3d, CC BY, rigged (section 3a) | **CC0, in now** |
+| 10 | Fionn mac Cumhaill | — | **KayKit `barbarian`**, without the hood, 5 m tall (`storybook/Biped/fionn-mac-cumhaill`) | — | **CC0, in now** |
+| 11 | Branwen | `Freya` would do in a pinch, but she's a Norse goddess | — | None suitable (section 3a) | **Gap** |
 | 12 | The dragon | `Dragon` (10 colours) | — | — | **Alice 3** |
 | 13 | The Mad Hatter | `MadHatter` | — | — | **Alice 3** |
 | 14 | Dr Watson | — | A MakeHuman man in a suit, without the bowler | — | **Gap** |
 | 15 | Maid Marian | — | — | The ones found are copies of Disney's 1973 film: out | **Gap** |
 | 16 | Grendel | `Troll` or `Ogre` | KayKit's skeletons are the wrong story | — | **Alice 3** (a stand-in design) |
-| 17 | Medusa | — | — | "Greek Woman", JoseGP3D, CC BY, unrigged; Medusas found are statues or game skins | **Gap** |
+| 17 | Medusa | — | — | None: the Medusas found are statues or game skins, and "Greek Woman" (JoseGP3D, CC BY) has no snakes and is realistic | **Gap** |
 | 18 | Anansi | — | — | None | **Gap**, and the cultural review stays (section 8.6) |
 | 19 | A selkie | — | — | None | **Gap** |
 | 20 | Puck | `Pixie` (3 variants) | — | — | **Alice 3** |
 
 **Totals:**
-- 5 ship now from CC0 models already in Backstage: Robin Hood, Arthur, Merlin, Beowulf, and Fionn on Beowulf's model.
-- 7 come from Alice 3 if CMU agrees: Alice, the White Rabbit, the Wolf, the dragon, the Mad Hatter, Grendel and Puck.
+- 5 go in now from CC0 KayKit models: Robin Hood, Arthur, Merlin, Beowulf, and Fionn on Beowulf's model.
+- 7 come from Alice 3: internal testing now, shipping if CMU agrees. They are Alice, the White Rabbit, the Wolf, the dragon, the Mad Hatter, Grendel and Puck.
 - 8 are gaps: Red Riding Hood, Holmes, Branwen, Watson, Marian, Medusa, Anansi and the selkie.
 
 **Alice 3 has more storybook characters** than the shortlist, and they'd come with the same yes from CMU: the Queen of Hearts, the Cheshire Cat, the March Hare and the playing cards (the rest of Wonderland); a Witch (Macbeth's three, for `ARC-SCENE`); a Pig (the three little pigs); and Thor, Odin, Loki, Freya, Skadi and a Valkyrie (Norse myths, which KS2 teaches with the Vikings). The Monkey King, the Rakshasa, the Curupira and the Mapinguari come from living traditions, so each would need the same cultural review as Anansi.
+
+## 3a. The Sketchfab finds, checked (14 Nov 2026)
+
+Each from its own page through Sketchfab's public API, and its picture. Downloading needs a Sketchfab sign-in, so it goes through the owner's Chrome, with the owner's go for each file (as for the museum scans).
+
+| Model | Licence | Size and rig | For | Verdict |
+|---|---|---|---|---|
+| "Old Village Granny", Imagineis (2025) | CC BY | 617 triangles, rigged, hand-painted, low-poly cartoon | **Red Riding Hood's grandmother** (not on the shortlist) | **Take it,** if the owner agrees: rigged, child-friendly, its own design |
+| "Capuchinho Vermelho (Little Red Riding Hood)", leafar112 (2023) | CC BY | 11,596 triangles, **not rigged** | Red Riding Hood | **The best Red Riding Hood found,** made for a children's AR app. Needs a skeleton first (section 5) |
+| "Viking (lowpoly)", slagperch3d (2024) | CC BY | 2,520 triangles, rigged with Mixamo, 7 clips | A second Viking or Beowulf | **Optional.** KayKit's Beowulf already covers it; its horned helmet is a later invention |
+| "Red riding hood #StorybookChallenge", ahmed_jlil_ | CC BY | 11,151 triangles, a whole scene, not rigged | Red Riding Hood | Out: the character is small in a forest scene, and unrigged |
+| "Red Riding Hood", iamjohnhult; "Red Riding Hood and iWolf", berkgedik | CC BY | 30,670 and 27,550 triangles | Red Riding Hood | Out: an older Red out for revenge, and one the wolf has taken over. Not for 6 to 9 year olds |
+| "Little Red Riding Hood", "Robin Hood", "Maid Marian" and others, ThisIsntAPerson | Tagged CC BY | — | — | **Out:** taken from the *Disney Magic Kingdoms* game, so not the uploader's to license |
+| "Medieval warrior girl" 1 and 2, asset_for_games | CC BY | 18,384 and 15,983 triangles, rigged (FBX) | Branwen | Out: one has anime cat ears and swords, the other is dressed for adults |
+| "Greek Woman", JoseGP3D | CC BY | 32,524 triangles, rigged (FBX), realistic | Medusa | Out for Medusa (no snakes); a realistic style beside cartoon casts |
+| "Celt, rigged", Andywoodhead | CC BY | 124,012 triangles, FBX, realistic, bare-chested with a sword | Fionn | Out: KayKit's giant covers Fionn in the cast's style |
+| "Stylized viking (rigify rig)", slagperch3d | CC BY | 45,888 triangles | Beowulf | Out: it bundles another maker's course assets, whose licence isn't stated |
+| "Sherlock", doctorholmes | CC BY | 3,958 triangles | Holmes | Out: a blank grey figure |
 
 ## 4. What a found model must meet
 
@@ -105,19 +123,21 @@ There are eight gaps: Red Riding Hood, Holmes, Branwen, Watson, Marian, Medusa, 
 2. **Keep looking.** S4 checks new CC0 and CC BY uploads against section 4 with each Backstage refresh, and the owner can suggest finds.
 3. **A college or university course takes the brief** (section 8) as a student project. Students get a real client and a credit in every film; the project gets characters under 17.9's contract. It costs nothing but the owner's time to find a course and review the work. It's the only free way to one consistent style.
 4. **Make them in MakeHuman** once its community has CC0 costumes (hoods, hats, long dresses). It hasn't today (searched 10 Nov 2026).
+5. **Rig a good unrigged find.** Red Riding Hood (leafar112's) needs only a skeleton. Mixamo's free auto-rigger gives one our joint map reads (the `mixamo` convention); it needs an Adobe account, so the owner would run it. A Blender step in the build is the other way, but auto-rigging there is less reliable.
 
 ## 6. What S4 does next
 
-- **Now:** add Robin Hood, King Arthur, Merlin and Beowulf (with Fionn) to the shipped Backstage. Each is its CC0 KayKit model with the character's name, paint and prop, credited to KayKit and listed in the storybook part of the Cast. This needs the owner's go (section 7).
-- **When CMU answers:** the seven Alice 3 characters, and the extra ones the owner wants, through the converter (3.2). Each is checked against 17.8 first: Alice's dress especially.
-- **Case by case:** each Sketchfab candidate in section 3, checked against section 4. Any that passes goes into an assets pull request, with its renders, for the owner to look at.
+- **Now (owner, 14 Nov):** Robin Hood, King Arthur, Merlin, Beowulf and Fionn in the shipped Backstage, under the `storybook` source (backstage-assets, `sources/storybook.json`), each credited to KayKit, with the theme `storybook`.
+- **Now, for internal testing:** the seven Alice 3 characters, converted (3.2) on a PC with Alice 3.9, reduced like any import, and saved as a private model pack outside every repository. Alice and the White Rabbit are already converted; the Wolf, the Big Bad Wolf, the dragon, the Mad Hatter, the Troll or Ogre and the Pixie are next. Each is checked against 17.8 before it ships, Alice's dress especially.
+- **The Sketchfab finds (section 3a):** the Granny, and Red Riding Hood once rigged, downloaded through the owner's Chrome with the owner's go, then into an assets pull request with their renders.
 - **Every refresh:** look again for the gaps.
 
 ## 7. Still for the owner
 
-- **The four KayKit characters:** named storybook entries now, or wait for better models?
-- **CMU:** a reminder, if no answer by a date the owner sets. Seven of the twenty depend on it (D keeps 17.1's correspondence).
-- **The gaps:** stand-ins for now, or approach a college course with section 8's brief?
+- **Alice 3.9 on a PC** for the converter, and where the private test pack is kept.
+- **The Sketchfab downloads** in section 3a, and whether to rig Red Riding Hood with Mixamo.
+- **CMU's answer,** when its legal advice is done, filed by D in 17.1's correspondence.
+- **The other gaps:** stand-ins for now, or approach a college course with section 8's brief?
 - **17.8's decisions** (PR #54), for every character that ships, including the register checks for Alice, Holmes and Merlin.
 
 Sources searched on 14 Nov 2026: Sketchfab's public search (downloadable models, CC0 and CC BY); Alice 3's model list (`docs/legal/letters/cmu-models.csv`); the shipped Backstage (`backstage.json` in `storystage/backstage-assets`).
