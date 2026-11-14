@@ -186,6 +186,12 @@ const HUMAN: readonly (readonly [string, string | undefined, number, number, num
   ['rightFoot', 'rightLowerLeg', -0.1, 0.08, 0],
 ];
 
+/** Eyes, for a humanoid that has them, as many VRMs made in VRoid do. */
+const EYES: typeof HUMAN = [
+  ['leftEye', 'head', 0.03, 1.65, 0.08],
+  ['rightEye', 'head', -0.03, 1.65, 0.08],
+];
+
 type Q = readonly [number, number, number, number];
 const qmul = ([ax, ay, az, aw]: Q, [bx, by, bz, bw]: Q): Q => [
   aw * bx + ax * bw + ay * bz - az * by,
@@ -201,13 +207,19 @@ const qrotate = (q: Q, [x, y, z]: readonly number[]): [number, number, number] =
 /**
  * A small humanoid with VRM's bone names, resting in a T-pose, or with `arms: 'A'` in an A-pose. `facing: 'back'` makes it face
  * -Z, and marks it as a VRM 0.x avatar, as they do. `twisted` gives every bone its own odd axes, as real rigs have,
- * without moving any of them: a pose should look the same either way.
+ * without moving any of them: a pose should look the same either way. `eyes` gives it eye bones.
  */
 export function tinyHumanUrl({
   facing = 'front',
   twisted = false,
   arms = 'T',
-}: { facing?: 'front' | 'back'; twisted?: boolean; arms?: 'T' | 'A' } = {}): string {
+  eyes = false,
+}: {
+  facing?: 'front' | 'back';
+  twisted?: boolean;
+  arms?: 'T' | 'A';
+  eyes?: boolean;
+} = {}): string {
   const flip = facing === 'back' ? -1 : 1;
   // Resting in an A-pose, as MakeHuman's people do: each arm hangs 45 degrees from the shoulder.
   const hang = (name: string, x: number, y: number): [number, number] => {
@@ -217,25 +229,27 @@ export function tinyHumanUrl({
     return [Math.sign(x) * (0.2 + out * k), 1.45 - out * k];
   };
   const world = new Map<string, { at: [number, number, number]; turn: Q }>();
-  const bones: TinyBone[] = HUMAN.map(([name, parent, x0, y0, z], i) => {
-    const [x, y] = hang(name, x0, y0);
-    const angle = twisted ? 0.7 + i * 0.37 : 0;
-    const axis = [Math.sin(i), Math.cos(i * 1.3), 0.5].map((n, _, a) => n / Math.hypot(...a));
-    const own: Q = [
-      axis[0]! * Math.sin(angle / 2),
-      axis[1]! * Math.sin(angle / 2),
-      axis[2]! * Math.sin(angle / 2),
-      Math.cos(angle / 2),
-    ];
-    const at: [number, number, number] = [x * flip, y, z * flip];
-    const above = parent
-      ? world.get(parent)!
-      : { at: [0, 0, 0] as [number, number, number], turn: [0, 0, 0, 1] as Q };
-    world.set(name, { at, turn: qmul(above.turn, own) });
-    const back: Q = [-above.turn[0], -above.turn[1], -above.turn[2], above.turn[3]];
-    const local = qrotate(back, [at[0] - above.at[0], at[1] - above.at[1], at[2] - above.at[2]]);
-    return { name, ...(parent ? { parent } : {}), at: local, turn: own };
-  });
+  const bones: TinyBone[] = [...HUMAN, ...(eyes ? EYES : [])].map(
+    ([name, parent, x0, y0, z], i) => {
+      const [x, y] = hang(name, x0, y0);
+      const angle = twisted ? 0.7 + i * 0.37 : 0;
+      const axis = [Math.sin(i), Math.cos(i * 1.3), 0.5].map((n, _, a) => n / Math.hypot(...a));
+      const own: Q = [
+        axis[0]! * Math.sin(angle / 2),
+        axis[1]! * Math.sin(angle / 2),
+        axis[2]! * Math.sin(angle / 2),
+        Math.cos(angle / 2),
+      ];
+      const at: [number, number, number] = [x * flip, y, z * flip];
+      const above = parent
+        ? world.get(parent)!
+        : { at: [0, 0, 0] as [number, number, number], turn: [0, 0, 0, 1] as Q };
+      world.set(name, { at, turn: qmul(above.turn, own) });
+      const back: Q = [-above.turn[0], -above.turn[1], -above.turn[2], above.turn[3]];
+      const local = qrotate(back, [at[0] - above.at[0], at[1] - above.at[1], at[2] - above.at[2]]);
+      return { name, ...(parent ? { parent } : {}), at: local, turn: own };
+    },
+  );
   // Facing -Z is what a VRM 0.x avatar does, so it says it is one.
   return tinySkeletonUrl(
     bones,
