@@ -1,28 +1,52 @@
 /**
- * The self-test's steps (WP18.1): build a three-scene production, set and rehearse each scene,
- * export five seconds, check undo, and save and reopen. Each step works through the WP0.8
- * contracts, so it runs today against the fake stage and later, unchanged, against the real
- * stage, runtime and export. Where a part isn't built yet, the step says what it stands in for.
+ * The self-test's steps (WP18.1): a three-scene production; each scene set on the stage; the
+ * film's own code run twice, the same both times; frames drawn twice, the same both times; five
+ * seconds exported; every change undone and redone; and the film saved and opened again. Each step
+ * uses the real parts (the stage, the runtime, the production's undo and its file), so the same
+ * steps run in CI on the fake stage and in the app on the real one.
  */
-import type { EditOperation, Program } from '@storystage/ast';
-import { TestHost } from '@storystage/editor-contract/testing';
-import { checkReferences, exampleProduction, type Production } from '@storystage/production';
+import { nodeId, type EditOperation } from '@storystage/ast';
+import { measure, type Timeline } from '@storystage/playback';
+import {
+  ProductionSession,
+  checkReferences,
+  demoProduction,
+  moveScene,
+  openProduction,
+  saveProduction,
+  type Production,
+} from '@storystage/production';
+import type { FromRuntime, Port, ToRuntime } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
 import { CAMERA, micros, type SceneSetup, type StageCommand } from '@storystage/story-api';
 import { check, type SelfTestStep } from './runner.ts';
 
+/** A runtime for one run: the worker in the app; in memory in tests. */
+export interface SelfTestRuntime {
+  readonly port: Port<ToRuntime, FromRuntime>;
+  readonly terminate?: () => void;
+}
+
 export interface SelfTestContext {
   /** A fresh stage: the Babylon.js stage in the app, `FakeStage` in unit tests. */
   readonly makeStage: () => Stage | Promise<Stage>;
-  /** The production to test. Default: the built-in example production. */
+  /** A fresh runtime, for running the film's own code. */
+  readonly startRuntime: () => SelfTestRuntime;
+  /** The production to test. Default: the demo film, "The Lost Penguin (demo)". */
   readonly production?: () => Production;
+  /**
+   * Makes an MP4 of the film's first five seconds, where this device can (the app and the
+   * browser, with WebCodecs). Without it, the export step checks that its frames come out the
+   * same every time, and says so.
+   */
+  readonly exportFive?: (production: Production) => Promise<ArrayBuffer>;
 }
 
 const FPS = 30;
-const productionOf = (c: SelfTestContext) => (c.production ?? exampleProduction)();
+const productionOf = (c: SelfTestContext) => (c.production ?? demoProduction)();
 
-/** Moves for each actor in a scene, until the runtime runs the scene's own code (WP6). */
-function rehearsal(setup: SceneSetup): StageCommand[] {
+/** Moves for each actor in a scene, for checking that the stage draws the same twice. */
+function moves(setup: SceneSetup): StageCommand[] {
   let seq = 0;
   return setup.objects.flatMap((o, i) => [
     {
@@ -46,23 +70,13 @@ function rehearsal(setup: SceneSetup): StageCommand[] {
       turns: 0.25,
       space: 'scene' as const,
     },
-    {
-      seq: seq++,
-      object: o.id,
-      start: micros(1.5),
-      duration: micros(0.5),
-      style: 'beginAndEndGently' as const,
-      kind: 'say' as const,
-      text: 'Hello',
-      bubble: 'say' as const,
-    },
   ]);
 }
 
-/** Plays a scene at a fixed time step and returns the state hash of every frame. */
+/** Plays a scene's moves at a fixed time step and returns the state of every frame. */
 async function play(stage: Stage, setup: SceneSetup, seconds: number): Promise<number[]> {
   await stage.load(setup);
-  stage.schedule(rehearsal(setup));
+  stage.schedule(moves(setup));
   const hashes: number[] = [];
   for (let f = 0; f <= seconds * FPS; f++) {
     stage.seek(micros(f / FPS));
@@ -70,6 +84,59 @@ async function play(stage: Stage, setup: SceneSetup, seconds: number): Promise<n
   }
   return hashes;
 }
+
+/** Runs the film's own code through, drawing nothing, as the Screening room measures it. */
+async function runFilm(c: SelfTestContext, production: Production): Promise<Timeline> {
+  const stage = await c.makeStage();
+  const runtime = c.startRuntime();
+  try {
+    return await measure({
+      production,
+      stage,
+      port: runtime.port,
+      ...(runtime.terminate ? { terminate: runtime.terminate } : {}),
+      seed: 1,
+      viewerWait: micros(1),
+    });
+  } finally {
+    stage.dispose();
+  }
+}
+
+/** The words each scene's code says: its `say` blocks, with the ids an edit needs. */
+function saysOf(p: Production): { block: string; text: string; words: string }[] {
+  const methods = p.program.types.flatMap((t) => t.methods);
+  return p.scenes.flatMap((s) => {
+    const body = methods.find((m) => m.id === s.method)?.body ?? [];
+    return body.flatMap((b) => {
+      const text = (b as { args?: { text?: { id: string; kind: string; value: string } } }).args
+        ?.text;
+      return b.kind === 'call' && text?.kind === 'text'
+        ? [{ block: b.id as string, text: text.id, words: text.value }]
+        : [];
+    });
+  });
+}
+
+/** The same text for the same value, whatever order its keys were written in. */
+function same(a: unknown, b: unknown): boolean {
+  const canonical = (v: unknown): unknown =>
+    Array.isArray(v)
+      ? v.map(canonical)
+      : v && typeof v === 'object'
+        ? Object.fromEntries(
+            Object.keys(v)
+              .filter((k) => (v as Record<string, unknown>)[k] !== undefined)
+              .sort()
+              .map((k) => [k, canonical((v as Record<string, unknown>)[k])]),
+          )
+        : v;
+  return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
+}
+
+/** What stopped the film, in the runtime's own plain words. */
+const endWords = (end: Timeline['end']) =>
+  'words' in end ? end.words : 'message' in end ? end.message : end.kind;
 
 export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
   {
@@ -81,10 +148,6 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
       const problems = checkReferences(p);
       check(problems.length === 0, `The production doesn't hang together: ${problems[0]}`);
       check(
-        JSON.stringify(JSON.parse(JSON.stringify(p))) === JSON.stringify(p),
-        'The production changed when it was written out and read back.',
-      );
-      check(
         p.storyboard.logline && p.storyboard.synopsis,
         'The storyboard has no logline or synopsis.',
       );
@@ -93,10 +156,7 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
           p.frames.some((f) => f.scene === s.id),
           `Scene ${s.id} has no storyboard frame.`,
         );
-      return {
-        standIn:
-          'uses the built-in example production until the Storyboard (WP10) and saving (WP8) are built.',
-      };
+      check(saysOf(p).length === 3, 'Each scene should have something to say in its code.');
     },
   },
   {
@@ -119,7 +179,33 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
   },
   {
     id: 'rehearse',
-    title: 'Rehearse each scene, twice, and check both runs match',
+    title: 'Play the whole film’s code, twice, and check both runs match',
+    async run(c) {
+      const p = productionOf(c);
+      const first = await runFilm(c, p);
+      check(
+        first.end.kind !== 'error' && first.end.kind !== 'fault',
+        `The film stopped with a problem: ${endWords(first.end)}.`,
+      );
+      const order = p.manifest.runningOrder.map((r) => r.scene);
+      check(
+        JSON.stringify(first.scenes.map((s) => s.scene)) === JSON.stringify(order),
+        'The scenes didn’t play in their running order.',
+      );
+      for (const scene of order)
+        check(
+          first.blocks.some((b) => b.scene === scene),
+          `Scene ${scene}’s code didn’t run.`,
+        );
+      const said = first.lines.map((l) => l.text);
+      for (const { words } of saysOf(p)) check(said.includes(words), `"${words}" was never said.`);
+      const second = await runFilm(c, p);
+      check(same(first, second), 'The film played differently the second time.');
+    },
+  },
+  {
+    id: 'frames',
+    title: 'Draw each scene twice, and check every frame matches',
     async run(c) {
       for (const scene of productionOf(c).scenes) {
         const a = await c.makeStage();
@@ -138,21 +224,26 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
           b.dispose();
         }
       }
-      return {
-        standIn: "moves set by the self-test, until the runtime (WP6) runs each scene's own code.",
-      };
     },
   },
   {
     id: 'export',
     title: 'Export five seconds',
     async run(c) {
-      const scene = productionOf(c).scenes[0]!;
+      const p = productionOf(c);
+      if (c.exportFive) {
+        const mp4 = new Uint8Array(await c.exportFive(p));
+        // An MP4 starts with its `ftyp` box.
+        const type = String.fromCharCode(...mp4.slice(4, 8));
+        check(mp4.length > 1000 && type === 'ftyp', 'The export didn’t make an MP4 file.');
+        return;
+      }
+      const scene = p.scenes[0]!;
       const render = async () => {
         const stage = await c.makeStage();
         try {
           await stage.load(scene.setup);
-          stage.schedule(rehearsal(scene.setup));
+          stage.schedule(moves(scene.setup));
           const frames: string[] = [];
           for (let f = 0; f < 5 * FPS; f++) {
             stage.seek(micros(f / FPS));
@@ -173,8 +264,7 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
       const frame = first.findIndex((x, i) => x !== second[i]);
       check(frame === -1, `The export came out differently the second time, from frame ${frame}.`);
       return {
-        standIn:
-          'checks that 150 frames render the same every time; making the MP4 arrives with WP11.',
+        standIn: 'checks that 150 frames come out the same every time; no MP4 is made here.',
       };
     },
   },
@@ -182,50 +272,60 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
     id: 'undo',
     title: 'Undo every change, and redo them',
     async run(c) {
-      const start = productionOf(c).program;
-      type Counted = Program & { readonly edits: number };
-      const host = new TestHost(start, {
-        apply: (p, edits) =>
-          ({ ...p, edits: ((p as Counted).edits ?? 0) + edits.length }) as Counted,
-      });
-      const labels = [
-        'Add cat',
-        'Make cat say Hello',
-        'Move cat forward',
-        'Add dog',
-        'Turn dog to face cat',
-      ];
-      for (const label of labels)
-        check(
-          host.apply([{ kind: 'stand-in', label } as unknown as EditOperation], label, 'blocks').ok,
-          `"${label}" was refused.`,
-        );
-      const after = JSON.stringify(host.program());
+      const start = productionOf(c);
+      const session = new ProductionSession(start);
+      const labels: string[] = [];
+      for (const [i, say] of saysOf(start).entries()) {
+        const label = `Change what scene ${i + 1} says`;
+        const edit: EditOperation = {
+          kind: 'setArgument',
+          label,
+          node: nodeId(say.block),
+          slot: 'args',
+          param: 'text',
+          value: { id: nodeId(say.text), kind: 'text', value: `Self-test ${i + 1}` },
+        };
+        check(session.apply([edit], label, 'selftest').ok, `"${label}" was refused.`);
+        labels.push(label);
+      }
+      const last = start.manifest.runningOrder.at(-1)!.scene;
+      const moved = moveScene(session.production(), last, 0, 'Move the last scene first');
+      check(moved.ok, 'Moving a scene was refused.');
+      session.step(moved.step, 'selftest');
+      labels.push('Move the last scene first');
+      const after = session.production();
       for (const label of [...labels].reverse()) {
         check(
-          host.undoLabel() === label,
-          `The next undo should be "${label}", not "${host.undoLabel()}".`,
+          session.undoLabel() === label,
+          `The next undo should be "${label}", not "${session.undoLabel()}".`,
         );
-        host.undo();
+        session.undo();
       }
       check(
-        JSON.stringify(host.program()) === JSON.stringify(start),
-        'Undoing everything did not bring back the original program.',
+        same(session.production(), start),
+        'Undoing everything did not bring back the film as it was.',
       );
-      labels.forEach(() => host.redo());
+      labels.forEach(() => session.redo());
       check(
-        JSON.stringify(host.program()) === after,
+        same(session.production(), after),
         'Redoing everything did not bring back the changes.',
       );
-      return {
-        standIn: 'uses stand-in changes until the example production has code in it (WP8.1).',
-      };
     },
   },
   {
     id: 'save',
     title: 'Save the production and open it again',
-    notReady: 'needs saving and opening (WP8).',
-    async run() {},
+    async run(c) {
+      const p = productionOf(c);
+      const bytes = saveProduction(p);
+      const opened = openProduction(bytes);
+      check(opened.status === 'ok', 'The saved film wouldn’t open again.');
+      check(same(opened.production, p), 'The film opened differently from how it was saved.');
+      const again = saveProduction(opened.production);
+      check(
+        again.length === bytes.length && again.every((b, i) => b === bytes[i]),
+        'Saving the same film twice gave different files.',
+      );
+    },
   },
 ];

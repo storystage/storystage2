@@ -12,8 +12,9 @@
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",
-    "@storystage/editor-contract": "workspace:*",
+    "@storystage/playback": "workspace:*",
     "@storystage/production": "workspace:*",
+    "@storystage/runtime": "workspace:*",
     "@storystage/stage": "workspace:*",
     "@storystage/story-api": "workspace:*"
   }

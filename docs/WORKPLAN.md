@@ -876,7 +876,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp18 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP18a after WP0; WP18b after WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b.
 <!-- /schedule:wp18 -->
-- [ ] 18.1 Built-in **self-test** (as in StoryStage 1): builds a three-scene production, codes it, rehearses it, exports five seconds, and checks undo. Runs from a menu item and in CI. (C)
+- [x] 18.1 Built-in **self-test** (as in StoryStage 1): builds a three-scene production, codes it, rehearses it, exports five seconds, and checks undo. Runs from a menu item and in CI. (C)
 - [ ] 18.2 Playwright end-to-end tests for each milestone's gate. Determinism is checked on scene state (a hash of every transform per frame), which must match across renderers; pixel comparison only within one renderer, with a tolerance. (C)
 - [ ] 18.3 Performance budgets per reference device (start-up, scene load, frame rate, export speed, memory), measured in CI where possible and by the owner on the devices. (C; U runs on devices)
 - [ ] 18.4 A manual test script per milestone in `docs/test/`. (C)

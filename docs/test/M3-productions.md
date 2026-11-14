@@ -46,4 +46,4 @@
 
 ## Record
 
-For each device: the date, the build, which steps passed, and for each that didn't, what happened. Note anything about the transitions that looked wrong even where the step passed (a flash, a jump, a black frame where none belongs). Every script ends with the built-in self-test on each device, once it's in the studio (WP18.1), recording its last line.
+For each device: the date, the build, which steps passed, and for each that didn't, what happened. Note anything about the transitions that looked wrong even where the step passed (a flash, a jump, a black frame where none belongs). Then, on each device, run **Settings › Self-test** › **Run the self-test**, and record its last line (`SELFTEST PASS` or `SELFTEST FAIL`); if it fails, paste its report into the results.
