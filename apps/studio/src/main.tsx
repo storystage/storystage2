@@ -9,6 +9,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { demoProduction } from '@storystage/production';
 import { App } from './App.tsx';
+import { startHost } from './startHost.ts';
 
 const root = document.getElementById('root');
 if (!root) throw new Error('StoryStage could not find its page.');
@@ -17,8 +18,11 @@ if (!root) throw new Error('StoryStage could not find its page.');
 // end-to-end tests. Otherwise a lesson starts: the name page, or the device's own films (07-ux 9.1).
 const start = new URLSearchParams(location.search).has('example') ? demoProduction() : undefined;
 
-createRoot(root).render(
-  <StrictMode>
-    <App start={start} />
-  </StrictMode>,
+// The apps' native layer inside Tauri, the browser version's otherwise (decision 0003).
+void startHost().then((host) =>
+  createRoot(root).render(
+    <StrictMode>
+      <App start={start} host={host} />
+    </StrictMode>,
+  ),
 );

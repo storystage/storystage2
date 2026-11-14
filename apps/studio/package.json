@@ -23,6 +23,7 @@
     "@storystage/host": "workspace:*",
     "@storystage/playback": "workspace:*",
     "@storystage/production": "workspace:*",
+    "@storystage/prompter": "workspace:*",
     "@storystage/screening": "workspace:*",
     "@storystage/sketches": "workspace:*",
     "@storystage/speech": "workspace:*",
@@ -30,6 +31,7 @@
     "@storystage/story-api": "workspace:*",
     "@storystage/tiles": "workspace:*",
     "@storystage/ui": "workspace:*",
+    "@tauri-apps/api": "^2.12.4",
     "react": "^19.3.1",
     "react-aria-components": "^1.22.1",
     "react-dom": "^19.3.1"
