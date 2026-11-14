@@ -94,8 +94,8 @@ Each from its own page through Sketchfab's public API, and its picture. Download
 
 | Model | Licence | Size and rig | For | Verdict |
 |---|---|---|---|---|
-| "Old Village Granny", Imagineis (2025) | CC BY | 617 triangles, rigged, hand-painted, low-poly cartoon | **Red Riding Hood's grandmother** (not on the shortlist) | **Take it,** if the owner agrees: rigged, child-friendly, its own design |
-| "Capuchinho Vermelho (Little Red Riding Hood)", leafar112 (2023) | CC BY | 11,596 triangles, **not rigged** | Red Riding Hood | **The best Red Riding Hood found,** made for a children's AR app. Needs a skeleton first (section 5) |
+| "Old Village Granny", Imagineis (2025) | CC BY | 617 triangles, hand-painted, low-poly cartoon. **Its own rig maps none of the required joints** (unnamed bones, no feet, IK handles), so it needs Mixamo too | **Red Riding Hood's grandmother** (not on the shortlist) | **Take it,** once rigged: child-friendly, its own design. Downloaded 14 Nov (the original GLB) |
+| "Capuchinho Vermelho (Little Red Riding Hood)", leafar112 (2023) | CC BY, and Sketchfab's **NoAI** flag (not to be used to train or feed generative AI; StoryStage does neither with models, and the Prompter is sent only the catalogue's words) | 11,596 triangles, **not rigged** | Red Riding Hood | **The best Red Riding Hood found,** made for a children's AR app. Downloaded 14 Nov (the original FBX). Needs a skeleton first (section 5) |
 | "Viking (lowpoly)", slagperch3d (2024) | CC BY | 2,520 triangles, rigged with Mixamo, 7 clips | A second Viking or Beowulf | **Optional.** KayKit's Beowulf already covers it; its horned helmet is a later invention |
 | "Red riding hood #StorybookChallenge", ahmed_jlil_ | CC BY | 11,151 triangles, a whole scene, not rigged | Red Riding Hood | Out: the character is small in a forest scene, and unrigged |
 | "Red Riding Hood", iamjohnhult; "Red Riding Hood and iWolf", berkgedik | CC BY | 30,670 and 27,550 triangles | Red Riding Hood | Out: an older Red out for revenge, and one the wolf has taken over. Not for 6 to 9 year olds |
@@ -123,7 +123,7 @@ There are eight gaps: Red Riding Hood, Holmes, Branwen, Watson, Marian, Medusa, 
 2. **Keep looking.** S4 checks new CC0 and CC BY uploads against section 4 with each Backstage refresh, and the owner can suggest finds.
 3. **A college or university course takes the brief** (section 8) as a student project. Students get a real client and a credit in every film; the project gets characters under 17.9's contract. It costs nothing but the owner's time to find a course and review the work. It's the only free way to one consistent style.
 4. **Make them in MakeHuman** once its community has CC0 costumes (hoods, hats, long dresses). It hasn't today (searched 10 Nov 2026).
-5. **Rig a good unrigged find.** Red Riding Hood (leafar112's) needs only a skeleton. Mixamo's free auto-rigger gives one our joint map reads (the `mixamo` convention); it needs an Adobe account, so the owner would run it. A Blender step in the build is the other way, but auto-rigging there is less reliable.
+5. **Rig a good unrigged find.** Red Riding Hood and the Granny (section 3a) need skeletons. **The owner rigs them with Mixamo** (owner, 14 Nov): Mixamo's free auto-rigger needs an Adobe account, and its bone names are a convention our joint map reads (`mixamo`). Its output is FBX, which the build can't read yet: the assets repository's CI, which already runs Blender for MakeHuman, turns it into glTF (a GPL build tool, never linked into the app). The FBX is kept in the assets repository's `originals/`, as the ground pictures are.
 
 ## 6. What S4 does next
 
