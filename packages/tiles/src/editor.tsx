@@ -86,7 +86,12 @@ import {
 import { t } from './words.ts';
 import './tiles.css';
 
-const NO_HIGHLIGHTS: Highlights = { rehearse: new Map(), error: new Map(), prompter: new Map() };
+const NO_HIGHLIGHTS: Highlights = {
+  rehearse: new Map(),
+  error: new Map(),
+  prompter: new Map(),
+  link: new Map(),
+};
 
 /** The first method or listener of the first type that has one. */
 function firstMethod(program: Program): NodeId | null {

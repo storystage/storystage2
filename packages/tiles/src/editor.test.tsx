@@ -204,6 +204,14 @@ describe('the contract (spec 14, 1)', () => {
     expect(item('cat say Hello').textContent).not.toContain('AI');
   });
 
+  it('marks the blocks the current frame links to, and clears them', () => {
+    const { editor: e } = mountEditor();
+    act(() => e.highlight([{ node: IDS.say }], 'link'));
+    expect(item('cat say Hello').className).toContain('tl-hl-link');
+    act(() => e.highlight([], 'link'));
+    expect(item('cat say Hello').className).not.toContain('tl-hl-link');
+  });
+
   it('highlights a container’s whole box', () => {
     const { editor: e } = mountEditor();
     act(() => e.highlight([{ node: IDS.count }], 'error'));

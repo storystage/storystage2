@@ -3,7 +3,7 @@ import type { EditorHost } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon, NeutralNote } from '@storystage/ui';
-import { Suspense, lazy, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Voices } from '../speech/voices.ts';
 import { VoicesDownload } from '../speech/VoicesDownload.tsx';
 import type { StageMaker } from '../stage/makeStage.ts';
@@ -17,6 +17,8 @@ import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
+import { FrameLinks } from './FrameLinks.tsx';
+import { liveLinks, withLink } from './links.ts';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
 import { BackstageRail } from './BackstageRail.tsx';
 import { refusalWords } from './refusals.ts';
@@ -113,6 +115,38 @@ function FrameCheckArea({
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
 
+/**
+ * The block last chosen in the code, read again after each click and key press in it: the editor
+ * contract has no selection event, and the selection only changes on one. Only a choice changes
+ * it: a block chosen, or a click on the code's empty space. Moving focus out through the palette
+ * to Link keeps it, though the editor lets go of its selection as focus leaves.
+ */
+function useChosenBlock(editorRef: { current: { selection(): readonly NodeId[] } | null }) {
+  const [chosen, setChosen] = useState<NodeId | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const read = (e: Event) => {
+      const at = e.target instanceof Element ? e.target : null;
+      if (!at?.closest('.pr-workspace')) return;
+      const cleared = e.type === 'pointerup' && !at.closest('.blocklyFlyout');
+      clearTimeout(timer);
+      // After the editor has handled the event.
+      timer = setTimeout(() => {
+        const block = editorRef.current?.selection()[0] ?? null;
+        if (block || cleared) setChosen(block);
+      }, 0);
+    };
+    document.addEventListener('pointerup', read, true);
+    document.addEventListener('keyup', read, true);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('pointerup', read, true);
+      document.removeEventListener('keyup', read, true);
+    };
+  }, [editorRef]);
+  return chosen;
+}
+
 /** Rehearse's state as the Code editor's marks: the blocks running, and the error with its words. */
 function marksOf(state: RehearsalState | null): Highlights {
   if (!state) return NO_MARKS;
@@ -197,8 +231,21 @@ export function ProductionStage({
   // Only a change in what's marked gives the editor new marks.
   const running = rehearsal?.running;
   const error = rehearsal?.error;
-  const highlights = useMemo(() => marksOf(rehearsal), [running, error]); // eslint-disable-line react-hooks/exhaustive-deps
+  const marks = useMemo(() => marksOf(rehearsal), [running, error]); // eslint-disable-line react-hooks/exhaustive-deps
   const editorRef = useRef<{ selection(): readonly NodeId[] } | null>(null);
+  const chosenBlock = useChosenBlock(editorRef);
+  // The current frame, when it's this scene's, and its links marked on the blocks (WP10.8).
+  const current = p.frames.find((f) => f.id === frame && f.scene === scene) ?? null;
+  const frameNumber =
+    current && scene !== null
+      ? `${numberOfScene(p, scene)}.${sceneFrames(p, scene).findIndex((f) => f.id === current.id) + 1}`
+      : '';
+  const linked = current ? liveLinks(p, current).join(' ') : '';
+  const highlights = useMemo(
+    () =>
+      linked ? { ...marks, link: linked.split(' ').map((n) => ({ node: n as NodeId })) } : marks,
+    [marks, linked],
+  );
   const setup = scene ? p.scenes.find((s) => s.id === scene)?.setup : undefined;
   const unavailable = !open
     ? words.t('production.rehearse.codeClosed')
@@ -262,7 +309,19 @@ export function ProductionStage({
           />
         )}
         {scene !== null && models && (
-          <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>
+          // The same height as the scene view, band and all, so nothing below moves as it loads.
+          <Suspense
+            fallback={
+              <div className="pr-scene" aria-hidden="true">
+                <div className="pr-scene-band">
+                  <p className="pr-scene-title">{sceneTitle(p, scene)}</p>
+                  <div className="pr-scene-controls pr-scene-controls-waiting" />
+                </div>
+                {unavailable && <p className="pr-scene-why">{unavailable}</p>}
+                <div className="pr-scene-view" />
+              </div>
+            }
+          >
             <SceneView
               production={p}
               scene={scene}
@@ -331,15 +390,40 @@ export function ProductionStage({
           </Button>
         </div>
       ) : open ? (
-        <CodeEditor
-          production={p}
-          scene={scene}
-          host={host}
-          key={reveal ? `reveal-${reveal.n}` : 'code'}
-          reveal={reveal?.node ?? null}
-          highlights={highlights}
-          editorRef={editorRef}
-        />
+        <>
+          {studio && current && (
+            <FrameLinks
+              production={p}
+              frame={current}
+              number={frameNumber}
+              readOnly={studio.readOnly !== null}
+              chosen={chosenBlock}
+              onLink={(block, link) => {
+                const next = withLink(studio.production, current.id, block, link);
+                if (next === studio.production) return;
+                const n = frameNumber;
+                studio.commit(
+                  words.t(link ? 'production.links.linkStep' : 'production.links.unlinkStep', {
+                    n,
+                  }),
+                  next,
+                );
+                onAnnounce(
+                  words.t(link ? 'production.links.linked' : 'production.links.unlinked', { n }),
+                );
+              }}
+            />
+          )}
+          <CodeEditor
+            production={p}
+            scene={scene}
+            host={host}
+            key={reveal ? `reveal-${reveal.n}` : 'code'}
+            reveal={reveal?.node ?? null}
+            highlights={highlights}
+            editorRef={editorRef}
+          />
+        </>
       ) : (
         <section className="pr-closed" aria-labelledby="pr-closed-title">
           <h2 id="pr-closed-title" className="pr-closed-title">

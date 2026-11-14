@@ -48,6 +48,8 @@ export const ICON_NAMES = [
   'ios_share',
   'keep', // the pin on a script line (was push_pin)
   'landscape',
+  'link', // a frame's links to its blocks (WP10.8)
+  'link_off',
   'lock',
   'mic',
   'movie',
