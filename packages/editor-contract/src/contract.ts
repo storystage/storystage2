@@ -62,8 +62,11 @@ export interface ViewState {
 
 export const EMPTY_VIEW: ViewState = { method: null, selection: [], focus: null };
 
-/** Highlights from Rehearse (running blocks), errors, and the Prompter pointing at blocks (WP7.9). */
-export type HighlightKind = 'rehearse' | 'error' | 'prompter';
+/**
+ * Highlights from Rehearse (running blocks), errors, the Prompter pointing at blocks (WP7.9), and
+ * the blocks the current frame links to (WP10.8).
+ */
+export type HighlightKind = 'rehearse' | 'error' | 'prompter' | 'link';
 
 /**
  * One highlighted block. For an error, `message` is the words shown beside it ("There's no scene

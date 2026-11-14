@@ -27,13 +27,16 @@ export interface BlocksPanelProps {
   editorRef?: { current: { selection(): readonly NodeId[] } | null };
 }
 
-/** What Rehearse highlights in the editor (`07-ux.md` section 7.4). */
+/** What Rehearse highlights in the editor (`07-ux.md` section 7.4), and the frame's links. */
 export interface Highlights {
   readonly rehearse: readonly HighlightMark[];
   readonly error: readonly HighlightMark[];
+  /** The blocks the current frame links to (WP10.8). */
+  readonly link?: readonly HighlightMark[];
 }
 
-const NO_HIGHLIGHTS: Highlights = { rehearse: [], error: [] };
+const NO_MARKS: readonly HighlightMark[] = [];
+const NO_HIGHLIGHTS: Highlights = { rehearse: NO_MARKS, error: NO_MARKS };
 
 /** A question the editor is waiting on, and how to answer it. */
 interface Question {
@@ -102,6 +105,10 @@ export default function BlocksPanel({
   useEffect(() => {
     editor.current?.highlight(highlights.error, 'error');
   }, [highlights.error, ready]);
+  const links = highlights.link ?? NO_MARKS;
+  useEffect(() => {
+    editor.current?.highlight(links, 'link');
+  }, [links, ready]);
 
   return (
     <div className="pr-workspace-frame">

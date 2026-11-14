@@ -139,6 +139,44 @@
   stroke: var(--ss-prompter);
   stroke-width: 4px;
 }
+/* A block the current frame links to (WP10.8): dashed, in the strip's Coded colour. */
+.ss-highlight-link > .blocklyPath {
+  stroke: var(--ss-status-coded);
+  stroke-width: 3px;
+  stroke-dasharray: 8 4;
+}
+
+/* The current frame's links, over the Code editor (07-ux 7.3; WP10.8). */
+.pr-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--ss-line-1);
+  border-radius: 12px;
+  background: var(--ss-panel-2);
+}
+.pr-links-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pr-links-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(17px * var(--ss-text-size, 1));
+}
+.pr-links-summary,
+.pr-links-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-links-note {
+  color: var(--ss-text);
+}
 
 /* The palette's object and tab, above the method tabs (07-ux 7.3). */
 .pr-palette-bar {
@@ -204,6 +242,10 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
+}
+/* Waiting for the scene view: as tall as its buttons. */
+.pr-scene-controls-waiting {
+  min-height: 44px;
 }
 .pr-scene-why {
   margin: 0;

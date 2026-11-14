@@ -194,7 +194,7 @@ function listsIn(s: Statement): { slot: StatementSlot; list: readonly Statement[
 }
 
 function highlightClasses(id: NodeId, highlights: Highlights): string {
-  return (['rehearse', 'error', 'prompter'] as const)
+  return (['rehearse', 'error', 'prompter', 'link'] as const)
     .filter((kind) => highlights[kind].has(id))
     .map((kind) => ` tl-hl-${kind}`)
     .join('');

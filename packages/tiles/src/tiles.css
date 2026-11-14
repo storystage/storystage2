@@ -292,6 +292,12 @@
   outline-offset: 2px;
 }
 
+/* A block the current frame links to (WP10.8). */
+.tl-hl-link {
+  outline: 3px dotted var(--tl-focus);
+  outline-offset: 2px;
+}
+
 /* Moving: the row being moved, the drop line over the program, and the ghost (spec 14, 3c). */
 .tl-lifted {
   outline: 2px dashed var(--tl-rehearse);
