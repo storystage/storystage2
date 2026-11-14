@@ -10,6 +10,10 @@ import { createRoot } from 'react-dom/client';
 import { demoProduction } from '@storystage/production';
 import { App } from './App.tsx';
 import { startHost } from './startHost.ts';
+import { startProblemLog } from '@storystage/diagnostics';
+
+// Report a problem's recent problems, kept in memory from the start (WP18.5).
+startProblemLog();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('StoryStage could not find its page.');

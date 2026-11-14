@@ -8,20 +8,17 @@
  */
 import { useRef, useState } from 'react';
 import type { SelfTestRuntime, StepResult } from '@storystage/selftest';
-import { micros } from '@storystage/story-api';
 import { Button } from '@storystage/ui';
 import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
+import { runStudioSelfTest } from './selfTestRun.ts';
 
 const STATUS_WORD = {
   pass: 'selftest.pass',
   fail: 'selftest.fail',
   notReady: 'selftest.notReady',
 } as const satisfies Record<StepResult['status'], string>;
-
-/** The same seed as the Screening room's export, so a film plays the same in both. */
-const SEED = 1;
 
 export interface SelfTestCardProps {
   readonly models: Pick<ModelSourceHandle, 'source' | 'item'>;
@@ -43,54 +40,14 @@ export function SelfTestCard({ models, makeStage, startRuntime }: SelfTestCardPr
     setResults([]);
     setReport(null);
     try {
-      const [selftest, stages, { startRuntimeWorker }, { exportFilm }] = await Promise.all([
-        import('@storystage/selftest'),
-        import('../stage/makeStage.ts'),
-        import('@storystage/playback'),
-        import('@storystage/export'),
-      ]);
-      const make = makeStage ?? stages.makeStage;
-      const stage = () => make(stages.hiddenCanvas(), { hidden: true, models: models.source });
-      // An MP4 only where this browser can encode one; the step says so otherwise.
-      const canEncode =
-        typeof (globalThis as { VideoEncoder?: unknown }).VideoEncoder === 'function';
-      const outcome = await selftest.runSelfTest(
-        selftest.STEPS,
-        {
-          makeStage: stage,
-          startRuntime: startRuntime ?? startRuntimeWorker,
-          ...(canEncode && !makeStage
-            ? {
-                exportFive: async (production) => {
-                  const hidden = await stage();
-                  try {
-                    const film = await exportFilm({
-                      production,
-                      find: models.item,
-                      stage: hidden,
-                      startWorker: startRuntimeWorker,
-                      seed: SEED,
-                      titleCard: false,
-                      limit: micros(5),
-                    });
-                    return film.mp4;
-                  } finally {
-                    hidden.dispose();
-                  }
-                },
-              }
-            : {}),
-        },
-        { timeLimitMs: 120_000, onStep: (r) => setResults((done) => [...done, r]) },
+      setReport(
+        await runStudioSelfTest({
+          models,
+          ...(makeStage ? { makeStage } : {}),
+          ...(startRuntime ? { startRuntime } : {}),
+          onStep: (r) => setResults((done) => [...done, r]),
+        }),
       );
-      setReport({ text: selftest.reportText(outcome), passed: outcome.passed });
-    } catch (e) {
-      // The self-test itself couldn't start: say so, as a failed run.
-      const why = e instanceof Error ? e.message : String(e);
-      setReport({
-        text: `${words.t('selftest.couldNotStart', { why })}\n\nSELFTEST FAIL`,
-        passed: false,
-      });
     } finally {
       busy.current = false;
       setRunning(false);
