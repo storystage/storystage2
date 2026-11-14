@@ -69,6 +69,8 @@ const models: ModelSourceHandle = {
   prepare: async () => undefined,
   item: () => undefined,
   refused: [],
+  catalogue: [],
+  thumbnail: () => null,
 };
 const host = { program: () => exampleProduction().program } as unknown as EditorHost;
 

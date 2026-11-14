@@ -86,3 +86,72 @@ export function withObjectTransform(
     ),
   };
 }
+
+/** A vector turned by a rotation. */
+function rotate(q: Quat, v: { x: number; y: number; z: number }) {
+  // v' = q v q*, written out.
+  const { x, y, z, w } = q;
+  const ix = w * v.x + y * v.z - z * v.y;
+  const iy = w * v.y + z * v.x - x * v.z;
+  const iz = w * v.z + x * v.y - y * v.x;
+  const iw = -x * v.x - y * v.y - z * v.z;
+  return {
+    x: ix * w + iw * -x + iy * -z - iz * -y,
+    y: iy * w + iw * -y + iz * -x - ix * -z,
+    z: iz * w + iw * -z + ix * -y - iy * -x,
+  };
+}
+
+/** How far in front of the camera a new object lands, in metres. */
+export const ADD_DISTANCE = 4;
+
+/**
+ * Where a new object goes when it's added from Backstage by Enter (07-ux section 7.2): on the
+ * ground in front of the scene's camera, facing it. The `nth` new one is set a little to the side,
+ * alternately left and right, so several added in a row don't stand inside each other.
+ */
+export function inFrontOfCamera(camera: Transform, nth = 0): Transform {
+  // The camera looks along its +Z (spec 08 section 9.2); on the ground, only its heading counts.
+  const ahead = rotate(camera.rotation, { x: 0, y: 0, z: 1 });
+  const flat = Math.hypot(ahead.x, ahead.z) || 1;
+  const fx = ahead.x / flat;
+  const fz = ahead.z / flat;
+  // Its right on the ground, for the step to the side.
+  const side = nth === 0 ? 0 : Math.ceil(nth / 2) * (nth % 2 === 1 ? 1 : -1) * 1.2;
+  const x = camera.position.x + fx * ADD_DISTANCE - fz * side;
+  const z = camera.position.z + fz * ADD_DISTANCE + fx * side;
+  // Facing the camera: the model's +Z turned towards it.
+  const towards = Math.atan2(camera.position.x - x, camera.position.z - z);
+  return {
+    position: { x: Math.round(x * 1000) / 1000, y: 0, z: Math.round(z * 1000) / 1000 },
+    rotation: { x: 0, y: Math.sin(towards / 2), z: 0, w: Math.cos(towards / 2) },
+    scale: { x: 1, y: 1, z: 1 },
+  };
+}
+
+/** The parts of a backdrop a Backstage item can set: its class says which (`Ground`, `Sky`…). */
+export const BACKDROP_PARTS = ['ground', 'sky', 'lighting'] as const;
+export type BackdropPart = (typeof BACKDROP_PARTS)[number];
+
+/** Which part a backdrop item sets, from its class, or `null`. */
+export function backdropPartOf(storyClass: string): BackdropPart | null {
+  const part = storyClass.toLowerCase();
+  return (BACKDROP_PARTS as readonly string[]).includes(part) ? (part as BackdropPart) : null;
+}
+
+/** The production with one scene's ground, sky or lighting set to a Backstage item. */
+export function withBackdrop(
+  p: Production,
+  scene: SceneId,
+  part: BackdropPart,
+  id: string,
+): Production {
+  return {
+    ...p,
+    scenes: p.scenes.map((s) =>
+      s.id !== scene
+        ? s
+        : { ...s, setup: { ...s.setup, backdrop: { ...s.setup.backdrop, [part]: id } } },
+    ),
+  };
+}

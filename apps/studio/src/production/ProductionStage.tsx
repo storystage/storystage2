@@ -2,7 +2,7 @@ import type { NodeId } from '@storystage/ast';
 import type { EditorHost } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
-import { Button, Icon } from '@storystage/ui';
+import { Button, Icon, NeutralNote } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Voices } from '../speech/voices.ts';
 import { VoicesDownload } from '../speech/VoicesDownload.tsx';
@@ -18,6 +18,10 @@ import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
+import { BackstageRail } from './BackstageRail.tsx';
+import { refusalWords } from './refusals.ts';
+import { backdropPartOf, inFrontOfCamera, withBackdrop } from './setup.ts';
+import { addObject, objectName } from '@storystage/production';
 import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
@@ -188,6 +192,8 @@ export function ProductionStage({
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
   const [rehearsal, setRehearsal] = useState<RehearsalState | null>(null);
+  // What the last add from Backstage said, when it couldn't.
+  const [stageNote, setStageNote] = useState<string | null>(null);
   // Only a change in what's marked gives the editor new marks.
   const running = rehearsal?.running;
   const error = rehearsal?.error;
@@ -210,7 +216,51 @@ export function ProductionStage({
         />
       )}
       {voices && <VoicesDownload voices={voices} />}
+      {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
       <div className="pr-top">
+        {studio && models && scene !== null && (
+          <BackstageRail
+            catalogue={models.catalogue}
+            thumbnail={(id) => models.thumbnail(id)}
+            canAdd={studio.readOnly === null}
+            onUse={(item) => {
+              const now = studio.production;
+              const setup = now.scenes.find((s) => s.id === scene)?.setup;
+              if (!setup) return;
+              if (item.section === 'backdrops') {
+                const part = backdropPartOf(item.class);
+                if (!part) return;
+                studio.commit(
+                  words.t('production.backstage.useStep', {
+                    name: item.displayName,
+                    part: words.t(`production.backstage.part.${part}`),
+                  }),
+                  withBackdrop(now, scene, part, item.id),
+                );
+                setStageNote(null);
+                return;
+              }
+              const name = objectName(now, scene, item.displayName);
+              if (!name) return;
+              const result = addObject(
+                now,
+                scene,
+                {
+                  model: item.id,
+                  class: item.class,
+                  name: item.displayName,
+                  transform: inFrontOfCamera(setup.camera.transform, setup.objects.length),
+                },
+                words.t('production.backstage.addStep', { name }),
+              );
+              if (!result.ok) return setStageNote(refusalWords(result.refusal, name));
+              const done = studio.step(result.step);
+              if (!done.ok) return setStageNote(done.reason);
+              setStageNote(null);
+              onAnnounce(words.t('production.backstage.added', { name }));
+            }}
+          />
+        )}
         {scene !== null && models && (
           <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>
             <SceneView
@@ -247,6 +297,7 @@ export function ProductionStage({
             <ObjectsPanel
               studio={studio}
               scene={scene}
+              {...(onReveal ? { onReveal } : {})}
               modelName={(o) =>
                 typeof o.model === 'string'
                   ? (models.item(o.model)?.displayName ?? null)
