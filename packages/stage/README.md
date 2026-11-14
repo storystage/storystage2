@@ -92,7 +92,7 @@ The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`,
 - **Lying and falling** end lying on the back; standing up from either uses KayKit's.
 - **Reaching** turns the nearer hand's arm to put the hand on the nearest point of the target, or as near as it gets. `touch` goes there and back; `stay` keeps it there until the next posture, reach or `pose`.
 - **Holding.** Picking up reaches the thing, then it rides its holder, as on a vehicle, in front of its chest with the hand on it. `vehicle` says who's holding it. Putting it down puts it on the ground in front.
-- **Looking** turns the neck and head, half each, to face the target, by at most a fifth of a turn. It follows the target until the next `lookAt`; `null` stops looking.
+- **Looking** turns the neck and head, half each, to face the target, by at most a fifth of a turn. Then a model's eyes, if it has eye bones (as VRMs made in VRoid do), turn the rest of the way, by at most 0.07 of a turn. It follows the target until the next `lookAt`; `null` stops looking. None of the shipped people has eye bones yet, so eyes show on imported avatars.
 - **Faces** are a VRM's own (`faces.ts`): VRM 0.x's `joy`, `sorrow`, `angry`, `fun` and `blink` and VRM 1.0's presets, by their Story API names. An expression stays until the next, and the old face fades out as the new one comes in, over the block's duration. `neutral` is a plain face: the old one fades and nothing comes. `blink` shuts and opens the eyes. A model without that face shows no change (owner's decision of 8 Nov 2026); the 100Avatars VRMs have only a blink.
 - **Clips.** `play animation` plays the model's own clip of that name, or for a biped, a shared clip. Anything else is refused.
 - **Not yet:** visemes for speaking (waiting on S1's speak line design, WP14.3); turning the eyes as well as the head; and a walk round other characters, which aren't in the way.
@@ -163,6 +163,25 @@ A production plays its scenes in running order (spec 03 section 3.1). The player
   - A `picture` (5.7) is of the new scene alone.
 - **Fade to black** is the `fade` command, at the end of one scene and the start of the next.
 - **Cost:** on the owner's PC, a crossfade adds 1 to 2 ms a frame with 20 characters in each scene ("What characters cost", below). The reference Chromebook is still to measure (#6).
+
+## The scene view (07-ux 7.2)
+
+`EditableStage` (`contract.ts`, agreed with S5) is the stage the Production stage's scene view edits: `Stage`, plus choosing, moving and looking round a scene's set-up. The runtime, export and the self-test use `Stage` alone.
+
+- **Editing** (`editing(true)`) puts the scene back to its set-up. It draws the chosen object's outline and handles (move along the ground, with Shift up and down; turn about the vertical; resize evenly), and the markers. These are drawn on the live canvas only, never in `renderFrame` or `picture`.
+- **Picking** is by ray (`editing.ts`, pure, so both stages agree): `pick(x, y)` gives the object or marker there and where the point meets the ground, for a drop from Backstage. `onTap` reports a click or tap that didn't start a handle drag, and `onEdit` reports the handles' drags, live and then `final`.
+- **Changing the set-up** without reloading: `setObject` (a transform, opacity or paint; the camera's transform alone) and `setMarker`. Scheduled commands stay and are worked out again from the new set-up, and everything the stage answers, `inShot` included, reflects the change at once.
+- **Look around** is a camera of its own that never changes the set-up. `viewTransform` gives where the view is, for "Move the camera here". `inShot` names what the scene's own camera sees, for "In this shot:".
+- **Not yet:** posing joints in the set-up, which waits for a `joints` field in `SceneObjectSetup` (S6) and the production format (S4).
+- **`FakeStage`** picks against stand-in boxes, and tests drive it with `drag`, `tap` and `moveView`. Both stages run `describeEditableStageContract`.
+
+On the Babylon.js stage:
+
+- **The handles** (`handles.ts`, pure): drag the chosen object itself to move it along the ground, level with where it was taken hold of, or up and down while Shift is held; drag the ring round the bottom of its box to turn it; drag the knob on top away from it to make it bigger, evenly. A marker has a ring but no knob. The set-up follows a drag at once, and `onEdit` hears each step, then `final` when it's let go. A press on the chosen object that doesn't move is a tap.
+- **The outline, handles and markers** (`babylon/edit-view.ts`) are drawn in amber, markers in blue, in a utility layer over the scene, at the same width on the view however near they are. `picture` never draws them, and `renderFrame` turns them off while it draws, so a frame is always the scene's own camera, as the film will be.
+- **Look around** (`orbit.ts`, pure) turns round a point on the scene camera's line of sight, as far ahead as what's in the shot. Dragging turns the scene as if by hand, a pinch or the wheel comes nearer, and the arrow keys (with + and −) work while the canvas has focus. It never takes focus.
+- **The pointer:** the canvas's listeners give `pointerDown`, `pointerMove`, `pointerUp`, `pointerCancel`, `wheel` and `viewKey` CSS pixels and keys, and a test can call them too. While editing or looking around, the canvas takes touch drags from the page (`touch-action: none`).
+- **A load that changes only places, paint or fading** keeps the scene and builds nothing again (`loadInPlace`), so the studio can load the set-up after every change without the picture flickering. Another model or backdrop builds the scene again.
 
 ## Shots (4.10)
 

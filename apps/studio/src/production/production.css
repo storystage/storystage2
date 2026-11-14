@@ -139,6 +139,44 @@
   stroke: var(--ss-prompter);
   stroke-width: 4px;
 }
+/* A block the current frame links to (WP10.8): dashed, in the strip's Coded colour. */
+.ss-highlight-link > .blocklyPath {
+  stroke: var(--ss-status-coded);
+  stroke-width: 3px;
+  stroke-dasharray: 8 4;
+}
+
+/* The current frame's links, over the Code editor (07-ux 7.3; WP10.8). */
+.pr-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--ss-line-1);
+  border-radius: 12px;
+  background: var(--ss-panel-2);
+}
+.pr-links-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pr-links-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(17px * var(--ss-text-size, 1));
+}
+.pr-links-summary,
+.pr-links-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-links-note {
+  color: var(--ss-text);
+}
 
 /* The palette's object and tab, above the method tabs (07-ux 7.3). */
 .pr-palette-bar {
@@ -205,6 +243,22 @@
   align-items: center;
   gap: 8px;
 }
+/* Under the view: Camera view or Look around, Move the camera here, and In this shot. */
+.pr-scene-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.pr-in-shot {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+
+/* Waiting for the scene view: as tall as its buttons. */
+.pr-scene-controls-waiting {
+  min-height: 44px;
+}
 .pr-scene-why {
   margin: 0;
   color: var(--ss-text-2);
@@ -220,7 +274,7 @@
   background: var(--ss-panel-3);
   box-shadow: inset 0 0 0 1px var(--ss-line-1);
 }
-.pr-scene-view[data-running] {
+.pr-scene-view.pr-scene-running {
   box-shadow: 0 0 0 3px var(--ss-amber);
 }
 .pr-canvas,
@@ -427,4 +481,111 @@
   width: 100%;
   min-width: 0;
   height: 44px;
+}
+
+/* Backstage's rail on the Production stage (07-ux 7.1): 96 px, its panel over the scene view. */
+.pr-top {
+  grid-template-columns: 96px minmax(0, 1fr) minmax(260px, 340px);
+}
+.pr-rail-area {
+  position: relative;
+  z-index: 3;
+}
+.pr-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pr-rail-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: calc(13px * var(--ss-text-size, 1));
+  font-weight: 700;
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: pointer;
+  outline: none;
+}
+.pr-rail-button[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.pr-rail-button[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.pr-backstage {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, 60vw);
+  max-height: 70vh;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--ss-panel-1);
+  /* No shadow token: a stronger edge sets it apart from the scene view under it. */
+  box-shadow: inset 0 0 0 2px var(--ss-line-2);
+}
+.pr-backstage-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.pr-backstage-search {
+  display: flex;
+  flex: 1;
+}
+.pr-backstage-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-backstage-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  outline: none;
+}
+.pr-backstage-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--ss-panel-3);
+  outline: none;
+  cursor: pointer;
+}
+.pr-backstage-item[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.pr-backstage-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  background: var(--ss-sketch-paper);
+  color: var(--ss-sketch-ink);
+  overflow: hidden;
+}
+.pr-backstage-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.pr-backstage-name {
+  font-weight: 700;
+  text-align: center;
 }

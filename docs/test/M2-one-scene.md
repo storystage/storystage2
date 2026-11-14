@@ -11,8 +11,8 @@ This script is written with the spec (`07-ux.md` section 7, `14-editors.md` sect
 | # | Do | Expect | ✓ |
 |---|---|---|---|
 | 1 | Open the Production stage. | The frame strip shows frame 1.1, current. The scene view shows the empty scene through its camera. The Code editor shows the scene's method, empty. Rehearse is unavailable. | |
-| 2 | Open **Cast**, and drag a character onto the stage. | It lands where you dropped it, on the ground. Undo says "Undo: Add …" with its name. "In this shot:" names it. | |
-| 3 | Add a second character by focusing it in Cast and pressing Enter. | It lands in front of the camera, facing it. | |
+| 2 | Open **Backstage › Cast**, and press **Add** on a character. Then drag one onto the stage _(S3)_. | Added, it stands on the ground in front of the camera, facing it; dragged, it lands where you dropped it. Undo says "Undo: Add …" with its name. **Objects in this scene** lists it. | |
+| 3 | Add a second character by focusing it in Cast and pressing Enter. | It lands in front of the camera, facing it, as one undo step. | |
 | 4 | Drag the first character along the ground, turn it with its handle, and make it bigger. _(S3)_ | It moves, turns and grows smoothly under your finger or pointer. Each drag is one undo step. The x, y, z, turn and size fields follow. | |
 | 5 | Type a new x into its field. | It moves there. | |
 | 6 | Choose **Look around** and orbit the scene, then **Camera view**. | Look around never moves anything in the scene; Camera view is as it was. | |

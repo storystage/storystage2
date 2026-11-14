@@ -1,6 +1,6 @@
 import { jointName, type Quat } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import { axisTurns, v } from '../math.ts';
+import { axisTurns, rotate, v } from '../math.ts';
 import { Body } from './body.ts';
 import { loadHumanLibrary } from './library.ts';
 import { pack, unpack } from './packed.ts';
@@ -112,6 +112,66 @@ describe('the shared clips', () => {
   it('come back the same every time', async () => {
     const a = await loadHumanLibrary();
     expect(sample(a.get('walk')!, 0.4)).toEqual(sample(a.get('walk')!, 0.4));
+  });
+});
+
+describe('eyes that look (4.6)', () => {
+  const rest = (eyes: boolean) =>
+    new Map(
+      (
+        [
+          ['hips', 0, 1, 0],
+          ['spine', 0, 1.1, 0],
+          ['neck', 0, 1.5, 0],
+          ['head', 0, 1.6, 0],
+          ['leftUpperArm', 0.2, 1.45, 0],
+          ['leftLowerArm', 0.5, 1.45, 0],
+          ['leftHand', 0.75, 1.45, 0],
+          ['rightUpperArm', -0.2, 1.45, 0],
+          ['rightLowerArm', -0.5, 1.45, 0],
+          ['rightHand', -0.75, 1.45, 0],
+          ['leftUpperLeg', 0.1, 0.95, 0],
+          ['leftFoot', 0.1, 0.08, 0],
+          ['rightUpperLeg', -0.1, 0.95, 0],
+          ['rightFoot', -0.1, 0.08, 0],
+          ...(eyes
+            ? ([
+                ['leftEye', 0.03, 1.65, 0.08],
+                ['rightEye', -0.03, 1.65, 0.08],
+              ] as const)
+            : []),
+        ] as const
+      ).map(([j, x, y, z]) => [jointName(j), v(x, y, z)]),
+    );
+  /** Far to the left (+X), well past what the head turns to here. */
+  const target = v(5, 1.65, 1);
+  const facing = (p: HumanPose, joint: string) => {
+    const turn = modelTurns(p).get(jointName(joint))!;
+    return rotate(turn, v(0, 0, 1));
+  };
+
+  it('turn the rest of the way, after the head, within their limit', () => {
+    const body = Body.of(rest(true))!;
+    const looked = body.look(T_POSE, target, 1, 0.05);
+    const head = facing(looked, 'head');
+    const eye = facing(looked, 'leftEye');
+    // The eye looks further round than the head, but not by more than eyes go.
+    expect(eye.x).toBeGreaterThan(head.x);
+    const between = Math.acos(Math.min(1, head.x * eye.x + head.y * eye.y + head.z * eye.z));
+    expect(between / (2 * Math.PI)).toBeCloseTo(0.07, 3);
+  });
+
+  it('stay put for a target the head already faces', () => {
+    const body = Body.of(rest(true))!;
+    const looked = body.look(T_POSE, v(0.03, 1.65, 10), 1, 0.2);
+    const eye = facing(looked, 'leftEye');
+    expect(eye.z).toBeCloseTo(1, 3);
+  });
+
+  it('leave a body without eyes as it was', () => {
+    const body = Body.of(rest(false))!;
+    const looked = body.look(T_POSE, target, 1, 0.05);
+    expect(looked.turns.has(jointName('leftEye'))).toBe(false);
   });
 });
 

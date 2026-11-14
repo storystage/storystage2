@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
 
-// The M2 gate, "One scene, coded" (workplan section 3; WP18.2): in the browser, add models to a
+// The M2 gate, "One scene, coded" (workplan section 5; WP18.2): in the browser, add models to a
 // scene, code it with blocks, Rehearse it, as one path. The manual script is
 // docs/test/M2-one-scene.md; this is the part CI can check on every pull request. Each part's
 // own tests are in production.e2e.ts; this one checks they join up.
@@ -30,12 +30,78 @@ async function productionStage(page: Page) {
   await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
 }
 
-// Adding models on the Production stage waits on the stage's editing contract (S3) and the scene
-// view's Cast (S5; 07-ux section 7.2). Until then the example production's cast stands in.
-test.fixme('M2: a model is added to the scene from Cast, by pointer and by keyboard', async () => {
-  // M2-one-scene.md section 1, steps 2 and 3: drag a character from Cast onto the stage; then
-  // focus one in Cast and press Enter. Each lands on the ground, is one undo step named
-  // "Add …", and is named under "In this shot:".
+/**
+ * A small shipped Backstage, served where the browser version looks for it (`backstage/`): CI
+ * has none fetched. Two characters; their model and thumbnail files aren't there, so the stage
+ * draws them as outlines, which is all adding them needs.
+ */
+async function smallBackstage(page: Page) {
+  const item = (name: string) => ({
+    id: `gate/Biped/${name.toLowerCase()}`,
+    section: 'cast',
+    class: 'Biped',
+    displayName: name,
+    themes: [],
+    files: {
+      model: `models/${name.toLowerCase()}.glb`,
+      thumbnail: `thumbnails/${name.toLowerCase()}.webp`,
+    },
+    joints: 'prop-only',
+    defaultSize: { height: 1 },
+    budget: { triangles: 12, textureMaxPx: 0 },
+    licence: 'CC0-1.0',
+    credit: `${name}, for the gate test`,
+    source: { url: 'https://example.org/gate' },
+    origin: 'shipped',
+    sketches: [],
+  });
+  await page.route('**/backstage/**', (route) =>
+    route.request().url().endsWith('/backstage/backstage.json')
+      ? route.fulfill({ json: { manifestVersion: '2.1.0', items: [item('Owl'), item('Hare')] } })
+      : route.fulfill({ status: 404 }),
+  );
+}
+
+/** The studio's undo label, which the Storyboard's toolbar shows. */
+async function undoLabel(page: Page) {
+  await page.getByRole('tab', { name: /Storyboard/ }).click();
+  const label = await page.getByRole('button', { name: /^Undo/ }).textContent();
+  await page.getByRole('tab', { name: /Production stage/ }).click();
+  return label;
+}
+
+const openCast = (page: Page) =>
+  page.getByRole('navigation', { name: 'Backstage' }).getByRole('button', { name: 'Cast' }).click();
+
+test('M2: models are added to the scene from Cast, by pointer and by keyboard', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await smallBackstage(page);
+  await productionStage(page);
+  const objects = page.getByRole('region', { name: 'Objects in this scene' });
+  const named = (name: string) => objects.getByText(name, { exact: true });
+  await expect(named('Owl')).toHaveCount(0);
+
+  // By pointer: Cast, then Add on Owl.
+  await openCast(page);
+  await page.getByRole('button', { name: 'Add Owl to the scene' }).click();
+  await expect(named('Owl').first()).toBeVisible();
+  await expect.poll(() => undoLabel(page)).toBe('Undo: Add owl');
+
+  // By keyboard: focus Hare in Cast and press Enter.
+  await openCast(page);
+  await page.getByRole('row', { name: /Hare/ }).focus();
+  await page.keyboard.press('Enter');
+  await expect(named('Hare').first()).toBeVisible();
+  await expect.poll(() => undoLabel(page)).toBe('Undo: Add hare');
+
+  // Each was one undo step.
+  await page.getByRole('tab', { name: /Storyboard/ }).click();
+  await page.getByRole('button', { name: /^Undo/ }).click();
+  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(named('Hare')).toHaveCount(0);
+  await expect(named('Owl').first()).toBeVisible();
 });
 
 test('M2: a scene is coded with a block from the palette, and Rehearse runs it', async ({

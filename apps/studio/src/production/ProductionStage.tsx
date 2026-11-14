@@ -2,8 +2,8 @@ import type { NodeId } from '@storystage/ast';
 import type { EditorHost } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
-import { Button, Icon } from '@storystage/ui';
-import { Suspense, lazy, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { Button, Icon, NeutralNote } from '@storystage/ui';
+import { Suspense, lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Voices } from '../speech/voices.ts';
 import { VoicesDownload } from '../speech/VoicesDownload.tsx';
 import type { StageMaker } from '../stage/makeStage.ts';
@@ -17,7 +17,24 @@ import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
+import { FrameLinks } from './FrameLinks.tsx';
+import { liveLinks, withLink } from './links.ts';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
+import { BackstageRail } from './BackstageRail.tsx';
+import { refusalWords } from './refusals.ts';
+import {
+  backdropPartOf,
+  dragKind,
+  facingCamera,
+  inFrontOfCamera,
+  withBackdrop,
+  withCamera,
+  withMarker,
+} from './setup.ts';
+import { addObject, objectName, withObject } from '@storystage/production';
+import type { EditTarget } from '@storystage/stage';
+import { CAMERA, type ObjectId, type Transform, type Vec3 } from '@storystage/story-api';
+import type { BackstageItem } from '@storystage/backstage';
 import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
@@ -109,6 +126,74 @@ function FrameCheckArea({
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
 
+const DRAG_STEP = {
+  move: 'production.objects.moveStep',
+  turn: 'production.objects.turnStep',
+  size: 'production.objects.sizeStep',
+} as const;
+
+/**
+ * A handle drag let go, as one undo step: an object named for what the drag did ("Turn
+ * penguin"), the camera, or a marker. `null` when there's nothing to write.
+ */
+function moved(
+  p: Production,
+  scene: SceneId,
+  target: EditTarget,
+  transform: Transform,
+): { label: string; next: Production } | null {
+  const setup = p.scenes.find((s) => s.id === scene)?.setup;
+  if (!setup) return null;
+  if ('marker' in target)
+    return {
+      label: words.t('production.view.markerStep'),
+      next: withMarker(p, scene, target.marker, transform),
+    };
+  if (target.object === CAMERA)
+    return {
+      label: words.t('production.view.cameraStep'),
+      next: withCamera(p, scene, transform),
+    };
+  const object = setup.objects.find((o) => o.id === target.object);
+  if (!object) return null;
+  const next = withObject(p, scene, object.id, { transform });
+  if ('code' in next) return null;
+  const kind = dragKind(object.transform, transform);
+  return { label: words.t(DRAG_STEP[kind], { name: object.id }), next };
+}
+
+/**
+ * The block last chosen in the code, read again after each click and key press in it: the editor
+ * contract has no selection event, and the selection only changes on one. Only a choice changes
+ * it: a block chosen, or a click on the code's empty space. Moving focus out through the palette
+ * to Link keeps it, though the editor lets go of its selection as focus leaves.
+ */
+function useChosenBlock(editorRef: { current: { selection(): readonly NodeId[] } | null }) {
+  const [chosen, setChosen] = useState<NodeId | null>(null);
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const read = (e: Event) => {
+      const at = e.target instanceof Element ? e.target : null;
+      if (!at?.closest('.pr-workspace')) return;
+      const cleared = e.type === 'pointerup' && !at.closest('.blocklyFlyout');
+      clearTimeout(timer);
+      // After the editor has handled the event.
+      timer = setTimeout(() => {
+        const block = editorRef.current?.selection()[0] ?? null;
+        if (block || cleared) setChosen(block);
+      }, 0);
+    };
+    document.addEventListener('pointerup', read, true);
+    document.addEventListener('keyup', read, true);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('pointerup', read, true);
+      document.removeEventListener('keyup', read, true);
+    };
+  }, [editorRef]);
+  return chosen;
+}
+
 /** Rehearse's state as the Code editor's marks: the blocks running, and the error with its words. */
 function marksOf(state: RehearsalState | null): Highlights {
   if (!state) return NO_MARKS;
@@ -188,17 +273,82 @@ export function ProductionStage({
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
   const [rehearsal, setRehearsal] = useState<RehearsalState | null>(null);
+  // What the last add from Backstage said, when it couldn't.
+  const [stageNote, setStageNote] = useState<string | null>(null);
+  // What's chosen on the stage and in Objects in this scene, for the scene it was chosen in.
+  const [choice, setChoice] = useState<{ scene: SceneId; target: EditTarget } | null>(null);
+  const chosen = choice && choice.scene === scene ? choice.target : null;
+  const choose = (target: EditTarget | null) =>
+    setChoice(target && scene !== null ? { scene, target } : null);
   // Only a change in what's marked gives the editor new marks.
   const running = rehearsal?.running;
   const error = rehearsal?.error;
-  const highlights = useMemo(() => marksOf(rehearsal), [running, error]); // eslint-disable-line react-hooks/exhaustive-deps
+  const marks = useMemo(() => marksOf(rehearsal), [running, error]); // eslint-disable-line react-hooks/exhaustive-deps
   const editorRef = useRef<{ selection(): readonly NodeId[] } | null>(null);
+  const chosenBlock = useChosenBlock(editorRef);
+  // The current frame, when it's this scene's, and its links marked on the blocks (WP10.8).
+  const current = p.frames.find((f) => f.id === frame && f.scene === scene) ?? null;
+  const frameNumber =
+    current && scene !== null
+      ? `${numberOfScene(p, scene)}.${sceneFrames(p, scene).findIndex((f) => f.id === current.id) + 1}`
+      : '';
+  const linked = current ? liveLinks(p, current).join(' ') : '';
+  const highlights = useMemo(
+    () =>
+      linked ? { ...marks, link: linked.split(' ').map((n) => ({ node: n as NodeId })) } : marks,
+    [marks, linked],
+  );
   const setup = scene ? p.scenes.find((s) => s.id === scene)?.setup : undefined;
   const unavailable = !open
     ? words.t('production.rehearse.codeClosed')
     : (setup?.objects.length ?? 0) === 0
       ? words.t('production.rehearse.empty')
       : null;
+  const use = (item: BackstageItem, ground: Vec3 | null = null) => {
+    if (!studio || scene === null) return;
+    const now = studio.production;
+    const setup = now.scenes.find((s) => s.id === scene)?.setup;
+    if (!setup) return;
+    if (item.section === 'backdrops') {
+      const part = backdropPartOf(item.class);
+      if (!part) return;
+      studio.commit(
+        words.t('production.backstage.useStep', {
+          name: item.displayName,
+          part: words.t(`production.backstage.part.${part}`),
+        }),
+        withBackdrop(now, scene, part, item.id),
+      );
+      setStageNote(null);
+      return;
+    }
+    const name = objectName(now, scene, item.displayName);
+    if (!name) return;
+    const result = addObject(
+      now,
+      scene,
+      {
+        model: item.id,
+        class: item.class,
+        name: item.displayName,
+        // Where it was dropped, or in front of the camera for Add and Enter.
+        transform: ground
+          ? facingCamera(setup.camera.transform, ground)
+          : inFrontOfCamera(setup.camera.transform, setup.objects.length),
+      },
+      words.t('production.backstage.addStep', { name }),
+    );
+    if (!result.ok) return setStageNote(refusalWords(result.refusal, name));
+    const done = studio.step(result.step);
+    if (!done.ok) return setStageNote(done.reason);
+    setStageNote(null);
+    // The new object is chosen, so its handles show where it landed.
+    choose({ object: name as ObjectId });
+    onAnnounce(
+      words.t(ground ? 'production.backstage.dropped' : 'production.backstage.added', { name }),
+    );
+  };
+
   return (
     <div className="pr">
       {onPlaceChange && (
@@ -210,9 +360,31 @@ export function ProductionStage({
         />
       )}
       {voices && <VoicesDownload voices={voices} />}
+      {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
       <div className="pr-top">
+        {studio && models && scene !== null && (
+          <BackstageRail
+            catalogue={models.catalogue}
+            thumbnail={(id) => models.thumbnail(id)}
+            canAdd={studio.readOnly === null}
+            onUse={(item) => use(item)}
+          />
+        )}
         {scene !== null && models && (
-          <Suspense fallback={<div className="pr-scene-view" aria-hidden="true" />}>
+          // The same height as the scene view, band and all, so nothing below moves as it loads.
+          <Suspense
+            fallback={
+              <div className="pr-scene" aria-hidden="true">
+                <div className="pr-scene-band">
+                  <p className="pr-scene-title">{sceneTitle(p, scene)}</p>
+                  <div className="pr-scene-controls pr-scene-controls-waiting" />
+                </div>
+                {unavailable && <p className="pr-scene-why">{unavailable}</p>}
+                <div className="pr-scene-view" />
+                <div className="pr-scene-tools pr-scene-controls-waiting" />
+              </div>
+            }
+          >
             <SceneView
               production={p}
               scene={scene}
@@ -239,6 +411,26 @@ export function ProductionStage({
               {...(startWorker ? { startWorker } : {})}
               speaker={voices ?? undefined}
               silentLines={silentLines}
+              chosen={chosen}
+              onChoose={choose}
+              canEdit={!!studio && studio.readOnly === null}
+              onMoved={(target, transform) => {
+                if (!studio) return;
+                const step = moved(studio.production, scene, target, transform);
+                if (step) studio.commit(step.label, step.next);
+              }}
+              onDropModel={(id, ground) => {
+                const item = models.catalogue.find((i) => i.id === id);
+                if (item) use(item, ground);
+              }}
+              onMoveCamera={(transform) => {
+                if (!studio) return;
+                studio.commit(
+                  words.t('production.view.cameraStep'),
+                  withCamera(studio.production, scene, transform),
+                );
+                onAnnounce(words.t('production.view.cameraMoved'));
+              }}
             />
           </Suspense>
         )}
@@ -247,6 +439,9 @@ export function ProductionStage({
             <ObjectsPanel
               studio={studio}
               scene={scene}
+              chosen={chosen && 'object' in chosen ? chosen.object : null}
+              onChoose={(name) => choose(name === null ? null : { object: name as ObjectId })}
+              {...(onReveal ? { onReveal } : {})}
               modelName={(o) =>
                 typeof o.model === 'string'
                   ? (models.item(o.model)?.displayName ?? null)
@@ -280,15 +475,40 @@ export function ProductionStage({
           </Button>
         </div>
       ) : open ? (
-        <CodeEditor
-          production={p}
-          scene={scene}
-          host={host}
-          key={reveal ? `reveal-${reveal.n}` : 'code'}
-          reveal={reveal?.node ?? null}
-          highlights={highlights}
-          editorRef={editorRef}
-        />
+        <>
+          {studio && current && (
+            <FrameLinks
+              production={p}
+              frame={current}
+              number={frameNumber}
+              readOnly={studio.readOnly !== null}
+              chosen={chosenBlock}
+              onLink={(block, link) => {
+                const next = withLink(studio.production, current.id, block, link);
+                if (next === studio.production) return;
+                const n = frameNumber;
+                studio.commit(
+                  words.t(link ? 'production.links.linkStep' : 'production.links.unlinkStep', {
+                    n,
+                  }),
+                  next,
+                );
+                onAnnounce(
+                  words.t(link ? 'production.links.linked' : 'production.links.unlinked', { n }),
+                );
+              }}
+            />
+          )}
+          <CodeEditor
+            production={p}
+            scene={scene}
+            host={host}
+            key={reveal ? `reveal-${reveal.n}` : 'code'}
+            reveal={reveal?.node ?? null}
+            highlights={highlights}
+            editorRef={editorRef}
+          />
+        </>
       ) : (
         <section className="pr-closed" aria-labelledby="pr-closed-title">
           <h2 id="pr-closed-title" className="pr-closed-title">
