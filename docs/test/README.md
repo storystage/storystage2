@@ -23,9 +23,9 @@ Each gate's path, as far as CI can follow it, is one Playwright test in `apps/st
 
 | Milestone | Gate test | Waits on |
 |---|---|---|
-| M2 One scene, coded | [m2-one-scene.e2e.ts](../../apps/studio/e2e/gates/m2-one-scene.e2e.ts): code a scene with a block from the palette, and Rehearse runs it | Adding models from Cast on the Production stage (S3's editing contract, S5) |
+| M2 One scene, coded | [m2-one-scene.e2e.ts](../../apps/studio/e2e/gates/m2-one-scene.e2e.ts): models added from Backstage › Cast by pointer and by keyboard, each one undo step; a scene coded with a block from the palette, and Rehearse runs it | Dropping a model onto the stage where the pointer is (S3, S5): by hand in the script |
 | M3 Productions | [m3-productions.e2e.ts](../../apps/studio/e2e/gates/m3-productions.e2e.ts): the film plays scenes 1, 2, 3 in order after a transition changes; a copy saved through Save a copy opens again with the same running order and transitions | Nothing |
-| M4 Storyboard | [m4-storyboard.e2e.ts](../../apps/studio/e2e/gates/m4-storyboard.e2e.ts): a film planned by keyboard opens its Code editor (the storyboard rule); a linked frame is Coded, and its check leads between the tabs | Linking frames from the studio (WP10b, S5); placing the cast from frames (WP10c, S5) |
+| M4 Storyboard | [m4-storyboard.e2e.ts](../../apps/studio/e2e/gates/m4-storyboard.e2e.ts): a film planned by keyboard opens its Code editor (the storyboard rule); frame 1.1 unlinked and linked again, marked in the code and Coded, and "not linked" once its block is deleted; its check leads between the tabs | Placing the cast from frames (WP10c, S5) |
 | M5 Prompter and speech | [m5-prompter-speech.e2e.ts](../../apps/studio/e2e/gates/m5-prompter-speech.e2e.ts): speak lines are British by default, with American as the switch | The studio on the native host in the apps (unassigned); set-up and the Prompter panel (S7, S5); whisper and the voices bundled in the apps (S8) |
 
 Every script ends with the built-in self-test (WP18.1), **Settings › Self-test** › **Run the self-test**, on each device it covers, and records its last line (`SELFTEST PASS` or `SELFTEST FAIL`).
