@@ -37,7 +37,7 @@ import type {
   Picked,
   Speech,
 } from '../contract.ts';
-import { boxPoints, groundPoint, inViewOf, rayHitsBox, viewRay } from '../editing.ts';
+import { MARKER_BOX, boxPoints, groundPoint, inViewOf, rayHitsBox, viewRay } from '../editing.ts';
 import type { Box } from '../hull.ts';
 import { length, sub, v } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
@@ -63,9 +63,6 @@ export interface FakeStageOptions {
   /** The view's size in pixels, for `pick`, `tap` and `inShot`. Default 640 by 360. */
   readonly view?: { readonly width: number; readonly height: number };
 }
-
-/** What a marker is, to pick, while editing. */
-const MARKER_BOX: Box = { min: v(-0.15, -0.15, -0.15), max: v(0.15, 0.15, 0.15) };
 
 const ACTORS: readonly StoryClass[] = ['Biped', 'Quadruped', 'Flyer', 'Swimmer', 'Slitherer'];
 const defaultJoints: NonNullable<FakeStageOptions['jointsFor']> = (cls) =>

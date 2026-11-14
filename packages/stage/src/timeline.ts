@@ -394,6 +394,15 @@ export class Timeline {
     return this.shapes.get(object)?.box ?? null;
   }
 
+  /** Where the set-up puts an object, or the camera, as the scene view has changed it. */
+  placeInSetUp(object: ObjectId): Transform {
+    const setup = this.loaded();
+    const o = setup.objects.find((x) => x.id === object);
+    if (o) return o.transform;
+    if (object === CAMERA) return setup.camera.transform;
+    throw unknown(object);
+  }
+
   /** The ground's height: 0, or a room's floor. */
   ground(): number {
     return this.floor ? this.floor.max.y : 0;

@@ -12,12 +12,14 @@ import {
 import { describe, expect, it } from 'vitest';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../backdrops.ts';
 import { SETUP, cmd, describeStageContract } from '../testing/conformance.ts';
+import { describeEditableStageContract } from '../testing/editing-conformance.ts';
 import { FakeStage } from '../testing/fake-stage.ts';
 import { buildBackdrop } from './backdrop.ts';
 import { headlessEngine } from './headless.ts';
 import { BabylonStage } from './stage.ts';
 
 describeStageContract('BabylonStage', () => new BabylonStage(headlessEngine()));
+describeEditableStageContract('BabylonStage', () => new BabylonStage(headlessEngine()));
 
 const cat = objectId('cat');
 const dog = objectId('dog');
