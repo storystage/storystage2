@@ -163,10 +163,18 @@ test('M3: a film saved as a .storystage file opens again the same, transitions a
     before[2]!.transition.kind,
   ]);
 
-  // Open that copy again: the same film, with scene 2 ending in a crossfade.
+  // The open film's scene 2 now fades to black, so the copy, which has the same title, shows
+  // itself by its crossfade once it has opened.
+  await choose(page, 'Ends with', 'Fade to black');
+  await expect(page.getByRole('radio', { name: 'Fade to black' })).toBeChecked();
+
+  // Open that copy again: the same film, with scene 2 ending in a crossfade. The copy opens on
+  // its first scene, so scene 2 is chosen again until it has.
   await openCopy(page, saved.name, new Uint8Array(saved.bytes));
-  await page.getByRole('row', { name: /^2 · / }).click();
-  await expect(page.getByRole('radio', { name: 'Crossfade' })).toBeChecked();
+  await expect(async () => {
+    await page.getByRole('row', { name: /^2 · / }).click();
+    await expect(page.getByRole('radio', { name: 'Crossfade' })).toBeChecked({ timeout: 1_000 });
+  }).toPass({ timeout: 30_000 });
   await page.getByRole('row', { name: /^1 · / }).click();
   await expect(page.getByRole('radio', { name: 'Cut' })).toBeChecked();
 });
