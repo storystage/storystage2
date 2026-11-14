@@ -46,6 +46,13 @@ export interface ModelSourceHandle {
   item(id: BackstageId): BackstageItem | undefined;
   /** The film's packed models that didn't pass the check, so show as outlines. */
   readonly refused: readonly RefusedModel[];
+  /**
+   * Backstage's catalogue to add from (07-ux 7.1): the shipped Backstage's items, then the class
+   * Backstage's on this device, each once. Empty until they open; a new list when one does.
+   */
+  readonly catalogue: readonly BackstageItem[];
+  /** An item's thumbnail picture, as a URL, or `null`. */
+  thumbnail(id: BackstageId): string | null;
 }
 
 export interface ModelSourceOptions {
@@ -56,6 +63,7 @@ export interface ModelSourceOptions {
 }
 
 const NOTHING_REFUSED: readonly RefusedModel[] = [];
+const NO_ITEMS: readonly BackstageItem[] = [];
 
 export function useModelSource(
   host: HostInterface,
@@ -68,13 +76,28 @@ export function useModelSource(
   const film = useRef<Backstage | null>(null);
   const classView = useRef<ClassBackstageView | null>(null);
   const [refused, setRefused] = useState<readonly RefusedModel[]>(NOTHING_REFUSED);
+  // Listed again whenever a Backstage opens.
+  const [catalogue, setCatalogue] = useState<readonly BackstageItem[]>(NO_ITEMS);
+  const listCatalogue = useCallback(() => {
+    const seen = new Set<string>();
+    const items: BackstageItem[] = [];
+    for (const b of [shipped.current, classView.current?.backstage])
+      for (const item of b?.items ?? [])
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          items.push(item);
+        }
+    setCatalogue(items);
+  }, []);
 
   useEffect(() => {
     let live = true;
     if (host.backstageFolder === '') return;
     openBackstage(host.backstageFolder, fetch ? { fetch } : {}).then(
       (b) => {
-        if (live) shipped.current = b;
+        if (!live) return;
+        shipped.current = b;
+        listCatalogue();
       },
       // Missing or damaged: stand-ins show, and the rough cut still plays.
       () => undefined,
@@ -82,7 +105,7 @@ export function useModelSource(
     return () => {
       live = false;
     };
-  }, [host, fetch]);
+  }, [host, fetch, listCatalogue]);
 
   useEffect(() => {
     let live = true;
@@ -98,6 +121,7 @@ export function useModelSource(
         if (!live) return v.dispose();
         view = v;
         classView.current = v;
+        listCatalogue();
       },
       () => undefined,
     );
@@ -106,7 +130,7 @@ export function useModelSource(
       if (classView.current === view) classView.current = null;
       view?.dispose();
     };
-  }, [host]);
+  }, [host, listCatalogue]);
 
   // The film's packed models, checked first, but only once a stage needs models (S5's review of
   // #317): a lesson that never opens the Screening room never pays for the check. A new film, or
@@ -181,6 +205,8 @@ export function useModelSource(
         shipped.current?.item(id) ??
         film.current?.item(id) ??
         classView.current?.backstage.item(id),
+      thumbnail: (id: BackstageId) =>
+        shipped.current?.thumbnail(id) ?? classView.current?.backstage.thumbnail(id) ?? null,
       prepare: async (ids: readonly string[]) => {
         await checkFilm();
         await classView.current?.prepare(ids);
@@ -188,5 +214,5 @@ export function useModelSource(
     }),
     [checkFilm],
   );
-  return useMemo(() => ({ ...handle, refused }), [handle, refused]);
+  return useMemo(() => ({ ...handle, refused, catalogue }), [handle, refused, catalogue]);
 }
