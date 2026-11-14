@@ -29,6 +29,8 @@ import {
   tinySkyDomeUrl,
 } from '../../src/babylon/tiny-model.ts';
 import type { ObjectView } from '../../src/babylon/view.ts';
+import type { EditEvent, EditTarget, Picked } from '../../src/contract.ts';
+import { toView } from '../../src/editing.ts';
 import { loadHumanLibrary } from '../../src/humanoid/library.ts';
 import { sample as samplePose } from '../../src/humanoid/pose.ts';
 import type { ObjectState } from '../../src/timeline.ts';
@@ -302,6 +304,90 @@ async function rendering(renderer: 'auto' | 'webgl2', quality: 'low' | 'standard
   stage.dispose();
   canvas.remove();
   return result;
+}
+
+/**
+ * The scene view (07-ux section 7.2) live on the page's canvas: the robot and a stand-in, a
+ * marker, edit mode on, and the robot chosen. The test drives it with the real mouse.
+ */
+async function sceneView() {
+  const canvas = document.getElementById('stage') as HTMLCanvasElement;
+  const stage = await createBabylonStage({ canvas, models, renderer: 'webgl2' });
+  // A camera 6 m back and 2 m up, looking a little down.
+  const down = 0.1;
+  const setup: SceneSetup = {
+    backdrop: { ground: backstageId('storystage/Ground/grass') },
+    objects: [
+      {
+        id: objectId('robot'),
+        model: robot,
+        class: 'Biped',
+        // The test robot is a card that shows from its front only: turned to face the camera.
+        transform: {
+          ...IDENTITY,
+          position: { x: 1, y: 0, z: 0 },
+          rotation: { x: 0, y: 1, z: 0, w: 0 },
+        },
+      },
+      {
+        id: objectId('box'),
+        model: { standIn: 'box' },
+        class: 'Prop',
+        transform: { ...IDENTITY, position: { x: -1.5, y: 0, z: 1 } },
+      },
+    ],
+    camera: {
+      transform: {
+        ...IDENTITY,
+        position: { x: 0, y: 2, z: -6 },
+        rotation: { x: Math.sin(down / 2), y: 0, z: 0, w: Math.cos(down / 2) },
+      },
+    },
+    markers: [{ id: 'door', transform: { ...IDENTITY, position: { x: 0, y: 0.5, z: 2 } } }],
+  };
+  await stage.load(setup);
+  stage.editing(true);
+  stage.choose({ object: objectId('robot') });
+  const edits: EditEvent[] = [];
+  const taps: Picked[] = [];
+  stage.onEdit((e) => edits.push(e));
+  stage.onTap((p) => taps.push(p));
+  let frames = 0;
+  stage.startLive(() => frames++);
+  const lens = 0.5 / (2 * Math.PI);
+  /** Amber pixels in a frame read back: none, since handles are never in one. */
+  const amberInFrame = async () => {
+    const frame = await stage.renderFrame();
+    let n = 0;
+    for (let i = 0; i < frame.data.length; i += 4)
+      if (isAmber(frame.data[i]!, frame.data[i + 1]!, frame.data[i + 2]!)) n++;
+    return n;
+  };
+  Object.assign(window, {
+    sceneView: {
+      frames: () => frames,
+      edits: () => edits,
+      taps: () => taps,
+      choose: (t: EditTarget | null) => stage.choose(t),
+      lookAround: (on: boolean) => stage.lookAround(on),
+      editing: (on: boolean) => stage.editing(on),
+      view: () => stage.viewTransform(),
+      transform: (id: string) => stage.transform(objectId(id)),
+      // Where a point of the scene is on the view, in CSS pixels.
+      onView: (x: number, y: number, z: number) =>
+        toView(stage.viewTransform(), lens, canvas.clientWidth, canvas.clientHeight, { x, y, z }),
+      amberInFrame,
+      stop: () => {
+        stage.stopLive();
+        stage.dispose();
+      },
+    },
+  });
+}
+
+/** The studio's amber, as drawn. */
+function isAmber(r: number, g: number, b: number): boolean {
+  return r > 200 && g > 150 && g < 210 && b < 110;
 }
 
 /** Live on the page's canvas: the real input path, and frames drawn against the clock. */
@@ -922,6 +1008,7 @@ Object.assign(window, {
     scenePictures,
     crossfadeSky,
     goLive,
+    sceneView,
     scripts,
   },
 });

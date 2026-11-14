@@ -44,10 +44,35 @@ function listenTo(canvas: HTMLCanvasElement, stage: BabylonStage) {
     stage.click(e.offsetX * across, e.offsetY * down);
   });
   canvas.addEventListener('keydown', (e) => {
+    // Look around's keys, while it's on; a scene's own keys otherwise.
+    if (stage.viewKey(e.key)) {
+      e.preventDefault();
+      return;
+    }
     const name = keyName(e.key);
     if (name) stage.key(name);
     if (SCROLLING_KEYS.includes(e.key)) e.preventDefault();
   });
+  // The scene view (07-ux section 7.2): handles, taps and Look around, in CSS pixels.
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!stage.pointerDown(e.offsetX, e.offsetY, { id: e.pointerId, shift: e.shiftKey })) return;
+    canvas.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  canvas.addEventListener('pointermove', (e) =>
+    stage.pointerMove(e.offsetX, e.offsetY, { id: e.pointerId, shift: e.shiftKey }),
+  );
+  canvas.addEventListener('pointerup', (e) =>
+    stage.pointerUp(e.offsetX, e.offsetY, { id: e.pointerId }),
+  );
+  canvas.addEventListener('pointercancel', (e) => stage.pointerCancel(e.pointerId));
+  canvas.addEventListener(
+    'wheel',
+    (e) => {
+      if (stage.wheel(e.deltaY)) e.preventDefault();
+    },
+    { passive: false },
+  );
   canvas.addEventListener('keyup', (e) => {
     const name = keyName(e.key);
     if (name) stage.keyRelease(name);

@@ -173,7 +173,15 @@ A production plays its scenes in running order (spec 03 section 3.1). The player
 - **Changing the set-up** without reloading: `setObject` (a transform, opacity or paint; the camera's transform alone) and `setMarker`. Scheduled commands stay and are worked out again from the new set-up, and everything the stage answers, `inShot` included, reflects the change at once.
 - **Look around** is a camera of its own that never changes the set-up. `viewTransform` gives where the view is, for "Move the camera here". `inShot` names what the scene's own camera sees, for "In this shot:".
 - **Not yet:** posing joints in the set-up, which waits for a `joints` field in `SceneObjectSetup` (S6) and the production format (S4).
-- **`FakeStage`** picks against stand-in boxes, and tests drive it with `drag`, `tap` and `moveView`. Both stages run `describeEditableStageContract`. The Babylon.js stage's half, with the handles, is next.
+- **`FakeStage`** picks against stand-in boxes, and tests drive it with `drag`, `tap` and `moveView`. Both stages run `describeEditableStageContract`.
+
+On the Babylon.js stage:
+
+- **The handles** (`handles.ts`, pure): drag the chosen object itself to move it along the ground, level with where it was taken hold of, or up and down while Shift is held; drag the ring round the bottom of its box to turn it; drag the knob on top away from it to make it bigger, evenly. A marker has a ring but no knob. The set-up follows a drag at once, and `onEdit` hears each step, then `final` when it's let go. A press on the chosen object that doesn't move is a tap.
+- **The outline, handles and markers** (`babylon/edit-view.ts`) are drawn in amber, markers in blue, in a utility layer over the scene, at the same width on the view however near they are. `picture` never draws them, and `renderFrame` turns them off while it draws, so a frame is always the scene's own camera, as the film will be.
+- **Look around** (`orbit.ts`, pure) turns round a point on the scene camera's line of sight, as far ahead as what's in the shot. Dragging turns the scene as if by hand, a pinch or the wheel comes nearer, and the arrow keys (with + and −) work while the canvas has focus. It never takes focus.
+- **The pointer:** the canvas's listeners give `pointerDown`, `pointerMove`, `pointerUp`, `pointerCancel`, `wheel` and `viewKey` CSS pixels and keys, and a test can call them too. While editing or looking around, the canvas takes touch drags from the page (`touch-action: none`).
+- **A load that changes only places, paint or fading** keeps the scene and builds nothing again (`loadInPlace`), so the studio can load the set-up after every change without the picture flickering. Another model or backdrop builds the scene again.
 
 ## Shots (4.10)
 

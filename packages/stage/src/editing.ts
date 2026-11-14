@@ -18,7 +18,7 @@ export interface Ray {
   readonly direction: Vec3;
 }
 
-interface Pose {
+export interface Pose {
   readonly position: Vec3;
   readonly rotation: Quat;
 }
@@ -104,4 +104,28 @@ export function boxPoints(box: Box, t: Transform): Vec3[] {
       for (const z of [box.min.z, box.max.z]) out.push(place(v(x, y, z)));
   out.push(place(scale(add(box.min, box.max), 0.5)));
   return out;
+}
+
+/** What a marker is, to pick and to draw while editing: a box 30 cm across. */
+export const MARKER_BOX: Box = { min: v(-0.15, -0.15, -0.15), max: v(0.15, 0.15, 0.15) };
+
+/**
+ * Where a point of the scene is on the view, in pixels from its top left: `viewRay` the other
+ * way. Null if it's behind the camera or nearer than it can see.
+ */
+export function toView(
+  pose: Pose,
+  lens: number,
+  width: number,
+  height: number,
+  point: Vec3,
+): { readonly x: number; readonly y: number } | null {
+  const p = rotate(conjugate(pose.rotation), sub(point, pose.position));
+  if (!(p.z >= NEAR)) return null;
+  const up = Math.tan(lens * Math.PI);
+  const across = up * (width / height);
+  // Screen-right is the camera's -X.
+  const right = -p.x / (p.z * across);
+  const raised = p.y / (p.z * up);
+  return { x: ((right + 1) / 2) * width, y: ((1 - raised) / 2) * height };
 }

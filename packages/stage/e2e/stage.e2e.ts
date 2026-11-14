@@ -273,6 +273,81 @@ test('takes clicks and keys on the live canvas, and lets Tab move on', async ({ 
   expect(problems).toEqual([]);
 });
 
+test('draws the scene view on the live canvas, and moves things with the mouse (07-ux 7.2)', async ({
+  page,
+}, info) => {
+  const problems = await open(page);
+  await call(page, 'sceneView');
+  const view = <T>(name: string, ...args: unknown[]) =>
+    page.evaluate(
+      ([name, args]) => {
+        type Calls = Record<string, (...args: unknown[]) => unknown>;
+        const { sceneView } = window as unknown as { sceneView: Calls };
+        return sceneView[name as string]!(...(args as unknown[]));
+      },
+      [name, args] as const,
+    ) as Promise<T>;
+  await expect.poll(() => view<number>('frames')).toBeGreaterThan(5);
+  const canvas = page.locator('#stage');
+  const box = (await canvas.boundingBox())!;
+  const amberOnPage = async (name: string) => {
+    const shot = await canvas.screenshot({ path: info.outputPath(name) });
+    return page.evaluate(
+      async (png) => {
+        const bitmap = await createImageBitmap(
+          new Blob([new Uint8Array(png)], { type: 'image/png' }),
+        );
+        const c = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const g = c.getContext('2d')!;
+        g.drawImage(bitmap, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4)
+          if (d[i]! > 200 && d[i + 1]! > 150 && d[i + 1]! < 210 && d[i + 2]! < 110) n++;
+        return n;
+      },
+      [...shot],
+    );
+  };
+  // The outline, ring and knob are on the page, and never in a frame read back.
+  expect(await amberOnPage('scene-view.png')).toBeGreaterThan(300);
+  expect(await view<number>('amberInFrame')).toBe(0);
+
+  // Drag the robot by its body, 100 pixels to the left: it goes to +X along the ground.
+  const body = (await view<{ x: number; y: number }>('onView', 1, 0.6, 0))!;
+  await page.mouse.move(box.x + body.x, box.y + body.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 5; i++) await page.mouse.move(box.x + body.x - i * 20, box.y + body.y);
+  await page.mouse.up();
+  const edits =
+    await view<{ final: boolean; transform: { position: { x: number; y: number } } }[]>('edits');
+  expect(edits.at(-1)!.final).toBe(true);
+  expect(edits.filter((e) => e.final)).toHaveLength(1);
+  const moved = await view<{ position: { x: number; y: number } }>('transform', 'robot');
+  expect(moved.position.x).toBeGreaterThan(1.5);
+  expect(moved.position.y).toBe(0);
+  await amberOnPage('scene-view-moved.png');
+
+  // A click on the stand-in is a tap with it, which the studio would choose.
+  const stand = (await view<{ x: number; y: number }>('onView', -1.5, 0.25, 1))!;
+  await page.mouse.click(box.x + stand.x, box.y + stand.y);
+  const taps = await view<{ target: unknown }[]>('taps');
+  expect(taps.at(-1)!.target).toEqual({ object: 'box' });
+
+  // Look around: a drag turns the view, and the scene's camera stays where it was.
+  await view('lookAround', true);
+  const before = await view<unknown>('view');
+  await page.mouse.move(box.x + 320, box.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 420, box.y + 60, { steps: 5 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -200);
+  expect(await view<unknown>('view')).not.toEqual(before);
+  await amberOnPage('scene-view-look-around.png');
+  await view('stop');
+  expect(problems).toEqual([]);
+});
+
 test('imports Babylon.js by module, and loads the glTF loader only when it needs it', async ({
   page,
 }) => {

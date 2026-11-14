@@ -13,6 +13,7 @@ import '@babylonjs/core/Engines/Extensions/engine.readTexture.js';
 import { Layer } from '@babylonjs/core/Layers/layer.js';
 import { RenderTargetTexture } from '@babylonjs/core/Materials/Textures/renderTargetTexture.js';
 import type { AbstractEngine } from '@babylonjs/core/Engines/abstractEngine.js';
+import { Ray as PickRay } from '@babylonjs/core/Culling/ray.core.js';
 import { Frustum } from '@babylonjs/core/Maths/math.frustum.js';
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
@@ -36,13 +37,44 @@ import {
   type Vec3,
 } from '@storystage/story-api';
 import { resolveBackdropKnown } from '../backdrops.ts';
-import type { FrameImage, LoadOptions, Missing, Speech, Stage } from '../contract.ts';
-import { hullOf, within } from '../hull.ts';
-import { mul } from '../math.ts';
+import type {
+  EditEvent,
+  EditTarget,
+  EditableStage,
+  FrameImage,
+  LoadOptions,
+  Missing,
+  ObjectChange,
+  Picked,
+  Speech,
+} from '../contract.ts';
+import {
+  FAR as VIEW_FAR,
+  MARKER_BOX,
+  groundPoint,
+  rayHitsBox,
+  viewRay,
+  type Ray,
+} from '../editing.ts';
+import {
+  handleAt,
+  handlePlaces,
+  moveAlongGround,
+  moveUpDown,
+  resizeEvenly,
+  turnAbout,
+  type Handle,
+  type HandlePlaces,
+  type Viewing,
+} from '../handles.ts';
+import { KEY_TURN, orbitBy, orbitDrag, orbitFrom, orbitView, type Orbit } from '../orbit.ts';
+import { hullOf, within, type Box } from '../hull.ts';
+import { add, mul, rotate, scale, sub, v } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, standInBox, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
 import { backdropItems, buildBackdrop, loadBackdropParts, type ShowSky } from './backdrop.ts';
+import { EditView, type EditDrawing } from './edit-view.ts';
 import { buildFade } from './fade.ts';
 import type { Quality, Renderer } from './quality.ts';
 import { ModelLibrary, type ModelSource, type PlacedModel } from './models.ts';
@@ -133,7 +165,7 @@ function asFrame(
   return out;
 }
 
-export class BabylonStage implements Stage {
+export class BabylonStage implements EditableStage {
   private readonly engine: AbstractEngine;
   private readonly models: ModelSource;
   private timeline = new Timeline();
@@ -158,6 +190,20 @@ export class BabylonStage implements Stage {
   /** The scene before, fading out over this one (WP8.3). */
   private leaving: Leaving | null = null;
   private readonly offscreen: boolean;
+  /** Each object's shape as placed, so a load that changes only places can keep the scene. */
+  private shapes = new Map<ObjectId, PlacedModel['shape']>();
+  private placedAs = '';
+  // The scene view (07-ux section 7.2).
+  private isEditing = false;
+  private chosenTarget: EditTarget | null = null;
+  /** Look around's camera while it's on: where it is, and its orbit once it has moved. */
+  private around: { view: Transform; orbit: Orbit | null } | null = null;
+  private viewCamera: FreeCamera | null = null;
+  private editView: EditView | null = null;
+  private readonly editListeners = new Set<(e: EditEvent) => void>();
+  private readonly tapListeners = new Set<(p: Picked) => void>();
+  private readonly pointers = new Map<number, { x: number; y: number }>();
+  private gesture: Gesture | null = null;
 
   readonly renderer: Renderer;
   readonly quality: Quality;
@@ -214,6 +260,11 @@ export class BabylonStage implements Stage {
   }
 
   async load(setup: SceneSetup, options: LoadOptions = {}): Promise<void> {
+    const placedAs = placement(setup);
+    if (this.scene && placedAs === this.placedAs && !options.crossfade && !this.leaving) {
+      await this.loadInPlace(setup);
+      return;
+    }
     const known = resolveBackdropKnown(setup.backdrop);
     const backdrop = known.backdrop;
     const missing: Missing[] = known.missing.map((id) => ({ kind: 'backdrop', id }));
@@ -281,13 +332,45 @@ export class BabylonStage implements Stage {
       this.owners = new Map(
         [...this.views].flatMap(([id, view]) => view.meshes.map((m) => [m, id] as const)),
       );
+      this.shapes = new Map([...objects].map(([id, { shape }]) => [id, shape]));
+      this.placedAs = placedAs;
+      // The scene view's camera and drawing belonged to the scene before.
+      this.editView?.dispose();
+      this.editView = null;
+      this.viewCamera = null;
+      this.gesture = null;
     } catch (e) {
       this.dropScene(scene, library);
       throw e;
     }
+    this.keepSceneView();
     this.show();
     this.notice(false);
     await scene.whenReadyAsync();
+  }
+
+  /**
+   * A set-up with the same objects, models and backdrop as the scene loaded, only placed, painted
+   * or faded differently: a new timeline on the same scene, so nothing is built again and the
+   * picture doesn't flicker (the studio loads the set-up again after each change in the scene view).
+   */
+  private async loadInPlace(setup: SceneSetup): Promise<void> {
+    const timeline = new Timeline();
+    timeline.load(setup, (o) => this.shapes.get(o.id)!);
+    const humanoids = await humanoidsFor(setup);
+    timeline.useHumanoids(humanoids.library, humanoids.navigation);
+    this.timeline = timeline;
+    this.watches = [];
+    this.keepSceneView();
+    this.show();
+    this.notice(false);
+  }
+
+  /** After a load: what's chosen while it's still there, and Look around's camera, as it was. */
+  private keepSceneView(): void {
+    if (this.chosenTarget && !this.has(this.chosenTarget)) this.chosenTarget = null;
+    if (this.around && !this.viewCamera) this.viewCamera = this.newViewCamera();
+    this.touchAction();
   }
 
   objects(): readonly ObjectId[] {
@@ -412,10 +495,20 @@ export class BabylonStage implements Stage {
       await this.leaving.scene.whenReadyAsync();
       this.leaving.target.render();
     }
-    scene.render();
     const drawnWidth = this.engine.getRenderWidth();
     const drawnHeight = this.engine.getRenderHeight();
-    const pixels = await this.engine.readPixels(0, 0, drawnWidth, drawnHeight);
+    // A frame is always the scene's camera, and never shows handles or markers.
+    const view = scene.activeCamera;
+    scene.activeCamera = this.camera;
+    if (this.editView) this.editView.showing = false;
+    let pixels: ArrayBufferView;
+    try {
+      scene.render();
+      pixels = await this.engine.readPixels(0, 0, drawnWidth, drawnHeight);
+    } finally {
+      scene.activeCamera = view;
+      if (this.editView) this.editView.showing = true;
+    }
     // An export is drawn bigger, then averaged down to the size asked for.
     const k = this.offscreen ? SUPERSAMPLE : 1;
     const width = Math.floor(drawnWidth / k);
@@ -485,6 +578,10 @@ export class BabylonStage implements Stage {
   dispose(): void {
     this.stopLive();
     this.listeners.clear();
+    this.editListeners.clear();
+    this.tapListeners.clear();
+    this.editView?.dispose();
+    this.editView = null;
     this.dropLeaving();
     this.dropPreloaded();
     this.dropScene(this.scene, this.library);
@@ -634,7 +731,443 @@ export class BabylonStage implements Stage {
       camera: this.camera,
     });
     this.fadeLeaving();
+    this.showView();
   }
+
+  // The scene view (07-ux section 7.2).
+
+  editing(on: boolean): void {
+    this.isEditing = on;
+    this.gesture = null;
+    if (on && this.scene) this.reset();
+    this.touchAction();
+    this.showView();
+  }
+
+  pick(x: number, y: number): Picked {
+    const ray = this.rayAt(x, y);
+    return {
+      target: this.hit(ray)?.target ?? null,
+      ground: groundPoint(ray, this.timeline.ground()),
+    };
+  }
+
+  choose(target: EditTarget | null): void {
+    if (target && !this.has(target))
+      throw new StageError(
+        'unknown_object',
+        'object' in target
+          ? `There is nothing called ${target.object} in this scene.`
+          : `There is no marker called ${target.marker} in this scene.`,
+      );
+    this.chosenTarget = target;
+    this.gesture = null;
+    this.showView();
+  }
+
+  onEdit(listener: (event: EditEvent) => void): () => void {
+    this.editListeners.add(listener);
+    return () => this.editListeners.delete(listener);
+  }
+
+  onTap(listener: (picked: Picked) => void): () => void {
+    this.tapListeners.add(listener);
+    return () => this.tapListeners.delete(listener);
+  }
+
+  setObject(object: ObjectId, change: ObjectChange): void {
+    this.timeline.setObject(object, change);
+    this.show();
+    this.notice(false);
+  }
+
+  setMarker(id: string, transform: Transform): void {
+    this.timeline.setMarker(id, transform);
+    this.showView();
+  }
+
+  lookAround(on: boolean): void {
+    this.around = on ? { view: this.timeline.transform(CAMERA), orbit: null } : null;
+    if (on && !this.viewCamera && this.scene) this.viewCamera = this.newViewCamera();
+    this.gesture = null;
+    this.touchAction();
+    this.showView();
+  }
+
+  viewTransform(): Transform {
+    return this.around?.view ?? this.timeline.transform(CAMERA);
+  }
+
+  inShot(): readonly ObjectId[] {
+    const objects = this.objects().filter((o) => o !== CAMERA);
+    const seen = this.visible(new Set(objects));
+    return objects.filter((o) => seen.has(o));
+  }
+
+  /**
+   * A pointer pressed on the view, in CSS pixels from its top left: the canvas's listeners call
+   * these, and so can a test. True if the stage takes the pointer (the canvas then captures it).
+   */
+  pointerDown(x: number, y: number, { id = 1, shift = false } = {}): boolean {
+    if (!this.scene || !(this.isEditing || this.around)) return false;
+    this.pointers.set(id, { x, y });
+    if (this.pointers.size === 2 && this.around) {
+      const [a, b] = [...this.pointers.values()];
+      this.gesture = { kind: 'pinch', apart: Math.hypot(a!.x - b!.x, a!.y - b!.y) };
+      return true;
+    }
+    if (this.pointers.size > 1) return true;
+    this.gesture = this.grab(x, y, id, shift) ?? { kind: 'press', id, x0: x, y0: y, x, y };
+    return true;
+  }
+
+  pointerMove(x: number, y: number, { id = 1, shift = false } = {}): void {
+    if (!this.pointers.has(id)) return;
+    this.pointers.set(id, { x, y });
+    const g = this.gesture;
+    if (!g) return;
+    if (g.kind === 'pinch') {
+      const [a, b] = [...this.pointers.values()];
+      if (!a || !b) return;
+      const apart = Math.hypot(a.x - b.x, a.y - b.y);
+      if (g.apart > 0 && apart > 0) this.orbit((o) => orbitBy(o, 0, 0, apart / g.apart));
+      g.apart = apart;
+      return;
+    }
+    if (g.id !== id) return;
+    if (g.kind === 'press') {
+      if (Math.hypot(x - g.x0, y - g.y0) < TAP_SLOP) return;
+      if (!this.around) return;
+      this.gesture = { kind: 'orbit', id, x: g.x, y: g.y };
+      this.pointerMove(x, y, { id, shift });
+      return;
+    }
+    if (g.kind === 'orbit') {
+      const { width, height } = this.viewSize();
+      this.orbit((o) => orbitDrag(o, x - g.x, y - g.y, width, height));
+      g.x = x;
+      g.y = y;
+      return;
+    }
+    if (!g.moved && Math.hypot(x - g.x0, y - g.y0) < TAP_SLOP) return;
+    g.moved = true;
+    this.dragTo(g, x, y, shift);
+  }
+
+  pointerUp(x: number, y: number, { id = 1 } = {}): void {
+    if (!this.pointers.delete(id)) return;
+    const g = this.gesture;
+    if (!g) return;
+    if (g.kind === 'pinch') {
+      if (this.pointers.size === 0) this.gesture = null;
+      return;
+    }
+    if (g.id !== id) return;
+    this.gesture = null;
+    if (g.kind === 'drag' && g.moved) {
+      this.fireEdit({ target: g.target, transform: g.last, final: true });
+      return;
+    }
+    // A press that never became a drag is a tap; so is a press on the chosen object itself.
+    const tapped = g.kind === 'press' || (g.kind === 'drag' && g.handle === 'move');
+    if (tapped && this.isEditing) {
+      const picked = this.pick(x, y);
+      for (const l of [...this.tapListeners]) l(picked);
+    }
+  }
+
+  /** A pointer the browser took back: a drag ends where it got to. */
+  pointerCancel(id = 1): void {
+    const g = this.gesture;
+    this.pointers.delete(id);
+    if (g && g.kind === 'drag' && g.id === id) {
+      this.gesture = null;
+      if (g.moved) this.fireEdit({ target: g.target, transform: g.last, final: true });
+    } else if (this.pointers.size === 0) this.gesture = null;
+  }
+
+  /** The wheel, while looking around: nearer or further. True if the stage used it. */
+  wheel(deltaY: number): boolean {
+    if (!this.around || !this.scene) return false;
+    this.orbit((o) => orbitBy(o, 0, 0, Math.exp(-deltaY * WHEEL)));
+    return true;
+  }
+
+  /** Look around's keys, while the canvas has focus. True if the stage used the key. */
+  viewKey(key: string): boolean {
+    if (!this.around || !this.scene) return false;
+    const by = VIEW_KEYS[key];
+    if (!by) return false;
+    this.orbit((o) => orbitBy(o, by[0] * KEY_TURN, by[1] * KEY_TURN, by[2]));
+    return true;
+  }
+
+  /** What the scene view draws over the scene, for a test: none of it is in a frame. */
+  editMeshes(): number {
+    return this.editView?.showing ? this.editView.meshes().length : 0;
+  }
+
+  private has(target: EditTarget): boolean {
+    return 'object' in target
+      ? this.objects().includes(target.object)
+      : this.timeline.markerPlaces().has(target.marker);
+  }
+
+  private fireEdit(event: EditEvent): void {
+    for (const l of [...this.editListeners]) l(event);
+  }
+
+  /** The view's size in CSS pixels: the canvas's on the page, or what's drawn. */
+  private viewSize(): { width: number; height: number } {
+    const canvas = this.engine.getRenderingCanvas();
+    if (canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0)
+      return { width: canvas.clientWidth, height: canvas.clientHeight };
+    return { width: this.engine.getRenderWidth(), height: this.engine.getRenderHeight() };
+  }
+
+  private viewing(): Viewing {
+    return { pose: this.viewTransform(), lens: this.timeline.lens(), ...this.viewSize() };
+  }
+
+  private rayAt(x: number, y: number): Ray {
+    const { pose, lens, width, height } = this.viewing();
+    return viewRay(pose, lens, width, height, x, y);
+  }
+
+  /** The nearest object (or, while editing, marker) along a ray, by what's drawn. */
+  private hit(ray: Ray): { target: EditTarget; distance: number } | null {
+    let nearest: { target: EditTarget; distance: number } | null = null;
+    if (this.scene) {
+      for (const mesh of this.owners.keys()) mesh.computeWorldMatrix(true);
+      const { origin: o, direction: d } = ray;
+      const hit = this.scene.pickWithRay(
+        new PickRay(new Vector3(o.x, o.y, o.z), new Vector3(d.x, d.y, d.z), VIEW_FAR),
+        (m) => m.isEnabled() && m.isPickable && m.visibility > 0 && this.owners.has(m),
+      );
+      if (hit?.pickedMesh)
+        nearest = { target: { object: this.owners.get(hit.pickedMesh)! }, distance: hit.distance };
+    }
+    if (this.isEditing)
+      for (const [marker, pose] of this.timeline.markerPlaces()) {
+        const distance = rayHitsBox(ray, MARKER_BOX, { ...pose, scale: v(1, 1, 1) });
+        if (distance !== null && (!nearest || distance < nearest.distance))
+          nearest = { target: { marker }, distance };
+      }
+    return nearest;
+  }
+
+  /** Where the chosen object or marker is in the set-up, its box, and its handles. */
+  private chosenPlace(): { transform: Transform; box: Box; places: HandlePlaces } | null {
+    const target = this.chosenTarget;
+    if (!target) return null;
+    if ('marker' in target) {
+      const pose = this.timeline.markerPlaces().get(target.marker);
+      if (!pose) return null;
+      const transform = asTransform(pose);
+      return { transform, box: MARKER_BOX, places: handlePlaces(MARKER_BOX, transform, false) };
+    }
+    const view = this.views.get(target.object);
+    if (!view) return null;
+    const transform = this.timeline.transform(target.object);
+    return { transform, box: view.box, places: handlePlaces(view.box, transform, true) };
+  }
+
+  /** A press on one of the chosen thing's handles, or on it, starts a drag. */
+  private grab(x: number, y: number, id: number, shift: boolean): Gesture | null {
+    if (!this.isEditing || !this.chosenTarget) return null;
+    const chosen = this.chosenPlace();
+    if (!chosen) return null;
+    const view = this.viewing();
+    const ray = this.rayAt(x, y);
+    const target = this.chosenTarget;
+    const start = 'object' in target ? this.timeline.placeInSetUp(target.object) : chosen.transform;
+    const begin = (handle: Handle, grab: Vec3): Gesture => ({
+      kind: 'drag',
+      id,
+      handle,
+      target,
+      start,
+      last: start,
+      grab: sub(grab, start.position),
+      ray,
+      x0: x,
+      y0: y,
+      shift,
+      places: chosen.places,
+      view,
+      moved: false,
+    });
+    const handle = handleAt(chosen.places, view, x, y);
+    if (handle) return begin(handle, chosen.places.ring.centre);
+    const hit = this.hit(ray);
+    if (!hit || !sameTarget(hit.target, target)) return null;
+    return begin('move', add(ray.origin, scale(ray.direction, hit.distance)));
+  }
+
+  /** A drag that has moved: the set-up follows it at once, and listeners hear of it. */
+  private dragTo(g: Drag, x: number, y: number, shift: boolean): void {
+    const ray = this.rayAt(x, y);
+    if (g.handle === 'move' && shift !== g.shift) {
+      // Shift pressed or let go part-way: carry on from here, the other way.
+      g.start = g.last;
+      g.ray = ray;
+      g.shift = shift;
+    }
+    const grab = add(g.start.position, g.grab);
+    const next =
+      g.handle === 'move'
+        ? (g.shift ? moveUpDown : moveAlongGround)(g.start, grab, g.ray, ray)
+        : g.handle === 'turn'
+          ? turnAbout(g.start, g.places.ring, g.ray, ray)
+          : resizeEvenly(g.start, g.places, g.view, g.x0, g.y0, x, y);
+    if (!next) return;
+    try {
+      if ('object' in g.target) this.setObject(g.target.object, { transform: next });
+      else this.setMarker(g.target.marker, next);
+    } catch (e) {
+      if (e instanceof StageError) return;
+      throw e;
+    }
+    g.last = next;
+    this.fireEdit({ target: g.target, transform: next, final: false });
+  }
+
+  /** Turns Look around's camera, which starts from wherever it is. */
+  private orbit(change: (o: Orbit) => Orbit): void {
+    const around = this.around;
+    if (!around) return;
+    const orbit = change(
+      around.orbit ?? orbitFrom(around.view, this.timeline.ground(), this.subjects()),
+    );
+    this.around = { view: orbitView(orbit), orbit };
+    this.showView();
+  }
+
+  /** The middles of what the scene's camera sees: Look around turns round them. */
+  private subjects(): Vec3[] {
+    return this.inShot().flatMap((id) => {
+      const box = this.views.get(id)?.box;
+      if (!box) return [];
+      const t = this.timeline.transform(id);
+      const middle = scale(add(box.min, box.max), 0.5);
+      return [
+        add(
+          t.position,
+          rotate(t.rotation, v(middle.x * t.scale.x, middle.y * t.scale.y, middle.z * t.scale.z)),
+        ),
+      ];
+    });
+  }
+
+  private newViewCamera(): FreeCamera {
+    const camera = new FreeCamera('look around', Vector3.Zero(), this.scene!, false);
+    camera.minZ = NEAR;
+    camera.maxZ = FAR;
+    return camera;
+  }
+
+  /** Looks through Look around's camera or the scene's, and draws what's being edited. */
+  private showView(): void {
+    const scene = this.scene;
+    if (!scene) return;
+    const around = this.around;
+    if (around && this.viewCamera) {
+      const { position, rotation } = around.view;
+      this.viewCamera.position.set(position.x, position.y, position.z);
+      setRotation(this.viewCamera, mul(rotation, CAMERA_TURN));
+      this.viewCamera.fov = this.timeline.lens() * 2 * Math.PI;
+      scene.activeCamera = this.viewCamera;
+    } else if (this.camera) scene.activeCamera = this.camera;
+    if (!this.isEditing) {
+      this.editView?.draw(null);
+      return;
+    }
+    this.editView ??= new EditView(scene);
+    const chosen = this.chosenPlace();
+    const target = this.chosenTarget;
+    const drawing: EditDrawing = {
+      view: this.viewing(),
+      chosen,
+      markers: [...this.timeline.markerPlaces()].map(([id, pose]) => ({
+        id,
+        position: pose.position,
+        rotation: pose.rotation,
+        chosen: !!target && 'marker' in target && target.marker === id,
+      })),
+    };
+    this.editView.draw(drawing);
+  }
+
+  /** Touch drags belong to the stage while it's editing or looking around, not to the page. */
+  private touchAction(): void {
+    const canvas = this.engine.getRenderingCanvas();
+    if (canvas && 'style' in canvas)
+      canvas.style.touchAction = this.isEditing || this.around ? 'none' : '';
+  }
+}
+
+/** How far a press can move and still be a tap, in CSS pixels. */
+const TAP_SLOP = 6;
+/** How much one notch of the wheel (100) brings Look around nearer: about a tenth. */
+const WHEEL = 0.001;
+/** Look around's keys: across, down, and how many times nearer. */
+const VIEW_KEYS: Record<string, readonly [number, number, number]> = {
+  ArrowLeft: [-1, 0, 1],
+  ArrowRight: [1, 0, 1],
+  ArrowUp: [0, 1, 1],
+  ArrowDown: [0, -1, 1],
+  '+': [0, 0, 1.25],
+  '=': [0, 0, 1.25],
+  '-': [0, 0, 0.8],
+};
+
+/** A handle being dragged. */
+interface Drag {
+  readonly kind: 'drag';
+  readonly id: number;
+  readonly handle: Handle;
+  readonly target: EditTarget;
+  /** Where it was when this stretch of the drag began, and where it is now. */
+  start: Transform;
+  last: Transform;
+  /** Where it was taken hold of, from its place. */
+  readonly grab: Vec3;
+  /** The line of sight when this stretch began. */
+  ray: Ray;
+  readonly x0: number;
+  readonly y0: number;
+  shift: boolean;
+  readonly places: HandlePlaces;
+  readonly view: Viewing;
+  moved: boolean;
+}
+
+/** What a pointer is doing on the view. */
+type Gesture =
+  | {
+      readonly kind: 'press';
+      readonly id: number;
+      readonly x0: number;
+      readonly y0: number;
+      x: number;
+      y: number;
+    }
+  | { readonly kind: 'orbit'; readonly id: number; x: number; y: number }
+  | { readonly kind: 'pinch'; apart: number }
+  | Drag;
+
+const sameTarget = (a: EditTarget, b: EditTarget) =>
+  'object' in a ? 'object' in b && a.object === b.object : 'marker' in b && a.marker === b.marker;
+
+/** A marker's place as a transform: its own size if the set-up gives one. */
+function asTransform(pose: { readonly position: Vec3; readonly rotation: Quat }): Transform {
+  const size = (pose as Partial<Transform>).scale;
+  return { position: pose.position, rotation: pose.rotation, scale: size ?? v(1, 1, 1) };
+}
+
+/** What a scene is built from: a load that changes nothing here keeps the scene (`loadInPlace`). */
+function placement(setup: SceneSetup): string {
+  return JSON.stringify([setup.backdrop, setup.objects.map((o) => [o.id, o.model, o.class])]);
 }
 
 /** What a scene is drawn from: its timeline, and the views, sky, fade and camera it shows. */
