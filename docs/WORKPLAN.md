@@ -189,7 +189,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 23 of 61 items finished and 21 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 24 of 61 items finished and 20 more started:
 
 - **Release candidate:** week 11 (4 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 17 (15 Feb 2027). The plan says week 24.5 (9 Apr 2027).
@@ -274,7 +274,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | started 8 Nov; ends about 23 Nov |
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
 | WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP4b | 3 | wk 10.5 (1 Jan 2027) | 3 | started 8 Nov; ends about 30 Nov |
-| WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | started 8 Nov; ends about 7 Dec |
+| WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | 1 (8–14 Nov) |
 | WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | started 8 Nov; ends about 30 Nov |
 | WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
@@ -568,14 +568,14 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - enter from and exit to.
 
     (C)
-- [ ] 4.6 **Animation and face blocks:**
+- [x] 4.6 **Animation and face blocks:**
     - `play animation` for glTF clips, with walking and running blended automatically by speed;
     - `gesture` from a shared library (wave, nod, shrug, clap, point);
     - `show expression` with VRM presets (happy, sad, angry, surprised, relaxed, blink) and visemes for lip sync;
     - `look at` that turns head and eyes while the body does something else (BoneLookController);
     - **retargeting**: every animation is authored once against the VRM humanoid bones and plays on any humanoid (MakeHuman, Kenney, commissioned), as Unity's Mecanim Humanoid does.
 
-    (C)
+    Ticked for the first release (owner, 14 Nov 2026). The visemes for lip sync move to 14.4, after the first release. `look at` turns the eyes of a model that has eye bones, as VRMs made in VRoid do; none of the shipped people has them yet, so it shows on imported avatars. (C)
 - [x] 4.7 **Crosswalk fields in the metadata:** each Story API entry records its BML 1.0 equivalent where one exists, and its Unreal concept (for example `walk to` → navigation mesh + AI MoveTo). The text view and teacher notes can then show "under the hood" names. (C)
 - [x] 4.8 **Open specification:** publish the Story API as an open specification (JSON Schema plus a readable reference, under an open licence), with the crosswalk as an annex. It states the same versioning promise as 2.6, and a short governance note: who maintains it, how anyone (teachers, the Alice community, other implementers) proposes a change, and how changes are decided. (C drafts; U approves the licence and governance)
 - [ ] 4.9 **Later, for older learners** (after the first release): broadcast messages between objects, simple records (own data types), maps, switch, breakpoints and value watching, and an easing-curve editor. These are the concepts a learner meets next in Unreal Blueprints. (C)

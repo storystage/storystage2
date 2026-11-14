@@ -21,10 +21,10 @@ import { tinyHumanUrl } from './tiny-model.ts';
 
 registerBuiltInLoaders();
 
-async function human(twisted = false, arms: 'T' | 'A' = 'T') {
+async function human(twisted = false, arms: 'T' | 'A' = 'T', eyes = false) {
   const scene = new Scene(headlessEngine());
   scene.useRightHandedSystem = true;
-  const container = await LoadAssetContainerAsync(tinyHumanUrl({ twisted, arms }), scene, {
+  const container = await LoadAssetContainerAsync(tinyHumanUrl({ twisted, arms, eyes }), scene, {
     pluginExtension: '.glb',
   });
   container.addAllToScene();
@@ -140,5 +140,15 @@ describe('a humanoid rig', () => {
       expect(d).toBeCloseTo(1, 5);
     }
     close(read.hips, given.hips);
+  });
+
+  it("turns a model's eyes when it has them (4.6)", async () => {
+    const { rig } = await human(true, 'T', true);
+    expect(rig.joints()).toContain('leftEye');
+    const given = pose({ leftEye: axisTurns(v(0, 1, 0), 0.06) });
+    rig.apply(given);
+    const r = rig.read().turns.get(jointName('leftEye'))!;
+    const q = given.turns.get(jointName('leftEye'))!;
+    expect(Math.abs(q.x * r.x + q.y * r.y + q.z * r.z + q.w * r.w)).toBeCloseTo(1, 5);
   });
 });

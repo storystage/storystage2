@@ -15,6 +15,9 @@ const PARENT = new Map(HUMAN_BONES.map((b) => [b.joint, b.parent]));
 const J = (name: string) => name as JointName;
 const HIPS = J('hips');
 const FORWARD = v(0, 0, 1);
+const EYES = [J('leftEye'), J('rightEye')];
+/** How far eyes turn in their head, in turns: about 25 degrees. */
+const EYE_LIMIT = 0.07;
 
 /** The joints a humanoid needs for the stage to pose it. */
 const NEEDED = [
@@ -128,7 +131,8 @@ export class Body {
 
   /**
    * The pose with the head turned to face `target`, `weight` of the way, by at most `limit`
-   * turns: half at the neck and half at the head.
+   * turns: half at the neck and half at the head. Then the eyes, if the model has them, turn the
+   * rest of the way, as far as eyes go (4.6).
    */
   look(pose: HumanPose, target: Vec3, weight: number, limit: number): HumanPose {
     if (weight <= 0) return pose;
@@ -144,6 +148,25 @@ export class Body {
     const next = new Map(pose.turns);
     next.set(neck, localAfter(half, turns.get(neck)!, turns.get(PARENT.get(neck)!)!));
     next.set(head, mul(conjugate(neckNow), headNow));
+    return this.lookWithEyes({ turns: next, hips: pose.hips }, target, weight);
+  }
+
+  /** Each eye the model has turned towards `target`, `weight` of the way, within its limit. */
+  private lookWithEyes(pose: HumanPose, target: Vec3, weight: number): HumanPose {
+    const eyes = EYES.filter((eye) => this.rest.has(eye));
+    if (eyes.length === 0) return pose;
+    const turns = modelTurns(pose);
+    const places = this.places(pose);
+    const next = new Map(pose.turns);
+    for (const eye of eyes) {
+      const now = turns.get(eye)!;
+      const turn = slerp(
+        IDENTITY_Q,
+        lookTurn(places.get(eye)!, rotate(now, FORWARD), target, EYE_LIMIT),
+        weight,
+      );
+      next.set(eye, mul(conjugate(turns.get(PARENT.get(eye)!)!), mul(turn, now)));
+    }
     return { turns: next, hips: pose.hips };
   }
 }

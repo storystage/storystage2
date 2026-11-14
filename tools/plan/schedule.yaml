@@ -360,6 +360,7 @@ items:
     basis: first plan
     after: [WP4b, WP5b, WP3c]
     started: 2026-11-08
+    finished: 2026-11-14
   - id: WP7c
     label: Alice-style tile editor, full (option C)
     lane: Tile editor
