@@ -298,7 +298,7 @@ def render(glb, png, posed):
     rig = next(o for o in scene.objects if o.type == "ARMATURE")
     if posed:
         turns = {
-            "leftUpperArm": ("Y", -60), "rightUpperArm": ("Y", 60),
+            "leftUpperArm": ("Y", 60), "rightUpperArm": ("Y", -60),
             "leftLowerArm": ("Z", 45), "leftUpperLeg": ("X", -35),
             "leftLowerLeg": ("X", 30), "head": ("Z", 30),
         }
@@ -319,8 +319,11 @@ def render(glb, png, posed):
     camera = bpy.data.objects.new("camera", bpy.data.cameras.new("camera"))
     camera.data.type = "ORTHO"
     camera.data.ortho_scale = max(zs.max() - zs.min(), xs.max() - xs.min()) * 1.15
-    camera.location = ((xs.max() + xs.min()) / 2, -10, (zs.max() + zs.min()) / 2)
-    camera.rotation_euler = (math.pi / 2, 0, 0)
+    # At rest from the front; posed from three-quarters, so a step forward shows.
+    turn = math.radians(35 if posed else 0)
+    middle = ((xs.max() + xs.min()) / 2, (pts[:, 1].max() + pts[:, 1].min()) / 2, (zs.max() + zs.min()) / 2)
+    camera.location = (middle[0] + 10 * math.sin(turn), middle[1] - 10 * math.cos(turn), middle[2])
+    camera.rotation_euler = (math.pi / 2, 0, turn)
     scene.collection.objects.link(camera)
     scene.camera = camera
     sun = bpy.data.objects.new("sun", bpy.data.lights.new("sun", "SUN"))
