@@ -22,8 +22,19 @@ import { liveLinks, withLink } from './links.ts';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
 import { BackstageRail } from './BackstageRail.tsx';
 import { refusalWords } from './refusals.ts';
-import { backdropPartOf, inFrontOfCamera, withBackdrop } from './setup.ts';
-import { addObject, objectName } from '@storystage/production';
+import {
+  backdropPartOf,
+  dragKind,
+  facingCamera,
+  inFrontOfCamera,
+  withBackdrop,
+  withCamera,
+  withMarker,
+} from './setup.ts';
+import { addObject, objectName, withObject } from '@storystage/production';
+import type { EditTarget } from '@storystage/stage';
+import { CAMERA, type ObjectId, type Transform, type Vec3 } from '@storystage/story-api';
+import type { BackstageItem } from '@storystage/backstage';
 import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
@@ -114,6 +125,42 @@ function FrameCheckArea({
 }
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
+
+const DRAG_STEP = {
+  move: 'production.objects.moveStep',
+  turn: 'production.objects.turnStep',
+  size: 'production.objects.sizeStep',
+} as const;
+
+/**
+ * A handle drag let go, as one undo step: an object named for what the drag did ("Turn
+ * penguin"), the camera, or a marker. `null` when there's nothing to write.
+ */
+function moved(
+  p: Production,
+  scene: SceneId,
+  target: EditTarget,
+  transform: Transform,
+): { label: string; next: Production } | null {
+  const setup = p.scenes.find((s) => s.id === scene)?.setup;
+  if (!setup) return null;
+  if ('marker' in target)
+    return {
+      label: words.t('production.view.markerStep'),
+      next: withMarker(p, scene, target.marker, transform),
+    };
+  if (target.object === CAMERA)
+    return {
+      label: words.t('production.view.cameraStep'),
+      next: withCamera(p, scene, transform),
+    };
+  const object = setup.objects.find((o) => o.id === target.object);
+  if (!object) return null;
+  const next = withObject(p, scene, object.id, { transform });
+  if ('code' in next) return null;
+  const kind = dragKind(object.transform, transform);
+  return { label: words.t(DRAG_STEP[kind], { name: object.id }), next };
+}
 
 /**
  * The block last chosen in the code, read again after each click and key press in it: the editor
@@ -228,6 +275,11 @@ export function ProductionStage({
   const [rehearsal, setRehearsal] = useState<RehearsalState | null>(null);
   // What the last add from Backstage said, when it couldn't.
   const [stageNote, setStageNote] = useState<string | null>(null);
+  // What's chosen on the stage and in Objects in this scene, for the scene it was chosen in.
+  const [choice, setChoice] = useState<{ scene: SceneId; target: EditTarget } | null>(null);
+  const chosen = choice && choice.scene === scene ? choice.target : null;
+  const choose = (target: EditTarget | null) =>
+    setChoice(target && scene !== null ? { scene, target } : null);
   // Only a change in what's marked gives the editor new marks.
   const running = rehearsal?.running;
   const error = rehearsal?.error;
@@ -252,6 +304,51 @@ export function ProductionStage({
     : (setup?.objects.length ?? 0) === 0
       ? words.t('production.rehearse.empty')
       : null;
+  const use = (item: BackstageItem, ground: Vec3 | null = null) => {
+    if (!studio || scene === null) return;
+    const now = studio.production;
+    const setup = now.scenes.find((s) => s.id === scene)?.setup;
+    if (!setup) return;
+    if (item.section === 'backdrops') {
+      const part = backdropPartOf(item.class);
+      if (!part) return;
+      studio.commit(
+        words.t('production.backstage.useStep', {
+          name: item.displayName,
+          part: words.t(`production.backstage.part.${part}`),
+        }),
+        withBackdrop(now, scene, part, item.id),
+      );
+      setStageNote(null);
+      return;
+    }
+    const name = objectName(now, scene, item.displayName);
+    if (!name) return;
+    const result = addObject(
+      now,
+      scene,
+      {
+        model: item.id,
+        class: item.class,
+        name: item.displayName,
+        // Where it was dropped, or in front of the camera for Add and Enter.
+        transform: ground
+          ? facingCamera(setup.camera.transform, ground)
+          : inFrontOfCamera(setup.camera.transform, setup.objects.length),
+      },
+      words.t('production.backstage.addStep', { name }),
+    );
+    if (!result.ok) return setStageNote(refusalWords(result.refusal, name));
+    const done = studio.step(result.step);
+    if (!done.ok) return setStageNote(done.reason);
+    setStageNote(null);
+    // The new object is chosen, so its handles show where it landed.
+    choose({ object: name as ObjectId });
+    onAnnounce(
+      words.t(ground ? 'production.backstage.dropped' : 'production.backstage.added', { name }),
+    );
+  };
+
   return (
     <div className="pr">
       {onPlaceChange && (
@@ -270,42 +367,7 @@ export function ProductionStage({
             catalogue={models.catalogue}
             thumbnail={(id) => models.thumbnail(id)}
             canAdd={studio.readOnly === null}
-            onUse={(item) => {
-              const now = studio.production;
-              const setup = now.scenes.find((s) => s.id === scene)?.setup;
-              if (!setup) return;
-              if (item.section === 'backdrops') {
-                const part = backdropPartOf(item.class);
-                if (!part) return;
-                studio.commit(
-                  words.t('production.backstage.useStep', {
-                    name: item.displayName,
-                    part: words.t(`production.backstage.part.${part}`),
-                  }),
-                  withBackdrop(now, scene, part, item.id),
-                );
-                setStageNote(null);
-                return;
-              }
-              const name = objectName(now, scene, item.displayName);
-              if (!name) return;
-              const result = addObject(
-                now,
-                scene,
-                {
-                  model: item.id,
-                  class: item.class,
-                  name: item.displayName,
-                  transform: inFrontOfCamera(setup.camera.transform, setup.objects.length),
-                },
-                words.t('production.backstage.addStep', { name }),
-              );
-              if (!result.ok) return setStageNote(refusalWords(result.refusal, name));
-              const done = studio.step(result.step);
-              if (!done.ok) return setStageNote(done.reason);
-              setStageNote(null);
-              onAnnounce(words.t('production.backstage.added', { name }));
-            }}
+            onUse={(item) => use(item)}
           />
         )}
         {scene !== null && models && (
@@ -319,6 +381,7 @@ export function ProductionStage({
                 </div>
                 {unavailable && <p className="pr-scene-why">{unavailable}</p>}
                 <div className="pr-scene-view" />
+                <div className="pr-scene-tools pr-scene-controls-waiting" />
               </div>
             }
           >
@@ -348,6 +411,26 @@ export function ProductionStage({
               {...(startWorker ? { startWorker } : {})}
               speaker={voices ?? undefined}
               silentLines={silentLines}
+              chosen={chosen}
+              onChoose={choose}
+              canEdit={!!studio && studio.readOnly === null}
+              onMoved={(target, transform) => {
+                if (!studio) return;
+                const step = moved(studio.production, scene, target, transform);
+                if (step) studio.commit(step.label, step.next);
+              }}
+              onDropModel={(id, ground) => {
+                const item = models.catalogue.find((i) => i.id === id);
+                if (item) use(item, ground);
+              }}
+              onMoveCamera={(transform) => {
+                if (!studio) return;
+                studio.commit(
+                  words.t('production.view.cameraStep'),
+                  withCamera(studio.production, scene, transform),
+                );
+                onAnnounce(words.t('production.view.cameraMoved'));
+              }}
             />
           </Suspense>
         )}
@@ -356,6 +439,8 @@ export function ProductionStage({
             <ObjectsPanel
               studio={studio}
               scene={scene}
+              chosen={chosen && 'object' in chosen ? chosen.object : null}
+              onChoose={(name) => choose(name === null ? null : { object: name as ObjectId })}
               {...(onReveal ? { onReveal } : {})}
               modelName={(o) =>
                 typeof o.model === 'string'
