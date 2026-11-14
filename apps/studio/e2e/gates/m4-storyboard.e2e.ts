@@ -7,19 +7,14 @@ import { expect, test, type Page } from '@playwright/test';
 // up: planning in the Storyboard is what opens the Code editor (the storyboard rule, 10.8).
 
 const rule = (page: Page) => page.locator('.pr-checklist li');
-/**
- * Go to the Storyboard, from the closed Code editor. Pressed while the checklist is still being
- * drawn, the press can be lost (seen once in five runs), so it is pressed until the tab changes.
- */
-const goToStoryboard = (page: Page) =>
-  expect(async () => {
-    await page.getByRole('button', { name: 'Go to the Storyboard' }).click({ timeout: 2_000 });
-    await expect(page.getByRole('tab', { name: /Storyboard/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-      { timeout: 2_000 },
-    );
-  }).toPass({ timeout: 20_000 });
+/** Go to the Storyboard, from the closed Code editor. */
+async function goToStoryboard(page: Page) {
+  await page.getByRole('button', { name: 'Go to the Storyboard' }).click();
+  await expect(page.getByRole('tab', { name: /Storyboard/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+}
 /** Chooses in a segmented control, by its label, as a person would: the label covers the radio. */
 const choose = (page: Page, group: string, label: string) =>
   page
@@ -134,9 +129,51 @@ test('M4: a frame linked to code is Coded, and its check leads between the tabs'
   }
 });
 
-// Linking a frame to its blocks from the studio, the links' markers on the blocks and "When frame
-// N.M starts", and a frame whose block was deleted showing as not linked: WP10b (S5).
-test.fixme('M4: the learner links frame 1.1 to its blocks, and the link shows on both', () => {});
+test('M4: frame 1.1 is unlinked from its block and linked again, and shows when the block is gone', async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto('/?example');
+  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  const frame = page
+    .getByRole('listbox', { name: 'Frames' })
+    .getByRole('option', { name: /Frame 1\.1/ });
+  await frame.click();
+  const links = page.getByRole('region', { name: 'When frame 1.1 starts' });
+  await expect(links).toContainText('One block plays this frame.');
+  // The demo's frame 1.1 plays scene 1's say, which is marked in the code.
+  const marked = page.locator('.pr-workspace .ss-highlight-link');
+  await expect(marked).toHaveCount(1);
+  const chooseSay = () =>
+    page
+      .locator('.pr-workspace .blocklyDraggable.ss_story_say')
+      .first()
+      .locator('text', { hasText: /^say$/ })
+      .first()
+      .click();
+
+  // Unlink it, then link it again: the mark and the frame's status follow.
+  await chooseSay();
+  await links.getByRole('button', { name: 'Unlink from frame 1.1' }).click();
+  await expect(links).toContainText('No blocks are linked to this frame yet.');
+  await expect(marked).toHaveCount(0);
+  await expect(frame).not.toContainText('Coded');
+  await chooseSay();
+  await links.getByRole('button', { name: 'Link to frame 1.1' }).click();
+  await expect(links).toContainText('One block plays this frame.');
+  await expect(marked).toHaveCount(1);
+  await expect(frame).toContainText('Coded');
+
+  // The block deleted: the frame isn't linked, and says so, with no error.
+  await chooseSay();
+  await page.keyboard.press('Delete');
+  await expect(links).toContainText(
+    'This frame isn’t linked: the blocks it was linked to have been removed.',
+  );
+  await expect(page.getByRole('alert')).toHaveCount(0);
+});
 
 // Set the stage from the storyboard (10.10): first-frame sketches become models, by side, size,
 // facing, backdrop and shot, in one undo step; cast in later frames waits off stage. WP10c (S5),

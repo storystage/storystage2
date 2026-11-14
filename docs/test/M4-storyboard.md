@@ -2,7 +2,7 @@
 
 **Gate (workplan section 5):** a production is planned in the Storyboard, frames link to code, and the cast is placed from frames. WP10 is done when a film can be planned end to end by keyboard alone and this script passes; when a missing character can be found, imported or stood in for without leaving the Storyboard; and when a five-sketch frame sets the stage correctly (side, facing, backdrop, shot) in one undo. Playwright runs the path on every pull request (`apps/studio/e2e/gates/m4-storyboard.e2e.ts`); this script adds what only a person can judge. **Who:** the owner, with S1 writing up. Record no personal data.
 
-**Where:** the browser version (Chrome on Windows, Chrome on the reference Chromebook, Safari on the reference iPad, once chosen). **Before you start:** open `/` for a new film. Steps marked _(WP10b, S5)_ need frames linked to code, and _(WP10c, S5)_ the cast placed from frames, and the Storyboard's Backstage; leave them until those land.
+**Where:** the browser version (Chrome on Windows, Chrome on the reference Chromebook, Safari on the reference iPad, once chosen). **Before you start:** open `/` for a new film. Steps marked _(WP10c, S5)_ need the cast placed from frames, and the Storyboard's Backstage; leave them until those land.
 
 ## 1. Plan a film, by keyboard alone
 
@@ -25,12 +25,12 @@ Unplug the mouse, or don't touch the trackpad, for this section.
 | 1 | Add a fourth scene with no heading and no frame, and open the **Production stage** on it. | "Storyboard scene 4 first": **Logline and synopsis** Done, **A heading for scene 4** To do, **At least one frame** To do. The Code editor is closed. | |
 | 2 | **Go to the Storyboard**, give scene 4 a heading and a frame, and come back. | The Code editor opens on scene 4's method. The frame strip shows "Frame 4.1 Planned". | |
 
-## 3. Frames link to code _(WP10b, S5)_
+## 3. Frames link to code
 
 | # | Do | Expect | ✓ |
 |---|---|---|---|
-| 1 | Link frame 1.1 to the blocks that play it. | The blocks show the link, headed "When frame 1.1 starts". The strip shows frame 1.1 **Coded**. | |
-| 2 | Delete one of those blocks. | The frame shows as not linked, with no error. | |
+| 1 | On the Production stage, choose frame 1.1 on the strip. Choose a block that plays it, then **Link to frame 1.1**. | "When frame 1.1 starts" says how many blocks play the frame, and those blocks are marked in the code. The strip shows frame 1.1 **Coded**. **Unlink from frame 1.1** takes the link away again; each is one undo step. | |
+| 2 | Delete the linked block. | "This frame isn't linked: the blocks it was linked to have been removed…", with no error. Undo brings the block and its link back. | |
 | 3 | **Rehearse** scene 1, then **Check this frame**. | Frame 1.1 is **Rehearsed**, then **Checked** or **Look at**. "Go to the sketch" and "Go to the block" lead between the Storyboard and the code. | |
 
 ## 4. The cast placed from frames _(WP10c, S5)_
