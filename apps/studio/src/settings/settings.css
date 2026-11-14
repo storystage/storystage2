@@ -325,6 +325,19 @@
   font-size: 0.85em;
 }
 
+/* Settings › Report a problem (WP18.5): the report in full, then Copy and Save. */
+.st-problem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.st-problem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Settings › Accessibility: each choice under its visible name. */
 .st-access {
   display: flex;

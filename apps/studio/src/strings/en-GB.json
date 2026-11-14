@@ -651,5 +651,17 @@
   "selftest.notReady": "not ready yet",
   "selftest.copy": "To report a problem, copy this report into your message.",
   "selftest.report": "Self-test report",
-  "selftest.couldNotStart": "The self-test couldn’t start: {why}"
+  "selftest.couldNotStart": "The self-test couldn’t start: {why}",
+  "problem.title": "Report a problem",
+  "problem.help": "Makes a report of this device for your feedback email: the versions, the settings in force, the self-test, and any recent problems. It leaves out the Claude key, pupils’ names and films. Nothing is sent: read it, then copy or save it and attach it yourself.",
+  "problem.make": "Make the report",
+  "problem.making": "Making the report: {done} of {total} checks done…",
+  "problem.ready": "The report is ready. Read it before you send it.",
+  "problem.report": "Problem report",
+  "problem.copy": "Copy the report",
+  "problem.copied": "Copied. Paste it into your email.",
+  "problem.copyFailed": "This device wouldn’t copy it. Select the report and copy it yourself.",
+  "problem.save": "Save the report",
+  "problem.saved": "Saved as “{name}”. Attach it to your email.",
+  "problem.film": "To show a film too, choose Save a copy… in the Film menu and attach that, if no one can be seen or heard in it and its credits name no one."
 }

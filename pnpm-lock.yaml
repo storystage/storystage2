@@ -69,6 +69,9 @@ importers:
       '@storystage/check':
         specifier: workspace:*
         version: link:../../packages/check
+      '@storystage/diagnostics':
+        specifier: workspace:*
+        version: link:../../packages/diagnostics
       '@storystage/editor-contract':
         specifier: workspace:*
         version: link:../../packages/editor-contract
@@ -283,6 +286,12 @@ importers:
       '@storystage/runtime':
         specifier: workspace:*
         version: link:../runtime
+
+  packages/diagnostics:
+    dependencies:
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
 
   packages/editor-contract:
     dependencies:

@@ -880,7 +880,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 18.2 Playwright end-to-end tests for each milestone's gate. Determinism is checked on scene state (a hash of every transform per frame), which must match across renderers; pixel comparison only within one renderer, with a tolerance. (C)
 - [ ] 18.3 Performance budgets per reference device (start-up, scene load, frame rate, export speed, memory), measured in CI where possible and by the owner on the devices. (C; U runs on devices)
 - [ ] 18.4 A manual test script per milestone in `docs/test/`. (C)
-- [ ] 18.5 **Report a problem:** builds a local diagnostic bundle (scrubbed logs, self-test result, versions, policy in force) for the teacher to attach to the feedback form. Nothing is sent automatically. (C)
+- [x] 18.5 **Report a problem:** builds a local diagnostic bundle (scrubbed logs, self-test result, versions, policy in force) for the teacher to attach to the feedback form. Nothing is sent automatically. (C)
 
 **Done when:** each milestone gate has an automated end-to-end test, and the self-test passes on every target build.
 
