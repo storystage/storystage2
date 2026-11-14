@@ -663,5 +663,5 @@
   "problem.copyFailed": "This device wouldn’t copy it. Select the report and copy it yourself.",
   "problem.save": "Save the report",
   "problem.saved": "Saved as “{name}”. Attach it to your email.",
-  "problem.film": "To show a film too, use Film › Save a copy and attach that, if no one can be seen or heard in it and its credits name no one."
+  "problem.film": "To show a film too, choose Save a copy… in the Film menu and attach that, if no one can be seen or heard in it and its credits name no one."
 }

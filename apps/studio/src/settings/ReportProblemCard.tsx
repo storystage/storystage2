@@ -8,7 +8,7 @@
  * Saving it as a file in the apps waits on the host's picker saving text files (S8): the apps
  * offer Copy for now.
  */
-import type { Environment } from '@storystage/diagnostics';
+import { problemLog, problemReport, reportName, type Environment } from '@storystage/diagnostics';
 import type { HostInterface } from '@storystage/host';
 import type { SelfTestRuntime } from '@storystage/selftest';
 import { Button } from '@storystage/ui';
@@ -71,15 +71,13 @@ export function ReportProblemCard({
     setNote(null);
     setChecked(0);
     try {
-      const [diagnostics, selftest] = await Promise.all([
-        import('@storystage/diagnostics'),
-        runStudioSelfTest({
-          models,
-          ...(makeStage ? { makeStage } : {}),
-          ...(startRuntime ? { startRuntime } : {}),
-          onStep: () => setChecked((n) => (n ?? 0) + 1),
-        }),
-      ]);
+      // The report's own code is small and already loaded with the problem log (main.tsx).
+      const selftest = await runStudioSelfTest({
+        models,
+        ...(makeStage ? { makeStage } : {}),
+        ...(startRuntime ? { startRuntime } : {}),
+        onStep: () => setChecked((n) => (n ?? 0) + 1),
+      });
       // Pupils' names, to take out wherever they appear; none when there's no class list.
       const names = await host.classes.pupils().then(
         (pupils) => pupils.map((p) => p.name),
@@ -87,16 +85,16 @@ export function ReportProblemCard({
       );
       const when = now().toISOString();
       setReport({
-        text: diagnostics.problemReport({
+        text: problemReport({
           when,
           version: host.version,
           environment: environment(),
           policy: host.policy,
           selftest: selftest.text,
-          problems: diagnostics.problemLog()?.lines() ?? null,
+          problems: problemLog()?.lines() ?? null,
           names,
         }),
-        name: diagnostics.reportName(when),
+        name: reportName(when),
       });
     } finally {
       busy.current = false;
@@ -120,7 +118,11 @@ export function ReportProblemCard({
     const link = document.createElement('a');
     link.href = url;
     link.download = report.name;
+    // In the page while it's clicked, as Safari wants.
+    link.hidden = true;
+    document.body.append(link);
     link.click();
+    link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
     setNote(words.t('problem.saved', { name: report.name }));
   };
