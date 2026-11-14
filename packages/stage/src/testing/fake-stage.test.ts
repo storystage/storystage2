@@ -110,6 +110,16 @@ describe('FakeStage', () => {
     expect(drags).toEqual([false, true]);
   });
 
+  it('keeps what is chosen across a load while it is still there', async () => {
+    const stage = new FakeStage();
+    await stage.load(SETUP);
+    stage.choose({ object: cat });
+    await stage.load(SETUP);
+    expect(stage.chosen()).toEqual({ object: cat });
+    await stage.load({ ...SETUP, objects: [SETUP.objects[1]!] });
+    expect(stage.chosen()).toBeNull();
+  });
+
   it("moves Look around's camera only while looking around", async () => {
     const stage = new FakeStage();
     await stage.load(SETUP);

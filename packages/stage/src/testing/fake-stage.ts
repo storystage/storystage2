@@ -129,6 +129,10 @@ export class FakeStage implements EditableStage {
     const { library, navigation } = await humanoidsFor(setup);
     this.timeline.useHumanoids(library, navigation);
     this.lost = lost;
+    // The scene view stays as it was: edit mode, what's chosen if it's still here, Look around.
+    if (this.isEditing) this.timeline.reset();
+    const chosen = this.chosenTarget;
+    if (chosen && !this.has(chosen)) this.chosenTarget = null;
   }
 
   objects(): readonly ObjectId[] {
@@ -247,17 +251,20 @@ export class FakeStage implements EditableStage {
 
   choose(target: EditTarget | null): void {
     this.record('choose', [target]);
-    if (target && 'object' in target && !this.objects().includes(target.object))
+    if (target && !this.has(target))
       throw new StageError(
         'unknown_object',
-        `There is nothing called ${target.object} in this scene.`,
-      );
-    if (target && 'marker' in target && !this.timeline.markerPlaces().has(target.marker))
-      throw new StageError(
-        'unknown_object',
-        `There is no marker called ${target.marker} in this scene.`,
+        'object' in target
+          ? `There is nothing called ${target.object} in this scene.`
+          : `There is no marker called ${target.marker} in this scene.`,
       );
     this.chosenTarget = target;
+  }
+
+  private has(target: EditTarget): boolean {
+    return 'object' in target
+      ? this.objects().includes(target.object)
+      : this.timeline.markerPlaces().has(target.marker);
   }
 
   /** What's chosen, for a test. */

@@ -153,5 +153,17 @@ export function describeEditableStageContract(
       stopEdit();
       stopTap();
     });
+
+    it('keeps edit mode and Look around across a load', async () => {
+      const stage = await loaded();
+      stage.editing(true);
+      stage.lookAround(true);
+      const view = stage.viewTransform();
+      const moved = { ...SETUP.objects[0]!, transform: at(-2, 0, 0) };
+      await stage.load({ ...SETUP, objects: [moved, SETUP.objects[1]!] });
+      expect(stage.viewTransform()).toEqual(view);
+      expect(stage.time()).toBe(0);
+      expect(stage.transform(cat).position.x).toBeCloseTo(-2, 5);
+    });
   });
 }

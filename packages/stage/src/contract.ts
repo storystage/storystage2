@@ -178,6 +178,10 @@ export interface ObjectChange {
  * a scene's set-up. The Babylon.js stage is one, and `FakeStage` is one for tests. The runtime,
  * export and the self-test use `Stage` alone. Points of the view are CSS pixels from the
  * canvas's top left.
+ *
+ * A `load` keeps the scene view as it was (S5's ask): edit mode, what's chosen while it's still
+ * in the scene, and Look around's camera. The studio loads the set-up again after each change it
+ * writes, so a drag's object stays chosen without choosing it again.
  */
 export interface EditableStage extends Stage {
   /**
