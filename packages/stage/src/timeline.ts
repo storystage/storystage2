@@ -34,7 +34,7 @@ import {
   type Vec3,
 } from '@storystage/story-api';
 import { ROOM, resolveBackdrop, type Colour } from './backdrops.ts';
-import type { Speech } from './contract.ts';
+import type { ObjectChange, Speech } from './contract.ts';
 import type { Box } from './hull.ts';
 import type { Navigation, NavigationArea, NavigationMaker } from './navigation.ts';
 import {
@@ -247,6 +247,8 @@ const hex = ({ r, g, b }: Colour) =>
     .join('')}`;
 
 export class Timeline {
+  /** The set-up loaded, as the scene view has changed it since (`setObject`). */
+  private setup: SceneSetup | null = null;
   private start = new Map<ObjectId, ObjectState>();
   private markers = new Map<string, Pose>();
   private shapes = new Map<ObjectId, Shape>();
@@ -320,6 +322,7 @@ export class Timeline {
   /** Replaces the scene and forgets every command. Throws if a vehicle can't be right. */
   load(setup: SceneSetup, shapeFor: (object: SceneObjectSetup) => Shape): void {
     this.start = startingState(setup);
+    this.setup = setup;
     this.markers = new Map(setup.markers.map((m) => [m.id, m.transform]));
     this.shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
@@ -332,6 +335,80 @@ export class Timeline {
     const degrees = setup.camera.fieldOfViewDegrees;
     this.baseLens = degrees === undefined ? ALICE_LENS : degrees / 360;
     this.reset();
+  }
+
+  /**
+   * Changes one object's set-up, or the camera's transform, keeping every command (07-ux section
+   * 7.2). Throws a `StageError` and changes nothing if the change can't be made.
+   */
+  setObject(object: ObjectId, change: ObjectChange): void {
+    const setup = this.loaded();
+    const { transform, opacity, paint } = change;
+    if (transform) checkTransform(transform);
+    if (opacity !== undefined && !(opacity >= 0 && opacity <= 1))
+      throw bad('Opacity goes from 0 to 1.');
+    const i = setup.objects.findIndex((o) => o.id === object);
+    let next: SceneSetup;
+    if (i >= 0) {
+      const o = setup.objects[i]!;
+      const changed: SceneObjectSetup = {
+        ...o,
+        ...(transform ? { transform } : {}),
+        ...(opacity !== undefined ? { opacity } : {}),
+        ...(paint !== undefined ? { paint } : {}),
+      };
+      next = { ...setup, objects: setup.objects.map((x, k) => (k === i ? changed : x)) };
+    } else if (object === CAMERA) {
+      if (opacity !== undefined || paint !== undefined)
+        throw bad('The camera has only a place, a turn and a size.');
+      next = transform ? { ...setup, camera: { ...setup.camera, transform } } : setup;
+    } else throw unknown(object);
+    // Made before anything changes, so a bad paint leaves the scene as it was.
+    const start = startingState(next);
+    this.setup = next;
+    this.start = start;
+    this.restate();
+  }
+
+  /** Moves a marker in the set-up, keeping every command. */
+  setMarker(id: string, transform: Transform): void {
+    const setup = this.loaded();
+    if (!this.markers.has(id))
+      throw new StageError('unknown_object', `There is no marker called ${id} in this scene.`);
+    checkTransform(transform);
+    this.setup = {
+      ...setup,
+      markers: setup.markers.map((m) => (m.id === id ? { ...m, transform } : m)),
+    };
+    this.markers = new Map(this.setup.markers.map((m) => [m.id, m.transform]));
+    this.restate();
+  }
+
+  /** The markers, where the set-up has them. */
+  markerPlaces(): ReadonlyMap<string, { readonly position: Vec3; readonly rotation: Quat }> {
+    return this.markers;
+  }
+
+  /** An object's box at scale 1, round its own origin. */
+  box(object: ObjectId): Box | null {
+    return this.shapes.get(object)?.box ?? null;
+  }
+
+  /** The ground's height: 0, or a room's floor. */
+  ground(): number {
+    return this.floor ? this.floor.max.y : 0;
+  }
+
+  private loaded(): SceneSetup {
+    if (!this.setup) throw bad('There is no scene loaded yet.');
+    return this.setup;
+  }
+
+  /** Every command is resolved again from the set-up, and the scene shown at its time. */
+  private restate(): void {
+    this.resolved.clear();
+    this.walkable.clear();
+    this.state = this.evaluate(this.now);
   }
 
   /** Throws a `StageError` and adds none of them if any one is invalid. */
@@ -1104,6 +1181,24 @@ function skyColour(sky: Sky, part: SkyPart, paint: string): Resolved {
 }
 
 /** The scene's first state: set-up transforms are in the scene, so riders are worked back. */
+/** A transform the set-up can hold: finite, a unit rotation and a size above 0. */
+function checkTransform({ position, rotation, scale: size }: Transform): void {
+  const numbers = [
+    position.x,
+    position.y,
+    position.z,
+    rotation.x,
+    rotation.y,
+    rotation.z,
+    rotation.w,
+  ];
+  if (!numbers.every(Number.isFinite)) throw bad('Every number must be finite.');
+  if (Math.abs(Math.hypot(rotation.x, rotation.y, rotation.z, rotation.w) - 1) > 1e-6)
+    throw bad('A turn must be a unit quaternion.');
+  if (![size.x, size.y, size.z].every((n) => Number.isFinite(n) && n > 0))
+    throw bad('A size must be above 0.');
+}
+
 function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
   const places = new Map<ObjectId, Transform>(setup.objects.map((o) => [o.id, o.transform]));
   if (!places.has(CAMERA)) places.set(CAMERA, setup.camera.transform);

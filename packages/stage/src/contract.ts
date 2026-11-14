@@ -21,6 +21,7 @@ import type {
   StageQuery,
   StageQueryResult,
   Transform,
+  Vec3,
   Watch,
 } from '@storystage/story-api';
 
@@ -142,4 +143,99 @@ export interface Stage {
   picture(at: Micros, width: number, height: number): Promise<FrameImage>;
 
   dispose(): void;
+}
+
+/** What the scene view can choose and move: an object (the camera included) or a marker. */
+export type EditTarget = { readonly object: ObjectId } | { readonly marker: string };
+
+/** What's at a point of the view. */
+export interface Picked {
+  /** The object or marker there, nearest first; null for the ground, the sky or nothing. */
+  readonly target: EditTarget | null;
+  /** Where the point meets the ground (y = 0, or a room's floor) within 256 m; null above it. */
+  readonly ground: Vec3 | null;
+}
+
+/** A handle being dragged: live while it moves, then once more with `final` when it's let go. */
+export interface EditEvent {
+  readonly target: EditTarget;
+  /** The whole transform, relative to the scene, as the set-up has it. */
+  readonly transform: Transform;
+  readonly final: boolean;
+}
+
+/** A change to one object's set-up, made without reloading. Fields left out stay as they are. */
+export interface ObjectChange {
+  readonly transform?: Transform;
+  /** 0 to 1. */
+  readonly opacity?: number;
+  /** A paint name or `#rrggbb`. */
+  readonly paint?: string;
+}
+
+/**
+ * The scene view's stage (07-ux section 7.2, agreed with S5): choosing, moving and looking round
+ * a scene's set-up. The Babylon.js stage is one, and `FakeStage` is one for tests. The runtime,
+ * export and the self-test use `Stage` alone. Points of the view are CSS pixels from the
+ * canvas's top left.
+ */
+export interface EditableStage extends Stage {
+  /**
+   * Edit mode. On, the scene goes back to its set-up (as `reset` does) and the chosen object's
+   * outline and handles, and the markers, are drawn; taps are reported. Off for Rehearse and for
+   * playing in Camera view. Handles and markers are drawn on the live canvas only, never in
+   * `renderFrame` or `picture`.
+   */
+  editing(on: boolean): void;
+
+  /**
+   * What's at a point of the view: the object (or, while editing, the marker) there, and where it
+   * meets the ground. For a drop from Backstage. Picking is by ray, against what's drawn.
+   */
+  pick(x: number, y: number): Picked;
+
+  /**
+   * Chooses what has the amber outline and handles: move along the ground (with Shift, up and
+   * down), turn about the vertical, and resize evenly. Null chooses nothing. Throws a
+   * `StageError` (`unknown_object`) for something that isn't in the scene.
+   */
+  choose(target: EditTarget | null): void;
+
+  /** Listens for handle drags. Returns a function that stops listening. */
+  onEdit(listener: (event: EditEvent) => void): () => void;
+
+  /**
+   * Listens for a click or tap on the view while editing that didn't start a handle drag, with
+   * what was there, as `pick` gives it. Returns a function that stops listening.
+   */
+  onTap(listener: (picked: Picked) => void): () => void;
+
+  /**
+   * Changes one object's set-up, or the camera's (`CAMERA`, its transform only), without
+   * reloading. Scheduled commands stay, and the scene is shown again at its time. Everything that
+   * asks about the scene, `inShot` included, answers for the change at once. Throws a
+   * `StageError` (`unknown_object`, `bad_argument`) and changes nothing if the change can't be
+   * made.
+   */
+  setObject(object: ObjectId, change: ObjectChange): void;
+
+  /** Moves a marker in the set-up, as `setObject` moves an object. */
+  setMarker(id: string, transform: Transform): void;
+
+  /**
+   * Look around: on, the view is an orbit camera of its own (the pointer, touch, and the arrow
+   * keys while the canvas has focus), starting where the scene's camera is; it never changes the
+   * set-up. Off is Camera view again. It never takes focus.
+   */
+  lookAround(on: boolean): void;
+
+  /** Where the view is: Look around's camera while it's on, otherwise the scene's camera. */
+  viewTransform(): Transform;
+
+  /**
+   * The objects the scene's camera sees (not Look around's), in set-up order, the camera not
+   * among them: anything with some part of its box in view, nearer than 256 m and not faded to
+   * nothing. For "In this shot:".
+   */
+  inShot(): readonly ObjectId[];
 }

@@ -1,9 +1,18 @@
-import { StageError, backstageId, jointName, micros, objectId } from '@storystage/story-api';
+import {
+  CAMERA,
+  StageError,
+  backstageId,
+  jointName,
+  micros,
+  objectId,
+} from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { SETUP, cmd, describeStageContract } from './conformance.ts';
+import { describeEditableStageContract } from './editing-conformance.ts';
 import { FakeStage } from './fake-stage.ts';
 
 describeStageContract('FakeStage', () => new FakeStage());
+describeEditableStageContract('FakeStage', () => new FakeStage());
 
 const cat = objectId('cat');
 const dog = objectId('dog');
@@ -81,6 +90,37 @@ describe('FakeStage', () => {
     const withIt = new FakeStage({ knownModels: [clearDay] });
     await withIt.load({ ...SETUP, objects: [], backdrop });
     expect(withIt.missing()).toEqual([]);
+  });
+
+  it('reports a tap only while editing, and a drag as a test makes it', async () => {
+    const stage = new FakeStage();
+    await stage.load(SETUP);
+    const taps: unknown[] = [];
+    const drags: unknown[] = [];
+    stage.onTap((p) => taps.push(p.target));
+    stage.onEdit((e) => drags.push(e.final));
+    stage.tap(437, 327);
+    expect(taps).toEqual([]);
+    stage.editing(true);
+    stage.tap(437, 327);
+    expect(taps).toEqual([{ object: cat }]);
+    const transform = stage.transform(cat);
+    stage.drag({ target: { object: cat }, transform, final: false });
+    stage.drag({ target: { object: cat }, transform, final: true });
+    expect(drags).toEqual([false, true]);
+  });
+
+  it("moves Look around's camera only while looking around", async () => {
+    const stage = new FakeStage();
+    await stage.load(SETUP);
+    const elsewhere = { ...stage.transform(cat), position: { x: 5, y: 5, z: 5 } };
+    stage.moveView(elsewhere);
+    expect(stage.viewTransform().position.z).toBeCloseTo(-6, 5);
+    stage.lookAround(true);
+    stage.moveView(elsewhere);
+    expect(stage.viewTransform().position.x).toBe(5);
+    // The scene's camera stays where it was.
+    expect(stage.transform(CAMERA).position.z).toBeCloseTo(-6, 5);
   });
 
   it('turns to face the other way round the short way', async () => {

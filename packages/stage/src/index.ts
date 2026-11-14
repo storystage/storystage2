@@ -7,7 +7,16 @@
  * in `@storystage/stage/testing`. The Babylon.js stage is in `@storystage/stage/babylon`, so that
  * importing this entry doesn't load Babylon.js.
  */
-export type { FrameImage, Speech, Stage } from './contract.ts';
+export type {
+  EditEvent,
+  EditTarget,
+  EditableStage,
+  FrameImage,
+  ObjectChange,
+  Picked,
+  Speech,
+  Stage,
+} from './contract.ts';
 export {
   BACKDROP_TEMPLATES,
   GROUND_TYPES,

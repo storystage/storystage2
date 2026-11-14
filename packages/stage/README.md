@@ -164,6 +164,17 @@ A production plays its scenes in running order (spec 03 section 3.1). The player
 - **Fade to black** is the `fade` command, at the end of one scene and the start of the next.
 - **Cost:** on the owner's PC, a crossfade adds 1 to 2 ms a frame with 20 characters in each scene ("What characters cost", below). The reference Chromebook is still to measure (#6).
 
+## The scene view (07-ux 7.2)
+
+`EditableStage` (`contract.ts`, agreed with S5) is the stage the Production stage's scene view edits: `Stage`, plus choosing, moving and looking round a scene's set-up. The runtime, export and the self-test use `Stage` alone.
+
+- **Editing** (`editing(true)`) puts the scene back to its set-up. It draws the chosen object's outline and handles (move along the ground, with Shift up and down; turn about the vertical; resize evenly), and the markers. These are drawn on the live canvas only, never in `renderFrame` or `picture`.
+- **Picking** is by ray (`editing.ts`, pure, so both stages agree): `pick(x, y)` gives the object or marker there and where the point meets the ground, for a drop from Backstage. `onTap` reports a click or tap that didn't start a handle drag, and `onEdit` reports the handles' drags, live and then `final`.
+- **Changing the set-up** without reloading: `setObject` (a transform, opacity or paint; the camera's transform alone) and `setMarker`. Scheduled commands stay and are worked out again from the new set-up, and everything the stage answers, `inShot` included, reflects the change at once.
+- **Look around** is a camera of its own that never changes the set-up. `viewTransform` gives where the view is, for "Move the camera here". `inShot` names what the scene's own camera sees, for "In this shot:".
+- **Not yet:** posing joints in the set-up, which waits for a `joints` field in `SceneObjectSetup` (S6) and the production format (S4).
+- **`FakeStage`** picks against stand-in boxes, and tests drive it with `drag`, `tap` and `moveView`. Both stages run `describeEditableStageContract`. The Babylon.js stage's half, with the handles, is next.
+
 ## Shots (4.10)
 
 A `shot` moves the camera, over its duration, to frame its targets. Where it goes is worked out when it starts, from `SHOTS` in `timeline.ts`. The same rules should stand behind the storyboard's shot types (WP10.6) and the check against the storyboard (11.6).
