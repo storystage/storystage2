@@ -25,6 +25,7 @@
     "@storystage/production": "workspace:*",
     "@storystage/prompter": "workspace:*",
     "@storystage/screening": "workspace:*",
+    "@storystage/selftest": "workspace:*",
     "@storystage/sketches": "workspace:*",
     "@storystage/speech": "workspace:*",
     "@storystage/stage": "workspace:*",

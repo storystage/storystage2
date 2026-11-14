@@ -4,6 +4,8 @@
  * studio's menu item, in CI (`selftest.test.ts`), and inside each app build (WP18b).
  */
 
+import { t } from './strings.ts';
+
 export type StepStatus = 'pass' | 'fail' | 'notReady';
 
 export interface SelfTestStep<C> {
@@ -89,7 +91,9 @@ export async function runSelfTest<C>(
               () =>
                 reject(
                   new SelfTestFailure(
-                    `This took longer than ${limit >= 1000 ? `${Math.round(limit / 1000)} seconds` : `${limit} milliseconds`}.`,
+                    limit >= 1000
+                      ? t('problem.tooLong.seconds', { count: Math.round(limit / 1000) })
+                      : t('problem.tooLong.ms', { count: limit }),
                   ),
                 ),
               limit,
@@ -108,7 +112,7 @@ export async function runSelfTest<C>(
         const detail =
           e instanceof SelfTestFailure
             ? e.message
-            : `Something went wrong: ${e instanceof Error ? e.message : String(e)}`;
+            : t('problem.wentWrong', { why: e instanceof Error ? e.message : String(e) });
         result = {
           id: step.id,
           title: step.title,

@@ -76,4 +76,4 @@ If you can watch the network (a router page, or a tool S1 suggests):
 
 ## Record
 
-For each device: the date, the build, which steps passed, and for each that didn't, what happened, in the studio's own words. Never record your key or paste it into the results. Every script ends with the built-in self-test on each device, once it's in the studio (WP18.1), recording its last line.
+For each device: the date, the build, which steps passed, and for each that didn't, what happened, in the studio's own words. Never record your key or paste it into the results. Then, on each device, run **Settings › Self-test** › **Run the self-test**, and record its last line (`SELFTEST PASS` or `SELFTEST FAIL`); if it fails, paste its report into the results.

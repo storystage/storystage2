@@ -90,6 +90,9 @@ importers:
       '@storystage/screening':
         specifier: workspace:*
         version: link:../../packages/screening
+      '@storystage/selftest':
+        specifier: workspace:*
+        version: link:../../packages/selftest
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
@@ -444,12 +447,15 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
-      '@storystage/editor-contract':
+      '@storystage/playback':
         specifier: workspace:*
-        version: link:../editor-contract
+        version: link:../playback
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@storystage/stage':
         specifier: workspace:*
         version: link:../stage

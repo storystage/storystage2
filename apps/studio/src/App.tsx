@@ -34,6 +34,7 @@ import { ProductionStage } from './production/ProductionStage.tsx';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
 import { AccessibilityCard } from './settings/AccessibilityCard.tsx';
+import { SelfTestCard } from './settings/SelfTestCard.tsx';
 import { useAppearance } from './settings/appearance.ts';
 import type { ExportJob, ExportJobState } from '@storystage/screening';
 import { exportSlot } from './screening/exportSlot.ts';
@@ -537,6 +538,7 @@ export function App({
                 host={host}
                 open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
               />
+              <SelfTestCard models={models} />
             </>
           }
           panels={{

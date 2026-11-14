@@ -628,5 +628,16 @@
   "production.objects.inUse.other": "{name} stays: {count} blocks in the code use it.",
   "production.objects.tooMany": "A scene holds {limit} objects at most.",
   "production.objects.gone": "{name} isn’t in this scene any more.",
-  "production.objects.notDone": "That couldn’t be done."
+  "production.objects.notDone": "That couldn’t be done.",
+  "selftest.title": "Self-test",
+  "selftest.help": "Checks that StoryStage works on this device: it makes a three-scene film, plays it, exports five seconds, and checks undo and saving. Nothing leaves this device. It takes a minute or two.",
+  "selftest.run": "Run the self-test",
+  "selftest.running": "Running the self-test…",
+  "selftest.steps": "Self-test steps",
+  "selftest.pass": "passed",
+  "selftest.fail": "failed",
+  "selftest.notReady": "not ready yet",
+  "selftest.copy": "To report a problem, copy this report into your message.",
+  "selftest.report": "Self-test report",
+  "selftest.couldNotStart": "The self-test couldn’t start: {why}"
 }

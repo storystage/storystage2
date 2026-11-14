@@ -28,4 +28,4 @@ Each gate's path, as far as CI can follow it, is one Playwright test in `apps/st
 | M4 Storyboard | [m4-storyboard.e2e.ts](../../apps/studio/e2e/gates/m4-storyboard.e2e.ts): a film planned by keyboard opens its Code editor (the storyboard rule); a linked frame is Coded, and its check leads between the tabs | Linking frames from the studio (WP10b, S5); placing the cast from frames (WP10c, S5) |
 | M5 Prompter and speech | [m5-prompter-speech.e2e.ts](../../apps/studio/e2e/gates/m5-prompter-speech.e2e.ts): speak lines are British by default, with American as the switch | The studio on the native host in the apps (unassigned); set-up and the Prompter panel (S7, S5); whisper and the voices bundled in the apps (S8) |
 
-Every script ends with the built-in self-test (WP18.1) on each device it covers, and records its last line (`SELFTEST PASS` or `SELFTEST FAIL`).
+Every script ends with the built-in self-test (WP18.1), **Settings › Self-test** › **Run the self-test**, on each device it covers, and records its last line (`SELFTEST PASS` or `SELFTEST FAIL`).
