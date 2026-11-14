@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
 
-// The M2 gate, "One scene, coded" (workplan section 3; WP18.2): in the browser, add models to a
+// The M2 gate, "One scene, coded" (workplan section 5; WP18.2): in the browser, add models to a
 // scene, code it with blocks, Rehearse it, as one path. The manual script is
 // docs/test/M2-one-scene.md; this is the part CI can check on every pull request. Each part's
 // own tests are in production.e2e.ts; this one checks they join up.
