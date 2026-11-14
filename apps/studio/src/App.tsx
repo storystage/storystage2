@@ -534,11 +534,11 @@ export function App({
               <AccessibilityCard />
               <TalkToTypeCard host={host} />
               <VoicesCard studio={phase.kind === 'studio' ? studio : null} voices={voices} />
-              <SelfTestCard models={models} />
               <ClassSetup
                 host={host}
                 open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
               />
+              <SelfTestCard models={models} />
             </>
           }
           panels={{

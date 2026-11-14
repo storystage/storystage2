@@ -20,6 +20,7 @@ import type { FromRuntime, Port, ToRuntime } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
 import { CAMERA, micros, type SceneSetup, type StageCommand } from '@storystage/story-api';
 import { check, type SelfTestStep } from './runner.ts';
+import { t } from './strings.ts';
 
 /** A runtime for one run: the worker in the app; in memory in tests. */
 export interface SelfTestRuntime {
@@ -141,27 +142,24 @@ const endWords = (end: Timeline['end']) =>
 export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
   {
     id: 'production',
-    title: 'Make a three-scene production',
+    title: t('step.production'),
     async run(c) {
       const p = productionOf(c);
-      check(p.scenes.length === 3, `The production has ${p.scenes.length} scenes, not 3.`);
+      check(p.scenes.length === 3, t('problem.sceneCount', { count: p.scenes.length }));
       const problems = checkReferences(p);
-      check(problems.length === 0, `The production doesn't hang together: ${problems[0]}`);
-      check(
-        p.storyboard.logline && p.storyboard.synopsis,
-        'The storyboard has no logline or synopsis.',
-      );
+      check(problems.length === 0, t('problem.references', { problem: problems[0] ?? '' }));
+      check(p.storyboard.logline && p.storyboard.synopsis, t('problem.noLogline'));
       for (const s of p.scenes)
         check(
           p.frames.some((f) => f.scene === s.id),
-          `Scene ${s.id} has no storyboard frame.`,
+          t('problem.noFrame', { scene: s.id }),
         );
-      check(saysOf(p).length === 3, 'Each scene should have something to say in its code.');
+      check(saysOf(p).length === 3, t('problem.noSays'));
     },
   },
   {
     id: 'stage',
-    title: 'Set the stage for each scene',
+    title: t('step.stage'),
     async run(c) {
       const stage = await c.makeStage();
       try {
@@ -169,8 +167,8 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
           await stage.load(scene.setup);
           const objects = stage.objects();
           for (const o of scene.setup.objects)
-            check(objects.includes(o.id), `Scene ${scene.id} is missing ${o.id}.`);
-          check(objects.includes(CAMERA), `Scene ${scene.id} has no camera.`);
+            check(objects.includes(o.id), t('problem.missing', { scene: scene.id, object: o.id }));
+          check(objects.includes(CAMERA), t('problem.noCamera', { scene: scene.id }));
         }
       } finally {
         stage.dispose();
@@ -179,33 +177,34 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
   },
   {
     id: 'rehearse',
-    title: 'Play the whole film’s code, twice, and check both runs match',
+    title: t('step.rehearse'),
     async run(c) {
       const p = productionOf(c);
       const first = await runFilm(c, p);
       check(
         first.end.kind !== 'error' && first.end.kind !== 'fault',
-        `The film stopped with a problem: ${endWords(first.end)}.`,
+        t('problem.filmStopped', { words: endWords(first.end) }),
       );
       const order = p.manifest.runningOrder.map((r) => r.scene);
       check(
         JSON.stringify(first.scenes.map((s) => s.scene)) === JSON.stringify(order),
-        'The scenes didn’t play in their running order.',
+        t('problem.order'),
       );
       for (const scene of order)
         check(
           first.blocks.some((b) => b.scene === scene),
-          `Scene ${scene}’s code didn’t run.`,
+          t('problem.codeDidNotRun', { scene }),
         );
       const said = first.lines.map((l) => l.text);
-      for (const { words } of saysOf(p)) check(said.includes(words), `"${words}" was never said.`);
+      for (const { words } of saysOf(p))
+        check(said.includes(words), t('problem.neverSaid', { words }));
       const second = await runFilm(c, p);
-      check(same(first, second), 'The film played differently the second time.');
+      check(same(first, second), t('problem.filmDiffered'));
     },
   },
   {
     id: 'frames',
-    title: 'Draw each scene twice, and check every frame matches',
+    title: t('step.frames'),
     async run(c) {
       for (const scene of productionOf(c).scenes) {
         const a = await c.makeStage();
@@ -213,12 +212,9 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
         try {
           const first = await play(a, scene.setup, 2);
           const second = await play(b, scene.setup, 2);
-          check(first[0] !== first.at(-1), `Nothing moved in scene ${scene.id}.`);
+          check(first[0] !== first.at(-1), t('problem.nothingMoved', { scene: scene.id }));
           const frame = first.findIndex((h, i) => h !== second[i]);
-          check(
-            frame === -1,
-            `Scene ${scene.id} played differently the second time, from frame ${frame}.`,
-          );
+          check(frame === -1, t('problem.sceneDiffered', { scene: scene.id, frame }));
         } finally {
           a.dispose();
           b.dispose();
@@ -228,14 +224,14 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
   },
   {
     id: 'export',
-    title: 'Export five seconds',
+    title: t('step.export'),
     async run(c) {
       const p = productionOf(c);
       if (c.exportFive) {
         const mp4 = new Uint8Array(await c.exportFive(p));
         // An MP4 starts with its `ftyp` box.
         const type = String.fromCharCode(...mp4.slice(4, 8));
-        check(mp4.length > 1000 && type === 'ftyp', 'The export didn’t make an MP4 file.');
+        check(mp4.length > 1000 && type === 'ftyp', t('problem.noMp4'));
         return;
       }
       const scene = p.scenes[0]!;
@@ -250,7 +246,7 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
             const image = await stage.renderFrame();
             check(
               image.width > 0 && image.data.length === image.width * image.height * 4,
-              `Frame ${f} came out empty.`,
+              t('problem.emptyFrame', { frame: f }),
             );
             frames.push(Array.from(image.data.slice(0, 64)).join(','));
           }
@@ -262,21 +258,21 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
       const first = await render();
       const second = await render();
       const frame = first.findIndex((x, i) => x !== second[i]);
-      check(frame === -1, `The export came out differently the second time, from frame ${frame}.`);
+      check(frame === -1, t('problem.exportDiffered', { frame }));
       return {
-        standIn: 'checks that 150 frames come out the same every time; no MP4 is made here.',
+        standIn: t('standIn.noMp4'),
       };
     },
   },
   {
     id: 'undo',
-    title: 'Undo every change, and redo them',
+    title: t('step.undo'),
     async run(c) {
       const start = productionOf(c);
       const session = new ProductionSession(start);
       const labels: string[] = [];
       for (const [i, say] of saysOf(start).entries()) {
-        const label = `Change what scene ${i + 1} says`;
+        const label = t('edit.say', { n: i + 1 });
         const edit: EditOperation = {
           kind: 'setArgument',
           label,
@@ -285,46 +281,40 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
           param: 'text',
           value: { id: nodeId(say.text), kind: 'text', value: `Self-test ${i + 1}` },
         };
-        check(session.apply([edit], label, 'selftest').ok, `"${label}" was refused.`);
+        check(session.apply([edit], label, 'selftest').ok, t('problem.refused', { label }));
         labels.push(label);
       }
       const last = start.manifest.runningOrder.at(-1)!.scene;
-      const moved = moveScene(session.production(), last, 0, 'Move the last scene first');
-      check(moved.ok, 'Moving a scene was refused.');
+      const moved = moveScene(session.production(), last, 0, t('edit.moveScene'));
+      check(moved.ok, t('problem.moveRefused'));
       session.step(moved.step, 'selftest');
-      labels.push('Move the last scene first');
+      labels.push(t('edit.moveScene'));
       const after = session.production();
       for (const label of [...labels].reverse()) {
         check(
           session.undoLabel() === label,
-          `The next undo should be "${label}", not "${session.undoLabel()}".`,
+          t('problem.undoLabel', { expected: label, actual: session.undoLabel() ?? '' }),
         );
         session.undo();
       }
-      check(
-        same(session.production(), start),
-        'Undoing everything did not bring back the film as it was.',
-      );
+      check(same(session.production(), start), t('problem.undoAll'));
       labels.forEach(() => session.redo());
-      check(
-        same(session.production(), after),
-        'Redoing everything did not bring back the changes.',
-      );
+      check(same(session.production(), after), t('problem.redoAll'));
     },
   },
   {
     id: 'save',
-    title: 'Save the production and open it again',
+    title: t('step.save'),
     async run(c) {
       const p = productionOf(c);
       const bytes = saveProduction(p);
       const opened = openProduction(bytes);
-      check(opened.status === 'ok', 'The saved film wouldn’t open again.');
-      check(same(opened.production, p), 'The film opened differently from how it was saved.');
+      check(opened.status === 'ok', t('problem.wontOpen'));
+      check(same(opened.production, p), t('problem.openedDifferently'));
       const again = saveProduction(opened.production);
       check(
         again.length === bytes.length && again.every((b, i) => b === bytes[i]),
-        'Saving the same film twice gave different files.',
+        t('problem.savedDifferently'),
       );
     },
   },
