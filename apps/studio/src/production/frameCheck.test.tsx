@@ -14,6 +14,7 @@ import { useState } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import type { BackstageItem } from '@storystage/backstage';
 import type { Place } from '../storyboard/place.ts';
 import { useStudio, type Studio } from '../studio.ts';
 import { NONE_REHEARSED, type Rehearsed } from './frameProgress.ts';
@@ -42,11 +43,19 @@ const models: ModelSourceHandle = {
   prepare: async () => undefined,
   item: () => undefined,
   refused: [],
+  catalogue: [],
+  thumbnail: () => null,
 };
 const host = { program: () => exampleProduction().program } as unknown as EditorHost;
 
-function stage(production: Production, editorHost: EditorHost = host) {
+function stage(
+  production: Production,
+  editorHost: EditorHost = host,
+  catalogue: readonly BackstageItem[] = [],
+) {
+  const withCatalogue: ModelSourceHandle = { ...models, catalogue };
   const onReveal = vi.fn<(node: NodeId) => void>();
+  const onAnnounce = vi.fn<(text: string) => void>();
   const onPlaceChange = vi.fn<(place: Place) => void>();
   const onGoToStoryboard = vi.fn();
   let latest: Studio | null = null;
@@ -71,7 +80,7 @@ function stage(production: Production, editorHost: EditorHost = host) {
           host={editorHost}
           onGoToStoryboard={onGoToStoryboard}
           announcement=""
-          models={models}
+          models={withCatalogue}
           makeStage={makeStage}
           startWorker={startWorker}
           onPlaceChange={onPlaceChange}
@@ -79,12 +88,13 @@ function stage(production: Production, editorHost: EditorHost = host) {
           onRehearsed={setR}
           studio={studio}
           onReveal={onReveal}
+          onAnnounce={onAnnounce}
         />
       </ThemeRoot>
     );
   }
   render(<View />);
-  return { onReveal, onPlaceChange, onGoToStoryboard, studio: () => latest! };
+  return { onReveal, onPlaceChange, onGoToStoryboard, onAnnounce, studio: () => latest! };
 }
 
 const example = exampleProduction();
@@ -299,5 +309,90 @@ describe('Objects in this scene (07-ux 7.2)', () => {
     expect(studio().undoLabel).toBe('Resize fox');
     const fox = studio().production.scenes[0]!.setup.objects.find((o) => o.id === 'fox')!;
     expect(fox.transform.scale).toEqual({ x: 2, y: 2, z: 2 });
+  });
+});
+
+const owl = {
+  id: 'storystage/Flyer/owl',
+  section: 'cast',
+  class: 'Flyer',
+  displayName: 'Owl',
+  themes: ['night'],
+  files: { model: 'owl.glb', thumbnail: 'owl.png' },
+} as unknown as BackstageItem;
+const grass = {
+  id: 'storystage/Ground/grass',
+  section: 'backdrops',
+  class: 'Ground',
+  displayName: 'Grass',
+  themes: ['nature'],
+  files: { model: 'grass.glb', thumbnail: 'grass.png' },
+} as unknown as BackstageItem;
+
+describe('Backstage on the Production stage (07-ux 7.1, 7.2)', () => {
+  it('adds a model in front of the camera as one undo step, by Add or by Enter', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = stage(example, host, [owl, grass]);
+    await user.click(screen.getByRole('button', { name: 'Cast' }));
+    const panel = screen.getByRole('region', { name: 'Cast' });
+    expect(within(panel).queryByText('Grass')).toBeNull();
+    await user.click(within(panel).getByRole('button', { name: 'Add Owl to the scene' }));
+    const s1 = () => studio().production.scenes[0]!;
+    const added = s1().setup.objects.find((o) => o.id === 'owl')!;
+    expect(added).toMatchObject({ model: owl.id, class: 'Flyer' });
+    expect(added.transform.position.y).toBe(0);
+    expect(studio().undoLabel).toBe('Add owl');
+    expect(onAnnounce).toHaveBeenCalledWith('owl is in the scene, in front of the camera.');
+    // A second, by the keyboard, takes the next name and stands beside the first.
+    within(panel).getByRole('row', { name: 'Owl' }).focus();
+    await user.keyboard('{Enter}');
+    const second = s1().setup.objects.find((o) => o.id === 'owl2')!;
+    expect(second.transform.position).not.toEqual(added.transform.position);
+  });
+
+  it('searches all four sections, and sets a backdrop rather than adding it', async () => {
+    const user = userEvent.setup();
+    const { studio } = stage(example, host, [owl, grass]);
+    await user.click(screen.getByRole('button', { name: 'Cast' }));
+    await user.type(screen.getByRole('searchbox', { name: 'Search Backstage' }), 'gras');
+    const panel = screen.getByRole('region', { name: 'Cast' });
+    await user.click(within(panel).getByRole('button', { name: 'Use Grass in this scene' }));
+    expect(studio().production.scenes[0]!.setup.backdrop.ground).toBe(grass.id);
+    expect(studio().undoLabel).toBe('Use Grass as the ground');
+  });
+
+  it('says when Backstage’s models aren’t on this device', async () => {
+    const user = userEvent.setup();
+    stage(example);
+    await user.click(screen.getByRole('button', { name: 'Props' }));
+    expect(screen.getByText('Backstage’s models aren’t on this device yet.')).toBeTruthy();
+  });
+});
+
+describe('Remove (07-ux 7.2)', () => {
+  const panel = () => screen.getByRole('region', { name: 'Objects in this scene' });
+
+  it('is refused while code uses the object, saying so, with a way to the block', async () => {
+    const user = userEvent.setup();
+    const { onReveal, studio } = stage(example);
+    await user.click(within(panel()).getByRole('option', { name: /penguin/ }));
+    await user.click(
+      within(panel()).getByRole('button', { name: 'Remove penguin from the scene' }),
+    );
+    expect(within(panel()).getByText(/^penguin stays: /)).toBeTruthy();
+    expect(studio().production.scenes[0]!.setup.objects.some((o) => o.id === 'penguin')).toBe(true);
+    await user.click(within(panel()).getByRole('button', { name: 'Go to the block' }));
+    expect(onReveal).toHaveBeenCalledOnce();
+  });
+
+  it('takes away an object the code doesn’t use, as one undo step', async () => {
+    const user = userEvent.setup();
+    const { studio } = stage(example, host, [owl]);
+    await user.click(screen.getByRole('button', { name: 'Cast' }));
+    await user.click(screen.getByRole('button', { name: 'Add Owl to the scene' }));
+    await user.click(within(panel()).getByRole('option', { name: /^owl/ }));
+    await user.click(within(panel()).getByRole('button', { name: 'Remove owl from the scene' }));
+    expect(studio().production.scenes[0]!.setup.objects.some((o) => o.id === 'owl')).toBe(false);
+    expect(studio().undoLabel).toBe('Remove owl');
   });
 });

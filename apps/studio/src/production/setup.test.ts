@@ -1,7 +1,14 @@
 import { exampleProduction } from '@storystage/production';
 import { IDENTITY } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import { fieldOf, rotationOf, turnOf, withField, withObjectTransform } from './setup.ts';
+import {
+  fieldOf,
+  inFrontOfCamera,
+  rotationOf,
+  turnOf,
+  withField,
+  withObjectTransform,
+} from './setup.ts';
 
 // An object's place, turn and size in the set-up (07-ux 7.2).
 
@@ -33,5 +40,18 @@ describe('withObjectTransform', () => {
     expect(next.scenes[0]!.setup.objects[1]).toBe(s1.setup.objects[1]);
     expect(next.scenes[1]).toBe(p.scenes[1]);
     expect(next.program).toBe(p.program);
+  });
+});
+
+describe('where a new object lands', () => {
+  it('stands on the ground in front of the camera, facing it, and the next beside it', () => {
+    const camera = { ...IDENTITY, position: { x: 0, y: 1.6, z: -5 } };
+    const first = inFrontOfCamera(camera, 0);
+    expect(first.position).toEqual({ x: 0, y: 0, z: -1 });
+    // Facing back along -Z, to the camera: half a turn.
+    expect(turnOf(first.rotation)).toBe(0.5);
+    const second = inFrontOfCamera(camera, 1);
+    expect(second.position.z).toBe(-1);
+    expect(Math.abs(second.position.x)).toBeGreaterThan(1);
   });
 });
