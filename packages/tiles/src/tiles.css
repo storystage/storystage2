@@ -294,7 +294,7 @@
 
 /* A block the current frame links to (WP10.8). */
 .tl-hl-link {
-  outline: 3px dotted var(--tl-focus);
+  outline: 3px dotted var(--tl-link);
   outline-offset: 2px;
 }
 

@@ -16,7 +16,7 @@
 1. **The program belongs to the studio.** An editor shows it and proposes edits. It keeps no copy of its own beyond what it draws, so switching editors (7.11) keeps the program, the undo history and, through `ViewState`, the open method, selection and focus.
 2. **Every change is one labelled step.** An editor sends edits with `host.apply(edits, label, id)`. The host validates them, with S2's rules and the Story API's `checkProgram` as `check` (spec 02, section 9a), and either makes them one undo step or refuses them all with a reason in plain words. The editor shows that reason where the learner acted.
 3. **An editor redraws from `subscribe`,** whatever made the change: itself, the other editor, the Prompter, undo, redo, the stage or a load. It never assumes its own edit went through until the change arrives.
-4. **Highlights** (`rehearse`, `error`, `prompter`) and **commands** (`delete`, `copy`, `paste`, `duplicate`, `moveUp`, `moveDown`, `toggleEnabled`, `addDetail`, `openMenu`) arrive from the studio and work on node ids, so they mean the same in both editors.
+4. **Highlights** (`rehearse`, `error`, `prompter`, `link`) and **commands** (`delete`, `copy`, `paste`, `duplicate`, `moveUp`, `moveDown`, `toggleEnabled`, `addDetail`, `openMenu`) arrive from the studio and work on node ids, so they mean the same in both editors.
 5. **`announce`** is the only way an editor speaks to screen-reader users (section 3f), so the studio keeps one live region.
 
 ## 2. The shared editing model
@@ -166,7 +166,7 @@ Enter or a click on a pill opens its cascade (section 2.3), upward if there's no
 
 ### 3g. Highlights
 
-Through the contract (7.9): Rehearse outlines the running statement (a still outline when the learner has asked for reduced motion); an error marks the statement in the stop colour with the error's words beside it; the Prompter's highlight carries its AI badge. Several kinds can show at once.
+Through the contract (7.9): Rehearse outlines the running statement (a still outline when the learner has asked for reduced motion); an error marks the statement in the stop colour with the error's words beside it; the Prompter's highlight carries its AI badge; `link` marks the blocks the current frame links to (WP10.8), in Direction A's Coded colour. Several kinds can show at once.
 
 The contract's `highlight(marks, kind)` takes each node with its words, `{node, message?}`, so the two can't drift apart. In Tiles an error's words sit beside its statement in a chip of the program's own colour, so the stop colour reads at 4.5:1 on any tile, and they're part of the row's name. Blocks marks the blocks, and showing the words there is S5's (3i).
 

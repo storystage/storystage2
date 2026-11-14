@@ -51,6 +51,8 @@ export const TILE_COLOURS = {
   rehearse: '#1E7A34',
   error: '#B0412A',
   prompter: '#6B4FD6',
+  // A block the current frame links to (WP10.8): Direction A's Coded colour, as the frame strip's.
+  link: '#6443C0',
 } as const;
 
 export type TileColour = keyof typeof TILE_COLOURS;
@@ -85,6 +87,7 @@ export const OUTLINE_PAIRS: readonly (readonly [TileColour, TileColour])[] = [
   ['rehearse', 'program'],
   ['error', 'program'],
   ['prompter', 'program'],
+  ['link', 'program'],
 ];
 
 /** The colours as the custom properties `tiles.css` reads. */
