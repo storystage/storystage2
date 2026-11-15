@@ -18,7 +18,13 @@ import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
 import { FrameLinks } from './FrameLinks.tsx';
-import { placeFromStoryboard, storyboardPlan, type Placement } from './fromStoryboard.ts';
+import {
+  chosenPlan,
+  modelKey,
+  placeFromStoryboard,
+  storyboardPlan,
+  type PlanBackstage,
+} from './fromStoryboard.ts';
 import { StoryboardSetup } from './StoryboardSetup.tsx';
 import { liveLinks, withLink } from './links.ts';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
@@ -136,9 +142,10 @@ const NO_MARKS: Highlights = { rehearse: [], error: [] };
 
 /**
  * The scenes whose "Set up this scene from your storyboard?" the learner has answered, for each
- * film's session: it's offered once a session, then waits behind Set up from storyboard.
+ * film's session, with the cast it offered then: it's offered once a session, then waits behind
+ * Set up from storyboard, unless the storyboard gains cast of its own.
  */
-const answered = new WeakMap<object, Set<SceneId>>();
+const answered = new WeakMap<object, Map<SceneId, Set<string>>>();
 
 const DRAG_STEP = {
   move: 'production.objects.moveStep',
@@ -293,36 +300,52 @@ export function ProductionStage({
   const [choice, setChoice] = useState<{ scene: SceneId; target: EditTarget } | null>(null);
   const chosen = choice && choice.scene === scene ? choice.target : null;
   // Set the stage from the storyboard (WP10.10): what it shows that the stage doesn't have yet.
-  const plan = useMemo(
+  const planBackstage = useMemo<PlanBackstage | null>(
     () =>
-      studio && models && scene !== null && studio.readOnly === null
-        ? storyboardPlan(p, scene, {
+      models
+        ? {
             item: (id) => models.item(id as BackstageId),
             backdrops: models.catalogue.filter((i) => i.section === 'backdrops'),
-          })
+          }
+        : null,
+    [models],
+  );
+  const plan = useMemo(
+    () =>
+      studio && planBackstage && scene !== null && studio.readOnly === null
+        ? storyboardPlan(p, scene, planBackstage)
         : [],
-    [p, scene, models, studio],
+    [p, scene, planBackstage, studio],
   );
   // The offer, asked again by Set up from storyboard, for the scene it was asked in.
   const [asking, setAsking] = useState<SceneId | null>(null);
   const [, setAnswers] = useState(0);
-  const isAnswered = !!studio && scene !== null && !!answered.get(studio.session)?.has(scene);
-  const offering = plan.length > 0 && (!isAnswered || asking === scene);
+  const offered = studio && scene !== null ? answered.get(studio.session)?.get(scene) : undefined;
+  // Cast the storyboard has gained since the offer was answered: offered again, on their own.
+  const newCast = offered
+    ? plan.filter((x) => x.kind === 'object' && x.section === 'cast' && !offered.has(modelKey(x)))
+    : [];
+  const offer = plan.length > 0 && (!offered || asking === scene) ? plan : newCast;
+  const again = offer === newCast;
   const answer = () => {
     if (!studio || scene === null) return;
-    const set = answered.get(studio.session) ?? new Set<SceneId>();
-    set.add(scene);
-    answered.set(studio.session, set);
+    const scenes = answered.get(studio.session) ?? new Map<SceneId, Set<string>>();
+    const cast = new Set(scenes.get(scene));
+    for (const x of plan) if (x.kind === 'object') cast.add(modelKey(x));
+    scenes.set(scene, cast);
+    answered.set(studio.session, scenes);
     setAsking(null);
     setAnswers((n) => n + 1);
   };
-  const placeChosen = (chosen: readonly Placement[]) => {
-    if (!studio || scene === null) return;
+  const placeChosen = (chosen: ReadonlySet<string>) => {
+    if (!studio || scene === null || !planBackstage) return;
     const n = numberOfScene(p, scene);
+    const now = studio.production;
+    const these = chosenPlan(now, scene, planBackstage, offer, chosen);
     const placed = placeFromStoryboard(
-      studio.production,
+      now,
       scene,
-      chosen,
+      these,
       words.t('production.fromStoryboard.step', { n }),
     );
     answer();
@@ -330,7 +353,7 @@ export function ProductionStage({
     const done = studio.step(placed.step);
     if (!done.ok) return setStageNote(done.reason);
     setStageNote(null);
-    onAnnounce(words.plural('production.fromStoryboard.placed', chosen.length));
+    onAnnounce(words.plural('production.fromStoryboard.placed', these.length));
   };
   const hasFrames = scene !== null && sceneFrames(p, scene).length > 0;
   const choose = (target: EditTarget | null) =>
@@ -416,10 +439,11 @@ export function ProductionStage({
       )}
       {voices && <VoicesDownload voices={voices} />}
       {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
-      {offering && scene !== null && (
+      {offer.length > 0 && scene !== null && (
         <StoryboardSetup
-          key={scene}
-          plan={plan}
+          key={`${scene}:${again}`}
+          plan={offer}
+          again={again}
           frameNumber={`${numberOfScene(p, scene)}.1`}
           onPlace={placeChosen}
           onNotNow={answer}
@@ -477,7 +501,7 @@ export function ProductionStage({
               silentLines={silentLines}
               chosen={chosen}
               onChoose={choose}
-              {...(studio && studio.readOnly === null && hasFrames && !offering
+              {...(studio && studio.readOnly === null && hasFrames && offer.length === 0
                 ? {
                     onSetUp: () => {
                       if (plan.length > 0) return setAsking(scene);

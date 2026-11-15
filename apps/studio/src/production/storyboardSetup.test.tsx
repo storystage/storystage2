@@ -181,6 +181,35 @@ describe('Set up this scene from your storyboard? (WP10.10)', () => {
     expect(offer()).not.toBeNull();
   });
 
+  it('offers cast the storyboard gains later, on their own', async () => {
+    const user = userEvent.setup();
+    const { studio } = stage();
+    await user.click(within(offer()!).getByRole('button', { name: 'Not now' }));
+    const later = studio().production.frames.find((f) => f.id === 'f12')!;
+    act(() =>
+      studio().commit('Add a dragon', {
+        ...studio().production,
+        frames: studio().production.frames.map((f) =>
+          f === later
+            ? {
+                ...f,
+                sketches: [...f.sketches, { ...sketch('d', '', 0.1), item: { standIn: 'dragon' } }],
+              }
+            : f,
+        ),
+      }),
+    );
+    const again = screen.getByRole('region', { name: 'Add the new cast from your storyboard?' });
+    expect(within(again).getByText('dragon, waiting just off stage')).toBeTruthy();
+    expect(within(again).queryByText('Knight')).toBeNull();
+    await user.click(within(again).getByRole('button', { name: 'Place everything' }));
+    expect(names(studio())).toEqual(['penguin', 'fox', 'dragon']);
+    expect(
+      screen.queryByRole('region', { name: 'Add the new cast from your storyboard?' }),
+    ).toBeNull();
+    expect(offer()).toBeNull();
+  });
+
   it('says so when everything is on the stage already, and offers nothing then', async () => {
     const user = userEvent.setup();
     stage(example);
