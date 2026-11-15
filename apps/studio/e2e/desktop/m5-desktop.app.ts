@@ -1,4 +1,4 @@
-import { spawn, type ChildProcess } from 'node:child_process';
+import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { chromium, expect, test, type Browser, type Page } from '@playwright/test';
@@ -26,7 +26,11 @@ async function appPage(): Promise<Page> {
     try {
       browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`);
       const page = browser.contexts()[0]?.pages()[0];
-      if (page) return page;
+      if (page) {
+        // WebView2 is up before the app has loaded the studio: wait for the app's own address.
+        await expect.poll(() => page.url(), { timeout: 60_000 }).toMatch(/^https?:\/\//);
+        return page;
+      }
       await browser.close();
     } catch {
       // Not up yet.
@@ -43,7 +47,10 @@ test.beforeAll(() => {
 
 test.afterAll(async () => {
   await browser?.close().catch(() => {});
-  app?.kill();
+  // The app and its WebView2 processes, so the next run's port is the next app's.
+  if (app?.pid && process.platform === 'win32')
+    spawnSync('taskkill', ['/PID', String(app.pid), '/T', '/F'], { stdio: 'ignore' });
+  else app?.kill();
 });
 
 test('M5: in the desktop app, the studio is on the native layer, with its version, the mic and the shipped Backstage', async () => {
