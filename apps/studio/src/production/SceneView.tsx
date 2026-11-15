@@ -59,6 +59,8 @@ export interface SceneViewProps {
    * the pointer (null above the horizon).
    */
   onDropModel?(id: string, ground: Vec3 | null): void;
+  /** Set up from storyboard (WP10.10): asks again what the storyboard shows. */
+  onSetUp?(): void;
 }
 
 /** The stage's editing half, when it has one (S3's Babylon stage and `FakeStage` do). */
@@ -418,6 +420,11 @@ export default function SceneView(props: SceneViewProps) {
             onPress={() => props.onMoveCamera?.(editable.viewTransform())}
           >
             {words.t('production.view.moveCamera')}
+          </Button>
+        )}
+        {props.onSetUp && (
+          <Button variant="secondary" icon="groups" isDisabled={!idle} onPress={props.onSetUp}>
+            {words.t('production.fromStoryboard.button')}
           </Button>
         )}
         {shot && (
