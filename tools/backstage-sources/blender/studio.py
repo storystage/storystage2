@@ -494,13 +494,17 @@ def render(glb, png, pose):
         pb.rotation_axis_angle = (math.radians(degrees), *local)
     bpy.context.view_layer.update()
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    pts = []
+    # Only the character: the glTF importer adds a mesh of its own for drawing bones.
+    character = [o for o in scene.objects if o.type == "MESH" and any(m.type == "ARMATURE" for m in o.modifiers)]
     for o in scene.objects:
-        if o.type == "MESH":
-            ev = o.evaluated_get(depsgraph)
-            m = ev.to_mesh()
-            pts.extend(tuple(ev.matrix_world @ v.co) for v in m.vertices)
-            ev.to_mesh_clear()
+        if o.type == "MESH" and o not in character:
+            o.hide_render = True
+    pts = []
+    for o in character:
+        ev = o.evaluated_get(depsgraph)
+        m = ev.to_mesh()
+        pts.extend(tuple(ev.matrix_world @ v.co) for v in m.vertices)
+        ev.to_mesh_clear()
     pts = np.array(pts)
     lo, hi = pts.min(0), pts.max(0)
     camera = bpy.data.objects.new("camera", bpy.data.cameras.new("camera"))
