@@ -111,6 +111,12 @@ const checks = [
     "a speech file this build didn't pin isn't served",
     report.speechFiles?.unpinnedServed === false,
   ],
+  [
+    'whisper.js is served from the app, for Talk to type',
+    report.whisper?.status === 200 &&
+      /javascript/.test(report.whisper.type ?? '') &&
+      report.whisper.bytes === 1_771_953,
+  ],
   ['nothing outside the Backstage is served', report.backstage?.outside === 404],
   [
     'only the request that reached the network counts, against the device',

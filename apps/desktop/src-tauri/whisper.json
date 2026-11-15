@@ -1,0 +1,16 @@
+{
+  "source": "https://github.com/storystage/storystage2/releases/download/whisper-js-v1.9.5/",
+  "version": "whisper.cpp v1.9.5 (d1be6fde11ac6e0407606b4e42fe72d34add8037), Emscripten 6.0.13, INITIAL_MEMORY=64MB, MAXIMUM_MEMORY=1024MB, INCOMING=1",
+  "files": [
+    {
+      "file": "whisper.js",
+      "bytes": 1771953,
+      "sha256": "4d45a408871f90d049d349cf163dd944f91e19faad3aa8b543151f1e9e5b8839"
+    },
+    {
+      "file": "LICENSE-whisper.cpp.txt",
+      "bytes": 1078,
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+    }
+  ]
+}

@@ -123,6 +123,12 @@ async function main() {
   // Speak line's engine, from the app's own origin and checked against this build's pins (spec
   // 06, 4.6): ONNX Runtime's WebAssembly comes whole, as WebAssembly; a file not pinned doesn't.
   const wasm = await fetch('speech/ort/ort-wasm-simd-threaded.wasm');
+  const whisper = await fetch('speech/whisper.js');
+  report.whisper = {
+    status: whisper.status,
+    type: whisper.headers.get('content-type'),
+    bytes: (await whisper.arrayBuffer()).byteLength,
+  };
   const sums = await fetch('speech/kokoro/SHA256SUMS').then(
     (reply) => reply.text(),
     () => '',

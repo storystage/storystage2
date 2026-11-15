@@ -55,6 +55,8 @@ jobs:
           key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
       - name: Fetch speak line's engine and check each file (decision 0068)
         run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
       - name: Build and sign the update
         shell: bash
         env:

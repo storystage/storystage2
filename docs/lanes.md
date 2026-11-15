@@ -324,6 +324,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 15 Nov (#432): **the `Whisper` workflow**, run on 15 Nov with the owner's go: whisper.js built from its pinned sources, dictating in Chromium, published to the `whisper-js-v1.9.5` release (1,771,953 bytes, SHA-256 `4d45a408…5b8839`).
   - 15 Nov (#426): **speak line's engine in the apps** (spec 06, 4.6; the owner found speak lines silent in the desktop apps): every app build fetches `.speech/` and bundles it, and the app serves it at `speech/...` on its own origin, each file checked against the SHA-256 the build pinned. The release workflow also fetches the Backstage now. Talk to type's whisper.js waits for the owner's go to publish it.
   - 10 Nov (#298): **`HostInterface.backstageFolder`** (S4's ask, decision 0062): the shipped Backstage bundled in the Tauri apps and served read-only by the app's own `backstage` protocol; `backstage/` beside the app in the browser version (S1's #320). S4 reviewed it.
   - 9 Nov (#283): **Collect and Hand back as one zip, part 2: the native picker on Android** (0070): Open, Save a copy, and Collect and Hand back as a zip, through the system's dialog and the fs plugin's content URIs. **Owner:** try it on an Android tablet or Chromebook. iPad (part 3) waits for the owner.
@@ -356,6 +357,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7).
 - In review: **WP15.6, the browser version's package** (decision 0046): `apps/studio/hosting/htaccess` (cross-origin isolation, the apps' strict policy, the right types, no listings or dotfiles, HTTPS only on the real site, caching), and the `browser` workflow, which builds it with the Backstage and speak line's engine, serves it from a real Apache with that file, checks every rule and the studio in Chromium, and keeps one zip to upload. **Owner:** upload it to `app.storystage.org` (`apps/studio/hosting/README.md`).
+- In review: **whisper.js in the apps, for Talk to type**: pinned in `src-tauri/whisper.json`, fetched and checked by every app build into `.speech/`, and served by the app at `speech/whisper.js` (#426). The leak scan checks it's served whole.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 
