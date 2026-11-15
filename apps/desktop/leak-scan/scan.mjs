@@ -101,6 +101,16 @@ const checks = [
   ['a file that isn’t there reads as not found', report.classes?.missing === 'not_found'],
   ['the desktop app has the native file picker', report.pickerKind === 'native'],
   ['the shipped Backstage is served to the page', report.backstage?.manifest === 200],
+  [
+    "speak line's engine is served from the app, as WebAssembly",
+    report.speechFiles?.status === 200 &&
+      report.speechFiles.type === 'application/wasm' &&
+      report.speechFiles.bytes > 1_000_000,
+  ],
+  [
+    "a speech file this build didn't pin isn't served",
+    report.speechFiles?.unpinnedServed === false,
+  ],
   ['nothing outside the Backstage is served', report.backstage?.outside === 404],
   [
     'only the request that reached the network counts, against the device',

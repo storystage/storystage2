@@ -531,6 +531,10 @@ Decision 0062. The studio finds it at `HostInterface.backstageFolder`, a URL end
 
 **Every build fetches it first.** `pnpm backstage:fetch` fetches the commit `backstage.lock.json` pins and checks it. Tauri copies resources when it builds, so a build without `.backstage/` fails, in CI and on a developer's machine alike.
 
+### 7a. Speak line's engine and whisper.js
+
+The same way for speech's own files (spec 06 sections 1.11 and 4.6): `.speech/` is bundled as a resource, and the app serves it at `speech/...` on **its own origin**, by putting it in front of the studio's embedded files (`src/speech_files.rs`), so the studio finds it where the browser version does, with no other address, CSP or header. Only the files listed in `.speech/<folder>/files.json` when the app was built are served (`build.rs` makes the pins from them; `pnpm speech:fetch` checked each against its own pin first), and each is checked against its SHA-256 every time it is read. A file not pinned, or one that doesn't match, isn't served, and nothing is ever written there. On Android it reads from the APK through the fs plugin, from Rust. Every build fetches `.speech/` first, as for the Backstage.
+
 ## 8. Tests
 
 How each rule in this spec is tested, and at which level (`09-testing.md`).
@@ -578,6 +582,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | The class Backstage (6.6) | `describeClassFoldersContract` on every store: records kept exactly, owners and promotion, ids never reused, plain paths only, the bin and a removed pupil's items; and the limits, an add that fails part-way and the sweep | Vitest |
 | The file picker (6.5) | Every row of the table, with stand-ins for the browser's pickers and for the fallbacks: clashes, unsafe names and the size limit refused before anything is written or read | Vitest |
 | Collect and Hand back as a zip (6.5, 0070) | Round trip; names checked when writing; films one level down only, from a folder rezipped and deflated; every bad name in spec 15 section 3.2 refuses the zip; a link; a zip bomb stopped while reading; too many entries; a file that isn't a zip | Rust unit on Windows and macOS |
+| Speech files from the app (7a) | ONNX Runtime's WebAssembly served from the app's own origin, whole and as `application/wasm`; a file the build didn't pin not served | The leak scan |
 | The shipped Backstage's protocol (7) | Plain paths served, anything that could leave the folder refused, content types | Rust unit on Windows and macOS |
 | … in the real app (7) | `backstage.json` served to the page, and a path out of the folder not found | The leak scan |
 | The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |

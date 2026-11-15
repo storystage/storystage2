@@ -17,6 +17,8 @@ crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
+# Reads .speech/'s files.json for the pins the app checks speech files against.
+serde_json = "1"
 
 [features]
 # For the leak scan's harness only: a fake server. Release builds never turn this on.
@@ -27,6 +29,7 @@ tauri = { version = "2", features = [] }
 chrono = { version = "0.4", default-features = false, features = ["clock"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+sha2 = "0.10"
 storystage-classes = { path = "classes" }
 storystage-gate = { path = "gate" }
 storystage-policy = { path = "policy" }

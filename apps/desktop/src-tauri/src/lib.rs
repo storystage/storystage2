@@ -11,6 +11,7 @@ mod key_dialog;
 mod picker;
 mod prompter;
 mod speech;
+mod speech_files;
 #[cfg(desktop)]
 mod updates;
 
@@ -46,6 +47,9 @@ fn read_policy(_app: &AppHandle) -> PolicyInForce {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Speak line's engine and whisper.js, from the app itself (spec 06, 1.11 and 4.6).
+    let mut context = tauri::generate_context!();
+    speech_files::SpeechAssets::wrap(&mut context);
     let builder = tauri::Builder::default();
     #[cfg(target_os = "android")]
     let builder = builder
@@ -112,7 +116,7 @@ pub fn run() {
             picker::picker_hand_back_read,
             picker::picker_end,
         ])
-        .build(tauri::generate_context!())
+        .build(context)
         .expect("error while running StoryStage 2")
         .run(|_app, _event| {
             #[cfg(desktop)]

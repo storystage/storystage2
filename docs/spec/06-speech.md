@@ -261,7 +261,7 @@ No new mechanism: a speak line is a `say` command with a caption instead of a bu
 - **Studio** (S5): during Rehearse it watches the stage's speech for objects whose bubble is `caption`. When one starts, it plays that line's prepared sound (section 4.6) and draws the caption.
 - **Speech** (S7's package; S1 adds the code for 14.3): the line cache built from the program's `speakLine` blocks, each timed by its `duration` detail or by the Story API's `lineDuration` (the stage's `Speech` carries no duration), `castVoices(cast)` (section 4.3), the engine in a worker with its line cache (section 4.6), and a `LinePlayer` that plays a line's sound fitted to its duration and stops on cue. It is tested with a fake engine and clock.
 - **Export** (S2, WP11): captions from the stage's speech timeline, and each line's sound from the cache, mixed in at its start time.
-- **Apps** (S8): the engine's files bundled in each app and served from the app itself, checked like the speech model (section 1.4).
+- **Apps** (S8): the engine's files bundled in each app and served from the app itself, checked like the speech model (section 1.4). Every app build fetches `.speech/` with `pnpm speech:fetch` and bundles it as a resource. The app serves it from its own origin at `speech/...`, where `KOKORO_PLACES` and `WHISPER_SCRIPT` look, so the studio, the content security policy and cross-origin isolation are the same as in the browser version. Only files this build pinned are served (`.speech/<folder>/files.json`, which the fetch script checked), each checked against its SHA-256 every time it is read; one that doesn't match isn't served (spec 05 section 7a).
 
 ### 4.8 Not in the first release
 

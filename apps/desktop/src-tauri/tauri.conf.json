@@ -45,7 +45,8 @@
     ],
     "resources": {
       "resources/speech/ggml-tiny.en-q5_1.bin": "speech/ggml-tiny.en-q5_1.bin",
-      "../../../.backstage/": "backstage/"
+      "../../../.backstage/": "backstage/",
+      "../../../.speech/": "speech/"
     }
   }
 }
