@@ -117,19 +117,24 @@ test('M4: a frame linked to code is Coded, and its check leads between the tabs'
   await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
   const strip = page.getByRole('listbox', { name: 'Frames' });
   await expect(strip.getByRole('option', { name: /Frame 1\.1/ })).toContainText('Coded');
+  // A planted difference: the demo now matches its frames (#415), so Pip is turned away first.
+  const objects = page.getByRole('region', { name: 'Objects in this scene' });
+  await objects.getByRole('option', { name: /penguin/ }).click();
+  const turn = objects.getByRole('textbox', { name: 'Turn (turns)' });
+  await turn.fill('0');
+  await turn.press('Tab');
   // The frame's check compares its blocks with its storyboard, and an item leads to either.
   const card = page.getByRole('region', { name: /^Automatic check: frame 1\.1/ });
   await card.getByRole('button', { name: 'Check this frame' }).click();
-  const toSketch = card.getByRole('button', { name: /^Go to the (sketch|line):/ }).first();
-  const toBlock = card.getByRole('button', { name: /^Go to the block:/ }).first();
-  await expect(toSketch.or(toBlock).first()).toBeVisible({ timeout: 30_000 });
-  if (await toSketch.count()) {
-    await toSketch.click();
-    await expect(page.getByRole('tab', { name: /Storyboard/ })).toHaveAttribute(
-      'aria-selected',
-      'true',
-    );
-  }
+  const flag = 'Penguin faces away; your sketch has it facing the camera';
+  await expect(card.getByText(flag)).toBeVisible({ timeout: 30_000 });
+  const toSketch = card.getByRole('button', { name: `Go to the sketch: ${flag}` });
+  await expect(toSketch).toBeVisible();
+  await toSketch.click();
+  await expect(page.getByRole('tab', { name: /Storyboard/ })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 });
 
 test('M4: frame 1.1 is unlinked from its block and linked again, and shows when the block is gone', async ({
