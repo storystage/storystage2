@@ -16,6 +16,12 @@ import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
 import { PrintStoryboard } from './PrintStoryboard.tsx';
 import { ScriptPane } from './ScriptPane.tsx';
+import { StoryboardBackstage } from './StoryboardBackstage.tsx';
+import { withCastMember } from './cast.ts';
+import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import type { BackstageImport } from '@storystage/host';
+import { backdropSketchFor } from '@storystage/sketches';
+import { backstageId, type BackstageId } from '@storystage/story-api';
 
 export interface StoryboardProps {
   /** The production and its one undo history (`studio.ts`). */
@@ -23,6 +29,10 @@ export interface StoryboardProps {
   /** What the learner chose, shared with the other tabs. */
   place: Place;
   onPlaceChange: (place: Place) => void;
+  /** The App's model source: Backstage's catalogue, for the Storyboard's Backstage (10.9). */
+  models?: Pick<ModelSourceHandle, 'catalogue' | 'thumbnail'>;
+  /** Who may import models, from the school's policy. Default `off`. */
+  importing?: BackstageImport;
 }
 
 /** A CSS string, for the page foot's `content`. */
@@ -39,7 +49,13 @@ const isTextEntry = (target: EventTarget | null) =>
  * the scene cards (10.3), the sketch library and the frames with their sketches (10.6), with the
  * Storyboard's undo history (6.8), and the script pane (10.4).
  */
-export function Storyboard({ studio, place, onPlaceChange }: StoryboardProps) {
+export function Storyboard({
+  studio,
+  place,
+  onPlaceChange,
+  models,
+  importing = 'off',
+}: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
   // Each press of Print storyboard, until the print dialog closes; 0 when not printing.
   const [printing, setPrinting] = useState(0);
@@ -73,6 +89,16 @@ export function Storyboard({ studio, place, onPlaceChange }: StoryboardProps) {
     setAnnouncement(words.t('storyboard.canvas.added', { name, number: frameNumber }));
   };
   const { undoLabel, redoLabel } = studio;
+  /** A model or a stand-in into the current scene's cast (10.9): its sketch joins the library. */
+  const addToCast = (member: BackstageId | { standIn: string }, name: string): string | null => {
+    if (!current) return null;
+    const n = sceneNumber(p, current);
+    const next = withCastMember(p, current, member);
+    if (!next) return words.t('storyboard.backstage.already', { name, n });
+    commit(words.t('step.addToCast', { name, n }), next);
+    setAnnouncement(words.t('storyboard.backstage.added', { name, n }));
+    return null;
+  };
 
   const undo = () => {
     if (!undoLabel) return;
@@ -119,6 +145,25 @@ export function Storyboard({ studio, place, onPlaceChange }: StoryboardProps) {
 
   return (
     <div className="sb">
+      {models && (
+        <StoryboardBackstage
+          catalogue={models.catalogue}
+          thumbnail={(id) => models.thumbnail(id)}
+          scene={current ? sceneNumber(p, current) : null}
+          frame={frameNumber}
+          readOnly={studio.readOnly !== null}
+          importing={importing}
+          onAddToCast={(item) => {
+            const said = addToCast(item.id as BackstageId, item.displayName);
+            if (said) setAnnouncement(said);
+          }}
+          onBackdrop={(item) => {
+            if (!frameNumber) return setAnnouncement(words.t('storyboard.backstage.noFrame'));
+            addToFrame(backstageId(backdropSketchFor(item).id));
+          }}
+          onStandIn={(name) => addToCast({ standIn: name }, name)}
+        />
+      )}
       <SketchLibrary
         production={p}
         frame={currentFrame && frameNumber ? { id: currentFrame, number: frameNumber } : null}

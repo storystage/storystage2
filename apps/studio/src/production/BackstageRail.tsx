@@ -7,7 +7,7 @@
  */
 import type { BackstageItem, Section } from '@storystage/backstage';
 import { Button, Icon, type IconName } from '@storystage/ui';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   GridList,
   GridListItem,
@@ -45,9 +45,23 @@ export interface BackstageRailProps {
   onUse(item: BackstageItem): void;
   /** False for a read-only film, or before the scene can be set: nothing is added. */
   readonly canAdd: boolean;
+  /** The Add button's name for an item, when it isn't "Add Owl to the scene" (the Storyboard's). */
+  addLabel?(item: BackstageItem): string;
+  /** Under the items: the Storyboard's "Can't find it?". */
+  readonly footer?: ReactNode;
+  /** Items drag onto the scene view. Off where there's nowhere to drop them. Default true. */
+  readonly draggable?: boolean;
 }
 
-export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: BackstageRailProps) {
+export function BackstageRail({
+  catalogue,
+  thumbnail,
+  onUse,
+  canAdd,
+  addLabel,
+  footer,
+  draggable = true,
+}: BackstageRailProps) {
   const [open, setOpen] = useState<Section | null>(null);
   // An item dragged onto the scene view lands where it's dropped (07-ux section 7.2).
   const { dragAndDropHooks } = useDragAndDrop({
@@ -110,7 +124,7 @@ export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: Backstage
               layout="grid"
               disabledBehavior="all"
               disabledKeys={canAdd ? [] : shown.map((i) => i.id)}
-              {...(canAdd ? { dragAndDropHooks } : {})}
+              {...(canAdd && draggable ? { dragAndDropHooks } : {})}
               onAction={(key) => {
                 const item = catalogue.find((i) => i.id === key);
                 if (item && canAdd) onUse(item);
@@ -132,7 +146,7 @@ export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: Backstage
                         <Icon name="view_in_ar" size={32} />
                       )}
                     </span>
-                    {canAdd && (
+                    {canAdd && draggable && (
                       <Button
                         slot="drag"
                         variant="quiet"
@@ -148,9 +162,10 @@ export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: Backstage
                       variant="quiet"
                       icon="add"
                       isDisabled={!canAdd}
-                      aria-label={words.t(`production.backstage.${verb}Named`, {
-                        name: item.displayName,
-                      })}
+                      aria-label={
+                        addLabel?.(item) ??
+                        words.t(`production.backstage.${verb}Named`, { name: item.displayName })
+                      }
                       onPress={() => onUse(item)}
                     >
                       {words.t(`production.backstage.${verb}`)}
@@ -160,6 +175,7 @@ export function BackstageRail({ catalogue, thumbnail, onUse, canAdd }: Backstage
               }}
             </GridList>
           )}
+          {footer}
         </section>
       )}
     </div>

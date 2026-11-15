@@ -977,3 +977,43 @@
   height: 8mm;
   border-bottom: 0.3mm solid var(--ss-sketch-ink);
 }
+
+/* Backstage from the Storyboard (10.9): its rail beside the sketch library, its panel over it. */
+.sb > .pr-rail-area {
+  flex: none;
+  padding: 16px 0 16px 12px;
+}
+.sb-cantfind {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ss-line-1);
+}
+.sb-cantfind-title {
+  margin: 0;
+  font-size: calc(16px * var(--ss-text-size, 1));
+}
+.sb-cantfind-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.sb-cantfind-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+.sb-cantfind-field {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+.sb-cantfind-label {
+  font-size: calc(15px * var(--ss-text-size, 1));
+}
+.sb-cantfind-field .ss-input {
+  flex: none;
+}

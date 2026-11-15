@@ -544,7 +544,15 @@ export function App({
             </>
           }
           panels={{
-            storyboard: <Storyboard studio={studio} place={place} onPlaceChange={setPlace} />,
+            storyboard: (
+              <Storyboard
+                studio={studio}
+                place={place}
+                onPlaceChange={setPlace}
+                models={models}
+                importing={host.policy.backstage.import}
+              />
+            ),
             production: (
               <ProductionStage
                 production={p}
