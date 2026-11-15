@@ -86,6 +86,29 @@ describe('backstageFrom', () => {
     expect(backstage.catalogue()).toContain('kaykit/Biped/knight: knight');
   });
 
+  it("gives a model's own sketch, standing in that facing when it wasn't drawn in the pose (WP10.9)", () => {
+    const knight = item('kaykit/Biped/knight', {
+      sketches: [
+        { facing: 'front', file: 'sketches/kaykit/Biped/knight/front.svg' },
+        { facing: 'side', file: 'sketches/kaykit/Biped/knight/side.svg' },
+        { facing: 'front', pose: 'walk', file: 'sketches/kaykit/Biped/knight/front-walk.svg' },
+      ],
+    });
+    const b = backstageFrom(manifest(knight), 'backstage');
+    const id = knight.id;
+    expect(b.sketch(id, 'front')).toBe('backstage/sketches/kaykit/Biped/knight/front.svg');
+    expect(b.sketch(id, 'front', null)).toBe('backstage/sketches/kaykit/Biped/knight/front.svg');
+    expect(b.sketch(id, 'front', 'walk')).toBe(
+      'backstage/sketches/kaykit/Biped/knight/front-walk.svg',
+    );
+    // Not drawn sitting from the side: standing, from the side.
+    expect(b.sketch(id, 'side', 'sit')).toBe('backstage/sketches/kaykit/Biped/knight/side.svg');
+    // No sketch from the back at all, and no such model.
+    expect(b.sketch(id, 'back')).toBeNull();
+    expect(b.sketch(id, 'back', 'walk')).toBeNull();
+    expect(b.sketch('nobody/Biped/ghost' as never, 'front')).toBeNull();
+  });
+
   it('joins addresses with or without a slash, and keeps odd characters safe', () => {
     const plain = backstageFrom(manifest(item('a/Biped/b c')), 'backstage');
     expect(plain.find('a/Biped/b c' as never)?.url).toBe('backstage/models/a/Biped/b%20c.glb');
@@ -167,6 +190,23 @@ describe('combineBackstages', () => {
       'backstage/models/kaykit/Biped/knight.glb',
     );
     expect(both.thumbnail('class/Biped/robot' as never)).toMatch(/^production\//);
+  });
+
+  it('asks the Backstage that owns the id for its sketch', () => {
+    const drawn = { sketches: [{ facing: 'front', file: 'sketches/front.svg' }] };
+    const shippedOne = backstageFrom(manifest(item('kaykit/Biped/knight', drawn)), 'backstage');
+    const classOne = backstageFrom(
+      manifest(item('class/Biped/robot', { ...drawn, origin: 'imported' })),
+      'production',
+    );
+    const combined = combineBackstages(shippedOne, classOne);
+    expect(combined.sketch('kaykit/Biped/knight' as never, 'front')).toBe(
+      'backstage/sketches/front.svg',
+    );
+    expect(combined.sketch('class/Biped/robot' as never, 'front')).toBe(
+      'production/sketches/front.svg',
+    );
+    expect(combined.sketch('nobody/Biped/ghost' as never, 'front')).toBeNull();
   });
 
   it('lists each id once, the first Backstage winning', () => {

@@ -68,6 +68,22 @@ describe('filmBackstage (decision 0049)', () => {
     expect(backstage.credits()[0]!.lines[0]!.text).toBe('crate, made by our class');
   });
 
+  it('gives a packed model’s sketches as SVG blob: URLs, standing when the pose wasn’t drawn', () => {
+    const { urls, made } = fakeUrls();
+    const drawn = record('class/Prop/crate', {
+      sketches: [{ facing: 'front', file: 'sketches/front.svg' }],
+    });
+    const { backstage } = filmBackstage(
+      [{ folder: 'prop-crate', item: drawn }],
+      new Map([...files, ['models/prop-crate/sketches/front.svg', bytes(5)]]),
+      { checked: ['prop-crate'], urls },
+    );
+    expect(backstage.sketch(drawn.id, 'front', 'walk')).toBe('blob:test/1');
+    expect(backstage.sketch(drawn.id, 'front')).toBe('blob:test/1');
+    expect(backstage.sketch(drawn.id, 'side')).toBeNull();
+    expect(made).toEqual([{ url: 'blob:test/1', type: 'image/svg+xml', size: 5 }]);
+  });
+
   it('shows only the models that passed the check, as a film is untrusted (spec 03, 1.3)', () => {
     const { urls } = fakeUrls();
     const unchecked = filmBackstage([{ folder: 'prop-crate', item: crate }], files, {
@@ -188,6 +204,36 @@ describe('openClassBackstage (decision 0066)', () => {
     expect(lists).toBe(3);
     // The URL already made is kept.
     expect(view.backstage.find('class/Prop/crate' as BackstageItem['id'])!.url).toBe(crateUrl);
+  });
+
+  it('reads a model’s sketches when it’s prepared; one it can’t read stays null, the model found', async () => {
+    const drawn = record('class/Prop/crate', {
+      sketches: [
+        { facing: 'front', file: 'sketches/front.svg' },
+        { facing: 'side', file: 'sketches/side.svg' },
+      ],
+    });
+    const reads: string[] = [];
+    const s: ClassModelStore = {
+      list: async () => [{ id: drawn.id, record: drawn }],
+      read: async (_id, path) => {
+        reads.push(path);
+        if (path === 'sketches/side.svg') throw new Error('locked');
+        return bytes(4);
+      },
+    };
+    const view = await openClassBackstage(s, fakeUrls().urls);
+    expect(view.backstage.sketch(drawn.id, 'front')).toBeNull();
+    await view.prepare([drawn.id]);
+    expect(reads.sort()).toEqual([
+      'model.glb',
+      'sketches/front.svg',
+      'sketches/side.svg',
+      'thumbnail.webp',
+    ]);
+    expect(view.backstage.sketch(drawn.id, 'front')).toMatch(/^blob:/);
+    expect(view.backstage.sketch(drawn.id, 'side')).toBeNull();
+    expect(view.backstage.find(drawn.id)?.url).toMatch(/^blob:/);
   });
 
   it('leaves a model it can’t read not found, so it shows as a stand-in', async () => {
