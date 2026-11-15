@@ -8,6 +8,7 @@
  *
  * - the stage: a model's address, joints and VRM version (`find`, as its `ModelSource` wants);
  * - Backstage's browse views: items and thumbnails;
+ * - the Storyboard: a model's own sketches (`sketch`, WP10.9);
  * - the About screen and film credits: `credits()`;
  * - the Prompter: `catalogue()`, the shipped models only.
  *
@@ -21,6 +22,7 @@ import {
   validateManifest,
   type BackstageItem,
   type BackstageManifest,
+  type Facing,
 } from './manifest.ts';
 
 type Id = BackstageItem['id'];
@@ -42,6 +44,12 @@ export interface Backstage {
   find(id: Id): BackstageModel | null;
   /** Its colour thumbnail's address, or null. */
   thumbnail(id: Id): string | null;
+  /**
+   * The address of its sketch from `facing`, in `pose` (none, or null, for standing), or null if
+   * it has none from that facing. A pose it wasn't drawn in falls back to standing in the same
+   * facing, so the Storyboard draws the model's own lines wherever it has them (WP10.9).
+   */
+  sketch(id: Id, facing: Facing, pose?: string | null): string | null;
   /** Credits for every model, by section (spec 17, section 3a). */
   credits(): CreditSection[];
   /** The Prompter's catalogue: shipped models only (spec 17, section 4a). */
@@ -78,6 +86,21 @@ function trimSlash(folder: string): string {
 const address = (folder: string, path: string) =>
   `${trimSlash(folder)}/${path.split('/').map(encodeURIComponent).join('/')}`;
 
+/**
+ * The file of `item`'s sketch from `facing` in `pose`, or standing in that facing if it has no
+ * such pose, or null (`Backstage.sketch`).
+ */
+export function sketchFile(
+  item: BackstageItem,
+  facing: Facing,
+  pose?: string | null,
+): string | null {
+  const from = item.sketches.filter((s) => s.facing === facing);
+  const standing = from.find((s) => s.pose === undefined);
+  if (pose === undefined || pose === null) return standing?.file ?? null;
+  return (from.find((s) => s.pose === pose) ?? standing)?.file ?? null;
+}
+
 /** A Backstage from a manifest already read, with `folder` the address its paths are under. */
 export function backstageFrom(manifest: BackstageManifest, folder: string): Backstage {
   const checked = validateManifest(manifest);
@@ -99,6 +122,11 @@ export function backstageFrom(manifest: BackstageManifest, folder: string): Back
     thumbnail(id) {
       const i = byId.get(id);
       return i ? address(folder, i.files.thumbnail) : null;
+    },
+    sketch(id, facing, pose) {
+      const i = byId.get(id);
+      const file = i ? sketchFile(i, facing, pose) : null;
+      return file === null ? null : address(folder, file);
     },
     credits: () => creditsBySection(items),
     catalogue: () => catalogueText({ manifestVersion: MANIFEST_VERSION, items }),
@@ -167,6 +195,7 @@ export function combineBackstages(...backstages: readonly Backstage[]): Backstag
     item: (id) => owner.get(id)?.item(id),
     find: (id) => owner.get(id)?.find(id) ?? null,
     thumbnail: (id) => owner.get(id)?.thumbnail(id) ?? null,
+    sketch: (id, facing, pose) => owner.get(id)?.sketch(id, facing, pose) ?? null,
     credits: () => creditsBySection(items),
     catalogue: () => catalogueText({ manifestVersion: MANIFEST_VERSION, items }),
   };

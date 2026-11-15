@@ -2,7 +2,7 @@
  * Backstages whose files aren't in a folder the app can fetch from: a film's packed models
  * (decision 0049) and the class Backstage on this device (decision 0066). Each is a `Backstage`,
  * as `backstageFrom` makes for the shipped one, giving the stage `blob:` URLs for its model files
- * and thumbnails. `combineBackstages(shipped, film, classBackstage)` puts them together, shipped
+ * thumbnails and sketches. `combineBackstages(shipped, film, classBackstage)` puts them together, shipped
  * first, for the one model source each App passes to every stage (S2, S3, S5). The film comes
  * before the class: an id is never reused, so the two copies are the same model, and the film's
  * is in memory already, so a film opened on another device reads nothing from the class.
@@ -12,13 +12,13 @@
  * - **The class Backstage's** files are in the host's store, read asynchronously, and could be
  *   gigabytes in all. So its records are listed at once, but a model's files are read only when
  *   `prepare` is asked for its id: the stage's mount prepares the ids a film uses before it loads
- *   them. Until then, `find` and `thumbnail` give `null`, as for a model that isn't there.
+ *   them. Until then, `find`, `thumbnail` and `sketch` give `null`, as for a model that isn't there.
  *
  * `dispose` revokes every URL made. Call it when the film closes, or the class Backstage changes.
  */
 import { catalogueText } from './catalogue.ts';
 import { creditsBySection } from './credits.ts';
-import type { Backstage, BackstageModel } from './loader.ts';
+import { sketchFile, type Backstage, type BackstageModel } from './loader.ts';
 import { MANIFEST_VERSION, validateManifest, type BackstageItem } from './manifest.ts';
 
 type Id = BackstageItem['id'];
@@ -48,6 +48,8 @@ const MIME: Readonly<Record<string, string>> = {
   png: 'image/png',
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
+  // Sketches (WP10.5). Drawn with `<img>`, where an SVG runs nothing (S5, WP10.9).
+  svg: 'image/svg+xml',
 };
 const mimeOf = (path: string) =>
   MIME[path.slice(path.lastIndexOf('.') + 1).toLowerCase()] ?? 'application/octet-stream';
@@ -91,6 +93,11 @@ function overBytes(
     thumbnail(id) {
       const i = byId.get(id);
       return i ? urlOf(i, i.files.thumbnail) : null;
+    },
+    sketch(id, facing, pose) {
+      const i = byId.get(id);
+      const file = i ? sketchFile(i, facing, pose) : null;
+      return i && file !== null ? urlOf(i, file) : null;
     },
     credits: () => creditsBySection(list),
     catalogue: () => catalogueText({ manifestVersion: MANIFEST_VERSION, items: list }),
@@ -168,7 +175,8 @@ export interface ClassModelStore {
 /** The class Backstage as a Backstage, whose models' files are read when they're prepared. */
 export interface ClassBackstageView extends DisposableBackstage {
   /**
-   * Reads these models' files (model and thumbnail), so `find` and `thumbnail` give their URLs.
+   * Reads these models' files (model, thumbnail and sketches), so `find`, `thumbnail` and
+   * `sketch` give their URLs. A sketch it can't read stays null; the model is still found.
    * Asked for a class id it doesn't know, it lists the store again first, so a model imported
    * since the view was made is found. Ids still not there, and files it can't read, are left out:
    * those models stay not found.
@@ -251,7 +259,12 @@ export async function openClassBackstage(
         ids.flatMap((id) => {
           const item = byId.get(id as Id);
           if (!item) return [];
-          return [item.files.model, item.files.thumbnail].map((path) => {
+          const paths = [
+            item.files.model,
+            item.files.thumbnail,
+            ...item.sketches.map((s) => s.file),
+          ];
+          return [...new Set(paths)].map((path) => {
             const key = `${item.id}\n${path}`;
             let pending = reading.get(key);
             if (!pending) {
