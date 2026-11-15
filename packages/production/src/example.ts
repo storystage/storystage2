@@ -10,6 +10,7 @@ import {
   micros,
   objectId,
   type BackstageId,
+  type Quat,
   type SceneSetup,
   type StandIn,
 } from '@storystage/story-api';
@@ -286,12 +287,42 @@ const DEMO_GROUNDS: Readonly<Record<string, string>> = {
   northwestForest: 'forestFloor',
 };
 
+/** A turn about the vertical, in degrees. A model faces its own +Z; 180° faces the camera. */
+const turned = (degrees: number): Quat => {
+  const half = (degrees * Math.PI) / 360;
+  return { x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) };
+};
+
+/**
+ * Where the demo's cast stand in each scene, made to match its frames, so the automatic check
+ * (spec 08 section 9) finds nothing to flag. The camera stands at z = -5 looking along +Z, so the
+ * world's +X is the picture's left (`packages/check`, `geometry.ts`), and 180° faces it.
+ */
+const DEMO_PLACES: Readonly<
+  Record<string, Readonly<Record<string, { x: number; z: number; degrees: number }>>>
+> = {
+  // Pip alone on the ice, facing the camera, before the fox is in the story: it's off screen.
+  s1: { penguin: { x: 0.3, z: 0, degrees: 180 }, fox: { x: -9, z: 0, degrees: 180 } },
+  // Fox meets Pip: Pip on the left, turned three-quarters to the fox; the fox on the right, side
+  // on, facing Pip.
+  s2: { penguin: { x: 1, z: 0, degrees: -125 }, fox: { x: -1.5, z: 0.5, degrees: 70 } },
+  // Home again: Pip facing the camera, the fox further back, as the scene's card has it.
+  s3: { penguin: { x: 0, z: 0, degrees: 180 }, fox: { x: -3, z: 2, degrees: 180 } },
+};
+
+/**
+ * The demo's frame 2.1 has Pip and the fox facing each other. Unflipped, a side or three-quarter
+ * sketch faces the picture's left: Pip, on the left, is flipped; the fox, on the right, isn't.
+ */
+const DEMO_FLIPPED: Readonly<Record<string, boolean>> = { k2: true, k3: false };
+
 /**
  * The example production, playable on a real stage: what `?example` shows in the browser (S2,
  * S5). The same three scenes, script, storyboard and transitions, but every backdrop is one of the
  * stage's built-in templates (`storystage/Ground/...`, `storystage/Sky/...`,
  * `storystage/Lighting/...`), and the cast are stand-ins of their real size (format 1.2.0), so it
- * needs no model files and finds everything it uses. `exampleProduction` keeps its made-up ids,
+ * needs no model files and finds everything it uses. Its cast stand where its frames show them
+ * (`DEMO_PLACES`), so checking it against its storyboard flags nothing. `exampleProduction` keeps its made-up ids,
  * which tests of unknown models rely on.
  */
 export function demoProduction(): Production {
@@ -311,7 +342,20 @@ export function demoProduction(): Production {
             lighting: backstageId(`storystage/Lighting/${template}`),
             fog: 0.15,
           },
-          objects: s.setup.objects.map((o) => ({ ...o, model: demoRef(o.model) })),
+          objects: s.setup.objects.map((o) => {
+            const at = DEMO_PLACES[s.id]?.[o.id];
+            return {
+              ...o,
+              model: demoRef(o.model),
+              ...(at && {
+                transform: {
+                  ...o.transform,
+                  position: { x: at.x, y: o.transform.position.y, z: at.z },
+                  rotation: turned(at.degrees),
+                },
+              }),
+            };
+          }),
         },
       };
     }),
@@ -321,7 +365,11 @@ export function demoProduction(): Production {
     },
     frames: p.frames.map((f) => ({
       ...f,
-      sketches: f.sketches.map((k) => ({ ...k, item: demoRef(k.item) })),
+      sketches: f.sketches.map((k) => ({
+        ...k,
+        item: demoRef(k.item),
+        flipped: DEMO_FLIPPED[k.id] ?? k.flipped,
+      })),
     })),
   };
 }
