@@ -78,21 +78,6 @@ async function filmsOf(page: Page, pupil: string) {
   return page.getByRole('row', { name: /\S/ }).allInnerTexts();
 }
 
-/** How many pupils the class list on the device has: none until it's first written. */
-function savedPupils(page: Page) {
-  return page.evaluate(async () => {
-    try {
-      const root = await navigator.storage.getDirectory();
-      const classes = await root.getDirectoryHandle('classes');
-      const file = await (await classes.getFileHandle('class.json')).getFile();
-      return (JSON.parse(await file.text()) as { pupils: unknown[] }).pupils.length;
-    } catch {
-      // Not written yet, or caught half-written: ask again.
-      return 0;
-    }
-  });
-}
-
 /** The files in the teacher's folder, as `pupil/file`. */
 function teacherFolder(page: Page) {
   return page.evaluate(async (folder) => {
@@ -121,8 +106,6 @@ test('M7: a teacher sets up a class of 30, pupils find only their own films, and
   await expect(page.getByText(`${CLASS.length} pupils`)).toBeVisible();
   // The studio opened on the device's own film, with no class yet; with a class, the next start
   // opens on the names.
-  // The count shows before the list is saved: Import adds the pupils one at a time (S5 told).
-  await expect.poll(() => savedPupils(page), { timeout: 30_000 }).toBe(CLASS.length);
   await page.reload();
   await expect(page.getByRole('grid', { name: 'Names' }).getByRole('row')).toHaveCount(
     CLASS.length,
