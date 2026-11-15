@@ -162,7 +162,7 @@ So the production has its own session, `ProductionSession` (`session.ts`, WP8.2)
 - **`addObject`** adds a field of the object's Story API class to the scene's type (`owl: Flyer`, with no initial value, since how it starts is in the set-up) and an entry in its set-up with its model (a Backstage item or a stand-in) and transform, as one step ("Add owl").
 - **Its name** comes from the model's display name, made a field name the code can use and unique in that scene's type only (`objectName`: "Woolly mammoth skeleton" is `woollyMammothSkeleton`, a second owl `owl2`). So the same character in another scene can have the same name, and with it the same voice (section 1.6) and the same place in the automatic check.
 - **`removeObject`** takes out the field and the entry; whatever rode on it rides on the scene. It is refused while code uses the object, and the refusal carries the blocks that do (`objectInUse`, with `uses`), so the studio can say where, as deleting a scene is refused.
-- **`setObject`** changes how an object starts (its transform, opacity or paint): the set-up only, so the program doesn't change ("Move owl"). `withObject` gives the production alone, for `session.change`.
+- **`setObject`** changes how an object starts (its transform, opacity, paint or pose, section 2.2): the set-up only, so the program doesn't change ("Move owl"). `withObject` gives the production alone, for `session.change`.
 - A scene holds at most 100 objects (`OBJECT_LIMIT`), a guard well above what the device budget lets a scene draw.
 
 A scene's script method can't be removed by an edit: `sceneMethodCheck` is the `check` for `EditSession` that refuses it, in plain words (`01-ast.md` section 4.5). Deleting a scene takes its whole `type`, in the production's own step (WP8.2).
@@ -173,12 +173,16 @@ An object can start posed (format 1.5.0; 07-ux section 7.2, the Pose panel, S5; 
 
 A pose is the learner's choice, so, like a voice (section 1.6), **what doesn't fit is dropped when the file opens, never the file** (`keptJoints`, `pose.ts`). Each drop is listed in `dropped` (section 1.0):
 
-- **A name that isn't a joint of the object's class:** its skeleton's joints and the extras every class may have, as `@storystage/backstage` lists them (`skeletonOf`, `jointsOf`; `17-backstage.md` section 2a). A class without a skeleton (a prop, text) has none. Names are looked up, never read as the object's members, so `__proto__` and `constructor` are names like any other, and dropped.
+- **A name that isn't a well-formed joint id** (`isJointId`): camelCase letters and digits, starting with a lower-case letter, at most 64 characters (`JOINT_ID`), as the joint map names every joint, its skeletons' and the extras, and those it names from a model's Alice joints (`jointFromAlice`: `plumageCenterTip`; `17-backstage.md` section 2a). A name needn't be in the class's skeleton: a model may have joints of its own, and the Pose panel lists the model's. Object.prototype's member names (`constructor`, `toString`, `valueOf`, `hasOwnProperty` and the rest) are refused too, since code reading a pose by name would find Object's function; `__proto__` never fits the pattern.
+- **Any pose on a class with no joints** (`skeletonOf` gives none: a prop, text), which drops it all.
+- **More than 256 joints in one pose** (`POSE_JOINTS_MAX`): the rest are dropped, reported as one.
 - **A turn that isn't an object of exactly four finite numbers `x`, `y`, `z` and `w`, within 1e-3 of unit length** (`POSE_TOLERANCE`; `isPoseTurn`). The stage refuses a turn further off and stops the scene loading, so nothing it would refuse gets through. One within it is kept as written, not normalised: the stage makes it exact when it loads.
 - **`joints` that isn't a plain object,** which drops it all.
 - **A declared stand-in's pose** (`model` is `{ standIn }`), which drops it all: there are no joints to turn.
 
-A pose with nothing left is dropped too, so a file never holds `joints: {}`. Whether the model has each joint is the stage's to judge: it leaves out a joint the model hasn't got, and the scene plays on, as it does for a missing model (section 1.3). Saving writes `joints` as given.
+A pose with nothing left is dropped too, so a file never holds `joints: {}`. **Names must be well-formed joint ids; whether the model has the joint is the stage's to judge** (it leaves out one it lacks, and the scene plays on, as it does for a missing model, section 1.3) **and S4's `checkFilm`'s to name.** Saving writes `joints` as given.
+
+**`setObject`** (section 2.1) carries a pose as `joints`, the whole pose, which replaces the set-up's, in one undo step ("Pose owl"), as it carries a transform. `{}` puts every joint back at rest, and the field goes. A pose that opening the file would drop any of is refused in plain words and changes nothing, so a saved pose always comes back.
 
 ## 3. Running order
 
@@ -316,7 +320,8 @@ A pinned script line must point at a frame that exists. A pin is the learner's o
 | A newer file opens read-only; an older one is migrated with its original handed back (section 1.2) | `file.test.ts` | Unit |
 | Voices: `checkCastVoice`'s limits and base voices; kept through an open and a save; one that doesn't fit, or whose character is gone, dropped, not the file; over 200 drops the field; a rename carries its voice in the same undo step, keeping it where the old name remains (section 1.6) | `voices.test.ts` | Unit |
 | A frame's check is kept through an open and a save, stale or not; one that doesn't fit its shape or limits is dropped, not the file; what it names isn't checked (section 6) | `file.test.ts` | Unit |
-| Poses: a pose saved and reopened unchanged; a name that isn't a joint of the class (`__proto__` and `constructor` included), a turn more than 1e-3 off unit length or not four finite numbers, joints that aren't an object, and a declared stand-in's pose each dropped and listed in `dropped`, not the file; a turn within 1e-3 kept as written; an empty pose left out; a 1.4.0 file still opens (section 2.2) | `pose.test.ts` | Unit |
+| Poses: a pose saved and reopened unchanged, a model's own joint beyond its skeleton (`plumageCenterTip`) included; every joint id the joint map gives fits `JOINT_ID`; a malformed name, Object's member names (`__proto__`, `constructor`, `toString`…), a turn more than 1e-3 off unit length or not four finite numbers, joints that aren't an object, a pose on a class with no joints, a declared stand-in's pose and joints past 256 each dropped and listed in `dropped`, not the file; a turn within 1e-3 kept as written; an empty pose left out; a 1.4.0 file still opens (section 2.2) | `pose.test.ts` | Unit |
+| `setObject` with a pose: one undo step, `{}` back at rest, and a pose the file would drop refused (section 2.2) | `objects.test.ts` | Unit |
 | `annotate`: no undo step, kept through undo and redo, the frame's `kept` left to the history, `null` and missing frames, forgotten on load, refused read-only (section 2.1) | `session.test.ts` | Unit |
 | A read-only file is never written (section 1.2) | `saving.test.ts` | Unit |
 | Collect and Hand back: one folder per pupil, names made safe and unique as the teacher sees them, files copied as saved; handed-back files checked and written as new productions, the rest skipped with reasons (section 1.5) | `collect.test.ts` | Unit |

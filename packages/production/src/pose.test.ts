@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { readArchive, writeArchive } from './archive.ts';
 import { exampleProduction } from './example.ts';
 import { openProduction, saveProduction } from './file.ts';
-import { POSE_TOLERANCE, isPoseTurn, keptJoints, poseJoints } from './pose.ts';
+import { SKELETONS, jointFromAlice, jointsOf } from '@storystage/backstage';
+import {
+  JOINT_ID,
+  POSE_JOINTS_MAX,
+  POSE_TOLERANCE,
+  isJointId,
+  isPoseTurn,
+  keptJoints,
+} from './pose.ts';
 import type { Production } from './types.ts';
 
 const p = exampleProduction();
@@ -49,12 +57,42 @@ describe('posing joints (format 1.5.0, spec 03 section 2.2)', () => {
     expect(saveProduction(opened.production, opened.files)).toEqual(file);
   });
 
-  it('drops a joint the class has no such name for, reports it, and keeps the rest', () => {
-    const opened = open(saveProduction(posed({ head: NOD, leftUpperArm: QUARTER })));
+  it("keeps a model's own joints beyond its class's skeleton: the stage judges what it has", () => {
+    // An Alice bird's extra joint, named from its Alice name by the joint map.
+    const pose = { head: NOD, plumageCenterTip: QUARTER, leftUpperArm: AT_REST };
+    const opened = open(saveProduction(posed(pose)));
+    expect(opened.status).toBe('ok');
+    expect(objectIn(opened.production, 'penguin').joints).toEqual(pose);
+    expect(opened.dropped).toEqual([]);
+  });
+
+  it('drops a name that is not a well-formed joint id, reports it, and keeps the rest', () => {
+    const bad = ['left arm', 'left_arm', '2ndTail', 'Head', '', 'x'.repeat(65)];
+    const opened = open(
+      saveProduction(posed({ head: NOD, ...Object.fromEntries(bad.map((n) => [n, NOD])) })),
+    );
     expect(opened.status).toBe('ok');
     expect(objectIn(opened.production, 'penguin').joints).toEqual({ head: NOD });
+    expect(opened.dropped).toHaveLength(bad.length);
+    expect(opened.dropped).toContain(
+      'scenes/s1.json: setup.objects[0].joints.left arm: dropped: not a joint name',
+    );
+    // A long name is shortened in the report.
+    expect(opened.dropped).toContain(
+      `scenes/s1.json: setup.objects[0].joints.${'x'.repeat(64)}…: dropped: not a joint name`,
+    );
+  });
+
+  it(`keeps at most ${POSE_JOINTS_MAX} joints in a pose, and reports the rest as one`, () => {
+    const many = Object.fromEntries(
+      Array.from({ length: POSE_JOINTS_MAX + 10 }, (_, i) => [`joint${i}`, AT_REST]),
+    );
+    const opened = open(saveProduction(posed(many)));
+    expect(Object.keys(objectIn(opened.production, 'penguin').joints!)).toHaveLength(
+      POSE_JOINTS_MAX,
+    );
     expect(opened.dropped).toEqual([
-      'scenes/s1.json: setup.objects[0].joints.leftUpperArm: dropped: not a joint of a Flyer',
+      `scenes/s1.json: setup.objects[0].joints: dropped 10 more: a pose holds at most ${POSE_JOINTS_MAX} joints`,
     ]);
   });
 
@@ -108,27 +146,28 @@ describe('posing joints (format 1.5.0, spec 03 section 2.2)', () => {
         'scenes/s1.json: setup.objects[0].joints: dropped: should be an object',
       ]);
     }
-    for (const empty of [{}, { leftUpperArm: NOD }]) {
+    for (const empty of [{}, { 'not a joint': NOD }]) {
       const opened = open(saveProduction(posed(empty)));
       expect(objectIn(opened.production, 'penguin')).not.toHaveProperty('joints');
       expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
     }
   });
 
-  it('treats __proto__ and constructor as names that are not joints', () => {
+  it("treats __proto__ and Object's members (constructor, toString…) as names that are not joints", () => {
     // As JSON.parse reads a file: each is the object's own key, not Object's member.
+    // In the order a saved file has them: its keys sorted.
+    const names = ['__proto__', 'constructor', 'hasOwnProperty', 'toString', 'valueOf'];
     const joints = JSON.parse(
-      `{"__proto__": ${JSON.stringify(NOD)}, "constructor": ${JSON.stringify(NOD)}, "head": ${JSON.stringify(NOD)}}`,
+      `{${[...names, 'head'].map((n) => `"${n}": ${JSON.stringify(NOD)}`).join(', ')}}`,
     ) as Record<string, unknown>;
-    expect(Object.keys(joints)).toEqual(['__proto__', 'constructor', 'head']);
+    expect(Object.keys(joints)).toEqual([...names, 'head']);
     const opened = open(saveProduction(posed(joints)));
     const kept = objectIn(opened.production, 'penguin').joints!;
     expect(Object.keys(kept)).toEqual(['head']);
     expect(Object.getPrototypeOf(kept)).toBe(Object.prototype);
-    expect(opened.dropped).toEqual([
-      'scenes/s1.json: setup.objects[0].joints.__proto__: dropped: not a joint of a Flyer',
-      'scenes/s1.json: setup.objects[0].joints.constructor: dropped: not a joint of a Flyer',
-    ]);
+    expect(opened.dropped).toEqual(
+      names.map((n) => `scenes/s1.json: setup.objects[0].joints.${n}: dropped: not a joint name`),
+    );
   });
 
   it('still opens a 1.4.0 file, migrated, with its original to keep', () => {
@@ -153,19 +192,25 @@ describe('posing joints (format 1.5.0, spec 03 section 2.2)', () => {
 });
 
 describe('the pose rules', () => {
-  it("name each class's joints, and none for a class without a skeleton", () => {
-    expect(poseJoints('Biped').has('leftUpperArm')).toBe(true);
-    expect(poseJoints('Flyer').has('leftWingShoulder')).toBe(true);
-    // The extras every class may have (jointsOf), such as a tail or ears.
-    expect(poseJoints('Biped').has('tail')).toBe(true);
-    expect(poseJoints('Flyer').has('leftUpperArm')).toBe(false);
-    expect(poseJoints('Prop').size).toBe(0);
-    expect(
-      keptJoints({ model: 'example/Prop/box' as never, class: 'Prop', joints: { head: NOD } }, 'x'),
-    ).toEqual({
-      joints: undefined,
-      dropped: ['x.head: dropped: not a joint of a Prop'],
-    });
+  it('fit every joint id the joint map gives, for every skeleton and from Alice names', () => {
+    for (const skeleton of SKELETONS)
+      for (const { id } of jointsOf(skeleton)) {
+        expect(id).toMatch(JOINT_ID);
+        expect(isJointId(id)).toBe(true);
+      }
+    for (const alice of ['PLUMAGE_CENTER_TIP', 'HAIR_0', 'HAIR_6', 'FINGER_1_TIP', 'X'])
+      expect(isJointId(jointFromAlice('flyer', alice))).toBe(true);
+    expect(jointFromAlice('flyer', 'PLUMAGE_CENTER_TIP')).toBe('plumageCenterTip');
+  });
+
+  it('keep no pose on a class without joints', () => {
+    for (const cls of ['Prop', 'Text', 'Camera'] as const)
+      expect(
+        keptJoints({ model: 'example/Prop/box' as never, class: cls, joints: { head: NOD } }, 'x'),
+      ).toEqual({
+        joints: undefined,
+        dropped: [`x: dropped: not posable: a ${cls} has no joints`],
+      });
   });
 
   it('keep a turn within 1e-3 of unit length, and nothing else', () => {
