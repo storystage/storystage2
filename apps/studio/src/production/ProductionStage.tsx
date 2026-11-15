@@ -537,6 +537,7 @@ export function ProductionStage({
               scene={scene}
               chosen={chosen && 'object' in chosen ? chosen.object : null}
               onChoose={(name) => choose(name === null ? null : { object: name as ObjectId })}
+              onAnnounce={onAnnounce}
               {...(onReveal ? { onReveal } : {})}
               modelName={(o) =>
                 typeof o.model === 'string'
