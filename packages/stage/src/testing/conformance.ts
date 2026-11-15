@@ -1018,5 +1018,48 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       expect(b.width).toBe(a.width);
       expect(Array.from(b.data)).toEqual(Array.from(a.data));
     });
+
+    it("starts in the pose its set-up gives, and code's joint turns go on from it", async () => {
+      const quarter = { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 };
+      const posed = { ...SETUP.objects[0]!, joints: { [head]: quarter } };
+      const stage = await loaded({ ...SETUP, objects: [posed, SETUP.objects[1]!] });
+      const headTurn = () =>
+        (
+          stage.answer({
+            kind: 'transform',
+            object: { object: cat, joint: head },
+            at: stage.time(),
+          }).value as Transform
+        ).rotation;
+      close(Math.abs(headTurn().y), Math.SQRT1_2);
+      // Turned back a quarter by code, it's at rest; reset, it's posed again.
+      stage.schedule([
+        cmd(0, 1, {
+          object: cat,
+          kind: 'joint',
+          joint: head,
+          axis: { x: 0, y: 1, z: 0 },
+          turns: -0.25,
+        }),
+      ]);
+      stage.seek(micros(1));
+      close(Math.abs(headTurn().w), 1);
+      stage.reset();
+      close(Math.abs(headTurn().y), Math.SQRT1_2);
+    });
+
+    it('plays on past a posed joint its model has not got, and refuses a turn that is not one', async () => {
+      const winged = {
+        ...SETUP.objects[0]!,
+        joints: { [jointName('leftWing')]: { x: 0, y: 0, z: 0, w: 1 } },
+      };
+      const stage = await loaded({ ...SETUP, objects: [winged, SETUP.objects[1]!] });
+      expect(stage.objects()).toContain(cat);
+      const bent = { ...SETUP.objects[0]!, joints: { [head]: { x: 0, y: 0, z: 0, w: 2 } } };
+      const other = await make();
+      await expect(other.load({ ...SETUP, objects: [bent, SETUP.objects[1]!] })).rejects.toThrow(
+        StageError,
+      );
+    });
   });
 }
