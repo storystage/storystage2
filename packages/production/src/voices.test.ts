@@ -89,12 +89,22 @@ describe('voices in a file (format 1.4.0)', () => {
       saveProduction(withVoices({ fox, owl: penguin, penguin: { ...penguin, base: 'nope' } })),
     );
     expect(opened.status).toBe('ok');
-    if (opened.status !== 'broken') expect(opened.production.manifest.voices).toEqual({ fox });
+    if (opened.status !== 'broken') {
+      expect(opened.production.manifest.voices).toEqual({ fox });
+      // Reported for developers, as a pose's dropped joints are (format 1.5.0).
+      expect(opened.dropped).toEqual([
+        "manifest.json: voices.owl: dropped: it doesn't fit, or no set-up object has that name",
+        "manifest.json: voices.penguin: dropped: it doesn't fit, or no set-up object has that name",
+      ]);
+    }
     const none = openProduction(saveProduction(withVoices({ owl: penguin })));
     if (none.status !== 'broken') expect(none.production.manifest).not.toHaveProperty('voices');
     const junk = openProduction(saveProduction(withVoices('loud')));
     expect(junk.status).toBe('ok');
-    if (junk.status !== 'broken') expect(junk.production.manifest).not.toHaveProperty('voices');
+    if (junk.status !== 'broken') {
+      expect(junk.production.manifest).not.toHaveProperty('voices');
+      expect(junk.dropped).toEqual(['manifest.json: voices: dropped']);
+    }
   });
 });
 

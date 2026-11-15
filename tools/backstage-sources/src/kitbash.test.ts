@@ -214,6 +214,26 @@ describe('kitbashProblems', () => {
         ],
       }),
     ).toEqual(['kitbash.add[0] (Hat): a ring needs a thickness.']);
+    expect(
+      kitbashProblems({
+        recolour: [{ cells: [[0, 0]], colour: 'orange', hue: 30 }],
+        add: [
+          {
+            name: 'Leg',
+            shape: 'path',
+            joint: 'chest',
+            at: [0, 0, 0],
+            radius: 0.1,
+            bands: [[2, 3]],
+          },
+        ],
+      }),
+    ).toEqual([
+      'kitbash.recolour[0].colour must be rrggbb.',
+      'kitbash.recolour[0] takes a colour or a hue, not both.',
+      'kitbash.add[0] (Leg): bands must list two or more cells [column, row].',
+      'kitbash.add[0] (Leg): a path needs 2 to 32 points [x, y, z].',
+    ]);
   });
 
   it('is checked with the source list, which wants a glTF base from GitHub', () => {
@@ -250,9 +270,60 @@ describe('applyKitbash', () => {
     expect(await pixel(doc.getRoot().listTextures()[0]!.getImage()!, [1, 0])).toEqual([36, 36, 36]);
   });
 
+  it('gives a grey cell a colour outright, keeping its shading', async () => {
+    const png = await recolour(await palette(), [{ cells: [[2, 0]], colour: 'ff8000' }]);
+    // Grey 26 has no hue to turn; it becomes orange at its own brightness.
+    expect(await pixel(png, [2, 0])).toEqual([26, 13, 0]);
+    expect(await pixel(png, [3, 0])).toEqual([34, 34, 34]);
+  });
+
   it('trims the triangles drawn in a cell (an earring), and nothing else', async () => {
     const doc = await bake({ trim: [{ node: 'Head', cell: [3, 0] }] });
     expect(node(doc, 'Head')!.getMesh()!.listPrimitives()[0]!.getIndices()!.getCount()).toBe(6);
+  });
+
+  it('trims only inside its box, when given one (a beard, not the hair it shares a cell with)', async () => {
+    const box = [
+      [-1, 1.6, 0.3],
+      [1, 1.9, 0.6],
+    ] as const;
+    const doc = await bake({ trim: [{ node: 'Head', cell: [1, 0], within: box }] });
+    const prim = node(doc, 'Head')!.getMesh()!.listPrimitives()[0]!;
+    // The eyebrow (corners 0 to 2) is gone; the hair and the earring stay.
+    expect([...prim.getIndices()!.getArray()!]).toEqual([3, 4, 5, 6, 7, 8]);
+  });
+
+  it('stripes a path in its bands, each stripe its own cell', async () => {
+    const doc = await bake({
+      add: [
+        {
+          name: 'Leg',
+          shape: 'path',
+          joint: 'chest',
+          at: [0.2, 0.2, -0.3],
+          radius: 0.07,
+          points: [
+            [0, 0, 0],
+            [0.5, 0.6, 0],
+            [1.2, 0.2, 0],
+            [1.4, -1, 0],
+          ],
+          bands: [
+            [2, 3],
+            [3, 3],
+          ],
+          stripes: 6,
+        },
+      ],
+    });
+    const uv = node(doc, 'Leg')!.getMesh()!.listPrimitives()[0]!.getAttribute('TEXCOORD_0')!;
+    const cells = new Set<string>();
+    for (let i = 0; i < uv.getCount(); i++) {
+      const [u, v] = uv.getElement(i, [] as number[]);
+      cells.add(`${Math.floor(u! * PALETTE.columns)},${Math.floor(v! * PALETTE.rows)}`);
+    }
+    expect([...cells].sort()).toEqual(['2,3', '3,3']);
+    expect(node(doc, 'Leg')!.getParentNode()?.getName()).toBe('chest');
   });
 
   it('thins an island inside its box toward its middle (an eyebrow), leaving the hair', async () => {

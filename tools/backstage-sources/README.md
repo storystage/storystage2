@@ -49,6 +49,7 @@ A source-list item with a `kitbash` recipe is made from its fetched KayKit chara
 ```
 
 - **Cells** are `[column, row]` of KayKit's 8 × 4 palette texture. To find which cells a part uses, count its triangles' texture coordinates.
+- **Shapes and colours:** `add` takes a `ring`, `tube`, `cap`, `snake`, `disc` or `path` (a tube through `points`), coloured from one `cell` or striped in `bands`; `recolour` takes a `hue` or a `colour` (rrggbb, for a grey cell); `trim` can be limited to a box (`within`).
 - **Steps,** in this order: `parts` (from other files at the same commit), `copy`, `trim`, `thin`, `recolour`, `add`. Units are the file's own, before `height` scales it.
 - **Checking:** `kitbashProblems` checks a recipe with the rest of the source list; the build fails on a node or joint that isn't there.
 

@@ -21,6 +21,8 @@ import type {
   StoryClass,
   Transform,
 } from '@storystage/story-api';
+import { skeletonOf } from '@storystage/backstage';
+import { keptJoints } from './pose.ts';
 import { applyProgramEdits, type SceneRefusal, type SceneStepResult } from './scenes.ts';
 import type { Production, Scene, SceneId } from './types.ts';
 
@@ -207,12 +209,19 @@ export interface ObjectChange {
   readonly opacity?: number;
   /** A paint name from the Story API's list, or a `#rrggbb` colour. */
   readonly paint?: string;
+  /**
+   * The whole pose (spec 03 section 2.2), which replaces the set-up's: each joint's turn from
+   * rest, by its name, as a unit quaternion. `{}` puts every joint back at rest. Refused, changing
+   * nothing, where opening the file would drop any of it (a stand-in, a class with no joints, a
+   * malformed name or turn, more than `POSE_JOINTS_MAX`), so a saved pose always comes back.
+   */
+  readonly joints?: SceneObjectSetup['joints'];
 }
 
 /**
- * Changes how scene `scene`'s object `name` starts ("Move owl"): its set-up only, so the program
- * doesn't change. A step like the others, for `session.step`; `withObject` gives the production
- * alone, for `session.change`.
+ * Changes how scene `scene`'s object `name` starts ("Move owl", "Pose owl"): its set-up only, so
+ * the program doesn't change. A step like the others, for `session.step`; `withObject` gives the
+ * production alone, for `session.change`.
  */
 export function setObject(
   p: Production,
@@ -235,9 +244,38 @@ export function withObject(
 ): Production | SceneRefusal {
   const found = p.scenes.find((s) => s.id === scene);
   if (!found) return { code: 'noSuchScene' };
-  if (!found.setup.objects.some((o) => o.id === name)) return { code: 'noSuchObject' };
+  const object = found.setup.objects.find((o) => o.id === name);
+  if (!object) return { code: 'noSuchObject' };
   if (change.opacity !== undefined && !(change.opacity >= 0 && change.opacity <= 1))
     return { code: 'refused', reason: 'Opacity goes from 0 (invisible) to 1.' };
+  let changed: ObjectChange = change;
+  let atRest = false;
+  // `{}` is every joint at rest, which any object may be, a stand-in included.
+  if (change.joints !== undefined && Object.keys(change.joints).length === 0) atRest = true;
+  else if (change.joints !== undefined) {
+    const kept = keptJoints({ ...object, joints: change.joints }, 'joints');
+    if (kept.dropped.length > 0)
+      return {
+        code: 'refused',
+        reason:
+          typeof object.model !== 'string'
+            ? "A stand-in has no joints to pose: it's waiting for its model."
+            : skeletonOf(object.class) === null
+              ? `A ${object.class} has no joints to pose.`
+              : 'A pose turns joints by their names, each by a unit quaternion.',
+      };
+    atRest = kept.joints === undefined;
+    changed = { ...change, joints: kept.joints };
+  }
+  const apply = (o: SceneObjectSetup): SceneObjectSetup => {
+    const next: { -readonly [K in keyof SceneObjectSetup]?: SceneObjectSetup[K] } = {
+      ...o,
+      ...changed,
+    };
+    // An empty pose is every joint at rest: the field goes, so a file never holds `joints: {}`.
+    if (atRest) delete next.joints;
+    return next as SceneObjectSetup;
+  };
   return {
     ...p,
     scenes: p.scenes.map((s) =>
@@ -246,7 +284,7 @@ export function withObject(
             ...s,
             setup: {
               ...s.setup,
-              objects: s.setup.objects.map((o) => (o.id === name ? { ...o, ...change } : o)),
+              objects: s.setup.objects.map((o) => (o.id === name ? apply(o) : o)),
             },
           }
         : s,

@@ -8,6 +8,8 @@ on:
     branches: ['lane/s1-wp1-*', main]
     paths:
       - spikes/**
+      - packages/stage/**
+      - backstage.lock.json
       - .github/workflows/spike-pages.yml
   workflow_dispatch:
 
@@ -46,6 +48,14 @@ jobs:
             (cd "spikes/$spike" && pnpm exec vite build --base ./ --outDir "$site/$spike" --emptyOutDir)
           done
           sed -e "s|BRANCH|${GITHUB_REF_NAME}|" -e "s|COMMIT|${GITHUB_SHA::7}|" spikes/pages/index.html > "$site/index.html"
+      - name: The real stage's device page (5.6, 5.8), with two of Backstage's people at the pinned commit
+        run: |
+          site="$GITHUB_WORKSPACE/_site/stage"
+          (cd packages/stage && pnpm exec vite build --config e2e/harness/vite.config.ts --base ./ --outDir "$site" --emptyOutDir)
+          commit=$(node -p "require('./backstage.lock.json').commit")
+          for model in makehuman/Biped/p01.glb kaykit/Biped/knight.glb; do
+            curl -fsSL --create-dirs -o "$site/backstage/$model"               "https://raw.githubusercontent.com/storystage/backstage-assets/$commit/models/$model"
+          done
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

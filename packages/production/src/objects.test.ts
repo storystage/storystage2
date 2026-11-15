@@ -206,4 +206,44 @@ describe('setObject and withObject', () => {
     expect(withObject(p, s1, 'fox', { opacity: 2 })).toMatchObject({ code: 'refused' });
     expect(withObject(p, s1, 'owl', { opacity: 1 })).toEqual({ code: 'noSuchObject' });
   });
+
+  it('pose an object as one undo step, and put it back at rest with {}', () => {
+    const nod = { x: 0.2588190451, y: 0, z: 0, w: 0.9659258263 };
+    const pose = { head: nod, plumageCenterTip: { x: 0, y: 0, z: 0, w: 1 } };
+    const s = new ProductionSession<'stage'>(exampleProduction());
+    const result = setObject(s.production(), s1, 'penguin', { joints: pose }, 'Pose penguin');
+    if (!result.ok) throw new Error(JSON.stringify(result.refusal));
+    s.step(result.step, 'stage');
+    const penguin = () => s.production().scenes[0]!.setup.objects.find((o) => o.id === 'penguin')!;
+    expect(penguin().joints).toEqual(pose);
+    expect(s.production().program).toEqual(exampleProduction().program);
+    expect(s.undoLabel()).toBe('Pose penguin');
+    s.undo();
+    expect(s.production()).toEqual(exampleProduction());
+    s.redo();
+    expect(penguin().joints).toEqual(pose);
+    // The whole pose is replaced; {} is every joint at rest, so the field goes.
+    const rested = done(setObject(s.production(), s1, 'penguin', { joints: {} }, 'Straighten'));
+    expect(rested.scenes[0]!.setup.objects.find((o) => o.id === 'penguin')).not.toHaveProperty(
+      'joints',
+    );
+  });
+
+  it('refuse a pose that opening the file would drop, and change nothing', () => {
+    const p = exampleProduction();
+    const nod = { x: 0.2588190451, y: 0, z: 0, w: 0.9659258263 };
+    // The fox is a stand-in.
+    expect(withObject(p, s1, 'fox', { joints: { head: nod } as never })).toMatchObject({
+      code: 'refused',
+      reason: expect.stringMatching(/stand-in/),
+    });
+    // Every joint at rest is fine for any object.
+    expect(withObject(p, s1, 'fox', { joints: {} })).not.toHaveProperty('code');
+    for (const joints of [
+      { head: { ...nod, w: 2 } },
+      { 'left arm': nod },
+      { constructor: nod },
+    ] as never[])
+      expect(withObject(p, s1, 'penguin', { joints })).toMatchObject({ code: 'refused' });
+  });
 });
