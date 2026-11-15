@@ -1,9 +1,10 @@
 /**
  * The self-test's steps (WP18.1): a three-scene production; each scene set on the stage; the
- * film's own code run twice, the same both times; frames drawn twice, the same both times; five
- * seconds exported; every change undone and redone; and the film saved and opened again. Each step
- * uses the real parts (the stage, the runtime, the production's undo and its file), so the same
- * steps run in CI on the fake stage and in the app on the real one.
+ * film's own code run twice, the same both times; frames drawn twice, the same both times; each
+ * frame's scene state the same on every renderer, for the demo and the film open in the studio;
+ * five seconds exported; every change undone and redone; and the film saved and opened again.
+ * Each step uses the real parts (the stage, the runtime, the production's undo and its file), so
+ * the same steps run in CI on the fake stage and in the app on the real one.
  */
 import { nodeId, type EditOperation } from '@storystage/ast';
 import { measure, type Timeline } from '@storystage/playback';
@@ -18,7 +19,13 @@ import {
 } from '@storystage/production';
 import type { FromRuntime, Port, ToRuntime } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
-import { CAMERA, micros, type SceneSetup, type StageCommand } from '@storystage/story-api';
+import {
+  CAMERA,
+  micros,
+  type Micros,
+  type SceneSetup,
+  type StageCommand,
+} from '@storystage/story-api';
 import { check, type SelfTestStep } from './runner.ts';
 import { t } from './strings.ts';
 
@@ -28,9 +35,23 @@ export interface SelfTestRuntime {
   readonly terminate?: () => void;
 }
 
+/** One of the renderers this device draws the stage with, for the scene state step. */
+export interface SelfTestRenderer {
+  /** Its name in the report: "WebGL2", "WebGPU". */
+  readonly name: string;
+  readonly makeStage: () => Stage | Promise<Stage>;
+}
+
 export interface SelfTestContext {
   /** A fresh stage: the Babylon.js stage in the app, `FakeStage` in unit tests. */
   readonly makeStage: () => Stage | Promise<Stage>;
+  /**
+   * Every renderer this device has, for checking that each frame's scene state is the same on
+   * all of them (WP18.2). Default: `makeStage` alone, run twice, which the report says.
+   */
+  readonly renderers?: readonly SelfTestRenderer[];
+  /** The film open in the studio, if any: the scene state step checks it as well as the demo. */
+  readonly openFilm?: () => Production | null;
   /** A fresh runtime, for running the film's own code. */
   readonly startRuntime: () => SelfTestRuntime;
   /** The production to test. Default: the demo film, "The Lost Penguin (demo)". */
@@ -102,6 +123,55 @@ async function runFilm(c: SelfTestContext, production: Production): Promise<Time
   } finally {
     stage.dispose();
   }
+}
+
+/** How much of a film the scene state step plays: enough for every scene of a lesson's film. */
+const STATE_LIMIT = micros(60);
+
+/** The stage, recording the hash of its scene state after each frame's `seek`. */
+function recording(stage: Stage, states: number[]): Stage {
+  return new Proxy(stage, {
+    get(target, key) {
+      if (key === 'seek')
+        return (at: Micros) => {
+          target.seek(at);
+          states.push(target.stateHash());
+        };
+      const value: unknown = Reflect.get(target, key, target);
+      return typeof value === 'function' ? (value as () => unknown).bind(target) : value;
+    },
+  });
+}
+
+/** Runs a film's own code on one renderer, as the export does, and returns each frame's state. */
+async function statesOf(
+  c: SelfTestContext,
+  renderer: SelfTestRenderer,
+  production: Production,
+): Promise<number[]> {
+  const states: number[] = [];
+  const stage = recording(await renderer.makeStage(), states);
+  const runtime = c.startRuntime();
+  try {
+    await measure({
+      production,
+      stage,
+      port: runtime.port,
+      ...(runtime.terminate ? { terminate: runtime.terminate } : {}),
+      seed: 1,
+      viewerWait: micros(1),
+      limit: STATE_LIMIT,
+    });
+    return states;
+  } finally {
+    stage.dispose();
+  }
+}
+
+/** The first frame where two runs differ, or -1. A run that stops early differs where it stopped. */
+function firstDifference(a: readonly number[], b: readonly number[]): number {
+  const i = a.findIndex((h, n) => h !== b[n]);
+  return i !== -1 ? i : a.length === b.length ? -1 : Math.min(a.length, b.length);
 }
 
 /** The words each scene's code says: its `say` blocks, with the ids an edit needs. */
@@ -220,6 +290,44 @@ export const STEPS: readonly SelfTestStep<SelfTestContext>[] = [
           b.dispose();
         }
       }
+    },
+  },
+  {
+    // WP18.2: scene state, a hash of every transform, must match across renderers, frame for
+    // frame. Before the export, so a gate test can wait for this step alone.
+    id: 'state',
+    title: t('step.state'),
+    async run(c) {
+      const renderers = c.renderers?.length
+        ? c.renderers
+        : [{ name: t('renderer.stage'), makeStage: c.makeStage }];
+      const demo = productionOf(c);
+      const open = c.openFilm?.() ?? null;
+      const films = open && !same(open, demo) ? [demo, open] : [demo];
+      // With one renderer, it's run twice: the same frames, at least.
+      const runs = renderers.length > 1 ? renderers : [renderers[0]!, renderers[0]!];
+      for (const film of films) {
+        // One at a time, so a 4 GB Chromebook holds one stage, not two.
+        const all: number[][] = [];
+        for (const r of runs) all.push(await statesOf(c, r, film));
+        const [first, ...others] = all;
+        check(first!.length > 0, t('problem.noFrames', { film: film.manifest.title }));
+        others.forEach((states, i) => {
+          const frame = firstDifference(first!, states);
+          check(
+            frame === -1,
+            t('problem.stateDiffered', {
+              film: film.manifest.title,
+              renderer: runs[i + 1]!.name,
+              first: runs[0]!.name,
+              frame,
+            }),
+          );
+        });
+      }
+      return renderers.length > 1
+        ? undefined
+        : { standIn: t('standIn.oneRenderer', { renderer: renderers[0]!.name }) };
     },
   },
   {

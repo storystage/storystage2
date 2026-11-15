@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { demoProduction, openProduction, saveProduction } from '@storystage/production';
+import { expectSameSceneState } from './scene-state.ts';
 
 // The M3 gate, "Productions" (workplan section 5; WP18.2): several scenes in one `.storystage`
 // file play in order with cuts and fades, as one path. The manual script is
@@ -74,7 +75,7 @@ async function openCopy(page: Page, name: string, bytes: Uint8Array) {
 test('M3: the film plays its scenes in order, with a cut, a crossfade and a fade', async ({
   page,
 }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto('/?example');
 
@@ -120,6 +121,8 @@ test('M3: the film plays its scenes in order, with a cut, a crossfade and a fade
   const seen = await page.evaluate(() => (window as unknown as { seen: string[] }).seen);
   const scenes = seen.map((s) => /Scene (\d)/.exec(s)?.[1]).filter(Boolean);
   expect([...new Set(scenes)], seen.join(' / ')).toEqual(['1', '2', '3']);
+  // With its transitions, the film has the same scene state on every renderer (18.2).
+  await expectSameSceneState(page);
 });
 
 test('M3: a film saved as a .storystage file opens again the same, transitions and all', async ({

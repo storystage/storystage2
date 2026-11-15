@@ -7,6 +7,7 @@
  * The self-test, Babylon.js and the export load only when it runs.
  */
 import { useRef, useState } from 'react';
+import type { Production } from '@storystage/production';
 import type { SelfTestRuntime, StepResult } from '@storystage/selftest';
 import { Button } from '@storystage/ui';
 import type { StageMaker } from '../stage/makeStage.ts';
@@ -25,9 +26,11 @@ export interface SelfTestCardProps {
   /** Tests give a stage maker that makes a `FakeStage`, and an in-memory runtime: then no MP4 is made. */
   readonly makeStage?: StageMaker;
   readonly startRuntime?: () => SelfTestRuntime;
+  /** The film open in the studio, if any: its scene state is checked on every renderer too. */
+  readonly film?: () => Production | null;
 }
 
-export function SelfTestCard({ models, makeStage, startRuntime }: SelfTestCardProps) {
+export function SelfTestCard({ models, makeStage, startRuntime, film }: SelfTestCardProps) {
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<readonly StepResult[]>([]);
   const [report, setReport] = useState<{ text: string; passed: boolean } | null>(null);
@@ -45,6 +48,7 @@ export function SelfTestCard({ models, makeStage, startRuntime }: SelfTestCardPr
           models,
           ...(makeStage ? { makeStage } : {}),
           ...(startRuntime ? { startRuntime } : {}),
+          ...(film ? { film } : {}),
           onStep: (r) => setResults((done) => [...done, r]),
         }),
       );

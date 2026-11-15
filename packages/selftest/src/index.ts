@@ -8,4 +8,9 @@
  */
 export * from './runner.ts';
 export { reportText } from './report.ts';
-export { STEPS, type SelfTestContext, type SelfTestRuntime } from './steps.ts';
+export {
+  STEPS,
+  type SelfTestContext,
+  type SelfTestRenderer,
+  type SelfTestRuntime,
+} from './steps.ts';

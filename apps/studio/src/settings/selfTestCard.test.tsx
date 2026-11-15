@@ -31,7 +31,7 @@ describe('Settings › Self-test', () => {
     const steps = within(screen.getByRole('list', { name: 'Self-test steps' })).getAllByRole(
       'listitem',
     );
-    expect(steps).toHaveLength(7);
+    expect(steps).toHaveLength(8);
     for (const step of steps) expect(step.textContent).toMatch(/passed/);
     // The report, to copy into a message, ends with the same line.
     const report = screen.getByLabelText('Self-test report');

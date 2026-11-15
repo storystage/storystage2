@@ -539,7 +539,10 @@ export function App({
                 host={host}
                 open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
               />
-              <SelfTestCard models={models} />
+              <SelfTestCard
+                models={models}
+                {...(phase.kind === 'studio' ? { film: () => studio.session.production() } : {})}
+              />
               <ReportProblemCard host={host} models={models} />
             </>
           }
