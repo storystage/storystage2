@@ -83,6 +83,7 @@ export function countingFor(classes: ClassFolders, invoke: Invoke): ClassFolders
   return {
     pupils: () => classes.pupils(),
     addPupil: (name, picture) => classes.addPupil(name, picture),
+    addPupils: (names) => classes.addPupils(names),
     renamePupil: (id, name, picture) => classes.renamePupil(id, name, picture),
     folder: (id) => classes.folder(id),
     current: () => classes.current(),

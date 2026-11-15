@@ -201,6 +201,11 @@ export interface ClassBackstage {
 export interface ClassFolders {
   pupils(): Promise<readonly Pupil[]>;
   addPupil(name: string, picture?: string | null): Promise<Pupil>;
+  /**
+   * Adds several pupils in one save of the class list, in order: all of them, or (if a name is
+   * refused or the save fails) none. Import class list uses it, so a reload can't keep half a class.
+   */
+  addPupils(names: readonly string[]): Promise<readonly Pupil[]>;
   renamePupil(id: PupilId, name: string, picture?: string | null): Promise<Pupil>;
   /** Removes a pupil from the list. Their productions go to the bin, not away. */
   removePupil(id: PupilId): Promise<void>;
