@@ -536,6 +536,8 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   overflow: hidden;
+  /* Ink on the paper in either theme: a stand-in's label too, in the frame strip's thumbnails. */
+  color: var(--ss-sketch-ink);
   background: var(--ss-sketch-paper);
 }
 .sb-picture-sketch {

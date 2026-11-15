@@ -28,6 +28,7 @@ import {
 import { StoryboardSetup } from './StoryboardSetup.tsx';
 import { liveLinks, withLink } from './links.ts';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
+import { poseJoints } from './pose.ts';
 import { BackstageRail } from './BackstageRail.tsx';
 import { refusalWords } from './refusals.ts';
 import {
@@ -538,6 +539,9 @@ export function ProductionStage({
               chosen={chosen && 'object' in chosen ? chosen.object : null}
               onChoose={(name) => choose(name === null ? null : { object: name as ObjectId })}
               onAnnounce={onAnnounce}
+              poseJoints={(o) =>
+                typeof o.model === 'string' ? poseJoints(o.class, models.item(o.model)?.joints) : []
+              }
               {...(onReveal ? { onReveal } : {})}
               modelName={(o) =>
                 typeof o.model === 'string'
