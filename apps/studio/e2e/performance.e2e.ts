@@ -21,7 +21,7 @@ export const CI_BUDGETS = {
   /** JavaScript memory in use after Rehearse, in MB. */
   heapMb: 400,
   /** Time to export five seconds, over five seconds. */
-  exportRealTime: 15,
+  exportRealTime: 28,
 } as const;
 
 const SLOWDOWN = Number(process.env['STUDIO_CPU_SLOWDOWN'] ?? 1);

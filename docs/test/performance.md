@@ -18,13 +18,13 @@ CI's test prints its numbers in the log (`Performance: {…}`) and writes `test-
 
 CI draws in software on a two-core runner, so its budgets are set at about three times what it measures: they catch a change that makes StoryStage clearly slower, not a device being slow. The devices' budgets are what a lesson needs; they are **provisional until the owner's runs**, and the Chromebook's numbers then replace them here, through a decision record if they change what's built.
 
-| Measure | CI (budget) | Owner's PC, Edge, software drawing (measured 15 Nov) | Same, CPU slowed 4× | Reference Chromebook (target) | Reference iPad (target) |
-|---|---|---|---|---|---|
-| Start-up | ≤ 6 s | 1.2 s | 3.0 s | ≤ 5 s | ≤ 5 s |
-| Scene load | ≤ 8 s | 1.4 s | 2.6 s | ≤ 5 s | ≤ 5 s |
-| Rehearse frame rate | ≥ 5 fps | 59 fps, 0 frames over 50 ms | 56 fps, 1 over 50 ms | ≥ 30 fps at "low" (WP5's done-when) | ≥ 30 fps |
-| JavaScript memory | ≤ 400 MB | 36 MB | 34 MB | ≤ 400 MB, and the tab never reloads | ≤ 400 MB, and the tab never reloads |
-| Export, five seconds | ≤ 15× real time | 2.8× (14 s) | 8.6× (43 s) | ≤ 4× real time, so a one-minute film exports in four minutes | ≤ 4× real time |
+| Measure | CI (budget) | CI (measured 15 Nov, #404) | Owner's PC, Edge, software drawing (measured 15 Nov) | Same, CPU slowed 4× | Reference Chromebook (target) | Reference iPad (target) |
+|---|---|---|---|---|---|---|
+| Start-up | ≤ 6 s | 0.4 s | 1.2 s | 3.0 s | ≤ 5 s | ≤ 5 s |
+| Scene load | ≤ 8 s | 1.4 s | 1.4 s | 2.6 s | ≤ 5 s | ≤ 5 s |
+| Rehearse frame rate | ≥ 5 fps | 59 fps, 0 over 50 ms | 59 fps, 0 frames over 50 ms | 56 fps, 1 over 50 ms | ≥ 30 fps at "low" (WP5's done-when) | ≥ 30 fps |
+| JavaScript memory | ≤ 400 MB | 40 MB | 36 MB | 34 MB | ≤ 400 MB, and the tab never reloads | ≤ 400 MB, and the tab never reloads |
+| Export, five seconds | ≤ 28× real time | 9.2× (46 s) | 2.8× (14 s) | 8.6× (43 s) | ≤ 4× real time, so a one-minute film exports in four minutes | ≤ 4× real time |
 
 **Sources:** 30 fps at "low" on the Chromebook is WP5's done-when and spec 17, section 4. Export speed in spike 1.8 ran from 0.65× real time (Chrome) to 3.5× (software encoders on a two-core runner), so 4× is the provisional device target. Whisper's own memory (spike 1.3, 644–758 MB in its worker) is measured apart, by spike 1.3's device run; it isn't in JavaScript's heap here.
 
