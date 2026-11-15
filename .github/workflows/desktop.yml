@@ -103,6 +103,12 @@ jobs:
         run: node scripts/fetch-models.mjs
       - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
         run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
       - name: The shipped config has no debugging port
         run: '! grep -q remote-debugging src-tauri/tauri.conf.json'
       - name: Build the test app
@@ -152,6 +158,12 @@ jobs:
         run: node apps/desktop/scripts/fetch-models.mjs
       - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
         run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
       - name: Build the test app
         working-directory: apps/desktop
         run: pnpm tauri build --debug --no-bundle --config ../studio/e2e/desktop/tauri.conf.json -- --locked
@@ -203,6 +215,12 @@ jobs:
         run: node apps/desktop/scripts/fetch-models.mjs
       - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
         run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
       - name: Build the app
         run: pnpm --filter @storystage/desktop tauri build ${{ matrix.args }} -- --locked
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

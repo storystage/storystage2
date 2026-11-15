@@ -120,6 +120,20 @@ async function main() {
     outside: await status('%2e%2e/tauri.conf.json'),
   };
 
+  // Speak line's engine, from the app's own origin and checked against this build's pins (spec
+  // 06, 4.6): ONNX Runtime's WebAssembly comes whole, as WebAssembly; a file not pinned doesn't.
+  const wasm = await fetch('speech/ort/ort-wasm-simd-threaded.wasm');
+  const sums = await fetch('speech/kokoro/SHA256SUMS').then(
+    (reply) => reply.text(),
+    () => '',
+  );
+  report.speechFiles = {
+    status: wasm.status,
+    type: wasm.headers.get('content-type'),
+    bytes: (await wasm.arrayBuffer()).byteLength,
+    unpinnedServed: sums.includes('model_quantized'),
+  };
+
   // The file dialog is opened from Rust only: the page can't reach the plugin itself.
   report.pickerKind = await invoke('picker_kind');
   report.dialogPlugin = await failure(invoke('plugin:dialog|open', { options: {} }));
