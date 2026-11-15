@@ -12,6 +12,7 @@ import {
   facingCamera,
   withCamera,
   withMarker,
+  nudgeObject,
 } from './setup.ts';
 
 // An object's place, turn and size in the set-up (07-ux 7.2).
@@ -97,5 +98,70 @@ describe('a model dropped on the scene view (07-ux 7.2)', () => {
     const turned = 2 * Math.atan2(t.rotation.y, t.rotation.w);
     expect(Math.sin(turned)).toBeCloseTo(-2 / Math.hypot(2, 10));
     expect(Math.cos(turned)).toBeCloseTo(-10 / Math.hypot(2, 10));
+  });
+});
+
+describe('the keyboard pick-up in Objects in this scene (07-ux 7.2)', () => {
+  // The example's camera: at z -5, looking along +Z, so its right is -X.
+  const camera = { ...IDENTITY, position: { x: 0, y: 1.6, z: -5 } };
+  const at = { ...IDENTITY, position: { x: 1, y: 0, z: 2 } };
+  const where = (key: string, shift = false, from = at, by = camera) => {
+    const n = nudgeObject(from, key, shift, by);
+    return (
+      n && {
+        kind: n.kind,
+        x: n.transform.position.x,
+        y: n.transform.position.y,
+        z: n.transform.position.z,
+      }
+    );
+  };
+
+  it('moves along the ground as the camera sees it: 10 cm, or 1 m with Shift', () => {
+    expect(where('ArrowUp')).toEqual({ kind: 'move', x: 1, y: 0, z: 2.1 });
+    expect(where('ArrowDown', true)).toEqual({ kind: 'move', x: 1, y: 0, z: 1 });
+    expect(where('ArrowRight')).toEqual({ kind: 'move', x: 0.9, y: 0, z: 2 });
+    expect(where('ArrowLeft')).toEqual({ kind: 'move', x: 1.1, y: 0, z: 2 });
+    // A camera turned a quarter, looking along +X: its right is +Z.
+    const turned = { ...camera, rotation: rotationOf(0.25) };
+    expect(where('ArrowUp', false, at, turned)).toEqual({ kind: 'move', x: 1.1, y: 0, z: 2 });
+    expect(where('ArrowRight', false, at, turned)).toEqual({ kind: 'move', x: 1, y: 0, z: 2.1 });
+  });
+
+  it('raises and lowers with Page Up and Page Down, within the limits', () => {
+    expect(where('PageUp')).toEqual({ kind: 'move', x: 1, y: 0.1, z: 2 });
+    expect(where('PageDown', true)?.y).toBe(-1);
+    const high = { ...at, position: { ...at.position, y: 49.95 } };
+    expect(where('PageUp', false, high)?.y).toBe(50);
+  });
+
+  it('turns an eighth with [ and ], round past a whole turn', () => {
+    const turn = (key: string, from = at) =>
+      turnOf(nudgeObject(from, key, false, camera)!.transform.rotation);
+    expect(turn(']')).toBe(0.125);
+    expect(turn('[')).toBe(0.875);
+    expect(turn(']', { ...at, rotation: rotationOf(0.875) })).toBe(0);
+    expect(nudgeObject(at, ']', false, camera)!.kind).toBe('turn');
+  });
+
+  it('resizes by 10% with + and −, within the limits', () => {
+    const size = (key: string, scale = 1) => {
+      const n = nudgeObject(
+        { ...at, scale: { x: scale, y: scale, z: scale } },
+        key,
+        false,
+        camera,
+      )!;
+      return [n.kind, fieldOf(n.transform, 'size')];
+    };
+    expect(size('+')).toEqual(['size', 1.1]);
+    expect(size('-')).toEqual(['size', 0.909]);
+    expect(size('-', 0.1)).toEqual(['size', 0.1]);
+    expect(size('=', 10)).toEqual(['size', 10]);
+  });
+
+  it('does nothing for any other key', () => {
+    for (const key of ['a', 'Home', 'Tab', 'Enter'])
+      expect(nudgeObject(at, key, false, camera)).toBeNull();
   });
 });

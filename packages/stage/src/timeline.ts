@@ -321,10 +321,12 @@ export class Timeline {
 
   /** Replaces the scene and forgets every command. Throws if a vehicle can't be right. */
   load(setup: SceneSetup, shapeFor: (object: SceneObjectSetup) => Shape): void {
-    this.start = startingState(setup);
+    const shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
+    // A pose's joint the model doesn't have is left out, and the scene plays on (spec 03 1.3).
+    this.start = startingState(setup, (id) => shapes.get(id)?.joints ?? []);
     this.setup = setup;
     this.markers = new Map(setup.markers.map((m) => [m.id, m.transform]));
-    this.shapes = new Map(setup.objects.map((o) => [o.id, shapeFor(o)]));
+    this.shapes = shapes;
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
     this.bodies = new Map(
       [...this.shapes].map(([id, shape]) => [id, Body.of(shape.jointPlaces)] as const),
@@ -343,10 +345,18 @@ export class Timeline {
    */
   setObject(object: ObjectId, change: ObjectChange): void {
     const setup = this.loaded();
-    const { transform, opacity, paint } = change;
+    const { transform, opacity, paint, joints } = change;
     if (transform) checkTransform(transform);
     if (opacity !== undefined && !(opacity >= 0 && opacity <= 1))
       throw bad('Opacity goes from 0 to 1.');
+    if (joints) {
+      const has = this.shapes.get(object)?.joints ?? [];
+      for (const [joint, turn] of Object.entries(joints) as [JointName, Quat][]) {
+        if (!has.includes(joint))
+          throw new StageError('unknown_joint', `${object} has no joint called ${joint}.`);
+        poseTurn(turn);
+      }
+    }
     const i = setup.objects.findIndex((o) => o.id === object);
     let next: SceneSetup;
     if (i >= 0) {
@@ -356,15 +366,16 @@ export class Timeline {
         ...(transform ? { transform } : {}),
         ...(opacity !== undefined ? { opacity } : {}),
         ...(paint !== undefined ? { paint } : {}),
+        ...(joints ? { joints } : {}),
       };
       next = { ...setup, objects: setup.objects.map((x, k) => (k === i ? changed : x)) };
     } else if (object === CAMERA) {
-      if (opacity !== undefined || paint !== undefined)
+      if (opacity !== undefined || paint !== undefined || joints)
         throw bad('The camera has only a place, a turn and a size.');
       next = transform ? { ...setup, camera: { ...setup.camera, transform } } : setup;
     } else throw unknown(object);
     // Made before anything changes, so a bad paint leaves the scene as it was.
-    const start = startingState(next);
+    const start = startingState(next, (id) => this.shapes.get(id)?.joints ?? []);
     this.setup = next;
     this.start = start;
     this.restate();
@@ -606,7 +617,7 @@ export class Timeline {
   /** A fresh copy of the starting state, for one evaluation to change. */
   private fresh(): Map<ObjectId, ObjectState> {
     const out = new Map<ObjectId, ObjectState>();
-    for (const [id, s] of this.start) out.set(id, { ...s, joints: new Map() });
+    for (const [id, s] of this.start) out.set(id, { ...s, joints: new Map(s.joints) });
     return out;
   }
 
@@ -1208,7 +1219,22 @@ function checkTransform({ position, rotation, scale: size }: Transform): void {
     throw bad('A size must be above 0.');
 }
 
-function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
+/**
+ * A pose's turn as the stage keeps it: a unit quaternion. One a little off (within 1e-3, as the
+ * production format allows) is made exact; anything else is refused.
+ */
+function poseTurn(q: Quat): Quat {
+  const n = Math.hypot(q.x, q.y, q.z, q.w);
+  if (![q.x, q.y, q.z, q.w].every(Number.isFinite) || !(Math.abs(n - 1) <= 1e-3))
+    throw bad("A joint's turn must be a unit quaternion.");
+  return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n };
+}
+
+/** The scene's starting state. `jointsOf` gives the joints each object has, for its pose. */
+function startingState(
+  setup: SceneSetup,
+  jointsOf: (object: ObjectId) => readonly JointName[],
+): Map<ObjectId, ObjectState> {
   const places = new Map<ObjectId, Transform>(setup.objects.map((o) => [o.id, o.transform]));
   if (!places.has(CAMERA)) places.set(CAMERA, setup.camera.transform);
   const vehicles = new Map(setup.objects.map((o) => [o.id, o.vehicle ?? null]));
@@ -1247,6 +1273,11 @@ function startingState(setup: SceneSetup): Map<ObjectId, ObjectState> {
       opacity: o?.opacity ?? 1,
       paint: o?.paint ?? null,
       vehicle,
+      joints: new Map(
+        Object.entries(o?.joints ?? {})
+          .filter(([joint]) => jointsOf(id).includes(joint as JointName))
+          .map(([joint, turn]) => [joint as JointName, poseTurn(turn)]),
+      ),
     });
   };
   for (const o of setup.objects) place(o.id, o);

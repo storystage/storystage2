@@ -142,6 +142,11 @@ export interface SceneObjectSetup {
   readonly paint?: string;
   /** The object this one rides on (Alice's vehicle). Default: the scene. */
   readonly vehicle?: ObjectId | null;
+  /**
+   * Its pose (07-ux section 7.2): each joint's turn from its rest pose, in the joint's own axes,
+   * as a unit quaternion. Joints only turn (decision 0051). A joint left out stays at rest.
+   */
+  readonly joints?: { readonly [joint: JointName]: Quat };
 }
 
 export interface SceneSetup {

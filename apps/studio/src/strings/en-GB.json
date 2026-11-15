@@ -689,6 +689,8 @@
   "production.objects.moveStep": "Move {name}",
   "production.objects.turnStep": "Turn {name}",
   "production.objects.sizeStep": "Resize {name}",
+  "production.objects.pickedUp": "Picked up {name}. Arrow keys move it, Page Up and Page Down raise and lower it, [ and ] turn it, plus and minus resize it, Enter puts it down.",
+  "production.objects.putDown": "Put down {name} at x {x}, y {y}, z {z} metres, turned {turn}, size {size}.",
   "production.backstage": "Backstage",
   "production.backstage.cast": "Cast",
   "production.backstage.props": "Props",

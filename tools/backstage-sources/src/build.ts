@@ -16,6 +16,7 @@
  * Items in `backstage.json` that no source list names are left alone.
  */
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { WebIO, type Document } from '@gltf-transform/core';
@@ -52,6 +53,7 @@ import { backstageId, type JointName } from '@storystage/story-api';
 import { groundTile, hexToRgb, rgbToHex, skyDome } from './backdrops.ts';
 import { fetchModel, fetchPicture, httpFetch, type Fetcher, type Fetched } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
+import { applyKitbash } from './kitbash.ts';
 import { sharpDecoder, sharpEncoder, thumbnailWebp } from './sharp-encoder.ts';
 import { excludesFor, stageLook, validateSources, type SourceItem } from './sources.ts';
 
@@ -131,7 +133,10 @@ export async function buildSources(
   for (const { item, source, exclude } of items) {
     // A backdrop is made here from its picture (spec 17 section 2); anything else is fetched.
     const made = item.backdrop ? await makeBackdrop(item, fetcher, io) : null;
-    const got: Fetched = made ?? (await fetchModel(item, fetcher, dir));
+    const fetchedModel: Fetched = made ?? (await fetchModel(item, fetcher, dir));
+    // A character made from parts (`kitbash.ts`): its other parts come from the same commit, and
+    // each is recorded with what was fetched.
+    const got: Fetched = item.kitbash ? await kitbash(item, fetchedModel, fetcher) : fetchedModel;
     const { ext, fetched } = got;
     // VRM files are kept byte for byte; excludes apply to glTF models only.
     const trimmed =
@@ -307,6 +312,22 @@ function height(positions: Float32Array): number {
 }
 
 /** A backdrop item's model, made from its picture, with its thumbnail and colours. */
+/** Applies an item's `kitbash` recipe to its fetched base, fetching parts from the same commit. */
+async function kitbash(item: SourceItem, base: Fetched, fetcher: Fetcher): Promise<Fetched> {
+  const f = item.fetch;
+  if (!('github' in f)) throw new Error(`${item.id}: kitbash needs a base fetched from GitHub.`);
+  const fetched = [...base.fetched];
+  const bytes = await applyKitbash(base.bytes, item.kitbash!, async (path) => {
+    const url =
+      `https://raw.githubusercontent.com/${f.github}/${f.commit}/` +
+      path.split('/').map(encodeURIComponent).join('/');
+    const part = await fetcher(url);
+    fetched.push({ url, sha256: createHash('sha256').update(part).digest('hex') });
+    return part;
+  });
+  return { bytes, ext: 'glb', fetched };
+}
+
 async function makeBackdrop(
   item: SourceItem,
   fetcher: Fetcher,

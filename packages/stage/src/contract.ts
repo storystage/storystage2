@@ -15,6 +15,7 @@ import type {
   JointName,
   Micros,
   ObjectId,
+  Quat,
   SceneSetup,
   StageCommand,
   StageEvent,
@@ -171,6 +172,11 @@ export interface ObjectChange {
   readonly opacity?: number;
   /** A paint name or `#rrggbb`. */
   readonly paint?: string;
+  /**
+   * Its whole pose, which replaces the set-up's: each joint's turn from rest, as
+   * `SceneObjectSetup.joints` has it. Refused for a joint the object doesn't have (`joints`).
+   */
+  readonly joints?: { readonly [joint: JointName]: Quat };
 }
 
 /**

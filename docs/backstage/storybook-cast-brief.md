@@ -117,27 +117,30 @@ Each from its own page through Sketchfab's public API, and its picture. Download
 
 ## 5. The gaps, at no cost
 
-There are eight gaps: Red Riding Hood, Holmes, Branwen, Watson, Marian, Medusa, Anansi and the selkie. The ways to fill them, cheapest first:
+There were eight gaps: Red Riding Hood, Holmes, Branwen, Watson, Marian, Medusa, Anansi and the selkie. Red Riding Hood was rigged (item 5), and the other seven are made from parts (item 6). The ways to fill a gap, cheapest first:
 
 1. **A stand-in until a source turns up** (WP10.9). A learner's storyboard can still name Holmes, and the stage shows a stand-in. This is what happens by default.
 2. **Keep looking.** S4 checks new CC0 and CC BY uploads against section 4 with each Backstage refresh, and the owner can suggest finds.
 3. **A college or university course takes the brief** (section 8) as a student project. Students get a real client and a credit in every film; the project gets characters under 17.9's contract. It costs nothing but the owner's time to find a course and review the work. It's the only free way to one consistent style.
 4. **Make them in MakeHuman** once its community has CC0 costumes (hoods, hats, long dresses). It hasn't today (searched 10 Nov 2026).
 5. **Rig a good unrigged find.** Mixamo didn't work, so the assets repository's **Rig found characters** workflow does it in Blender, headless (`tools/backstage-sources/blender/autorig.py`; #401, backstage-assets#14): it finds the joints from a T-pose model's shape, makes a skeleton with our joint names and binds it. Blender is a GPL build tool, never linked into the app. Red Riding Hood and the Granny (section 3a) were the first two, shipped 15 Nov (#403).
+6. **Make them from KayKit's parts** (the owner's choice of 15 Nov 2026, after Sketchfab, the 300 100Avatars and Alice 3's gallery had none of them): the build recolours a KayKit character and hangs simple shapes on it (`kitbash`, spec 17 §3). Maid Marian, Branwen, Medusa, the selkie, Holmes, Watson and Anansi are made this way, in the cast's own style. Anansi is a man with six arms, so eight limbs in all, as the owner chose; his cultural review (17.8) still comes before he ships.
 
 ## 6. What S4 does next
 
 - **Done (#386, backstage-assets#13; shipped by #403, 15 Nov):** Robin Hood, King Arthur, Merlin, Beowulf and Fionn in the shipped Backstage, under the `storybook` source, each credited to KayKit, with the theme `storybook`.
 - **Done 15 Nov, for internal testing:** the Alice 3 characters, converted (3.2) with Alice 3.9 and imported as a class import would be, in a private model pack kept outside every repository: Alice, the White Rabbit, the Big Bad Wolf, the Wolf, the dragon, the Mad Hatter, the Troll, the Ogre and the Pixie. Each has licence "not sure" and the note "Alice 3 gallery model: CMU's approval outstanding", so the studio flags them and films using them stay in school. The owner opens the pack from Settings, **Open models**. Each is checked against 17.8 before it ships, Alice's dress especially.
 - **Done (#401, backstage-assets#14; shipped by #403, 15 Nov):** the Sketchfab finds (section 3a), Red Riding Hood and her Grandmother, downloaded through the owner's Chrome with the owner's go and rigged in Blender.
-- **Every refresh:** look again for the gaps.
+- **15 Nov, in review:** Maid Marian (a long crimson dress and a gold circlet; no earring and thinner eyebrows, as the owner asked), Branwen, Medusa, the selkie, Sherlock Holmes, Dr Watson and Anansi, made from KayKit's parts (section 5, item 6).
+- **Done 15 Nov, for internal testing:** nine more Alice 3 characters in the private pack: the Queen of Hearts, the Cheshire Cat, the March Hare, the Monkey King, the Witch, Thor, Odin, Freya and Loki.
+- **Every refresh:** look again for better models of any character.
 
 ## 7. Still for the owner
 
 - **Alice 3.9 on a PC** for the converter, and where the private test pack is kept.
 - **The Sketchfab downloads** in section 3a, and whether to rig Red Riding Hood with Mixamo.
 - **CMU's answer,** when its legal advice is done, filed by D in 17.1's correspondence.
-- **The other gaps:** stand-ins for now, or approach a college course with section 8's brief?
+- **The seven made from parts:** whether each one ships, from its thumbnail and sketches in the assets pull request; Anansi's cultural review (17.8).
 - **17.8's decisions** (PR #54), for every character that ships, including the register checks for Alice, Holmes and Merlin.
 
 Sources searched on 14 Nov 2026: Sketchfab's public search (downloadable models, CC0 and CC BY); Alice 3's model list (`docs/legal/letters/cmu-models.csv`); the shipped Backstage (`backstage.json` in `storystage/backstage-assets`).

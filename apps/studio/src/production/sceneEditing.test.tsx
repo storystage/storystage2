@@ -153,6 +153,53 @@ describe('editing the set-up on the scene view (07-ux 7.2)', () => {
     expect(penguinOf(studio()).transform).toEqual(before);
   });
 
+  it('picks an object up from the list by keyboard, as one undo step, saying where it is', async () => {
+    const user = userEvent.setup();
+    const { fake, studio, onAnnounce } = await stage();
+    const before = penguinOf(studio()).transform;
+    const penguin = () => within(list()).getByRole('option', { name: /^penguin/ });
+    await user.click(penguin());
+    await user.keyboard('{Enter}');
+    expect(onAnnounce).toHaveBeenLastCalledWith(
+      'Picked up penguin. Arrow keys move it, Page Up and Page Down raise and lower it, [ and ] turn it, plus and minus resize it, Enter puts it down.',
+    );
+    expect(penguin().hasAttribute('data-lifted')).toBe(true);
+    // The example's camera looks along +Z: Up is away from it, Right is its right (-X).
+    await user.keyboard('{ArrowUp}{Shift>}{ArrowRight}{/Shift}{PageUp}]+');
+    const now = penguinOf(studio()).transform;
+    expect(now.position.z).toBeCloseTo(before.position.z + 0.1);
+    expect(now.position.x).toBeCloseTo(before.position.x - 1);
+    expect(now.position.y).toBeCloseTo(before.position.y + 0.1);
+    expect(now.scale.x).toBeCloseTo(before.scale.x * 1.1);
+    // The keys moved the penguin, not the focus, and the stage shows it where it is.
+    expect(document.activeElement).toBe(penguin());
+    await waitFor(() => expect(fake().transform(PENGUIN)).toEqual(now));
+    await user.keyboard('{Enter}');
+    expect(penguin().hasAttribute('data-lifted')).toBe(false);
+    expect(onAnnounce.mock.lastCall?.[0]).toMatch(/^Put down penguin at x -?[\d.]+, y 0\.1, z /);
+    // One pick-up, one step, named for what it did first.
+    expect(studio().undoLabel).toBe('Move penguin');
+    act(() => studio().undo());
+    expect(penguinOf(studio()).transform).toEqual(before);
+  });
+
+  it('puts an object down with Esc, or when focus leaves the list, and lists by arrow keys otherwise', async () => {
+    const user = userEvent.setup();
+    const { studio } = await stage();
+    const option = (name: RegExp) => within(list()).getByRole('option', { name });
+    await user.click(option(/^penguin/));
+    await user.keyboard('{ArrowDown}');
+    expect(document.activeElement).toBe(option(/^fox/));
+    await user.keyboard('{Enter}{ArrowUp}{Escape}');
+    expect(option(/^fox/).hasAttribute('data-lifted')).toBe(false);
+    await user.keyboard('{Enter}');
+    expect(option(/^fox/).hasAttribute('data-lifted')).toBe(true);
+    await user.tab();
+    expect(option(/^fox/).hasAttribute('data-lifted')).toBe(false);
+    // Two pick-ups, two steps.
+    expect(studio().undoLabel).toBe('Move fox');
+  });
+
   it('moves the scene’s camera to Look around’s view, as one undo step', async () => {
     const user = userEvent.setup();
     const { fake, studio, onAnnounce } = await stage();

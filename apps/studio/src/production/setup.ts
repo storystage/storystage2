@@ -102,6 +102,65 @@ function rotate(q: Quat, v: { x: number; y: number; z: number }) {
   };
 }
 
+/** How far one key moves a picked-up object, in metres: 10 cm, or 1 m with Shift. */
+export const NUDGE = { small: 0.1, large: 1 } as const;
+
+/** One key's change to a picked-up object, and what kind of change it was, for its step's name. */
+export interface Nudge {
+  readonly kind: 'move' | 'turn' | 'size';
+  readonly transform: Transform;
+}
+
+const toMillimetre = (n: number) => Math.round(n * 1000) / 1000;
+
+/**
+ * What a key does to an object picked up in Objects in this scene (`07-ux.md` section 7.2), or
+ * `null` for a key that does nothing. The arrow keys move it along the ground as the scene's camera
+ * sees it (Up away from the camera, Right to its right), Page Up and Page Down raise and lower it,
+ * [ and ] turn it an eighth, and + and − resize it by 10%, each within the fields' limits.
+ */
+export function nudgeObject(
+  t: Transform,
+  key: string,
+  shift: boolean,
+  camera: Transform,
+): Nudge | null {
+  const step = shift ? NUDGE.large : NUDGE.small;
+  // The camera looks along its +Z (spec 08 section 9.2); its right on the ground is (-fz, fx).
+  const ahead = rotate(camera.rotation, { x: 0, y: 0, z: 1 });
+  const flat = Math.hypot(ahead.x, ahead.z) || 1;
+  const fx = ahead.x / flat;
+  const fz = ahead.z / flat;
+  const ground: Record<string, [number, number]> = {
+    ArrowUp: [fx, fz],
+    ArrowDown: [-fx, -fz],
+    ArrowRight: [-fz, fx],
+    ArrowLeft: [fz, -fx],
+  };
+  const along = ground[key];
+  if (along) {
+    const x = withField(t, 'x', toMillimetre(t.position.x + along[0] * step));
+    return {
+      kind: 'move',
+      transform: withField(x, 'z', toMillimetre(t.position.z + along[1] * step)),
+    };
+  }
+  if (key === 'PageUp' || key === 'PageDown') {
+    const by = key === 'PageUp' ? step : -step;
+    return { kind: 'move', transform: withField(t, 'y', toMillimetre(t.position.y + by)) };
+  }
+  if (key === '[' || key === ']') {
+    const turns = turnOf(t.rotation) + (key === ']' ? 0.125 : -0.125);
+    const wrapped = Math.round((((turns % 1) + 1) % 1) * 1e6) / 1e6;
+    return { kind: 'turn', transform: withField(t, 'turn', wrapped) };
+  }
+  if (key === '+' || key === '=' || key === '-' || key === '_') {
+    const grow = key === '+' || key === '=' ? 1.1 : 1 / 1.1;
+    return { kind: 'size', transform: withField(t, 'size', toMillimetre(sizeOf(t) * grow)) };
+  }
+  return null;
+}
+
 /** How far in front of the camera a new object lands, in metres. */
 export const ADD_DISTANCE = 4;
 
