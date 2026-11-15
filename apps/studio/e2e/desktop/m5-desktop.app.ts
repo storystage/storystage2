@@ -81,7 +81,9 @@ test('M5: in the desktop app, the studio is on the native layer, with its versio
   // Talk to type is offered, since the native layer gives the speech models, and once on, the
   // Logline has its mic. (CI has no microphone: the take itself is the owner's, script section 3.)
   await expect(page.getByRole('heading', { name: 'Talk to type' })).toBeVisible();
-  await page.getByRole('switch', { name: /^Talk to type/ }).check();
+  // The switch's words, as a teacher taps them: the input itself lies under the drawn track.
+  await page.getByText('Talk to type: a mic beside every place you write').click();
+  await expect(page.getByRole('switch', { name: /^Talk to type/ })).toBeChecked();
   await page.getByRole('button', { name: /^Back to / }).click();
   await page.getByRole('tab', { name: /Storyboard/ }).click();
   await expect(page.getByRole('button', { name: /^Say it: Logline/ })).toBeVisible();
