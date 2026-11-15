@@ -22,6 +22,7 @@ import { SpokenField } from '../speech/SpokenField.tsx';
 import { words } from '../strings.ts';
 import { LIMITS, sceneNumber } from './edits.ts';
 import { sceneFrames } from './frames.ts';
+import { useSketches } from './sketchSource.tsx';
 import {
   addLine,
   deleteLine,
@@ -83,7 +84,8 @@ export function ScriptPane({
   const frames = scene ? sceneFrames(p, scene) : [];
   const frameNumber = (id: FrameId) => `${n}.${frames.findIndex((f) => f.id === id) + 1}`;
   const open = lines.find((l) => l.id === chosen) ?? null;
-  const names = scene ? speakers(p, scene) : [];
+  const art = useSketches();
+  const names = scene ? speakers(p, scene, art.name) : [];
   const full = p.script.length >= LIMITS.lines;
 
   const { dragAndDropHooks } = useDragAndDrop({

@@ -58,6 +58,7 @@ const models: ModelSourceHandle = {
   refused: [],
   catalogue: CATALOGUE,
   thumbnail: () => null,
+  sketch: () => null,
 };
 const host = { program: () => exampleProduction().program } as unknown as EditorHost;
 

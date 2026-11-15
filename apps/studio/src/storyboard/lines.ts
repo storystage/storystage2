@@ -16,7 +16,7 @@ import {
   type ScriptLine,
 } from '@storystage/production';
 import { LIMITS } from './edits.ts';
-import { sketchName } from './SketchArt.tsx';
+import { sketchName, type SketchItem } from './sketchItems.ts';
 
 const clamp = (text: string, limit: number) => [...text].slice(0, limit).join('');
 
@@ -138,10 +138,14 @@ export const pinnedLines = (p: Production, frame: FrameId): ScriptLine[] =>
  * Who can say a line in this scene: its cast, then every other name already speaking in the
  * script, each once, ignoring case.
  */
-export function speakers(p: Production, scene: SceneId): string[] {
+export function speakers(
+  p: Production,
+  scene: SceneId,
+  nameOf: (item: SketchItem) => string = sketchName,
+): string[] {
   const card = p.storyboard.cards.find((c) => c.id === scene);
   const names = [
-    ...(card?.cast ?? []).map(sketchName),
+    ...(card?.cast ?? []).map((c) => nameOf(c)),
     ...p.script.flatMap((l) => (l.character ? [l.character] : [])),
   ];
   const seen = new Set<string>();

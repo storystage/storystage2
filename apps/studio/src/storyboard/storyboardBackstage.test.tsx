@@ -25,6 +25,7 @@ const item = (id: string, section: BackstageItem['section'], cls: string, name: 
 const CATALOGUE = [
   item('kaykit/Biped/knight', 'cast', 'Biped', 'Knight'),
   item('kaykit/Ground/forest', 'backdrops', 'Ground', 'Forest floor'),
+  item('kaykit/Biped/rogue', 'cast', 'Biped', 'Rogue'),
 ];
 const example = exampleProduction();
 const scene = example.scenes[0]!.id;
@@ -84,6 +85,15 @@ describe('Backstage from the Storyboard (10.9)', () => {
     // Twice is once.
     await user.click(screen.getByRole('button', { name: 'Add Knight to scene 1’s cast' }));
     expect(castOf(studio()).filter((c) => c === 'kaykit/Biped/knight')).toHaveLength(1);
+  });
+
+  it('adds one model after another, each kept', async () => {
+    const user = userEvent.setup();
+    const studio = storyboard();
+    await user.click(screen.getByRole('button', { name: 'Cast' }));
+    await user.click(screen.getByRole('button', { name: 'Add Knight to scene 1’s cast' }));
+    await user.click(screen.getByRole('button', { name: 'Add Rogue to scene 1’s cast' }));
+    expect(castOf(studio()).slice(-2)).toEqual(['kaykit/Biped/knight', 'kaykit/Biped/rogue']);
   });
 
   it('stands one in from Can’t find it?, as one undo step', async () => {

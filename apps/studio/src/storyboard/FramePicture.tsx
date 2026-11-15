@@ -9,7 +9,8 @@ import type { Frame, FrameId, PlacedSketch, Production, SceneId } from '@storyst
 import { across, inLayerOrder } from '@storystage/sketches';
 import type { CSSProperties, ReactNode } from 'react';
 import { words } from '../strings.ts';
-import { SketchArt, sketchAspect, sketchName } from './SketchArt.tsx';
+import { SketchArt, sketchAspect, sketchName, type SketchItem } from './SketchArt.tsx';
+import { useSketches } from './sketchSource.tsx';
 
 /** A sketch at standard size is this tall, as a share of the frame's height. */
 export const STANDARD_HEIGHT = 0.3;
@@ -17,20 +18,26 @@ export const STANDARD_HEIGHT = 0.3;
 /** A share of the frame as a CSS length, to 0.01%. */
 const percent = (share: number) => `${Math.round(share * 10000) / 100}%`;
 
-/** Where a sketch sits on the frame, and how big, in front of what. */
-export function sketchStyle(s: PlacedSketch): CSSProperties {
+/**
+ * Where a sketch sits on the frame, and how big, in front of what. `aspect` is its drawing's width
+ * over height (`useSketches().aspect` for a model's own sketch).
+ */
+export function sketchStyle(s: PlacedSketch, aspect = sketchAspect(s.item)): CSSProperties {
   return {
     left: percent(s.x),
     top: percent(s.y),
     height: percent(STANDARD_HEIGHT * s.scale),
-    aspectRatio: sketchAspect(s.item),
+    aspectRatio: aspect,
     zIndex: s.layer + 1,
   };
 }
 
 /** "Owl, on the left": a sketch's accessible name (`07-ux.md` section 6.5). */
-export function describeSketch(s: PlacedSketch): string {
-  const name = sketchName(s.item);
+export function describeSketch(
+  s: PlacedSketch,
+  nameOf: (item: SketchItem) => string = sketchName,
+): string {
+  const name = nameOf(s.item);
   const where = words.t(`storyboard.canvas.where.${across(s)}`);
   return words.t(s.flipped ? 'storyboard.canvas.sketchFlipped' : 'storyboard.canvas.sketch', {
     name,
@@ -39,21 +46,32 @@ export function describeSketch(s: PlacedSketch): string {
 }
 
 /** What the picture says to a screen reader: its sketches, back to front, or that it's empty. */
-export function describeFrame(frame: Frame): string {
+export function describeFrame(
+  frame: Frame,
+  nameOf: (item: SketchItem) => string = sketchName,
+): string {
   const sketches = inLayerOrder(frame);
   return sketches.length === 0
     ? words.t('storyboard.picture.empty')
-    : words.t('storyboard.picture.of', { sketches: sketches.map(describeSketch).join('; ') });
+    : words.t('storyboard.picture.of', {
+        sketches: sketches.map((s) => describeSketch(s, nameOf)).join('; '),
+      });
 }
 
 export function FramePicture({ frame, label }: { frame: Frame; label?: string }) {
+  const art = useSketches();
   const sketches = inLayerOrder(frame);
   return (
-    <div className="sb-picture" role="img" aria-label={label ?? describeFrame(frame)}>
+    <div className="sb-picture" role="img" aria-label={label ?? describeFrame(frame, art.name)}>
       {sketches.map((s) => (
-        <span key={s.id} className="sb-picture-sketch" style={sketchStyle(s)} aria-hidden="true">
+        <span
+          key={s.id}
+          className="sb-picture-sketch"
+          style={sketchStyle(s, art.aspect(s.item, s))}
+          aria-hidden="true"
+        >
           <span className="sb-sketch-art" data-flipped={s.flipped || undefined}>
-            <SketchArt item={s.item} />
+            <SketchArt item={s.item} look={s} />
           </span>
         </span>
       ))}

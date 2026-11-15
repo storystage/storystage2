@@ -121,6 +121,9 @@ export function BackstageRail({
               className="pr-backstage-items"
               aria-label={words.t(`production.backstage.${open}`)}
               items={shown}
+              // Rows are drawn again when what they do changes: a cached row would add to the
+              // film as it was, losing what was added since.
+              dependencies={[onUse, addLabel, canAdd, draggable, thumbnail]}
               layout="grid"
               disabledBehavior="all"
               disabledKeys={canAdd ? [] : shown.map((i) => i.id)}

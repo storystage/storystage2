@@ -6,7 +6,8 @@ import { sceneNumber } from './edits.ts';
 import { sceneFrames } from './frames.ts';
 import { pinnedLines } from './lines.ts';
 import { partName } from './ScriptHeader.tsx';
-import { SketchArt, sketchAspect } from './SketchArt.tsx';
+import { SketchArt } from './SketchArt.tsx';
+import { useSketches } from './sketchSource.tsx';
 
 /** A sketch at standard size is this tall, as a share of the frame's height (as on the canvas). */
 const STANDARD_HEIGHT = 0.3;
@@ -14,6 +15,7 @@ const percent = (share: number) => `${Math.round(share * 10000) / 100}%`;
 
 /** A frame as printed: its sketches where the learner put them, nothing to press. */
 function PrintedFrame({ frame }: { frame: Frame }) {
+  const art = useSketches();
   return (
     <div className="sb-print-paper">
       {inLayerOrder(frame).map((s) => (
@@ -24,11 +26,11 @@ function PrintedFrame({ frame }: { frame: Frame }) {
             left: percent(s.x),
             top: percent(s.y),
             height: percent(STANDARD_HEIGHT * s.scale),
-            aspectRatio: sketchAspect(s.item),
+            aspectRatio: art.aspect(s.item, s),
           }}
         >
           <span className="sb-sketch-art" data-flipped={s.flipped || undefined}>
-            <SketchArt item={s.item} />
+            <SketchArt item={s.item} look={s} />
           </span>
         </span>
       ))}

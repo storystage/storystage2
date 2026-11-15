@@ -50,6 +50,7 @@ import { words } from './strings.ts';
 import { newProduction } from './storyboard/edits.ts';
 import { NOWHERE, currentPlace, type Place } from './storyboard/place.ts';
 import { Storyboard } from './storyboard/Storyboard.tsx';
+import { SketchSourceProvider, type SketchSource } from './storyboard/sketchSource.tsx';
 import { useStudio } from './studio.ts';
 
 /** Where the lesson is (`07-ux.md` section 9.1): before the studio, or in it. */
@@ -184,6 +185,39 @@ export function App({
   // One model source for every stage, and the running export, above the tabs (S5's review of
   // #317), so an export goes on when the learner changes tab, and stops when the studio closes.
   const models = useModelSource(host, studio.production, film?.files ?? NO_FILES);
+  // Models' own sketches for the Storyboard (WP10.9): the cast's class models are read from the
+  // device first, as a stage reads them, and drawn again once they are.
+  const castIds = useMemo(
+    () =>
+      [
+        ...new Set(
+          studio.production.storyboard.cards.flatMap((c) =>
+            c.cast.flatMap((m) => (typeof m === 'string' ? [m] : [])),
+          ),
+        ),
+      ].join('\n'),
+    [studio.production],
+  );
+  const [castRead, setCastRead] = useState(0);
+  const { prepare } = models;
+  useEffect(() => {
+    let live = true;
+    if (castIds === '') return;
+    prepare(castIds.split('\n')).then(
+      () => live && setCastRead((n) => n + 1),
+      // Unread, a model is its outline.
+      () => undefined,
+    );
+    return () => {
+      live = false;
+    };
+  }, [castIds, prepare]);
+  const sketchSource = useMemo<SketchSource>(
+    () => ({ item: models.item, sketch: models.sketch }),
+    // A new source each time models are read or Backstage's catalogue opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [models, castRead],
+  );
   // Speak lines' voices, for Rehearse and the export: asleep away from those two tabs.
   const voices = useVoices(
     studio.production,
@@ -468,138 +502,142 @@ export function App({
       {alice && (
         <AliceReport title={alice.title} report={alice.report} onClose={() => setAlice(null)} />
       )}
-      <TalkToType
-        host={host}
-        seal={() => studio.seal()}
-        {...(makeDictation ? { makeDictation } : {})}
-      >
-        <Shell
-          badges={
-            exporting ? { screening: { text: exporting.short, spoken: exporting.label } } : {}
-          }
-          onOverlayChange={setOverlayOpen}
-          title={
-            folder ? (
-              <FilmMenu
-                title={title}
-                pupilName={folder.pupil.name || null}
-                canSwitch={hasClass}
-                onAction={(action) =>
-                  void onFilmAction(action).catch((error: unknown) => setNote(folderProblem(error)))
-                }
-              />
-            ) : (
-              title
-            )
-          }
-          subtitle={status && <span role="status">{status}</span>}
-          notice={
-            failed ? (
-              <NeutralNote>
-                <span role="alert">{failed}</span>{' '}
-                <Button
-                  variant="secondary"
-                  icon="history"
-                  onPress={() => void saving.save('asked')}
-                >
-                  {words.t('save.tryAgain')}
-                </Button>
-              </NeutralNote>
-            ) : note || missing.length > 0 ? (
-              <>
-                {missing.length > 0 && <NeutralNote>{missingWords(missing)}</NeutralNote>}
-                {note && (
-                  <NeutralNote>
-                    {note}
-                    {/* The browser's one note also says when the browser may clear films. */}
-                    {note === words.t('save.browserNote') &&
-                      storageKept === false &&
-                      ` ${words.t('save.mayClear')}`}
-                  </NeutralNote>
-                )}
-              </>
-            ) : undefined
-          }
-          mode={mode}
-          onModeChange={(next) => {
-            // Changing tab is a moment to save.
-            void saving.save('auto');
-            // Back to the Screening room while an export needs the learner: its dialog, open.
-            if (next === 'screening' && exporting) setExportOpen(true);
-            // The learner chose a tab: a block Fix asked to show is no longer wanted.
-            setReveal(null);
-            setMode(next);
-          }}
-          settings={
-            <>
-              <AccessibilityCard />
-              <TalkToTypeCard host={host} />
-              <VoicesCard studio={phase.kind === 'studio' ? studio : null} voices={voices} />
-              <ClassSetup
-                host={host}
-                open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
-              />
-              <SelfTestCard
-                models={models}
-                {...(phase.kind === 'studio' ? { film: () => studio.session.production() } : {})}
-              />
-              <ReportProblemCard host={host} models={models} />
-            </>
-          }
-          panels={{
-            storyboard: (
-              <Storyboard
-                studio={studio}
-                place={place}
-                onPlaceChange={setPlace}
-                models={models}
-                importing={host.policy.backstage.import}
-              />
-            ),
-            production: (
-              <ProductionStage
-                production={p}
-                scene={currentPlace(p, place).scene}
-                frame={currentPlace(p, place).frame}
-                onPlaceChange={setPlace}
-                rehearsed={rehearsed}
-                onRehearsed={setRehearsed}
-                studio={studio}
-                voices={voices}
-                onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}
-                host={editors}
-                onGoToStoryboard={() => setMode('storyboard')}
-                announcement={said}
-                reveal={reveal}
-                models={models}
-                onAnnounce={setSaid}
-                active={!overlayOpen}
-              />
-            ),
-            screening: (
-              <Suspense fallback={null}>
-                <ScreeningTab
-                  studio={studio}
-                  // The export's voices: the same sounds as Rehearse (spec 08 section 4, S2's #367).
-                  {...(voices ? { voices: voices.forFilm() } : {})}
-                  host={host}
-                  models={models}
-                  exports={exports}
-                  exportOpen={exportOpen}
-                  onExportOpenChange={setExportOpen}
-                  active={!overlayOpen}
-                  onPlaceChange={setPlace}
-                  onOpenProductionStage={(node, at) => {
-                    if (at) setPlace(at);
-                    setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }));
-                    setMode('production');
-                  }}
+      <SketchSourceProvider source={sketchSource}>
+        <TalkToType
+          host={host}
+          seal={() => studio.seal()}
+          {...(makeDictation ? { makeDictation } : {})}
+        >
+          <Shell
+            badges={
+              exporting ? { screening: { text: exporting.short, spoken: exporting.label } } : {}
+            }
+            onOverlayChange={setOverlayOpen}
+            title={
+              folder ? (
+                <FilmMenu
+                  title={title}
+                  pupilName={folder.pupil.name || null}
+                  canSwitch={hasClass}
+                  onAction={(action) =>
+                    void onFilmAction(action).catch((error: unknown) =>
+                      setNote(folderProblem(error)),
+                    )
+                  }
                 />
-              </Suspense>
-            ),
-          }}
-        />
-      </TalkToType>
+              ) : (
+                title
+              )
+            }
+            subtitle={status && <span role="status">{status}</span>}
+            notice={
+              failed ? (
+                <NeutralNote>
+                  <span role="alert">{failed}</span>{' '}
+                  <Button
+                    variant="secondary"
+                    icon="history"
+                    onPress={() => void saving.save('asked')}
+                  >
+                    {words.t('save.tryAgain')}
+                  </Button>
+                </NeutralNote>
+              ) : note || missing.length > 0 ? (
+                <>
+                  {missing.length > 0 && <NeutralNote>{missingWords(missing)}</NeutralNote>}
+                  {note && (
+                    <NeutralNote>
+                      {note}
+                      {/* The browser's one note also says when the browser may clear films. */}
+                      {note === words.t('save.browserNote') &&
+                        storageKept === false &&
+                        ` ${words.t('save.mayClear')}`}
+                    </NeutralNote>
+                  )}
+                </>
+              ) : undefined
+            }
+            mode={mode}
+            onModeChange={(next) => {
+              // Changing tab is a moment to save.
+              void saving.save('auto');
+              // Back to the Screening room while an export needs the learner: its dialog, open.
+              if (next === 'screening' && exporting) setExportOpen(true);
+              // The learner chose a tab: a block Fix asked to show is no longer wanted.
+              setReveal(null);
+              setMode(next);
+            }}
+            settings={
+              <>
+                <AccessibilityCard />
+                <TalkToTypeCard host={host} />
+                <VoicesCard studio={phase.kind === 'studio' ? studio : null} voices={voices} />
+                <ClassSetup
+                  host={host}
+                  open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
+                />
+                <SelfTestCard
+                  models={models}
+                  {...(phase.kind === 'studio' ? { film: () => studio.session.production() } : {})}
+                />
+                <ReportProblemCard host={host} models={models} />
+              </>
+            }
+            panels={{
+              storyboard: (
+                <Storyboard
+                  studio={studio}
+                  place={place}
+                  onPlaceChange={setPlace}
+                  models={models}
+                  importing={host.policy.backstage.import}
+                />
+              ),
+              production: (
+                <ProductionStage
+                  production={p}
+                  scene={currentPlace(p, place).scene}
+                  frame={currentPlace(p, place).frame}
+                  onPlaceChange={setPlace}
+                  rehearsed={rehearsed}
+                  onRehearsed={setRehearsed}
+                  studio={studio}
+                  voices={voices}
+                  onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}
+                  host={editors}
+                  onGoToStoryboard={() => setMode('storyboard')}
+                  announcement={said}
+                  reveal={reveal}
+                  models={models}
+                  onAnnounce={setSaid}
+                  active={!overlayOpen}
+                />
+              ),
+              screening: (
+                <Suspense fallback={null}>
+                  <ScreeningTab
+                    studio={studio}
+                    // The export's voices: the same sounds as Rehearse (spec 08 section 4, S2's #367).
+                    {...(voices ? { voices: voices.forFilm() } : {})}
+                    host={host}
+                    models={models}
+                    exports={exports}
+                    exportOpen={exportOpen}
+                    onExportOpenChange={setExportOpen}
+                    active={!overlayOpen}
+                    onPlaceChange={setPlace}
+                    onOpenProductionStage={(node, at) => {
+                      if (at) setPlace(at);
+                      setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }));
+                      setMode('production');
+                    }}
+                  />
+                </Suspense>
+              ),
+            }}
+          />
+        </TalkToType>
+      </SketchSourceProvider>
     </ThemeRoot>
   );
 }
