@@ -178,7 +178,9 @@ export function browserPicker(page: () => PickerPage = windowPage, limit = FILE_
           on.download(suggestedName, bytes);
           return;
         }
-        const handle = await on.showSaveFilePicker({ suggestedName, types: TYPES });
+        // Only a production is offered as one: a script or a model pack keeps its own ending.
+        const types = suggestedName.endsWith(EXTENSION) ? { types: TYPES } : {};
+        const handle = await on.showSaveFilePicker({ suggestedName, ...types });
         await writeTo(handle, bytes);
       }),
 

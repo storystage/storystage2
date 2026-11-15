@@ -20,7 +20,9 @@ import { ScriptPane } from './ScriptPane.tsx';
 import { StoryboardBackstage } from './StoryboardBackstage.tsx';
 import { withCastMember } from './cast.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
-import type { BackstageImport } from '@storystage/host';
+import type { BackstageImport, FilePicker } from '@storystage/host';
+import { ImportScript } from './ImportScript.tsx';
+import { scriptFile, scriptFileName } from './scriptFile.ts';
 import { backdropSketchFor } from '@storystage/sketches';
 import { backstageId, type BackstageId } from '@storystage/story-api';
 
@@ -34,6 +36,11 @@ export interface StoryboardProps {
   models?: Pick<ModelSourceHandle, 'catalogue' | 'thumbnail'>;
   /** Who may import models, from the school's policy. Default `off`. */
   importing?: BackstageImport;
+  /**
+   * The host's file picker: with it, the script can be imported and exported as Fountain (10.4;
+   * 07-ux section 6.6, "when the host can open and save files").
+   */
+  picker?: Pick<FilePicker, 'saveCopy'>;
 }
 
 /** A CSS string, for the page foot's `content`. */
@@ -56,8 +63,12 @@ export function Storyboard({
   onPlaceChange,
   models,
   importing = 'off',
+  picker,
 }: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
+  // What Export the script said, shown beside the toolbar until the next export.
+  const [exported, setExported] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
   // Each press of Print storyboard, until the print dialog closes; 0 when not printing.
   const [printing, setPrinting] = useState(0);
   const themeStyle = useThemeStyle();
@@ -123,6 +134,29 @@ export function Storyboard({
     setAnnouncement(words.t('history.redone', { step: redoLabel }));
   };
 
+  /** Export the script: a Fountain file, saved where the learner picks (10.4). */
+  const say = (text: string) => {
+    setExported(text);
+    setAnnouncement(text);
+  };
+  const exportScript = async () => {
+    if (!picker) return;
+    setExported(null);
+    setExporting(true);
+    try {
+      await picker.saveCopy(scriptFileName(p), scriptFile(p));
+      say(words.t('storyboard.export.done'));
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      if (code === 'cancelled') return;
+      say(
+        code === 'full' ? words.t('storyboard.export.full') : words.t('storyboard.export.failed'),
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Print: lay the storyboard out, open the device's print dialog, and put the layout away when
   // the dialog closes (decision 0054). The page foot reads the title and the word for page from
   // custom properties on the root, which `@page` margin boxes inherit.
@@ -186,6 +220,16 @@ export function Storyboard({
           <Button variant="quiet" icon="print" onPress={() => setPrinting((n) => n + 1)}>
             {words.t('storyboard.print')}
           </Button>
+          {picker && (
+            <Button
+              variant="quiet"
+              icon="download"
+              isDisabled={exporting || p.manifest.runningOrder.length === 0}
+              onPress={() => void exportScript()}
+            >
+              {words.t('storyboard.export')}
+            </Button>
+          )}
           <Button variant="quiet" icon="undo" isDisabled={!undoLabel} onPress={undo}>
             {words.t('history.undo')}
             {undoLabel && <span className="ss-visually-hidden">: {undoLabel}</span>}
@@ -195,12 +239,27 @@ export function Storyboard({
             {redoLabel && <span className="ss-visually-hidden">: {redoLabel}</span>}
           </Button>
         </div>
+        {exported && <p className="sb-toolbar-said">{exported}</p>}
         <ScriptHeader production={p} onChange={commit} onLeave={studio.seal} />
         <SceneStrip
           production={p}
           current={current}
           onCurrentChange={(scene) => onPlaceChange({ scene, frame: null })}
           onStep={(step) => studio.step(step)}
+          importScript={
+            picker && (
+              <ImportScript
+                production={p}
+                readOnly={studio.readOnly !== null}
+                onStep={(step) => studio.step(step)}
+                onImported={(scene, said) => {
+                  onPlaceChange({ scene, frame: null });
+                  setAnnouncement(said);
+                }}
+                onAnnounce={setAnnouncement}
+              />
+            )
+          }
         />
         {current && (
           <SceneDetails

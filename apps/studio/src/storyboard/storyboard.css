@@ -23,6 +23,13 @@
   gap: 4px;
   justify-content: flex-end;
 }
+/* What Export the script said, under the toolbar. */
+.sb-toolbar-said {
+  margin: 0;
+  text-align: end;
+  font-size: calc(15px * var(--ss-text-size, 1));
+  color: var(--ss-muted);
+}
 
 /* The script header card: title, plan size, logline, synopsis and arc. */
 .sb-header {

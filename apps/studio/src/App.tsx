@@ -591,6 +591,7 @@ export function App({
                   onPlaceChange={setPlace}
                   models={models}
                   importing={host.policy.backstage.import}
+                  picker={host.picker}
                 />
               ),
               production: (
