@@ -204,6 +204,8 @@ export class BabylonStage implements EditableStage {
   private readonly tapListeners = new Set<(p: Picked) => void>();
   private readonly pointers = new Map<number, { x: number; y: number }>();
   private gesture: Gesture | null = null;
+  /** When each character's skin was last brought to its drawn pose, for picking. */
+  private skinned = new WeakMap<AbstractMesh, string>();
 
   readonly renderer: Renderer;
   readonly quality: Quality;
@@ -427,7 +429,7 @@ export class BabylonStage implements EditableStage {
   /** A click on the picture, in its own pixels from the top left. */
   click(x: number, y: number): void {
     const scene = this.loaded();
-    for (const mesh of this.owners.keys()) mesh.computeWorldMatrix(true);
+    this.placeForPicking(scene);
     const hit = scene.pick(x, y, (m) => m.isEnabled() && this.owners.has(m));
     const object = hit.pickedMesh ? this.owners.get(hit.pickedMesh)! : null;
     const across = x / this.engine.getRenderWidth();
@@ -907,6 +909,26 @@ export class BabylonStage implements EditableStage {
     return this.editView?.showing ? this.editView.meshes().length : 0;
   }
 
+  /**
+   * Brings what can be picked up to date: every place, and each character's skin in the pose it's
+   * drawn in. Babylon.js picks a skinned mesh in its rest pose otherwise, a T-pose for most, so a
+   * tap beside a character's arm chose it and a tap on the arm missed (found on KayKit's knight).
+   */
+  private placeForPicking(scene: Scene, ray?: Ray): void {
+    placeForPicture(scene);
+    // Skinning on the CPU costs about 30 ms a character, so it's done again only when the scene
+    // has changed, and, for a ray, only for what the ray passes near.
+    const now = `${this.timeline.time()} ${this.timeline.stateHash()}`;
+    for (const [mesh, id] of this.owners) {
+      if (!mesh.skeleton || !mesh.isEnabled() || this.skinned.get(mesh) === now) continue;
+      const box = this.views.get(id)?.box;
+      if (ray && box && rayHitsBox(ray, grown(box), this.timeline.transform(id)) === null) continue;
+      mesh.skeleton.prepare(true);
+      mesh.refreshBoundingInfo({ applySkeleton: true, applyMorph: true });
+      this.skinned.set(mesh, now);
+    }
+  }
+
   private has(target: EditTarget): boolean {
     return 'object' in target
       ? this.objects().includes(target.object)
@@ -938,7 +960,7 @@ export class BabylonStage implements EditableStage {
   private hit(ray: Ray): { target: EditTarget; distance: number } | null {
     let nearest: { target: EditTarget; distance: number } | null = null;
     if (this.scene) {
-      for (const mesh of this.owners.keys()) mesh.computeWorldMatrix(true);
+      this.placeForPicking(this.scene, ray);
       const { origin: o, direction: d } = ray;
       const hit = this.scene.pickWithRay(
         new PickRay(new Vector3(o.x, o.y, o.z), new Vector3(d.x, d.y, d.z), VIEW_FAR),
@@ -1104,6 +1126,13 @@ export class BabylonStage implements EditableStage {
     if (canvas && 'style' in canvas)
       canvas.style.touchAction = this.isEditing || this.around ? 'none' : '';
   }
+}
+
+/** A box half as big again each way, round its middle: what a pose can reach beyond its rest. */
+function grown(box: Box): Box {
+  const middle = scale(add(box.min, box.max), 0.5);
+  const half = scale(sub(box.max, box.min), 0.75);
+  return { min: sub(middle, half), max: add(middle, half) };
 }
 
 /** How far a press can move and still be a tap, in CSS pixels. */

@@ -310,9 +310,20 @@ async function rendering(renderer: 'auto' | 'webgl2', quality: 'low' | 'standard
  * The scene view (07-ux section 7.2) live on the page's canvas: the robot and a stand-in, a
  * marker, edit mode on, and the robot chosen. The test drives it with the real mouse.
  */
-async function sceneView() {
+async function sceneView(
+  given?: SceneSetup,
+  files?: Readonly<Record<string, { url: string; joints: readonly string[] }>>,
+) {
   const canvas = document.getElementById('stage') as HTMLCanvasElement;
-  const stage = await createBabylonStage({ canvas, models, renderer: 'webgl2' });
+  const found: ModelSource = files
+    ? {
+        find: (id) => {
+          const file = files[id];
+          return file ? { url: file.url, joints: file.joints.map(jointName) } : null;
+        },
+      }
+    : models;
+  const stage = await createBabylonStage({ canvas, models: found, renderer: 'webgl2' });
   // A camera 6 m back and 2 m up, looking a little down.
   const down = 0.1;
   const setup: SceneSetup = {
@@ -345,9 +356,9 @@ async function sceneView() {
     },
     markers: [{ id: 'door', transform: { ...IDENTITY, position: { x: 0, y: 0.5, z: 2 } } }],
   };
-  await stage.load(setup);
+  await stage.load(given ?? setup);
   stage.editing(true);
-  stage.choose({ object: objectId('robot') });
+  stage.choose({ object: (given ?? setup).objects[0]!.id });
   const edits: EditEvent[] = [];
   const taps: Picked[] = [];
   stage.onEdit((e) => edits.push(e));
@@ -377,6 +388,8 @@ async function sceneView() {
       onView: (x: number, y: number, z: number) =>
         toView(stage.viewTransform(), lens, canvas.clientWidth, canvas.clientHeight, { x, y, z }),
       amberInFrame,
+      pick: (x: number, y: number) => stage.pick(x, y),
+      inShot: () => stage.inShot(),
       stop: () => {
         stage.stopLive();
         stage.dispose();

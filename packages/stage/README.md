@@ -181,6 +181,7 @@ On the Babylon.js stage:
 - **The outline, handles and markers** (`babylon/edit-view.ts`) are drawn in amber, markers in blue, in a utility layer over the scene, at the same width on the view however near they are. `picture` never draws them, and `renderFrame` turns them off while it draws, so a frame is always the scene's own camera, as the film will be.
 - **Look around** (`orbit.ts`, pure) turns round a point on the scene camera's line of sight, as far ahead as what's in the shot. Dragging turns the scene as if by hand, a pinch or the wheel comes nearer, and the arrow keys (with + and −) work while the canvas has focus. It never takes focus.
 - **The pointer:** the canvas's listeners give `pointerDown`, `pointerMove`, `pointerUp`, `pointerCancel`, `wheel` and `viewKey` CSS pixels and keys, and a test can call them too. While editing or looking around, the canvas takes touch drags from the page (`touch-action: none`).
+- **Picking a character** uses the pose it's drawn in, not its rest pose (a T-pose for most), for taps in the scene view and clicks while a scene plays. Its skin is worked out again on the CPU only when the scene has changed, and only for characters the ray passes near (about 30 ms each on a desktop).
 - **A load that changes only places, paint or fading** keeps the scene and builds nothing again (`loadInPlace`), so the studio can load the set-up after every change without the picture flickering. Another model or backdrop builds the scene again.
 
 ## Shots (4.10)
