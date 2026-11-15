@@ -117,6 +117,17 @@ describe('the browser picker, with the system pickers (Chromium)', () => {
     expect(text(saved['The Owl.storystage'] as Uint8Array)).toBe('owl');
   });
 
+  it('offers only a production as a production: a script keeps its own ending', async () => {
+    const asked: object[] = [];
+    const { page } = chromium();
+    const save = page.showSaveFilePicker!;
+    page.showSaveFilePicker = (options) => (asked.push(options), save(options));
+    const picker = browserPicker(() => page);
+    await picker.saveCopy('The Owl.storystage', bytes('owl'));
+    await picker.saveCopy('The Owl.fountain', bytes('INT. OWL'));
+    expect(asked.map((o) => 'types' in o)).toEqual([true, false]);
+  });
+
   it('opens the file the person picks, and refuses one over the limit unread', async () => {
     const { page } = chromium({ 'film.storystage': bytes('a film') });
     expect(await browserPicker(() => page).open()).toEqual({
