@@ -500,6 +500,29 @@
 .pr-object[data-focus-visible] {
   box-shadow: 0 0 0 3px var(--ss-focus);
 }
+/* Pose: the joint, then its three turns. */
+.pr-pose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ss-line-1);
+}
+.pr-pose-title {
+  margin: 0;
+  font-size: calc(16px * var(--ss-text-size, 1));
+}
+.pr-pose-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  align-items: end;
+}
+.pr-pose-posed {
+  margin-inline-start: 8px;
+  color: var(--ss-text-2);
+  font-size: calc(14px * var(--ss-text-size, 1));
+}
 /* Picked up from the keyboard: held, until Enter, Space or Esc puts it down. */
 .pr-object[data-lifted] {
   background: var(--ss-amber-tint);

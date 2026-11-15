@@ -25,6 +25,8 @@ import {
   type SetupField,
 } from './setup.ts';
 import { refusalWords } from './refusals.ts';
+import { PosePanel } from './PosePanel.tsx';
+import type { PoseJoint } from './pose.ts';
 
 const FIELDS: readonly SetupField[] = ['x', 'y', 'z', 'turn', 'size'];
 
@@ -47,8 +49,13 @@ export function ObjectsPanel({
   chosen,
   onChoose,
   onAnnounce = () => {},
+  poseJoints = () => [],
 }: {
   studio: Studio;
+  /** The joints an object can be posed by, from its model's joints and its class's joint map. */
+  poseJoints?: (
+    object: Production['scenes'][number]['setup']['objects'][number],
+  ) => readonly PoseJoint[];
   /** Says a pick-up and a put-down to a screen reader. */
   onAnnounce?: (words: string) => void;
   /** The object chosen, here or on the stage, by its name. */
@@ -226,6 +233,15 @@ export function ObjectsPanel({
             </Button>
           )}
         </div>
+      )}
+      {object && poseJoints(object).length > 0 && (
+        <PosePanel
+          key={object.id}
+          studio={studio}
+          scene={scene}
+          object={object}
+          joints={poseJoints(object)}
+        />
       )}
       {refusal && (
         <NeutralNote>
