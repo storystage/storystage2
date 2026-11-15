@@ -35,3 +35,16 @@ blender -b --python-exit-code 1 --python tools/backstage-sources/blender/autorig
 - **Using the result:** the item's source list fetches it as `generated: "autorig/<name>.glb"`.
 
 Spec 17, section 3, has the rules.
+
+## Blender Studio's characters (`blender/studio.py`)
+
+The assets repository's **Blender Studio characters** workflow fetches each character listed in `originals/blender-studio/studio.json`, checks its sha256, and runs this script in Blender, headless:
+
+```
+blender -b <file.blend> --python-exit-code 1 --python tools/backstage-sources/blender/studio.py -- \n  export <assets>/originals/blender-studio/studio.json <name> <assets>/generated/blender-studio <assets>/previews/blender-studio
+```
+
+- **What it does:** it reduces the character to the cast's budget, bakes its look (hair and fur included) into one picture, makes our skeleton where the file's own bones are (`bones` names them), binds it, and renders it at rest and posed.
+- **Looking first:** `inspect <report.json> <picture.png>` lists what a file holds (collections, meshes before and after their modifiers, skeletons and their deforming bones, materials, hair), so its `studio.json` entry can be written.
+- **What it writes:** `<name>-report.json`, giving the triangles before and after, the joints and the meshes used.
+- **Using the result:** the item's source list (`sources/blender-studio.json`) fetches it as `generated: "blender-studio/<name>.glb"`.
