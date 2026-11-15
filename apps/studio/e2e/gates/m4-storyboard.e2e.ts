@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { expectSameSceneState } from './scene-state.ts';
 
 // The M4 gate, "Storyboard" (workplan section 5; WP18.2): a production is planned in the
 // Storyboard, frames link to code, and the cast is placed from frames, as one path. The manual
@@ -24,7 +25,7 @@ const choose = (page: Page, group: string, label: string) =>
     .click();
 
 test('M4: a film planned in the Storyboard by keyboard opens its Code editor', async ({ page }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(150_000);
   await page.setViewportSize({ width: 1366, height: 768 });
   // A new film in the device's own folder: nothing planned yet.
   await page.goto('/');
@@ -100,6 +101,8 @@ test('M4: a film planned in the Storyboard by keyboard opens its Code editor', a
   await expect(page.getByRole('textbox', { name: 'Caption' })).toHaveValue(
     'The owl lands by the gate.',
   );
+  // The planned film has the same scene state on every renderer (18.2).
+  await expectSameSceneState(page);
 });
 
 test('M4: a frame linked to code is Coded, and its check leads between the tabs', async ({

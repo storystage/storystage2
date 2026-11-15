@@ -29,6 +29,7 @@ describe('the self-test on the fake stage', () => {
       ['stage', 'pass'],
       ['rehearse', 'pass'],
       ['frames', 'pass'],
+      ['state', 'pass'],
       ['export', 'pass'],
       ['undo', 'pass'],
       ['save', 'pass'],
@@ -37,9 +38,12 @@ describe('the self-test on the fake stage', () => {
 
   it('writes a plain report that ends with SELFTEST PASS', async () => {
     const text = reportText(await runSelfTest(STEPS, fake));
-    expect(text).toMatch(/7 of 7 checks passed/);
+    expect(text).toMatch(/8 of 8 checks passed/);
     expect(text).toMatch(/✓ Play the whole film’s code, twice, and check both runs match/);
     expect(text).toMatch(/For now: checks that 150 frames come out the same every time/);
+    expect(text).toMatch(
+      /For now: this device draws with this stage only, so each frame was checked twice/,
+    );
     expect(text.trim().split('\n').at(-1)).toBe('SELFTEST PASS');
     for (const word of ['AST', 'node', 'token', 'schema', 'API'])
       expect(text).not.toMatch(new RegExp(`\\b${word}\\b`));
@@ -159,6 +163,79 @@ describe('the self-test finds problems', () => {
     });
     expect(seen).toEqual(['a:pass', 'b:fail']);
     expect(report.results[1]!.detail).toBe('B is broken.');
+  });
+});
+
+describe('scene state on every renderer (WP18.2)', () => {
+  /** A stage whose state drifts from half a second into a scene, as a renderer with its own maths would. */
+  const drifting = () => {
+    const stage = new FakeStage();
+    const hash = stage.stateHash.bind(stage);
+    stage.stateHash = () => hash() + (stage.time() > micros(0.5) ? 1 : 0);
+    return stage;
+  };
+  const stateOf = async (context: SelfTestContext) => {
+    const report = await runSelfTest(STEPS, context);
+    return report.results.find((r) => r.id === 'state')!;
+  };
+
+  it('passes when every renderer gives the same scene state, frame for frame', async () => {
+    const state = await stateOf({
+      ...fake,
+      renderers: [
+        { name: 'WebGL2', makeStage: () => new FakeStage() },
+        { name: 'WebGPU', makeStage: () => new FakeStage() },
+      ],
+    });
+    expect(state).toMatchObject({ status: 'pass', standIn: null });
+  });
+
+  it('says on which renderer, and from which frame, a film differs', async () => {
+    const state = await stateOf({
+      ...fake,
+      renderers: [
+        { name: 'WebGL2', makeStage: () => new FakeStage() },
+        { name: 'WebGPU', makeStage: drifting },
+      ],
+    });
+    expect(state.status).toBe('fail');
+    expect(state.detail).toMatch(
+      /^On WebGPU, “The Lost Penguin \(demo\)” differed from WebGL2 at frame \d+\.$/,
+    );
+  });
+
+  it('checks the film open in the studio as well as the demo', async () => {
+    const demo = demoProduction();
+    const open = { ...demo, manifest: { ...demo.manifest, title: 'Owl’s first flight' } };
+    let made = 0;
+    // The open film is played after the demo: its second run drifts.
+    const state = await stateOf({
+      ...fake,
+      openFilm: () => open,
+      renderers: [
+        { name: 'WebGL2', makeStage: () => new FakeStage() },
+        { name: 'WebGPU', makeStage: () => (made++ === 1 ? drifting() : new FakeStage()) },
+      ],
+    });
+    expect(state.detail).toMatch(/^On WebGPU, “Owl’s first flight” differed from WebGL2/);
+  });
+
+  it('plays the demo once a renderer when the open film is the demo', async () => {
+    let made = 0;
+    const counting = () => {
+      made++;
+      return new FakeStage();
+    };
+    const state = await stateOf({
+      ...fake,
+      openFilm: () => demoProduction(),
+      renderers: [
+        { name: 'WebGL2', makeStage: counting },
+        { name: 'WebGPU', makeStage: counting },
+      ],
+    });
+    expect(state.status).toBe('pass');
+    expect(made).toBe(2);
   });
 });
 

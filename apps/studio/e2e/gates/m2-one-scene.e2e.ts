@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
+import { expectSameSceneState } from './scene-state.ts';
 
 // The M2 gate, "One scene, coded" (workplan section 5; WP18.2): in the browser, add models to a
 // scene, code it with blocks, Rehearse it, as one path. The manual script is
@@ -107,7 +108,7 @@ test('M2: models are added to the scene from Cast, by pointer and by keyboard', 
 test('M2: a scene is coded with a block from the palette, and Rehearse runs it', async ({
   page,
 }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(150_000);
   await productionStage(page);
 
   // Code it: a say for the penguin, from the palette, after the method's last block.
@@ -175,4 +176,6 @@ test('M2: a scene is coded with a block from the palette, and Rehearse runs it',
   await expect(page.locator('.ss-highlight-rehearse')).toHaveCount(0);
   // The block the learner added is still there, as coded.
   await expect(page.locator('.pr-workspace')).toContainText('The gate is open');
+  // And the coded scene plays with the same scene state on every renderer (18.2).
+  await expectSameSceneState(page);
 });
