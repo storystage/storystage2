@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = 'e2edf86e73d90b3ffe2db1b36f1065f517917033';
+export const SHIPPED_CATALOGUE_COMMIT = '4d4d0a6d8aef4ee14738644f849a8429ed0bdb66';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -14,6 +14,7 @@ Joint sets
   J2: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbMetacarpal, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbMetacarpal, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J3: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J4: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftMiddleProximal, leftRingProximal, leftLittleProximal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightMiddleProximal, rightRingProximal, rightLittleProximal, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J5: hips, spine, chest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, rightShoulder, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot
 
 Cast
   Biped
@@ -66,6 +67,13 @@ Cast
     osa/Biped/robert: Robert, a man with a pink beard, in a dark green T-shirt and turquoise trousers [everyday] 1.61 m, joints J3
     osa/Biped/rose: Rose, a pirate in a black three-cornered hat, a striped top, red shorts and tall boots [everyday] 1.66 m, joints J3
     osa/Biped/teddy: Teddy, a brown teddy bear [everyday, toys] 1.65 m, joints J3
+    sketchfab/Biped/grandmother: Grandmother, an old village grandmother with grey hair, in a long orange dress [storybook, fairy tale, people] 1.55 m, joints J5
+    sketchfab/Biped/red-riding-hood: Little Red Riding Hood, Little Red Riding Hood, a small girl in a long red hooded cloak [storybook, fairy tale] 1.2 m, joints J5
+    storybook/Biped/beowulf: Beowulf, Beowulf the hero, bearded, in a bear hood and furs [storybook, legend, myth, history] 2.4 m, joints J1
+    storybook/Biped/fionn-mac-cumhaill: Fionn mac Cumhaill, Fionn mac Cumhaill, the Irish and Scottish giant, bearded, in furs [storybook, legend, myth] 4.99 m, joints J1
+    storybook/Biped/king-arthur: King Arthur, King Arthur, fair-haired and bareheaded, in armour and a red cape [storybook, legend, myth, history] 2.31 m, joints J1
+    storybook/Biped/merlin: Merlin, Merlin the wizard, young, with black hair, in a tall purple pointed hat and robe [storybook, legend, myth, fantasy] 2.72 m, joints J1
+    storybook/Biped/robin-hood: Robin Hood, Robin Hood, the outlaw of Sherwood Forest, in a green hood and cloak [storybook, legend, history] 2.25 m, joints J1
 
 Props
   Prop
