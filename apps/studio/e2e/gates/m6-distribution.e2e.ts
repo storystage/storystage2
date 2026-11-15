@@ -106,7 +106,9 @@ test('M6: the three-scene film exports to an MP4, with its captions saved beside
   const srt = new TextDecoder().decode(new Uint8Array(named('.srt')!.bytes));
   expect(vtt.startsWith('WEBVTT')).toBe(true);
   expect(srt).toMatch(/^1\r?\n\d\d:\d\d:\d\d,\d\d\d --> \d\d:\d\d:\d\d,\d\d\d/);
-  const cues = (text: string) => text.split(/\r?\n/).filter((l) => /\w/.test(l) && !/-->/.test(l));
+  // A cue's words: not its timing line ("start --> end").
+  const cues = (text: string) =>
+    text.split(/\r?\n/).filter((l) => /\w/.test(l) && !l.includes(' --> '));
   expect(cues(vtt).length).toBeGreaterThan(1);
   for (const said of cues(srt).filter((l) => !/^\d+$/.test(l))) expect(vtt).toContain(said);
 });
