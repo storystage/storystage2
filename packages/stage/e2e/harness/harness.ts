@@ -809,6 +809,33 @@ async function backdropPictures() {
 }
 
 /** Milliseconds: the mean, and the slowest but one in twenty. */
+/**
+ * Plays the scene live from `from` for `seconds`, as the studio does, and counts the frames the
+ * browser shows: frames a second, and the slowest frames (95th percentile), in milliseconds.
+ */
+async function playLive(
+  stage: Awaited<ReturnType<typeof createBabylonStage>>,
+  from: number,
+  seconds: number,
+) {
+  const shown: number[] = [];
+  let start = 0;
+  stage.startLive(() => {
+    const now = performance.now();
+    if (!start) start = now;
+    shown.push(now);
+    stage.seek(micros(from + (now - start) / 1000));
+  });
+  await new Promise((done) => setTimeout(done, seconds * 1000));
+  stage.stopLive();
+  const gaps = shown.slice(1).map((t, i) => t - shown[i]!);
+  const span = (shown.at(-1)! - shown[0]!) / 1000;
+  return {
+    fps: Math.round((gaps.length / Math.max(span, 0.001)) * 10) / 10,
+    slowest: spread(gaps).p95,
+  };
+}
+
 function spread(times: readonly number[]) {
   const sorted = [...times].sort((a, b) => a - b);
   const mean = times.reduce((s, t) => s + t, 0) / Math.max(1, times.length);
@@ -826,13 +853,17 @@ function spread(times: readonly number[]) {
  * - `frame`: the whole frame, the GPU's drawing included.
  *
  * Also how long the scene took to load, and to work out every walk (its walkable area included).
- * On a reference device, open this page and call `stageHarness.characterCost(10)` (#6).
+ * With `live` seconds, it also plays the walk live, as the studio does, and counts the frames the
+ * browser shows (`liveFps`), at the `quality` asked for. On a reference device, `device.html`
+ * runs it with Backstage's own people (#6).
  */
 async function characterCost(
   count = 10,
   seconds = 2,
   url: string = tinyHumanUrl(),
   renderer: 'auto' | 'webgl2' = 'webgl2',
+  quality: 'low' | 'standard' = 'standard',
+  live = 0,
 ) {
   const canvas = document.createElement('canvas');
   canvas.style.width = `${W}px`;
@@ -843,6 +874,7 @@ async function characterCost(
     canvas,
     models: { find: (id) => (id === person ? { url, joints: [] } : null) },
     renderer,
+    quality,
   });
   const ids = Array.from({ length: count }, (_, i) => objectId(`p${i}`));
   const setup: SceneSetup = {
@@ -933,6 +965,7 @@ async function characterCost(
   // Working out every walk's way round the wall, its walkable area included, and scheduling it.
   const planMs = Math.round(performance.now() - planning);
   const walking = await run(3.6);
+  const liveFps = live > 0 ? await playLive(stage, 3.6, live) : null;
 
   await stage.load(setup, { crossfade: micros(seconds + 1) });
   const crossfade = await run(0);
@@ -943,7 +976,18 @@ async function characterCost(
     '';
   stage.dispose();
   canvas.remove();
-  return { count, renderer: stage.renderer, gpu, loadMs, planMs, standing, walking, crossfade };
+  return {
+    count,
+    renderer: stage.renderer,
+    quality,
+    gpu,
+    loadMs,
+    planMs,
+    standing,
+    walking,
+    crossfade,
+    ...(liveFps ? { liveFps } : {}),
+  };
 }
 
 /**

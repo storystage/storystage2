@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>The stage on this device</title>
+    <style>
+      body {
+        font:
+          16px/1.5 system-ui,
+          sans-serif;
+        max-width: 46rem;
+        margin: 1rem auto;
+        padding: 0 1rem;
+      }
+      button {
+        font: inherit;
+        padding: 0.5rem 1.25rem;
+        margin-right: 0.5rem;
+      }
+      pre {
+        white-space: pre-wrap;
+        background: #f2f2f2;
+        padding: 0.75rem;
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>The stage on this device</h1>
+    <p>
+      The real stage, with Backstage's own people, for 5.6 (the budget at each quality) and 5.8
+      (what characters, crossfades and view events cost). It takes about four minutes. Keep the
+      device plugged in and this page in view until the results appear, then copy them into a chat
+      with S3.
+    </p>
+    <p><button id="run">Run</button><button id="copy" disabled>Copy the results</button></p>
+    <p id="status" role="status">Not started.</p>
+    <pre id="results"></pre>
+    <script type="module" src="./device.ts"></script>
+  </body>
+</html>
