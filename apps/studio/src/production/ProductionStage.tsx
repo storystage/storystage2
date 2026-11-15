@@ -18,6 +18,8 @@ import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
 import { FrameLinks } from './FrameLinks.tsx';
+import { placeFromStoryboard, storyboardPlan, type Placement } from './fromStoryboard.ts';
+import { StoryboardSetup } from './StoryboardSetup.tsx';
 import { liveLinks, withLink } from './links.ts';
 import { ObjectsPanel } from './ObjectsPanel.tsx';
 import { BackstageRail } from './BackstageRail.tsx';
@@ -33,7 +35,13 @@ import {
 } from './setup.ts';
 import { addObject, objectName, withObject } from '@storystage/production';
 import type { EditTarget } from '@storystage/stage';
-import { CAMERA, type ObjectId, type Transform, type Vec3 } from '@storystage/story-api';
+import {
+  CAMERA,
+  type BackstageId,
+  type ObjectId,
+  type Transform,
+  type Vec3,
+} from '@storystage/story-api';
 import type { BackstageItem } from '@storystage/backstage';
 import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio } from '../studio.ts';
@@ -125,6 +133,12 @@ function FrameCheckArea({
 }
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
+
+/**
+ * The scenes whose "Set up this scene from your storyboard?" the learner has answered, for each
+ * film's session: it's offered once a session, then waits behind Set up from storyboard.
+ */
+const answered = new WeakMap<object, Set<SceneId>>();
 
 const DRAG_STEP = {
   move: 'production.objects.moveStep',
@@ -278,6 +292,47 @@ export function ProductionStage({
   // What's chosen on the stage and in Objects in this scene, for the scene it was chosen in.
   const [choice, setChoice] = useState<{ scene: SceneId; target: EditTarget } | null>(null);
   const chosen = choice && choice.scene === scene ? choice.target : null;
+  // Set the stage from the storyboard (WP10.10): what it shows that the stage doesn't have yet.
+  const plan = useMemo(
+    () =>
+      studio && models && scene !== null && studio.readOnly === null
+        ? storyboardPlan(p, scene, {
+            item: (id) => models.item(id as BackstageId),
+            backdrops: models.catalogue.filter((i) => i.section === 'backdrops'),
+          })
+        : [],
+    [p, scene, models, studio],
+  );
+  // The offer, asked again by Set up from storyboard, for the scene it was asked in.
+  const [asking, setAsking] = useState<SceneId | null>(null);
+  const [, setAnswers] = useState(0);
+  const isAnswered = !!studio && scene !== null && !!answered.get(studio.session)?.has(scene);
+  const offering = plan.length > 0 && (!isAnswered || asking === scene);
+  const answer = () => {
+    if (!studio || scene === null) return;
+    const set = answered.get(studio.session) ?? new Set<SceneId>();
+    set.add(scene);
+    answered.set(studio.session, set);
+    setAsking(null);
+    setAnswers((n) => n + 1);
+  };
+  const placeChosen = (chosen: readonly Placement[]) => {
+    if (!studio || scene === null) return;
+    const n = numberOfScene(p, scene);
+    const placed = placeFromStoryboard(
+      studio.production,
+      scene,
+      chosen,
+      words.t('production.fromStoryboard.step', { n }),
+    );
+    answer();
+    if (!placed.ok) return setStageNote(refusalWords(placed.refusal, placed.name));
+    const done = studio.step(placed.step);
+    if (!done.ok) return setStageNote(done.reason);
+    setStageNote(null);
+    onAnnounce(words.plural('production.fromStoryboard.placed', chosen.length));
+  };
+  const hasFrames = scene !== null && sceneFrames(p, scene).length > 0;
   const choose = (target: EditTarget | null) =>
     setChoice(target && scene !== null ? { scene, target } : null);
   // Only a change in what's marked gives the editor new marks.
@@ -361,6 +416,15 @@ export function ProductionStage({
       )}
       {voices && <VoicesDownload voices={voices} />}
       {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
+      {offering && scene !== null && (
+        <StoryboardSetup
+          key={scene}
+          plan={plan}
+          frameNumber={`${numberOfScene(p, scene)}.1`}
+          onPlace={placeChosen}
+          onNotNow={answer}
+        />
+      )}
       <div className="pr-top">
         {studio && models && scene !== null && (
           <BackstageRail
@@ -413,6 +477,14 @@ export function ProductionStage({
               silentLines={silentLines}
               chosen={chosen}
               onChoose={choose}
+              {...(studio && studio.readOnly === null && hasFrames && !offering
+                ? {
+                    onSetUp: () => {
+                      if (plan.length > 0) return setAsking(scene);
+                      setStageNote(words.t('production.fromStoryboard.nothing'));
+                    },
+                  }
+                : {})}
               canEdit={!!studio && studio.readOnly === null}
               onMoved={(target, transform) => {
                 if (!studio) return;

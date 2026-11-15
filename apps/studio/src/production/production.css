@@ -243,6 +243,51 @@
   align-items: center;
   gap: 8px;
 }
+/* Set up this scene from your storyboard? (WP10.10) */
+.pr-from-storyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--ss-amber-line);
+  border-radius: 12px;
+  background: var(--ss-panel-2);
+}
+.pr-from-storyboard-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(19px * var(--ss-text-size, 1));
+}
+.pr-from-storyboard-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-from-storyboard-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+.pr-from-storyboard-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+.pr-from-storyboard-section {
+  margin: 0;
+  font-size: calc(15px * var(--ss-text-size, 1));
+  color: var(--ss-text-2);
+}
+.pr-from-storyboard-list {
+  margin: 0;
+  padding-left: 20px;
+}
+.pr-from-storyboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 /* Under the view: Camera view or Look around, Move the camera here, and In this shot. */
 .pr-scene-tools {
   display: flex;
