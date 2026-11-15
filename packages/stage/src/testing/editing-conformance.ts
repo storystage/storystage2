@@ -8,6 +8,7 @@ import {
   CAMERA,
   IDENTITY,
   StageError,
+  jointName,
   micros,
   objectId,
   type SceneSetup,
@@ -164,6 +165,31 @@ export function describeEditableStageContract(
       expect(stage.viewTransform()).toEqual(view);
       expect(stage.time()).toBe(0);
       expect(stage.transform(cat).position.x).toBeCloseTo(-2, 5);
+    });
+
+    it('poses an object without reloading, and refuses a joint it has not got', async () => {
+      const stage = await loaded();
+      const head = jointName('head');
+      const headTurn = () =>
+        (
+          stage.answer({ kind: 'transform', object: { object: cat, joint: head }, at: 0 })
+            .value as Transform
+        ).rotation;
+      const quarter = { x: 0, y: Math.SQRT1_2, z: 0, w: Math.SQRT1_2 };
+      stage.setObject(cat, { joints: { [head]: quarter } });
+      expect(Math.abs(headTurn().y)).toBeCloseTo(Math.SQRT1_2, 5);
+      const before = stage.stateHash();
+      expect(() => stage.setObject(cat, { joints: { [jointName('leftWing')]: quarter } })).toThrow(
+        StageError,
+      );
+      expect(() =>
+        stage.setObject(cat, { joints: { [head]: { x: 1, y: 1, z: 0, w: 0 } } }),
+      ).toThrow(StageError);
+      expect(() => stage.setObject(CAMERA, { joints: {} })).toThrow(StageError);
+      expect(stage.stateHash()).toBe(before);
+      // The whole pose is replaced: none is rest.
+      stage.setObject(cat, { joints: {} });
+      expect(Math.abs(headTurn().w)).toBeCloseTo(1, 5);
     });
   });
 }
