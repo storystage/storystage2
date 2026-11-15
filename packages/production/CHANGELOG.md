@@ -2,6 +2,14 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.5.0
+
+A set-up object can start posed (S3's #424, for S5's Pose panel; 07-ux section 7.2; spec 03 section 2.2). Optional, so an older file opens, is migrated, and keeps its original.
+
+- On a set-up object: `joints`, each joint's turn from its rest pose, in the joint's own axes, as a unit quaternion (`{ x, y, z, w }`). A joint left out stays at rest.
+- Only the learner's choices: when the file opens (`keptJoints`, `pose.ts`), a name that isn't a joint of the object's class, a turn more than 1e-3 off unit length (`POSE_TOLERANCE`) or not four finite numbers, joints that aren't an object, and a declared stand-in's whole pose are dropped, never refused. A pose with nothing left is left out. Kept turns are as written.
+- An opened production lists what was dropped in `dropped`, for developers: a pose's entries, and now voices and frame checks too.
+
 ## 1.4.0
 
 A production keeps its characters' speak-line voices (S1, WP14b; spec 06 section 4.3). Optional, so an older file opens, is migrated, and keeps its original.

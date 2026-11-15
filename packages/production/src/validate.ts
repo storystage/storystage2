@@ -221,8 +221,10 @@ export function checkSceneShape(v: unknown, where: string, options: ShapeOptions
     if (b.fog !== undefined) s.number(b.fog, 'setup.backdrop.fog', 0, 1);
   }
   s.array(setup.objects, 'setup.objects', (o, p) => {
-    if (!s.object(o, p, ['id', 'model', 'class', 'transform'], ['opacity', 'paint', 'vehicle']))
-      return;
+    // `joints` (format 1.5.0) is only allowed here: `keptJoints` keeps what fits when the file
+    // opens.
+    const optional = ['opacity', 'paint', 'vehicle', 'joints'];
+    if (!s.object(o, p, ['id', 'model', 'class', 'transform'], optional)) return;
     s.string(o.id, join(p, 'id'));
     modelRef(s, o.model, join(p, 'model'));
     s.oneOf(o.class, join(p, 'class'), STORY_CLASSES);
