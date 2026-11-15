@@ -189,7 +189,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 24 of 61 items finished and 20 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 25 of 61 items finished and 19 more started:
 
 - **Release candidate:** week 11 (4 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 17 (15 Feb 2027). The plan says week 24.5 (9 Apr 2027).
@@ -266,7 +266,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP3c | Manifest, budgets, lazy loading (3.4, 3.9) | Backstage | WP1, WP3b | 2 | wk 5.5 (26 Nov 2026) | 5 | 0.3 (7–8 Nov) |
 | WP24a | Teacher journey, Prompter access model, relay spike (24.1–24.3) | Apps | WP1g, WP15a, WP8f | 2 | wk 6 (30 Nov 2026) | 5.5 | started 8 Nov; ends about 23 Nov |
 | WP10a | Storyboard: script, arcs, cards, frame canvas, PDF | Interface | WP8f, WP12b, WP10s | 4 | wk 6 (30 Nov 2026) | 4.5 | started 7 Nov; ends about 4 Dec |
-| WP4b | Story API procedures, new blocks, shot types (4.3, 4.4, 4.10) | Language | WP4a, WP5a | 3 | wk 7.5 (10 Dec 2026) | **0 (critical)** | started 7 Nov; ends about 26 Nov |
+| WP4b | Story API procedures, new blocks, shot types (4.3, 4.4, 4.10) | Language | WP4a, WP5a | 3 | wk 7.5 (10 Dec 2026) | **0 (critical)** | 1.3 (7–15 Nov) |
 | WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 | 0.3 (8–9 Nov) |
 | WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | started 8 Nov; ends about 10 Dec |
 | WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 23 Nov |
@@ -560,7 +560,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     Anything dropped or added is listed. (C)
 - [x] 4.2 TypeScript definitions with metadata for blocks, catalog and validation: parameter names, types, enums, defaults, display words in English, translatable. (C)
 - [x] 4.3 Implement each procedure and function against the stage interface (WP5), with Alice's timing (default duration 1 second) and animation styles. (C)
-- [ ] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). (C)
+- [x] 4.4 **New StoryStage blocks:** go to scene, fade to black, crossfade (WP8) and speak line (WP14). The scene changes run in the runtime (#196, #236) and the stage crossfades (#234); `playthrough.test.ts` plays a film through each. The speak line runs on the stage with its caption (#265, #318). All four are in both editors' palettes. (C)
 - [x] 4.5 **Character-level actions** (Alice has `walkTo`, `touch` and `reachFor` hidden and unfinished, left over from Looking Glass's Walk and Touch API):
     - walk to and run to, round obstacles, using a navigation mesh (Babylon.js navigation plugin, Recast/Detour);
     - sit on, stand up, lie down, fall;

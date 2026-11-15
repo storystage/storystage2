@@ -327,6 +327,7 @@ items:
     basis: first plan
     after: [WP4a, WP5a]
     started: 2026-11-07
+    finished: 2026-11-15
   - id: WP8
     label: Scenes, running order, save and open (8.2–8.5)
     lane: Productions
