@@ -30,10 +30,11 @@ Browser spikes first, then spike 1.7 last on the Chromebook, because turning its
 | 1 | Chromebook, Chrome | **1.4** interpreter and scheduler | 5 min | |
 | 2 | Chromebook, Chrome | **1.5** both code editors, by touch and keyboard | 15 min | |
 | 3 | Chromebook, Chrome | **1.2** characters, budget sweep | 10 min | |
+| 3a | Chromebook, Chrome | **5.6 and 5.8**, the real stage: open **stage/device.html** from the index, tap **Run**, wait for "Done", then **Copy the results** | 5 min | |
 | 4 | Chromebook, Chrome | **1.8** MP4 export, including the **AAC** answer | 10 min | |
 | 5 | Chromebook, Chrome | **1.3** speech to text, including airplane mode | 20 min | |
 | 5a | Chromebook, Chrome | Optional: **14.3** voices. Tap **Speak the test lines**, wait for the ten lines, and note `loadMs` and each line's `speakMs` and `realTimeFactor`: how much slower than real time Kokoro is on the Chromebook decides how long a film's lines take to prepare (spec 06, 4.6) | 10 min | |
-| 6 | iPad, Safari | **1.4**, **1.5** (touch), **1.2**, **1.8**, **1.3**, in that order | 1 hour | |
+| 6 | iPad, Safari | **1.4**, **1.5** (touch), **1.2**, **5.6 and 5.8** (stage/device.html), **1.8**, **1.3**, in that order | 1 hour | |
 | 7 | Chromebook | **1.7** the Android app: developer settings, install, run | 45 min | |
 
 Before each spike: close other apps and tabs, note the battery level and whether the device is warm, and keep the page in view until its results appear. If a page crashes or reloads by itself, note it: that is a result, especially for 1.3 (memory) on the Chromebook.
@@ -53,6 +54,7 @@ The quickest way: **paste each page's results into a chat with S1**, with the de
 ## 1.4  Chromebook: ___  iPad: ___
 ## 1.5  Chromebook: ___  iPad: ___  Which felt easier by touch, and why: ___
 ## 1.2  Chromebook: ___  iPad: ___  Where motion starts to feel jerky: ___
+## 5.6 and 5.8 (stage/device.html)  Chromebook: ___  iPad: ___
 ## 1.8  Chromebook (probe.aac = ___): ___  iPad: ___
 ## 1.3  Chromebook: ___  iPad: ___  Airplane mode worked: ___
 ## 1.7  Android WebView version: ___  Results: ___  Install steps that differed: ___
@@ -67,6 +69,7 @@ S1 does these from your results. The decisions are yours.
 | Spike | The device run answers | Then |
 |---|---|---|
 | **1.2** | The largest preset that holds **30 fps on the Chromebook at "low"** (WP5's done-when) | S1 proposes go and the budgets per model and per scene. You record go or no-go. The budgets go to S4 (WP3.9) and S3 (WP5a), replacing the working assumption of about 20k triangles per character and 100k per scene. |
+| **5.6 and 5.8** | How many of Backstage's heaviest people (MakeHuman's) the real stage holds at **30 fps** at each quality; what the stage's own work, a crossfade and view and occlusion events cost | S3 proposes the budget per device (5.6) and records 5.8's costs; you decide occlusion events (decision 0051). The results go to S3. |
 | **1.3** | Whether whisper fits in 4 GB without the tab crashing, and how long a 5-second request takes | S1 proposes go, or a plan change such as a smaller starting memory or the quantised model only (WP14.1). |
 | **1.4** | Timing on the devices | Already go (21 Oct). Recorded as confirmed, or reopened if `lateCommands` isn't 0. |
 | **1.5** | Touch on both editors, and Blockly's stutter as a drag starts | Already go for both (21 Oct). Your touch impressions and the stutter numbers go to WP7 (S5) and WP7c (S6). |
