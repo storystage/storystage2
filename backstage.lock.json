@@ -1,7 +1,7 @@
 {
   "repository": "storystage/backstage-assets",
-  "commit": "4d4d0a6d8aef4ee14738644f849a8429ed0bdb66",
+  "commit": "6cc3e657562f1dc39f2c1656eb078836baaedfba",
   "manifestVersion": "2.1.0",
-  "manifestSha256": "f59a498a4217d0d86dd9355890f60b7c8d787a1d8f4efcef58c36b462258b2ba",
-  "catalogueSha256": "fcb631754f7a399bb6394e471e9e19511bd7220c52555ad33d3c7a5c8adc7e88"
+  "manifestSha256": "95de4b45dc776a4000841da1c58712677949c43823df9f999be260e2e737738a",
+  "catalogueSha256": "97005da43ee918dd77460dd9ab5a91e41887e290a37c5e6242ceea500208c123"
 }

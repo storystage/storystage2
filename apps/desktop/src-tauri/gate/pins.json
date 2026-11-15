@@ -7,7 +7,7 @@
     "scriptCheck": { "models": ["claude-opus-5-5"], "maxTokens": 16000 }
   },
   "betas": ["server-side-fallback-2026-07-01"],
-  "system": "ebc5d14edb7dd62c9b63d957f4a5369a88bb1e1af233d3b5a9c704a94c8662b0",
+  "system": "ad886123c12f68d9fa9418545f8b23ef811326bfc29897e1f85e8de03b383d1c",
   "tools": "157d2bc456e9ad26539047e15f96a83e34f4f098707110bd86749af4dbf5d882",
   "modeMessages": [
     "53c2943ab2619afc981506aada2d79fdd8aaa1a86c36e1b07bd2754c72dfa93a",
