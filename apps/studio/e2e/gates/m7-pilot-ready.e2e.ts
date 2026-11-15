@@ -78,13 +78,18 @@ async function filmsOf(page: Page, pupil: string) {
   return page.getByRole('row', { name: /\S/ }).allInnerTexts();
 }
 
-/** How many pupils the class list on the device has. */
+/** How many pupils the class list on the device has: none until it's first written. */
 function savedPupils(page: Page) {
   return page.evaluate(async () => {
-    const root = await navigator.storage.getDirectory();
-    const classes = await root.getDirectoryHandle('classes');
-    const file = await (await classes.getFileHandle('class.json')).getFile();
-    return (JSON.parse(await file.text()) as { pupils: unknown[] }).pupils.length;
+    try {
+      const root = await navigator.storage.getDirectory();
+      const classes = await root.getDirectoryHandle('classes');
+      const file = await (await classes.getFileHandle('class.json')).getFile();
+      return (JSON.parse(await file.text()) as { pupils: unknown[] }).pupils.length;
+    } catch {
+      // Not written yet, or caught half-written: ask again.
+      return 0;
+    }
   });
 }
 
