@@ -208,3 +208,5 @@ A `shot` moves the camera, over its duration, to frame its targets. Where it goe
 ## Tests
 
 `pnpm test` runs the contract suite on `NullEngine`, which can't draw. `packages/stage/e2e` runs the real stage in a browser, for pixels, and `tests/scenes/` holds the reference scenes. Look at the pictures too: a room with a yellow floor once passed every test here.
+
+**On a reference device:** `e2e/harness/device.html`, published as **https://storystage.github.io/storystage2/stage/device.html**, runs the real stage with Backstage's own people, from the commit `backstage.lock.json` pins. One button measures, at low and standard quality, 1 to 16 of MakeHuman's people (about 20,000 triangles each) walking, looking and waving: the frames a second shown live, the stage's own work and the GPU's each frame, loading and working out the walks, and a crossfade. It also measures eight KayKit knights, and what view and occlusion events would cost (decision 0051). The results are text to paste into a chat with S3, and they set 5.6's budget per device and 5.8's cost (#6).
