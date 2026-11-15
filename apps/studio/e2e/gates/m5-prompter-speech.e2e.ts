@@ -5,9 +5,9 @@ import { expect, test } from '@playwright/test';
 // is docs/test/M5-prompter-speech.md, and most of this gate is the owner's, on the devices, with
 // their own key, which never goes into a test. This is the part CI can check on every pull request.
 //
-// Today the studio runs on the browser host everywhere, the desktop app included: no studio code
-// calls the native layer's Prompter, key or speech commands yet. So most of the gate waits; each
-// step below names what it waits on. The native layer's own path is checked by the leak scan
+// In the desktop app the studio starts on the native layer (#391), and the app's own steps are
+// checked in the app itself: ../desktop/m5-desktop.app.ts, in desktop.yml. The Prompter's native
+// transport isn't built yet, so the Prompter steps wait; each names what it waits on. The native layer's own path is checked by the leak scan
 // (apps/desktop/leak-scan, desktop.yml) against a fake server, with a key made at run time.
 
 test('M5: speak lines are British by default, with American as the switch in Settings', async ({
@@ -24,11 +24,6 @@ test('M5: speak lines are British by default, with American as the switch in Set
     page.getByText('Each character’s voice shows here once the open film has a speak line.'),
   ).toBeVisible();
 });
-
-// The studio in the desktop app on the native host (`tauriHost`, with a transport over
-// `prompter_send` and a Tauri channel), so the Prompter, Talk to type and the bundled voices reach
-// it. Unassigned in the lane log: packages/host is S8's and S5's; S7's 13.2 waits on it.
-test.fixme('M5: in the desktop app, the studio finds the Prompter, the mic and the bundled voices', () => {});
 
 // Set-up 10a to 10d (spec 05, 1.1): Add key opens the system's own dialog, and the panel says
 // "Key works. Checked just now." without showing the key. S7 and S5 (13.6). In CI this would run
