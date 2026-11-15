@@ -94,9 +94,8 @@ export function PupilsCard({
           taken={names}
           onCancel={toList}
           onAdd={async (list) => {
-            const done = await act(async () => {
-              for (const name of list) await classes.addPupil(name);
-            });
+            // One save for the whole list, so a reload straight after keeps the class.
+            const done = await act(() => classes.addPupils(list));
             if (done) toList();
           }}
         />
@@ -381,6 +380,8 @@ function ImportNames({
   onAdd: (names: readonly string[]) => Promise<void>;
 }) {
   const [text, setText] = useState('');
+  // While the list is being saved: the button stays busy, and nothing can be added twice.
+  const [saving, setSaving] = useState(false);
   const read = readPastedNames(text, taken);
   const adding = read.filter((n) => n.problem === null).map((n) => n.name);
   const status = (problem: (typeof read)[number]['problem']) =>
@@ -426,8 +427,11 @@ function ImportNames({
         <Button
           variant="primary"
           icon="person_add"
-          isDisabled={adding.length === 0}
-          onPress={() => void onAdd(adding)}
+          isDisabled={adding.length === 0 || saving}
+          onPress={() => {
+            setSaving(true);
+            void onAdd(adding).finally(() => setSaving(false));
+          }}
         >
           {words.plural('settings.import.add', adding.length)}
         </Button>

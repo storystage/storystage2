@@ -154,6 +154,25 @@ describe('what goes on disk (spec 05 section 6.2)', () => {
     ]);
   });
 
+  it('adds a pasted class list in one save of the list, or not at all', async () => {
+    const store = memoryStore();
+    const writes: string[] = [];
+    const counting: FileStore = {
+      ...store,
+      write: (path, data) => (writes.push(path.join('/')), store.write(path, data)),
+    };
+    const folders = storedClassFolders(counting);
+    await folders.addPupil('Ava');
+    writes.length = 0;
+    const added = await folders.addPupils(['Ben', 'Cai', 'Dee']);
+    expect(added.map((p) => p.name)).toEqual(['Ben', 'Cai', 'Dee']);
+    expect(writes).toEqual(['class.json']);
+    expect((await folders.pupils()).map((p) => p.name)).toEqual(['Ava', 'Ben', 'Cai', 'Dee']);
+    // One name refused: none of them added.
+    await expect(folders.addPupils(['Eve', ''])).rejects.toBeInstanceOf(FileError);
+    expect((await folders.pupils()).map((p) => p.name)).toEqual(['Ava', 'Ben', 'Cai', 'Dee']);
+  });
+
   it('treats a key that isn’t a safe part as not there (threat PS1)', async () => {
     const folders = storedClassFolders(memoryStore());
     const folder = await folders.open((await folders.addPupil('Ava')).id);

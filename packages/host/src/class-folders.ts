@@ -378,6 +378,19 @@ export function storedClassFolders(
       });
     },
 
+    addPupils(names) {
+      return queue(async () => {
+        // Every name is checked before anything is written.
+        const added = names.map((name): Pupil => ({
+          id: `pupil-${random()}`,
+          name: checkName(name),
+          picture: null,
+        }));
+        if (added.length > 0) await writeClass([...(await readClass()), ...added]);
+        return added;
+      });
+    },
+
     renamePupil(id, name, picture) {
       return queue(async () => {
         const pupils = await readClass();

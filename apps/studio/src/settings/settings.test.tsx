@@ -13,7 +13,7 @@ import {
 } from '@storystage/production';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { App } from '../App.tsx';
 import { ClassSetup } from './ClassSetup.tsx';
 
@@ -103,8 +103,22 @@ describe('Pupils and folders (07-ux 9.4)', () => {
       'anaListed twice',
       'PipWill be added',
     ]);
+    // One save for the whole list (S1's M7 finding: a reload mid-import kept 2 of 30), with
+    // the button busy until it's done.
+    const save = Promise.withResolvers<void>();
+    const addPupils = classes.addPupils.bind(classes);
+    const many = vi
+      .spyOn(classes, 'addPupils')
+      .mockImplementation(async (names) => (await save.promise, addPupils(names)));
+    const one = vi.spyOn(classes, 'addPupil');
     await userEvent.click(screen.getByRole('button', { name: 'Add 2 pupils' }));
+    expect(screen.getByRole('button', { name: 'Add 2 pupils' }).hasAttribute('disabled')).toBe(
+      true,
+    );
+    save.resolve();
     await waitFor(async () => expect(await pupilRows()).toEqual(['Ana', 'Pip', 'Sam']));
+    expect(many.mock.calls).toEqual([[['Ana', 'Pip']]]);
+    expect(one).not.toHaveBeenCalled();
   });
 
   it('renames a pupil, and removes one, their films going to the bin', async () => {
