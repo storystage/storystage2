@@ -9,6 +9,7 @@ import { SECTIONS, descriptionProblem, type Section } from '@storystage/backstag
 import { groundLook } from '@storystage/stage';
 import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
 import type { Exclude } from './exclude.ts';
+import { kitbashProblems, type Kitbash } from './kitbash.ts';
 
 /** Licences the audit allows in the shipped catalogue (audit, section 2, rule 1). */
 export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0'] as const;
@@ -56,6 +57,12 @@ export interface SourceItem {
   readonly fetch: FetchSpec;
   /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
   readonly exclude?: Exclude;
+  /**
+   * A character made from KayKit's parts (`kitbash.ts`; spec 17, section 3): the fetched model is
+   * the base, and other parts come from the same repository and commit. Applied before the
+   * excludes. For a glTF fetched from GitHub only.
+   */
+  readonly kitbash?: Kitbash;
   /**
    * For the `backdrops` section, and only there: what to make of the fetched picture (spec 17
    * section 2, `backdrops.ts`). A ground is a tile `tile` metres across, colour-matched to
@@ -163,6 +170,12 @@ export function validateSources(json: unknown): Result {
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
+    if (item.kitbash !== undefined) {
+      kitbashProblems(item.kitbash).forEach(e);
+      const kf = item.fetch as Record<string, unknown> | undefined;
+      if (!kf || !('github' in kf) || typeof kf.path !== 'string' || !/.(glb|gltf)$/.test(kf.path))
+        e('kitbash needs a glTF base fetched from GitHub, so its parts come from the same commit.');
+    }
     if (backdrop) backdropProblems(item).forEach(e);
     else if (item.backdrop !== undefined) e('backdrop is for the backdrops section only.');
     if (item.turn !== undefined) {

@@ -36,6 +36,24 @@ blender -b --python-exit-code 1 --python tools/backstage-sources/blender/autorig
 
 Spec 17, section 3, has the rules.
 
+## Characters made from parts (`src/kitbash.ts`)
+
+A source-list item with a `kitbash` recipe is made from its fetched KayKit character (CC0) in the build itself, before its excludes, so no other tool runs:
+
+```json
+"kitbash": {
+  "trim": [{ "node": "Rogue_Head", "cell": [3, 0] }],
+  "recolour": [{ "cells": [[0, 1], [1, 1]], "hue": 350 }],
+  "add": [{ "name": "Circlet", "shape": "ring", "joint": "head", "at": [0, 0.6, 0], "radius": 0.53, "thickness": 0.035, "cell": [1, 3] }]
+}
+```
+
+- **Cells** are `[column, row]` of KayKit's 8 × 4 palette texture. To find which cells a part uses, count its triangles' texture coordinates.
+- **Steps,** in this order: `parts` (from other files at the same commit), `copy`, `trim`, `thin`, `recolour`, `add`. Units are the file's own, before `height` scales it.
+- **Checking:** `kitbashProblems` checks a recipe with the rest of the source list; the build fails on a node or joint that isn't there.
+
+Spec 17, section 3, has the rules.
+
 ## Blender Studio's characters (`blender/studio.py`)
 
 The assets repository's **Blender Studio characters** workflow fetches each character listed in `originals/blender-studio/studio.json`, checks its sha256, and runs this script in Blender, headless:

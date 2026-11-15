@@ -779,6 +779,9 @@ importers:
       '@gltf-transform/extensions':
         specifier: ^4.5.1
         version: 4.5.1
+      '@gltf-transform/functions':
+        specifier: ^4.5.1
+        version: 4.5.1
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../../packages/backstage
