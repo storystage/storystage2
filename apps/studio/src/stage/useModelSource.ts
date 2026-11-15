@@ -21,6 +21,7 @@ import {
   type Backstage,
   type BackstageItem,
   type ClassBackstageView,
+  type Facing,
   type DisposableBackstage,
 } from '@storystage/backstage';
 import {
@@ -53,6 +54,11 @@ export interface ModelSourceHandle {
   readonly catalogue: readonly BackstageItem[];
   /** An item's thumbnail picture, as a URL, or `null`. */
   thumbnail(id: BackstageId): string | null;
+  /**
+   * An item's own sketch for the Storyboard (WP10.9), as a URL, or `null`: from `facing`, in
+   * `pose` or standing. A class model's is `null` until it's prepared.
+   */
+  sketch(id: BackstageId, facing: Facing, pose: string | null): string | null;
 }
 
 export interface ModelSourceOptions {
@@ -207,6 +213,11 @@ export function useModelSource(
         classView.current?.backstage.item(id),
       thumbnail: (id: BackstageId) =>
         shipped.current?.thumbnail(id) ?? classView.current?.backstage.thumbnail(id) ?? null,
+      sketch: (id: BackstageId, facing: Facing, pose: string | null) =>
+        shipped.current?.sketch(id, facing, pose) ??
+        film.current?.sketch(id, facing, pose) ??
+        classView.current?.backstage.sketch(id, facing, pose) ??
+        null,
       prepare: async (ids: readonly string[]) => {
         await checkFilm();
         await classView.current?.prepare(ids);

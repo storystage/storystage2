@@ -9,7 +9,8 @@ import { FramePanel } from './FramePanel.tsx';
 import { sceneNumber } from './edits.ts';
 import { sceneFrames, updateFrame } from './frames.ts';
 import { NOWHERE, currentPlace, type Place } from './place.ts';
-import { sketchName, type SketchItem } from './SketchArt.tsx';
+import type { SketchItem } from './SketchArt.tsx';
+import { lookOf, useSketches, type Look } from './sketchSource.tsx';
 import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
 import { SceneStrip } from './SceneStrip.tsx';
@@ -76,11 +77,22 @@ export function Storyboard({
   const line = p.script.some((l) => l.id === chosenLine && l.scene === current) ? chosenLine : null;
   const commit = (label: string, next: Production, key?: string) => studio.commit(label, next, key);
 
-  const addToFrame = (item: SketchItem, x?: number, y?: number) => {
+  const art = useSketches();
+  const addToFrame = (item: SketchItem, x?: number, y?: number, look?: Look) => {
     const frame = p.frames.find((f) => f.id === currentFrame);
-    const added = frame && frameNumber ? addSketch(frame, { item, x, y }) : null;
+    // A model keeps the look the library showed it in, as far as it has one.
+    const kept = look && art.url(item, look) ? lookOf(art.item(item), look) : null;
+    const added =
+      frame && frameNumber
+        ? addSketch(frame, {
+            item,
+            x,
+            y,
+            ...(kept ? { facing: kept.facing, pose: kept.pose } : {}),
+          })
+        : null;
     if (!frame || !frameNumber || !added) return;
-    const name = sketchName(item);
+    const name = art.name(item);
     commit(
       words.t('step.addSketch', { name }),
       updateFrame(p, frame.id, () => added.frame),
@@ -167,7 +179,7 @@ export function Storyboard({
       <SketchLibrary
         production={p}
         frame={currentFrame && frameNumber ? { id: currentFrame, number: frameNumber } : null}
-        onAdd={(item) => addToFrame(item)}
+        onAdd={(item, look) => addToFrame(item, undefined, undefined, look)}
       />
       <div className="sb-main">
         <div className="sb-toolbar" role="toolbar" aria-label={words.t('history.label')}>

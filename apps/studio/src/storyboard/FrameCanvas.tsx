@@ -26,8 +26,9 @@ import { words, type WordKey } from '../strings.ts';
 import { updateFrame } from './frames.ts';
 import { pinnedLines } from './lines.ts';
 import { describeSketch, sketchStyle } from './FramePicture.tsx';
-import { SketchArt, sketchName, type SketchItem } from './SketchArt.tsx';
-import { SKETCH_DRAG_TYPE } from './SketchLibrary.tsx';
+import { SketchArt, type SketchItem } from './SketchArt.tsx';
+import { useSketches, type Look } from './sketchSource.tsx';
+import { SKETCH_DRAG_TYPE, type SketchDrag } from './SketchLibrary.tsx';
 
 export interface FrameCanvasProps {
   production: Production;
@@ -41,7 +42,7 @@ export interface FrameCanvasProps {
   /** Ends a run of changes that join one undo step: a drag, or a pick-up. */
   onLeave: () => void;
   /** Puts a library item on this frame, at (x, y) or in the middle. */
-  onAdd: (item: SketchItem, x?: number, y?: number) => void;
+  onAdd: (item: SketchItem, x?: number, y?: number, look?: Look) => void;
   onAnnounce: (text: string) => void;
   /** The frame's caption line: its number, shot and length. */
   children: ReactNode;
@@ -73,6 +74,7 @@ export function FrameCanvas({
   onAnnounce,
   children,
 }: FrameCanvasProps) {
+  const art = useSketches();
   const paper = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
@@ -93,7 +95,7 @@ export function FrameCanvas({
   /** One change to sketch `s`, named for it: "Move owl". */
   const change = (step: WordKey, s: PlacedSketch, next: Frame, key?: string) =>
     onChange(
-      words.t(step, { name: sketchName(s.item) }),
+      words.t(step, { name: art.name(s.item) }),
       updateFrame(p, frame.id, () => next),
       key,
     );
@@ -106,7 +108,7 @@ export function FrameCanvas({
     if (s)
       onAnnounce(
         words.t('storyboard.canvas.putDown', {
-          name: sketchName(s.item),
+          name: art.name(s.item),
           where: words.t(`storyboard.canvas.where.${across(s)}`),
         }),
       );
@@ -118,7 +120,7 @@ export function FrameCanvas({
     const next = ordered[at + 1] ?? ordered[at - 1] ?? null;
     change('step.removeSketch', current, removeSketch(frame, current.id));
     onChosenChange(next?.id ?? null);
-    onAnnounce(words.t('storyboard.canvas.removed', { name: sketchName(current.item) }));
+    onAnnounce(words.t('storyboard.canvas.removed', { name: art.name(current.item) }));
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -165,7 +167,7 @@ export function FrameCanvas({
       e.preventDefault();
       onChosenChange(s.id);
       setLifted(s.id);
-      onAnnounce(words.t('storyboard.canvas.pickedUp', { name: sketchName(s.item) }));
+      onAnnounce(words.t('storyboard.canvas.pickedUp', { name: art.name(s.item) }));
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       if (current) remove();
@@ -247,9 +249,9 @@ export function FrameCanvas({
     const r = paper.current?.getBoundingClientRect();
     for (const dropped of e.items) {
       if (dropped.kind !== 'text' || !dropped.types.has(SKETCH_DRAG_TYPE)) continue;
-      const item = JSON.parse(await dropped.getText(SKETCH_DRAG_TYPE)) as SketchItem;
-      if (r && r.width > 0) onAdd(item, e.x / r.width, e.y / r.height);
-      else onAdd(item);
+      const { item, look } = JSON.parse(await dropped.getText(SKETCH_DRAG_TYPE)) as SketchDrag;
+      if (r && r.width > 0) onAdd(item, e.x / r.width, e.y / r.height, look);
+      else onAdd(item, undefined, undefined, look);
       return;
     }
   };
@@ -326,12 +328,12 @@ export function FrameCanvas({
                       id={optionId(frame, s.id)}
                       role="option"
                       aria-selected={isChosen}
-                      aria-label={describeSketch(s)}
+                      aria-label={describeSketch(s, art.name)}
                       tabIndex={s === focusTarget ? 0 : -1}
                       className="sb-sketch"
                       data-chosen={isChosen || undefined}
                       data-lifted={lifted === s.id || undefined}
-                      style={sketchStyle(s)}
+                      style={sketchStyle(s, art.aspect(s.item, s))}
                       onFocus={() => {
                         if (!isChosen) onChosenChange(s.id);
                       }}
@@ -342,7 +344,7 @@ export function FrameCanvas({
                       onPointerCancel={onPointerUp}
                     >
                       <span className="sb-sketch-art" data-flipped={s.flipped || undefined}>
-                        <SketchArt item={s.item} />
+                        <SketchArt item={s.item} look={s} />
                       </span>
                       {isChosen &&
                         (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (

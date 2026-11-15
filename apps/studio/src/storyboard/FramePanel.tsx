@@ -19,6 +19,7 @@ import { words } from '../strings.ts';
 import { LIMITS, sceneNumber } from './edits.ts';
 import { FrameCanvas } from './FrameCanvas.tsx';
 import type { SketchItem } from './SketchArt.tsx';
+import type { Look } from './sketchSource.tsx';
 import {
   FRAME_LENGTH,
   MAIN_SHOTS,
@@ -45,7 +46,7 @@ export interface FramePanelProps {
   sketch: string | null;
   onSketchChange: (id: string | null) => void;
   /** Puts a library item on the current frame, at (x, y) or in the middle. */
-  onAddSketch: (item: SketchItem, x?: number, y?: number) => void;
+  onAddSketch: (item: SketchItem, x?: number, y?: number, look?: Look) => void;
   onAnnounce: (text: string) => void;
 }
 
