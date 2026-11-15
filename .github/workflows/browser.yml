@@ -1,0 +1,86 @@
+# The browser version (WP15.6, decision 0046): built with the shipped Backstage and speak line's
+# engine, served by a real Apache with apps/studio/hosting/htaccess as Bluehost will serve it,
+# checked there, and kept as one zip to upload to app.storystage.org (apps/studio/hosting/README.md).
+name: browser
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+  pull_request:
+    paths:
+      - apps/studio/hosting/**
+      - apps/studio/build/**
+      - .github/workflows/browser.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  package:
+    name: browser version (built, served by Apache, checked)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Build the browser version
+        run: pnpm --filter @storystage/studio build
+      - name: It has everything, and the server rules
+        run: |
+          dist=apps/studio/dist
+          for f in index.html backstage/backstage.json speech/kokoro/files.json speech/kokoro/model_quantized.onnx speech/ort/ort-wasm-simd-threaded.wasm; do
+            test -s "$dist/$f" || { echo "Missing from the build: $f"; exit 1; }
+          done
+          cp apps/studio/hosting/htaccess "$dist/.htaccess"
+      - name: Serve it from Apache, as Bluehost does
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q apache2
+          sudo a2enmod headers rewrite mime deflate > /dev/null
+          sudo tee /etc/apache2/sites-available/storystage.conf > /dev/null <<'CONF'
+          Listen 8080
+          <VirtualHost *:8080>
+            DocumentRoot /var/www/storystage
+            <Directory /var/www/storystage>
+              AllowOverride All
+              Require all granted
+            </Directory>
+          </VirtualHost>
+          CONF
+          sudo cp -r apps/studio/dist /var/www/storystage
+          sudo a2ensite storystage > /dev/null
+          sudo systemctl restart apache2
+          curl -sSf -o /dev/null http://localhost:8080/
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Check every rule, and the studio itself
+        env:
+          HOSTING_URL: http://localhost:8080/
+        run: pnpm exec playwright test -c apps/studio/hosting/playwright.config.ts
+      - name: Make the zip to upload
+        run: |
+          version=$(node -p "require('./apps/desktop/src-tauri/tauri.conf.json').version")
+          name="storystage-browser-$version-${GITHUB_SHA::7}"
+          (cd apps/studio/dist && zip -qr "$RUNNER_TEMP/$name.zip" . -x '*.map')
+          (cd "$RUNNER_TEMP" && sha256sum "$name.zip" | tee "$name.zip.sha256")
+          echo "NAME=$name" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ env.NAME }}
+          path: |
+            ${{ runner.temp }}/${{ env.NAME }}.zip
+            ${{ runner.temp }}/${{ env.NAME }}.zip.sha256
+          retention-days: 90
