@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '4d4d0a6d8aef4ee14738644f849a8429ed0bdb66';
+export const SHIPPED_CATALOGUE_COMMIT = '6cc3e657562f1dc39f2c1656eb078836baaedfba';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -15,6 +15,7 @@ Joint sets
   J3: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J4: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftMiddleProximal, leftRingProximal, leftLittleProximal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightMiddleProximal, rightRingProximal, rightLittleProximal, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J5: hips, spine, chest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, rightShoulder, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot
+  J6: spineBase, spineMiddle, spineUpper, neck, head, leftEar, rightEar, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftAnkle, backRightHip, backRightKnee, backRightHock, backRightAnkle
 
 Cast
   Biped
@@ -74,6 +75,8 @@ Cast
     storybook/Biped/king-arthur: King Arthur, King Arthur, fair-haired and bareheaded, in armour and a red cape [storybook, legend, myth, history] 2.31 m, joints J1
     storybook/Biped/merlin: Merlin, Merlin the wizard, young, with black hair, in a tall purple pointed hat and robe [storybook, legend, myth, fantasy] 2.72 m, joints J1
     storybook/Biped/robin-hood: Robin Hood, Robin Hood, the outlaw of Sherwood Forest, in a green hood and cloak [storybook, legend, history] 2.25 m, joints J1
+  Quadruped
+    blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J6
 
 Props
   Prop
