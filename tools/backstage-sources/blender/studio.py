@@ -32,6 +32,7 @@ import os
 import sys
 import traceback
 
+import bmesh
 import bpy
 import numpy as np
 from mathutils import Vector
@@ -280,31 +281,58 @@ def low_mesh(parts, target):
                 m.show_viewport = False
                 off.append(m)
     depsgraph = bpy.context.evaluated_depsgraph_get()
-    made = []
+    bm = bmesh.new()
     for o in parts:
         mesh = bpy.data.meshes.new_from_object(o.evaluated_get(depsgraph), depsgraph=depsgraph)
-        copy = bpy.data.objects.new(f"low-{o.name}", mesh)
-        copy.matrix_world = o.matrix_world
-        scene.collection.objects.link(copy)
-        made.append(copy)
+        mesh.transform(o.matrix_world)
+        bm.from_mesh(mesh)
+        bpy.data.meshes.remove(mesh)
     for m in off:
         m.show_viewport = True
-    select_only(made)
-    bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
-    if len(made) > 1:
-        bpy.ops.object.join()
-    body = bpy.context.view_layer.objects.active
-    body.name = "body"
-    body.data.name = "body"
-    body.shape_key_clear()
-    body.vertex_groups.clear()
+    joined = bpy.data.meshes.new("body")
+    bm.to_mesh(joined)
+    bm.free()
+    body = bpy.data.objects.new("body", joined)
+    scene.collection.objects.link(body)
     before = triangles(body)
     if before > target:
         d = body.modifiers.new("reduce", "DECIMATE")
         d.ratio = target / before * 0.98
         d.use_collapse_triangulate = True
-        bpy.ops.object.modifier_apply(modifier=d.name)
+        depsgraph = bpy.context.evaluated_depsgraph_get()
+        reduced = bpy.data.meshes.new_from_object(body.evaluated_get(depsgraph), depsgraph=depsgraph)
+        body.modifiers.remove(d)
+        body.data = reduced
+        bpy.data.meshes.remove(joined)
+        reduced.name = "body"
     return body, before
+
+
+def object_mode():
+    """Every object out of pose and edit mode: files are often saved mid-pose."""
+    for o in list(bpy.context.view_layer.objects):
+        if o.mode != "OBJECT":
+            with bpy.context.temp_override(active_object=o, object=o, selected_objects=[o]):
+                bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def reveal(objs):
+    """Objects selectable for the bake, whatever the file hid in the viewport."""
+    names = {c.name for o in objs for c in o.users_collection}
+
+    def walk(lc):
+        if lc.collection.name in names:
+            lc.hide_viewport = False
+            lc.collection.hide_viewport = False
+            lc.collection.hide_select = False
+        for child in lc.children:
+            walk(child)
+
+    walk(bpy.context.view_layer.layer_collection)
+    for o in objs:
+        o.hide_set(False)
+        o.hide_viewport = False
+        o.hide_select = False
 
 
 def bake_look(body, sources, size, cage, png):
@@ -426,7 +454,8 @@ def corners(obj):
 
 
 def select_only(objs, active=None):
-    bpy.ops.object.select_all(action="DESELECT")
+    for o in bpy.context.view_layer.objects:
+        o.select_set(False)
     for o in objs:
         o.select_set(True)
     bpy.context.view_layer.objects.active = active or (objs[0] if objs else None)
@@ -506,10 +535,12 @@ def export_character(list_path, name, models, previews):
         cfg = next(c for c in json.load(f)["characters"] if c["name"] == name)
     os.makedirs(models, exist_ok=True)
     os.makedirs(previews, exist_ok=True)
+    object_mode()
     for a in (o for o in bpy.context.scene.objects if o.type == "ARMATURE"):
         a.data.pose_position = "REST"
     bpy.context.view_layer.update()
     parts, sources = gather(cfg)
+    reveal(sources)
     body, before = low_mesh(parts, cfg.get("triangles", 20000))
     bake_look(body, sources, cfg.get("texture", 1024), cfg.get("cage", 0.02), os.path.join(previews, f"{name}-texture.png"))
     rig = skeleton_from(cfg, cfg["rig"])
