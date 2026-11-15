@@ -289,9 +289,12 @@ def low_mesh(parts, target):
         bpy.data.meshes.remove(mesh)
     for m in off:
         m.show_viewport = True
+    # Corners on no face (left by masks and cages) draw nothing, but they'd count in its size.
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context="VERTS")
     joined = bpy.data.meshes.new("body")
     bm.to_mesh(joined)
     bm.free()
+    joined.validate()
     body = bpy.data.objects.new("body", joined)
     scene.collection.objects.link(body)
     before = triangles(body)
