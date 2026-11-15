@@ -1,4 +1,4 @@
-import { exampleProduction } from '@storystage/production';
+import { exampleProduction, openProduction, saveProduction } from '@storystage/production';
 import { jointName, type Quat } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import {
@@ -81,6 +81,16 @@ describe('posing an object', () => {
     expect('joints' in penguin(q)).toBe(false);
     // Nothing else changed.
     expect(penguin(q)).toEqual(penguin(p));
+  });
+
+  it('is kept when the film is saved and opened again (S4’s 1.5.0)', () => {
+    const turned = jointTurn({ heading: 0.1, tilt: -0.2, roll: 0.3 });
+    const posed = withJoint(p, scene, 'penguin', head, turned);
+    const opened = openProduction(saveProduction(posed, { audio: new Map(), models: new Map() }));
+    if (opened.status !== 'ok') throw new Error(opened.status);
+    const kept = penguin(opened.production).joints?.[head];
+    expect(kept && sameTurn(kept, turned)).toBe(true);
+    expect(jointTurns(kept!)).toEqual({ heading: 0.1, tilt: -0.2, roll: 0.3 });
   });
 });
 
