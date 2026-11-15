@@ -40,6 +40,7 @@ import {
   checkSceneShape,
   checkStoryboardShape,
 } from './validate.ts';
+import { keptJoints } from './pose.ts';
 import { keptVoices, voiceNames } from './voices.ts';
 
 /** Files a production carries besides its JSON and script, by their path inside the file. */
@@ -158,17 +159,47 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.4.0 lets a production keep its characters' speak-line voices (`manifest.voices`): nothing
   // else changes.
   '1.3.0': { to: '1.4.0', manifest: (m) => m },
+  // 1.5.0 lets a set-up object keep its pose (S3's `SceneObjectSetup.joints`): nothing else
+  // changes.
+  '1.4.0': { to: '1.5.0', manifest: (m) => m },
 };
 
 /**
  * A frame's saved check is only a cached result (spec 08 section 9.6): one that doesn't fit its
  * shape is dropped, so the frame opens without it, rather than the file being refused.
  */
-function withReadableCheck(frame: Frame, where: string, shape: { allowExtra: boolean }): Frame {
-  if (!('check' in frame) || checkFrameCheck(frame.check, where, shape).length === 0) return frame;
+function withReadableCheck(
+  frame: Frame,
+  where: string,
+  shape: { allowExtra: boolean },
+  dropped: string[],
+): Frame {
+  if (!('check' in frame)) return frame;
+  const problems = checkFrameCheck(frame.check, where, shape);
+  if (problems.length === 0) return frame;
+  dropped.push(...problems.map((p) => `${p} (the check is dropped)`));
   const rest: { -readonly [K in keyof Frame]?: Frame[K] } = { ...frame };
   delete rest.check;
   return rest as Frame;
+}
+
+type ObjectSetup = Scene['setup']['objects'][number];
+
+/**
+ * A scene with each set-up object's pose as the format keeps it (spec 03 section 2.2): entries
+ * that don't fit are dropped, and so is a pose with nothing left, rather than the file refused.
+ */
+function withReadablePoses(scene: Scene, where: string, dropped: string[]): Scene {
+  if (!scene.setup.objects.some((o) => 'joints' in o)) return scene;
+  const objects = scene.setup.objects.map((object, i): ObjectSetup => {
+    if (!('joints' in object)) return object;
+    const kept = keptJoints(object, `${where}: setup.objects[${i}].joints`);
+    dropped.push(...kept.dropped);
+    const rest: { -readonly [K in keyof ObjectSetup]?: ObjectSetup[K] } = { ...object };
+    delete rest.joints;
+    return kept.joints ? { ...(rest as ObjectSetup), joints: kept.joints } : (rest as ObjectSetup);
+  });
+  return { ...scene, setup: { ...scene.setup, objects } };
 }
 
 export type OpenedProduction =
@@ -181,6 +212,12 @@ export type OpenedProduction =
       readonly message: string | null;
       /** For `migrated`: the file as it was, for `PupilFolder.keepOriginal` (spec 03, 1.2). */
       readonly original: Uint8Array | null;
+      /**
+       * What opening left out rather than refusing the file, for developers and logs: a pose's
+       * entries that don't fit (spec 03, 2.2), a voice (1.6) or a frame's check (6). Empty when
+       * nothing was. `openProduction` always gives it; a production made some other way may not.
+       */
+      readonly dropped?: readonly string[];
     }
   | {
       readonly status: 'broken';
@@ -279,6 +316,7 @@ export function openProduction(
 
   const scenes: Scene[] = [];
   const frames: Frame[] = [];
+  const dropped: string[] = [];
   for (const name of [...entries.keys()].sort()) {
     const scene = SCENE_FILE.exec(name);
     const frame = FRAME_FILE.exec(name);
@@ -294,8 +332,8 @@ export function openProduction(
     if (!SAFE_ID.test(id) || v?.id !== id) found.push(`${name}: its id doesn't match its name.`);
     problems.push(...found);
     if (found.length > 0) continue;
-    if (scene) scenes.push(v as never);
-    else frames.push(withReadableCheck(v as Frame, name, shape));
+    if (scene) scenes.push(withReadablePoses(v as Scene, name, dropped));
+    else frames.push(withReadableCheck(v as Frame, name, shape, dropped));
   }
 
   const storyboardJson = json(ZIP_LAYOUT.storyboard);
@@ -339,6 +377,18 @@ export function openProduction(
   // Voices are a cache of the learner's choices: one that doesn't fit, or whose character no
   // scene has, is dropped rather than refusing the file (spec 03 section 1.6).
   const voices = keptVoices(manifest.voices, voiceNames({ scenes }));
+  if (manifest.voices !== undefined) {
+    const written =
+      typeof manifest.voices === 'object' && manifest.voices !== null
+        ? Object.keys(manifest.voices)
+        : [];
+    const lost = written.filter((name) => !voices || !Object.hasOwn(voices, name));
+    if (written.length === 0 && !voices) dropped.push('manifest.json: voices: dropped');
+    for (const name of lost)
+      dropped.push(
+        `manifest.json: voices.${name}: dropped: it doesn't fit, or no set-up object has that name`,
+      );
+  }
   const withoutVoices: { -readonly [K in keyof ProductionManifest]?: ProductionManifest[K] } = {
     ...manifest,
   };
@@ -385,5 +435,6 @@ export function openProduction(
     files: { audio, models },
     message: status === 'readOnly' ? NEWER : null,
     original: status === 'migrated' ? bytes : null,
+    dropped,
   };
 }
