@@ -49,6 +49,21 @@ function environment(): Environment {
     webgl2,
     webgpu: 'gpu' in navigator,
     encoder: typeof (globalThis as { VideoEncoder?: unknown }).VideoEncoder === 'function',
+    timings: timings(),
+  };
+}
+
+/** Start-up and memory, as CI's performance test measures them (WP18.3). */
+function timings(): NonNullable<Environment['timings']> {
+  const round = (ms: number | undefined) => (ms === undefined ? null : Math.round(ms));
+  const paint = performance.getEntriesByType?.('paint').find((e) => e.name === 'first-paint');
+  const navigation = performance.getEntriesByType?.('navigation')[0] as
+    PerformanceNavigationTiming | undefined;
+  const memory = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
+  return {
+    firstPaintMs: round(paint?.startTime),
+    interactiveMs: round(navigation?.domInteractive),
+    heapMb: memory ? Math.round(memory.usedJSHeapSize / 1e6) : null,
   };
 }
 

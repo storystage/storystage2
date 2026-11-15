@@ -162,6 +162,27 @@ describe('the problem report', () => {
     expect(none).toContain('The self-test wasn’t run.');
   });
 
+  it('gives the start-up timings and memory, saying where the browser doesn’t', () => {
+    const base = {
+      when: '2026-11-14T20:00:00.000Z',
+      version: null,
+      policy: BROWSER_POLICY,
+      selftest: null,
+      problems: [],
+    };
+    const text = problemReport({
+      ...base,
+      environment: {
+        ...environment,
+        timings: { firstPaintMs: 412, interactiveMs: 380, heapMb: null },
+      },
+    });
+    expect(text).toContain('== Timings on this device ==');
+    expect(text).toContain('First paint: 412 ms after the page started to load');
+    expect(text).toContain('JavaScript memory in use: this browser doesn’t say');
+    expect(problemReport({ ...base, environment })).not.toContain('Timings on this device');
+  });
+
   it('names its file by the date only', () => {
     expect(reportName('2026-11-14T20:00:00.000Z')).toBe('StoryStage problem report 2026-11-14.txt');
   });

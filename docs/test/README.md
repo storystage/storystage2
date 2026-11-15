@@ -17,6 +17,10 @@ StoryStage 1's TR1 script is in `docs/carried-over/test/TR1-manual.md`. Its chec
 | M8–M11 | Pathway, AR design mode, AR for audiences, projection | one script each | after the release candidate |
 | M12 Pilot complete | Pilot run, feedback triaged, editor chosen | M12-pilot.md | owner |
 
+## Performance budgets (WP18.3)
+
+Start-up, scene load, frame rate, memory and export speed, in CI on every pull request and on each reference device: [performance.md](performance.md).
+
 ## Gate tests in CI (WP18.2)
 
 Each gate's path, as far as CI can follow it, is one Playwright test in `apps/studio/e2e/gates/`, run with the other end-to-end tests on every pull request. Each feature has its own tests beside its code; a gate test checks they join up into what the owner sees at the gate. A step not built yet is a `test.fixme` naming what it waits on, so it shows as skipped until then.

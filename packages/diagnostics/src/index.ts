@@ -16,5 +16,11 @@ export {
   type LogLine,
   type LogScope,
 } from './log.ts';
-export { problemReport, reportName, type Environment, type ReportInput } from './report.ts';
+export {
+  problemReport,
+  reportName,
+  type Environment,
+  type ReportInput,
+  type Timings,
+} from './report.ts';
 export { scrub } from './scrub.ts';

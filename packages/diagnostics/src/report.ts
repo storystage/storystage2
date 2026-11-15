@@ -19,6 +19,21 @@ export interface Environment {
   readonly webgpu: boolean;
   /** WebCodecs' video encoder is there. */
   readonly encoder: boolean;
+  /**
+   * How long StoryStage took to start on this device, and its JavaScript memory now (WP18.3):
+   * the same measures as CI's performance test, for the device runs. Each `null` where the
+   * browser doesn't say.
+   */
+  readonly timings?: Timings;
+}
+
+export interface Timings {
+  /** From the page starting to load to its first paint. */
+  readonly firstPaintMs: number | null;
+  /** To the page's code being ready to run. */
+  readonly interactiveMs: number | null;
+  /** JavaScript's heap in use, in MB (Chromium only). */
+  readonly heapMb: number | null;
 }
 
 export interface ReportInput {
@@ -74,6 +89,16 @@ export function problemReport(input: ReportInput): string {
     t('report.webgl2', { yes: yes(e.webgl2) }),
     t('report.webgpu', { yes: yes(e.webgpu) }),
     t('report.encoder', { yes: yes(e.encoder) }),
+    ...(e.timings
+      ? [
+          ...section(t('report.timings')),
+          t('report.firstPaint', { ms: e.timings.firstPaintMs ?? t('report.unknown') }),
+          t('report.interactive', { ms: e.timings.interactiveMs ?? t('report.unknown') }),
+          e.timings.heapMb === null
+            ? t('report.heapUnknown')
+            : t('report.heap', { mb: e.timings.heapMb }),
+        ]
+      : []),
     ...section(t('report.settings')),
     ...policyLines(input.policy),
     ...section(t('report.selftest')),

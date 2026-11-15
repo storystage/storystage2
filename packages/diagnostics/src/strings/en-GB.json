@@ -23,5 +23,11 @@
   "report.problems": "Recent problems",
   "report.noProblems": "None since StoryStage started.",
   "report.problemsShown": "The newest {count}, since StoryStage started (seconds after it started):",
-  "report.notKept": "Problems aren’t being kept on this page."
+  "report.notKept": "Problems aren’t being kept on this page.",
+  "report.timings": "Timings on this device",
+  "report.firstPaint": "First paint: {ms} ms after the page started to load",
+  "report.interactive": "Ready to run: {ms} ms after it started",
+  "report.heap": "JavaScript memory in use: {mb} MB",
+  "report.unknown": "not known",
+  "report.heapUnknown": "JavaScript memory in use: this browser doesn’t say"
 }
