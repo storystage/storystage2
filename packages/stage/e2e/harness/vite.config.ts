@@ -9,5 +9,12 @@ export default defineConfig({
     target: 'es2022',
     outDir: fileURLToPath(new URL('../../dist/harness', import.meta.url)),
     emptyOutDir: true,
+    // The test's page, and the page for the reference devices (#6).
+    rollupOptions: {
+      input: {
+        index: fileURLToPath(new URL('./index.html', import.meta.url)),
+        device: fileURLToPath(new URL('./device.html', import.meta.url)),
+      },
+    },
   },
 });

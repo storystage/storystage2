@@ -1,0 +1,67 @@
+# The browser version of StoryStage at app.storystage.org (decision 0046, WP15.6).
+# Uploaded with the build as `.htaccess`, in the subdomain's own folder on Bluehost. It needs
+# Apache's mod_headers, mod_mime and mod_rewrite; mod_deflate is used where it's there.
+# The `browser` workflow serves the build from a real Apache with this file and checks every
+# rule below (apps/studio/hosting/hosting.hosting.ts).
+
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+AddDefaultCharset utf-8
+
+# Nothing starting with a dot is served, this file included.
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+# HTTPS only, on the real site. A local test server, on another name, is left alone.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTP_HOST} ^app\.storystage\.org$ [NC]
+  RewriteCond %{HTTPS} !=on
+  RewriteCond %{HTTP:X-Forwarded-Proto} !=https
+  RewriteRule ^ https://app.storystage.org%{REQUEST_URI} [R=301,L]
+</IfModule>
+
+# What each file is. WebAssembly must be application/wasm to be compiled as it streams in.
+AddType text/javascript .js .mjs
+AddType application/wasm .wasm
+AddType model/gltf-binary .glb
+AddType model/gltf+json .gltf
+AddType image/webp .webp
+AddType image/svg+xml .svg
+AddType application/json .json
+AddType application/octet-stream .onnx .bin
+AddType text/plain .txt .dict
+AddType font/woff2 .woff2
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/css text/javascript application/json image/svg+xml text/plain application/wasm
+</IfModule>
+
+<IfModule mod_headers.c>
+  # Cross-origin isolation, for speak line's engine on several threads (spec 06, 4.6).
+  Header always set Cross-Origin-Opener-Policy "same-origin"
+  Header always set Cross-Origin-Embedder-Policy "require-corp"
+  Header always set Cross-Origin-Resource-Policy "same-origin"
+  # The same content security policy as the apps, less their IPC: nothing but the site itself
+  # (spec 15, section 2.6). No remote script, style, font, image or connection.
+  Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; worker-src 'self' blob:; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "DENY"
+  Header always set Referrer-Policy "no-referrer"
+  # The browser version has no Prompter and no dictation (0022, 0060), so no microphone either.
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), usb=(), serial=(), bluetooth=(), payment=()"
+  Header always set Strict-Transport-Security "max-age=31536000" "expr=%{HTTPS} == 'on'"
+
+  # The page is checked for a new version every time; the files Vite names by their content
+  # never change, so they're kept for a year; the Backstage and the voices for an hour.
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+  <If "%{REQUEST_URI} =~ m#^/assets/#">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </If>
+  <If "%{REQUEST_URI} =~ m#^/(backstage|speech)/#">
+    Header set Cache-Control "public, max-age=3600"
+  </If>
+</IfModule>
