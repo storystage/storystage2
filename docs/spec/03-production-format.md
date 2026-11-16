@@ -180,7 +180,9 @@ A pose is the learner's choice, so, like a voice (section 1.6), **what doesn't f
 - **`joints` that isn't a plain object,** which drops it all.
 - **A declared stand-in's pose** (`model` is `{ standIn }`), which drops it all: there are no joints to turn.
 
-A pose with nothing left is dropped too, so a file never holds `joints: {}`. **Names must be well-formed joint ids; whether the model has the joint is the stage's to judge** (it leaves out one it lacks, and the scene plays on, as it does for a missing model, section 1.3) **and S4's `checkFilm`'s to name.** Saving writes `joints` as given.
+A pose with nothing left is dropped too, so a file never holds `joints: {}`. **Names must be well-formed joint ids; whether the model has the joint is the stage's to judge:** it leaves out one it lacks, and the scene plays on, as it does for a missing model (section 1.3). Saving writes `joints` as given.
+
+**Naming a joint the model lacks** (proposed by S4, 16 Nov 2026, for S3 and S2 to agree): only the stage knows the joints of the model it loaded, and the automatic check sees the film only through the stage. So the stage reports it with the rest of what it couldn't find: `missing()` gains `{ kind: 'joint', object, joint }`, one for each posed joint the loaded model lacks, after that object's model entry and never for an object shown as a stand-in (it has no joints to turn). The automatic check (`checkFilm`, S2's) adds a note for each, as it does for a missing model, for example "Owl has no joint called tailFan, so that part of its pose isn't shown." Nothing else changes: the scene still loads and plays, and the file keeps the pose, so it comes back on a copy whose model has the joint.
 
 **`setObject`** (section 2.1) carries a pose as `joints`, the whole pose, which replaces the set-up's, in one undo step ("Pose owl"), as it carries a transform. `{}` puts every joint back at rest, and the field goes. A pose that opening the file would drop any of is refused in plain words and changes nothing, so a saved pose always comes back.
 
