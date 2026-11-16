@@ -6,7 +6,14 @@
  * - `sourceList`: the people as a Backstage source list (`sources/makehuman.json`), so they get
  *   the same manifest items, joint mapping, provenance and sketches as every other model.
  */
-import { ageToMacro, CLOTHES_COLOURS, PIECE_COLOURS, skinFor, type Person } from './people.ts';
+import {
+  ageToMacro,
+  CLOTHES_COLOURS,
+  PIECE_COLOURS,
+  skinFor,
+  TROUSERS_COLOURS,
+  type Person,
+} from './people.ts';
 
 /** The skeleton in MPFB2 that matches the joint map's `unreal` convention (spec 17, 2a). */
 const RIG = 'game_engine';
@@ -54,6 +61,8 @@ export interface HumanInfo {
     /** The outfit to recolour, and its colour: red, green and blue from 0 to 1. */
     readonly outfit: string;
     readonly clothesColour: readonly [number, number, number] | null;
+    /** The jeans' colour, or null to leave them denim. */
+    readonly trousersColour: readonly [number, number, number] | null;
     /** The glasses, whose lenses stay clear (`make_people.py` exports them as glTF's MASK). */
     readonly glasses: string | null;
     /** Headwear for `make_people.py` to make from the head, and its colour. */
@@ -108,6 +117,7 @@ export function humanInfo(p: Person): HumanInfo {
       hairTint: p.hairTint ?? null,
       outfit: p.clothes[0]!,
       clothesColour: p.clothesColour ? CLOTHES_COLOURS[p.clothesColour] : null,
+      trousersColour: p.trousersColour ? TROUSERS_COLOURS[p.trousersColour] : null,
       glasses: p.glasses ?? null,
       headwear: p.headwear
         ? { kind: p.headwear.kind, colour: PIECE_COLOURS[p.headwear.colour] }

@@ -209,6 +209,36 @@ describe('headwear and hearing aids', () => {
   });
 });
 
+describe('trousersColour', () => {
+  const file = fileURLToPath(new URL('../people.json', import.meta.url));
+  const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+
+  it('recolours the jeans of an outfit with jeans, in a listed colour', () => {
+    expect(ok({ clothes: ['male_casualsuit03'], trousersColour: 'navy' })).toBe(true);
+    expect(ok({ clothes: ['male_casualsuit05'], trousersColour: 'khaki' })).toBe(true);
+    expect(ok({ clothes: ['male_casualsuit03'], trousersColour: 'pink' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit01'], trousersColour: 'grey' })).toBe(false);
+    expect(ok({ clothes: ['female_elegantsuit01'], trousersColour: 'grey' })).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    expect(
+      peopleTable([person({ clothes: ['male_casualsuit03'], trousersColour: 'navy' })]),
+    ).toContain('male_casualsuit03, navy trousers, shoes01');
+  });
+
+  it("isn't every child in jeans: five in other trousers, and their descriptions say so", () => {
+    const children = people.filter((p) => p.ageYears <= 12);
+    const inTrousers = children.filter((p) => p.trousersColour);
+    expect(inTrousers.map((p) => p.name)).toEqual(['Kai', 'Rhys', 'Zain', 'Arjan', 'Eli']);
+    for (const p of inTrousers) expect(p.description).toContain(`${p.trousersColour} trousers`);
+    expect(children.filter((p) => !/jeans/.test(p.description)).length).toBeGreaterThan(
+      children.length / 2,
+    );
+  });
+});
+
 describe('peopleTable', () => {
   it('describes each person in plain words for review', () => {
     const table = peopleTable([

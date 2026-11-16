@@ -62,16 +62,16 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 
 | # | Name | Age | Build | MakeHuman ancestry | Skin | Hair | Eyes | Clothes | Description (for the Prompter) |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 | Alfie | 6 | average | Caucasian 100% | young_caucasian_male | short02 | blue | male_casualsuit01, shoes01 | a boy of 6 with short brown hair, in a blue shirt and jeans |
-| 2 | Amara | 7 | average | African 100% | young_african_female | afro01 | brown | male_casualsuit05 (mustard), shoes02 | a girl of 7 with short curly black hair, in a yellow jacket and jeans |
-| 3 | Kai | 8 | average | Asian 100% | young_asian_male | short03 | brown | male_casualsuit03 (teal), shoes03, spamrakuen_sagerfrogs_glasses_02 | a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and jeans |
+| 1 | Alfie | 6 | average | Caucasian 100% | young_caucasian_male | short02 | blue | male_worksuit01 (mustard), shoes01 | a boy of 6 with short brown hair, in blue dungarees and a yellow T-shirt |
+| 2 | Amara | 7 | average | African 100% | young_african_female | afro01 | brown | female_elegantsuit01 (mustard), shoes02 | a girl of 7 with short curly black hair, in a yellow striped blouse and yellow skirt |
+| 3 | Kai | 8 | average | Asian 100% | young_asian_male | short03 | brown | male_casualsuit03 (teal), grey trousers, shoes03, spamrakuen_sagerfrogs_glasses_02 | a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and grey trousers |
 | 4 | Aisha | 9 | average | Asian 40%, Caucasian 40%, African 20% | young_asian_female | braid01 | brown | male_casualsuit03 (plum), shoes01 | a girl of 9 with short black hair, in a purple striped shirt and jeans |
-| 5 | Rhys | 10 | larger | Caucasian 100% | young_caucasian_male | short01 | green | male_casualsuit03, shoes04 | a boy of 10 with short dark hair, in a dark red striped shirt and jeans |
+| 5 | Rhys | 10 | larger | Caucasian 100% | young_caucasian_male | short01 | green | male_casualsuit03, navy trousers, shoes04 | a boy of 10 with short dark hair, in a dark red striped shirt and navy trousers |
 | 6 | Niamh | 11 | taller, slight | Caucasian 100% | young_caucasian_female | ponytail01 | green | male_casualsuit05 (green), shoes05 | a tall girl of 11 with short light brown hair, in a green jacket and jeans |
-| 7 | Zain | 12 | average | African 50%, Caucasian 50% | young_african_male | short04 | brown | male_casualsuit05 (teal), shoes02 | a boy of 12 with short black hair, in a teal jacket and jeans |
-| 8 | Mei | 6 | average | Asian 100% | young_asian_female | bob01 | brown | male_casualsuit03 (coral), shoes06 | a girl of 6 with a black bob and a long fringe, in a coral striped shirt and jeans |
-| 9 | Kofi | 11 | average | African 100% | young_african_male | short01 | brown | male_casualsuit05, shoes03 | a boy of 11 with short black hair, in a khaki jacket and jeans |
-| 10 | Isla | 9 | larger | Caucasian 100% | young_caucasian_female | long01 | blue | male_casualsuit03 (green), shoes04 | a girl of 9 with long brown hair, in a green striped shirt and jeans |
+| 7 | Zain | 12 | average | African 50%, Caucasian 50% | young_african_male | short04 | brown | male_casualsuit05 (teal), black trousers, shoes02 | a boy of 12 with short black hair, in a teal jacket and black trousers |
+| 8 | Mei | 6 | average | Asian 100% | young_asian_female | bob01 | brown | female_elegantsuit01 (coral), shoes06 | a girl of 6 with a black bob and a long fringe, in a coral striped blouse and coral skirt |
+| 9 | Kofi | 11 | average | African 100% | young_african_male | short01 | brown | male_worksuit01, shoes03 | a boy of 11 with short black hair, in blue dungarees and a white T-shirt |
+| 10 | Isla | 9 | larger | Caucasian 100% | young_caucasian_female | long01 | blue | female_elegantsuit01 (green), shoes04 | a girl of 9 with long brown hair, in a green striped blouse and green skirt |
 | 11 | Jayden | 14 | taller | African 70%, Caucasian 30% | young_african_male | short03 | brown | male_casualsuit05 (coral), shoes01 | a tall boy of 14 with short brown hair, in a coral jacket and jeans |
 | 12 | Priya | 15 | average | Asian 50%, Caucasian 30%, African 20% | young_asian_female | long01 | brown | male_casualsuit05 (plum), shoes02 | a girl of 15 with long brown hair, in a purple jacket and jeans |
 | 13 | Oskar | 13 | slight | Caucasian 100% | young_caucasian_male | short04 | lightblue | male_casualsuit01, shoes05, spamrakuen_tbm_glasses_frames_01 | a boy of 13 with short dark hair and black glasses, in a blue shirt and grey jeans |
@@ -94,9 +94,9 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 | 30 | Eileen | 85 | shorter, slight | Caucasian 100% | old_caucasian_female | bob02, tinted white | blue | female_elegantsuit01 (lilac), shoes06 | an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt |
 | 31 | Maryam | 10 | average | African 60%, Asian 20%, Caucasian 20% | young_african_female | covered | brown | male_casualsuit05 (teal), shoes02, hijab (navy, made) | a girl of 10 in a navy hijab, a teal jacket and jeans |
 | 32 | Samira | 45 | average | Asian 50%, Caucasian 30%, African 20% | middleage_asian_female | covered | brown | female_elegantsuit01 (green), shoes06, hijab (maroon, made) | a woman of 45 in a maroon hijab, a green striped blouse and green skirt |
-| 33 | Arjan | 11 | average | Asian 50%, Caucasian 30%, African 20% | young_asian_male | covered | brown | male_casualsuit03 (mustard), shoes03, patka (navy, made) | a boy of 11 in a navy patka, a yellow striped shirt and jeans |
+| 33 | Arjan | 11 | average | Asian 50%, Caucasian 30%, African 20% | young_asian_male | covered | brown | male_casualsuit03 (mustard), navy trousers, shoes03, patka (navy, made) | a boy of 11 in a navy patka, a yellow striped shirt and navy trousers |
 | 34 | Gurdeep | 38 | average | Asian 50%, Caucasian 30%, African 20% | middleage_asian_male | covered | brown | male_casualsuit05 (green), shoes04, turban (saffron, made) | a man of 38 in an orange turban, a green jacket and jeans |
-| 35 | Eli | 8 | average | Caucasian 100% | young_caucasian_male | short01 | brownlight | male_casualsuit03 (rust), shoes01, kippah (navy, made) | a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and jeans |
+| 35 | Eli | 8 | average | Caucasian 100% | young_caucasian_male | short01 | brownlight | male_casualsuit03 (rust), khaki trousers, shoes01, kippah (navy, made) | a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and khaki trousers |
 | 36 | Poppy | 7 | average | Caucasian 60%, African 40% | young_caucasian_female | ponytail01 | brown | male_casualsuit05 (coral), shoes05, hearing aids (purple, made) | a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans |
 | 37 | George | 80 | average | Caucasian 100% | old_caucasian_male | short02, tinted white | blue | male_elegantsuit01, shoes03, hearing aids (beige, made) | an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie |
 

@@ -105,18 +105,26 @@ def tinted_hair(colour):
     return paint
 
 
-def recoloured_outfit(colour):
-    """Everything but denim takes the colour and keeps its folds. An outfit's shirt and jeans share
-    one texture, so the jeans are told apart by being blue."""
-    target = np.array(colour, dtype=np.float32)
+def recoloured_outfit(colour, trousers=None):
+    """Everything but denim takes `colour`, and the denim takes `trousers` (owner, 16 Nov 2026:
+    not every child in jeans); each keeps its folds, and either may be None to leave it. An
+    outfit's shirt and jeans share one texture, so the jeans are told apart by being blue."""
+
+    def shaded(rgba, where, colour):
+        light = rgba[:, :3].max(axis=1)
+        top = np.percentile(light[where], 90) if where.any() else 1.0
+        shade = np.clip(light[where] / max(top, 1e-3), 0, 1)
+        rgba[where, :3] = shade[:, None] * np.array(colour, dtype=np.float32)
 
     def paint(rgba):
         r, g, b = rgba[:, 0], rgba[:, 1], rgba[:, 2]
-        cloth = ~((b > r + 0.04) & (b >= g))
-        light = rgba[:, :3].max(axis=1)
-        top = np.percentile(light[cloth], 90) if cloth.any() else 1.0
-        shade = np.clip(light[cloth] / max(top, 1e-3), 0, 1)
-        rgba[cloth, :3] = shade[:, None] * target
+        denim = (b > r + 0.04) & (b >= g)
+        if colour is not None:
+            shaded(rgba, ~denim, colour)
+        if trousers is not None:
+            if not denim.any():
+                raise RuntimeError("No denim to recolour")
+            shaded(rgba, denim, trousers)
 
     return paint
 
@@ -620,11 +628,11 @@ def make_person(info, models):
         repaint(hair, tinted_hair(extra["hairTint"]))
 
     parts = ObjectService.get_list_of_children(rig)
-    if extra["clothesColour"]:
+    if extra["clothesColour"] or extra.get("trousersColour"):
         outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
         if outfit is None:
             raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
-        repaint(outfit, recoloured_outfit(extra["clothesColour"]))
+        repaint(outfit, recoloured_outfit(extra["clothesColour"], extra.get("trousersColour")))
 
     # Pieces no community pack has, made here from the person's own head (owner, 16 Nov 2026).
     if extra.get("headwear"):

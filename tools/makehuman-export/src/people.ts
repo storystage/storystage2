@@ -107,6 +107,20 @@ export const CLOTHES_COLOURS = {
 export type ClothesColour = keyof typeof CLOTHES_COLOURS;
 
 /**
+ * Colours for an outfit's jeans, so not every child is in denim (owner, 16 Nov 2026): the
+ * pipeline recolours the denim and keeps its folds. Only the outfits whose jeans are blue denim
+ * (`WITH_JEANS`) can have them; the rest have no jeans, or grey ones the pipeline can't tell apart.
+ */
+export const TROUSERS_COLOURS = {
+  black: [0.12, 0.12, 0.13],
+  grey: [0.45, 0.46, 0.48],
+  khaki: [0.62, 0.55, 0.38],
+  navy: [0.14, 0.18, 0.34],
+} as const;
+export type TrousersColour = keyof typeof TROUSERS_COLOURS;
+export const WITH_JEANS = ['male_casualsuit03', 'male_casualsuit05'] as const;
+
+/**
  * Headwear the pipeline makes itself (`make_people.py`), as no community pack has any (searched
  * 10 Nov 2026; the owner's choice of 16 Nov: make our own, CC0). Each is shaped from the person's
  * own head, so it fits and moves with it. A hijab, a turban and a patka cover the hair, so whoever
@@ -174,6 +188,8 @@ export interface Person {
   readonly clothes: readonly string[];
   /** The outfit's colour; left out, it keeps the pack's. */
   readonly clothesColour?: ClothesColour;
+  /** The jeans' colour, for an outfit with jeans (`WITH_JEANS`); left out, they stay denim. */
+  readonly trousersColour?: TrousersColour;
   readonly shoes: string;
   readonly hat?: string;
   /** Glasses from the community's CC0 glasses pack (`GLASSES`). */
@@ -246,6 +262,10 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`clothesColour must be one of ${Object.keys(CLOTHES_COLOURS).join(', ')}.`);
     else if (p.clothesColour !== undefined && p.clothes?.some((c) => has(NOT_RECOLOURED, c)))
       e(`clothes: "${p.clothes.find((c) => has(NOT_RECOLOURED, c))}" can't be recoloured.`);
+    if (p.trousersColour !== undefined && !(p.trousersColour in TROUSERS_COLOURS))
+      e(`trousersColour must be one of ${Object.keys(TROUSERS_COLOURS).join(', ')}.`);
+    else if (p.trousersColour !== undefined && !has(WITH_JEANS, p.clothes?.[0]))
+      e(`trousersColour needs an outfit with jeans: ${WITH_JEANS.join(', ')}.`);
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
@@ -304,6 +324,7 @@ const hairWords = (p: Person) =>
 const clothesWords = (p: Person) =>
   [
     ...p.clothes.map((c) => (p.clothesColour ? `${c} (${p.clothesColour})` : c)),
+    ...(p.trousersColour ? [`${p.trousersColour} trousers`] : []),
     p.shoes,
     ...(p.hat ? [p.hat] : []),
     ...(p.glasses ? [p.glasses] : []),
