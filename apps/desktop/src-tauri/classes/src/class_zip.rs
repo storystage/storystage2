@@ -15,7 +15,7 @@ use zip::result::ZipError;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipArchive, ZipWriter};
 
-use crate::picked::{is_plain_name, is_production_name};
+use crate::picked::{film_stem, is_plain_name, is_production_name, FilmPart};
 use crate::{code_of, Code, FILE_LIMIT};
 
 /// The most entries a class zip may have.
@@ -87,6 +87,24 @@ impl ClassZipWriter {
         let file = self.zip.finish().map_err(zip_code)?;
         file.sync_all().map_err(|error| code_of(&error))
     }
+}
+
+/// An exported film as one zip, on Android, which can't pick a folder (decision 0070): its files
+/// side by side, `<name>.mp4`, `<name>.vtt` and `<name>.srt`, stored as they are.
+pub fn write_film_zip(path: &Path, name: &str, body: &[u8], parts: &[FilmPart]) -> Result<(), Code> {
+    let stem = film_stem(name, parts).filter(|stem| stem == name).ok_or(Code::Invalid)?;
+    if parts.last().map(|part| part.end) != Some(body.len()) {
+        return Err(Code::Invalid);
+    }
+    let file = File::create(path).map_err(|error| code_of(&error))?;
+    let mut zip = ZipWriter::new(file);
+    let options = SimpleFileOptions::default().compression_method(CompressionMethod::Stored);
+    for part in parts {
+        zip.start_file(format!("{stem}.{}", part.extension), options).map_err(zip_code)?;
+        zip.write_all(&body[part.start..part.end]).map_err(|error| code_of(&error))?;
+    }
+    let file = zip.finish().map_err(zip_code)?;
+    file.sync_all().map_err(|error| code_of(&error))
 }
 
 /// One film found in a class zip.

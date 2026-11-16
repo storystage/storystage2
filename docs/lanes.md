@@ -355,7 +355,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov (#86, #87, #104): **spec 05 §3–5**, **the policy crate** (15.3), and **WP0.9, the threat model** (`docs/spec/15-security.md`).
 - Blocked on:
   - Owner: the human security review before the pilot. Start with `SecureKeyPlugin.load` (#110), W10, U3 and M5.
-  - Owner: trying the native file dialogs by hand on Windows and a Mac, once 3b lands: each of the four, and closing each.
+  - Owner: trying the native file dialogs by hand on Windows and a Mac: each of the five (the fifth is an exported film's save), and closing each.
   - Owner: trying the browser's file pickers and their fallbacks by hand, in Chrome on a Chromebook and in Safari on an iPad (spec 05 §6.5).
   - Owner: trying the key dialogs on Windows, a Mac and a Chromebook. None has been opened yet. The iPad's waits for the Apple account.
   - Owner: generating the updater key (0047). Until then `Release` and `Channel` have never run, and the rollback drill (15.7) can't be done.
@@ -363,6 +363,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7).
 - In review: **whisper.js in the apps, for Talk to type**: pinned in `src-tauri/whisper.json`, fetched and checked by every app build into `.speech/`, and served by the app at `speech/whisper.js` (#426). The leak scan checks it's served whole.
+- In review: **saving an exported film in the apps** (S2's ask, spec 08 section 4): `picker.saveFilm(name, files)`, optional on `FilePicker`. One native dialog for the video, with its `.vtt` and `.srt` captions written beside it under the chosen name; on Android, one zip. New command `picker_save_film`. **S2:** use it where it's there, and keep the folder or zip way otherwise.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 

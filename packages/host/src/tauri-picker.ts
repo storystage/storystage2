@@ -6,18 +6,21 @@
 import {
   FILE_ERROR_CODES,
   FILE_LIMIT,
+  FILM_EXTENSIONS,
   FileError,
   collectedPath,
   safeFileName,
   type CollectedFile,
   type FileErrorCode,
   type FilePicker,
+  type FilmFile,
 } from './files.ts';
 import type { Invoke } from './speech.ts';
 
 export const PICKER_COMMANDS = {
   kind: 'picker_kind',
   save: 'picker_save',
+  saveFilm: 'picker_save_film',
   open: 'picker_open',
   collectStart: 'picker_collect_start',
   collectWrite: 'picker_collect_write',
@@ -31,6 +34,8 @@ export const PICKER_COMMANDS = {
 export const NAME_HEADER = 'x-storystage-name';
 /** The Collect a write belongs to. */
 export const SESSION_HEADER = 'x-storystage-session';
+/** An exported film's files, in the body's order: `mp4:1234,vtt:56,srt:78`. */
+export const FILES_HEADER = 'x-storystage-files';
 
 const EXTENSION = '.storystage';
 
@@ -45,6 +50,13 @@ const isCollectName = (file: CollectedFile) =>
   file.file === safeFileName(file.file) &&
   file.file.endsWith(EXTENSION) &&
   file.file.length > EXTENSION.length;
+
+/** A film file's extension, or undefined if it isn't one of `FILM_EXTENSIONS`. */
+function filmExtension(file: FilmFile): string | undefined {
+  const dot = file.file.lastIndexOf('.');
+  const extension = dot < 0 ? '' : file.file.slice(dot + 1).toLowerCase();
+  return (FILM_EXTENSIONS as readonly string[]).includes(extension) ? extension : undefined;
+}
 
 /** Open's raw reply: the name's length in four bytes, big-endian, the name, then the file. */
 function splitOpened(reply: unknown): { name: string; bytes: Uint8Array } {
@@ -90,6 +102,30 @@ export function tauriPicker(invoke: Invoke, limit = FILE_LIMIT): FilePicker {
 
     async open() {
       return splitOpened(await call(PICKER_COMMANDS.open));
+    },
+
+    async saveFilm(name, files) {
+      // Checked before the dialog opens, so nothing is written.
+      const extensions = files.map(filmExtension);
+      if (
+        files.length === 0 ||
+        extensions.some((extension) => extension === undefined) ||
+        new Set(extensions).size !== extensions.length
+      ) {
+        throw new FileError('invalid');
+      }
+      if (files.some((file) => file.bytes.length > limit)) throw new FileError('too_big');
+      const body = new Uint8Array(files.reduce((total, file) => total + file.bytes.length, 0));
+      let at = 0;
+      for (const file of files) {
+        body.set(file.bytes, at);
+        at += file.bytes.length;
+      }
+      const headers = {
+        [NAME_HEADER]: encodeURIComponent(safeFileName(name)),
+        [FILES_HEADER]: files.map((file, i) => `${extensions[i]}:${file.bytes.length}`).join(','),
+      };
+      await call(PICKER_COMMANDS.saveFilm, body, { headers });
     },
 
     async collect(files) {
