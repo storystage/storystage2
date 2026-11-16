@@ -52,6 +52,8 @@ export interface SceneViewProps {
   onMoved?(target: EditTarget, transform: Transform): void;
   /** Move the camera here: Look around's view, for the scene's camera. */
   onMoveCamera?(transform: Transform): void;
+  /** Add a marker: where the view is, Look around's or the scene camera's. */
+  onAddMarker?(transform: Transform): void;
   /** False on a film that can't be changed: no handles and no Move the camera here. */
   readonly canEdit?: boolean;
   /**
@@ -420,6 +422,15 @@ export default function SceneView(props: SceneViewProps) {
             onPress={() => props.onMoveCamera?.(editable.viewTransform())}
           >
             {words.t('production.view.moveCamera')}
+          </Button>
+        )}
+        {editable && idle && canEdit && props.onAddMarker && (
+          <Button
+            variant="secondary"
+            icon="keep"
+            onPress={() => props.onAddMarker?.(editable.viewTransform())}
+          >
+            {words.t('production.view.addMarker')}
           </Button>
         )}
         {props.onSetUp && (

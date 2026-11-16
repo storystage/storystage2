@@ -13,6 +13,8 @@ import {
   withCamera,
   withMarker,
   nudgeObject,
+  addMarker,
+  removeMarker,
 } from './setup.ts';
 
 // An object's place, turn and size in the set-up (07-ux 7.2).
@@ -163,5 +165,22 @@ describe('the keyboard pick-up in Objects in this scene (07-ux 7.2)', () => {
   it('does nothing for any other key', () => {
     for (const key of ['a', 'Home', 'Tab', 'Enter'])
       expect(nudgeObject(at, key, false, camera)).toBeNull();
+  });
+});
+
+describe('markers (07-ux 7.2, Add a marker)', () => {
+  it('adds one where the view is, named as the first free, and removes it', () => {
+    const p = exampleProduction();
+    const scene = p.scenes[0]!.id;
+    const at = { ...IDENTITY, position: { x: 1, y: 2, z: 3 } };
+    const one = addMarker(p, scene, at);
+    const two = addMarker(one.production, scene, IDENTITY);
+    expect([one.id, two.id]).toEqual(['marker1', 'marker2']);
+    expect(two.production.scenes[0]!.setup.markers[0]).toEqual({ id: 'marker1', transform: at });
+    const gap = removeMarker(two.production, scene, 'marker1');
+    expect(gap.scenes[0]!.setup.markers.map((m) => m.id)).toEqual(['marker2']);
+    expect(addMarker(gap, scene, IDENTITY).id).toBe('marker1');
+    // Other scenes keep theirs.
+    expect(gap.scenes[1]).toEqual(p.scenes[1]);
   });
 });

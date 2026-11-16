@@ -27,7 +27,7 @@ import {
 } from './fromStoryboard.ts';
 import { StoryboardSetup } from './StoryboardSetup.tsx';
 import { liveLinks, withLink } from './links.ts';
-import { ObjectsPanel } from './ObjectsPanel.tsx';
+import { MARKER_KEY, ObjectsPanel } from './ObjectsPanel.tsx';
 import { poseJoints } from './pose.ts';
 import { BackstageRail } from './BackstageRail.tsx';
 import { refusalWords } from './refusals.ts';
@@ -39,6 +39,7 @@ import {
   withBackdrop,
   withCamera,
   withMarker,
+  addMarker,
 } from './setup.ts';
 import { addObject, objectName, withObject } from '@storystage/production';
 import type { EditTarget } from '@storystage/stage';
@@ -520,6 +521,13 @@ export function ProductionStage({
                 const item = models.catalogue.find((i) => i.id === id);
                 if (item) use(item, ground);
               }}
+              onAddMarker={(transform) => {
+                if (!studio) return;
+                const { production: next, id } = addMarker(studio.production, scene, transform);
+                studio.commit(words.t('production.view.addMarkerStep', { name: id }), next);
+                choose({ marker: id });
+                onAnnounce(words.t('production.view.markerAdded', { name: id }));
+              }}
               onMoveCamera={(transform) => {
                 if (!studio) return;
                 studio.commit(
@@ -536,8 +544,22 @@ export function ProductionStage({
             <ObjectsPanel
               studio={studio}
               scene={scene}
-              chosen={chosen && 'object' in chosen ? chosen.object : null}
-              onChoose={(name) => choose(name === null ? null : { object: name as ObjectId })}
+              chosen={
+                chosen === null
+                  ? null
+                  : 'marker' in chosen
+                    ? `${MARKER_KEY}${chosen.marker}`
+                    : chosen.object
+              }
+              onChoose={(key) =>
+                choose(
+                  key === null
+                    ? null
+                    : key.startsWith(MARKER_KEY)
+                      ? { marker: key.slice(MARKER_KEY.length) }
+                      : { object: key as ObjectId },
+                )
+              }
               onAnnounce={onAnnounce}
               poseJoints={(o) =>
                 typeof o.model === 'string' ? poseJoints(o.class, models.item(o.model)?.joints) : []

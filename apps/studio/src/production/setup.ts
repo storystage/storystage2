@@ -255,6 +255,36 @@ export function withMarker(
 }
 
 /**
+ * The production with a marker added where the view is (`07-ux.md` section 7.2, Add a marker):
+ * a camera marker, as it keeps the view's turn too. Named `marker1`, `marker2`, … as the first
+ * free.
+ */
+export function addMarker(
+  p: Production,
+  scene: SceneId,
+  transform: Transform,
+): { production: Production; id: string } {
+  const taken = new Set(p.scenes.find((s) => s.id === scene)?.setup.markers.map((m) => m.id));
+  let n = 1;
+  while (taken.has(`marker${n}`)) n++;
+  const id = `marker${n}`;
+  return {
+    production: withSetup(p, scene, (setup) => ({
+      ...setup,
+      markers: [...setup.markers, { id, transform }],
+    })),
+    id,
+  };
+}
+
+/** The production without one of the scene's markers. */
+export const removeMarker = (p: Production, scene: SceneId, id: string): Production =>
+  withSetup(p, scene, (setup) => ({
+    ...setup,
+    markers: setup.markers.filter((m) => m.id !== id),
+  }));
+
+/**
  * What a handle drag did, for its undo step's name: a move along the ground or up and down, a
  * turn, or a resize. The handles do one at a time; a move wins if more than one changed.
  */

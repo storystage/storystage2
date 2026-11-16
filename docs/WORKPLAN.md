@@ -625,7 +625,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp7 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP7c after WP2, WP4a, WP12b; WP7t after WP7, WP7c; WP7 after WP5a, WP6, WP12b, WP4b.
 <!-- /schedule:wp7 -->
-- [ ] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
+- [x] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
 - [ ] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. (C)
 - [ ] 7.6 **Option B made Alice-like:**
     - a custom Blockly renderer with text-like statement rows rather than jigsaw shapes;
