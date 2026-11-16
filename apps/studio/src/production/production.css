@@ -247,6 +247,21 @@
   stroke-dasharray: 8 4;
 }
 
+/*
+ * A switched-off statement (14-editors 3i.7): greyed, with a dashed outline, its words still at
+ * 4.5:1, as Tiles draws one. Blockly's own fades the block to half and leaves its words white.
+ */
+.pr-workspace .blocklyDisabledPattern > .blocklyPath {
+  fill: var(--ss-panel-2);
+  fill-opacity: 1;
+  stroke: var(--ss-muted);
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+}
+.pr-workspace .blocklyDisabledPattern > .blocklyLabelField > .blocklyText {
+  fill: var(--ss-muted);
+}
+
 /* The current frame's links, over the Code editor (07-ux 7.3; WP10.8). */
 .pr-links {
   display: flex;

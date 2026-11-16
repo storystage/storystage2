@@ -27,5 +27,13 @@
   "editor.name": "Blocks",
   "editor.looseBlock": "Blocks go inside a method.",
   "editor.workspace": "{method}: blocks",
-  "palette.control": "control"
+  "palette.control": "control",
+  "editor.switchedOff": "switched off",
+  "menu.switchOff": "Switch off",
+  "menu.switchOn": "Switch on",
+  "menu.addDetail": "Add detail: {detail}",
+  "menu.removeDetail": "Take out {detail}",
+  "menu.duplicate": "Duplicate",
+  "menu.delete": "Delete",
+  "menu.gone": "That block isn’t there any more."
 }
