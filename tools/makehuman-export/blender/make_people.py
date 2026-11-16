@@ -412,23 +412,28 @@ def add_headwear(body, rig, parts, kind, rgb):
             rows.append([middle + round_dir(a, e) * radius for a in angles])
         apex = middle + Vector((0, 0, radius))
         down = Vector((0, 0, -1))
-        need = []
-        for p in [apex] + [p for row in rows for p in row]:
-            # The first surface met coming down from above is what the cap must clear.
+
+        def need(p):
+            """How far up `p` must go to sit on the first surface met coming down from above."""
             above = p + Vector((0, 0, s))
             first = None
             for tree, to_local, turn in hair + skin:
                 h = tree.ray_cast(to_local @ above, (turn @ down).normalized(), 3 * s)
                 if h[0] is not None and (first is None or h[3] < first):
                     first = h[3]
-            if first is not None:
-                need.append((s - first) + 0.02 * s)
-        if not need:
-            raise RuntimeError("The kippah found no head under it")
-        need.sort()
-        # Not the highest stray strand: most of the hair, so it sits on the head, not above it.
-        lift = Vector((0, 0, max(0.0, need[int(len(need) * 0.4)])))
-        wrapped(body, rig, "kippah", rgb, [[p + lift for p in row] for row in rows], apex + lift)
+            if first is None:
+                raise RuntimeError("The kippah found no head under it")
+            return (s - first) + 0.02 * s
+
+        # Each ring is lifted by its own middle need, so the cap follows the hair's shape (lower
+        # at the sides) without its stray strands: trial 5 lifted it all as one, a plate on top.
+        lifts = []
+        for row in rows:
+            needs = sorted(need(p) for p in row)
+            lifts.append(needs[len(needs) // 2])
+        rows = [[p + Vector((0, 0, lift)) for p in row] for row, lift in zip(rows, lifts)]
+        apex = apex + Vector((0, 0, max(need(apex), lifts[0])))
+        wrapped(body, rig, "kippah", rgb, rows, apex)
         return
 
     if kind == "hijab":
@@ -519,20 +524,20 @@ def add_headwear(body, rig, parts, kind, rgb):
             a = angles[k]
             if kind == "patka":
                 extra = 0.09 * s
-                rise = 0.0
             else:
                 height = 1 - t  # 1 at the top, 0 at the edge
                 front = max(0.0, math.cos(a)) ** 3
-                # Layers wound round the head, crossing to a point at the front.
                 # Layers wound from the sides up to the front, where they cross in a point.
                 side = abs(math.atan2(math.sin(a), math.cos(a))) / math.pi  # 0 front, 1 back
                 layer = 0.5 + 0.5 * math.cos(2 * math.pi * (4.5 * t - 2.2 * side))
                 folds = 0.07 * s * layer**3
-                extra = 0.16 * s + 0.12 * s * height + folds
-                rise = 0.5 * s * height**1.5 + 0.3 * s * front**2 * height
+                extra = 0.2 * s + 0.08 * s * height + folds
+                # Height straight up, rising fast from the edge and rounding over at the top
+                # (trial 5's grew with the height and came to a cone), a little more at the front.
+                rise = 0.3 * s * math.sqrt(height) + 0.15 * s * front**2 * height
             line.append(centre + round_dir(a, e) * (base[i][k] + extra) + Vector((0, 0, rise)))
         points.append(line)
-    top_extra = 0.09 * s if kind == "patka" else 0.78 * s
+    top_extra = 0.09 * s if kind == "patka" else 0.58 * s
     wrapped(body, rig, kind, rgb, points, centre + Vector((0, 0, up + top_extra)))
     if kind == "patka":  # the knot on top, a little to the front
         knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.14 * s), (0.3 * s, 0.3 * s, 0.24 * s))
