@@ -256,57 +256,72 @@ def part_trees(body, parts, kinds):
     return trees
 
 
-def shell(body, rig, name, rgb, keep, offset, smooth=4):
-    """A piece made from the body's own surface where `keep` says, pushed out along the body's
-    normals by `offset`: it fits the head it's made from, and keeps the body's skin weights, so it
-    moves with the head and neck."""
+def wrapped(body, rig, name, rgb, rows, top=None, open_face=None):
+    """A smooth sheet of cloth through `rows` of points, each row going once round the head (the
+    columns wrap). `top`, if given, closes the first row to a point. Faces whose centre
+    `open_face` says are left out. Each vertex is skinned like the body's nearest vertex, so the
+    cloth moves with the head, neck and shoulders under it."""
     import bmesh
-
-    piece = body.copy()
-    piece.data = body.data.copy()
-    piece.name = piece.data.name = name
-    for key in list(piece.keys()):
-        del piece[key]
-    for collection in body.users_collection:
-        collection.objects.link(piece)
-    if piece.data.shape_keys:
-        piece.shape_key_clear()
+    from mathutils.kdtree import KDTree
 
     bm = bmesh.new()
-    bm.from_mesh(piece.data)
-    bm.normal_update()
-    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co, v.normal)], context="VERTS")
+    grid = [[bm.verts.new(p) for p in row] for row in rows]
+    columns = len(rows[0])
+
+    def face(verts):
+        centre = sum((v.co for v in verts), verts[0].co * 0) / len(verts)
+        if open_face is None or not open_face(centre):
+            bm.faces.new(verts)
+
+    if top is not None:
+        apex = bm.verts.new(top)
+        for k in range(columns):
+            face((apex, grid[0][k], grid[0][(k + 1) % columns]))
+    for i in range(len(grid) - 1):
+        for k in range(columns):
+            n = (k + 1) % columns
+            face((grid[i][k], grid[i + 1][k], grid[i + 1][n], grid[i][n]))
     loose = [v for v in bm.verts if not v.link_faces]
     if loose:
         bmesh.ops.delete(bm, geom=loose, context="VERTS")
-    if len(bm.faces) < 20:
-        raise RuntimeError(f"{name}: only {len(bm.faces)} faces kept")
-    # Each kept vertex's place and normal on the body, before it moves.
-    origin = {v: (v.co.copy(), v.normal.copy()) for v in bm.verts}
-    out = {}
-    for v in bm.verts:
-        co, n = origin[v]
-        out[v] = offset(co, n)
-        v.co = co + n * out[v]
-    for _ in range(smooth):
-        bmesh.ops.smooth_vert(
-            bm, verts=list(bm.verts), factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True
-        )
-    for v in bm.verts:  # smoothing pulls in; nothing may sink below its offset
-        co, n = origin[v]
-        d = (v.co - co).dot(n)
-        if d < out[v] * 0.9:
-            v.co += n * (out[v] * 0.9 - d)
-    bm.to_mesh(piece.data)
-    bm.free()
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 
-    piece.data.materials.clear()
-    piece.data.materials.append(plain_material(name, rgb))
-    for polygon in piece.data.polygons:
-        polygon.material_index = 0
-    piece.data.update()
-    print(f"made {name}: {len(piece.data.polygons)} faces", flush=True)
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(plain_material(name, rgb))
+    piece = bpy.data.objects.new(name, mesh)
+    for collection in body.users_collection:
+        collection.objects.link(piece)
+    piece.parent = rig
+    piece.matrix_world = body.matrix_world.copy()
+
+    tree = KDTree(len(body.data.vertices))
+    for v in body.data.vertices:
+        tree.insert(v.co, v.index)
+    tree.balance()
+    names = {g.index: g.name for g in body.vertex_groups}
+    groups = {}
+    for v in mesh.vertices:
+        _, nearest, _ = tree.find(v.co)
+        for g in body.data.vertices[nearest].groups:
+            if g.weight > 0:
+                if g.group not in groups:
+                    groups[g.group] = piece.vertex_groups.new(name=names[g.group])
+                groups[g.group].add([v.index], g.weight, "REPLACE")
+    modifier = piece.modifiers.new("Armature", "ARMATURE")
+    modifier.object = rig
+    print(f"made {name}: {len(mesh.polygons)} faces", flush=True)
     return piece
+
+
+def smoothed_round(values, passes):
+    """Averages each value with its neighbours round the head, keeping none below where it was."""
+    out = list(values)
+    for _ in range(passes):
+        n = len(out)
+        out = [(out[k - 1] + 2 * out[k] + out[(k + 1) % n]) / 4 for k in range(n)]
+    return [max(a, b * 0.97) for a, b in zip(out, values)]
 
 
 def rigid(body, rig, name, rgb, bm):
@@ -340,105 +355,159 @@ def blob(centre, radii, tilt=0.0):
     return bm
 
 
+def smooth_grid(r, passes):
+    """Smooths distances on a rows-by-columns grid, round each row and down each column, never
+    below where they were (less 3%): bumps such as ears become broad, not sharp."""
+    rows, columns = len(r), len(r[0])
+    out = [list(row) for row in r]
+    for _ in range(passes):
+        nxt = [list(row) for row in out]
+        for i in range(rows):
+            for k in range(columns):
+                up = out[max(i - 1, 0)][k]
+                down = out[min(i + 1, rows - 1)][k]
+                left, right = out[i][k - 1], out[i][(k + 1) % columns]
+                nxt[i][k] = (4 * out[i][k] + up + down + left + right) / 8
+        out = nxt
+    return [[max(a, b * 0.97) for a, b in zip(o, raw)] for o, raw in zip(out, r)]
+
+
 def add_headwear(body, rig, parts, kind, rgb):
-    """A hijab, turban, patka or kippah, made from the head (owner, 16 Nov 2026)."""
+    """A hijab, turban, patka or kippah, made round the person's own head (owner, 16 Nov 2026).
+    The first trial followed the body's surface, which showed the ears and left ragged edges; each
+    is now a smooth sheet cast out from inside the head, with clean edges."""
+    from mathutils import Vector
+
     head = Head(body, parts)
     s, hw = head.s, head.half_width
+    skin = part_trees(body, [body], {"basemesh"})
     clothes = part_trees(body, parts, {"clothes"})
     hair = part_trees(body, parts, {"hair"})
-    reach = 0.6 * s
+    columns = 48
+    centre = Vector((head.cx, head.cy, head.eye_z - 0.1 * s))
 
-    def over(co, n, trees, gap, least):
-        return max(least, farthest_hit(trees, co, n, reach) + gap) if trees else least
+    def round_dir(a, e=0.0):
+        """Direction `a` round from the front (-Y), `e` up from level."""
+        return Vector((math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e)))
+
+    angles = [2 * math.pi * k / columns for k in range(columns)]
+
+    def out_to(trees, origin, direction, reach):
+        return farthest_hit(trees, origin, direction, reach)
+
+    if kind == "kippah":
+        # A smooth dome on the crown, lifted clear of the hair.
+        radius, spread, rings = 1.2 * s, math.radians(26), 5
+        crown = Vector((head.cx, head.cy + 0.3 * s, head.top))
+        middle = crown - Vector((0, 0, radius))
+        rows = []
+        for ring in range(1, rings + 1):
+            e = math.pi / 2 - spread * ring / rings
+            rows.append([middle + round_dir(a, e) * radius for a in angles])
+        apex = middle + Vector((0, 0, radius))
+        down = Vector((0, 0, -1))
+        need = []
+        for p in [apex] + [p for row in rows for p in row]:
+            # The first surface met coming down from above is what the cap must clear.
+            above = p + Vector((0, 0, s))
+            first = None
+            for tree, to_local, turn in hair + skin:
+                h = tree.ray_cast(to_local @ above, (turn @ down).normalized(), 3 * s)
+                if h[0] is not None and (first is None or h[3] < first):
+                    first = h[3]
+            if first is not None:
+                need.append((s - first) + 0.04 * s)
+        if not need:
+            raise RuntimeError("The kippah found no head under it")
+        need.sort()
+        lift = Vector((0, 0, max(0.0, need[int(len(need) * 0.85)])))
+        wrapped(body, rig, "kippah", rgb, [[p + lift for p in row] for row in rows], apex + lift)
+        return
 
     if kind == "hijab":
-        # The head, ears and neck, and a drape over the shoulders; the face stays open.
-        drape_top = head.neck_z
-        drape_bottom = head.neck_z - 0.75 * s
+        gap = 0.16 * s
+        chin = head.eye_z - 1.0 * s
         face_z = head.eye_z - 0.3 * s
-
-        def keep(co, n):
-            if co.z < drape_bottom:
-                return False
-            r = math.hypot(co.x - head.cx, co.y - head.cy)
-            if co.z < drape_top:
-                reach_out = hw * (1.0 + 1.6 * (drape_top - co.z) / (drape_top - drape_bottom))
-                if r > reach_out:
-                    return False
-            # The face's whole front, its mouth and nostrils included, stays open.
-            in_face = ((co.x - head.cx) / (0.62 * hw)) ** 2 + ((co.z - face_z) / (0.72 * s)) ** 2 <= 1
-            return not (in_face and co.y < head.cy)
-
-        shell(body, rig, "hijab", rgb, keep, lambda co, n: over(co, n, clothes, 0.04 * s, 0.1 * s))
-    elif kind in ("turban", "patka"):
-        # Above a line from the brow at the front to the nape at the back; ears left out.
-        brow = head.eye_z + (0.35 if kind == "turban" else 0.3) * s
-        nape = head.eye_z - (0.3 if kind == "turban" else 0.6) * s
-
-        def keep(co, n):
-            f = head.frontness(co.y)
-            if co.z < nape + (brow - nape) * f:
-                return False
-            return not (abs(co.x - head.cx) > 0.85 * hw and co.z < head.eye_z + 0.2 * s)
-
-        def offset(co, n):
-            if kind == "patka":
-                return 0.07 * s
-            rise = min(1.0, max(0.0, (co.z - head.eye_z) / s))
-            return 0.12 * s + 0.35 * s * rise**1.5 + 0.12 * s * head.frontness(co.y) * rise
-
-        shell(body, rig, kind, rgb, keep, offset)
-        if kind == "patka":  # the knot on top, a little to the front
-            knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.12 * s), (0.3 * s, 0.3 * s, 0.24 * s))
-            rigid(body, rig, "patka-knot", rgb, knot)
-    elif kind == "kippah":
-        # A round cap on the crown, laid over the hair from above: the scalp has too few faces
-        # there to shape it from (found in the first trial, 16 Nov).
-        import bmesh
-        from mathutils import Vector
-
-        surfaces = hair + part_trees(body, [body], {"basemesh"})
-        if not surfaces:
-            raise RuntimeError("Nothing to lay the kippah on")
-        down = Vector((0, 0, -1))
-        centre = (head.cx, head.cy + 0.25 * s)
-        radius = 0.5 * s
-        rings, segments = 5, 24
-
-        def surface_z(x, y):
-            start = Vector((x, y, head.top + s))
-            hits = []
-            for tree, to_local, turn in surfaces:
-                d = (turn @ down).normalized()
-                hit = tree.ray_cast(to_local @ start, d, 3 * s)
-                if hit[0] is not None:
-                    hits.append(start.z - hit[3])
-            if not hits:
-                raise RuntimeError(f"The kippah found no head under ({x:.3f}, {y:.3f})")
-            return max(hits) + 0.03 * s
-
-        bm = bmesh.new()
-        middle = bm.verts.new((centre[0], centre[1], surface_z(*centre)))
-        grid = []
-        for ring in range(1, rings + 1):
-            r = radius * ring / rings
+        # Over the head, from near the top down to level with the centre...
+        elevations = [math.radians(d) for d in (78, 65, 52, 39, 26, 13, 0)]
+        dome = [[out_to(skin, centre, round_dir(a, e), 2 * s) + gap for a in angles] for e in elevations]
+        up = out_to(skin, centre, Vector((0, 0, 1)), 2 * s) + gap
+        # ...down the sides to the chin, measured level from the head's axis...
+        levels = [centre.z - (centre.z - chin) * f for f in (0.25, 0.5, 0.75, 1.0)]
+        sides = [
+            [out_to(skin, Vector((head.cx, head.cy, z)), round_dir(a), 2 * s) + gap for a in angles]
+            for z in levels
+        ]
+        r = smooth_grid(dome + sides, 6)
+        points = [[centre + round_dir(a, e) * r[i][k] for k, a in enumerate(angles)] for i, e in enumerate(elevations)]
+        points += [
+            [Vector((head.cx, head.cy, z)) + round_dir(a) * r[len(elevations) + j][k] for k, a in enumerate(angles)]
+            for j, z in enumerate(levels)
+        ]
+        # ...then a drape over the neck and shoulders, lower at the front and back than at the
+        # sides, where it rests on the shoulders; it goes over the clothes.
+        at_chin = r[-1]
+        steps = 6
+        for j in range(1, steps + 1):
+            f = j / steps
             row = []
-            for k in range(segments):
-                a = 2 * math.pi * k / segments
-                x, y = centre[0] + r * math.cos(a), centre[1] + r * math.sin(a)
-                row.append(bm.verts.new((x, y, surface_z(x, y))))
-            grid.append(row)
-        for k in range(segments):
-            bm.faces.new((middle, grid[0][k], grid[0][(k + 1) % segments]))
-        for ring in range(rings - 1):
-            a, b = grid[ring], grid[ring + 1]
-            for k in range(segments):
-                n = (k + 1) % segments
-                bm.faces.new((a[k], b[k], b[n], a[n]))
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        rigid(body, rig, "kippah", rgb, bm)
-    else:
+            for k, a in enumerate(angles):
+                hem = head.neck_z - s * (1.0 - 0.5 * abs(math.sin(a)))
+                z = chin + (hem - chin) * f
+                spread = at_chin[k] + (2.1 * hw - at_chin[k]) * f**1.3
+                axis = Vector((head.cx, head.cy, z))
+                # Only what's within the drape's reach: further out, sideways, are the arms.
+                clear = out_to(skin + clothes, axis, round_dir(a), 2.6 * hw) + 0.06 * s
+                row.append(axis + round_dir(a) * max(spread, clear))
+            points.append(row)
+
+        def open_face(c):
+            if c.y > head.cy:
+                return False
+            return ((c.x - head.cx) / (0.6 * hw)) ** 2 + ((c.z - face_z) / (0.7 * s)) ** 2 <= 1
+
+        wrapped(body, rig, "hijab", rgb, points, centre + Vector((0, 0, up)), open_face)
+        return
+
+    if kind not in ("turban", "patka"):
         raise RuntimeError(f"Unknown headwear {kind}")
+    # From the top down to an edge running from the brow at the front to the nape at the back.
+    brow = head.eye_z + 0.3 * s
+    nape = head.eye_z - (0.45 if kind == "turban" else 0.6) * s
+    rows_n = 9
+    raw = []
+    for i in range(1, rows_n + 1):
+        t = i / rows_n  # 0 at the top, 1 at the edge
+        row = []
+        for a in angles:
+            edge = nape + (brow - nape) * (1 + math.cos(a)) / 2
+            lowest = math.asin(max(-0.95, min(0.95, (edge - centre.z) / (1.2 * s))))
+            e = math.radians(80) + (lowest - math.radians(80)) * t
+            row.append((e, out_to(skin, centre, round_dir(a, e), 2 * s)))
+        raw.append(row)
+    up = out_to(skin, centre, Vector((0, 0, 1)), 2 * s)
+    base = smooth_grid([[d for _, d in row] for row in raw], 3)
+    points = []
+    for i, row in enumerate(raw):
+        t = (i + 1) / rows_n
+        line = []
+        for k, (e, _) in enumerate(row):
+            a = angles[k]
+            if kind == "patka":
+                extra = 0.09 * s
+            else:
+                height = 1 - t  # 1 at the top, 0 at the edge
+                front = max(0.0, math.cos(a)) ** 3
+                # Layers wound round the head, crossing to a point at the front.
+                folds = 0.05 * s * abs(math.sin(3 * a + 7 * t))
+                extra = 0.16 * s + 0.4 * s * height**1.2 + 0.22 * s * front * height + folds
+            line.append(centre + round_dir(a, e) * (base[i][k] + extra))
+        points.append(line)
+    top_extra = 0.09 * s if kind == "patka" else 0.56 * s
+    wrapped(body, rig, kind, rgb, points, centre + Vector((0, 0, up + top_extra)))
+    if kind == "patka":  # the knot on top, a little to the front
+        knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.14 * s), (0.3 * s, 0.3 * s, 0.24 * s))
+        rigid(body, rig, "patka-knot", rgb, knot)
 
 
 def add_hearing_aids(body, rig, parts, rgb):
