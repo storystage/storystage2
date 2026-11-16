@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '6cc3e657562f1dc39f2c1656eb078836baaedfba';
+export const SHIPPED_CATALOGUE_COMMIT = '2c169bbe2cc1b3dbf644852d3c55d69ef8b831a5';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -70,11 +70,18 @@ Cast
     osa/Biped/teddy: Teddy, a brown teddy bear [everyday, toys] 1.65 m, joints J3
     sketchfab/Biped/grandmother: Grandmother, an old village grandmother with grey hair, in a long orange dress [storybook, fairy tale, people] 1.55 m, joints J5
     sketchfab/Biped/red-riding-hood: Little Red Riding Hood, Little Red Riding Hood, a small girl in a long red hooded cloak [storybook, fairy tale] 1.2 m, joints J5
+    storybook/Biped/anansi: Anansi, Anansi the Akan trickster: a man in orange and purple, with a striped headwrap and eight striped spider legs [storybook, folk tale, West African] 2.24 m, joints J1
     storybook/Biped/beowulf: Beowulf, Beowulf the hero, bearded, in a bear hood and furs [storybook, legend, myth, history] 2.4 m, joints J1
+    storybook/Biped/branwen: Branwen, Branwen of the Mabinogion, a young woman with long dark hair, in a long blue dress and cloak, with a gold circlet [storybook, legend, myth, Welsh] 2.19 m, joints J1
+    storybook/Biped/doctor-watson: Dr Watson, Dr Watson, Sherlock Holmes's friend, with a grey beard and moustache, in a black bowler hat and a green coat [storybook, mystery, Victorian] 2.25 m, joints J1
     storybook/Biped/fionn-mac-cumhaill: Fionn mac Cumhaill, Fionn mac Cumhaill, the Irish and Scottish giant, bearded, in furs [storybook, legend, myth] 4.99 m, joints J1
     storybook/Biped/king-arthur: King Arthur, King Arthur, fair-haired and bareheaded, in armour and a red cape [storybook, legend, myth, history] 2.31 m, joints J1
+    storybook/Biped/maid-marian: Maid Marian, Maid Marian, a young woman with long brown hair, in a long crimson dress and cloak, with a gold circlet [storybook, legend, folk tale] 2.19 m, joints J1
+    storybook/Biped/medusa: Medusa, Medusa of the Greek myths, a young woman in a long white dress, with green snakes for hair [storybook, myth, Greek] 2.44 m, joints J1
     storybook/Biped/merlin: Merlin, Merlin the wizard, young, with black hair, in a tall purple pointed hat and robe [storybook, legend, myth, fantasy] 2.72 m, joints J1
     storybook/Biped/robin-hood: Robin Hood, Robin Hood, the outlaw of Sherwood Forest, in a green hood and cloak [storybook, legend, history] 2.25 m, joints J1
+    storybook/Biped/selkie: Selkie, a selkie, a seal-woman of Scottish and Irish tales, in a silver-grey hooded sealskin cloak [storybook, folk tale, myth, sea] 2.25 m, joints J1
+    storybook/Biped/sherlock-holmes: Sherlock Holmes, Sherlock Holmes the detective, with black hair, in a tweed deerstalker and a brown cape coat, holding a magnifying glass [storybook, mystery, Victorian] 2.2 m, joints J1
   Quadruped
     blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J6
 
