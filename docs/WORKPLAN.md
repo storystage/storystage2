@@ -633,7 +633,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - arguments asked for when a block is dropped, as Alice's cascading menus do;
     - "add detail" for optional arguments (duration, animation style, as seen by);
     - switch a statement off and on;
-    - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters.
+    - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters. **The text view and both wordings are built (`packages/text-view`, S6); the switch in the Code editor's bar is S5's.**
 
     (C)
 - [ ] 7.3 Undo and redo across the scene view and the Code editor, with project history. (C)
