@@ -505,7 +505,8 @@ def add_headwear(body, rig, parts, kind, rgb):
     if kind not in ("turban", "patka"):
         raise RuntimeError(f"Unknown headwear {kind}")
     # From the top down to an edge running from the brow at the front to the nape at the back.
-    brow = head.eye_z + 0.3 * s
+    # A turban's edge sits higher above the eyebrows than a patka's (owner, 16 Nov).
+    brow = head.eye_z + (0.45 if kind == "turban" else 0.3) * s
     nape = head.eye_z - (0.45 if kind == "turban" else 0.6) * s
     rows_n = 9
     raw = []
@@ -519,7 +520,7 @@ def add_headwear(body, rig, parts, kind, rgb):
             row.append((e, out_to(skin, centre, round_dir(a, e), 2 * s)))
         raw.append(row)
     up = out_to(skin, centre, Vector((0, 0, 1)), 2 * s)
-    base = smooth_grid([[d for _, d in row] for row in raw], 3 if kind == "patka" else 10)
+    base = smooth_grid([[d for _, d in row] for row in raw], 3 if kind == "patka" else 4)
     points = []
     for i, row in enumerate(raw):
         t = (i + 1) / rows_n
@@ -535,9 +536,10 @@ def add_headwear(body, rig, parts, kind, rgb):
                 # Layers wound from the sides up to the front, where they cross in a point.
                 side = abs(math.atan2(math.sin(a), math.cos(a))) / math.pi  # 0 front, 1 back
                 layer = 0.5 + 0.5 * math.cos(2 * math.pi * (4.5 * t - 2.2 * side))
-                folds = 0.07 * s * layer**3
-                # Close round the head at its edge (owner, 16 Nov: it stood off the head).
-                extra = 0.07 * s + 0.06 * s * height + folds
+                folds = 0.045 * s * layer**3
+                # Close round the head, tightest at the sides and back (owner, 16 Nov: it stood
+                # off the head), a little fuller at the front where the layers cross.
+                extra = 0.03 * s + 0.04 * s * height + 0.05 * s * front + folds
                 # Height straight up, rising fast from the edge and rounding over at the top
                 # (trial 5's grew with the height and came to a cone), a little more at the front.
                 rise = 0.3 * s * math.sqrt(height) + 0.15 * s * front**2 * height
@@ -571,7 +573,8 @@ def add_hearing_aids(body, rig, parts, rgb):
         rim = [p for p in band if (p.x - head.cx) * side > ((ear.x - head.cx) * side) * 0.85]
         top = max(rim, key=lambda p: p.z)
         # Between the back of the ear and the skull, a little in from the ear's outer edge.
-        centre = (top.x - side * 0.06 * s, max(p.y for p in rim) + 0.04 * s, top.z - 0.16 * s)
+        # Against the back of the ear (owner, 16 Nov), not out behind it.
+        centre = (top.x - side * 0.07 * s, max(p.y for p in rim) + 0.015 * s, top.z - 0.16 * s)
         case = blob(centre, (0.045 * s, 0.065 * s, 0.22 * s), tilt=-0.3)
         rigid(body, rig, f"hearing-aid-{'left' if side > 0 else 'right'}", rgb, case)
 
