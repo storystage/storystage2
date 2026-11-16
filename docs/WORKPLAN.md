@@ -632,7 +632,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - no loose blocks: a block dropped outside a method goes back where it came from (decision 0064), and no empty slots (default values in every slot);
     - arguments asked for when a block is dropped, as Alice's cascading menus do;
     - "add detail" for optional arguments (duration, animation style, as seen by);
-    - switch a statement off and on;
+    - switch a statement off and on. **Both are built, in the block's menu, with Ctrl+/ to switch (16 Nov).**
     - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters. **The text view and both wordings are built (`packages/text-view`, S6); the switch in the Code editor's bar is S5's.**
 
     (C)

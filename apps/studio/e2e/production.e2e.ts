@@ -135,6 +135,54 @@ test('New adds a procedure in its own tab, offered in the palette, one undo step
   await expect(page.getByRole('tab', { name: main.name })).toHaveAttribute('aria-selected', 'true');
 });
 
+test('a block’s menu and keys switch it off, add a detail and duplicate, each one step', async ({
+  page,
+}) => {
+  await openCode(page);
+  const id = main.body[0]!.id;
+  const said = page.locator('.pr > p[aria-live="polite"]');
+  await block(page, id).click({ button: 'right', position: { x: 8, y: 8 } });
+  const menu = page.locator('.blocklyContextMenu');
+  await expect(menu).toBeVisible();
+  // Ours, in place of Blockly's own.
+  await expect(menu).toContainText('Switch off');
+  await expect(menu).toContainText('Add detail: how long');
+  await expect(menu).toContainText('Duplicate');
+  for (const blockly of ['Comment', 'Collapse', 'Inline', 'Help', 'Disable'])
+    await expect(menu).not.toContainText(blockly);
+  const { violations } = await new AxeBuilder({ page }).include('.blocklyWidgetDiv').analyze();
+  expect(violations.map((v) => v.id)).toEqual([]);
+  await menu.getByText('Switch off', { exact: true }).click();
+  await expect(block(page, id)).toHaveClass(/blocklyDisabledPattern/);
+  await expect(undoButton(page)).toHaveText(/^Undo: Switch off /);
+  await expect(said).toHaveText(/^Switch off /);
+  // Ctrl+/ on the block in focus switches it on again, as in Tiles.
+  await expect(block(page, id).locator('> .blocklyPath')).toBeFocused();
+  await page.keyboard.press('Control+/');
+  await expect(block(page, id)).not.toHaveClass(/blocklyDisabledPattern/);
+  await expect(undoButton(page)).toHaveText(/^Undo: Switch on /);
+  // Ctrl+D duplicates it just after itself, in the method (not loose, as Blockly's D would).
+  const says = page.locator('.pr-workspace .ss_story_say');
+  const before = await says.count();
+  await expect(block(page, id).locator('> .blocklyPath')).toBeFocused();
+  await page.keyboard.press('Control+d');
+  await expect(says).toHaveCount(before + 1);
+  await expect(undoButton(page)).toHaveText(/^Undo: Make /);
+  await undoButton(page).click();
+  await expect(says).toHaveCount(before);
+
+  // Add detail asks for the value through the cascade, then it's in the block.
+  await block(page, id).click({ button: 'right', position: { x: 8, y: 8 } });
+  await page.locator('.blocklyContextMenu').getByText('Add detail: how long').click();
+  const cascade = page.getByRole('menu', { name: 'how long' });
+  await expect(cascade).toBeVisible();
+  await cascade.getByRole('menuitemradio', { name: '2', exact: true }).click();
+  await expect(block(page, id)).toContainText('how long');
+  await expect(undoButton(page)).toHaveText(/^Undo: Add how long to /);
+  await undoButton(page).click();
+  await expect(block(page, id)).not.toContainText('how long');
+});
+
 test('axe finds no serious issues with the Code editor open', async ({ page }) => {
   await openCode(page);
   const { violations } = await new AxeBuilder({ page })

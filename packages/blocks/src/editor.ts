@@ -4,11 +4,19 @@
  * (`toBlocks`), each finished gesture becomes edits (`editsFor`) applied through `host.apply` as
  * one undo step, and any change made elsewhere (undo, the Prompter, Tiles) rebuilds the method.
  * A block dropped outside the method goes back (decision 0064), as do blocks the program would
- * refuse.
+ * refuse. A block's menu is ours (`blockMenu.ts`), in place of Blockly's.
  */
 import * as Blockly from 'blockly/core';
 import * as BlocklyEnglish from 'blockly/msg/en';
-import type { Expression, ListenerDecl, MethodDecl, NodeId, Program } from '@storystage/ast';
+import {
+  idMinter,
+  type Expression,
+  type ListenerDecl,
+  type MethodDecl,
+  type NodeId,
+  type Program,
+} from '@storystage/ast';
+import { STORY_WORDS } from '@storystage/story-api';
 import type { PaletteTab } from '@storystage/story-api/editing';
 import {
   EMPTY_VIEW,
@@ -19,20 +27,81 @@ import {
   type HighlightMark,
   type ViewState,
 } from '@storystage/editor-contract';
+import { changeFor, detailPlace, menuFor, type MenuAction } from './blockMenu.ts';
 import { defineBlocks } from './definitions.ts';
 import { dropFromPalette, freshIn, type AskRequest, type Fresh } from './drops.ts';
 import { editsFor } from './gestures.ts';
-import {
-  BlocksMismatch,
-  SWITCHED_OFF,
-  fromBlocks,
-  toBlocks,
-  type WorkspaceState,
-} from './mapping.ts';
+import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
-import { toolboxFor } from './toolbox.ts';
+import { toolboxFor, withNewIds } from './toolbox.ts';
 
 const WORDS = blockWords as Readonly<Record<string, string>>;
+const STORY = STORY_WORDS as Readonly<Record<string, string>>;
+
+/**
+ * Blockly's own menu items that don't fit here: its undo (the studio keeps the one history),
+ * comments (the program has its own comment block), collapsing, inline inputs, help, and its
+ * duplicate, delete and disable, which ours replace (`blockMenu.ts`).
+ */
+const BLOCKLY_MENU = [
+  'undoWorkspace',
+  'redoWorkspace',
+  'cleanWorkspace',
+  'collapseWorkspace',
+  'expandWorkspace',
+  'workspaceDelete',
+  'blockDuplicate',
+  'blockComment',
+  'blockInline',
+  'blockCollapseExpand',
+  'blockDisable',
+  'blockDelete',
+  'blockHelp',
+];
+
+/** Each workspace's menu actions: Blockly's menus and keys are shared by every workspace. */
+const menuActions = new WeakMap<Blockly.Workspace, (block: NodeId, action: MenuAction) => void>();
+
+/** The block a key acts on: the one with focus, or the one a value stands in. */
+function blockFor(scope: { focusedNode?: unknown }): Blockly.BlockSvg | null {
+  let node = scope.focusedNode;
+  while (node instanceof Blockly.BlockSvg && node.isShadow()) node = node.getParent();
+  return node instanceof Blockly.BlockSvg ? node : null;
+}
+
+/**
+ * Our keys, as in Tiles (`14-editors.md` section 3d): Ctrl+/ switches a statement off or on and
+ * Ctrl+D duplicates it (Cmd on a Mac or iPad). Blockly's D makes a loose copy, so it goes.
+ */
+function registerKeys() {
+  const keys = Blockly.ShortcutRegistry.registry;
+  const { KeyCodes } = Blockly.utils;
+  const both = (code: number) => [
+    keys.createSerializedKey(code, [KeyCodes.CTRL]),
+    keys.createSerializedKey(code, [KeyCodes.META]),
+  ];
+  if (keys.getRegistry()['duplicate']) keys.unregister('duplicate');
+  const ours = [
+    ['ss_switch', KeyCodes.SLASH, { kind: 'switch' }],
+    ['ss_duplicate', KeyCodes.D, { kind: 'duplicate' }],
+  ] as const;
+  for (const [name, code, action] of ours) {
+    if (keys.getRegistry()[name]) continue;
+    keys.register({
+      name,
+      preconditionFn: (ws) => !ws.isDragging() && menuActions.has(ws),
+      callback: (ws, e, _shortcut, scope) => {
+        const block = blockFor(scope);
+        const run = menuActions.get(ws);
+        if (!block || !run || block.workspace !== ws) return false;
+        e.preventDefault();
+        run(block.id as NodeId, action);
+        return true;
+      },
+      keyCodes: both(code),
+    });
+  }
+}
 
 /** Every method and listener in a program, by id. */
 function ownerIn(program: Program, id: NodeId | null): MethodDecl | ListenerDecl | null {
@@ -78,6 +147,27 @@ function quietPalette(ws: Blockly.WorkspaceSvg) {
   const flyout = ws.getFlyout()?.getWorkspace().getParentSvg();
   for (const path of flyout?.querySelectorAll('.blocklyHighlightedConnectionPath') ?? [])
     path.setAttribute('aria-hidden', 'true');
+}
+
+/**
+ * Blockly 13 marks its menu's items `aria-selected` as the highlight moves, which a `menuitem` may
+ * not have (axe: aria-allowed-attr); focus already says which item is current. So it's taken off
+ * while the menu is open. To report to Blockly; remove when it is fixed there.
+ */
+function quietMenu(doc: Document) {
+  setTimeout(() => {
+    const menu = doc.querySelector('.blocklyContextMenu');
+    if (!menu) return;
+    const strip = () => {
+      for (const item of menu.querySelectorAll('[aria-selected]'))
+        item.removeAttribute('aria-selected');
+    };
+    strip();
+    new MutationObserver(strip).observe(menu, {
+      subtree: true,
+      attributeFilter: ['aria-selected'],
+    });
+  }, 0);
 }
 
 /** The scene itself, the palette's object until the learner picks one. */
@@ -138,6 +228,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         owner = method.id;
         Blockly.serialization.workspaces.load(toBlocks(host.program(), method), ws);
         ws.getBlockById(method.id)?.setMovable(false);
+        for (const block of ws.getAllBlocks(false)) block.customContextMenu = menuOn(block);
       }
     } finally {
       Blockly.Events.enable();
@@ -209,6 +300,67 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     }
   }
 
+  /** A block's menu: ours, in place of whatever Blockly offers. */
+  function menuOn(block: Blockly.BlockSvg) {
+    return (offered: unknown[]) => {
+      offered.length = 0;
+      if (!host) return;
+      for (const item of menuFor(host.program(), block.id as NodeId))
+        offered.push({
+          text: item.words,
+          enabled: true,
+          callback: () => void act(block.id as NodeId, item.action),
+        });
+      if (offered.length > 0) quietMenu(block.getSvgRoot().ownerDocument);
+    };
+  }
+
+  /**
+   * A menu action or key, as one step, said aloud. Adding a detail asks for its value first,
+   * through the cascade, as a drop does; Escape adds nothing.
+   */
+  async function act(node: NodeId, action: MenuAction) {
+    if (!host || asking) return;
+    let value: Expression | undefined;
+    if (action.kind === 'addDetail') {
+      if (!options.ask) return;
+      const anchor = ws?.getBlockById(node)?.getSvgRoot() ?? null;
+      asking = true;
+      let answer: Expression | null;
+      try {
+        answer = await options.ask({
+          program: host.program(),
+          place: detailPlace(node, action.detail),
+          label: STORY[`detail.${action.detail}`] ?? action.detail,
+          anchor,
+        });
+      } finally {
+        asking = false;
+      }
+      if (!answer || !host) return;
+      value = withNewIds(answer, idMinter(host.program()));
+    }
+    const change = changeFor(host.program(), node, action, value);
+    if (!change.ok) return void host.announce(change.reason);
+    const applied = host.apply(change.edits, change.label, 'blocks');
+    host.announce(applied.ok ? change.label : applied.reason);
+    // Blockly didn't make this change, so the method is drawn again from the program.
+    rebuild();
+    const first = change.edits[0];
+    if (action.kind !== 'delete') focusOn(first?.kind === 'insert' ? first.node.id : node);
+  }
+
+  /**
+   * Focus on a block once Blockly's menu has closed: closing, it puts focus back where the menu
+   * opened, on a block the redraw has replaced.
+   */
+  function focusOn(node: NodeId) {
+    setTimeout(() => {
+      const block = ws?.getBlockById(node);
+      if (block) Blockly.getFocusManager().focusNode(block);
+    }, 0);
+  }
+
   function onChange(e: Blockly.Events.Abstract) {
     if (loading || asking || e.isUiEvent) return;
     if (settling === null) settling = setTimeout(settle, 0);
@@ -247,10 +399,15 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       // `blockly/core` brings no words of its own: Blockly's English ones name its workspace and
       // menus for screen readers (English only, decision 0036; our own wording follows with 7.6).
       Blockly.setLocale(BlocklyEnglish as unknown as Record<string, string>);
+      // A switched-off block is named so for screen readers (3i.7).
+      Blockly.Msg['BLOCK_LABEL_DISABLED'] = WORDS['editor.switchedOff']!;
       defineBlocks();
       host = editorHost;
       owner = ownerIn(host.program(), view.method)?.id ?? ownerIn(host.program(), null)?.id ?? null;
       const self = typeOf(host.program(), owner);
+      // Blockly's menus and text fields go on the page, not in the workspace, which clips them:
+      // a block near the workspace's edge would have its menu cut off.
+      Blockly.common.setParentContainer(element.ownerDocument.body);
       ws = Blockly.inject(element, {
         toolbox: self ? (toolboxFor(host.program(), target, self, tab) as never) : undefined,
         trashcan: false,
@@ -261,9 +418,11 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       // The studio keeps the one history (07-ux section 7.5): Blockly keeps none of its own, so
       // its Ctrl+Z does nothing here and the studio's undoes the step, and its menu has no Undo.
       ws.MAX_UNDO = 0;
-      for (const id of ['undoWorkspace', 'redoWorkspace'])
+      for (const id of BLOCKLY_MENU)
         if (Blockly.ContextMenuRegistry.registry.getItem(id))
           Blockly.ContextMenuRegistry.registry.unregister(id);
+      registerKeys();
+      menuActions.set(ws, (node, action) => void act(node, action));
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {
         if (change.source !== 'blocks' || redraw) {
@@ -283,6 +442,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       };
       if (settling !== null) clearTimeout(settling);
       stopListening?.();
+      if (ws) menuActions.delete(ws);
       ws?.dispose();
       ws = null;
       host = null;
@@ -316,18 +476,27 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
 
     command(command: EditorCommand): boolean {
       const block = Blockly.common.getSelected();
-      if (!(block instanceof Blockly.BlockSvg) || block.id === owner) return false;
+      if (!(block instanceof Blockly.BlockSvg) || !host) return false;
+      const id = block.id as NodeId;
+      const items = menuFor(host.program(), id);
+      const offered = (kind: MenuAction['kind']) => items.find((i) => i.action.kind === kind);
       switch (command) {
         case 'delete':
-          if (!block.previousConnection) return false; // a value stays in its slot
-          block.dispose(true);
+        case 'duplicate':
+        case 'toggleEnabled': {
+          // A value stays in its slot, and the method's own block stays too.
+          const item = offered(command === 'toggleEnabled' ? 'switch' : command);
+          if (!item) return false;
+          void act(id, item.action);
           return true;
-        case 'toggleEnabled':
-          if (!block.previousConnection) return false;
-          block.setDisabledReason(block.isEnabled(), SWITCHED_OFF);
+        }
+        case 'addDetail':
+        case 'openMenu':
+          if (items.length === 0) return false;
+          block.showContextMenu(new KeyboardEvent('keydown'));
           return true;
         default:
-          // Copy, paste, duplicate, add detail and the menu come next.
+          // Copy, paste, and moving a statement up or down come next.
           return false;
       }
     },
