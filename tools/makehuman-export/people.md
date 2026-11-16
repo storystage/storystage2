@@ -1,10 +1,10 @@
 # Everyday people from MakeHuman: first set
 
 - **Workplan:** WP3.5. **Spec:** `docs/spec/17-backstage.md`, section 3 (pipelines).
-- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). All 30 are built. The owner still reviews their renders before they are merged (WP3 done-when).
+- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). All 30 are built; seven more, with headwear and hearing aids, follow (16 Nov). The owner still reviews their renders before they are merged (WP3 done-when).
 - **Source of truth:** `people.json` in this folder. The table below is generated from it by `node tools/makehuman-export/src/people-cli.ts`, which also checks every asset against MakeHuman's CC0 system pack.
 
-Thirty people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2 in Blender, run headless in the assets repository's CI (owner, 25 Oct 2026). Each one is rigged to the game-engine skeleton, so it walks, gestures and poses with the same blocks as every other character (joint map, spec 17 section 2a). Their credit line is "<Name>, made with MakeHuman (CC0)".
+Thirty-seven people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2 in Blender, run headless in the assets repository's CI (owner, 25 Oct 2026). Each one is rigged to the game-engine skeleton, so it walks, gestures and poses with the same blocks as every other character (joint map, spec 17 section 2a). Their credit line is "<Name>, made with MakeHuman (CC0)".
 
 ## The owner's decisions (1 Nov 2026)
 
@@ -12,6 +12,13 @@ Thirty people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2 in Bl
 - **What learners see:** first names, as listed.
 - **The gaps** (headwear, glasses, hearing aids, wheelchairs): look for community CC0 assets first, each checked through the licence audit before it is added. Anything that can't be found that way comes back to the owner.
 - **10 Nov:** S4 searched the MakeHuman community's CC0 and CC BY packs. **Glasses** are there (`glasses01`, CC0): five people of mixed ages wear plain frames (Kai, Oskar, Hannah, Chen, Margaret). The **wheelchair** and **crutches** are Props from Poly Pizza (CC BY 3.0). **Headscarves (hijab), turbans, kippahs and hearing aids** aren't in any community pack: the owner chose to leave them for now, as a known gap, until a source turns up.
+- **16 Nov: headwear and hearing aids, made by us.** No source turned up, so the pipeline makes them itself (`make_people.py`), shaped from each person's own head and moving with it. They are our own work, so CC0. They are worn by **seven new people**, so the 30 already in productions don't change:
+    - Maryam (10) and Samira (45) in hijabs;
+    - Arjan (11) in a patka and Gurdeep (38) in a turban: a patka for the boy and a turban for the man, as two different items;
+    - Eli (8) in a kippah;
+    - Poppy (7) and George (80) with behind-the-ear hearing aids, bright for the child and beige for the adult, so they show on a small screen.
+
+  A hijab, a turban and a patka cover the hair (`hair: null`); a kippah sits on it. `people.json` names each piece and its colour (`headwear`, `hearingAids`), and the checker refuses anything else. The names are S4's suggestions, for the owner's review. The religious items also go to the cultural review (17.8, #54) before they ship.
 - **Grey hair:** tint it in the pipeline. Margaret, Lin, Ravi and Eileen are tinted (`hairTint` in `people.json`). Winston and Tunde are bald.
 - **Outfits, after seeing the first renders:**
     - The crop top and the short denim shorts are retired for everyone. They don't suit a tool for 6 to 13-year-olds.
@@ -41,8 +48,8 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 
 | Missing | Effect | Possible remedy |
 |---|---|---|
-| Headscarves (hijab), turbans, kippahs | No one can be shown wearing them | None in any community pack (searched 10 Nov 2026). Left for now, a known gap (owner, 10 Nov 2026) |
-| Hearing aids | None shown | As above |
+| Headscarves (hijab), turbans, patkas, kippahs | None in any community pack (searched 10 Nov 2026) | Made in the pipeline from each person's head, and worn by five of the seven new people (owner, 16 Nov 2026) |
+| Hearing aids | As above | Made in the pipeline, behind the ear: Poppy and George (owner, 16 Nov 2026) |
 | Glasses | Done: five people of mixed ages wear plain frames from the community's CC0 `glasses01` pack | — |
 | Wheelchairs, walking aids | No one is shown using them yet | A wheelchair and crutches are Props from Poly Pizza (CC BY 3.0), which a character can sit in or hold |
 | Grey or white hair | The pack's hair has fixed colours, none of them grey | Tinted in the pipeline (owner, 1 Nov 2026) |
@@ -98,5 +105,5 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 ## What happens next
 
 1. The owner reviews the first set's sketches and renders in the assets pull request, as for the CC0 sources.
-2. S4 looked for community CC0 headwear, glasses, hearing aids and a wheelchair (10 Nov 2026): glasses, a wheelchair and crutches are in; headwear and hearing aids are a known gap.
+2. S4 looked for community CC0 headwear, glasses, hearing aids and a wheelchair (10 Nov 2026): glasses, a wheelchair and crutches are in. Headwear and hearing aids are made in the pipeline (16 Nov 2026); the owner reviews the seven new people's renders and names, and the religious items go to the cultural review (17.8).
 3. WP3c reduces the people to the device budget (they are 33,000 to 47,000 triangles now).

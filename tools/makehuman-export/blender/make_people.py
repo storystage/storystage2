@@ -392,15 +392,51 @@ def add_headwear(body, rig, parts, kind, rgb):
             knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.12 * s), (0.3 * s, 0.3 * s, 0.24 * s))
             rigid(body, rig, "patka-knot", rgb, knot)
     elif kind == "kippah":
-        # A round cap on the crown, over the hair.
+        # A round cap on the crown, laid over the hair from above: the scalp has too few faces
+        # there to shape it from (found in the first trial, 16 Nov).
+        import bmesh
         from mathutils import Vector
 
-        crown = Vector((head.cx, head.cy + 0.2 * s, head.top))
+        surfaces = hair + part_trees(body, [body], {"basemesh"})
+        if not surfaces:
+            raise RuntimeError("Nothing to lay the kippah on")
+        down = Vector((0, 0, -1))
+        centre = (head.cx, head.cy + 0.25 * s)
+        radius = 0.5 * s
+        rings, segments = 5, 24
 
-        def keep(co, n):
-            return (co - crown).length <= 0.55 * s and n.z > 0.2
+        def surface_z(x, y):
+            start = Vector((x, y, head.top + s))
+            hits = []
+            for tree, to_local, turn in surfaces:
+                d = (turn @ down).normalized()
+                hit = tree.ray_cast(to_local @ start, d, 3 * s)
+                if hit[0] is not None:
+                    hits.append(start.z - hit[3])
+            if not hits:
+                raise RuntimeError(f"The kippah found no head under ({x:.3f}, {y:.3f})")
+            return max(hits) + 0.03 * s
 
-        shell(body, rig, "kippah", rgb, keep, lambda co, n: over(co, n, hair, 0.03 * s, 0.05 * s), smooth=2)
+        bm = bmesh.new()
+        middle = bm.verts.new((centre[0], centre[1], surface_z(*centre)))
+        grid = []
+        for ring in range(1, rings + 1):
+            r = radius * ring / rings
+            row = []
+            for k in range(segments):
+                a = 2 * math.pi * k / segments
+                x, y = centre[0] + r * math.cos(a), centre[1] + r * math.sin(a)
+                row.append(bm.verts.new((x, y, surface_z(x, y))))
+            grid.append(row)
+        for k in range(segments):
+            bm.faces.new((middle, grid[0][k], grid[0][(k + 1) % segments]))
+        for ring in range(rings - 1):
+            a, b = grid[ring], grid[ring + 1]
+            for k in range(segments):
+                n = (k + 1) % segments
+                bm.faces.new((a[k], b[k], b[n], a[n]))
+        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+        rigid(body, rig, "kippah", rgb, bm)
     else:
         raise RuntimeError(f"Unknown headwear {kind}")
 
