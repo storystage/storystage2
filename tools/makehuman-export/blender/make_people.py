@@ -402,20 +402,25 @@ def add_headwear(body, rig, parts, kind, rgb):
         return farthest_hit(trees, origin, direction, reach)
 
     if kind == "kippah":
-        # A smooth dome on the crown, lifted clear of the hair.
+        # A smooth dome towards the back of the crown, tilted back with the head's slope there
+        # (owner, 16 Nov: further back, in line with the head), lifted clear of the hair.
+        from mathutils import Matrix
+
         radius, spread, rings = 0.85 * s, math.radians(34), 5
-        crown = Vector((head.cx, head.cy + 0.3 * s, head.top))
-        middle = crown - Vector((0, 0, radius))
+        tilt = Matrix.Rotation(math.radians(-38), 3, "X")  # turns up (+Z) towards the back (+Y)
+        axis = tilt @ Vector((0, 0, 1))
+        crown = centre + axis * farthest_hit(hair + skin, centre, axis, 3 * s)
+        middle = crown - axis * radius
         rows = []
         for ring in range(1, rings + 1):
             e = math.pi / 2 - spread * ring / rings
-            rows.append([middle + round_dir(a, e) * radius for a in angles])
-        apex = middle + Vector((0, 0, radius))
-        down = Vector((0, 0, -1))
+            rows.append([middle + (tilt @ round_dir(a, e)) * radius for a in angles])
+        apex = middle + axis * radius
+        down = -axis
 
         def need(p):
-            """How far up `p` must go to sit on the first surface met coming down from above."""
-            above = p + Vector((0, 0, s))
+            """How far out `p` must go to sit on the first surface met coming in from outside."""
+            above = p + axis * s
             first = None
             for tree, to_local, turn in hair + skin:
                 h = tree.ray_cast(to_local @ above, (turn @ down).normalized(), 3 * s)
@@ -431,8 +436,8 @@ def add_headwear(body, rig, parts, kind, rgb):
         for row in rows:
             needs = sorted(need(p) for p in row)
             lifts.append(needs[len(needs) // 2])
-        rows = [[p + Vector((0, 0, lift)) for p in row] for row, lift in zip(rows, lifts)]
-        apex = apex + Vector((0, 0, max(need(apex), lifts[0])))
+        rows = [[p + axis * lift for p in row] for row, lift in zip(rows, lifts)]
+        apex = apex + axis * max(need(apex), lifts[0])
         wrapped(body, rig, "kippah", rgb, rows, apex)
         return
 
@@ -531,13 +536,14 @@ def add_headwear(body, rig, parts, kind, rgb):
                 side = abs(math.atan2(math.sin(a), math.cos(a))) / math.pi  # 0 front, 1 back
                 layer = 0.5 + 0.5 * math.cos(2 * math.pi * (4.5 * t - 2.2 * side))
                 folds = 0.07 * s * layer**3
-                extra = 0.2 * s + 0.08 * s * height + folds
+                # Close round the head at its edge (owner, 16 Nov: it stood off the head).
+                extra = 0.07 * s + 0.06 * s * height + folds
                 # Height straight up, rising fast from the edge and rounding over at the top
                 # (trial 5's grew with the height and came to a cone), a little more at the front.
                 rise = 0.3 * s * math.sqrt(height) + 0.15 * s * front**2 * height
             line.append(centre + round_dir(a, e) * (base[i][k] + extra) + Vector((0, 0, rise)))
         points.append(line)
-    top_extra = 0.09 * s if kind == "patka" else 0.58 * s
+    top_extra = 0.09 * s if kind == "patka" else 0.5 * s
     wrapped(body, rig, kind, rgb, points, centre + Vector((0, 0, up + top_extra)))
     if kind == "patka":  # the knot on top, a little to the front
         knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.14 * s), (0.3 * s, 0.3 * s, 0.24 * s))
@@ -545,8 +551,9 @@ def add_headwear(body, rig, parts, kind, rgb):
 
 
 def add_hearing_aids(body, rig, parts, rgb):
-    """A behind-the-ear hearing aid on each ear (owner, 16 Nov 2026): a curved case behind the
-    top of the ear. A little larger than life, so it shows at the stage's size."""
+    """A behind-the-ear hearing aid on each ear (owner, 16 Nov 2026): a slim case tucked into
+    the fold behind the top of the ear. The first was too large and stood out (owner, 16 Nov), so
+    it is near life size and against the head; its colour is what makes a child's show."""
     head = Head(body, parts)
     s = head.s
     for side in (1, -1):
@@ -563,8 +570,9 @@ def add_hearing_aids(body, rig, parts, rgb):
         # The rim's top: the highest point near the ear's outer edge.
         rim = [p for p in band if (p.x - head.cx) * side > ((ear.x - head.cx) * side) * 0.85]
         top = max(rim, key=lambda p: p.z)
-        centre = (top.x - side * 0.05 * s, max(p.y for p in rim) + 0.05 * s, top.z - 0.18 * s)
-        case = blob(centre, (0.08 * s, 0.11 * s, 0.3 * s), tilt=-0.35)
+        # Between the back of the ear and the skull, a little in from the ear's outer edge.
+        centre = (top.x - side * 0.14 * s, max(p.y for p in rim) + 0.01 * s, top.z - 0.16 * s)
+        case = blob(centre, (0.045 * s, 0.065 * s, 0.22 * s), tilt=-0.3)
         rigid(body, rig, f"hearing-aid-{'left' if side > 0 else 'right'}", rgb, case)
 
 
