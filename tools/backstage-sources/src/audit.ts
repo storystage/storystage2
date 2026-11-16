@@ -27,6 +27,9 @@ export const SOURCE_NAMES: Readonly<Record<string, string>> = {
 
 const sourceOf = (item: Item) => item.id.split('/')[0]!;
 
+/** Text for a Markdown table cell: backslashes first, then the bars that would end the cell. */
+const cell = (text: string) => text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+
 /** The shipped models by source and licence, as a Markdown table. */
 export function shippedTable(manifest: BackstageManifest): string {
   const groups = new Map<string, Item[]>();
@@ -44,8 +47,7 @@ export function shippedTable(manifest: BackstageManifest): string {
     '| Source | Licence | Models | For example |',
     '|---|---|---|---|',
     ...rows.map(
-      (r) =>
-        `| ${r.source} | ${r.licence} | ${r.items.length} | ${r.items[0]!.credit.replace(/\|/g, '\\|')} |`,
+      (r) => `| ${r.source} | ${r.licence} | ${r.items.length} | ${cell(r.items[0]!.credit)} |`,
     ),
     `| **All** | | **${manifest.items.length}** | |`,
   ].join('\n');

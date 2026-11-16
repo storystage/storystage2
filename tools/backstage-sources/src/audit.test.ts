@@ -43,6 +43,11 @@ describe('shippedTable', () => {
   it('names an unknown source by its id', () => {
     expect(shippedTable(manifest(item({ id: 'newsource/Prop/x' })))).toContain('| newsource |');
   });
+
+  it('escapes backslashes before bars, so a credit line stays in its cell', () => {
+    const table = shippedTable(manifest(item({ credit: 'A\\|B' })));
+    expect(table).toContain('| A\\\\\\|B |');
+  });
 });
 
 describe('auditProblems', () => {
