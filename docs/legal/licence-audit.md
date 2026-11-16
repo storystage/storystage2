@@ -19,7 +19,7 @@ Verdicts:
 |---|---|---|---|---|---|
 | **Alice's gallery**: 340 Alice models of the 435 in appendix A (the other 95 are Sims 2 art, next row) | Alice 3 EULA, clause 5: the gallery "is contributed by Electronic Arts Inc." and is for personal, non-commercial and academic use only. CMU has not said which models CMU made or on what terms | Animals, storybook characters, props, scenery, a few vehicles; the joint vocabulary (which is not an asset, and is used regardless) | Set when CMU replies, for example "Abyssinian cat from Alice 3, Carnegie Mellon University" | **Not yet** | Ship only the models CMU confirms in writing, recorded in `docs/legal/` and given the manifest licence `permission` (WP17.1). Converting for testing and for spike 1.2 is allowed (workplan WP3, "Depends on"). Bamboo's two Sims 2 variants never ship (next row). **16 Nov:** CMU replied on 27 Oct and is consulting the University's legal counsel (`correspondence.md`). Some Alice 3 characters are converted for internal testing only, in a private model pack kept outside every repository, licence "not sure"; none ships |
 | **The Sims 2 art**: the Alice 3 people; **95 whole gallery models** (all the cars and most household furniture, appliances and house plants, and some trees, aircraft and boats); and two Bamboo variants. 862 of the gallery's 1,772 texture variants in all | Alice 3.0 Art Gallery Licence: use only "without modification" and only with programs written with Alice 3.0 | Nothing | — | **Don't ship** | StoryStage 2 meets neither condition. Only EA's written permission would change this (WP17.7, decision 0008). Alice's own jars mark these variants `SIMS2`; the converter never converts them. Kenney, KayKit, Poly Pizza and the museum scans cover vehicles, furniture and plants instead |
-| **[MakeHuman](https://static.makehumancommunity.org/oldsite/faq/can_i_sell_models_created_with_makehuman.html)** | Exported models are CC0. Some assets inside MakeHuman (community add-ons) are CC-BY | Diverse rigged everyday people (3.5) | "<Name>, made with MakeHuman (CC0)" | **Ship** | The export pipeline (3.5) uses only assets that are themselves CC0, and records which assets each person uses. Any CC-BY asset is left out of the shipped set. The owner reviews the first set for respectful, varied representation. **16 Nov:** headwear (hijab, turban, patka, kippah) and hearing aids, which no pack has, are made by the pipeline itself: our own work, CC0, under the person's credit. The religious items go through the cultural review (17.8) before they ship |
+| **[MakeHuman](https://static.makehumancommunity.org/oldsite/faq/can_i_sell_models_created_with_makehuman.html)** | Exported models are CC0. Some assets inside MakeHuman (community add-ons) are CC-BY | Diverse rigged everyday people (3.5) | "<Name>, made with MakeHuman (CC0)" | **Ship** | The export pipeline (3.5) uses only assets that are themselves CC0, and records which assets each person uses. Any CC-BY asset is left out of the shipped set. The owner reviews the first set for respectful, varied representation. **16 Nov:** headwear (hijab, turban, patka, kippah) and hearing aids, which no pack has, are made by the pipeline itself: our own work, CC0, under the person's credit. The owner reviewed the religious items (17.8) on 16 Nov: all four ship |
 | **[MakeHuman community: Glasses 01](https://static.makehumancommunity.org/assets/assetpacks/glasses01.html)** | CC0, every asset in the pack (`glasses01_cc0.zip`) | Glasses worn by MakeHuman people (3.5) | None needed: the person's own credit, "<Name>, made with MakeHuman (CC0)", stands | **Ship** | Only the plain frames (`GLASSES` in `tools/makehuman-export/src/people.ts`); the costume and tinted ones aren't offered. The pipeline fetches the pack pinned by SHA-256 |
 | **Storybook cast** (3.6): not commissioned (the owner, 14 Nov 2026: no budget) | Made from KayKit's CC0 parts (`kitbash` recipes, 15 Nov), so CC0; or found per item (the Sketchfab row) | Public-domain characters: Robin Hood, Arthur, Merlin, Beowulf, Fionn, Maid Marian, Branwen, Medusa, the selkie, Holmes, Watson, Anansi | "<Character>, made from <model> by Kay Lousberg, KayKit (CC0)" | **Ship** | Designs from public-domain text only, each with its cultural and trade-mark check (17.8, #54) before it ships. A commission, if one comes later, would be licence `permission`, citing the contract in `docs/legal/` |
 | **[Kenney](https://kenney.nl/support)** | CC0. No attribution needed; the Kenney logo is reserved | Rigged characters, props, scenery in glTF (3.7) | "<Model> by Kenney (CC0)" | **Not used** (owner, 12 Nov 2026): kenney.nl refuses scripted downloads, and KayKit's characters cover Kenney's | If Kenney comes back: check the `License.txt` in each pack as it is downloaded. Don't use the Kenney logo. The Blocky and Mini character packs have no skeleton, so they are props or prop-only characters |
@@ -58,13 +58,12 @@ Since then:
 - **12 Nov:** Kenney left out (section 1).
 - **14 Nov:** the storybook cast without a commission, from KayKit's parts and two Sketchfab finds (section 1).
 - **15 Nov:** Blender Studio's Autumn ships; Spring doesn't.
-- **16 Nov:** headwear and hearing aids made in the MakeHuman pipeline.
+- **16 Nov:** headwear and hearing aids made in the MakeHuman pipeline. The owner's cultural reviews (17.8): Anansi stays, and the hijab, patka, turban and kippah ship.
 
 Still to do:
 
 - **CMU:** the letter was sent on 25 Oct; CMU replied on 27 Oct and is consulting legal counsel. Add its answer to `docs/legal/`, then update the verdict on Alice's gallery (WP17.1).
 - **Quaternius:** the letter is drafted, not yet sent (`correspondence.md`). Quaternius stays out until it answers.
-- **The cultural reviews (17.8, #54):** Anansi, and the hijab, patka, turban and kippah, before the lock update that ships them.
 
 ## 4. What ships
 
@@ -72,14 +71,14 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets 2c169bb (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets fd0455a (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
 | Backdrops' grounds, from ambientCG and Poly Haven textures | CC0-1.0 | 31 | Bricks 105 from ambientCG.com (CC0) |
 | Blender Studio | CC-BY-4.0 | 1 | Autumn (CC) Blender Foundation \| studio.blender.org; reduced for StoryStage, changed for StoryStage |
 | KayKit | CC0-1.0 | 10 | Barbarian by Kay Lousberg, KayKit (CC0) |
-| MakeHuman people | CC0-1.0 | 30 | Alfie, made with MakeHuman (CC0) |
+| MakeHuman people | CC0-1.0 | 37 | Alfie, made with MakeHuman (CC0) |
 | Open Source Avatars | CC0-1.0 | 10 | Astronaut by Polygonal Mind, 100Avatars (CC0) |
 | Poly Pizza | CC-BY-3.0 | 51 | Apple by jeremy, CC BY 3.0, via Poly Pizza, changed for StoryStage |
 | Poly Pizza | CC0-1.0 | 18 | Alarm clock by CreativeTrio (CC0), via Poly Pizza |
@@ -87,7 +86,7 @@ Generated from `backstage.json` at storystage/backstage-assets 2c169bb (the comm
 | Sketchfab, per item | CC-BY-4.0 | 2 | Old Village Granny by Imagine, CC BY 4.0, via Sketchfab; rigged and reduced for StoryStage, changed for StoryStage |
 | Smithsonian Open Access | CC0-1.0 | 7 | Abraham Lincoln's Patent Model, Smithsonian National Museum of American History (CC0) |
 | Storybook cast, KayKit models and characters made from their parts | CC0-1.0 | 12 | Anansi, made from Barbarian by Kay Lousberg, KayKit (CC0) |
-| **All** | | **180** | |
+| **All** | | **187** | |
 
 <!-- /shipped -->
 

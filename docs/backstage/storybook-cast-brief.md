@@ -140,7 +140,7 @@ There were eight gaps: Red Riding Hood, Holmes, Branwen, Watson, Marian, Medusa,
 - **Alice 3.9 on a PC** for the converter, and where the private test pack is kept.
 - **The Sketchfab downloads** in section 3a, and whether to rig Red Riding Hood with Mixamo.
 - **CMU's answer,** when its legal advice is done, filed by D in 17.1's correspondence.
-- **The seven made from parts:** whether each one ships, from its thumbnail and sketches in the assets pull request; Anansi's cultural review (17.8).
+- **The seven made from parts:** done. All seven ship (backstage-assets#16, storystage2#436), and the owner's cultural review of Anansi (17.8) keeps him in (16 Nov 2026).
 - **17.8's decisions** (PR #54), for every character that ships, including the register checks for Alice, Holmes and Merlin.
 
 Sources searched on 14 Nov 2026: Sketchfab's public search (downloadable models, CC0 and CC BY); Alice 3's model list (`docs/legal/letters/cmu-models.csv`); the shipped Backstage (`backstage.json` in `storystage/backstage-assets`).
