@@ -31,6 +31,10 @@ async function drag(page: Page, from: Locator, to: { x: number; y: number }) {
   await page.mouse.up();
 }
 
+/** The block keyboard focus is in, by its node id. */
+const focusedBlock = (page: Page) =>
+  page.evaluate(() => document.activeElement?.closest('[data-id]')?.getAttribute('data-id'));
+
 /** The stage's own Undo (07-ux section 7.5), named for its step. */
 const undoButton = (page: Page) =>
   page.getByRole('toolbar', { name: 'Undo and redo' }).getByRole('button', { name: /^Undo/ });
@@ -157,14 +161,14 @@ test('a block’s menu and keys switch it off, add a detail and duplicate, each 
   await expect(undoButton(page)).toHaveText(/^Undo: Switch off /);
   await expect(said).toHaveText(/^Switch off /);
   // Ctrl+/ on the block in focus switches it on again, as in Tiles.
-  await expect(block(page, id).locator('> .blocklyPath')).toBeFocused();
+  await expect.poll(() => focusedBlock(page)).toBe(id);
   await page.keyboard.press('Control+/');
   await expect(block(page, id)).not.toHaveClass(/blocklyDisabledPattern/);
   await expect(undoButton(page)).toHaveText(/^Undo: Switch on /);
   // Ctrl+D duplicates it just after itself, in the method (not loose, as Blockly's D would).
   const says = page.locator('.pr-workspace .ss_story_say');
   const before = await says.count();
-  await expect(block(page, id).locator('> .blocklyPath')).toBeFocused();
+  await expect.poll(() => focusedBlock(page)).toBe(id);
   await page.keyboard.press('Control+d');
   await expect(says).toHaveCount(before + 1);
   await expect(undoButton(page)).toHaveText(/^Undo: Make /);

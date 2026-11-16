@@ -12,6 +12,8 @@ const SURFACES: readonly ColorToken[] = [
   'panel-3',
   'band',
   'dialog',
+  'code',
+  'code-method',
 ];
 
 /** Text that sits on any surface: 4.5:1. */
@@ -58,6 +60,14 @@ const TEXT_ON_FILLS: readonly (readonly [ColorToken, ColorToken])[] = [
   ['text', 'tab'],
   ['prompter-text', 'prompter-bg'],
   ['sketch-ink', 'sketch-paper'],
+  ['on-block-move', 'block-move'],
+  ['on-block-speech', 'block-speech'],
+  ['on-block-camera', 'block-camera'],
+  ['on-block-look', 'block-look'],
+  ['on-block-sound', 'block-sound'],
+  ['on-block-question', 'block-question'],
+  ['on-block-yours', 'block-yours'],
+  ['on-block-chip', 'block-chip'],
 ];
 
 /** Outlines on their own fill: [line, fill]. */
@@ -105,6 +115,14 @@ describe.each(THEMES)('the %s theme', (theme) => {
       'on-prompter',
       'sketch-paper',
       'sketch-ink',
+      'block-move',
+      'block-speech',
+      'block-camera',
+      'block-look',
+      'block-sound',
+      'block-question',
+      'block-yours',
+      'block-chip',
     ] as const) {
       expect(c[t]).toBe(colors.dark[t]);
     }
