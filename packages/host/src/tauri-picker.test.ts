@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { CollectedFile } from './files.ts';
 import type { Invoke } from './speech.ts';
 import {
+  FILES_HEADER,
   NAME_HEADER,
   PICKER_COMMANDS,
   SESSION_HEADER,
@@ -163,6 +164,62 @@ describe('the native picker (spec 05 section 6.5)', () => {
     const wrong: Invoke = async () => 'nonsense';
     await expect(tauriPicker(wrong).open()).rejects.toMatchObject({ code: 'internal' });
     await expect(tauriPicker(wrong).handBack()).rejects.toMatchObject({ code: 'internal' });
+  });
+});
+
+describe('saving an exported film in the apps', () => {
+  const films = (mp4 = 'video') => [
+    { file: 'The Owl.mp4', bytes: bytes(mp4) },
+    { file: 'The Owl.vtt', bytes: bytes('WEBVTT') },
+    { file: 'The Owl.srt', bytes: bytes('1') },
+  ];
+  const sent: Call[] = [];
+  const recording =
+    (reply: () => Promise<unknown>): Invoke =>
+    async (command, args, options) => {
+      sent.push({ command, args, headers: options?.headers });
+      return reply();
+    };
+
+  it('sends the three files as one body, with their lengths and a safe name to suggest', async () => {
+    sent.length = 0;
+    await tauriPicker(recording(async () => undefined)).saveFilm?.('The Owl: part 1', films());
+    expect(sent).toHaveLength(1);
+    const [call] = sent;
+    expect(call?.command).toBe(PICKER_COMMANDS.saveFilm);
+    expect(decodeURIComponent(call?.headers?.[NAME_HEADER] ?? '')).toBe('The Owl part 1');
+    expect(call?.headers?.[FILES_HEADER]).toBe('mp4:5,vtt:6,srt:1');
+    expect(text(call?.args as Uint8Array)).toBe('videoWEBVTT1');
+  });
+
+  it('says cancelled when the person closes the dialog', async () => {
+    const closed = tauriPicker(recording(() => Promise.reject('cancelled')));
+    await expect(closed.saveFilm?.('The Owl', films())).rejects.toMatchObject({
+      code: 'cancelled',
+    });
+  });
+
+  it('refuses no files, another kind of file, a repeat or one over the limit before the dialog', async () => {
+    sent.length = 0;
+    const picker = tauriPicker(
+      recording(async () => undefined),
+      5,
+    );
+    for (const files of [
+      [],
+      [{ file: 'The Owl.mov', bytes: bytes('x') }],
+      [{ file: 'The Owl', bytes: bytes('x') }],
+      [
+        { file: 'The Owl.vtt', bytes: bytes('x') },
+        { file: 'Other.VTT', bytes: bytes('x') },
+      ],
+    ]) {
+      await expect(picker.saveFilm?.('The Owl', files)).rejects.toMatchObject({ code: 'invalid' });
+    }
+    await expect(picker.saveFilm?.('The Owl', films('longer'))).rejects.toMatchObject({
+      code: 'too_big',
+    });
+    expect(sent).toEqual([]);
   });
 });
 

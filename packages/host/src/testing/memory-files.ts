@@ -11,6 +11,7 @@ import {
   type ClassFolders,
   type CollectedFile,
   type FilePicker,
+  type FilmFile,
 } from '../files.ts';
 import { checkPath, type FileStore, type StorePath } from '../store.ts';
 
@@ -84,14 +85,18 @@ export function memoryFilePicker(
   answers: {
     open?: () => { name: string; bytes: Uint8Array } | null;
     handBack?: () => readonly CollectedFile[] | null;
+    /** `false` is the person closing the film's dialog. */
+    saveFilm?: () => boolean;
   } = {},
   limit = FILE_LIMIT,
 ): FilePicker & {
   readonly saved: { name: string; bytes: Uint8Array }[];
   readonly collected: CollectedFile[];
+  readonly films: { name: string; files: FilmFile[] }[];
 } {
   const saved: { name: string; bytes: Uint8Array }[] = [];
   const collected: CollectedFile[] = [];
+  const films: { name: string; files: FilmFile[] }[] = [];
   const answer = <T>(value: T | null | undefined): T => {
     if (value === null || value === undefined) throw new FileError('cancelled');
     return value;
@@ -99,6 +104,7 @@ export function memoryFilePicker(
   return {
     saved,
     collected,
+    films,
     async saveCopy(name, bytes) {
       saved.push({ name, bytes: copy(bytes) });
     },
@@ -112,6 +118,11 @@ export function memoryFilePicker(
       if (names.size !== files.length) throw new FileError('invalid');
       collected.push(...files.map((file) => ({ ...file, bytes: copy(file.bytes) })));
       return files.length;
+    },
+    async saveFilm(name, files) {
+      if (answers.saveFilm?.() === false) throw new FileError('cancelled');
+      for (const file of files) within(file.bytes, limit);
+      films.push({ name, files: files.map((file) => ({ ...file, bytes: copy(file.bytes) })) });
     },
     async handBack() {
       const files = answer(answers.handBack?.());

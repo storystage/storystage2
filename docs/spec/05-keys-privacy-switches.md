@@ -484,6 +484,7 @@ In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the 
 |---|---|---|
 | `picker_kind` | | `native` on desktop and Android, `browser` on iPad until its export step is built (0070) |
 | `picker_save` | The copy as a raw body; its suggested name in `x-storystage-name` | Nothing, or `cancelled` |
+| `picker_save_film` | An exported film's files one after another as a raw body; `mp4:1234,vtt:56,srt:78` in `x-storystage-files`; the name to suggest, already plain, in `x-storystage-name` | Nothing, or `cancelled` |
 | `picker_open` | | One raw reply: the name's length in four bytes (big-endian), the name, then the file |
 | `picker_collect_start` | | A session, once the teacher has picked a folder |
 | `picker_collect_write` | A file as a raw body; `folder/file` in `x-storystage-name`, the session in `x-storystage-session` | Nothing |
@@ -491,6 +492,8 @@ In the Tauri desktop apps (`tauriPicker`), the system's dialog is opened by the 
 | `picker_hand_back_start` | | A session, and `{ folder, file }` for each production one level down |
 | `picker_hand_back_read` | A session and an index | The file, as a raw reply |
 | `picker_end` | A session | Forgets the picked folder |
+
+`saveFilm` (S2's ask, for spec 08 section 4) saves an exported film: the video and its `.vtt` and `.srt` captions. One dialog opens, for the video, with the film's name suggested. The captions are written beside it, under the name the person chose with their own extensions, each whole or not at all; captions of that name are replaced, as the video is once the person agrees. Only `mp4`, `vtt` and `srt` are accepted, each once, each at most `FILE_LIMIT`, and the lengths must add up to the body. On Android the dialog saves one zip instead, with the three side by side. `saveFilm` is optional on `FilePicker`: the browser version and iPad don't have it, and the studio saves the files its own way there (a folder the learner picks, or one zip).
 
 Names in headers are encoded with `encodeURIComponent`. The native side checks every name again (`storystage_classes::picked`): Collect writes only a plain name and a `.storystage` file inside the picked folder, a save or a write is whole or not at all, nothing over `FILE_LIMIT` is written or read, and no link is followed. **On Android** the same commands use the system's dialog too. A picked file comes back as a content URI, which the fs plugin opens from Rust, so the webview still never holds it. Open reads at most `FILE_LIMIT` and is counted as it reads, since a content URI may not say its size. Save a copy writes straight to the picked file, which can't be renamed over. Collect saves a zip and Hand back opens one (below). The zip is built in, or copied to, a file of the app's own in its cache, and removed when the session ends. **On iPad**, `picker_kind` is still `browser` and the webview's own pickers are used, until iPad's export step is built: iPadOS has no "save as", and the dialog plugin's save can't write a file iPadOS has already exported.
 
@@ -587,7 +590,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | … in the real app (7) | `backstage.json` served to the page, and a path out of the folder not found | The leak scan |
 | The native picker's rules (6.5) | Plain names, whole saves, Collect inside the picked folder only, Hand back one level down, the size limit and links; and the TypeScript side over a stand-in for the commands | Rust unit on Windows and macOS, Vitest |
 | The page can't reach the dialog itself (6.5) | `plugin:dialog|open` refused on the real Windows app | The leak scan |
-| The native dialogs (6.5) | By hand on Windows and a Mac: each of the four, and closing each | Device (owner) |
+| An exported film saved (6.5) | The list of files and its lengths against the body; the name chosen, with or without its extension; captions written beside the video and replacing old ones; nothing written for a name that isn't plain; Android's zip; and the TypeScript side refusing before the dialog opens | Rust unit on Windows and macOS, Vitest |
+| The native dialogs (6.5) | By hand on Windows and a Mac: each of the five, and closing each | Device (owner) |
 | The browser's own pickers and inputs (6.5) | By hand in Chrome on a Chromebook, and in Safari on an iPad | Device (owner) |
 | The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |

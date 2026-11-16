@@ -55,6 +55,7 @@ fn main() {
         "classes_move",
         "picker_kind",
         "picker_save",
+        "picker_save_film",
         "picker_open",
         "picker_collect_start",
         "picker_collect_write",

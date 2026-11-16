@@ -123,6 +123,78 @@ pub fn hand_back(chosen: &Path) -> Result<Vec<Found>, Code> {
     Ok(found)
 }
 
+/// What an exported film's files may end in (spec 08 section 4): the video and its captions.
+pub const FILM_EXTENSIONS: [&str; 3] = ["mp4", "vtt", "srt"];
+
+/// One of an exported film's files, as `picker_save_film` is sent them: its extension, and where
+/// its bytes are in the body.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FilmPart {
+    pub extension: String,
+    pub start: usize,
+    pub end: usize,
+}
+
+/// Reads the list of a film's files, `mp4:1234,vtt:56,srt:78`, against the body's length. One
+/// to three files, each a different extension in `FILM_EXTENSIONS`, each within `FILE_LIMIT`
+/// (or `too_big`), and the lengths adding up to the body exactly. Anything else is `invalid`.
+pub fn film_parts(list: &str, body: usize) -> Result<Vec<FilmPart>, Code> {
+    let mut parts: Vec<FilmPart> = Vec::new();
+    let mut start = 0usize;
+    for item in list.split(',') {
+        let (extension, length) = item.split_once(':').ok_or(Code::Invalid)?;
+        if !FILM_EXTENSIONS.contains(&extension) || parts.iter().any(|part| part.extension == extension) {
+            return Err(Code::Invalid);
+        }
+        if length.is_empty() || !length.bytes().all(|b| b.is_ascii_digit()) {
+            return Err(Code::Invalid);
+        }
+        let length: usize = length.parse().map_err(|_| Code::TooBig)?;
+        if length > FILE_LIMIT {
+            return Err(Code::TooBig);
+        }
+        let end = start.checked_add(length).ok_or(Code::Invalid)?;
+        parts.push(FilmPart { extension: extension.to_string(), start, end });
+        start = end;
+    }
+    if start != body {
+        return Err(Code::Invalid);
+    }
+    Ok(parts)
+}
+
+/// The name a film's files share: what the person chose in the dialog, without the first
+/// file's extension if they kept it ("Our film.MP4" gives "Our film"). `None` unless every file's
+/// name would be plain.
+pub fn film_stem(chosen: &str, parts: &[FilmPart]) -> Option<String> {
+    let first = &parts.first()?.extension;
+    let ending = format!(".{first}");
+    let stem = match chosen.len().checked_sub(ending.len()) {
+        Some(at) if chosen.is_char_boundary(at) && chosen[at..].eq_ignore_ascii_case(&ending) => &chosen[..at],
+        _ => chosen,
+    };
+    let plain =
+        is_plain_name(stem) && parts.iter().all(|part| is_plain_name(&format!("{stem}.{}", part.extension)));
+    plain.then(|| stem.to_string())
+}
+
+/// Saves an exported film where the person picked in the dialog: the first file at the path
+/// they chose, and the rest beside it with the same name and their own extensions. Each file is
+/// whole or not there, as `save` writes it. A caption file of the same name is replaced, as the
+/// video is once the person has agreed to replace it.
+pub fn save_film(chosen: &Path, body: &[u8], parts: &[FilmPart]) -> Result<(), Code> {
+    if parts.last().map(|part| part.end) != Some(body.len()) {
+        return Err(Code::Invalid);
+    }
+    let folder = chosen.parent().ok_or(Code::Internal)?;
+    let name = chosen.file_name().and_then(|name| name.to_str()).ok_or(Code::Invalid)?;
+    let stem = film_stem(name, parts).ok_or(Code::Invalid)?;
+    for part in parts {
+        save(&folder.join(format!("{stem}.{}", part.extension)), &body[part.start..part.end])?;
+    }
+    Ok(())
+}
+
 /// Decodes a header value the studio encoded with `encodeURIComponent`, as names can be any
 /// language and a header can carry only plain ASCII.
 pub fn decode_header(value: &str) -> Option<String> {

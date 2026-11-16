@@ -5,7 +5,8 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
 use storystage_classes::picked::{
-    collect, decode_header, hand_back, is_plain_name, is_production_name, read, save, Found,
+    collect, decode_header, film_parts, film_stem, hand_back, is_plain_name, is_production_name, read, save,
+    save_film, FilmPart, Found,
 };
 use storystage_classes::{Code, FILE_LIMIT};
 
@@ -123,4 +124,65 @@ fn never_follows_a_link_out_of_the_picked_folder() {
     assert_eq!(hand_back(&chosen), Ok(vec![]));
     assert_eq!(collect(&chosen, "Ava", "Film.storystage", b"x"), Err(Code::Unreadable));
     assert!(!outside.join("Film.storystage").exists());
+}
+
+fn part(extension: &str, start: usize, end: usize) -> FilmPart {
+    FilmPart { extension: extension.to_string(), start, end }
+}
+
+#[test]
+fn a_films_files_are_read_from_their_list() {
+    assert_eq!(
+        film_parts("mp4:5,vtt:6,srt:1", 12),
+        Ok(vec![part("mp4", 0, 5), part("vtt", 5, 11), part("srt", 11, 12)])
+    );
+    assert_eq!(film_parts("mp4:0", 0), Ok(vec![part("mp4", 0, 0)]));
+    let over = format!("mp4:{}", FILE_LIMIT + 1);
+    assert_eq!(film_parts(&over, FILE_LIMIT + 1), Err(Code::TooBig));
+    assert_eq!(film_parts("mp4:99999999999999999999999", 1), Err(Code::TooBig));
+    for list in ["", "mp4", "mp4:", "mp4:-1", "mp4:+1", "mov:1", "MP4:1", "mp4:1,mp4:1", "mp4:1,", "storystage:1"] {
+        assert_eq!(film_parts(list, 1), Err(Code::Invalid), "should be refused: {list:?}");
+    }
+    assert_eq!(film_parts("mp4:5,vtt:6", 12), Err(Code::Invalid), "a body longer than its list");
+    assert_eq!(film_parts("mp4:5,vtt:6", 10), Err(Code::Invalid), "a body shorter than its list");
+}
+
+#[test]
+fn a_films_name_is_the_one_chosen_without_its_extension() {
+    let parts = [part("mp4", 0, 1), part("vtt", 1, 2)];
+    assert_eq!(film_stem("Our film.mp4", &parts).as_deref(), Some("Our film"));
+    assert_eq!(film_stem("Our film.MP4", &parts).as_deref(), Some("Our film"));
+    assert_eq!(film_stem("Our film", &parts).as_deref(), Some("Our film"));
+    assert_eq!(film_stem("Zoë’s owl.mp4", &parts).as_deref(), Some("Zoë’s owl"));
+    for chosen in [".mp4", "con.mp4", "a/b.mp4", "", "trailing .mp4"] {
+        assert_eq!(film_stem(chosen, &parts), None, "should be refused: {chosen:?}");
+    }
+    assert_eq!(film_stem("x".repeat(77).as_str(), &parts), None, "too long once .mp4 is added");
+}
+
+#[test]
+fn saves_a_film_with_its_captions_beside_it() {
+    let scratch = Scratch::new();
+    let body = b"videoWEBVTT1";
+    let parts = film_parts("mp4:5,vtt:6,srt:1", body.len()).unwrap();
+    fs::write(scratch.0.join("Our film.vtt"), b"old captions").unwrap();
+    save_film(&scratch.0.join("Our film.MP4"), body, &parts).unwrap();
+    assert_eq!(fs::read(scratch.0.join("Our film.mp4")).unwrap(), b"video");
+    assert_eq!(fs::read(scratch.0.join("Our film.vtt")).unwrap(), b"WEBVTT", "captions of the same name replaced");
+    assert_eq!(fs::read(scratch.0.join("Our film.srt")).unwrap(), b"1");
+    let mut names: Vec<String> =
+        fs::read_dir(&scratch.0).unwrap().map(|e| e.unwrap().file_name().into_string().unwrap()).collect();
+    names.sort();
+    assert_eq!(names, ["Our film.mp4", "Our film.srt", "Our film.vtt"], "no temporary file is left");
+}
+
+#[test]
+fn refuses_a_film_it_cant_name_or_whose_body_doesnt_match() {
+    let scratch = Scratch::new();
+    let parts = film_parts("mp4:5", 5).unwrap();
+    assert_eq!(save_film(&scratch.0.join("con.mp4"), b"video", &parts), Err(Code::Invalid));
+    assert_eq!(save_film(&scratch.0.join("Film.mp4"), b"video!", &parts), Err(Code::Invalid));
+    fs::create_dir(scratch.0.join("Film.mp4")).unwrap();
+    assert_eq!(save_film(&scratch.0.join("Film.mp4"), b"video", &parts), Err(Code::Unreadable));
+    assert_eq!(fs::read_dir(&scratch.0).unwrap().count(), 1, "nothing else was written");
 }
