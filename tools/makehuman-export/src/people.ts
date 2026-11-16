@@ -106,6 +106,35 @@ export const CLOTHES_COLOURS = {
 } as const;
 export type ClothesColour = keyof typeof CLOTHES_COLOURS;
 
+/**
+ * Headwear the pipeline makes itself (`make_people.py`), as no community pack has any (searched
+ * 10 Nov 2026; the owner's choice of 16 Nov: make our own, CC0). Each is shaped from the person's
+ * own head, so it fits and moves with it. A hijab, a turban and a patka cover the hair, so whoever
+ * wears one has none (`hair: null`); a kippah sits on the hair.
+ */
+export const HEADWEAR = ['hijab', 'turban', 'patka', 'kippah'] as const;
+export type Headwear = (typeof HEADWEAR)[number];
+export const COVERS_HAIR: readonly Headwear[] = ['hijab', 'turban', 'patka'];
+
+/**
+ * Colours for headwear and hearing aids, red, green and blue from 0 to 1. Children's hearing aids
+ * are bright, so they show on a small screen; adults' are grey or beige (owner, 16 Nov 2026).
+ */
+export const PIECE_COLOURS = {
+  ...CLOTHES_COLOURS,
+  beige: [0.82, 0.72, 0.6],
+  black: [0.08, 0.08, 0.09],
+  blue: [0.15, 0.45, 0.85],
+  grey: [0.55, 0.56, 0.58],
+  maroon: [0.45, 0.1, 0.15],
+  navy: [0.1, 0.15, 0.35],
+  purple: [0.5, 0.25, 0.75],
+  red: [0.85, 0.15, 0.15],
+  saffron: [0.95, 0.6, 0.1],
+  white: [0.92, 0.92, 0.9],
+} as const;
+export type PieceColour = keyof typeof PIECE_COLOURS;
+
 export interface Person {
   /** `p01` to `p30`; the Backstage id is `makehuman/Biped/<id>`. */
   readonly id: string;
@@ -149,6 +178,10 @@ export interface Person {
   readonly hat?: string;
   /** Glasses from the community's CC0 glasses pack (`GLASSES`). */
   readonly glasses?: string;
+  /** Headwear the pipeline makes (`HEADWEAR`), in one of `PIECE_COLOURS`. */
+  readonly headwear?: { readonly kind: Headwear; readonly colour: PieceColour };
+  /** Behind-the-ear hearing aids, one on each ear, in one of `PIECE_COLOURS`. */
+  readonly hearingAids?: PieceColour;
 }
 
 /**
@@ -219,6 +252,20 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`hat must be one of ${SYSTEM_ASSETS.hats.join(', ')}.`);
     if (p.glasses !== undefined && !has(GLASSES, p.glasses))
       e(`glasses must be one of ${GLASSES.join(', ')}.`);
+    const colours = Object.keys(PIECE_COLOURS);
+    if (p.headwear !== undefined) {
+      const w = p.headwear;
+      if (typeof w !== 'object' || w === null || !has(HEADWEAR, w.kind))
+        e(`headwear.kind must be one of ${HEADWEAR.join(', ')}.`);
+      else {
+        if (!has(colours, w.colour)) e(`headwear.colour must be one of ${colours.join(', ')}.`);
+        if (COVERS_HAIR.includes(w.kind) && p.hair !== null)
+          e(`a ${w.kind} covers the hair, so hair must be null.`);
+        if (p.hat !== undefined) e("a hat and headwear can't be worn together.");
+      }
+    }
+    if (p.hearingAids !== undefined && !has(colours, p.hearingAids))
+      e(`hearingAids must be one of ${colours.join(', ')}.`);
   });
   return errors.length ? { ok: false, errors } : { ok: true };
 }
@@ -246,7 +293,13 @@ const ancestryWords = (a: Person['ancestry']) =>
     .join(', ');
 
 const hairWords = (p: Person) =>
-  p.hair === null ? 'none' : p.hairTint ? `${p.hair}, tinted ${p.hairTint}` : p.hair;
+  p.hair === null
+    ? p.headwear && COVERS_HAIR.includes(p.headwear.kind)
+      ? 'covered'
+      : 'none'
+    : p.hairTint
+      ? `${p.hair}, tinted ${p.hairTint}`
+      : p.hair;
 
 const clothesWords = (p: Person) =>
   [
@@ -254,6 +307,8 @@ const clothesWords = (p: Person) =>
     p.shoes,
     ...(p.hat ? [p.hat] : []),
     ...(p.glasses ? [p.glasses] : []),
+    ...(p.headwear ? [`${p.headwear.kind} (${p.headwear.colour}, made)`] : []),
+    ...(p.hearingAids ? [`hearing aids (${p.hearingAids}, made)`] : []),
   ].join(', ');
 
 /** The review table: one row per person, in plain words. */

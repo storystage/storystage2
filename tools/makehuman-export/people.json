@@ -718,5 +718,195 @@
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "lilac",
     "shoes": "shoes06"
+  },
+  {
+    "id": "p31",
+    "name": "Maryam",
+    "ageYears": 10,
+    "gender": 0.3,
+    "build": {
+      "weight": 0.5,
+      "muscle": 0.5,
+      "height": 0.5,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0.6,
+      "asian": 0.2,
+      "caucasian": 0.2
+    },
+    "eyes": "brown",
+    "hair": null,
+    "eyebrows": "eyebrow004",
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "teal",
+    "shoes": "shoes02",
+    "headwear": {
+      "kind": "hijab",
+      "colour": "navy"
+    },
+    "description": "a girl of 10 in a navy hijab, a teal jacket and jeans"
+  },
+  {
+    "id": "p32",
+    "name": "Samira",
+    "ageYears": 45,
+    "gender": 0.15,
+    "build": {
+      "weight": 0.6,
+      "muscle": 0.5,
+      "height": 0.45,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0.2,
+      "asian": 0.5,
+      "caucasian": 0.3
+    },
+    "eyes": "brown",
+    "hair": null,
+    "eyebrows": "eyebrow008",
+    "clothes": ["female_elegantsuit01"],
+    "clothesColour": "green",
+    "shoes": "shoes06",
+    "headwear": {
+      "kind": "hijab",
+      "colour": "maroon"
+    },
+    "description": "a woman of 45 in a maroon hijab, a green striped blouse and green skirt"
+  },
+  {
+    "id": "p33",
+    "name": "Arjan",
+    "ageYears": 11,
+    "gender": 0.7,
+    "build": {
+      "weight": 0.5,
+      "muscle": 0.5,
+      "height": 0.5,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0.2,
+      "asian": 0.5,
+      "caucasian": 0.3
+    },
+    "eyes": "brown",
+    "hair": null,
+    "eyebrows": "eyebrow007",
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "mustard",
+    "shoes": "shoes03",
+    "headwear": {
+      "kind": "patka",
+      "colour": "navy"
+    },
+    "description": "a boy of 11 in a navy patka, a yellow striped shirt and jeans"
+  },
+  {
+    "id": "p34",
+    "name": "Gurdeep",
+    "ageYears": 38,
+    "gender": 0.85,
+    "build": {
+      "weight": 0.55,
+      "muscle": 0.6,
+      "height": 0.6,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0.2,
+      "asian": 0.5,
+      "caucasian": 0.3
+    },
+    "eyes": "brown",
+    "hair": null,
+    "eyebrows": "eyebrow009",
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "green",
+    "shoes": "shoes04",
+    "headwear": {
+      "kind": "turban",
+      "colour": "saffron"
+    },
+    "description": "a man of 38 in an orange turban, a green jacket and jeans"
+  },
+  {
+    "id": "p35",
+    "name": "Eli",
+    "ageYears": 8,
+    "gender": 0.7,
+    "build": {
+      "weight": 0.5,
+      "muscle": 0.5,
+      "height": 0.5,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0,
+      "asian": 0,
+      "caucasian": 1
+    },
+    "eyes": "brownlight",
+    "hair": "short01",
+    "eyebrows": "eyebrow001",
+    "clothes": ["male_casualsuit03"],
+    "clothesColour": "rust",
+    "shoes": "shoes01",
+    "headwear": {
+      "kind": "kippah",
+      "colour": "navy"
+    },
+    "description": "a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and jeans"
+  },
+  {
+    "id": "p36",
+    "name": "Poppy",
+    "ageYears": 7,
+    "gender": 0.3,
+    "build": {
+      "weight": 0.45,
+      "muscle": 0.5,
+      "height": 0.45,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0.4,
+      "asian": 0,
+      "caucasian": 0.6
+    },
+    "eyes": "brown",
+    "hair": "ponytail01",
+    "eyebrows": "eyebrow002",
+    "clothes": ["male_casualsuit05"],
+    "clothesColour": "coral",
+    "shoes": "shoes05",
+    "hearingAids": "purple",
+    "description": "a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans"
+  },
+  {
+    "id": "p37",
+    "name": "George",
+    "ageYears": 80,
+    "gender": 0.85,
+    "build": {
+      "weight": 0.5,
+      "muscle": 0.4,
+      "height": 0.5,
+      "proportions": 0.5
+    },
+    "ancestry": {
+      "african": 0,
+      "asian": 0,
+      "caucasian": 1
+    },
+    "eyes": "blue",
+    "hair": "short02",
+    "hairTint": "white",
+    "eyebrows": "eyebrow010",
+    "clothes": ["male_elegantsuit01"],
+    "shoes": "shoes03",
+    "hearingAids": "beige",
+    "description": "an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie"
   }
 ]
