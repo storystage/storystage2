@@ -428,14 +428,14 @@ def add_headwear(body, rig, parts, kind, rgb):
                     first = h[3]
             if first is None:
                 raise RuntimeError("The kippah found no head under it")
-            return (s - first) + 0.02 * s
+            return (s - first) + 0.03 * s
 
         # Each ring is lifted by its own middle need, so the cap follows the hair's shape (lower
         # at the sides) without its stray strands: trial 5 lifted it all as one, a plate on top.
         lifts = []
         for row in rows:
             needs = sorted(need(p) for p in row)
-            lifts.append(needs[len(needs) // 2])
+            lifts.append(needs[int(len(needs) * 0.8)])  # clear of most strands (trial 7)
         rows = [[p + axis * lift for p in row] for row, lift in zip(rows, lifts)]
         apex = apex + axis * max(need(apex), lifts[0])
         wrapped(body, rig, "kippah", rgb, rows, apex)
@@ -571,7 +571,7 @@ def add_hearing_aids(body, rig, parts, rgb):
         rim = [p for p in band if (p.x - head.cx) * side > ((ear.x - head.cx) * side) * 0.85]
         top = max(rim, key=lambda p: p.z)
         # Between the back of the ear and the skull, a little in from the ear's outer edge.
-        centre = (top.x - side * 0.14 * s, max(p.y for p in rim) + 0.01 * s, top.z - 0.16 * s)
+        centre = (top.x - side * 0.06 * s, max(p.y for p in rim) + 0.04 * s, top.z - 0.16 * s)
         case = blob(centre, (0.045 * s, 0.065 * s, 0.22 * s), tilt=-0.3)
         rigid(body, rig, f"hearing-aid-{'left' if side > 0 else 'right'}", rgb, case)
 
