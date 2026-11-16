@@ -114,8 +114,9 @@ The joints in a cascade come from the caller (`jointsOf`), because which joints 
 ### 3a. Layout
 
 1. **Methods panel,** on the left: an object picker ("owl ▾", with its figure), the Actions and Questions tabs, and the palette in categories (section 2.1).
-2. **Code area:** one tab per method or listener. The open method's header reads like its declaration: "owl.myFirstMethod" or "when the scene starts".
+2. **Code area:** one tab per method or listener. The open method's header reads like its declaration: "owl.myFirstMethod" or "when the scene starts". In the studio, the Code editor's own tab row and its New menu (S5, 07-ux §7.3) serve both editors, so under it Tiles draws no tabs and no "add event ▾" of its own (WP7t, agreed with S5 on 16 Nov); it opens a method through the contract's `openMethod`. Tiles keeps its own tabs on its test page.
 3. **Control tiles bar,** above the code: do in order, count, while, for each in, if, do together, each in together, variable, assign ("set") and comment.
+4. **Undo and redo are the studio's:** Tiles has no Ctrl+Z or Ctrl+Y of its own and lets them reach the studio's window handler, outside its text fields (a test keeps it so).
 
 ### 3b. Tiles
 

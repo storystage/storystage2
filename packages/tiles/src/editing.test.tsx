@@ -214,3 +214,28 @@ describe('the contract’s commands (spec 14, 1)', () => {
     expect(last(host)).toBe('Copy a block first, then paste it.');
   });
 });
+
+describe('undo and redo are the studio’s (07-ux §7.3, S5’s window handler)', () => {
+  for (const keys of [
+    '{Control>}z{/Control}',
+    '{Control>}y{/Control}',
+    '{Control>}{Shift>}z{/Shift}{/Control}',
+  ]) {
+    it(`leaves ${keys} to reach the window, untouched`, async () => {
+      const { host, user } = setup();
+      const before = host.program();
+      const heard: KeyboardEvent[] = [];
+      const listen = (e: KeyboardEvent) => heard.push(e);
+      window.addEventListener('keydown', listen);
+      try {
+        item('cat say Hello').focus();
+        await user.keyboard(keys);
+      } finally {
+        window.removeEventListener('keydown', listen);
+      }
+      const letter = heard.find((e) => e.key.toLowerCase() === 'z' || e.key.toLowerCase() === 'y');
+      expect(letter?.defaultPrevented).toBe(false);
+      expect(host.program()).toBe(before);
+    });
+  }
+});
