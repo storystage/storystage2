@@ -302,7 +302,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 1 Nov: **#57, S4's joint map (3.3)**, merged at the owner's request after CI on current `main`. **S4:** #60 was stacked on it and still has that base, so please retarget it to `main`.
   - 1 Nov (#105): **WP4.1, 4.2, 4.7**: `docs/spec/02-story-api.md`, with its tables generated from typed metadata in `@storystage/story-api` (`src/catalog/`): 99 blocks, 12 events, details, values, plain words, stage bindings and crosswalk fields. All 309 members of Alice's palette are kept or listed as dropped, and a test keeps it that way. The owner has said S6 merges its WP4 pull requests when green. **S2, S3, S7:** final names are in spec 02; S7's catalog is `catalogText()`, about 2,600 tokens. **S3:** section 1 has the direction axes, which differ from Alice's; section 9 lists what the stage contract needs. **S2:** `TextModel` and the enum names (spec 02, section 12).
 - Blocked on:
-- Next: WP9b, mapping Alice worlds onto the program (9.2, 9.3), over the 34 starter projects. WP7t waits for S5's WP7.
+- Next: WP7t (the editor switch, parity tests and study build, 7.11 to 7.13), when S5's WP7 is finished (owner, 16 Nov: wait for all of WP7, not start early). WP7c's 7.8 (a manual screen-reader pass) and 7.10 (the reference Chromebook run) wait for a person and the device. WP9 is done.
 
 ## S7 Prompter and speech
 - Merged:
