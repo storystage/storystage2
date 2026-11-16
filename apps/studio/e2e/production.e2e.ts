@@ -31,12 +31,9 @@ async function drag(page: Page, from: Locator, to: { x: number; y: number }) {
   await page.mouse.up();
 }
 
-const undoLabel = async (page: Page) => {
-  await page.getByRole('tab', { name: /Storyboard/ }).click();
-  const text = await page.getByRole('button', { name: /^Undo/ }).textContent();
-  await page.getByRole('tab', { name: /Production stage/ }).click();
-  return text;
-};
+/** The stage's own Undo (07-ux section 7.5), named for its step. */
+const undoButton = (page: Page) =>
+  page.getByRole('toolbar', { name: 'Undo and redo' }).getByRole('button', { name: /^Undo/ });
 
 test('the scene’s method opens in the Blocks editor, one tab per method', async ({ page }) => {
   await openCode(page);
@@ -57,12 +54,17 @@ test('a value changed in a block is one undo step in the studio’s history', as
   await input.press('Enter');
   await expect(say).toContainText('Hello there');
   // Named as Tiles names it (spec 14, section 2.4).
-  await expect.poll(() => undoLabel(page)).toMatch(/^Undo: Change .* in /);
-  // Undo, from the Storyboard's button, puts the words back in the block.
-  await page.getByRole('tab', { name: /Storyboard/ }).click();
-  await page.getByRole('button', { name: /^Undo/ }).click();
-  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(undoButton(page)).toHaveText(/^Undo: Change .* in /);
+  // Ctrl+Z with focus in Blockly is the studio's undo, not Blockly's own: the words go back.
+  expect(await page.evaluate(() => !!document.activeElement?.closest('.pr-workspace'))).toBe(true);
+  await page.keyboard.press('Control+z');
   await expect(block(page, main.body[0]!.id)).not.toContainText('Hello there');
+  // The studio's history went back a step, so it can be redone (Blockly's would be a new step).
+  await expect(
+    page.getByRole('toolbar', { name: 'Undo and redo' }).getByRole('button', { name: /^Redo/ }),
+  ).toHaveText(/^Redo: Change .* in /);
+  await page.keyboard.press('Control+Shift+z');
+  await expect(block(page, main.body[0]!.id)).toContainText('Hello there');
 });
 
 test('a block from the palette asks for its words, then is one undo step', async ({ page }) => {
@@ -82,11 +84,9 @@ test('a block from the palette asks for its words, then is one undo step', async
   await field.fill('Hello from the palette');
   await field.press('Enter');
   await expect(page.locator('.pr-workspace')).toContainText('Hello from the palette');
-  await expect.poll(() => undoLabel(page)).toMatch(/^Undo: .*say Hello from the palette/);
-  // Undo takes the new block away again.
-  await page.getByRole('tab', { name: /Storyboard/ }).click();
-  await page.getByRole('button', { name: /^Undo/ }).click();
-  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(undoButton(page)).toHaveText(/^Undo: .*say Hello from the palette/);
+  // The stage's Undo takes the new block away again.
+  await undoButton(page).click();
   await expect(page.locator('.pr-workspace')).not.toContainText('Hello from the palette');
 });
 
@@ -105,7 +105,7 @@ test('a block dropped outside the method goes back, and the learner hears why', 
   await expect
     .poll(async () => Math.round((await block(page, main.body[0]!.id).boundingBox())!.y))
     .toBe(Math.round(start.y));
-  expect(await undoLabel(page)).toBe('Undo');
+  await expect(undoButton(page)).toHaveText('Undo');
 });
 
 test('axe finds no serious issues with the Code editor open', async ({ page }) => {

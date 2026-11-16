@@ -14,6 +14,23 @@
   overflow-y: auto;
 }
 
+/* The frame strip, then Undo and Redo at its end (sections 7.1 and 7.5). */
+.pr-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.pr-head > .pr-strip {
+  flex: 1;
+  min-width: 0;
+}
+.pr-toolbar {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+
 /* The Code editor, closed until the scene is storyboarded (section 1.4). */
 .pr-closed {
   --ss-surface: var(--ss-panel-3);
