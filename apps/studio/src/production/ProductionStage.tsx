@@ -16,6 +16,7 @@ import { CodeEditor } from './CodeEditor.tsx';
 import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
+import { HistoryButtons, useHistory } from '../history.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
 import { FrameLinks } from './FrameLinks.tsx';
 import {
@@ -27,7 +28,7 @@ import {
 } from './fromStoryboard.ts';
 import { StoryboardSetup } from './StoryboardSetup.tsx';
 import { liveLinks, withLink } from './links.ts';
-import { ObjectsPanel } from './ObjectsPanel.tsx';
+import { MARKER_KEY, ObjectsPanel } from './ObjectsPanel.tsx';
 import { poseJoints } from './pose.ts';
 import { BackstageRail } from './BackstageRail.tsx';
 import { refusalWords } from './refusals.ts';
@@ -39,6 +40,7 @@ import {
   withBackdrop,
   withCamera,
   withMarker,
+  addMarker,
 } from './setup.ts';
 import { addObject, objectName, withObject } from '@storystage/production';
 import type { EditTarget } from '@storystage/stage';
@@ -254,6 +256,27 @@ export function sceneTitle(p: Production, scene: SceneId): string {
 }
 
 /**
+ * Undo and Redo for the scene view and the Code editor (`07-ux.md` section 7.5): the studio's one
+ * history, so a step undoes here whichever tab made it. The keys work while the tab shows.
+ */
+function StageHistory({
+  studio,
+  onAnnounce,
+  active,
+}: {
+  studio: Studio;
+  onAnnounce: (text: string) => void;
+  active: boolean;
+}) {
+  const history = useHistory(studio, onAnnounce, active);
+  return (
+    <div className="pr-toolbar" role="toolbar" aria-label={words.t('history.label')}>
+      <HistoryButtons history={history} />
+    </div>
+  );
+}
+
+/**
  * The Production stage (`07-ux.md` section 7; WP7): the scene view with Rehearse (sections 7.2
  * and 7.4) above the Code editor, which stays closed until the scene is storyboarded (section
  * 1.4). The frame strip, Backstage's rail and editing the set-up join it as the stage's editing
@@ -430,14 +453,18 @@ export function ProductionStage({
 
   return (
     <div className="pr">
-      {onPlaceChange && (
-        <ProductionFrames
-          production={p}
-          frame={frame}
-          rehearsed={rehearsed}
-          onPlaceChange={onPlaceChange}
-        />
-      )}
+      {/* The frame strip, with Undo and Redo at its end, so they take no row of their own. */}
+      <div className="pr-head">
+        {onPlaceChange && (
+          <ProductionFrames
+            production={p}
+            frame={frame}
+            rehearsed={rehearsed}
+            onPlaceChange={onPlaceChange}
+          />
+        )}
+        {studio && <StageHistory studio={studio} onAnnounce={onAnnounce} active={active} />}
+      </div>
       {voices && <VoicesDownload voices={voices} />}
       {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
       {offer.length > 0 && scene !== null && (
@@ -520,6 +547,13 @@ export function ProductionStage({
                 const item = models.catalogue.find((i) => i.id === id);
                 if (item) use(item, ground);
               }}
+              onAddMarker={(transform) => {
+                if (!studio) return;
+                const { production: next, id } = addMarker(studio.production, scene, transform);
+                studio.commit(words.t('production.view.addMarkerStep', { name: id }), next);
+                choose({ marker: id });
+                onAnnounce(words.t('production.view.markerAdded', { name: id }));
+              }}
               onMoveCamera={(transform) => {
                 if (!studio) return;
                 studio.commit(
@@ -536,8 +570,22 @@ export function ProductionStage({
             <ObjectsPanel
               studio={studio}
               scene={scene}
-              chosen={chosen && 'object' in chosen ? chosen.object : null}
-              onChoose={(name) => choose(name === null ? null : { object: name as ObjectId })}
+              chosen={
+                chosen === null
+                  ? null
+                  : 'marker' in chosen
+                    ? `${MARKER_KEY}${chosen.marker}`
+                    : chosen.object
+              }
+              onChoose={(key) =>
+                choose(
+                  key === null
+                    ? null
+                    : key.startsWith(MARKER_KEY)
+                      ? { marker: key.slice(MARKER_KEY.length) }
+                      : { object: key as ObjectId },
+                )
+              }
               onAnnounce={onAnnounce}
               poseJoints={(o) =>
                 typeof o.model === 'string' ? poseJoints(o.class, models.item(o.model)?.joints) : []

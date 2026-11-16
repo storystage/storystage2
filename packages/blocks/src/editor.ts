@@ -258,6 +258,12 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         move: { scrollbars: true, drag: true, wheel: true },
         zoom: { controls: false, wheel: false, startScale: options.scale ?? 1 },
       });
+      // The studio keeps the one history (07-ux section 7.5): Blockly keeps none of its own, so
+      // its Ctrl+Z does nothing here and the studio's undoes the step, and its menu has no Undo.
+      ws.MAX_UNDO = 0;
+      for (const id of ['undoWorkspace', 'redoWorkspace'])
+        if (Blockly.ContextMenuRegistry.registry.getItem(id))
+          Blockly.ContextMenuRegistry.registry.unregister(id);
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {
         if (change.source !== 'blocks' || redraw) {

@@ -190,4 +190,34 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     await user.keyboard('{Escape}');
     await waitFor(() => expect(answer).toBeNull());
   });
+
+  it('shows the method as text beside the code, in the wording chosen, kept on this device', async () => {
+    window.localStorage.removeItem('storystage.textView');
+    const user = userEvent.setup();
+    const p = exampleProduction();
+    const main = p.program.types
+      .flatMap((t) => t.methods)
+      .find((m) => m.id === p.scenes[0]!.method)!;
+    const { unmount } = render(<App start={p} />);
+    await openStage(user);
+    expect(screen.queryByRole('region', { name: `Text of ${main.name}` })).toBeNull();
+    expect(screen.queryByRole('radiogroup', { name: 'Text wording' })).toBeNull();
+    await user.click(screen.getByRole('switch', { name: 'Show as text' }));
+    const text = screen.getByRole('region', { name: `Text of ${main.name}` });
+    // Python-like first.
+    expect(text.textContent).toContain('penguin.say(');
+    expect(text.textContent).not.toContain('this.penguin');
+    await user.click(screen.getByRole('radio', { name: 'Java-like' }));
+    await waitFor(() => expect(text.textContent).toContain('this.penguin.say('));
+    unmount();
+    // The choice is kept on this device.
+    render(<App start={p} />);
+    await openStage(user);
+    expect(screen.getByRole('switch', { name: 'Show as text' })).toHaveProperty('checked', true);
+    expect(screen.getByRole('radio', { name: 'Java-like' })).toHaveProperty('checked', true);
+    expect(screen.getByRole('region', { name: `Text of ${main.name}` }).textContent).toContain(
+      'this.penguin.say(',
+    );
+    window.localStorage.removeItem('storystage.textView');
+  });
 });

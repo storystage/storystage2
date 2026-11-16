@@ -5,6 +5,7 @@ import { Button, useThemeStyle } from '@storystage/ui';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { words } from '../strings.ts';
+import { HistoryButtons, useHistory } from '../history.tsx';
 import { FramePanel } from './FramePanel.tsx';
 import { sceneNumber } from './edits.ts';
 import { sceneFrames, updateFrame } from './frames.ts';
@@ -46,11 +47,6 @@ export interface StoryboardProps {
 /** A CSS string, for the page foot's `content`. */
 const cssString = (text: string) =>
   `"${text.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\s/g, ' ')}"`;
-
-/** Keys typed into a text field are the field's own: there, Ctrl+Z undoes the typing. */
-const isTextEntry = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 
 /**
  * The Storyboard tab (`docs/spec/07-ux.md` section 6): the script header and arc (10.1, 10.2) and
@@ -111,7 +107,6 @@ export function Storyboard({
     setChosenSketch({ frame: frame.id, id: added.id });
     setAnnouncement(words.t('storyboard.canvas.added', { name, number: frameNumber }));
   };
-  const { undoLabel, redoLabel } = studio;
   /** A model or a stand-in into the current scene's cast (10.9): its sketch joins the library. */
   const addToCast = (member: BackstageId | { standIn: string }, name: string): string | null => {
     if (!current) return null;
@@ -123,16 +118,8 @@ export function Storyboard({
     return null;
   };
 
-  const undo = () => {
-    if (!undoLabel) return;
-    studio.undo();
-    setAnnouncement(words.t('history.undone', { step: undoLabel }));
-  };
-  const redo = () => {
-    if (!redoLabel) return;
-    studio.redo();
-    setAnnouncement(words.t('history.redone', { step: redoLabel }));
-  };
+  // Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac or iPad), and the buttons (07-ux 6.8).
+  const history = useHistory(studio, setAnnouncement);
 
   /** Export the script: a Fountain file, saved where the learner picks (10.4). */
   const say = (text: string) => {
@@ -176,19 +163,6 @@ export function Storyboard({
     };
   }, [printing, footTitle]);
 
-  // Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac or iPad): the keymap's first shortcuts (07-ux 6.8).
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 'z') return;
-      if (isTextEntry(e.target)) return;
-      e.preventDefault();
-      if (e.shiftKey) redo();
-      else undo();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
-
   return (
     <div className="sb">
       {models && (
@@ -230,14 +204,7 @@ export function Storyboard({
               {words.t('storyboard.export')}
             </Button>
           )}
-          <Button variant="quiet" icon="undo" isDisabled={!undoLabel} onPress={undo}>
-            {words.t('history.undo')}
-            {undoLabel && <span className="ss-visually-hidden">: {undoLabel}</span>}
-          </Button>
-          <Button variant="quiet" icon="redo" isDisabled={!redoLabel} onPress={redo}>
-            {words.t('history.redo')}
-            {redoLabel && <span className="ss-visually-hidden">: {redoLabel}</span>}
-          </Button>
+          <HistoryButtons history={history} />
         </div>
         {exported && <p className="sb-toolbar-said">{exported}</p>}
         <ScriptHeader production={p} onChange={commit} onLeave={studio.seal} />

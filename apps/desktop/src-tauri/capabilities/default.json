@@ -27,6 +27,7 @@
     "allow-classes-move",
     "allow-picker-kind",
     "allow-picker-save",
+    "allow-picker-save-film",
     "allow-picker-open",
     "allow-picker-collect-start",
     "allow-picker-collect-write",

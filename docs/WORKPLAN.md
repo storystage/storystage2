@@ -625,7 +625,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- schedule:wp7 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP7c after WP2, WP4a, WP12b; WP7t after WP7, WP7c; WP7 after WP5a, WP6, WP12b, WP4b.
 <!-- /schedule:wp7 -->
-- [ ] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
+- [x] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
 - [ ] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. (C)
 - [ ] 7.6 **Option B made Alice-like:**
     - a custom Blockly renderer with text-like statement rows rather than jigsaw shapes;
@@ -633,10 +633,10 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - arguments asked for when a block is dropped, as Alice's cascading menus do;
     - "add detail" for optional arguments (duration, animation style, as seen by);
     - switch a statement off and on;
-    - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters.
+    - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters. **The text view and both wordings are built (`packages/text-view`, S6); the switch in the Code editor's bar is S5's.**
 
     (C)
-- [ ] 7.3 Undo and redo across the scene view and the Code editor, with project history. (C)
+- [x] 7.3 Undo and redo across the scene view and the Code editor, with project history. Project history is the studio's one undo history, shared by the three tabs (owner, 16 Nov). (C)
 - [ ] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. (C)
 - [ ] 7.5 Keyboard paths for both views, and accessible names on every control. (C)
 

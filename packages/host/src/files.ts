@@ -273,6 +273,16 @@ export interface CollectedFile {
   readonly bytes: Uint8Array;
 }
 
+/** One of an exported film's files (spec 08 section 4): the video, or its captions. */
+export interface FilmFile {
+  /** Ends in one of `FILM_EXTENSIONS`. Only the extension is used: the name is the one chosen. */
+  readonly file: string;
+  readonly bytes: Uint8Array;
+}
+
+/** What an exported film's files may end in: the video and its two caption formats. */
+export const FILM_EXTENSIONS = ['mp4', 'vtt', 'srt'] as const;
+
 /**
  * The system's own file picker (decision 0065): the device, a school drive, OneDrive, Google
  * Drive. StoryStage has no sign-in of its own. Everything read here is untrusted, and goes
@@ -294,6 +304,16 @@ export interface FilePicker {
    * over `FILE_LIMIT` is `too_big`, and nothing is read.
    */
   handBack(): Promise<readonly CollectedFile[]>;
+  /**
+   * Save an exported film (spec 08 section 4): one system dialog, for the first file (the video),
+   * named `name` as `safeFileName` gives it, and the rest written beside it under the name the
+   * person chose. On Android, which can't pick a folder, one zip holding them side by side
+   * (decision 0070). Each file is at most `FILE_LIMIT`, and each extension is used once.
+   *
+   * Only where the native layer has the dialog: missing in the browser version and on iPad,
+   * where the studio saves the files its own way.
+   */
+  saveFilm?(name: string, files: readonly FilmFile[]): Promise<void>;
 }
 
 /**

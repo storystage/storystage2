@@ -6,7 +6,8 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use storystage_classes::class_zip::{ClassZip, ClassZipWriter, ENTRY_LIMIT};
+use storystage_classes::class_zip::{write_film_zip, ClassZip, ClassZipWriter, ENTRY_LIMIT};
+use storystage_classes::picked::film_parts;
 use storystage_classes::Code;
 use zip::write::SimpleFileOptions;
 use zip::{CompressionMethod, ZipWriter};
@@ -141,4 +142,27 @@ fn says_unreadable_for_a_file_that_isnt_a_zip() {
     let scratch = Scratch::new();
     fs::write(scratch.zip(), b"not a zip at all").unwrap();
     assert_eq!(ClassZip::open(&scratch.zip()).err(), Some(Code::Unreadable));
+}
+
+#[test]
+fn a_film_zips_with_its_captions_side_by_side() {
+    let scratch = Scratch::new();
+    let path = scratch.0.join("film.zip");
+    let body = b"videoWEBVTT1";
+    let parts = film_parts("mp4:5,vtt:6,srt:1", body.len()).unwrap();
+    write_film_zip(&path, "Our film", body, &parts).unwrap();
+    let mut zip = zip::ZipArchive::new(File::open(&path).unwrap()).unwrap();
+    let mut found = Vec::new();
+    for index in 0..zip.len() {
+        let mut entry = zip.by_index(index).unwrap();
+        let name = entry.name().unwrap().to_string();
+        let mut text = String::new();
+        std::io::Read::read_to_string(&mut entry, &mut text).unwrap();
+        found.push(format!("{name}={text}"));
+    }
+    assert_eq!(found, ["Our film.mp4=video", "Our film.vtt=WEBVTT", "Our film.srt=1"]);
+    for name in ["con", "a/b", "", "Our film.mp4"] {
+        assert_eq!(write_film_zip(&path, name, body, &parts), Err(Code::Invalid), "should be refused: {name:?}");
+    }
+    assert_eq!(write_film_zip(&path, "Our film", b"short", &parts), Err(Code::Invalid));
 }

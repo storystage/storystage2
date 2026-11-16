@@ -233,11 +233,100 @@ describe('editing the set-up on the scene view (07-ux 7.2)', () => {
     );
   });
 
+  it('adds a marker where the view is, chosen and listed, as one undo step', async () => {
+    const user = userEvent.setup();
+    const { fake, studio, onAnnounce } = await stage();
+    // In Camera view, the view is the scene's camera.
+    await user.click(screen.getByRole('button', { name: 'Add a marker here' }));
+    expect(setupOf(studio()).markers).toEqual([
+      { id: 'marker1', transform: setupOf(studio()).camera.transform },
+    ]);
+    expect(studio().undoLabel).toBe('Add marker1');
+    expect(onAnnounce).toHaveBeenLastCalledWith(
+      'marker1 is where the view is, in Objects in this scene.',
+    );
+    const marker1 = within(list()).getByRole('option', { name: /^marker1/ });
+    expect(marker1.textContent).toBe('marker1Marker');
+    await waitFor(() => expect(marker1.getAttribute('aria-selected')).toBe('true'));
+    await waitFor(() => expect(fake().chosen()).toEqual({ marker: 'marker1' }));
+    // In Look around, where the view is now.
+    await user.click(screen.getByRole('radio', { name: 'Look around' }));
+    const view = moved(fake().viewTransform(), 3);
+    act(() => fake().moveView(view));
+    await user.click(screen.getByRole('button', { name: 'Add a marker here' }));
+    expect(setupOf(studio()).markers.map((m) => [m.id, m.transform])).toEqual([
+      ['marker1', setupOf(studio()).camera.transform],
+      ['marker2', view],
+    ]);
+    act(() => studio().undo());
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+  });
+
+  it('undoes and redoes the stage’s steps by its buttons and by Ctrl+Z, saying what (7.5)', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = await stage();
+    const toolbar = screen.getByRole('toolbar', { name: 'Undo and redo' });
+    const undo = within(toolbar).getByRole('button', { name: /^Undo/ });
+    const redo = within(toolbar).getByRole('button', { name: /^Redo/ });
+    expect(undo.hasAttribute('disabled')).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Add a marker here' }));
+    // The button names its step for screen readers.
+    expect(undo.textContent).toBe('Undo: Add marker1');
+    await user.click(undo);
+    expect(setupOf(studio()).markers).toEqual([]);
+    expect(onAnnounce).toHaveBeenLastCalledWith('Undone: Add marker1');
+    await user.click(redo);
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+    expect(onAnnounce).toHaveBeenLastCalledWith('Redone: Add marker1');
+    // The keys, outside text fields.
+    await user.click(document.body);
+    await user.keyboard('{Control>}z{/Control}');
+    expect(setupOf(studio()).markers).toEqual([]);
+    await user.keyboard('{Control>}{Shift>}z{/Shift}{/Control}');
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+    // In a text field, Ctrl+Z is the field's own.
+    within(list())
+      .getByRole('option', { name: /^marker1/ })
+      .click();
+    const x = await screen.findByRole('textbox', { name: 'x (m)' });
+    await user.click(x);
+    await user.keyboard('{Control>}z{/Control}');
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+  });
+
+  it('moves a marker by its fields and by the keyboard, and removes it', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = await stage();
+    await user.click(screen.getByRole('button', { name: 'Add a marker here' }));
+    const fields = screen.getByRole('group', { name: 'Where marker1 is' });
+    // A place and a turn, and no size.
+    expect(within(fields).queryByRole('textbox', { name: 'Size' })).toBeNull();
+    const x = within(fields).getByRole('textbox', { name: 'x (m)' });
+    await user.clear(x);
+    await user.type(x, '2');
+    await user.tab();
+    const marker = () => setupOf(studio()).markers[0]!;
+    expect(marker().transform.position.x).toBe(2);
+    expect(studio().undoLabel).toBe('Move marker1');
+    await user.click(within(list()).getByRole('option', { name: /^marker1/ }));
+    await user.keyboard('{Enter}{PageUp}+{Enter}');
+    expect(marker().transform.position.y).toBeCloseTo(
+      example.scenes[0]!.setup.camera.transform.position.y + 0.1,
+    );
+    expect(marker().transform.scale.x).toBe(1);
+    expect(onAnnounce.mock.lastCall?.[0]).toMatch(/^Put down marker1 at x 2, y [\d.]+, z /);
+    await user.click(screen.getByRole('button', { name: 'Remove marker1 from the scene' }));
+    expect(setupOf(studio()).markers).toEqual([]);
+    expect(studio().undoLabel).toBe('Remove marker1');
+    expect(within(list()).queryByRole('option', { name: /^marker1/ })).toBeNull();
+  });
+
   it('has no handles or Move the camera here on a film that can’t be changed', async () => {
     const user = userEvent.setup();
     const { fake, studio } = await stage();
     await act(async () => studio().open(example, 'It’s handed in.'));
     await waitFor(() => expect(fake().isEditingNow()).toBe(false));
+    expect(screen.queryByRole('button', { name: 'Add a marker here' })).toBeNull();
     await user.click(screen.getByRole('radio', { name: 'Look around' }));
     expect(screen.queryByRole('button', { name: 'Move the camera here' })).toBeNull();
   });

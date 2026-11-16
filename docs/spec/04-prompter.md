@@ -429,6 +429,30 @@ The levels pick from the modes (decision 0034); `prompter.enabled`, `prompter.ex
 
 If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
 
+### 4.4 Set-up (13.6)
+
+The set-up wizard's pages and the system dialog are spec 05, section 1. The studio draws the pages (S5). `packages/prompter/src/setup.ts` holds what they run on, so every page works the same way and is tested without the native layer:
+
+- **`tauriKey(invoke)`** wraps `key_add`, `key_status` and `key_remove` (spec 05, section 1.3). None of them takes or gives the key. A reply that isn't one of spec 05's words is an error, never taken as success.
+- **`PrompterSetup`** walks the pages in order: 10a, 10b, 10c, 10d.
+
+| Page | What can happen | Goes to |
+|---|---|---|
+| 10a Who is setting up | **I'm a learner**: the wizard ends, and the Prompter stays off | The app |
+| | **I'm an adult** | 10b |
+| 10b About the Prompter | **Back** | 10a |
+| | **Carry on**, only once the adult has ticked that the Claude account is theirs, not a child's | 10c |
+| 10c Add your Claude key | **Add key** opens the system dialog. `saved` | 10d |
+| | Any other outcome stays here, with spec 05's words for it. `cancelled` shows nothing | 10c |
+| | **Back** | 10b |
+| 10d You're ready | **Remove key** deletes it, which switches the Prompter off | 10a |
+
+- **Opening the wizard with a key already stored** starts on 10d, so the adult can see the key works or remove it. Without one, it starts on 10a.
+- **Add key can't be pressed twice.** While the dialog is open and the key is being checked, the page says so, and a second press does nothing.
+- **A command that fails** (the native layer is missing or gives something unexpected) keeps the page where it is, with "That didn't work. Try again."
+- The words for each outcome are `KEY_OUTCOME_WORDS`, exactly as spec 05, section 1.3 gives them. S5 shows them; it doesn't write its own.
+- **The usage meter** is `PrompterUsage` in `@storystage/host` (S8, spec 05 section 2.4), for the teacher's screen (S5). The wizard doesn't count anything.
+
 ## 5. Story coach
 
 The coach helps a learner think. The learner writes every word.

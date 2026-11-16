@@ -108,6 +108,7 @@ pub fn run() {
             classes::classes_move,
             picker::picker_kind,
             picker::picker_save,
+            picker::picker_save_film,
             picker::picker_open,
             picker::picker_collect_start,
             picker::picker_collect_write,

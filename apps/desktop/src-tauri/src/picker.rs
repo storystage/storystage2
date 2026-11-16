@@ -7,12 +7,16 @@
 //! - **Android:** a picked file is a content URI, opened through the fs plugin. Nothing picks a
 //!   folder there, so Collect saves one zip and Hand back opens one (decision 0070).
 //! - **iPad:** `picker_kind` says `browser` until its export step is built (decision 0070).
+//!
+//! An exported film (spec 08 section 4) is one dialog for the video, with its captions written
+//! beside it on desktop, and one zip of all three on Android.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Mutex;
 
 use serde::Serialize;
+use storystage_classes::picked;
 use storystage_classes::Code;
 use tauri::ipc::{InvokeBody, Request, Response};
 use tauri::{AppHandle, State};
@@ -28,6 +32,8 @@ use ios as platform;
 pub const NAME_HEADER: &str = "x-storystage-name";
 /// The header with the Collect that a write belongs to.
 pub const SESSION_HEADER: &str = "x-storystage-session";
+/// The header with an exported film's files: `mp4:1234,vtt:56,srt:78`, in the body's order.
+pub const FILES_HEADER: &str = "x-storystage-files";
 
 const CANCELLED: &str = "cancelled";
 
@@ -62,7 +68,7 @@ pub struct HandBack {
 mod desktop {
     use std::path::PathBuf;
 
-    use storystage_classes::picked::{self, Found};
+    use storystage_classes::picked::{self, FilmPart, Found};
     use storystage_classes::Code;
     use tauri::AppHandle;
     use tauri_plugin_dialog::{DialogExt, FileDialogBuilder};
@@ -90,6 +96,19 @@ mod desktop {
             return Ok(false);
         };
         picked::save(&path, bytes).map(|()| true)
+    }
+
+    /// One dialog for the film's first file, the video; the rest go beside it.
+    pub fn save_film(app: &AppHandle, name: &str, body: &[u8], parts: &[FilmPart]) -> Result<bool, Code> {
+        let first = &parts.first().ok_or(Code::Invalid)?.extension;
+        let chosen = app
+            .dialog()
+            .file()
+            .add_filter("Film", &[first.as_str()])
+            .set_file_name(format!("{name}.{first}"))
+            .blocking_save_file();
+        let Some(path) = chosen.and_then(|p| p.into_path().ok()) else { return Ok(false) };
+        picked::save_film(&path, body, parts).map(|()| true)
     }
 
     pub fn open(app: &AppHandle) -> Result<Option<(String, Vec<u8>)>, Code> {
@@ -143,8 +162,8 @@ mod android {
     use std::io::{self, Read, Write};
     use std::path::PathBuf;
 
-    use storystage_classes::class_zip::{ClassZip, ClassZipWriter, ZipFound, UNPACKED_LIMIT};
-    use storystage_classes::picked::decode_header;
+    use storystage_classes::class_zip::{write_film_zip, ClassZip, ClassZipWriter, ZipFound, UNPACKED_LIMIT};
+    use storystage_classes::picked::{decode_header, FilmPart};
     use storystage_classes::{Code, FILE_LIMIT};
     use tauri::{AppHandle, Manager};
     use tauri_plugin_dialog::{DialogExt, FilePath};
@@ -202,6 +221,27 @@ mod android {
         file.write_all(bytes).map_err(|error| io_code(&error))?;
         file.sync_all().map_err(|error| io_code(&error))?;
         Ok(true)
+    }
+
+    /// One zip with the film's files side by side, as nothing picks a folder here (0070).
+    pub fn save_film(app: &AppHandle, name: &str, body: &[u8], parts: &[FilmPart]) -> Result<bool, Code> {
+        let picked = app
+            .dialog()
+            .file()
+            .add_filter("Zip file", &["zip"])
+            .set_file_name(format!("{name}.zip"))
+            .blocking_save_file();
+        let Some(to) = picked else { return Ok(false) };
+        let temporary = temporary(app, "film")?;
+        let saved = (|| {
+            write_film_zip(&temporary, name, body, parts)?;
+            let mut from = File::open(&temporary).map_err(|error| io_code(&error))?;
+            let mut out = open_picked(app, to, true)?;
+            io::copy(&mut from, &mut out).map_err(|error| io_code(&error))?;
+            out.sync_all().map_err(|error| io_code(&error))
+        })();
+        let _ = fs::remove_file(&temporary);
+        saved.map(|()| true)
     }
 
     pub fn open(app: &AppHandle) -> Result<Option<(String, Vec<u8>)>, Code> {
@@ -301,6 +341,7 @@ mod android {
 /// iPad: not yet. `picker_kind` says `browser`, so the studio never calls these.
 #[cfg(target_os = "ios")]
 mod ios {
+    use storystage_classes::picked::FilmPart;
     use storystage_classes::Code;
     use tauri::AppHandle;
 
@@ -309,6 +350,10 @@ mod ios {
     pub enum Session {}
 
     pub fn save(_app: &AppHandle, _name: &str, _bytes: &[u8]) -> Result<bool, Code> {
+        Err(Code::Internal)
+    }
+
+    pub fn save_film(_app: &AppHandle, _name: &str, _body: &[u8], _parts: &[FilmPart]) -> Result<bool, Code> {
         Err(Code::Internal)
     }
 
@@ -377,6 +422,25 @@ pub async fn picker_save(app: AppHandle, request: Request<'_>) -> Result<(), &'s
     }
     let name = header(&request, NAME_HEADER)?;
     match platform::save(&app, &name, bytes) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(CANCELLED),
+        Err(code) => Err(code.name()),
+    }
+}
+
+/// Save an exported film (spec 08 section 4): its files one after another as the raw body, their
+/// extensions and lengths in `FILES_HEADER`, and the name to suggest, already plain, in
+/// `NAME_HEADER`. One dialog; on desktop the files go side by side where the person chose, and
+/// on Android into one zip there.
+#[tauri::command]
+pub async fn picker_save_film(app: AppHandle, request: Request<'_>) -> Result<(), &'static str> {
+    let body = body(&request)?;
+    let name = header(&request, NAME_HEADER)?;
+    let parts = picked::film_parts(&header(&request, FILES_HEADER)?, body.len()).map_err(Code::name)?;
+    if picked::film_stem(&name, &parts).as_deref() != Some(name.as_str()) {
+        return Err(Code::Invalid.name());
+    }
+    match platform::save_film(&app, &name, body, &parts) {
         Ok(true) => Ok(()),
         Ok(false) => Err(CANCELLED),
         Err(code) => Err(code.name()),
