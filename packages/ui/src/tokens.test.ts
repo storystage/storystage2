@@ -67,6 +67,7 @@ const TEXT_ON_FILLS: readonly (readonly [ColorToken, ColorToken])[] = [
   ['on-block-sound', 'block-sound'],
   ['on-block-question', 'block-question'],
   ['on-block-yours', 'block-yours'],
+  ['on-block-loop', 'block-loop'],
   ['on-block-chip', 'block-chip'],
 ];
 
@@ -122,6 +123,7 @@ describe.each(THEMES)('the %s theme', (theme) => {
       'block-sound',
       'block-question',
       'block-yours',
+      'block-loop',
       'block-chip',
     ] as const) {
       expect(c[t]).toBe(colors.dark[t]);

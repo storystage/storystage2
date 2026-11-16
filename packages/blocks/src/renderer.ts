@@ -1,7 +1,8 @@
 /**
  * The Alice-like look (`14-editors.md` section 3i.5; WP7.6): statement rows that read like a line
- * of code, with no jigsaw tabs, rounded, and values as chips. Built on Blockly's rounded renderer
- * ("zelos"), with its statement notches made flat. Each block is tagged with its family
+ * of code, rounded, with values as chips. Built on Blockly's rounded renderer ("zelos"), keeping
+ * its notch where statements stack, as Blockly's appearance guide and Blockly Games do (the
+ * owner's choice, 16 Nov), so stacking is found and a row can't be mistaken for a value. Each block is tagged with its family
  * (`ss-family-move`), and the studio's stylesheet colours it from `@storystage/ui`'s tokens, so the
  * colours follow the theme and the contrast test checks them.
  */
@@ -20,8 +21,10 @@ export const RENDERER = 'storystage';
 
 /**
  * A block's family, which sets its colour: screen 02's moves (blue), speech (pink) and camera
- * (amber), then looks, sound and time, questions, the learner's own procedures, the control
- * statements and the method around them, and values, which are chips.
+ * (amber), then looks, sound and time, questions, the learner's own procedures, loops (a colour
+ * apart from `if`, as Blockly's block guide asks), the other control statements and the method
+ * around them, and values, which are chips. The four not on screen 02 take Blockly Games' hues,
+ * darkened to 4.5:1 (the owner's choice, 16 Nov).
  */
 export const FAMILIES = [
   'move',
@@ -31,6 +34,7 @@ export const FAMILIES = [
   'sound',
   'question',
   'yours',
+  'loop',
   'control',
   'method',
   'value',
@@ -61,6 +65,9 @@ const ACTIONS = new Map<string, Family>();
 for (const c of CATEGORIES)
   if (c.tab === 'actions') for (const b of c.blocks) ACTIONS.set(b, BY_CATEGORY[c.key] ?? 'move');
 
+/** The loops, coloured apart from `if`. */
+const LOOPS = ['count', 'while', 'forEach', 'eachTogether'] as const;
+
 /** The family of a block type. */
 export function familyOf(type: string): Family {
   if (type === METHOD || type === LISTENER) return 'method';
@@ -69,6 +76,7 @@ export function familyOf(type: string): Family {
   if (type.startsWith('ss_story_')) return ACTIONS.get(type.slice('ss_story_'.length)) ?? 'move';
   if (type === FROM_SCRIPT || type.startsWith('ss_enum_')) return 'value';
   const kind = type.slice('ss_'.length);
+  if ((LOOPS as readonly string[]).includes(kind)) return 'loop';
   return (STATEMENT_KINDS as readonly string[]).includes(kind) ? 'control' : 'value';
 }
 
@@ -101,22 +109,6 @@ class Constants extends Blockly.zelos.ConstantProvider {
     // Rows as tall as a touch target (44 px), with screen 02's rounded corners.
     this.MIN_BLOCK_HEIGHT = 44;
     this.CORNER_RADIUS = 10;
-    // A row starts 8 px in, as a line of code does: zelos keeps a row's first chip clear of
-    // where the notch would be, and there's no notch.
-    this.NOTCH_OFFSET_LEFT = 0;
-    this.NOTCH_WIDTH = 8;
-  }
-
-  /** No jigsaw notch: a statement's top and bottom are straight. */
-  override makeNotch() {
-    const width = this.NOTCH_WIDTH;
-    return {
-      type: this.SHAPES.NOTCH,
-      width,
-      height: 0,
-      pathLeft: Blockly.utils.svgPaths.lineOnAxis('h', width),
-      pathRight: Blockly.utils.svgPaths.lineOnAxis('h', -width),
-    };
   }
 
   /** Every value is a rounded chip, never zelos's hexagon. */

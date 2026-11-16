@@ -273,6 +273,10 @@
   --block: var(--ss-block-yours);
   --on-block: var(--ss-on-block-yours);
 }
+.pr-workspace .ss-family-loop {
+  --block: var(--ss-block-loop);
+  --on-block: var(--ss-on-block-loop);
+}
 .pr-workspace .ss-family-value {
   --block: var(--ss-block-chip);
   --on-block: var(--ss-on-block-chip);
@@ -284,10 +288,14 @@
   --on-block: var(--ss-text);
   --block-line: var(--ss-line-2);
 }
+/*
+ * Every block is outlined, a darker shade of its own colour, so two blocks of one colour stacked
+ * together stay two (Blockly's appearance guide: keep visible borders).
+ */
 .pr-workspace [class*='ss-family-'] > .blocklyPath {
   fill: var(--block);
-  stroke: var(--block-line, none);
-  stroke-width: 1px;
+  stroke: var(--block-line, color-mix(in srgb, var(--block) 60%, black));
+  stroke-width: 1.5px;
 }
 .pr-workspace [class*='ss-family-'] > .blocklyText,
 .pr-workspace [class*='ss-family-'] > g > .blocklyText {

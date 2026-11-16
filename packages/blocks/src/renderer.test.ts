@@ -11,6 +11,10 @@ describe('the Alice-like look (14-editors 3i.5)', () => {
     expect(familyOf(storyStatementType('say'))).toBe('speech');
     expect(familyOf(storyStatementType('frameShot'))).toBe('camera');
     expect(familyOf(nodeType('doTogether'))).toBe('control');
+    // Conditionals and loops in different colours (Blockly's block design guide).
+    expect(familyOf(nodeType('if'))).toBe('control');
+    for (const loop of ['count', 'while', 'forEach', 'eachTogether'])
+      expect(familyOf(nodeType(loop))).toBe('loop');
     expect(familyOf(nodeType('number'))).toBe('value');
     expect(familyOf(METHOD)).toBe('method');
     expect(familyOf(LISTENER)).toBe('method');
