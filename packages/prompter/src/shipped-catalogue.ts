@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '2c169bbe2cc1b3dbf644852d3c55d69ef8b831a5';
+export const SHIPPED_CATALOGUE_COMMIT = 'fd0455a377899379688cc31f2f3b6e8256b03b03';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -58,6 +58,13 @@ Cast
     makehuman/Biped/p28: Lin, an older woman of 68 with a grey bob, in a teal striped blouse and teal skirt [everyday, older people] 1.44 m, joints J2
     makehuman/Biped/p29: Ravi, an older man of 70 with short grey hair, in an orange striped shirt and jeans [everyday, older people] 1.68 m, joints J2
     makehuman/Biped/p30: Eileen, an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt [everyday, older people] 1.5 m, joints J2
+    makehuman/Biped/p31: Maryam, a girl of 10 in a navy hijab, a teal jacket and jeans [everyday, children] 1.28 m, joints J2
+    makehuman/Biped/p32: Samira, a woman of 45 in a maroon hijab, a green striped blouse and green skirt [everyday, adults] 1.59 m, joints J2
+    makehuman/Biped/p33: Arjan, a boy of 11 in a navy patka, a yellow striped shirt and jeans [everyday, children] 1.37 m, joints J2
+    makehuman/Biped/p34: Gurdeep, a man of 38 in an orange turban, a green jacket and jeans [everyday, adults] 1.84 m, joints J2
+    makehuman/Biped/p35: Eli, a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and jeans [everyday, children] 1.14 m, joints J2
+    makehuman/Biped/p36: Poppy, a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans [everyday, children] 1.03 m, joints J2
+    makehuman/Biped/p37: George, an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie [everyday, older people] 1.74 m, joints J2
     osa/Biped/astronaut: Astronaut, an astronaut in a yellow spacesuit and a round orange helmet with an aerial [everyday, space] 1.36 m, joints J3
     osa/Biped/david: David, a garden gnome with a red pointed hat and a white beard, in a blue shirt [everyday] 1.58 m, joints J3
     osa/Biped/dino-kid: Dino kid, a child in a green dinosaur costume [everyday, dinosaurs] 1.24 m, joints J3

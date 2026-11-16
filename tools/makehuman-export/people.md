@@ -1,7 +1,7 @@
 # Everyday people from MakeHuman: first set
 
 - **Workplan:** WP3.5. **Spec:** `docs/spec/17-backstage.md`, section 3 (pipelines).
-- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). All 30 are built; seven more, with headwear and hearing aids, follow (16 Nov). The owner still reviews their renders before they are merged (WP3 done-when).
+- **Status:** list approved by the owner, 1 Nov 2026 (see "The owner's decisions"). All 37 are built and ship: the 30, and seven more with headwear and hearing aids (16 Nov). The owner still reviews their renders before they are merged (WP3 done-when).
 - **Source of truth:** `people.json` in this folder. The table below is generated from it by `node tools/makehuman-export/src/people-cli.ts`, which also checks every asset against MakeHuman's CC0 system pack.
 
 Thirty-seven people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2 in Blender, run headless in the assets repository's CI (owner, 25 Oct 2026). Each one is rigged to the game-engine skeleton, so it walks, gestures and poses with the same blocks as every other character (joint map, spec 17 section 2a). Their credit line is "<Name>, made with MakeHuman (CC0)".
@@ -18,7 +18,7 @@ Thirty-seven people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2
     - Eli (8) in a kippah;
     - Poppy (7) and George (80) with behind-the-ear hearing aids, bright for the child and beige for the adult, so they show on a small screen.
 
-  A hijab, a turban and a patka cover the hair (`hair: null`); a kippah sits on it. `people.json` names each piece and its colour (`headwear`, `hearingAids`), and the checker refuses anything else. The names are S4's suggestions, for the owner's review. The religious items also go to the cultural review (17.8, #54) before they ship.
+  A hijab, a turban and a patka cover the hair (`hair: null`); a kippah sits on it. `people.json` names each piece and its colour (`headwear`, `hearingAids`), and the checker refuses anything else. The names are S4's suggestions, for the owner's review. The owner kept the names, and reviewed the religious items (17.8, #54) on the renders: all four ship (16 Nov 2026).
 - **Grey hair:** tint it in the pipeline. Margaret, Lin, Ravi and Eileen are tinted (`hairTint` in `people.json`). Winston and Tunde are bald.
 - **Outfits, after seeing the first renders:**
     - The crop top and the short denim shorts are retired for everyone. They don't suit a tool for 6 to 13-year-olds.
@@ -105,5 +105,5 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 ## What happens next
 
 1. The owner reviews the first set's sketches and renders in the assets pull request, as for the CC0 sources.
-2. S4 looked for community CC0 headwear, glasses, hearing aids and a wheelchair (10 Nov 2026): glasses, a wheelchair and crutches are in. Headwear and hearing aids are made in the pipeline (16 Nov 2026); the owner reviews the seven new people's renders and names, and the religious items go to the cultural review (17.8).
+2. S4 looked for community CC0 headwear, glasses, hearing aids and a wheelchair (10 Nov 2026): glasses, a wheelchair and crutches are in. Headwear and hearing aids are made in the pipeline (16 Nov 2026); the owner reviewed the seven new people's renders, names and religious items (17.8), and they ship.
 3. WP3c reduces the people to the device budget (they are 33,000 to 47,000 triangles now).
