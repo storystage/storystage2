@@ -61,6 +61,7 @@ tauri-plugin-fs  2  Apache-2.0 OR MIT
 == Bundled files (apps/desktop/src-tauri/speech-models.json) ==
 
 ggml-tiny.en-q5_1.bin  whisper tiny.en weights (OpenAI), converted by whisper.cpp  MIT
+whisper.js  whisper.cpp v1.9.5 (ggml authors), built to WebAssembly (apps/desktop/src-tauri/whisper.json)  MIT
 
 == Linked into the app (100) ==
 
