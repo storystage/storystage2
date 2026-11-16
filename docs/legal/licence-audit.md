@@ -2,7 +2,7 @@
 
 - **Workplan:** WP3.1 (part of WP3a). **Spec:** `docs/spec/17-backstage.md`, section 3.
 - **Owner:** S4 drafts; the owner signs off (WP3 done-when) and asks CMU (WP17.1).
-- **Status:** draft for the owner's sign-off, 25 Oct 2026, with the owner's answers of that date (section 3). Licences were checked on the sources' own pages on that date (links below).
+- **Status:** for the owner's sign-off, 16 Nov 2026. Drafted 25 Oct 2026 with the owner's answers of that date (section 3); licences were checked on the sources' own pages then (links below). Brought up to date on 16 Nov with the owner's later choices and with what ships (section 4).
 
 Every candidate source for Backstage, with its licence, credit line and verdict. Appendix A lists every model in Alice's gallery. Item-level rows for the other sources are added to `backstage.json` as WP3b picks them: each item records its own licence, credit line and source URL (`packages/backstage/src/manifest.ts`), and the rules in section 2 apply to every one.
 
@@ -17,12 +17,12 @@ Verdicts:
 
 | Source | Licence (as checked) | What we'd take | Credit line in the manifest | Verdict | Conditions |
 |---|---|---|---|---|---|
-| **Alice's gallery**: 340 Alice models of the 435 in appendix A (the other 95 are Sims 2 art, next row) | Alice 3 EULA, clause 5: the gallery "is contributed by Electronic Arts Inc." and is for personal, non-commercial and academic use only. CMU has not said which models CMU made or on what terms | Animals, storybook characters, props, scenery, a few vehicles; the joint vocabulary (which is not an asset, and is used regardless) | Set when CMU replies, for example "Abyssinian cat from Alice 3, Carnegie Mellon University" | **Not yet** | Ship only the models CMU confirms in writing, recorded in `docs/legal/` and given the manifest licence `permission` (WP17.1). Converting for testing and for spike 1.2 is allowed (workplan WP3, "Depends on"). Bamboo's two Sims 2 variants never ship (next row) |
+| **Alice's gallery**: 340 Alice models of the 435 in appendix A (the other 95 are Sims 2 art, next row) | Alice 3 EULA, clause 5: the gallery "is contributed by Electronic Arts Inc." and is for personal, non-commercial and academic use only. CMU has not said which models CMU made or on what terms | Animals, storybook characters, props, scenery, a few vehicles; the joint vocabulary (which is not an asset, and is used regardless) | Set when CMU replies, for example "Abyssinian cat from Alice 3, Carnegie Mellon University" | **Not yet** | Ship only the models CMU confirms in writing, recorded in `docs/legal/` and given the manifest licence `permission` (WP17.1). Converting for testing and for spike 1.2 is allowed (workplan WP3, "Depends on"). Bamboo's two Sims 2 variants never ship (next row). **16 Nov:** CMU replied on 27 Oct and is consulting the University's legal counsel (`correspondence.md`). Some Alice 3 characters are converted for internal testing only, in a private model pack kept outside every repository, licence "not sure"; none ships |
 | **The Sims 2 art**: the Alice 3 people; **95 whole gallery models** (all the cars and most household furniture, appliances and house plants, and some trees, aircraft and boats); and two Bamboo variants. 862 of the gallery's 1,772 texture variants in all | Alice 3.0 Art Gallery Licence: use only "without modification" and only with programs written with Alice 3.0 | Nothing | — | **Don't ship** | StoryStage 2 meets neither condition. Only EA's written permission would change this (WP17.7, decision 0008). Alice's own jars mark these variants `SIMS2`; the converter never converts them. Kenney, KayKit, Poly Pizza and the museum scans cover vehicles, furniture and plants instead |
-| **[MakeHuman](https://static.makehumancommunity.org/oldsite/faq/can_i_sell_models_created_with_makehuman.html)** | Exported models are CC0. Some assets inside MakeHuman (community add-ons) are CC-BY | Diverse rigged everyday people (3.5) | "<Name>, made with MakeHuman (CC0)" | **Ship** | The export pipeline (3.5) uses only assets that are themselves CC0, and records which assets each person uses. Any CC-BY asset is left out of the shipped set. The owner reviews the first set for respectful, varied representation |
+| **[MakeHuman](https://static.makehumancommunity.org/oldsite/faq/can_i_sell_models_created_with_makehuman.html)** | Exported models are CC0. Some assets inside MakeHuman (community add-ons) are CC-BY | Diverse rigged everyday people (3.5) | "<Name>, made with MakeHuman (CC0)" | **Ship** | The export pipeline (3.5) uses only assets that are themselves CC0, and records which assets each person uses. Any CC-BY asset is left out of the shipped set. The owner reviews the first set for respectful, varied representation. **16 Nov:** headwear (hijab, turban, patka, kippah) and hearing aids, which no pack has, are made by the pipeline itself: our own work, CC0, under the person's credit. The religious items go through the cultural review (17.8) before they ship |
 | **[MakeHuman community: Glasses 01](https://static.makehumancommunity.org/assets/assetpacks/glasses01.html)** | CC0, every asset in the pack (`glasses01_cc0.zip`) | Glasses worn by MakeHuman people (3.5) | None needed: the person's own credit, "<Name>, made with MakeHuman (CC0)", stands | **Ship** | Only the plain frames (`GLASSES` in `tools/makehuman-export/src/people.ts`); the costume and tinted ones aren't offered. The pipeline fetches the pack pinned by SHA-256 |
-| **Commissioned storybook cast** | Ours: the contract assigns copyright to the project | 12–20 public-domain characters (3.6) | "<Character> designed by <artist> for StoryStage" | **Ship**, once commissioned | Licence `permission`, citing the contract in `docs/legal/`. Designs come from public-domain text and illustrations only, with trade-mark checks (WP17.8) |
-| **[Kenney](https://kenney.nl/support)** | CC0. No attribution needed; the Kenney logo is reserved | Rigged characters, props, scenery in glTF (3.7) | "<Model> by Kenney (CC0)" | **Ship** | Check the `License.txt` in each pack as it is downloaded. Don't use the Kenney logo. The Blocky and Mini character packs have no skeleton, so they are props or prop-only characters |
+| **Storybook cast** (3.6): not commissioned (the owner, 14 Nov 2026: no budget) | Made from KayKit's CC0 parts (`kitbash` recipes, 15 Nov), so CC0; or found per item (the Sketchfab row) | Public-domain characters: Robin Hood, Arthur, Merlin, Beowulf, Fionn, Maid Marian, Branwen, Medusa, the selkie, Holmes, Watson, Anansi | "<Character>, made from <model> by Kay Lousberg, KayKit (CC0)" | **Ship** | Designs from public-domain text only, each with its cultural and trade-mark check (17.8, #54) before it ships. A commission, if one comes later, would be licence `permission`, citing the contract in `docs/legal/` |
+| **[Kenney](https://kenney.nl/support)** | CC0. No attribution needed; the Kenney logo is reserved | Rigged characters, props, scenery in glTF (3.7) | "<Model> by Kenney (CC0)" | **Not used** (owner, 12 Nov 2026): kenney.nl refuses scripted downloads, and KayKit's characters cover Kenney's | If Kenney comes back: check the `License.txt` in each pack as it is downloaded. Don't use the Kenney logo. The Blocky and Mini character packs have no skeleton, so they are props or prop-only characters |
 | **[KayKit](https://kaylousberg.itch.io/kaykit-adventurers)** (Kay Lousberg) | CC0, free and paid tiers alike. The page asks that unmodified copies not be resold | Rigged, animated characters (free tier: 5 Adventurers) and the free animation pack | "<Model> by Kay Lousberg, KayKit (CC0)" | **Ship** | Ship only inside StoryStage, never as a separate asset download. Paid tiers only if the owner buys them |
 | **[Open Source Avatars](https://github.com/toxsam/open-source-avatars)** registry: Polygonal Mind's 100Avatars series and the other CC0 collections | CC0: 100Avatars, Grifters Squaddies, ToxSam, Halloween Rising, Xmas Chibis, NeonGlitch86. CC-BY: VIPE Heroes | Rigged humanoids in VRM (3.7) | "<Avatar> by <maker>, <collection> (CC0)", for example "Robot by Polygonal Mind, 100Avatars (CC0)" | **Ship per item**: any CC0 collection (owner, 25 Oct 2026) | Record each avatar's own licence entry from the registry. Before an avatar ships, check it for respectful representation and age-appropriate content, and that its files carry no NFT, token or wallet link. Leave out VIPE Heroes (CC-BY) and any collection added later until it has been checked here |
 | **[Poly Pizza](https://poly.pizza)** | Per model. The catalogue mixes CC0, CC-BY and other CC licences (SA, ND, NC variants) | Low-poly props and scenery | CC0: "<Model> by <author> (CC0), via Poly Pizza". CC-BY: "<Model> by <author>, CC BY <version>, via Poly Pizza" | **Ship per item**: CC0, or CC-BY 3.0 or 4.0 | Never CC-BY-SA, ND or NC in the shipped catalogue. ND forbids the simplification every model gets (3.9); SA would bind learners' exports; NC blocks distribution. Items are picked offline. The API needs an account and isn't used by the app (any in-app search waits for the DPIA, 3.12) |
@@ -30,9 +30,9 @@ Verdicts:
 | **[ambientCG](https://docs.ambientcg.com/license/)** | CC0 | Ground and material textures for Backdrops | "<Asset> from ambientCG.com (CC0)" | **Ship** | None |
 | **[Quaternius](https://quaternius.com/license.html)** (optional) | Quaternius Asset License: free for commercial use and needs no credit, but section 3(a) forbids redistributing the assets as an asset pack, stock file or template, or extracting and repackaging them. The version in force when the assets were obtained governs | Animated low-poly characters | "<Model> by Quaternius", with the terms of the permission | **Not yet**: the owner is asking Quaternius for permission (25 Oct 2026) | Backstage is a library learners pick models from and export in AR packs and pathway exports (WP20, WP22), which comes close to what 3(a) forbids. Ship only with Quaternius's written permission covering Backstage and learners' exports, recorded in `docs/legal/` with the licence `permission`. Draft request: `docs/legal/letters/quaternius.md` |
 | **Museum scans**: [Science Museum Group, Scottish Maritime Museum, University of Dundee](https://sketchfab.com/blogs/community/sketchfab-launches-public-domain-dedication-for-3d-cultural-heritage) on Sketchfab, and the Smithsonian's Open Access | CC0 per item, through Sketchfab's public-domain dedication for cultural organisations (2020) and Smithsonian Open Access. Other items from the same museums can carry other licences | Historical and scientific objects as props and sets (3.7) | "<Object>, <museum> (CC0)" | **Ship per item** | Only items whose own page shows CC0. Record the item URL and the date. Leave out items that note third-party rights. Usually needs simplifying (3.9) |
-| **[Blender Studio](https://studio.blender.org/remixing/)** (optional, 3.8) | CC-BY, copyright Blender Foundation. Each asset page gives its version (older films CC BY 3.0, newer CC BY 4.0) | Two or three open-movie characters, if they simplify to the budget | "<Character> from <film> by Blender Studio, CC BY <version>" | **Ship per item**, only if 3.8 passes | Check each asset page for exceptions. The credit line is required and goes into every film that uses the character (WP11.4) |
+| **[Blender Studio](https://studio.blender.org/remixing/)** (optional, 3.8) | CC-BY, copyright Blender Foundation. Each asset page gives its version (older films CC BY 3.0, newer CC BY 4.0) | Two or three open-movie characters, if they simplify to the budget | "<Character> from <film> by Blender Studio, CC BY <version>" | **Ship per item**, only if 3.8 passes | Check each asset page for exceptions. The credit line is required and goes into every film that uses the character (WP11.4). **15 Nov:** Autumn (CC BY 4.0) passed and ships; Spring was left out (owner) |
 | **Mixamo** | Adobe's terms forbid redistributing the raw files, and need an Adobe account | Nothing | — | **Don't ship** | Learners may import their own Mixamo files (3.11). The skeleton mapper reads Mixamo names (spec 17, section 2a) |
-| **General Sketchfab** | Varies per model, including non-commercial | Nothing in the shipped catalogue | — | **Don't ship** | As for Mixamo: learner imports only, with the licence recorded (3.12) |
+| **General Sketchfab** | Varies per model, including non-commercial | Nothing in the shipped catalogue, except the storybook characters the owner chose per item (14 Nov 2026) | "<Model> by <author>, CC BY <version>, via Sketchfab; rigged and reduced for StoryStage, changed for StoryStage" | **Don't ship**, except **per item** as chosen by the owner | Only CC0 or CC BY 3.0 or 4.0, on the item's own page. Two ship: Little Red Riding Hood (leafar112) and her Grandmother (Imagine), both CC BY 4.0 and rigged by us. Red Riding Hood's page asks that she not be used for AI, so she is never fed to generative AI services. Otherwise, as for Mixamo: learner imports only, with the licence recorded (3.12) |
 
 ## 2. Rules for every shipped item
 
@@ -53,9 +53,43 @@ Answered on 25 Oct 2026:
 - **CMU:** S4 drafts the request; the owner sends it. The draft is `docs/legal/letters/cmu.md`. It attaches `cmu-models.csv` (the 340 Alice models it asks about) and `cmu-sims2-models-left-out.csv` (the 95 Sims 2 models), generated from the same data as appendix A. It also asks whether CMU objects to StoryStage 2's Alice-style tile editor, and to calling it "Alice-style".
 - **Sign-off:** the owner reviews this audit in its pull request; merging it records the sign-off (WP3 done-when).
 
+Since then:
+
+- **12 Nov:** Kenney left out (section 1).
+- **14 Nov:** the storybook cast without a commission, from KayKit's parts and two Sketchfab finds (section 1).
+- **15 Nov:** Blender Studio's Autumn ships; Spring doesn't.
+- **16 Nov:** headwear and hearing aids made in the MakeHuman pipeline.
+
 Still to do:
 
-- **Send the two letters**, and add each reply to `docs/legal/`. Then update the verdicts here: Alice's gallery (WP17.1) and Quaternius.
+- **CMU:** the letter was sent on 25 Oct; CMU replied on 27 Oct and is consulting legal counsel. Add its answer to `docs/legal/`, then update the verdict on Alice's gallery (WP17.1).
+- **Quaternius:** the letter is drafted, not yet sent (`correspondence.md`). Quaternius stays out until it answers.
+- **The cultural reviews (17.8, #54):** Anansi, and the hijab, patka, turban and kippah, before the lock update that ships them.
+
+## 4. What ships
+
+What the shipped Backstage holds, source by source. Signing off this audit signs off these too: every item has an allowed licence, a credit line, its own page and the date it was retrieved (section 2), which the generator checks.
+
+<!-- shipped -->
+
+Generated from `backstage.json` at storystage/backstage-assets 2c169bb (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+
+| Source | Licence | Models | For example |
+|---|---|---|---|
+| Backdrops' grounds, from ambientCG and Poly Haven textures | CC0-1.0 | 31 | Bricks 105 from ambientCG.com (CC0) |
+| Blender Studio | CC-BY-4.0 | 1 | Autumn (CC) Blender Foundation \| studio.blender.org; reduced for StoryStage, changed for StoryStage |
+| KayKit | CC0-1.0 | 10 | Barbarian by Kay Lousberg, KayKit (CC0) |
+| MakeHuman people | CC0-1.0 | 30 | Alfie, made with MakeHuman (CC0) |
+| Open Source Avatars | CC0-1.0 | 10 | Astronaut by Polygonal Mind, 100Avatars (CC0) |
+| Poly Pizza | CC-BY-3.0 | 51 | Apple by jeremy, CC BY 3.0, via Poly Pizza, changed for StoryStage |
+| Poly Pizza | CC0-1.0 | 18 | Alarm clock by CreativeTrio (CC0), via Poly Pizza |
+| Scottish Maritime Museum (on Sketchfab) | CC0-1.0 | 8 | Locomotive Headlamp, Scottish Maritime Museum (CC0) |
+| Sketchfab, per item | CC-BY-4.0 | 2 | Old Village Granny by Imagine, CC BY 4.0, via Sketchfab; rigged and reduced for StoryStage, changed for StoryStage |
+| Smithsonian Open Access | CC0-1.0 | 7 | Abraham Lincoln's Patent Model, Smithsonian National Museum of American History (CC0) |
+| Storybook cast, KayKit models and characters made from their parts | CC0-1.0 | 12 | Anansi, made from Barbarian by Kay Lousberg, KayKit (CC0) |
+| **All** | | **180** | |
+
+<!-- /shipped -->
 
 ## Appendix A: Alice's gallery
 
