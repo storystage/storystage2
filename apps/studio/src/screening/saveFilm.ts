@@ -1,23 +1,14 @@
 /**
  * Saving an exported film: the MP4 and its two caption files, named after the title (spec 08
- * section 4; decision 0028). The host's picker saves one `.storystage` file at a time, so a way to
- * save the three together (`saveFilm`) is asked of S8. Until the host has it, the browser saves
- * them: into a folder the learner picks, where the browser can (Chrome, Edge), or else as one
- * `.zip`, so a browser's "allow multiple downloads?" can never lose the captions (S5's review).
+ * section 4; decision 0028). In the apps, the host saves the three together (`saveFilm`): one
+ * system dialog, captions beside the film, or one zip on Android. The browser version, and iPad
+ * for now, save them here instead: into a folder the learner picks, where the browser can
+ * (Chrome, Edge), or else as one `.zip`, so a browser's "allow multiple downloads?" can never lose
+ * the captions (S5's review).
  */
-import { FileError, type FilePicker, type HostInterface } from '@storystage/host';
+import { FileError, type FilmFile, type HostInterface } from '@storystage/host';
 import type { FilmExport } from '@storystage/export';
 import { writeArchive } from '@storystage/production';
-
-export interface FilmFile {
-  readonly file: string;
-  readonly bytes: Uint8Array;
-}
-
-/** What the host will offer: the system's save dialog for the film, with its captions beside it. */
-type FilmPicker = FilePicker & {
-  saveFilm?(name: string, files: readonly FilmFile[]): Promise<void>;
-};
 
 /** The parts of the browser's folder picker this uses. */
 export interface FolderPage {
@@ -33,7 +24,7 @@ export interface FolderPage {
 
 const utf8 = new TextEncoder();
 
-/** The three files of an exported film. */
+/** The three files of an exported film: the video first, as the host's `saveFilm` asks. */
 export function filmFiles(film: FilmExport): FilmFile[] {
   return [
     { file: `${film.name}.mp4`, bytes: new Uint8Array(film.mp4) },
@@ -76,13 +67,12 @@ function asZip(name: string, files: readonly FilmFile[]): void {
 }
 
 export async function saveFilm(
-  host: HostInterface,
+  host: Pick<HostInterface, 'picker'>,
   film: FilmExport,
   page: FolderPage = window as FolderPage,
 ): Promise<void> {
   const files = filmFiles(film);
-  const picker = host.picker as FilmPicker;
-  if (picker.saveFilm) return picker.saveFilm(film.name, files);
+  if (host.picker.saveFilm) return host.picker.saveFilm(film.name, files);
   if (page.showDirectoryPicker) return intoFolder(page as Required<FolderPage>, files);
   asZip(film.name, files);
 }
