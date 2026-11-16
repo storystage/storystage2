@@ -9,7 +9,8 @@ import type { EditorHost } from '@storystage/editor-contract';
 import type { Production, SceneId } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
 import { PALETTE_TABS, type PaletteTab } from '@storystage/story-api/editing';
-import { Icon, Segmented, useThemeStyle } from '@storystage/ui';
+import { TEXT_STYLES, TextView, textViewWord } from '@storystage/text-view';
+import { Icon, Segmented, Toggle, useThemeStyle } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useState } from 'react';
 import {
   Button as AriaButton,
@@ -28,6 +29,7 @@ import {
 import { words } from '../strings.ts';
 import type { Highlights } from './BlocksPanel.tsx';
 import { sceneNumber } from '../storyboard/edits.ts';
+import { useTextViewSetting } from './textViewSetting.ts';
 
 export interface CodeEditorProps {
   production: Production;
@@ -111,6 +113,8 @@ export function CodeEditor({
   }
   const [object, setObject] = useState<Key>(SCENE);
   const [tab, setTab] = useState<PaletteTab>('actions');
+  // Show as text, beside the code, in the wording chosen (07-ux 7.3), kept on this device.
+  const [text, setText] = useTextViewSetting();
   const open = methods.find((m) => m.id === chosen)?.id ?? methods[0]?.id ?? null;
   const n = sceneNumber(p, scene);
   const type = p.program.types.find(
@@ -152,6 +156,19 @@ export function CodeEditor({
           value={tab}
           onChange={setTab}
         />
+        <div className="pr-text-choice">
+          <Toggle isSelected={text.shown} onChange={(shown) => setText({ ...text, shown })}>
+            {words.t('production.showAsText')}
+          </Toggle>
+          {text.shown && (
+            <Segmented
+              label={words.t('production.textWording')}
+              options={TEXT_STYLES.map((s) => ({ id: s, label: textViewWord(`style.${s}`) }))}
+              value={text.style}
+              onChange={(style) => setText({ ...text, style })}
+            />
+          )}
+        </div>
       </div>
       <Tabs selectedKey={open} onSelectionChange={setChosen}>
         <TabList className="pr-tabs" aria-label={words.t('production.methods', { n })}>
@@ -162,7 +179,12 @@ export function CodeEditor({
           ))}
         </TabList>
         {methods.map((m) => (
-          <TabPanel key={m.id} id={m.id} className="pr-tab-panel">
+          <TabPanel
+            key={m.id}
+            id={m.id}
+            className="pr-tab-panel"
+            data-text={text.shown || undefined}
+          >
             <Suspense fallback={<p className="pr-loading">{words.t('production.loading')}</p>}>
               <BlocksPanel
                 method={m.id}
@@ -174,6 +196,17 @@ export function CodeEditor({
                 {...(editorRef ? { editorRef } : {})}
               />
             </Suspense>
+            {text.shown && (
+              <div className="pr-text">
+                <TextView
+                  program={p.program}
+                  style={text.style}
+                  method={m.id}
+                  label={words.t('production.textOf', { name: tabName(m) })}
+                  {...(highlights ? { highlight: highlights } : {})}
+                />
+              </div>
+            )}
           </TabPanel>
         ))}
       </Tabs>
