@@ -95,16 +95,21 @@ test('a block dropped outside the method goes back, and the learner hears why', 
 }) => {
   await openCode(page);
   const first = block(page, main.body[0]!.id);
-  const start = (await first.boundingBox())!;
+  // Where the block sits in the workspace. The page above may still grow as the stage loads
+  // (Add a marker here, "In this shot"), moving the whole Code editor down.
+  const inWorkspace = async () => {
+    const at = (await block(page, main.body[0]!.id).boundingBox())!;
+    const area = (await page.locator('.pr-workspace').boundingBox())!;
+    return Math.round(at.y - area.y);
+  };
+  const start = await inWorkspace();
   const area = (await page.locator('.pr-workspace').boundingBox())!;
   await drag(page, first, { x: area.x + area.width - 60, y: area.y + area.height - 40 });
   // The studio's live region (Blockly has one of its own too).
   await expect(page.locator('.pr > p[aria-live="polite"]')).toHaveText(
     'Blocks go inside a method.',
   );
-  await expect
-    .poll(async () => Math.round((await block(page, main.body[0]!.id).boundingBox())!.y))
-    .toBe(Math.round(start.y));
+  await expect.poll(inWorkspace).toBe(start);
   await expect(undoButton(page)).toHaveText('Undo');
 });
 
