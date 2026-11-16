@@ -21,6 +21,7 @@ export * from './request.ts';
 export * from './runner.ts';
 export * from './script-check.ts';
 export * from './session.ts';
+export * from './setup.ts';
 export * from './stream.ts';
 export * from './system-prompt.ts';
 export * from './tool-names.ts';
