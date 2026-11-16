@@ -67,3 +67,11 @@ blender -b <file.blend> --python-exit-code 1 --python tools/backstage-sources/bl
 - **Looking first:** `inspect <report.json> <picture.png>` lists what a file holds (collections, meshes before and after their modifiers, skeletons and their deforming bones, materials, hair), so its `studio.json` entry can be written.
 - **What it writes:** `<name>-report.json`, giving the triangles before and after, the joints and the meshes used.
 - **Using the result:** the item's source list (`sources/blender-studio.json`) fetches it as `generated: "blender-studio/<name>.glb"`.
+
+## What ships, for the licence audit (`src/audit-cli.ts`)
+
+```
+pnpm backstage:fetch && node tools/backstage-sources/src/audit-cli.ts [backstage.json]
+```
+
+It writes section 4 of `docs/legal/licence-audit.md` (between `<!-- shipped -->` and `<!-- /shipped -->`): the shipped models by source and licence, with a credit line from each, from the Backstage that `backstage.lock.json` pins. It fails if any shipped item breaks the audit's section 2: a licence that may not ship, no credit line, no https link to the item's own page, no date it was retrieved, or a CC BY model whose credit doesn't say it was changed for StoryStage. Run it after each lock update.
