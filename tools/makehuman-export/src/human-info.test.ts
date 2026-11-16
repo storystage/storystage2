@@ -79,6 +79,20 @@ describe('humanInfo', () => {
     expect(winston.clothes).toContain('fedora01.mhclo');
     expect(winston.storystage.hairTint).toBeNull();
   });
+
+  it('gives the script the headwear and hearing aids to make, with their colours as numbers', () => {
+    const maryam = humanInfo({
+      ...person,
+      hair: null,
+      hairTint: undefined,
+      headwear: { kind: 'hijab', colour: 'navy' },
+      hearingAids: 'purple',
+    });
+    expect(maryam.hair).toBe('');
+    expect(maryam.storystage.headwear).toEqual({ kind: 'hijab', colour: [0.1, 0.15, 0.35] });
+    expect(maryam.storystage.hearingAids).toEqual([0.5, 0.25, 0.75]);
+    expect(humanInfo(person).storystage).toMatchObject({ headwear: null, hearingAids: null });
+  });
 });
 
 describe('sourceList', () => {
@@ -89,7 +103,7 @@ describe('sourceList', () => {
   it('makes a valid Backstage source list of generated models', () => {
     const list = sourceList(people);
     expect(validateSources(list).ok).toBe(true);
-    expect(list.items).toHaveLength(30);
+    expect(list.items).toHaveLength(37);
     expect(list.items[25]).toMatchObject({
       id: 'makehuman/Biped/p26',
       displayName: 'Margaret',

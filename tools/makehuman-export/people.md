@@ -85,6 +85,13 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 | 28 | Lin | 68 | shorter | Asian 100% | old_asian_female | bob01, tinted grey | brown | female_elegantsuit01 (teal), shoes02 | an older woman of 68 with a grey bob, in a teal striped blouse and teal skirt |
 | 29 | Ravi | 70 | average | Asian 50%, Caucasian 30%, African 20% | old_asian_male | short02, tinted grey | brown | male_casualsuit03 (rust), shoes04 | an older man of 70 with short grey hair, in an orange striped shirt and jeans |
 | 30 | Eileen | 85 | shorter, slight | Caucasian 100% | old_caucasian_female | bob02, tinted white | blue | female_elegantsuit01 (lilac), shoes06 | an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt |
+| 31 | Maryam | 10 | average | African 60%, Asian 20%, Caucasian 20% | young_african_female | covered | brown | male_casualsuit05 (teal), shoes02, hijab (navy, made) | a girl of 10 in a navy hijab, a teal jacket and jeans |
+| 32 | Samira | 45 | average | Asian 50%, Caucasian 30%, African 20% | middleage_asian_female | covered | brown | female_elegantsuit01 (green), shoes06, hijab (maroon, made) | a woman of 45 in a maroon hijab, a green striped blouse and green skirt |
+| 33 | Arjan | 11 | average | Asian 50%, Caucasian 30%, African 20% | young_asian_male | covered | brown | male_casualsuit03 (mustard), shoes03, patka (navy, made) | a boy of 11 in a navy patka, a yellow striped shirt and jeans |
+| 34 | Gurdeep | 38 | average | Asian 50%, Caucasian 30%, African 20% | middleage_asian_male | covered | brown | male_casualsuit05 (green), shoes04, turban (saffron, made) | a man of 38 in an orange turban, a green jacket and jeans |
+| 35 | Eli | 8 | average | Caucasian 100% | young_caucasian_male | short01 | brownlight | male_casualsuit03 (rust), shoes01, kippah (navy, made) | a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and jeans |
+| 36 | Poppy | 7 | average | Caucasian 60%, African 40% | young_caucasian_female | ponytail01 | brown | male_casualsuit05 (coral), shoes05, hearing aids (purple, made) | a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans |
+| 37 | George | 80 | average | Caucasian 100% | old_caucasian_male | short02, tinted white | blue | male_elegantsuit01, shoes03, hearing aids (beige, made) | an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie |
 
 <!-- /people -->
 

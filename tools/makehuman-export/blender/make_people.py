@@ -160,6 +160,275 @@ def make_clear_lenses(obj):
             tree.links.new(cut.outputs[0], alpha)
 
 
+def srgb_to_linear(rgb):
+    """people.ts's colours are as seen; a material's base colour is linear light."""
+    return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb)
+
+
+def plain_material(name, rgb):
+    material = bpy.data.materials.new(name)
+    material.use_nodes = True
+    bsdf = next(n for n in material.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+    bsdf.inputs["Base Color"].default_value = (*srgb_to_linear(rgb), 1.0)
+    bsdf.inputs["Roughness"].default_value = 0.8
+    return material
+
+
+class Head:
+    """Where the head is, measured from the person's own body, in the body's local space (Z up,
+    facing -Y). Every piece is sized from `s`, the height from the eyes to the top of the head,
+    so a child's fits a child."""
+
+    def __init__(self, body, parts):
+        ObjectService = mpfb("mpfb.services.objectservice", "ObjectService")
+        group = body.vertex_groups.get("head")
+        if group is None:
+            raise RuntimeError("The body has no head vertex group")
+        index = group.index
+        points = [
+            v.co.copy()
+            for v in body.data.vertices
+            if any(g.group == index and g.weight >= 0.5 for g in v.groups)
+        ]
+        if len(points) < 100:
+            raise RuntimeError(f"Too few head vertices ({len(points)})")
+        xs = [p.x for p in points]
+        ys = [p.y for p in points]
+        zs = [p.z for p in points]
+        self.top = max(zs)
+        self.cx = (max(xs) + min(xs)) / 2
+        self.cy = (max(ys) + min(ys)) / 2
+        self.front = min(ys)
+        self.back = max(ys)
+        eyes = next(
+            (p for p in parts if ObjectService.get_object_type(p).lower() == "eyes"), None
+        )
+        if eyes is None:
+            raise RuntimeError("No eyes to measure the head from")
+        to_body = body.matrix_world.inverted() @ eyes.matrix_world
+        eye_points = [to_body @ v.co for v in eyes.data.vertices]
+        self.eye_z = sum(p.z for p in eye_points) / len(eye_points)
+        self.s = self.top - self.eye_z
+        band = [p for p in points if abs(p.z - self.eye_z) < 0.15 * self.s]
+        self.half_width = max(abs(p.x - self.cx) for p in band)
+        # The neck: where the head's own vertices end.
+        self.neck_z = min(zs)
+        self.points = points
+        print(
+            f"head: top {self.top:.3f}, eyes {self.eye_z:.3f}, s {self.s:.3f}, "
+            f"half width {self.half_width:.3f}, neck {self.neck_z:.3f}",
+            flush=True,
+        )
+
+    def frontness(self, y):
+        """0 at the back of the head, 1 at its front."""
+        return min(1.0, max(0.0, (self.back - y) / max(self.back - self.front, 1e-6)))
+
+
+def farthest_hit(trees, origin, direction, reach):
+    """How far out along `direction` the last surface of the given parts lies (hair, clothes), so a
+    piece goes over them, not through them."""
+    best = 0.0
+    for tree, to_local, turn in trees:
+        start = to_local @ origin
+        d = (turn @ direction).normalized()
+        travelled = 0.0
+        for _ in range(8):
+            hit = tree.ray_cast(start + d * (travelled + 1e-4), d, reach - travelled)
+            if hit[0] is None:
+                break
+            travelled += hit[3] + 1e-4
+            best = max(best, travelled)
+    return best
+
+
+def part_trees(body, parts, kinds):
+    """BVH trees of the parts of the given kinds, with the turns from the body's space into each."""
+    from mathutils.bvhtree import BVHTree
+
+    ObjectService = mpfb("mpfb.services.objectservice", "ObjectService")
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    trees = []
+    for part in parts:
+        if part.type == "MESH" and ObjectService.get_object_type(part).lower() in kinds:
+            to_local = part.matrix_world.inverted() @ body.matrix_world
+            trees.append((BVHTree.FromObject(part, depsgraph), to_local, to_local.to_3x3()))
+    return trees
+
+
+def shell(body, rig, name, rgb, keep, offset, smooth=4):
+    """A piece made from the body's own surface where `keep` says, pushed out along the body's
+    normals by `offset`: it fits the head it's made from, and keeps the body's skin weights, so it
+    moves with the head and neck."""
+    import bmesh
+
+    piece = body.copy()
+    piece.data = body.data.copy()
+    piece.name = piece.data.name = name
+    for key in list(piece.keys()):
+        del piece[key]
+    for collection in body.users_collection:
+        collection.objects.link(piece)
+    if piece.data.shape_keys:
+        piece.shape_key_clear()
+
+    bm = bmesh.new()
+    bm.from_mesh(piece.data)
+    bm.normal_update()
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if not keep(v.co, v.normal)], context="VERTS")
+    loose = [v for v in bm.verts if not v.link_faces]
+    if loose:
+        bmesh.ops.delete(bm, geom=loose, context="VERTS")
+    if len(bm.faces) < 20:
+        raise RuntimeError(f"{name}: only {len(bm.faces)} faces kept")
+    # Each kept vertex's place and normal on the body, before it moves.
+    origin = {v: (v.co.copy(), v.normal.copy()) for v in bm.verts}
+    out = {}
+    for v in bm.verts:
+        co, n = origin[v]
+        out[v] = offset(co, n)
+        v.co = co + n * out[v]
+    for _ in range(smooth):
+        bmesh.ops.smooth_vert(
+            bm, verts=list(bm.verts), factor=0.5, use_axis_x=True, use_axis_y=True, use_axis_z=True
+        )
+    for v in bm.verts:  # smoothing pulls in; nothing may sink below its offset
+        co, n = origin[v]
+        d = (v.co - co).dot(n)
+        if d < out[v] * 0.9:
+            v.co += n * (out[v] * 0.9 - d)
+    bm.to_mesh(piece.data)
+    bm.free()
+
+    piece.data.materials.clear()
+    piece.data.materials.append(plain_material(name, rgb))
+    for polygon in piece.data.polygons:
+        polygon.material_index = 0
+    piece.data.update()
+    print(f"made {name}: {len(piece.data.polygons)} faces", flush=True)
+    return piece
+
+
+def rigid(body, rig, name, rgb, bm):
+    """A small solid piece (a patka's knot, a hearing aid) that moves with the head bone alone."""
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.materials.append(plain_material(name, rgb))
+    piece = bpy.data.objects.new(name, mesh)
+    for collection in body.users_collection:
+        collection.objects.link(piece)
+    piece.parent = rig
+    piece.matrix_world = body.matrix_world.copy()
+    group = piece.vertex_groups.new(name="head")
+    group.add(list(range(len(mesh.vertices))), 1.0, "REPLACE")
+    modifier = piece.modifiers.new("Armature", "ARMATURE")
+    modifier.object = rig
+    return piece
+
+
+def blob(centre, radii, tilt=0.0):
+    """An ellipsoid, turned `tilt` radians about X (top towards the front for a positive tilt)."""
+    import bmesh
+    from mathutils import Matrix, Vector
+
+    bm = bmesh.new()
+    bmesh.ops.create_uvsphere(bm, u_segments=16, v_segments=10, radius=1.0)
+    turn = Matrix.Rotation(tilt, 3, "X")
+    for v in bm.verts:
+        v.co = Vector(centre) + turn @ Vector((v.co.x * radii[0], v.co.y * radii[1], v.co.z * radii[2]))
+    return bm
+
+
+def add_headwear(body, rig, parts, kind, rgb):
+    """A hijab, turban, patka or kippah, made from the head (owner, 16 Nov 2026)."""
+    head = Head(body, parts)
+    s, hw = head.s, head.half_width
+    clothes = part_trees(body, parts, {"clothes"})
+    hair = part_trees(body, parts, {"hair"})
+    reach = 0.6 * s
+
+    def over(co, n, trees, gap, least):
+        return max(least, farthest_hit(trees, co, n, reach) + gap) if trees else least
+
+    if kind == "hijab":
+        # The head, ears and neck, and a drape over the shoulders; the face stays open.
+        drape_top = head.neck_z
+        drape_bottom = head.neck_z - 0.75 * s
+        face_z = head.eye_z - 0.3 * s
+
+        def keep(co, n):
+            if co.z < drape_bottom:
+                return False
+            r = math.hypot(co.x - head.cx, co.y - head.cy)
+            if co.z < drape_top:
+                reach_out = hw * (1.0 + 1.6 * (drape_top - co.z) / (drape_top - drape_bottom))
+                if r > reach_out:
+                    return False
+            # The face's whole front, its mouth and nostrils included, stays open.
+            in_face = ((co.x - head.cx) / (0.62 * hw)) ** 2 + ((co.z - face_z) / (0.72 * s)) ** 2 <= 1
+            return not (in_face and co.y < head.cy)
+
+        shell(body, rig, "hijab", rgb, keep, lambda co, n: over(co, n, clothes, 0.04 * s, 0.1 * s))
+    elif kind in ("turban", "patka"):
+        # Above a line from the brow at the front to the nape at the back; ears left out.
+        brow = head.eye_z + (0.35 if kind == "turban" else 0.3) * s
+        nape = head.eye_z - (0.3 if kind == "turban" else 0.6) * s
+
+        def keep(co, n):
+            f = head.frontness(co.y)
+            if co.z < nape + (brow - nape) * f:
+                return False
+            return not (abs(co.x - head.cx) > 0.85 * hw and co.z < head.eye_z + 0.2 * s)
+
+        def offset(co, n):
+            if kind == "patka":
+                return 0.07 * s
+            rise = min(1.0, max(0.0, (co.z - head.eye_z) / s))
+            return 0.12 * s + 0.35 * s * rise**1.5 + 0.12 * s * head.frontness(co.y) * rise
+
+        shell(body, rig, kind, rgb, keep, offset)
+        if kind == "patka":  # the knot on top, a little to the front
+            knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.12 * s), (0.3 * s, 0.3 * s, 0.24 * s))
+            rigid(body, rig, "patka-knot", rgb, knot)
+    elif kind == "kippah":
+        # A round cap on the crown, over the hair.
+        from mathutils import Vector
+
+        crown = Vector((head.cx, head.cy + 0.2 * s, head.top))
+
+        def keep(co, n):
+            return (co - crown).length <= 0.55 * s and n.z > 0.2
+
+        shell(body, rig, "kippah", rgb, keep, lambda co, n: over(co, n, hair, 0.03 * s, 0.05 * s), smooth=2)
+    else:
+        raise RuntimeError(f"Unknown headwear {kind}")
+
+
+def add_hearing_aids(body, rig, parts, rgb):
+    """A behind-the-ear hearing aid on each ear (owner, 16 Nov 2026): a curved case behind the
+    top of the ear. A little larger than life, so it shows at the stage's size."""
+    head = Head(body, parts)
+    s = head.s
+    for side in (1, -1):
+        band = [
+            p
+            for p in head.points
+            if (p.x - head.cx) * side > 0
+            and head.eye_z - 0.8 * s < p.z < head.eye_z + 0.1 * s
+            and head.cy - 0.35 * s < p.y < head.cy + 0.45 * s
+        ]
+        if not band:
+            raise RuntimeError("No ear found")
+        ear = max(band, key=lambda p: (p.x - head.cx) * side)
+        # The rim's top: the highest point near the ear's outer edge.
+        rim = [p for p in band if (p.x - head.cx) * side > ((ear.x - head.cx) * side) * 0.85]
+        top = max(rim, key=lambda p: p.z)
+        centre = (top.x - side * 0.05 * s, max(p.y for p in rim) + 0.05 * s, top.z - 0.18 * s)
+        case = blob(centre, (0.08 * s, 0.11 * s, 0.3 * s), tilt=-0.35)
+        rigid(body, rig, f"hearing-aid-{'left' if side > 0 else 'right'}", rgb, case)
+
+
 def shrink_textures():
     """The pack's textures run to 4096 pixels, far past any device budget, and 30 people would
     put more than half a gigabyte in the assets repository. WP3c sets the final sizes."""
@@ -207,8 +476,18 @@ def make_person(info, models):
             raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
         repaint(outfit, recoloured_outfit(extra["clothesColour"]))
 
+    # Pieces no community pack has, made here from the person's own head (owner, 16 Nov 2026).
+    if extra.get("headwear"):
+        add_headwear(basemesh, rig, parts, extra["headwear"]["kind"], extra["headwear"]["colour"])
+    if extra.get("hearingAids"):
+        add_hearing_aids(basemesh, rig, parts, extra["hearingAids"])
+    made = [p for p in ObjectService.get_list_of_children(rig) if p not in parts]
+    parts = parts + made
+
     glasses = extra["glasses"]
     for part in parts:
+        if part in made:
+            continue
         if glasses and glasses in part.name + part.data.name:
             make_clear_lenses(part)
         elif ObjectService.get_object_type(part).lower() not in SEE_THROUGH:
@@ -236,8 +515,9 @@ def make_person(info, models):
     return path
 
 
-def render_preview(glb, png):
-    """A front view of the exported file, with its own textures, in an empty scene."""
+def render_preview(glb, png, close_up=None):
+    """A front view of the exported file, with its own textures, in an empty scene, and, given a
+    second path, a close-up of the head from behind."""
     bpy.ops.wm.read_homefile(use_empty=True)
     bpy.ops.import_scene.gltf(filepath=glb)
     scene = bpy.context.scene
@@ -282,6 +562,18 @@ def render_preview(glb, png):
     scene.render.resolution_y = 510
     scene.render.filepath = png
     bpy.ops.render.render(write_still=True)
+
+    if close_up:
+        # The head from three quarters behind, for what the front view can't show: hearing aids
+        # behind the ears, and how headwear sits at the back.
+        height = max(zs)
+        camera.data.ortho_scale = height * 0.22
+        turn = math.radians(125)
+        camera.location = (10 * math.sin(turn), -10 * math.cos(turn), height * 0.9)
+        camera.rotation_euler = (math.pi / 2, 0, turn)
+        scene.render.resolution_x = scene.render.resolution_y = 400
+        scene.render.filepath = close_up
+        bpy.ops.render.render(write_still=True)
     return triangles
 
 
@@ -302,8 +594,10 @@ def main():
         name = info["storystage"].get("displayName", person)
         try:
             bpy.ops.wm.read_homefile(use_empty=True)
+            pieces = info["storystage"].get("headwear") or info["storystage"].get("hearingAids")
             glb = make_person(info, models)
-            triangles = render_preview(glb, os.path.join(previews, f"{person}.png"))
+            close_up = os.path.join(previews, f"{person}-head.png") if pieces else None
+            triangles = render_preview(glb, os.path.join(previews, f"{person}.png"), close_up)
             size = os.path.getsize(glb)
             report.append({"id": person, "name": name, "triangles": triangles, "bytes": size})
             print(f"made {person} {name}: {triangles} triangles, {size} bytes", flush=True)
