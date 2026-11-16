@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.tsx';
 import { newProduction } from '../storyboard/edits.ts';
+import { NEW_EVENTS, eventWords } from './newMethodEdits.ts';
 
 // Blockly can't draw in a test DOM: a stand-in Blocks editor records what it is given. The real
 // one is checked in a browser (e2e/production.e2e.ts).
@@ -219,5 +220,67 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
       'this.penguin.say(',
     );
     window.localStorage.removeItem('storystage.textView');
+  });
+
+  it('adds a procedure, a function and a listener by New, each opening its tab, each one undo step', async () => {
+    const user = userEvent.setup();
+    render(<App start={exampleProduction()} />);
+    await openStage(user);
+    const newIn = () => screen.getByRole('button', { name: 'New in scene 1' });
+    const undo = () =>
+      within(screen.getByRole('toolbar', { name: 'Undo and redo' })).getByRole('button', {
+        name: /^Undo/,
+      });
+
+    // A procedure, named in the dialog; a name that won't do says why.
+    await user.click(newIn());
+    await user.click(screen.getByRole('menuitem', { name: 'Procedure…' }));
+    const dialog = screen.getByRole('dialog', { name: 'New procedure' });
+    const name = within(dialog).getByRole('textbox', { name: 'Name' });
+    expect(name).toHaveProperty('value', 'newProcedure');
+    await user.clear(name);
+    await user.type(name, 'walk to door');
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(name.getAttribute('aria-describedby')).toBeTruthy();
+    expect(
+      document.getElementById(name.getAttribute('aria-describedby')!.split(' ')[0]!)?.textContent,
+    ).toMatch(/no spaces/);
+    await user.clear(name);
+    await user.type(name, 'walkToTheDoor{Enter}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('tab', { name: 'walkToTheDoor' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+    await waitFor(() => expect(undo().textContent).toBe('Undo: Add procedure walkToTheDoor'));
+
+    // A function, giving back text.
+    await user.click(newIn());
+    await user.click(screen.getByRole('menuitem', { name: 'Function…' }));
+    const fn = screen.getByRole('dialog', { name: 'New function' });
+    await user.click(within(fn).getByRole('radio', { name: 'Text' }));
+    await user.click(within(fn).getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('tab', { name: 'newFunction' }).getAttribute('aria-selected')).toBe(
+      'true',
+    );
+
+    // A listener, straight from the menu.
+    const event = NEW_EVENTS[0]!;
+    await user.click(newIn());
+    expect(screen.queryByRole('menuitem', { name: eventWords('sceneStart') })).toBeNull();
+    await user.click(screen.getByRole('menuitem', { name: eventWords(event) }));
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('tab').find((t) => t.getAttribute('aria-selected') === 'true')
+          ?.textContent,
+      ).not.toBe('newFunction'),
+    );
+    await waitFor(() => expect(undo().textContent).toBe(`Undo: Add “${eventWords(event)}”`));
+
+    // Each was one step: three undos take all three away.
+    for (let i = 0; i < 3; i++) await user.click(undo());
+    expect(screen.queryByRole('tab', { name: 'walkToTheDoor' })).toBeNull();
+    expect(screen.queryByRole('tab', { name: 'newFunction' })).toBeNull();
   });
 });

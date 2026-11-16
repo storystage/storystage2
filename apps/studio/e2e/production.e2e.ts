@@ -95,17 +95,44 @@ test('a block dropped outside the method goes back, and the learner hears why', 
 }) => {
   await openCode(page);
   const first = block(page, main.body[0]!.id);
-  const start = (await first.boundingBox())!;
+  // Where the block sits in the workspace. The page above may still grow as the stage loads
+  // (Add a marker here, "In this shot"), moving the whole Code editor down.
+  const inWorkspace = async () => {
+    const at = (await block(page, main.body[0]!.id).boundingBox())!;
+    const area = (await page.locator('.pr-workspace').boundingBox())!;
+    return Math.round(at.y - area.y);
+  };
+  const start = await inWorkspace();
   const area = (await page.locator('.pr-workspace').boundingBox())!;
   await drag(page, first, { x: area.x + area.width - 60, y: area.y + area.height - 40 });
   // The studio's live region (Blockly has one of its own too).
   await expect(page.locator('.pr > p[aria-live="polite"]')).toHaveText(
     'Blocks go inside a method.',
   );
-  await expect
-    .poll(async () => Math.round((await block(page, main.body[0]!.id).boundingBox())!.y))
-    .toBe(Math.round(start.y));
+  await expect.poll(inWorkspace).toBe(start);
   await expect(undoButton(page)).toHaveText('Undo');
+});
+
+test('New adds a procedure in its own tab, offered in the palette, one undo step', async ({
+  page,
+}) => {
+  await openCode(page);
+  await page.getByRole('button', { name: 'New in scene 1' }).click();
+  await page.getByRole('menuitem', { name: 'Procedure…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New procedure' });
+  await dialog.getByRole('textbox', { name: 'Name' }).fill('walkToTheDoor');
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  const tab = page.getByRole('tab', { name: 'walkToTheDoor' });
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect(
+    page.locator('.blocklyFlyout .blocklyDraggable').filter({ hasText: 'walkToTheDoor' }),
+  ).toBeVisible();
+  await expect(undoButton(page)).toHaveText('Undo: Add procedure walkToTheDoor');
+  await undoButton(page).click();
+  await expect(tab).toBeHidden();
+  await expect(page.getByRole('tab', { name: main.name })).toHaveAttribute('aria-selected', 'true');
 });
 
 test('axe finds no serious issues with the Code editor open', async ({ page }) => {
