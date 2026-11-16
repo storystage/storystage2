@@ -16,6 +16,7 @@ import { CodeEditor } from './CodeEditor.tsx';
 import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
+import { HistoryButtons, useHistory } from '../history.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
 import { FrameLinks } from './FrameLinks.tsx';
 import {
@@ -255,6 +256,27 @@ export function sceneTitle(p: Production, scene: SceneId): string {
 }
 
 /**
+ * Undo and Redo for the scene view and the Code editor (`07-ux.md` section 7.5): the studio's one
+ * history, so a step undoes here whichever tab made it. The keys work while the tab shows.
+ */
+function StageHistory({
+  studio,
+  onAnnounce,
+  active,
+}: {
+  studio: Studio;
+  onAnnounce: (text: string) => void;
+  active: boolean;
+}) {
+  const history = useHistory(studio, onAnnounce, active);
+  return (
+    <div className="pr-toolbar" role="toolbar" aria-label={words.t('history.label')}>
+      <HistoryButtons history={history} />
+    </div>
+  );
+}
+
+/**
  * The Production stage (`07-ux.md` section 7; WP7): the scene view with Rehearse (sections 7.2
  * and 7.4) above the Code editor, which stays closed until the scene is storyboarded (section
  * 1.4). The frame strip, Backstage's rail and editing the set-up join it as the stage's editing
@@ -431,14 +453,18 @@ export function ProductionStage({
 
   return (
     <div className="pr">
-      {onPlaceChange && (
-        <ProductionFrames
-          production={p}
-          frame={frame}
-          rehearsed={rehearsed}
-          onPlaceChange={onPlaceChange}
-        />
-      )}
+      {/* The frame strip, with Undo and Redo at its end, so they take no row of their own. */}
+      <div className="pr-head">
+        {onPlaceChange && (
+          <ProductionFrames
+            production={p}
+            frame={frame}
+            rehearsed={rehearsed}
+            onPlaceChange={onPlaceChange}
+          />
+        )}
+        {studio && <StageHistory studio={studio} onAnnounce={onAnnounce} active={active} />}
+      </div>
       {voices && <VoicesDownload voices={voices} />}
       {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
       {offer.length > 0 && scene !== null && (

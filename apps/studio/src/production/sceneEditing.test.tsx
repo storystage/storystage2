@@ -262,6 +262,38 @@ describe('editing the set-up on the scene view (07-ux 7.2)', () => {
     expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
   });
 
+  it('undoes and redoes the stage’s steps by its buttons and by Ctrl+Z, saying what (7.5)', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = await stage();
+    const toolbar = screen.getByRole('toolbar', { name: 'Undo and redo' });
+    const undo = within(toolbar).getByRole('button', { name: /^Undo/ });
+    const redo = within(toolbar).getByRole('button', { name: /^Redo/ });
+    expect(undo.hasAttribute('disabled')).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Add a marker here' }));
+    // The button names its step for screen readers.
+    expect(undo.textContent).toBe('Undo: Add marker1');
+    await user.click(undo);
+    expect(setupOf(studio()).markers).toEqual([]);
+    expect(onAnnounce).toHaveBeenLastCalledWith('Undone: Add marker1');
+    await user.click(redo);
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+    expect(onAnnounce).toHaveBeenLastCalledWith('Redone: Add marker1');
+    // The keys, outside text fields.
+    await user.click(document.body);
+    await user.keyboard('{Control>}z{/Control}');
+    expect(setupOf(studio()).markers).toEqual([]);
+    await user.keyboard('{Control>}{Shift>}z{/Shift}{/Control}');
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+    // In a text field, Ctrl+Z is the field's own.
+    within(list())
+      .getByRole('option', { name: /^marker1/ })
+      .click();
+    const x = await screen.findByRole('textbox', { name: 'x (m)' });
+    await user.click(x);
+    await user.keyboard('{Control>}z{/Control}');
+    expect(setupOf(studio()).markers.map((m) => m.id)).toEqual(['marker1']);
+  });
+
   it('moves a marker by its fields and by the keyboard, and removes it', async () => {
     const user = userEvent.setup();
     const { studio, onAnnounce } = await stage();
