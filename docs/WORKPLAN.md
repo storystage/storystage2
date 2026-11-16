@@ -636,7 +636,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters.
 
     (C)
-- [ ] 7.3 Undo and redo across the scene view and the Code editor, with project history. (C)
+- [x] 7.3 Undo and redo across the scene view and the Code editor, with project history. Project history is the studio's one undo history, shared by the three tabs (owner, 16 Nov). (C)
 - [ ] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. (C)
 - [ ] 7.5 Keyboard paths for both views, and accessible names on every control. (C)
 
