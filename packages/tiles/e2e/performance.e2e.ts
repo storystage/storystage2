@@ -26,6 +26,8 @@ interface Timing {
   readonly frame: number;
   /** From the input to the end of its handlers: the editor's work. */
   readonly work: number;
+  /** When the input happened. */
+  readonly start: number;
 }
 
 async function open(page: Page) {
@@ -37,14 +39,16 @@ async function open(page: Page) {
   await expect(page.getByRole('tree', { name: 'Scene1.myFirstMethod' })).toBeVisible();
   expect(await page.locator('[data-statement]').count()).toBe(500);
   await page.evaluate(() => {
-    const w = window as unknown as { timings: Timing[] };
+    const w = window as unknown as { timings: Timing[]; since: number };
     w.timings = [];
+    w.since = 0;
     new PerformanceObserver((list) => {
       for (const e of list.getEntries() as PerformanceEventTiming[])
         w.timings.push({
           name: e.name,
           frame: e.duration,
           work: e.processingEnd - e.startTime,
+          start: e.startTime,
         });
     }).observe({ type: 'event', durationThreshold: 16 } as PerformanceObserverInit);
   });
@@ -52,7 +56,11 @@ async function open(page: Page) {
 
 type Slowest = Record<string, { frame: number; work: number }>;
 
-/** The longest times for each kind of input since the last call. */
+/**
+ * The longest times for each kind of input made since the last call. An input's timing can be
+ * reported after the call that should have counted it (on CI, drawing in software, a slow frame
+ * arrives late), so each is placed by when it happened, not by when it was reported.
+ */
 async function slowest(page: Page): Promise<Slowest> {
   // Event Timing reports an event once its frame is drawn; a couple of frames later, it's in.
   await page.evaluate(
@@ -60,9 +68,11 @@ async function slowest(page: Page): Promise<Slowest> {
   );
   await page.waitForTimeout(100);
   const timings = await page.evaluate(() => {
-    const w = window as unknown as { timings: Timing[] };
-    const all = w.timings;
+    const w = window as unknown as { timings: Timing[]; since: number };
+    const since = w.since;
+    const all = w.timings.filter((t) => t.start >= since);
     w.timings = [];
+    w.since = performance.now();
     return all;
   });
   const out: Slowest = {};
