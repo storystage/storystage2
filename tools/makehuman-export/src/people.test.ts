@@ -129,7 +129,7 @@ describe('hairTint', () => {
     expect(tinted).toEqual(
       people.filter((p) => p.ageYears >= 65 && p.hair !== null).map((p) => p.name),
     );
-    expect(tinted).toEqual(['Margaret', 'Lin', 'Ravi', 'Eileen']);
+    expect(tinted).toEqual(['Margaret', 'Lin', 'Ravi', 'Eileen', 'George']);
   });
 });
 
@@ -161,6 +161,54 @@ describe('glasses', () => {
   });
 });
 
+describe('headwear and hearing aids', () => {
+  const file = fileURLToPath(new URL('../people.json', import.meta.url));
+  const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+
+  it('accepts the four kinds in a listed colour; a hijab, turban or patka hides the hair', () => {
+    expect(ok({ hair: null, headwear: { kind: 'hijab', colour: 'navy' } })).toBe(true);
+    expect(ok({ hair: null, headwear: { kind: 'turban', colour: 'saffron' } })).toBe(true);
+    expect(ok({ hair: null, headwear: { kind: 'patka', colour: 'black' } })).toBe(true);
+    expect(ok({ headwear: { kind: 'kippah', colour: 'navy' } })).toBe(true);
+    expect(ok({ headwear: { kind: 'hijab', colour: 'navy' } })).toBe(false);
+    expect(ok({ headwear: { kind: 'beret' as never, colour: 'navy' } })).toBe(false);
+    expect(ok({ headwear: { kind: 'kippah', colour: 'gold' as never } })).toBe(false);
+    expect(ok({ hat: 'fedora01', headwear: { kind: 'kippah', colour: 'navy' } })).toBe(false);
+  });
+
+  it('accepts hearing aids in a listed colour', () => {
+    expect(ok({ hearingAids: 'purple' })).toBe(true);
+    expect(ok({ hearingAids: 'gold' as never })).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    const table = peopleTable([
+      person({ hair: null, headwear: { kind: 'hijab', colour: 'navy' }, hearingAids: 'beige' }),
+    ]);
+    expect(table).toContain('| covered |');
+    expect(table).toContain('hijab (navy, made), hearing aids (beige, made) |');
+  });
+
+  it('are worn by the seven people of 16 Nov, and their descriptions say so', () => {
+    expect(people.filter((p) => p.headwear).map((p) => [p.name, p.headwear!.kind])).toEqual([
+      ['Maryam', 'hijab'],
+      ['Samira', 'hijab'],
+      ['Arjan', 'patka'],
+      ['Gurdeep', 'turban'],
+      ['Eli', 'kippah'],
+    ]);
+    expect(people.filter((p) => p.hearingAids).map((p) => [p.name, p.hearingAids])).toEqual([
+      ['Poppy', 'purple'],
+      ['George', 'beige'],
+    ]);
+    for (const p of people.filter((x) => x.headwear))
+      expect(p.description).toContain(p.headwear!.kind);
+    for (const p of people.filter((x) => x.hearingAids))
+      expect(p.description).toContain('hearing aids');
+  });
+});
+
 describe('peopleTable', () => {
   it('describes each person in plain words for review', () => {
     const table = peopleTable([
@@ -176,10 +224,10 @@ describe('people.json', () => {
   const file = fileURLToPath(new URL('../people.json', import.meta.url));
   const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
 
-  it('is valid, with 30 people', () => {
+  it('is valid, with 37 people', () => {
     const r = validatePeople(people);
     expect(r.ok ? [] : r.errors).toEqual([]);
-    expect(people).toHaveLength(30);
+    expect(people).toHaveLength(37);
   });
 
   it('spans children, teenagers, adults and older people', () => {

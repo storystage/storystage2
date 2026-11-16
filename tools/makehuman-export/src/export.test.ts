@@ -11,8 +11,8 @@ const everyone = JSON.parse(
 describe('exportPeople', () => {
   it('makes everyone, and lists everyone', () => {
     const { toMake, sources } = exportPeople(everyone);
-    expect(toMake).toHaveLength(30);
-    expect(sources.items).toHaveLength(30);
+    expect(toMake).toHaveLength(37);
+    expect(sources.items).toHaveLength(37);
   });
 
   // A partial run once wrote a list of just the people it made, so the next Backstage build
@@ -20,7 +20,7 @@ describe('exportPeople', () => {
   it('makes only some with --only, but still lists everyone', () => {
     const { toMake, sources } = exportPeople(everyone, ['p02', 'p24']);
     expect(toMake).toHaveLength(2);
-    expect(sources.items).toHaveLength(30);
+    expect(sources.items).toHaveLength(37);
     expect(sources.items.map((i) => i.id)).toContain('makehuman/Biped/p01');
   });
 });
