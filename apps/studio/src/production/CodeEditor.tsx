@@ -8,7 +8,7 @@ import {
 import type { EditorHost } from '@storystage/editor-contract';
 import type { Production, SceneId } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
-import { PALETTE_TABS, type PaletteTab } from '@storystage/story-api/editing';
+import { PALETTE_TABS, describer, type PaletteTab } from '@storystage/story-api/editing';
 import { TEXT_STYLES, TextView, textViewWord } from '@storystage/text-view';
 import { Icon, Segmented, Toggle, useThemeStyle } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useState } from 'react';
@@ -69,9 +69,12 @@ export function methodHolding(
   return null;
 }
 
-/** A tab's name: a method's own, or an event's words ("when an object is clicked"). */
-const tabName = (m: MethodDecl | ListenerDecl) =>
-  m.kind === 'method' ? m.name : (STORY[`event.${m.event}`] ?? m.event);
+/**
+ * A tab's name: a method's own, or its listener's words with what it waits for ("when penguin is
+ * clicked"), as Tiles words it (spec 14, 3a: this tab row serves both editors).
+ */
+const tabName = (p: Production, m: MethodDecl | ListenerDecl) =>
+  m.kind === 'method' ? m.name : describer(p.program)(m);
 
 const BlocksPanel = lazy(() => import('./BlocksPanel.tsx'));
 
@@ -176,7 +179,7 @@ export function CodeEditor({
           <TabList className="pr-tabs" aria-label={words.t('production.methods', { n })}>
             {methods.map((m) => (
               <Tab key={m.id} id={m.id} className="pr-tab">
-                {tabName(m)}
+                {tabName(p, m)}
               </Tab>
             ))}
           </TabList>
@@ -206,7 +209,7 @@ export function CodeEditor({
                   program={p.program}
                   style={text.style}
                   method={m.id}
-                  label={words.t('production.textOf', { name: tabName(m) })}
+                  label={words.t('production.textOf', { name: tabName(p, m) })}
                   {...(highlights ? { highlight: highlights } : {})}
                 />
               </div>
