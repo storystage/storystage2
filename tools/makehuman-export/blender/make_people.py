@@ -290,6 +290,8 @@ def wrapped(body, rig, name, rgb, rows, top=None, open_face=None):
     bm.to_mesh(mesh)
     bm.free()
     mesh.materials.append(plain_material(name, rgb))
+    for polygon in mesh.polygons:  # cloth, not facets
+        polygon.use_smooth = True
     piece = bpy.data.objects.new(name, mesh)
     for collection in body.users_collection:
         collection.objects.link(piece)
@@ -383,7 +385,7 @@ def add_headwear(body, rig, parts, kind, rgb):
     skin = part_trees(body, [body], {"basemesh"})
     clothes = part_trees(body, parts, {"clothes"})
     hair = part_trees(body, parts, {"hair"})
-    columns = 48
+    columns = 64
     centre = Vector((head.cx, head.cy, head.eye_z - 0.1 * s))
 
     def round_dir(a, e=0.0):
@@ -416,29 +418,33 @@ def add_headwear(body, rig, parts, kind, rgb):
                 if h[0] is not None and (first is None or h[3] < first):
                     first = h[3]
             if first is not None:
-                need.append((s - first) + 0.04 * s)
+                need.append((s - first) + 0.02 * s)
         if not need:
             raise RuntimeError("The kippah found no head under it")
         need.sort()
-        lift = Vector((0, 0, max(0.0, need[int(len(need) * 0.85)])))
+        # Not the highest stray strand: most of the hair, so it sits on the head, not above it.
+        lift = Vector((0, 0, max(0.0, need[int(len(need) * 0.6)])))
         wrapped(body, rig, "kippah", rgb, [[p + lift for p in row] for row in rows], apex + lift)
         return
 
     if kind == "hijab":
-        gap = 0.16 * s
+        # Close to the face round its edge, looser at the sides and back (trial 3: a deep hood).
+        def gap(a):
+            return 0.07 * s + 0.09 * s * (1 - max(0.0, math.cos(a)) ** 2)
+
         chin = head.eye_z - 1.0 * s
-        face_z = head.eye_z - 0.3 * s
+        face_z = head.eye_z - 0.25 * s
         # Over the head, from near the top down to level with the centre...
-        elevations = [math.radians(d) for d in (78, 65, 52, 39, 26, 13, 0)]
-        dome = [[out_to(skin, centre, round_dir(a, e), 2 * s) + gap for a in angles] for e in elevations]
-        up = out_to(skin, centre, Vector((0, 0, 1)), 2 * s) + gap
+        elevations = [math.radians(d) for d in (80, 70, 60, 50, 40, 30, 20, 10, 0)]
+        dome = [[out_to(skin, centre, round_dir(a, e), 2 * s) + gap(a) for a in angles] for e in elevations]
+        up = out_to(skin, centre, Vector((0, 0, 1)), 2 * s) + gap(math.pi)
         # ...down the sides to the chin, measured level from the head's axis...
-        levels = [centre.z - (centre.z - chin) * f for f in (0.25, 0.5, 0.75, 1.0)]
+        levels = [centre.z - (centre.z - chin) * f for f in (1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1.0)]
         sides = [
-            [out_to(skin, Vector((head.cx, head.cy, z)), round_dir(a), 2 * s) + gap for a in angles]
+            [out_to(skin, Vector((head.cx, head.cy, z)), round_dir(a), 2 * s) + gap(a) for a in angles]
             for z in levels
         ]
-        r = smooth_grid(dome + sides, 6)
+        r = smooth_grid(dome + sides, 8)
         points = [[centre + round_dir(a, e) * r[i][k] for k, a in enumerate(angles)] for i, e in enumerate(elevations)]
         points += [
             [Vector((head.cx, head.cy, z)) + round_dir(a) * r[len(elevations) + j][k] for k, a in enumerate(angles)]
@@ -454,7 +460,7 @@ def add_headwear(body, rig, parts, kind, rgb):
             for k, a in enumerate(angles):
                 hem = head.neck_z - s * (1.0 - 0.5 * abs(math.sin(a)))
                 z = chin + (hem - chin) * f
-                spread = at_chin[k] + (2.1 * hw - at_chin[k]) * f**1.3
+                spread = at_chin[k] + (1.9 * hw - at_chin[k]) * f**1.3
                 axis = Vector((head.cx, head.cy, z))
                 # Only what's within the drape's reach: further out, sideways, are the arms.
                 clear = out_to(skin + clothes, axis, round_dir(a), 2.6 * hw) + 0.06 * s
@@ -464,7 +470,7 @@ def add_headwear(body, rig, parts, kind, rgb):
         def open_face(c):
             if c.y > head.cy:
                 return False
-            return ((c.x - head.cx) / (0.6 * hw)) ** 2 + ((c.z - face_z) / (0.7 * s)) ** 2 <= 1
+            return ((c.x - head.cx) / (0.68 * hw)) ** 2 + ((c.z - face_z) / (0.72 * s)) ** 2 <= 1
 
         wrapped(body, rig, "hijab", rgb, points, centre + Vector((0, 0, up)), open_face)
         return
@@ -499,11 +505,14 @@ def add_headwear(body, rig, parts, kind, rgb):
                 height = 1 - t  # 1 at the top, 0 at the edge
                 front = max(0.0, math.cos(a)) ** 3
                 # Layers wound round the head, crossing to a point at the front.
-                folds = 0.05 * s * abs(math.sin(3 * a + 7 * t))
-                extra = 0.16 * s + 0.4 * s * height**1.2 + 0.22 * s * front * height + folds
+                # Layers wound from the sides up to the front, where they cross in a point.
+                side = abs(math.atan2(math.sin(a), math.cos(a))) / math.pi  # 0 front, 1 back
+                layer = 0.5 + 0.5 * math.cos(2 * math.pi * (4.5 * t - 2.2 * side))
+                folds = 0.1 * s * layer**2
+                extra = 0.18 * s + 0.5 * s * height**1.1 + 0.3 * s * front * height + folds
             line.append(centre + round_dir(a, e) * (base[i][k] + extra))
         points.append(line)
-    top_extra = 0.09 * s if kind == "patka" else 0.56 * s
+    top_extra = 0.09 * s if kind == "patka" else 0.68 * s
     wrapped(body, rig, kind, rgb, points, centre + Vector((0, 0, up + top_extra)))
     if kind == "patka":  # the knot on top, a little to the front
         knot = blob((head.cx, head.cy - 0.1 * s, head.top + 0.14 * s), (0.3 * s, 0.3 * s, 0.24 * s))
