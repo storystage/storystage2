@@ -29,6 +29,7 @@ import {
 import { words } from '../strings.ts';
 import type { Highlights } from './BlocksPanel.tsx';
 import { sceneNumber } from '../storyboard/edits.ts';
+import { NewMethod } from './NewMethod.tsx';
 import { useTextViewSetting } from './textViewSetting.ts';
 
 export interface CodeEditorProps {
@@ -171,13 +172,16 @@ export function CodeEditor({
         </div>
       </div>
       <Tabs selectedKey={open} onSelectionChange={setChosen}>
-        <TabList className="pr-tabs" aria-label={words.t('production.methods', { n })}>
-          {methods.map((m) => (
-            <Tab key={m.id} id={m.id} className="pr-tab">
-              {tabName(m)}
-            </Tab>
-          ))}
-        </TabList>
+        <div className="pr-tab-row">
+          <TabList className="pr-tabs" aria-label={words.t('production.methods', { n })}>
+            {methods.map((m) => (
+              <Tab key={m.id} id={m.id} className="pr-tab">
+                {tabName(m)}
+              </Tab>
+            ))}
+          </TabList>
+          {type && <NewMethod host={host} type={type.id} n={n} onAdded={setChosen} />}
+        </div>
         {methods.map((m) => (
           <TabPanel
             key={m.id}

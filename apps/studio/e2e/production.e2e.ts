@@ -108,6 +108,28 @@ test('a block dropped outside the method goes back, and the learner hears why', 
   await expect(undoButton(page)).toHaveText('Undo');
 });
 
+test('New adds a procedure in its own tab, offered in the palette, one undo step', async ({
+  page,
+}) => {
+  await openCode(page);
+  await page.getByRole('button', { name: 'New in scene 1' }).click();
+  await page.getByRole('menuitem', { name: 'Procedure…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New procedure' });
+  await dialog.getByRole('textbox', { name: 'Name' }).fill('walkToTheDoor');
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
+  const tab = page.getByRole('tab', { name: 'walkToTheDoor' });
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect(
+    page.locator('.blocklyFlyout .blocklyDraggable').filter({ hasText: 'walkToTheDoor' }),
+  ).toBeVisible();
+  await expect(undoButton(page)).toHaveText('Undo: Add procedure walkToTheDoor');
+  await undoButton(page).click();
+  await expect(tab).toBeHidden();
+  await expect(page.getByRole('tab', { name: main.name })).toHaveAttribute('aria-selected', 'true');
+});
+
 test('axe finds no serious issues with the Code editor open', async ({ page }) => {
   await openCode(page);
   const { violations } = await new AxeBuilder({ page })
