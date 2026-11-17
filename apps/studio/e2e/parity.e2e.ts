@@ -333,8 +333,8 @@ const TASKS: readonly Task[] = [
     ways: {
       'Blocks by pointer': async (page) => {
         await blocksDragBelow(page, flyoutBlock(page, 'control:doTogether'), block(page, MOVE));
-        // Blocks draws the program again after a drop; a drag begun before it has finished
-        // leaves the say where it was and puts a copy in (found 17 Nov, told to S5).
+        // Blocks draws the program again after a drop, and the say is dragged once it has, at a
+        // person's pace. A drag begun sooner once put a copy in; S5's #480 puts it back instead.
         await settled(page, '.pr-workspace .ss_doTogether:not(.blocklyFlyout *)');
         // The say by its top left, into the do together's body, under its header, found once
         // the say is lifted and the stack has closed up.

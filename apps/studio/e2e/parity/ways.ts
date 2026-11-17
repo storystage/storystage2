@@ -157,17 +157,25 @@ export async function blocksDragBelow(page: Page, from: Locator, below: Locator)
   await blocksDrag(page, from, { x: row.x + 8, y: row.y + row.height + 6 });
 }
 
-/** The flyout's blocks by keyboard: Tab from New into it, then down to `name`'s block. */
+/**
+ * The flyout's blocks by keyboard: Tab from New into it, then down to `name`'s block. After a
+ * drop, Blocks moves focus to the new block once it's drawn again, which under load can come
+ * after the walk has begun and take focus out of the flyout (S5, 17 Nov). The walk then starts
+ * again from New, as a person would.
+ */
 export async function blocksFlyoutByKeyboard(page: Page, name: string) {
-  await page.getByRole('button', { name: /^New in scene/ }).focus();
-  await blocklyKey(page, 'Tab');
   const wanted = flyoutBlock(page, name);
-  await pressUntil(
-    page,
-    'ArrowDown',
-    () => wanted.evaluate((b) => b.contains(document.activeElement)),
-    60,
-  );
+  const inFlyout = () => page.evaluate(() => !!document.activeElement?.closest('.blocklyFlyout'));
+  await expect(async () => {
+    await page.getByRole('button', { name: /^New in scene/ }).focus();
+    await blocklyKey(page, 'Tab');
+    for (let i = 0; i < 60; i++) {
+      if (await wanted.evaluate((b) => b.contains(document.activeElement))) return;
+      expect(await inFlyout(), 'focus is still in the flyout').toBe(true);
+      await blocklyKey(page, 'ArrowDown');
+    }
+    throw new Error(`${name} not reached in 60 steps`);
+  }).toPass({ timeout: 45_000 });
 }
 
 /**
