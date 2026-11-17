@@ -444,9 +444,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       host = editorHost;
       owner = ownerIn(host.program(), view.method)?.id ?? ownerIn(host.program(), null)?.id ?? null;
       const self = typeOf(host.program(), owner);
-      // Blockly's menus and text fields go on the page, not in the workspace, which clips them:
-      // a block near the workspace's edge would have its menu cut off.
-      Blockly.common.setParentContainer(element.ownerDocument.body);
+      // Blockly's menus stay in the workspace, where its focus rules expect them: on the page, its
+      // drop-down closed as it opened. The studio's stylesheet lets them show past its edge.
       registerRenderer();
       ws = Blockly.inject(element, {
         renderer: RENDERER,
