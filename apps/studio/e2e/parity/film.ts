@@ -40,12 +40,12 @@ export function filmWith(program: Program): Uint8Array {
 const filmMenu = (page: Page) => page.getByRole('button', { name: /^Film: / });
 
 /**
- * A fresh page with the film whose code is `program`, opened with Open a copy, on the Production
+ * A fresh page with the film whose code is `program` (or that film itself), opened with Open a copy, on the Production
  * stage's scene 1 in `editor`, chosen with the studio's own switch. "Don't explain this again"
  * is already ticked on this device, so the switch goes straight there (its dialog has its own
  * tests in `switch.e2e.ts`).
  */
-export async function openFilm(page: Page, program: Program, editor: EditorName) {
+export async function openFilm(page: Page, program: Program | Uint8Array, editor: EditorName) {
   await standInPickers(page);
   await page.addInitScript(() => {
     window.localStorage.setItem(
@@ -63,7 +63,7 @@ export async function openFilm(page: Page, program: Program, editor: EditorName)
   });
   await page.goto('/');
   await expect(filmMenu(page)).toBeVisible();
-  const bytes = filmWith(program);
+  const bytes = program instanceof Uint8Array ? program : filmWith(program);
   await page.evaluate(
     (b) => {
       (window as unknown as Record<string, unknown>).copyToOpen = {
@@ -124,16 +124,23 @@ export async function savedProgram(page: Page): Promise<Program> {
 export const undoButton = (page: Page) =>
   page.getByRole('toolbar', { name: 'Undo and redo' }).getByRole('button', { name: /^Undo/ });
 
+/** The last step's label, as the stage's Undo names it. */
+export const lastLabel = async (page: Page) =>
+  ((await undoButton(page).textContent()) ?? '').replace(/^Undo:?\s*/, '');
+
 /** The last step's label, then how many steps there are to undo, undoing them all to count. */
 export async function history(page: Page): Promise<{ label: string; steps: number }> {
-  const label = ((await undoButton(page).textContent()) ?? '').replace(/^Undo:?\s*/, '');
+  const label = await lastLabel(page);
   let steps = 0;
   while (await undoButton(page).isEnabled()) {
     const before = await undoButton(page).textContent();
     await undoButton(page).click();
     steps++;
     if (steps > 50) throw new Error('More than 50 steps to undo');
-    await expect(undoButton(page)).not.toHaveText(before ?? '');
+    // The next step's name, once this one is undone; two steps in a row can share a name.
+    await expect(undoButton(page))
+      .not.toHaveText(before ?? '', { timeout: 2_000 })
+      .catch(() => undefined);
   }
   return { label, steps };
 }
@@ -173,3 +180,43 @@ function collectIds(value: unknown, into: Set<string>) {
 
 /** The program's text, for a failure that reads as code (section 5.7). */
 export const asText = (program: Program) => programText(program).text;
+
+/**
+ * A film of one scene whose code is `program`, for a program of its own shape, such as S2's
+ * sample with every kind of node (section 5.5.3): the demo's scene 1, playing `method`, with
+ * `objects` in it (each a field's name and class), and only that scene's cards, lines and frames.
+ */
+export function oneSceneFilm(
+  program: Program,
+  method: string,
+  objects: readonly { readonly name: string; readonly class: string }[],
+): Uint8Array {
+  const demo = demoProduction();
+  const first = demo.scenes[0]!;
+  const look = first.setup.objects.find((o) => o.id === 'fox')!;
+  return saveProduction({
+    ...demo,
+    program,
+    manifest: { ...demo.manifest, runningOrder: [demo.manifest.runningOrder[0]!] },
+    scenes: [
+      {
+        ...first,
+        method: method as typeof first.method,
+        setup: {
+          ...first.setup,
+          objects: objects.map((o) => ({
+            ...look,
+            id: o.name as typeof look.id,
+            class: o.class as typeof look.class,
+          })),
+        },
+      },
+    ],
+    storyboard: {
+      ...demo.storyboard,
+      cards: demo.storyboard.cards.filter((c) => c.id === first.id),
+    },
+    script: demo.script.filter((l) => l.scene === first.id),
+    frames: demo.frames.filter((f) => f.scene === first.id).map((f) => ({ ...f, links: [] })),
+  });
+}

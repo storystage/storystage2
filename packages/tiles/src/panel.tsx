@@ -3,7 +3,7 @@
  * the palette in Alice's categories. Enter or a click puts a block in; so does dragging it onto
  * the program. React Aria gives the list one tab stop, arrow keys and type-ahead.
  */
-import type { NodeId, Program } from '@storystage/ast';
+import type { Callee, NodeId, Program } from '@storystage/ast';
 import { palette, type PaletteItem, type PaletteTab } from '@storystage/story-api/editing';
 import { memo, useMemo, type PointerEvent } from 'react';
 import {
@@ -99,6 +99,7 @@ export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
               key={`${g.key}:${i}`}
               id={`${g.key}:${i}`}
               textValue={item.words}
+              data-callee={calleeKey(item.callee)}
               className={
                 tab === 'actions' ? 'tl-palette-item tl-tile' : 'tl-palette-item tl-question'
               }
@@ -176,3 +177,10 @@ function samePanel(a: PanelProps, b: PanelProps): boolean {
     words(a) === words(b)
   );
 }
+
+/**
+ * The entry a palette tile makes, as Blocks' flyout names its blocks (`story:move`,
+ * `user:<method id>`), so the parity tests can compare the two palettes (spec 14, 5.6).
+ */
+export const calleeKey = (callee: Callee): string =>
+  callee.kind === 'story' ? `story:${callee.name}` : `user:${callee.method}`;

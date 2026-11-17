@@ -56,10 +56,16 @@ export async function chooseObjectByKeyboard(page: Page, name: string) {
 
 // The cascade and value menus: one component for both editors (spec 14, section 2.3).
 
+/** A value in a menu: a radio item (a value to choose), or a plain one (a variable, an object). */
+const choice = (menu: Locator, value: string) =>
+  menu
+    .getByRole('menuitemradio', { name: value, exact: true })
+    .or(menu.getByRole('menuitem', { name: value, exact: true }));
+
 /** Chooses `value` in the open menu named `slot`, by pointer. */
 export async function answerByPointer(page: Page, slot: string, value: string) {
   const menu = page.getByRole('menu', { name: slot, exact: true });
-  await menu.getByRole('menuitemradio', { name: value, exact: true }).click();
+  await choice(menu, value).click();
   await expect(menu).toBeHidden();
 }
 
@@ -67,7 +73,7 @@ export async function answerByPointer(page: Page, slot: string, value: string) {
 export async function answerByKeyboard(page: Page, slot: string, value: string) {
   const menu = page.getByRole('menu', { name: slot, exact: true });
   await expect(menu).toBeVisible();
-  const item = menu.getByRole('menuitemradio', { name: value, exact: true });
+  const item = choice(menu, value);
   await pressUntil(page, 'ArrowDown', () => isFocused(item), 20);
   await page.keyboard.press('Enter');
   await expect(menu).toBeHidden();
@@ -107,7 +113,9 @@ export const block = (page: Page, id: string) =>
 export const flyoutBlock = (page: Page, name: string) =>
   page
     .locator(
-      `.blocklyFlyout .${name.startsWith('control:') ? `ss_${name.slice(8)}` : `ss_story_${name}`}`,
+      name.startsWith('control:')
+        ? `.blocklyFlyout .ss_${name.slice(8)}`
+        : `.blocklyFlyout .ss_story_${name}, .blocklyFlyout .ss_storyfn_${name}`,
     )
     .first();
 
@@ -364,4 +372,70 @@ export async function madeIds(page: Page, editor: 'Blocks' | 'Tiles', known: rea
           .locator('.pr-tiles [data-statement][data-key]')
           .evaluateAll((els) => els.map((e) => e.getAttribute('data-key')!));
   return [...new Set(ids)].filter((i) => !known.includes(i));
+}
+
+/**
+ * The studio bar's Actions or Questions (section 2.1), a segmented control: by pointer on its
+ * drawn side (the radio input is hidden), or by keyboard, the arrows choosing.
+ */
+export async function paletteTab(
+  page: Page,
+  tab: 'Actions' | 'Questions',
+  by: 'pointer' | 'keyboard',
+) {
+  const bar = page.locator('.pr-palette-bar');
+  const radio = bar.getByRole('radio', { name: tab, exact: true });
+  if (by === 'pointer') await bar.locator('.ss-segment', { hasText: tab }).click();
+  else {
+    await bar
+      .getByRole('radio', { checked: true })
+      .filter({ hasText: /^(Actions|Questions)$/ })
+      .or(bar.getByRole('radio', { name: 'Actions', exact: true, checked: true }))
+      .first()
+      .focus();
+    await pressUntil(page, 'ArrowRight', () => radio.isChecked(), 3);
+  }
+  await expect(radio).toBeChecked();
+}
+
+/** Drags `from` by its top left to the top left of `onto` (a value's chip or pill). */
+export async function dragOnto(page: Page, from: Locator, onto: Locator) {
+  const source = (await from.boundingBox())!;
+  const target = (await onto.boundingBox())!;
+  await page.mouse.move(source.x + 8, source.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 40, source.y + 30, { steps: 5 });
+  await page.mouse.move(target.x + 8, target.y + target.height / 2, { steps: 10 });
+  await page.waitForTimeout(120);
+  await page.mouse.up();
+}
+
+/** A value's block in Blocks (its shadow or chip), by its node id. */
+export const blocksValue = (page: Page, valueId: string) =>
+  page.locator(`.pr-workspace [data-id="${valueId}"]`).first();
+
+/**
+ * Tiles' variable tile's question (section 2.5): its name, typed, and what it holds, by pointer
+ * on its drawn choice or by keyboard (Tab, then ↓); Enter makes it.
+ */
+export async function tilesVariable(
+  page: Page,
+  name: string,
+  holds: string,
+  by: 'pointer' | 'keyboard',
+) {
+  const dialog = page.getByRole('dialog', { name: 'A new variable' });
+  const field = dialog.getByRole('textbox', { name: 'Its name' });
+  await expect(field).toBeFocused();
+  await page.keyboard.type(name);
+  const radio = dialog.getByRole('radio', { name: holds, exact: true });
+  if (by === 'pointer') await dialog.getByText(holds, { exact: true }).click();
+  else {
+    await page.keyboard.press('Tab');
+    await pressUntil(page, 'ArrowDown', () => radio.isChecked(), 6);
+  }
+  await expect(radio).toBeChecked();
+  if (by === 'pointer') await field.click();
+  await page.keyboard.press('Enter');
+  await expect(dialog).toBeHidden();
 }
