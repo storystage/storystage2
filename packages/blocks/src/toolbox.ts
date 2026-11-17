@@ -6,10 +6,14 @@
  * Each block is the shared model's new block (`newCall`, `newControl`), with its values empty
  * (`none`), drawn as the same node would be in a method (`blockStateOf`). Its ids are only for
  * the flyout: a block dragged out gets the program's own ids when it lands (`editor.ts`).
+ *
+ * Each also carries which entry it is (`paletteEntry`), in Blockly's `data`, drawn as its
+ * `data-callee`: what a test reads to compare the palette with Tiles' (section 5.6).
  */
-import type { Expression, NodeId, Program } from '@storystage/ast';
+import type { Callee, Expression, NodeId, Program } from '@storystage/ast';
 import {
   CONTROL_KINDS,
+  type ControlKind,
   newCall,
   newControl,
   palette,
@@ -26,6 +30,14 @@ export interface ToolboxDefinition {
     { readonly kind: 'label'; readonly text: string } | ({ readonly kind: 'block' } & BlockState)
   )[];
 }
+
+/** Which palette entry a block is: `story:move`, `user:<method id>` or `control:doTogether`. */
+export const paletteEntry = (entry: Callee | ControlKind): string =>
+  typeof entry === 'string'
+    ? `control:${entry}`
+    : entry.kind === 'story'
+      ? `story:${entry.name}`
+      : `user:${entry.method}`;
 
 /** Ids for the flyout's blocks: `p1`, `p2`… (a block dragged out is given program ids). */
 function flyoutIds(): () => NodeId {
@@ -83,7 +95,11 @@ export function toolboxFor(
         undefined,
         self,
       );
-      contents.push({ kind: 'block', ...withShadows(blockStateOf(program, node)) });
+      contents.push({
+        kind: 'block',
+        ...withShadows(blockStateOf(program, node)),
+        data: paletteEntry(item.callee),
+      });
     }
   }
   if (tab === 'actions') {
@@ -92,6 +108,7 @@ export function toolboxFor(
       contents.push({
         kind: 'block',
         ...withShadows(blockStateOf(program, newControl(kind, mint))),
+        data: paletteEntry(kind),
       });
   }
   return { kind: 'flyoutToolbox', contents };
