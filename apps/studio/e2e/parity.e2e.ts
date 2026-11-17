@@ -140,7 +140,6 @@ const NO_VARIABLE_BLOCK = 'S5: Blocks has no variable block yet';
  * Found by this test (17 Nov): Tiles draws a value made of others (a sum, a comparison, a "not",
  * a list, a question's own values) as one pill, so its parts can't be chosen or changed. S6.
  */
-const ONE_PILL = 'S6: Tiles draws a value made of others as one pill';
 const DRAGS_THE_REST = 'S5: a Blocks drag takes the blocks under it too';
 
 type Run = (page: Page) => Promise<void>;
@@ -461,30 +460,22 @@ const TASKS: readonly Task[] = [
     label: 'Change 2 to penguin distance to fox in penguin say',
     steps: 1,
     ways: {
-      'Blocks by pointer': {
-        // Blocks makes the program; it's Tiles that can't draw the fox inside the question.
-        fails: ONE_PILL,
-        run: async (page) => {
-          await chooseObjectByPointer(page, 'penguin');
-          await paletteTab(page, 'Questions', 'pointer');
-          await inView(page);
-          await flyoutScrolledTo(page, flyoutBlock(page, 'getDistanceTo'));
-          await dragOnto(page, flyoutBlock(page, 'getDistanceTo'), blocksValue(page, DURATION));
-          await itemByPointer(page, 'the other one', 'fox');
-        },
+      'Blocks by pointer': async (page) => {
+        await chooseObjectByPointer(page, 'penguin');
+        await paletteTab(page, 'Questions', 'pointer');
+        await inView(page);
+        await flyoutScrolledTo(page, flyoutBlock(page, 'getDistanceTo'));
+        await dragOnto(page, flyoutBlock(page, 'getDistanceTo'), blocksValue(page, DURATION));
+        await itemByPointer(page, 'the other one', 'fox');
       },
-      'Blocks by keyboard': {
-        // Blocks makes the program; it's Tiles that can't draw the fox inside the question.
-        fails: ONE_PILL,
-        run: async (page) => {
-          await chooseObjectByKeyboard(page, 'penguin');
-          await paletteTab(page, 'Questions', 'keyboard');
-          await blocksFlyoutByKeyboard(page, 'getDistanceTo');
-          await blocklyKey(page, 'Enter');
-          await pressUntil(page, 'ArrowDown', () => blocksReplacing(page, DURATION), 12);
-          await blocklyKey(page, 'Enter');
-          await itemByKeyboard(page, 'the other one', 'fox');
-        },
+      'Blocks by keyboard': async (page) => {
+        await chooseObjectByKeyboard(page, 'penguin');
+        await paletteTab(page, 'Questions', 'keyboard');
+        await blocksFlyoutByKeyboard(page, 'getDistanceTo');
+        await blocklyKey(page, 'Enter');
+        await pressUntil(page, 'ArrowDown', () => blocksReplacing(page, DURATION), 12);
+        await blocklyKey(page, 'Enter');
+        await itemByKeyboard(page, 'the other one', 'fox');
       },
       'Tiles by pointer': {
         fixme: NO_QUESTION_DROP,
@@ -804,11 +795,8 @@ const SAMPLE_FILM = oneSceneFilm(sample, sampleScene.methods[0]!.id, [
 ]);
 
 for (const editor of ['Blocks', 'Tiles'] as const)
-  test(`every kind of node is drawn and edited in ${editor} (5.5.3)${editor === 'Tiles' ? ` (known to differ: ${ONE_PILL})` : ''}`, async ({
-    page,
-  }) => {
+  test(`every kind of node is drawn and edited in ${editor} (5.5.3)`, async ({ page }) => {
     test.setTimeout(300_000);
-    test.fail(editor === 'Tiles', ONE_PILL);
     expect(validateProgram(sample)).toEqual([]);
     expect(checkProgram(sample)).toEqual([]);
     await openFilm(page, SAMPLE_FILM, editor);

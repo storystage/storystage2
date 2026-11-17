@@ -113,9 +113,10 @@ describe('drawing (spec 14, 3b, 3f)', () => {
 
   it('draws a question in a value as a question tile', () => {
     mountEditor();
-    const condition = pill(item('if cat is touching chair'), 'cat is touching chair');
-    expect(condition.className).toContain('tl-pill-question');
-    expect(describedBy(condition)).toBe('condition');
+    const condition = item('if cat is touching chair').querySelector('.tl-pill-question')!;
+    expect(visible(condition)).toBe('cat is touching chair');
+    // Its value is a pill inside it (3b.1, nested.test.tsx).
+    expect(pill(item('if cat is touching chair'), 'chair')).toBeTruthy();
   });
 });
 

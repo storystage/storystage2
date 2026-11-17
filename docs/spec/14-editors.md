@@ -134,7 +134,7 @@ Each is one step with the shared label, the same as the key for it (section 3d).
 
 ### 3b. Tiles
 
-1. **Statement rows read like code,** left to right: the target, then the block's words with each value in a pill. Values in pills are tiles themselves, so a function can go in a slot.
+1. **Statement rows read like code,** left to right: the target, then the block's words with each value in a pill. Values in pills are tiles themselves, so a function can go in a slot. **A value made of others** ("score + 1", "cat is touching chair", "a list of cat fox", "item 1 of things") is a pill holding its own words and a pill for each value in it, nested as deep as the value is, as Blocks nests its value blocks (WP7t, parity task 6). Its own words ("+", "cat is touching") are the button that changes the whole value; each value inside changes on its own, in one step. Only those are buttons, since a button can't hold another, so the row's name is still the words it shows (3f.2). A list's items are changed by making the list again with that item changed, as the AST sets a list as a whole.
 2. **Containers** (do in order, do together, count, while, for each, if/else) draw their body inside them, indented, with their own header row.
 3. **An empty statement list** shows "drop statement here" in a dashed box 44 px high.
 4. **A switched-off statement** is greyed, with a dashed outline, and its name ends "(switched off)". It's still saved (`setEnabled`). This differs from the handoff's 45% opacity, which takes the tile's words below 4.5:1, for the same reason the handoff darkened Alice's blue.
@@ -158,7 +158,7 @@ Every path works without a pointer (7.8):
 |---|---|
 | Tab, Shift+Tab | Between the methods panel, the control bar and the program |
 | ↑ ↓ | To the previous or next statement, into and out of containers |
-| ← → | Between a statement's value pills, and out to its row |
+| ← → | Between a statement's value pills, those inside a value too, in reading order, and out to its row |
 | Enter | Opens the cascade for the pill in focus, or "add detail ▾" |
 | Space | Picks up the statement; ↑ ↓ then move the drop line; Space puts it down; Escape puts it back |
 | Delete | Deletes the statement, with an undo label to bring it back |
@@ -178,7 +178,7 @@ Enter or a click on a pill opens its cascade (section 2.3), upward if there's no
 1. **The program is a tree:** `role="tree"`, with each statement a `treeitem` at its nesting level, and roving focus. Screen readers say "2 of 5" and the level from `aria-posinset`, `aria-setsize` and `aria-level`.
 2. **Each statement's name is the words it shows,** details included: "cat move forward 1 how long 2". A speech-control user says what they see, so a name never differs from the visible words (WCAG 2.5.3).
 3. **A container's tree item is its header row,** so its name is "do together", not its statements too. The box around it is only drawing (`role="none"`), and its statements' group sits beside the header.
-4. **Each pill is named by its value and described by what it's for:** "1", described as "amount".
+4. **Each pill is named by its value and described by what it's for:** "1", described as "amount". Inside a value, "2" in "2 + 3" is described as "first value", and the "+" that changes the whole as what the whole is for.
 5. **Announcements** through `host.announce` say what happened, in the same words as the undo label, and say where focus is if it moved: "Moved cat say Hello into do together".
 
 ### 3g. Highlights

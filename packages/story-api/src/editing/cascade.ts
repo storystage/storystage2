@@ -143,6 +143,9 @@ function contextOf(
       return at(BOOLEAN);
     case 'arrayItem':
       return at(place.slot === 'index' ? WHOLE : null);
+    case 'arrayOf':
+      // One of a list's items: the list's own item type.
+      return at(place.slot === 'items' ? node.of : null);
     case 'return': {
       for (let up = index.get(node.id); up; up = up.parent ? index.get(up.parent) : undefined)
         if (up.node.kind === 'method') return at(up.node.returns);
