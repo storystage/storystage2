@@ -236,10 +236,10 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
 
-One step, joined to the rest of the request's (section 1.7): a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
+One step, joined to the rest of the request's (section 1.7): Backstage's own Add (`addObject` in `@storystage/production`), which declares a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
 
 - The model must be in the shipped catalogue or the production's imported models, or the answer is `unknown_object`.
-- The name is made into a name the program accepts ("Abyssinian cat" becomes `abyssinianCat`), and given a number if the scene's type already uses it (`cat2`). The result says the final name.
+- The name is made as Backstage makes it (`objectName`): "Abyssinian cat" becomes `abyssinianCat`, with a number if the scene already uses it (`cat2`). The result says the final name.
 - `turn_degrees` turns it about the vertical axis. A `scale` outside 0.05 to 20, or a position that isn't three numbers, is `bad_argument`.
 
 #### `set_property`
@@ -253,7 +253,7 @@ Changes how an object starts in the scene.
 | `value` | string | A position as `"x, y, z"`, a number, a paint name or `#rrggbb`, opacity 0 to 1, or the object it rides on; checked per property |
 | `narration`, `plan_step` | | |
 
-It changes only the scene's set-up, never the program, as one step joined to the rest of the request's.
+It changes only the scene's set-up, never the program, as one step joined to the rest of the request's. Position, turn, scale, paint and opacity go through the stage's own change to an object (`setObject` in `@storystage/production`).
 
 | Property | Value | Objects |
 |---|---|---|
@@ -337,15 +337,17 @@ Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` 
 
 #### `stage_scene`
 
-Places a scene's cast, props, set, backdrop and camera from its frames, as Set the stage from the storyboard does (10.10), using the same code.
+Places a scene's cast, props, set, backdrop and camera as its first frame shows them, by running the studio's own Set the stage from the storyboard (10.10). The studio passes that step to the runner as `stageFromStoryboard`, the same `placeFromStoryboard(…, storyboardPlan(…), …)` its button runs, so the two always agree.
 
 | Field | Type | Notes |
 |---|---|---|
 | `scene` | string | A scene id |
-| `from_frame` | string, optional | The frame to take positions from; default the first |
 | `narration`, `plan_step` | | |
 
-It places only what the storyboard has. Anything else is `add_model` in a plan of its own. Stand-ins stay stand-ins.
+- It places only what the storyboard has and the stage doesn't. Cast who appear only in later frames wait just off stage, on the side they come in from. Stand-ins stay stand-ins. Anything else is `add_model` in a plan of its own.
+- It is one step, joined to the rest of the request's, labelled "Set up <heading> from the storyboard".
+- If there's nothing to place, it says so and changes nothing. A scene that doesn't exist is `unknown_object`. Too many objects is `limit_reached`.
+- Without the studio's step (a host that has no stage), it answers `not_allowed_here`.
 
 #### `code_frame`
 
@@ -624,7 +626,6 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Needs | From | For |
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
-| Set the stage from the storyboard (10.10), for `stage_scene` to reuse. Until it exists, `stage_scene` answers `not_allowed_here`. The production's undo session it needed is done (`ProductionSession`, #186), and `add_model` and `set_property` use it | S5 (WP10c) | Section 3.2 |
 | Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |

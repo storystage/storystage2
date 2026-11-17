@@ -7,8 +7,10 @@
  * `ProductionSession` (spec 03, section 2.1), which holds program edits and scene set-ups
  * together, and the end of the request commits it.
  *
- * `stage_scene` waits for Set the stage from the storyboard (10.10), whose code it must reuse.
- * Until then it answers `not_allowed_here`.
+ * The set-up tools run the studio's own steps from `@storystage/production`: `add_model` is
+ * Backstage's Add (`addObject`), `set_property` the stage's change to an object (`setObject`), and
+ * `stage_scene` the studio's Set the stage from the storyboard (10.10), passed in as
+ * `stageFromStoryboard`.
  */
 import {
   defaultLabel,
@@ -27,7 +29,18 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
-import type { FrameId, ProductionRest, ProductionSession, SceneId } from '@storystage/production';
+import {
+  addObject,
+  objectName,
+  setObject,
+  type FrameId,
+  type Production,
+  type ProductionRest,
+  type ProductionSession,
+  type SceneId,
+  type SceneRefusal,
+  type SceneStep,
+} from '@storystage/production';
 import {
   DETAILS,
   classOfType,
@@ -66,7 +79,18 @@ export interface RunnerSetup {
   readonly backstageClass: (id: string) => StoryClass | null;
   /** The automatic check's latest result for a frame (11.6), or null if it hasn't run. */
   readonly checkResult?: (frame: FrameId) => Json | null;
+  /**
+   * Set the stage from the storyboard (10.10), as the studio's button runs it, for `stage_scene`:
+   * `placeFromStoryboard(p, scene, storyboardPlan(p, scene, backstage), label)`. Without it,
+   * `stage_scene` answers `not_allowed_here`.
+   */
+  readonly stageFromStoryboard?: (p: Production, scene: SceneId, label: string) => StageResult;
 }
+
+/** What Set the stage from the storyboard gives: one step, or why not and for which object. */
+export type StageResult =
+  | { readonly ok: true; readonly step: SceneStep }
+  | { readonly ok: false; readonly refusal: SceneRefusal; readonly name?: string };
 
 /** What `propose_plan` and `revise_plan` keep, and an agreed plan carries back. */
 export interface Plan {
@@ -84,11 +108,8 @@ const CONTAINERS = new Set([
   'forEach',
   'eachTogether',
 ]);
-const LATER =
-  "The Prompter can't set a scene's stage from its storyboard yet. Add each model with add_model in a plan of its own, or ask the learner to place them from Backstage.";
-/** The AST's rule for a name (`packages/ast`, schema `name`). */
-const NAME = /^\p{L}[\p{L}\p{N}_]*$/u;
-const MAX_NAME = 60;
+const NO_STAGING =
+  "Setting the stage from the storyboard isn't available here. Add each model with add_model in a plan of its own, or ask the learner to press Set the stage from the storyboard.";
 const SCALE = { min: 0.05, max: 20 };
 const PAINTS: ReadonlySet<string> = new Set(enumValues('Color'));
 
@@ -114,29 +135,20 @@ function yaw(degrees: number): Transform['rotation'] {
   return { x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) };
 }
 
-const capital = (w: string) => w.charAt(0).toUpperCase() + w.slice(1);
-
-/** A name the program accepts: "Abyssinian cat" becomes `abyssinianCat`. */
-function asName(wanted: string, item: string): string {
-  const source = wanted.trim() || item.split('/').at(-1) || 'model';
-  const words = source.match(/[\p{L}\p{N}]+/gu) ?? [];
-  const joined = words
-    .map((w, i) => (i === 0 ? w.charAt(0).toLowerCase() + w.slice(1) : capital(w)))
-    .join('')
-    .slice(0, MAX_NAME - 3);
-  return NAME.test(joined) ? joined : `model${capital(joined)}`.slice(0, MAX_NAME - 3);
-}
-
-/** The name, or the name with the first number that makes it unique in the scene's type. */
-function freeName(type: TypeDecl, name: string): string {
-  const taken = new Set([
-    'this',
-    'camera',
-    ...type.fields.map((f) => f.name),
-    ...type.methods.map((m) => m.name),
-  ]);
-  if (!taken.has(name)) return name;
-  for (let n = 2; ; n++) if (!taken.has(`${name}${n}`)) return `${name}${n}`;
+/** Why a step from `@storystage/production` couldn't be made, for Claude. */
+function refusal(r: SceneRefusal, name: string): Result {
+  switch (r.code) {
+    case 'noSuchScene':
+      return fail('unknown_object', "That scene can't be found.");
+    case 'noSuchObject':
+      return fail('unknown_object', `There is no ${name} in this scene.`);
+    case 'tooManyObjects':
+      return fail('limit_reached', `A scene holds at most ${r.limit} objects.`);
+    case 'refused':
+      return fail('would_break_program', r.reason);
+    default:
+      return fail('would_break_program', `That can't be done here (${r.code}).`);
+  }
 }
 
 /** True if `carrier` rides, directly or not, on `rider`: then `rider` can't ride on it. */
@@ -218,7 +230,7 @@ export class PrompterRunner implements ToolRunner {
       case 'set_property':
         return this.#change(name, input);
       case 'stage_scene':
-        return fail('not_allowed_here', LATER);
+        return this.#change(name, input);
     }
   }
 
@@ -365,9 +377,11 @@ export class PrompterRunner implements ToolRunner {
       case 'declare_procedure':
         return this.#declareProcedure(input, program, type, mint);
       case 'add_model':
-        return this.#addModel(input, type, mint);
+        return this.#addModel(input);
       case 'set_property':
         return this.#setProperty(input);
+      case 'stage_scene':
+        return this.#stageScene(input);
       default:
         return this.#listen(input, type, scene, mint);
     }
@@ -630,7 +644,8 @@ export class PrompterRunner implements ToolRunner {
     }));
   }
 
-  #addModel(input: Input, type: TypeDecl, mint: () => NodeId): Result {
+  /** Backstage's Add (`addObject`): a field and an object, named as Backstage names them. */
+  #addModel(input: Input): Result {
     const item = text(input.backstage_item);
     const cls = this.#modelClass(item);
     if (!cls)
@@ -648,39 +663,37 @@ export class PrompterRunner implements ToolRunner {
     const turn = input.turn_degrees === undefined ? 0 : input.turn_degrees;
     if (!finite(turn)) return fail('bad_argument', 'turn_degrees must be a number.');
 
-    const name = freeName(type, asName(text(input.name), item));
-    const field: FieldDecl = {
-      id: mint(),
-      kind: 'field',
-      name,
-      type: { kind: 'story', name: cls },
-      initial: null,
-    };
-    const label = `Add ${name}`;
-    const refused = this.#apply([
-      { kind: 'declare', label, parent: type.id, index: type.fields.length, node: field },
-    ]);
-    if (refused) return refused;
+    const production = this.#setup.session.production();
+    const scene = this.#setup.scene();
+    const wanted = text(input.name).trim() || item.split('/').at(-1) || 'model';
+    const name = objectName(production, scene, wanted);
+    if (name === null) return fail('unknown_method', "This scene can't be found.");
     const [x, y, z] = position as number[];
-    const object = {
-      id: name,
-      model: item,
-      class: cls,
-      transform: {
-        position: { x: x!, y: y!, z: z! },
-        rotation: yaw(turn),
-        scale: { x: scale, y: scale, z: scale },
+    const added = addObject(
+      production,
+      scene,
+      {
+        model: item as SceneObjectSetup['model'],
+        class: cls,
+        name,
+        transform: {
+          position: { x: x!, y: y!, z: z! },
+          rotation: yaw(turn),
+          scale: { x: scale, y: scale, z: scale },
+        },
       },
-    } as unknown as SceneObjectSetup;
-    this.#changeSetup(label, (setup) => ({ ...setup, objects: [...setup.objects, object] }));
-    return ok(`Added ${name}.`, { name });
+      `Add ${name}`,
+    );
+    if (!added.ok) return refusal(added.refusal, name);
+    return this.#step(added.step) ?? ok(`Added ${name}.`, { name });
   }
 
   #setProperty(input: Input): Result {
     const name = text(input.object);
     const property = text(input.property);
     const value = text(input.value).trim();
-    const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
+    const production = this.#setup.session.production();
+    const scene = production.scenes.find((s) => s.id === this.#setup.scene());
     if (!scene) return fail('unknown_method', "This scene can't be found.");
     const objects = scene.setup.objects;
     const object = objects.find((o) => o.id === name);
@@ -742,6 +755,19 @@ export class PrompterRunner implements ToolRunner {
         return fail('bad_argument', `There's no property ${property}.`);
     }
 
+    if (object && property !== 'vehicle') {
+      const next = change(object);
+      const objectChange =
+        property === 'paint'
+          ? { paint: next.paint! }
+          : property === 'opacity'
+            ? { opacity: next.opacity! }
+            : { transform: next.transform };
+      const set = setObject(production, scene.id, name, objectChange, words);
+      if (!set.ok) return refusal(set.refusal, name);
+      return this.#step(set.step) ?? ok(`${words}: done.`);
+    }
+
     this.#changeSetup(words, (setup) =>
       camera
         ? {
@@ -755,6 +781,43 @@ export class PrompterRunner implements ToolRunner {
         : { ...setup, objects: setup.objects.map((o) => (o.id === name ? change(o) : o)) },
     );
     return ok(`${words}: done.`);
+  }
+
+  /** Set the stage from the storyboard (10.10), the studio's own step, in the request's. */
+  #stageScene(input: Input): Result {
+    const stage = this.#setup.stageFromStoryboard;
+    if (!stage) return fail('not_allowed_here', NO_STAGING);
+    const id = text(input.scene);
+    const production = this.#setup.session.production();
+    const scene = production.scenes.find((s) => s.id === id);
+    if (!scene) return fail('unknown_object', `There is no scene ${id}.`);
+    const heading = production.storyboard.cards.find((c) => c.id === scene.id)?.heading;
+    const placed = stage(production, scene.id, `Set up ${heading || id} from the storyboard`);
+    if (!placed.ok) return refusal(placed.refusal, placed.name ?? '');
+    if (placed.step.production === production)
+      return ok('Nothing to place: the stage already has everything the storyboard shows.');
+    const before = new Set(scene.setup.objects.map((o) => String(o.id)));
+    const added = (
+      placed.step.production.scenes.find((s) => s.id === scene.id)?.setup.objects ?? []
+    )
+      .map((o) => String(o.id))
+      .filter((n) => !before.has(n));
+    return (
+      this.#step(placed.step) ??
+      ok(
+        added.length > 0
+          ? `Placed ${added.join(', ')} from the storyboard.`
+          : 'Set the backdrop and camera from the storyboard.',
+      )
+    );
+  }
+
+  /** A step from `@storystage/production`, joined to the request's undo step. */
+  #step(step: SceneStep): Result | null {
+    const { session, source } = this.#setup;
+    this.#group(step.label);
+    const result = session.step(step, source);
+    return result.ok ? null : fail('would_break_program', result.reason);
   }
 
   #declareProcedure(

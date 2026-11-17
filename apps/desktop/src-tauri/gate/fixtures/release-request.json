@@ -622,17 +622,13 @@
       },
       {
         "name": "stage_scene",
-        "description": "Place a scene's cast, props, set, backdrop and camera from its storyboard frames, as Set up from storyboard does. It places only what the storyboard has; stand-ins stay stand-ins. Call it only while building an agreed plan, and only for the step it names in plan_step.",
+        "description": "Place a scene's cast, props, set, backdrop and camera as its first storyboard frame shows them, as Set the stage from the storyboard does. Cast who appear only in later frames wait just off stage. It places only what the storyboard has and the stage doesn't; stand-ins stay stand-ins. Call it only while building an agreed plan, and only for the step it names in plan_step.",
         "strict": true,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
           "properties": {
             "scene": { "type": "string", "description": "A scene id." },
-            "from_frame": {
-              "type": "string",
-              "description": "The frame to take positions from. Leave it out for the first."
-            },
             "narration": {
               "type": "string",
               "description": "One sentence under 25 words, in plain words for a child, saying what visibly changes. It is shown as a caption and may be read aloud."
