@@ -30,25 +30,34 @@ export function Toggle({ isSelected, onChange, children, isDisabled }: TogglePro
 export interface CheckboxProps {
   isSelected: boolean;
   onChange: (isSelected: boolean) => void;
-  children: ReactNode;
+  /** The label. A box with none, such as a list row's, has an `aria-label` instead. */
+  children?: ReactNode;
   isDisabled?: boolean;
+  'aria-label'?: string;
 }
 
 /** A check box, 26 px (Direction A): checked is amber with a check mark. */
-export function Checkbox({ isSelected, onChange, children, isDisabled }: CheckboxProps) {
+export function Checkbox({
+  isSelected,
+  onChange,
+  children,
+  isDisabled,
+  'aria-label': label,
+}: CheckboxProps) {
   return (
     <AriaCheckbox
       className="ss-checkbox"
       isSelected={isSelected}
       onChange={onChange}
-      isDisabled={isDisabled}
+      {...(isDisabled === undefined ? {} : { isDisabled })}
+      {...(label ? { 'aria-label': label } : {})}
     >
       <span className="ss-checkbox-box" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="18" height="18" focusable="false">
           <path d="M5 12.5l4.5 4.5L19 7.5" />
         </svg>
       </span>
-      <span>{children}</span>
+      {children !== undefined && <span>{children}</span>}
     </AriaCheckbox>
   );
 }

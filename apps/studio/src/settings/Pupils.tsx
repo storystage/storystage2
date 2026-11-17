@@ -4,7 +4,7 @@
  * Move to the bin), Add pupil, and Import class list by paste.
  */
 import type { ClassFolders, ProductionInfo, Pupil } from '@storystage/host';
-import { Button, Dialog, Icon, NeutralNote, TextField } from '@storystage/ui';
+import { Button, Checkbox, Dialog, Icon, NeutralNote, TextField } from '@storystage/ui';
 import { useState, type FormEvent } from 'react';
 import { GridList, GridListItem, type Key } from 'react-aria-components';
 import { sinceWords } from '../lesson/LessonPages.tsx';
@@ -21,6 +21,13 @@ export interface PupilFilms {
 export interface OpenNow {
   readonly pupil: string | null;
   readonly film: string | null;
+}
+
+/** Study mode's ticks (spec 14 section 6.2): who's taking part, kept in the study's own store. */
+export interface StudyTicks {
+  readonly takingPart: ReadonlySet<string>;
+  /** Ticks or unticks a pupil. */
+  readonly onTick: (pupil: string, on: boolean) => void;
 }
 
 type View =
@@ -42,12 +49,15 @@ export function PupilsCard({
   pupils,
   open,
   act,
+  study,
 }: {
   classes: ClassFolders;
   pupils: readonly PupilFilms[];
   open: OpenNow;
   /** Runs a change to the class, then reloads the page; says so if it fails. */
   act: (work: () => Promise<unknown>) => Promise<boolean>;
+  /** While study mode is on: a tick beside each pupil for who's taking part. */
+  study?: StudyTicks;
 }) {
   const [view, setView] = useState<View>({ kind: 'list' });
   const [adding, setAdding] = useState(false);
@@ -70,6 +80,7 @@ export function PupilsCard({
       {view.kind === 'list' && (
         <PupilList
           pupils={pupils}
+          {...(study ? { study } : {})}
           onOpen={(id) => setView({ kind: 'pupil', id })}
           onImport={() => setView({ kind: 'import' })}
         />
@@ -82,6 +93,8 @@ export function PupilsCard({
           open={open}
           act={act}
           onBack={toList}
+          // A removed pupil's tick goes with them (6.2).
+          onRemoved={(id) => study?.onTick(id, false)}
         />
       )}
       {view.kind === 'pupil' && !shown && (
@@ -116,10 +129,12 @@ export function PupilsCard({
 
 function PupilList({
   pupils,
+  study,
   onOpen,
   onImport,
 }: {
   pupils: readonly PupilFilms[];
+  study?: StudyTicks;
   onOpen: (id: string) => void;
   onImport: () => void;
 }) {
@@ -139,6 +154,9 @@ function PupilList({
           onChange={setSearch}
         />
       )}
+      {study && pupils.length > 0 && (
+        <p className="st-note">{words.t('settings.study.tickHelp')}</p>
+      )}
       {pupils.length === 0 ? (
         <p className="st-note">{words.t('settings.noPupils')}</p>
       ) : shown.length === 0 ? (
@@ -157,6 +175,14 @@ function PupilList({
               aria-label={words.t('settings.openPupil', { name: p.pupil.name })}
               className="st-row"
             >
+              {/* The study's tick, its own control in the row: a press on the row still opens it. */}
+              {study && (
+                <Checkbox
+                  aria-label={words.t('settings.study.tickNamed', { name: p.pupil.name })}
+                  isSelected={study.takingPart.has(p.pupil.id)}
+                  onChange={(on) => study.onTick(p.pupil.id, on)}
+                />
+              )}
               <Icon name="folder" />
               <span className="st-row-name">{p.pupil.name}</span>
               <span className="st-row-count">
@@ -181,6 +207,7 @@ function PupilPage({
   open,
   act,
   onBack,
+  onRemoved,
 }: {
   entry: PupilFilms;
   others: readonly string[];
@@ -188,6 +215,7 @@ function PupilPage({
   open: OpenNow;
   act: (work: () => Promise<unknown>) => Promise<boolean>;
   onBack: () => void;
+  onRemoved: (id: string) => void;
 }) {
   const { pupil, films } = entry;
   const [renaming, setRenaming] = useState(false);
@@ -273,7 +301,11 @@ function PupilPage({
             icon="person_remove"
             onPress={() => {
               setRemoving(false);
-              void act(() => classes.removePupil(pupil.id)).then((done) => done && onBack());
+              void act(() => classes.removePupil(pupil.id)).then((done) => {
+                if (!done) return;
+                onRemoved(pupil.id);
+                onBack();
+              });
             }}
           >
             {words.t('settings.remove')}

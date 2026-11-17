@@ -31,6 +31,7 @@
     "@storystage/speech": "workspace:*",
     "@storystage/stage": "workspace:*",
     "@storystage/story-api": "workspace:*",
+    "@storystage/study": "workspace:*",
     "@storystage/text-view": "workspace:*",
     "@storystage/tiles": "workspace:*",
     "@storystage/ui": "workspace:*",

@@ -348,3 +348,18 @@
 .st-label {
   font-weight: 700;
 }
+
+/* Study (spec 14 section 6.8): the class code and age band, then the sessions kept. */
+.st-study-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.st-study-band {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.st-study-label {
+  font-weight: 700;
+}
