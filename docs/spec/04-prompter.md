@@ -23,6 +23,14 @@
 
 `packages/prompter` builds each request in TypeScript, without the key, and hands it to a `PrompterTransport` (`packages/prompter/src/transport.ts`). In the Tauri apps the native layer checks it (section 1.8), adds the key and streams the reply back as `PrompterEvent`s. In the browser version the transport is `offTransport`, so no Prompter feature appears. Tests use `tools/fake-claude`.
 
+**In the Tauri apps** the transport is `tauriTransport(invoke, Channel)`, over S8's `prompter_send`, `prompter_cancel` and `prompter_status`:
+
+- A request holding anything like a key is refused as `refused_by_policy` before it's sent (`containsSecret`); the native layer checks again.
+- Events come back on a Tauri `Channel`, in order. The stream ends at the first `end` or `error`, and anything after it is ignored. Anything that isn't a `PrompterEvent` ends it as `internal`, and so does a command that fails.
+- Stopping (the `AbortSignal`) calls `prompter_cancel` with the request's id and ends the stream at once with `cancelled`.
+- The native layer runs one request at a time and answers a second with `rate_limited` (spec 05, section 2.4). The session never sends two at once.
+- A status reply it can't read counts as `internal`, so the panel never shows a Prompter it can't reach as ready.
+
 ### 1.2 Request settings
 
 The body is a Messages API request. These settings hold for every mode unless the next table changes them.
