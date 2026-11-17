@@ -270,7 +270,7 @@ The rules live in a new package of S6's, `packages/study` (`@storystage/study`):
    - A learner not taking part sees nothing of the study, and no log is kept for them.
 
 3. **A session and its code.** A session starts when a ticked pupil's folder opens (or the adult answers Yes), and ends when the folder closes, another opens, or the app closes.
-   - Each session has a new random **code** of eight letters and digits (no 0, O, 1, I or L), drawn from `crypto.getRandomValues`: 40 bits, so two sessions in a study of thousands hardly ever share one. It isn't made from the device, the pupil, the time or anything else, so sessions can't be joined up. Nothing on the device links a code to a pupil.
+   - Each session has a new random **code** of eight letters and digits (no 0, O, 1, I or L), drawn evenly from 31 symbols with `crypto.getRandomValues`: about 40 bits, so two sessions in a study of thousands hardly ever share one. It isn't made from the device, the pupil, the time or anything else, so sessions can't be joined up. Nothing on the device links a code to a pupil.
    - The **study bar**, a row under the studio's header in a taking-part session only, shows "Study session K7P3-QX2M" and **Study tasks**. So a school that keeps a private list of codes (the consent sheets) can write one down. StoryStage never sees that list.
    - A session that opens no study task and makes no switch keeps no log at all.
 
@@ -284,7 +284,7 @@ The rules live in a new package of S6's, `packages/study` (`@storystage/study`):
    | T4 Click me | When Autumn the dog is clicked, she says "Woof" | Events | In a run with a click on Autumn 1 second in, she says "Woof" after the click and not before it | Free |
    | T5 Fix it | Red Riding Hood turns the wrong way: make her face Grandmother | Debugging | Red Riding Hood ends facing Grandmother within 30° | Free |
 
-   - **The task card,** on the Production stage while a task is open: its title, its instruction in words and a picture, **Read it to me** (the device's voice, spec 06; not shown without one), **Hint** (one hint per task, in words), **Check my step** and **Stop this task**.
+   - **The task card,** on the Production stage while a task is open: its title, its instruction in words and a picture, **Read it to me** (S7’s `readAloud` in `@storystage/speech`, on-device voices only, spec 06 section 2; not shown when `chooseVoice` finds none, checked again when the voices change; stopped when the card closes), **Hint** (one hint per task, in words), **Check my step** and **Stop this task**.
    - **Check my step** plays the scene offscreen as the automatic check does (spec 08 section 9.2: deterministic, fixed steps, on a hidden stage), through the check's trace (below), and tests the task's success. Success says "You did it!". Otherwise it says "Not quite yet. Rehearse it and watch what happens." It never says what's wrong, which would be help that isn't counted. A run stopped by an error says the error's words, as the check does.
    - **The check's trace:** S2's `@storystage/check` gains `traceScene({ production, stage, startWorker, scene, events?, signal? })`, giving the run it already makes for a frame check (each step's transforms, which blocks ran and when, what was said, and any error), with `events` played in at their times (T4's click, through `Playback.event`). The study's success tests read it; the study never runs the program another way.
    - **Fifteen minutes:** a task still open after 15 minutes ends with "Time's up for this task. Well done for trying."
@@ -293,7 +293,7 @@ The rules live in a new package of S6's, `packages/study` (`@storystage/study`):
 
 5. **The editor and the Prompter during a task.**
    - **T1 to T3 hold the class's default editor** (`editor.default`), as a lock does (section 4.3): the switch shows both names and can't change, with the neutral note "Set to Blocks for this study task". Closing the task gives the switch back to the policy and the learner's choice. T4 and T5 leave the switch as the policy has it, so learners can switch. No policy change is needed between lessons (the owner's choice, 17 Nov).
-   - **The Prompter is held off** while a task is open, with the neutral note "The Prompter is off during study tasks", so it can't confound help and no request goes to Anthropic as part of the study. It comes back when the task closes.
+   - **The Prompter is held off** while a task is open, so it can’t confound help and no request goes to Anthropic as part of the study. The studio holds it off by giving the panel the level Off while a task is open (spec 04 section 4.5), and refreshes it as a task opens and closes; a level turning Off stops a request already running (S7). In place of the school-lock words the panel shows the neutral note "The Prompter is off during study tasks". It comes back when the task closes.
 
 6. **What the log holds.** Only these, each with `t`, milliseconds since the session started:
 
