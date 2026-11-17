@@ -57,7 +57,14 @@ import {
 } from '@storystage/story-api';
 import { productionData, storyboardData } from './context.ts';
 import { dataBlock } from './data.ts';
-import { checkPlan, mismatch, type NameValue, type PlanStep, type PlanWorld } from './plans.ts';
+import {
+  checkPlan,
+  mismatch,
+  type NameValue,
+  type PlanProblem,
+  type PlanStep,
+  type PlanWorld,
+} from './plans.ts';
 import { scriptFacts } from './script-check.ts';
 import type { ToolRunner, RequestContext } from './session.ts';
 import type { ToolName } from './tool-names.ts';
@@ -185,6 +192,7 @@ export class PrompterRunner implements ToolRunner {
   #open = false;
   #commented = new Set<number>();
   #plans = new Map<string, Plan>();
+  #latest: string | null = null;
 
   constructor(setup: RunnerSetup) {
     this.#setup = setup;
@@ -204,6 +212,19 @@ export class PrompterRunner implements ToolRunner {
   /** The plans shown in this conversation, for the panel and for keeping with the frame (6.7). */
   plan(id: string): Plan | undefined {
     return this.#plans.get(id);
+  }
+
+  /** The plan shown or revised last, if any: the one the panel shows. */
+  latestPlan(): Plan | undefined {
+    return this.#latest === null ? undefined : this.#plans.get(this.#latest);
+  }
+
+  /**
+   * Checks steps against the scene and the frame as they are now (spec 04, section 6.3): for
+   * the learner's edits to a plan, before Build these steps. Messages are in plain words.
+   */
+  checkSteps(steps: readonly PlanStep[], frame: string | null): PlanProblem[] {
+    return checkPlan(steps, this.#world(frame));
   }
 
   run(name: ToolName, input: JsonObject): Result {
@@ -336,6 +357,7 @@ export class PrompterRunner implements ToolRunner {
         `These steps can't be built: ${problems.map((p) => `step ${p.step}: ${p.message}`).join(' ')} Fix them and try again.`,
       );
     this.#plans.set(id, { plan: id, frame, steps });
+    this.#latest = id;
     return ok(`Plan ${id} is shown to the learner. End your turn now and wait.`, { plan: id });
   }
 
