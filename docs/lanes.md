@@ -116,7 +116,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 17 Nov (this): **the suits in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 88d88d7 (187 models), with Yusuf in a navy suit and George in a brown one; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
+  - 17 Nov (#507): **the suits in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 88d88d7 (187 models), with Yusuf in a navy suit and George in a brown one; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
 - Merged:
   - 17 Nov (#504, backstage-assets#21): **the suits** (WP3b; the owner's choice of 17 Nov, from a sheet of the three): `suitColour` (navy, brown or grey) recolours only the dark suit's cloth, its shirt left white; Yusuf in navy and George in brown, Winston as he was.
   - 17 Nov (#498): **the new thumbnails in the shipped Backstage**: `backstage.lock.json` pins backstage-assets fd71e3d (187 models), with the Props and Set thumbnails from three-quarters and above (WP3.10); the Prompter's catalogue is unchanged but for its commit, and the licence audit's What ships is refreshed.
