@@ -29,7 +29,12 @@ Thirty-seven people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2
     - Alfie and Kofi wear dungarees; Amara, Mei and Isla a blouse and skirt, whose hem the pipeline levels, as the pack's skirt hangs to a point on a child (`straightHem`).
     - Kai, Rhys, Zain, Arjan and Eli wear grey, navy, black or khaki trousers: the pipeline recolours the jeans (`trousersColour`, only on the two outfits with jeans).
     - Kai, Eli and Amara wear plain shirts, and Aisha, Rhys and Mei checked ones: the pipeline smooths the stripes out of the picture, keeping its folds, and lays a gingham over it for checks (`pattern`, only on a shirt or blouse on its own: the jacket shares the shirt's picture).
-    - The adults keep their outfits for now.
+- **17 Nov: the teenagers' and adults' clothes,** from a labelled sheet of the 23, over several rounds:
+    - Fewer stripes and checks, and three more designs, laid out by where the cloth is on the body (in metres, `PATTERN_TILES`), so they're one size on every outfit and don't stretch: plain (Hannah, Fatima, Ravi), small flowers (Margaret, Leah), spots (Sam, Grace), a knitted fleck (Morgan, Lin) and checks (Chen, Eileen). Stripes stay for Siân and Samira.
+    - Margaret, Eileen and Samira wear skirts to the ankle (`skirtLength`): the pipeline stretches the skirt below the hips and widens it, so the legs don't show through. Every skirt's hem is levelled.
+    - Jayden, Hamza, Chen, Ravi and Tunde wear black, khaki, grey or navy trousers.
+    - Eileen, less like Margaret: white hair tied back, and a green check.
+    - The children's checks are now the same size as everyone's.
 - **Oskar's hair:** `bob02`'s built-in colour is pale silver, so Oskar, aged 13, now has a short style. Siân (55) keeps `bob02`.
 
 ## How the list was chosen
