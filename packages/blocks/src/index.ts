@@ -10,7 +10,12 @@
  */
 export { ALL_TYPES, inputCheck, outputCheck, targetCheck } from './checks.ts';
 export { blockTypes, defineBlocks, shapeOf } from './definitions.ts';
-export { createBlocksEditor, type BlocksEditor, type BlocksEditorOptions } from './editor.ts';
+export {
+  createBlocksEditor,
+  type BlocksEditor,
+  type BlocksEditorOptions,
+  type VariableType,
+} from './editor.ts';
 export {
   dropFromPalette,
   freshIn,

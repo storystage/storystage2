@@ -17,7 +17,14 @@ import {
   type Program,
 } from '@storystage/ast';
 import { STORY_WORDS } from '@storystage/story-api';
-import type { PaletteTab } from '@storystage/story-api/editing';
+import {
+  namesAt,
+  newAssign,
+  newLocal,
+  type NameInScope,
+  type PaletteTab,
+  type VARIABLE_TYPES,
+} from '@storystage/story-api/editing';
 import {
   EMPTY_VIEW,
   type CodeEditor,
@@ -147,7 +154,27 @@ export interface BlocksEditorOptions {
     readonly node: NodeId;
     readonly anchor: Element;
   }) => Promise<string | null>;
+  /**
+   * The variable block's question, as it's dropped (the shared `NewVariable`, spec 14 2.3): a
+   * name not in `taken`, and what kind of value it holds. `null` for Escape, which cancels the
+   * drop. Without it, a dropped variable block puts nothing in.
+   */
+  readonly newVariable?: (request: {
+    readonly taken: readonly string[];
+    readonly anchor: Element | null;
+  }) => Promise<{ readonly name: string; readonly type: VariableType } | null>;
+  /**
+   * The set block's question, as it's dropped (the shared `ChooseVariable`): which of the
+   * variables there that may change. `null` for Escape, which cancels the drop.
+   */
+  readonly chooseVariable?: (request: {
+    readonly names: readonly NameInScope[];
+    readonly anchor: Element | null;
+  }) => Promise<NodeId | null>;
 }
+
+/** What a variable may hold, as the variable block's question offers it. */
+export type VariableType = (typeof VARIABLE_TYPES)[number];
 
 /** The Blocks editor, with the palette's object and tab, which the studio's picker sets. */
 export interface BlocksEditor extends CodeEditor {
@@ -312,14 +339,44 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   }
 
   /** A block from the palette: placed, its values asked for, then one step (or nothing). */
-  async function dropped(fresh: Fresh) {
+  /**
+   * The variable or set block's question, before its values are asked (spec 14, 2.3), as Tiles'
+   * bar asks it: the block that's asked about, or `null` if nothing goes in.
+   */
+  async function askedFirst(fresh: Fresh, anchor: Element | null): Promise<Fresh | null> {
+    const entry = ws?.getBlockById(fresh.node.id)?.data;
+    if (!host || fresh.place.kind !== 'statement') return fresh;
+    if (entry !== 'control:variable' && entry !== 'control:assign') return fresh;
+    const program = host.program();
+    const names = namesAt(program, fresh.place);
+    const mint = idMinter(program);
+    if (entry === 'control:variable') {
+      const made = await options.newVariable?.({ taken: names.map((v) => v.name), anchor });
+      if (!made) return null;
+      return { ...fresh, node: newLocal(made.name, { kind: 'story', name: made.type }, mint) };
+    }
+    const settable = names.filter((v) => v.assignable);
+    if (settable.length === 0) {
+      host.announce(WORDS['editor.nothingToSet']!);
+      return null;
+    }
+    const variable = await options.chooseVariable?.({ names: settable, anchor });
+    if (!variable) return null;
+    return { ...fresh, node: newAssign(variable, mint) };
+  }
+
+  async function dropped(dropping: Fresh) {
     if (!host) return;
-    const anchor = ws?.getBlockById(fresh.node.id)?.getSvgRoot() ?? null;
+    const anchor = ws?.getBlockById(dropping.node.id)?.getSvgRoot() ?? null;
+    let fresh = dropping;
     // Where focus goes afterwards: the new block, or else where it would have gone, so a learner
     // on the keyboard (Blockly's move, then the cascade) keeps their place, even after Escape.
     let then: NodeId = fresh.place.kind === 'statement' ? fresh.place.parent : fresh.place.node;
     asking = true;
     try {
+      const asked = await askedFirst(dropping, anchor);
+      if (!asked || !host) return;
+      fresh = asked;
       const ask = options.ask;
       const outcome = await dropFromPalette(
         host.program(),

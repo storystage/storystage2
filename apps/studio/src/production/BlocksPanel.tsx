@@ -5,10 +5,22 @@
  * one cascade for both editors.
  */
 import type { Expression, NodeId, Program } from '@storystage/ast';
-import { createBlocksEditor, type AskRequest, type BlocksEditor } from '@storystage/blocks';
+import {
+  createBlocksEditor,
+  type AskRequest,
+  type BlocksEditor,
+  type VariableType,
+} from '@storystage/blocks';
 import type { EditorHost, HighlightMark } from '@storystage/editor-contract';
 import type { Ask as AskKind, PaletteTab } from '@storystage/story-api/editing';
-import { AskValue, DetailMenu, ValueMenu } from '@storystage/tiles/cascade';
+import type { NameInScope } from '@storystage/story-api/editing';
+import {
+  AskValue,
+  ChooseVariable,
+  DetailMenu,
+  NewVariable,
+  ValueMenu,
+} from '@storystage/tiles/cascade';
 import { useThemeStyle } from '@storystage/ui';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
@@ -57,6 +69,21 @@ interface DetailQuestion {
   readonly answer: (detail: string | null) => void;
 }
 
+/** The variable or set block's question as it's dropped (14-editors 2.3), and its answer. */
+type VariableQuestion =
+  | {
+      readonly kind: 'variable';
+      readonly taken: readonly string[];
+      readonly anchor: Element;
+      readonly answer: (made: { name: string; type: VariableType } | null) => void;
+    }
+  | {
+      readonly kind: 'assign';
+      readonly names: readonly NameInScope[];
+      readonly anchor: Element;
+      readonly answer: (variable: NodeId | null) => void;
+    };
+
 export default function BlocksPanel({
   method,
   host,
@@ -74,6 +101,7 @@ export default function BlocksPanel({
   const [ready, setReady] = useState(false);
   const [question, setQuestion] = useState<Question | null>(null);
   const [detail, setDetail] = useState<DetailQuestion | null>(null);
+  const [variable, setVariable] = useState<VariableQuestion | null>(null);
   // Choosing "Other words…" closes the menu on its way to the typing field: not an Escape.
   const toTyping = useRef(false);
 
@@ -102,6 +130,33 @@ export default function BlocksPanel({
             answer: (name) => {
               setDetail(null);
               resolve(name);
+            },
+          });
+        }),
+      // The variable and set blocks ask Tiles' questions as they're dropped; Escape adds nothing.
+      newVariable: ({ taken, anchor }) =>
+        new Promise((resolve) => {
+          if (!anchor) return resolve(null);
+          setVariable({
+            kind: 'variable',
+            taken,
+            anchor,
+            answer: (made) => {
+              setVariable(null);
+              resolve(made);
+            },
+          });
+        }),
+      chooseVariable: ({ names, anchor }) =>
+        new Promise((resolve) => {
+          if (!anchor) return resolve(null);
+          setVariable({
+            kind: 'assign',
+            names,
+            anchor,
+            answer: (id) => {
+              setVariable(null);
+              resolve(id);
             },
           });
         }),
@@ -175,6 +230,22 @@ export default function BlocksPanel({
           anchor={detail.anchor}
           onChoose={(name) => detail.answer(name)}
           onClose={() => detail.answer(null)}
+        />
+      )}
+      {variable?.kind === 'variable' && (
+        <NewVariable
+          anchor={variable.anchor}
+          taken={variable.taken}
+          onMake={(name, type) => variable.answer({ name, type })}
+          onClose={() => variable.answer(null)}
+        />
+      )}
+      {variable?.kind === 'assign' && (
+        <ChooseVariable
+          anchor={variable.anchor}
+          names={variable.names}
+          onChoose={(id) => variable.answer(id)}
+          onClose={() => variable.answer(null)}
         />
       )}
       {question?.typing && (

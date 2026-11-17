@@ -12,7 +12,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { defineBlocks } from './definitions.ts';
 import { dropFromPalette, freshIn, type Ask } from './drops.ts';
 import { storyStatementType } from './shapes.ts';
-import { paletteEntry, toolboxFor } from './toolbox.ts';
+import { CONTROL_GROUP, paletteEntry, toolboxFor } from './toolbox.ts';
 
 beforeAll(() => defineBlocks());
 
@@ -50,7 +50,7 @@ describe('the palette as a toolbox (3i.2)', () => {
     expect(types.every((t) => t.startsWith('ss_storyfn_'))).toBe(true);
   });
 
-  it('names each block’s entry, in the shared palette’s order and then the control kinds', () => {
+  it('names each block’s entry, in the shared palette’s order and then Tiles’ control bar’s', () => {
     for (const tab of ['actions', 'questions'] as const) {
       const target = cat();
       const entries = toolboxFor(program, target, scene.id, tab).contents.flatMap((c) =>
@@ -59,9 +59,19 @@ describe('the palette as a toolbox (3i.2)', () => {
       const expected = palette(program, target, scene.id, tab).flatMap((g) =>
         g.items.map((i) => paletteEntry(i.callee)),
       );
-      if (tab === 'actions') expected.push(...CONTROL_KINDS.map((k) => paletteEntry(k)));
+      if (tab === 'actions') expected.push(...CONTROL_GROUP.map((k) => paletteEntry(k)));
       expect(entries).toEqual(expected);
     }
+    // As Tiles' bar has them: variable and set before the note.
+    const control = toolboxFor(program, cat(), scene.id, 'actions').contents.flatMap((c) =>
+      c.kind === 'block' && c.data?.startsWith('control:') ? [c.data] : [],
+    );
+    expect(control).toEqual([
+      ...CONTROL_KINDS.filter((k) => k !== 'comment').map((k) => `control:${k}`),
+      'control:variable',
+      'control:assign',
+      'control:comment',
+    ]);
     expect(paletteEntry({ kind: 'story', name: 'move' })).toBe('story:move');
     expect(paletteEntry({ kind: 'user', method: main.id })).toBe(`user:${main.id}`);
     expect(paletteEntry('doTogether')).toBe('control:doTogether');

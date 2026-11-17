@@ -10,12 +10,13 @@
  * Each also carries which entry it is (`paletteEntry`), in Blockly's `data`, drawn as its
  * `data-callee`: what a test reads to compare the palette with Tiles' (section 5.6).
  */
-import type { Callee, Expression, NodeId, Program } from '@storystage/ast';
+import type { Callee, Expression, NodeId, Program, Statement } from '@storystage/ast';
 import {
   CONTROL_KINDS,
   type ControlKind,
   newCall,
   newControl,
+  newLocal,
   palette,
   type PaletteTab,
 } from '@storystage/story-api/editing';
@@ -31,8 +32,35 @@ export interface ToolboxDefinition {
   )[];
 }
 
+/**
+ * The control group's blocks, in the order of Tiles' control bar (spec 14, 3a and 5.6): the
+ * control kinds, then variable and set, then the note. Variable and set ask their question when
+ * they're dropped (`editor.ts`), as Tiles' tiles do.
+ */
+export type ControlEntry = ControlKind | 'variable' | 'assign';
+export const CONTROL_GROUP: readonly ControlEntry[] = [
+  ...CONTROL_KINDS.filter((k) => k !== 'comment'),
+  'variable',
+  'assign',
+  'comment',
+];
+
+/** A control group block as the flyout draws it: variable and set stand in until asked. */
+function controlBlock(kind: ControlEntry, mint: () => NodeId): Statement {
+  if (kind === 'variable')
+    return newLocal(WORDS['palette.variableName']!, { kind: 'story', name: 'Number' }, mint);
+  if (kind === 'assign')
+    return {
+      id: mint(),
+      kind: 'assign',
+      target: { id: mint(), kind: 'none' },
+      value: { id: mint(), kind: 'none' },
+    } as unknown as Statement;
+  return newControl(kind, mint);
+}
+
 /** Which palette entry a block is: `story:move`, `user:<method id>` or `control:doTogether`. */
-export const paletteEntry = (entry: Callee | ControlKind): string =>
+export const paletteEntry = (entry: Callee | ControlEntry): string =>
   typeof entry === 'string'
     ? `control:${entry}`
     : entry.kind === 'story'
@@ -104,10 +132,10 @@ export function toolboxFor(
   }
   if (tab === 'actions') {
     contents.push({ kind: 'label', text: WORDS['palette.control']! });
-    for (const kind of CONTROL_KINDS)
+    for (const kind of CONTROL_GROUP)
       contents.push({
         kind: 'block',
-        ...withShadows(blockStateOf(program, newControl(kind, mint))),
+        ...withShadows(blockStateOf(program, controlBlock(kind, mint))),
         data: paletteEntry(kind),
       });
   }
