@@ -84,6 +84,22 @@ test('a step made in Tiles undoes in Blocks: one history', async ({ page }) => {
   await expect(tilesRows(page)).toHaveCount(main.body.length);
 });
 
+test('focus on Tiles’ first row, and nothing more, is where Blocks opens', async ({ page }) => {
+  await openCode(page);
+  const dialog = await toTiles(page);
+  await dialog.getByText('Don’t explain this again').click();
+  await dialog.getByRole('button', { name: 'Show me Tiles' }).click();
+  const first = main.body[0]!.id;
+  await page.locator(`.pr-tiles [data-statement][data-key="${first}"]`).focus();
+  await side(page, 'Blocks').click();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => document.activeElement?.closest('[data-id]')?.getAttribute('data-id')),
+    )
+    .toBe(first);
+});
+
 for (const width of [1366, 1180]) {
   test(`the switch fits in the bar at ${width} px, with no sideways scroll`, async ({ page }) => {
     await openCode(page, width);

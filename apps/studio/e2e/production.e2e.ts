@@ -342,8 +342,14 @@ test('Rehearse pauses, plays on at half speed and starts again (07-ux 7.4)', asy
   await openCode(page);
   const view = page.getByRole('region', { name: 'Scene view' });
   await expect(view.locator('canvas')).toBeVisible();
-  await view.getByRole('button', { name: 'Rehearse', exact: true }).click();
-  await view.getByRole('button', { name: 'Pause' }).click();
+  // The example scene is short: on a busy machine it can end before Pause is pressed, so start
+  // it again until Pause is caught while it plays.
+  const pause = view.getByRole('button', { name: 'Pause' });
+  await expect(async () => {
+    if (!(await pause.isVisible()))
+      await view.getByRole('button', { name: /^(Rehearse|Restart)$/ }).click();
+    await pause.click({ timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
   const play = view.getByRole('button', { name: 'Play' });
   await expect(play).toBeVisible();
   // Half speed while paused, so the short example scene is still running for what follows.

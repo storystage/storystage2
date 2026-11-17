@@ -61,6 +61,23 @@ describe('a block for everything a program holds (3i.1)', () => {
     expect(words).toContain('how long');
   });
 
+  it('draws a turn’s and a roll’s left and right with arrows, and names them in plain words', () => {
+    for (const type of ['TurnDirection', 'RollDirection'] as const) {
+      const part = shapeOf(`ss_enum_${type}`).parts[0];
+      const options = part?.kind === 'choice' ? part.options : [];
+      expect(options.find((o) => o[1] === 'left')).toEqual(['left ↺', 'left', 'left']);
+      expect(options.find((o) => o[1] === 'right')).toEqual(['right ↻', 'right', 'right']);
+    }
+    // A turn's other directions have no arrow.
+    const turn = shapeOf('ss_enum_TurnDirection').parts[0];
+    expect(turn?.kind === 'choice' && turn.options.find((o) => o[1] === 'forward')).toEqual([
+      'forward',
+      'forward',
+    ]);
+    const move = shapeOf('ss_enum_MoveDirection').parts[0];
+    expect(move?.kind === 'choice' && move.options.every((o) => o.length === 2)).toBe(true);
+  });
+
   it('defines each block once, however often it is asked', () => {
     defineBlocks();
     expect(Blockly.Blocks[METHOD]).toBeDefined();
