@@ -93,6 +93,7 @@ export function countingFor(classes: ClassFolders, invoke: Invoke): ClassFolders
     binnedPupils: () => classes.binnedPupils(),
     restorePupil: (id) => classes.restorePupil(id),
     backstage: () => classes.backstage(),
+    study: () => classes.study(),
     async open(id) {
       const opened = await classes.open(id);
       await tell(opened.pupil.id);

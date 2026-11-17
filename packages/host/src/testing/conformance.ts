@@ -291,6 +291,44 @@ export function describeClassFoldersContract(
     });
   });
 
+  describe(`${name} meets the study store contract (spec 14 section 6.7)`, () => {
+    it('keeps the study’s files, and lists, moves and removes them', async () => {
+      const study = (await make()).study();
+      expect(await study.list([])).toEqual([]);
+      await study.write(['sessions', 'abcd2345.json'], bytes('{"events":[]}'));
+      await study.write(['taking-part.json'], bytes('[]'));
+      expect(text((await study.read(['sessions', 'abcd2345.json']))!)).toBe('{"events":[]}');
+      expect([...(await study.list([]))].sort()).toEqual(['sessions', 'taking-part.json']);
+      await study.move(['sessions', 'abcd2345.json'], ['sessions', 'efgh6789.json']);
+      expect(await study.list(['sessions'])).toEqual(['efgh6789.json']);
+      await study.remove(['sessions', 'efgh6789.json']);
+      expect(await study.read(['sessions', 'efgh6789.json'])).toBeNull();
+    });
+
+    it('is apart from every pupil’s folder: removing pupils and emptying the bin leave it', async () => {
+      const folders = await make();
+      const pupil = await folders.addPupil('Ava');
+      const folder = await folders.open(pupil.id);
+      const study = folders.study();
+      await study.write(['taking-part.json'], bytes(JSON.stringify([pupil.id])));
+      await folder.write(null, 'The Owl', bytes('film'));
+      expect((await folder.list()).map((production) => production.name)).toEqual(['The Owl']);
+      await folders.removePupil(pupil.id);
+      await folders.emptyBin();
+      expect(text((await study.read(['taking-part.json']))!)).toBe(JSON.stringify([pupil.id]));
+    });
+
+    it('refuses an unsafe path, and can’t remove or move the study folder itself', async () => {
+      const study = (await make()).study();
+      for (const path of [[], ['..'], ['Sessions'], ['a/b'], ['con'], ['sessions', '']]) {
+        await failsWith('internal', () => study.write(path, bytes('x')));
+      }
+      await failsWith('internal', () => study.remove([]));
+      await failsWith('internal', () => study.move([], ['elsewhere']));
+      await failsWith('internal', () => study.list(['..']));
+    });
+  });
+
   describe(`${name} meets the class Backstage contract (decision 0066)`, () => {
     const model = (path = 'models/robot/model.glb', data = 'glb') => ({ path, bytes: bytes(data) });
     const robot = [model(), model('thumbnail.webp', 'webp'), model('sketches/front.svg', '<svg/>')];

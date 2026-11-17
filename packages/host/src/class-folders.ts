@@ -19,12 +19,14 @@ import {
   type PupilId,
 } from './files.ts';
 import { storedClassBackstage } from './class-backstage.ts';
-import { checkPath, isSafePart, type FileStore, type StorePath } from './store.ts';
+import { checkPath, isSafePart, type FileStore, type StorePath, storeWithin } from './store.ts';
 
 const NAME_LIMIT = 80;
 const CLASS_FILE: StorePath = ['class.json'];
 /** Removed pupils, beside the bin rather than in it: a store lists the bin's folders, not files. */
 const BINNED_PUPILS: StorePath = ['binned-pupils.json'];
+/** The study's own folder (spec 14 section 6.7), beside the pupil folders. */
+const STUDY = 'study';
 const META = 'meta.json';
 const ORIGINAL = 'original.storystage';
 /** How old a first save's file must be before a folder with no meta.json is swept away. */
@@ -256,6 +258,8 @@ export function storedClassFolders(
     classLimit: options.classLimit,
     hasPupil: async (id) => (await readClass()).some((pupil) => pupil.id === id),
   });
+
+  const study = storeWithin(store, STUDY);
 
   const folderFor = (pupil: Pupil): PupilFolder => {
     const write = async (
@@ -519,5 +523,6 @@ export function storedClassFolders(
     },
 
     backstage: () => backstage,
+    study: () => study,
   };
 }
