@@ -141,33 +141,34 @@ describe('renderSketch', () => {
   });
 });
 
-describe('renderSketch, outline only', () => {
-  // A body with a step in front of it, which draws inner lines, and a speck beside it.
-  const scan = boxes([
-    { min: [-0.5, 0, 0], max: [0.5, 1, 0.5] },
-    { min: [-0.3, 0.2, -0.2], max: [0.3, 0.6, 0] },
-    { min: [0.9, 0, 0], max: [0.92, 0.02, 0.02] },
-  ]);
+describe('renderSketch, simplified', () => {
+  // A body with a deep step on its front (+Z, which the front view sees), a shallow bump (a scan's
+  // noise) and a speck beside it.
+  const body = { min: [-0.5, 0, 0], max: [0.5, 1, 0.5] } as Part;
+  const step = { min: [-0.3, 0.2, 0.5], max: [0.3, 0.6, 0.7] } as Part;
+  const bump = { min: [-0.3, 0.7, 0.5], max: [0.3, 0.9, 0.56] } as Part;
+  const speck = { min: [0.9, 0, 0], max: [0.92, 0.02, 0.02] } as Part;
   const d = (svg: string, part: string) => new RegExp(`class="${part}" d="([^"]*)"`).exec(svg)![1]!;
 
-  it('draws only the outer edge, closed, and no inner lines', () => {
-    const lines = renderSketch(scan, 'front');
-    const outline = renderSketch(scan, 'front', { outlineOnly: true });
-    // The step's edges are lines in an ordinary sketch; outline only, they're gone.
-    expect(outline.metrics.outlineLength).toBeLessThan(
-      lines.metrics.outlineLength + lines.metrics.detailLength,
-    );
-    expect(d(outline.svg, 'detail')).toBe('');
-    expect(outline.metrics.detailLength).toBe(0);
-    expect(d(outline.svg, 'outline')).toMatch(/^M/);
+  it('keeps the outer edge and the long inner lines the surface steps well back across', () => {
+    const s = renderSketch(boxes([body, step, speck]), 'front', { simplified: true });
+    expect(d(s.svg, 'outline')).toMatch(/^M/);
+    // The step stands 0.2 proud of the body, over 7% of the model's size: its edges stay.
+    expect(s.metrics.detailLength).toBeGreaterThan(0);
   });
 
-  it('leaves out loops too small to be shape, such as a scan’s specks', () => {
-    const lines = renderSketch(scan, 'front');
-    const outline = renderSketch(scan, 'front', { outlineOnly: true });
-    // Drawn with lines the speck is its own little outline; outline only, there's one loop.
-    expect(lines.metrics.lines).toBeGreaterThan(1);
-    expect(outline.metrics.lines).toBe(1);
-    expect(d(outline.svg, 'fill').match(/M/g)).toHaveLength(1);
+  it('leaves out shallow folds and loops too small to be shape, such as a scan’s specks', () => {
+    const without = renderSketch(boxes([body, step, speck]), 'front', { simplified: true });
+    const withBump = renderSketch(boxes([body, step, bump, speck]), 'front', { simplified: true });
+    // The bump stands 0.06 proud, about 3%: drawn with lines it shows, simplified it doesn't.
+    const drawn = (parts: Part[]) => {
+      const m = renderSketch(boxes(parts), 'front').metrics;
+      return m.outlineLength + m.detailLength;
+    };
+    expect(drawn([body, step, bump])).toBeGreaterThan(drawn([body, step]));
+    expect(withBump.metrics.detailLength).toBe(without.metrics.detailLength);
+    // The speck is its own little shape when drawn with lines; simplified, one loop is left.
+    expect(d(renderSketch(boxes([body, speck]), 'front').svg, 'fill').match(/M/g)).toHaveLength(2);
+    expect(d(without.svg, 'fill').match(/M/g)).toHaveLength(1);
   });
 });
