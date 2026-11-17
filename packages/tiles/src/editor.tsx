@@ -155,6 +155,12 @@ interface MovingState extends Moving {
 }
 
 export interface TileEditorOptions extends CascadeOptions {
+  /**
+   * In the studio (spec 14, 4.1): the Code editor's bar gives the palette's object and tab
+   * (`setPalette`) and the method tabs (`openMethod`), so Tiles draws no object picker, palette
+   * tabs or method tabs of its own. Its palette list and control tiles bar stay.
+   */
+  readonly studio?: boolean;
   /** Told each time a row is drawn, not when one is skipped: for measuring spec 14, 3h. */
   readonly onRowDrawn?: (node: NodeId) => void;
 }
@@ -196,6 +202,16 @@ export class TileEditor implements CodeEditor {
   /** `jointsOf` and `references` feed the cascade from the scene and Backstage (spec 14, 2.3). */
   constructor(options: TileEditorOptions = {}) {
     this.options = options;
+  }
+
+  /**
+   * The palette's object and tab, from the studio's bar (spec 14, 4.1), as Blocks takes them:
+   * `this`, or one of its fields.
+   */
+  setPalette(target: Expression, tab: PaletteTab): void {
+    this.target = target.kind === 'fieldRef' ? target.field : 'this';
+    this.tab = tab;
+    this.render();
   }
 
   mount(element: HTMLElement, host: EditorHost, view: ViewState = EMPTY_VIEW): void {
@@ -862,6 +878,7 @@ export class TileEditor implements CodeEditor {
               targets={targets(program, type)}
               target={this.target}
               tab={this.tab}
+              controls={!this.options.studio}
               {...panel}
             />
           ) : null}
@@ -869,6 +886,7 @@ export class TileEditor implements CodeEditor {
             <MethodTabs
               program={program}
               method={this.method}
+              tabs={!this.options.studio}
               onOpen={(method) => this.openMethod(method)}
               onAddEvent={(event) => this.addEvent(event)}
             >

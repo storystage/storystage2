@@ -1,4 +1,4 @@
-import { applyEdits, validateProgram } from '@storystage/ast';
+import { applyEdits, validateProgram, type NodeId } from '@storystage/ast';
 import { TestHost } from '@storystage/editor-contract/testing';
 import { checkProgram } from '@storystage/story-api/program-check';
 import { act, screen, within } from '@testing-library/react';
@@ -9,11 +9,14 @@ import { fixture, IDS } from './fixture.ts';
 
 let editor: TileEditor | null = null;
 
-function mountEditor(view?: Parameters<TileEditor['mount']>[2]) {
+function mountEditor(
+  view?: Parameters<TileEditor['mount']>[2],
+  options?: ConstructorParameters<typeof TileEditor>[0],
+) {
   const host = new TestHost(fixture(), { apply: (p, edits) => applyEdits(p, edits) });
   const element = document.createElement('div');
   document.body.append(element);
-  editor = new TileEditor();
+  editor = new TileEditor(options);
   act(() => editor!.mount(element, host, view));
   return { host, element, editor };
 }
@@ -231,5 +234,42 @@ describe('the contract (spec 14, 1)', () => {
   it('is called Tiles', () => {
     const { editor: e } = mountEditor();
     expect(e.displayName).toBe('Tiles');
+  });
+});
+
+describe('in the studio (spec 14, 4.1)', () => {
+  const studio = { studio: true } as const;
+  const view = { method: IDS.main, selection: [], focus: null };
+
+  it('draws no object picker, palette tabs or method tabs: the studio’s bar has them', () => {
+    const { element } = mountEditor(view, studio);
+    expect(within(element).queryByRole('tablist')).toBeNull();
+    expect(within(element).queryByRole('button', { name: /Blocks for/ })).toBeNull();
+    expect(within(element).queryByRole('button', { name: /add event/ })).toBeNull();
+    // Its palette list, the control tiles and the code stay.
+    expect(within(element).getByRole('listbox', { name: 'Blocks for the scene' })).toBeTruthy();
+    expect(within(element).getByRole('button', { name: /^do together$/ })).toBeTruthy();
+    expect(item('cat say Hello')).toBeTruthy();
+  });
+
+  it('takes the palette’s object and tab from the bar, as Blocks does', () => {
+    const { element, editor } = mountEditor(view, studio);
+    const self = { id: 'palself' as NodeId, kind: 'this' } as const;
+    act(() =>
+      editor.setPalette(
+        { id: 'palobj' as NodeId, kind: 'fieldRef', target: self, field: IDS.cat },
+        'questions',
+      ),
+    );
+    const list = within(element).getByRole('listbox', { name: 'Blocks for cat' });
+    expect(list.querySelector('.tl-question')).toBeTruthy();
+    expect(list.querySelector('.tl-tile')).toBeNull();
+    act(() => editor.setPalette(self, 'actions'));
+    expect(within(element).getByRole('listbox', { name: 'Blocks for the scene' })).toBeTruthy();
+  });
+
+  it('keeps the tabs on its own test page', () => {
+    const { element } = mountEditor(view);
+    expect(within(element).getAllByRole('tablist').length).toBeGreaterThan(0);
   });
 });

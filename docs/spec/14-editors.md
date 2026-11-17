@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails, and the Chromebook run of 3h.3 (7.10). An error's words beside its statement (3g) came with the contract's `HighlightMark` (#233); the **variable** and **assign** tiles and fresh loop item names (2.3) on 10 Nov 2026. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Sections 4 to 6 come with WP7t (7.11–7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails, and the Chromebook run of 3h.3 (7.10). An error's words beside its statement (3g) came with the contract's `HighlightMark` (#233); the **variable** and **assign** tiles and fresh loop item names (2.3) on 10 Nov 2026. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Section 4 written by S6, 17 Nov 2026, before its code (WP7t, 7.11); S5 reviews it, as the switch sits in the Code editor. Sections 5 and 6 come with WP7t (7.12, 7.13).
 
 ## 0. Decisions this spec relies on
 
@@ -199,7 +199,24 @@ The contract's `highlight(marks, kind)` takes each node with its words, `{node, 
 
 ## 4. The switch
 
-_With WP7t (7.11)._
+Workplan 7.11, written by S6 on 17 Nov 2026 before its code. The switch sits in S5's Code editor (`07-ux.md` section 7.3), so S5 reviews this section. The look is screens 04 (the switch) and 05 (its dialog).
+
+1. **Where it is.** The Code editor's header reads "Code", then a **Blocks | Tiles** switch (a segmented control, 44 px; the chosen side is chalk), then the note "⇄ Blocks and Tiles edit the same code." The bar under it serves whichever editor shows, as agreed with S5 on 16 Nov. That bar holds "Blocks for" and its object, Actions and Questions, Show as text and its wording, the method tabs and New. So under it Tiles draws no object picker, tabs or method tabs of its own (`new TileEditor({ studio: true })`). It takes the palette's object and tab from the bar through `setPalette(target, tab)`, as Blocks does. Its palette list and control tiles bar stay its own.
+2. **A view change, never a conversion.** The program and the undo history are the studio's (section 1.1), so a switch changes neither. A step made in one editor undoes in the other. Where the learner was passes across as `ViewState`: the studio keeps what the editor's `unmount` returns and mounts the other editor with it. That way the same method is open, and the same statement is chosen and has focus. Rehearse's, the error's, the link's and the Prompter's highlights are given to the new editor. Each editor loads on demand, so the Storyboard opens without either.
+3. **Which editor opens.**
+   - The learner's last choice on this device opens.
+   - Before they choose, the class default from policy (`editor.default`, spec 05 section 3.3) opens. With no policy, that is Blocks.
+   - When the teacher locks it (`editor.locked`), the default always opens, and the learner's choice is kept for later. The switch still shows both names, so learners know which one they're using, but it can't be changed. Beside it is the neutral note (`07-ux.md` 12a), "Set to Blocks by your school". It is never styled as an error.
+4. **The first switch explains** (screen 05). A dialog titled "⇄ Switching to Tiles" (or to Blocks):
+   - It opens with "Blocks and Tiles are two ways of showing the same instructions, like one story in a picture book or a chapter book. Your program stays the same."
+   - Next, the open method's first three statements, side by side in each editor's look, then "and 2 more".
+   - Then a confirmation: "✓ Your program is kept. 5 steps, same order. Nothing has changed." The steps are the open method's statements, nested ones included, counted from the one program both editors draw.
+   - The buttons are **Show me Tiles** (primary, with focus) and **Stay with Blocks**, with a tick box, "Don't explain this again".
+   - It explains again until that box is ticked. Escape is Stay.
+   - It is never shown when the switch is locked.
+5. **Keyboard and screen readers.** The switch is a radio group: Tab reaches it, and the arrow keys choose. With the dialog, focus goes to its primary button. After a switch, focus goes to the statement that had it, or into the editor, and the studio says "Now showing Tiles. Your program is the same." through `announce`.
+6. **Each editor keeps its own name and look** (section 3i.5), from `displayName`. The Code region's name says which is showing ("Code for scene 1, in Tiles").
+7. **Study mode** (section 6) logs each switch, with which editor and when, never the program.
 
 ## 5. Parity through the interfaces
 

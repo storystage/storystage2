@@ -27,6 +27,8 @@ export interface MethodTabsProps {
   readonly onAddEvent: (event: string) => void;
   /** The open method's code. */
   readonly children: ReactNode;
+  /** False in the studio, whose own tab row and New serve both editors (spec 14, 4.1). */
+  readonly tabs?: boolean;
 }
 
 /** Every method and event handler in the program, with the words on its tab. */
@@ -44,8 +46,16 @@ export function methodsOf(program: Program): readonly { id: NodeId; words: strin
 /** An event's words with `???` where it needs a value: "every ??? seconds". */
 const eventWords = (name: string) => fill(word(`event.${name}`), {});
 
-export function MethodTabs({ program, method, onOpen, onAddEvent, children }: MethodTabsProps) {
+export function MethodTabs({
+  program,
+  method,
+  onOpen,
+  onAddEvent,
+  children,
+  tabs = true,
+}: MethodTabsProps) {
   const methods = methodsOf(program);
+  if (!tabs) return <div className="tl-method-panel">{method === null ? null : children}</div>;
   return (
     <Tabs
       selectedKey={method ?? undefined}

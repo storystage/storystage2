@@ -37,6 +37,11 @@ export interface PanelProps {
   readonly onTarget: (key: string) => void;
   readonly onTab: (tab: PaletteTab) => void;
   readonly onInsert: (item: PaletteItem) => void;
+  /**
+   * False in the studio, whose bar chooses the object and the tab (spec 14, 4.1): only the
+   * palette list is drawn.
+   */
+  readonly controls?: boolean;
   /** A drag from the palette; `item` says which block it carries. */
   readonly drag: DragTarget & { readonly item: (item: PaletteItem) => void };
 }
@@ -106,6 +111,13 @@ export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
     </ListBox>
   );
 
+  if (props.controls === false)
+    return (
+      <div className="tl-panel">
+        {list}
+        <Ghost ghost={ghost} />
+      </div>
+    );
   return (
     <div className="tl-panel">
       <Select
@@ -156,6 +168,7 @@ function samePanel(a: PanelProps, b: PanelProps): boolean {
     a.type === b.type &&
     a.target === b.target &&
     a.tab === b.tab &&
+    a.controls === b.controls &&
     a.onTarget === b.onTarget &&
     a.onTab === b.onTab &&
     a.onInsert === b.onInsert &&
