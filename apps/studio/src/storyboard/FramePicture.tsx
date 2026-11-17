@@ -13,7 +13,8 @@ import { SketchArt, sketchAspect, sketchName, type SketchItem } from './SketchAr
 import { useSketches } from './sketchSource.tsx';
 
 /** A sketch at standard size is this tall, as a share of the frame's height. */
-export const STANDARD_HEIGHT = 0.3;
+import { STANDARD_HEIGHT } from '@storystage/staging';
+export { STANDARD_HEIGHT };
 
 /** A share of the frame as a CSS length, to 0.01%. */
 const percent = (share: number) => `${Math.round(share * 10000) / 100}%`;

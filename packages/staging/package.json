@@ -1,0 +1,20 @@
+{
+  "name": "@storystage/staging",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Set the stage from the storyboard (WP10.10): the plan the storyboard gives a scene's set-up and the one step that places it, shared by the studio's button and the Prompter's stage_scene.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/backstage": "workspace:*",
+    "@storystage/check": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/sketches": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  }
+}

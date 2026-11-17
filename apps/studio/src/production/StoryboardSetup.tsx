@@ -8,7 +8,7 @@
 import { Button, Checkbox } from '@storystage/ui';
 import { useState } from 'react';
 import { words, type WordKey } from '../strings.ts';
-import type { Placement } from './fromStoryboard.ts';
+import type { Placement } from '@storystage/staging';
 
 export interface StoryboardSetupProps {
   readonly plan: readonly Placement[];

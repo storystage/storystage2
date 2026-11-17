@@ -30,6 +30,7 @@
     "@storystage/sketches": "workspace:*",
     "@storystage/speech": "workspace:*",
     "@storystage/stage": "workspace:*",
+    "@storystage/staging": "workspace:*",
     "@storystage/story-api": "workspace:*",
     "@storystage/study": "workspace:*",
     "@storystage/text-view": "workspace:*",

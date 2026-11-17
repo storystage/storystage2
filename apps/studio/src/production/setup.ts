@@ -4,7 +4,17 @@
  * one production to the next, for `studio.commit`; the program isn't touched.
  */
 import type { Production, SceneId } from '@storystage/production';
-import type { Quat, SceneSetup, Transform, Vec3 } from '@storystage/story-api';
+import type { Quat, Transform, Vec3 } from '@storystage/story-api';
+import { withSetup } from '@storystage/staging';
+
+// Setting the stage needs these too, so they live with that (`@storystage/staging`).
+export {
+  BACKDROP_PARTS,
+  backdropPartOf,
+  withBackdrop,
+  withCamera,
+  type BackdropPart,
+} from '@storystage/staging';
 
 /** How far round an object faces, about the vertical: 0 to just under 1 turn. */
 export function turnOf(rotation: Quat): number {
@@ -195,50 +205,6 @@ export function facingCamera(camera: Transform, at: Vec3): Transform {
     rotation: { x: 0, y: Math.sin(towards / 2), z: 0, w: Math.cos(towards / 2) },
     scale: { x: 1, y: 1, z: 1 },
   };
-}
-
-/** The parts of a backdrop a Backstage item can set: its class says which (`Ground`, `Sky`…). */
-export const BACKDROP_PARTS = ['ground', 'sky', 'lighting'] as const;
-export type BackdropPart = (typeof BACKDROP_PARTS)[number];
-
-/** Which part a backdrop item sets, from its class, or `null`. */
-export function backdropPartOf(storyClass: string): BackdropPart | null {
-  const part = storyClass.toLowerCase();
-  return (BACKDROP_PARTS as readonly string[]).includes(part) ? (part as BackdropPart) : null;
-}
-
-/** The production with one scene's ground, sky or lighting set to a Backstage item. */
-export function withBackdrop(
-  p: Production,
-  scene: SceneId,
-  part: BackdropPart,
-  id: string,
-): Production {
-  return {
-    ...p,
-    scenes: p.scenes.map((s) =>
-      s.id !== scene
-        ? s
-        : { ...s, setup: { ...s.setup, backdrop: { ...s.setup.backdrop, [part]: id } } },
-    ),
-  };
-}
-
-/** One scene's set-up changed by `change`. */
-function withSetup(
-  p: Production,
-  scene: SceneId,
-  change: (setup: SceneSetup) => SceneSetup,
-): Production {
-  return {
-    ...p,
-    scenes: p.scenes.map((s) => (s.id !== scene ? s : { ...s, setup: change(s.setup) })),
-  };
-}
-
-/** The production with the scene's camera moved: Move the camera here, or its handles. */
-export function withCamera(p: Production, scene: SceneId, transform: Transform): Production {
-  return withSetup(p, scene, (setup) => ({ ...setup, camera: { ...setup.camera, transform } }));
 }
 
 /** The production with one of the scene's markers moved. */
