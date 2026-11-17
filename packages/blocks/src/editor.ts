@@ -280,7 +280,9 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   function settle() {
     settling = null;
     if (!ws || !host || owner === null) return;
-    if (ws.isDragging()) {
+    // A drag, or words being typed in a block (Blockly's text editor, which sets the value at
+    // each key): the step is made when it's done, so a value chosen anew can be drawn again.
+    if (ws.isDragging() || Blockly.WidgetDiv.isVisible()) {
       settling = setTimeout(settle, 50);
       return;
     }
@@ -308,7 +310,15 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     const applied = host.apply(result.edits, result.label, 'blocks');
     // Said aloud, as Tiles says it (14-editors 3f.5, 3i.9): "Move penguin say …".
     host.announce(applied.ok ? result.label : applied.reason);
-    if (!applied.ok) putBack();
+    if (!applied.ok) return putBack();
+    // A value chosen in place is a new node: drawn again with its new id, focus on it if it had it.
+    if (result.renewed.size > 0) {
+      const was = Blockly.getFocusManager().getFocusedNode();
+      const on = was instanceof Blockly.BlockSvg ? (was.id as NodeId) : null;
+      rebuild();
+      const next = on ? (result.renewed.get(on) ?? on) : null;
+      if (next) focusOn(next);
+    }
   }
 
   /** A block from the palette: placed, its values asked for, then one step (or nothing). */
