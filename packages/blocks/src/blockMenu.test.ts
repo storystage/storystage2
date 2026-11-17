@@ -55,6 +55,19 @@ describe("a block's menu (14-editors 3i.7, 2.3)", () => {
     expect(moved.details).toEqual({});
   });
 
+  it('moves a statement one place up or down in its list, offered only where it can go', () => {
+    expect(words(ids.say)).not.toContain('Move up');
+    expect(words(ids.say)).toContain('Move down');
+    const down = changeFor(program, ids.say, { kind: 'moveDown' });
+    expect(down.ok && down.label).toMatch(/^Move cat say/u);
+    const body = applied(down).types[0]!.methods.find((m) => m.id === ids.main)!.body;
+    expect(body[1]!.id).toBe(ids.say);
+    expect(changeFor(program, ids.say, { kind: 'moveUp' })).toEqual({
+      ok: false,
+      reason: 'It’s already at the top.',
+    });
+  });
+
   it('duplicates a statement just after itself, and deletes one', () => {
     const dup = changeFor(program, ids.say, { kind: 'duplicate' });
     const body = (p: Program) => p.types[0]!.methods.find((m) => m.id === ids.main)!.body;
