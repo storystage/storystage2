@@ -51,9 +51,7 @@ Each request names the production it starts from, in `productions/`. They're pla
 - **`scoreRow`** scores each check. A `reply` check comes back with no result and the replies in its notes, for grading.
 - **`resultsCsv`**, **`usageCsv`**, **`readGrades`**, **`withGrades`** and **`summarise`** give the CSV, the tokens per row, and the score against the bars below. A reply check counts only once it has a grade, and no bar is met while any wait.
 
-**Not yet in the harness:**
-
-- **Set the stage from the storyboard.** It is the studio's own step (`stageFromStoryboard`), in its React code, so `stage_scene` answers `not_allowed_here` in the harness until that step is in a package. `board-01` checks only that the tool was used, which still scores.
+**Set the stage from the storyboard** (`stage_scene`) runs the studio's own step from `@storystage/staging`, as its Prompter passes it. Its Backstage records come from the catalogue the Prompter is given, with each model's class, name and height. A start's made-up `example/` model is a metre tall. There are no backdrops, so a backdrop is never placed; no check scores one.
 
 ### A live run
 
