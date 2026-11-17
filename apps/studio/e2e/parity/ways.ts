@@ -152,7 +152,8 @@ export async function blocksDrag(page: Page, from: Locator, to: Point | (() => P
 export async function blocksDragBelow(page: Page, from: Locator, below: Locator) {
   await inView(page);
   await flyoutScrolledTo(page, from);
-  const row = (await below.boundingBox())!;
+  // The block's own shape: its group holds every block after it too.
+  const row = (await below.locator(':scope > .blocklyPath').first().boundingBox())!;
   await blocksDrag(page, from, { x: row.x + 8, y: row.y + row.height + 6 });
 }
 
@@ -161,8 +162,11 @@ export async function blocksFlyoutByKeyboard(page: Page, name: string) {
   await page.getByRole('button', { name: /^New in scene/ }).focus();
   await blocklyKey(page, 'Tab');
   const wanted = flyoutBlock(page, name);
-  await pressUntil(page, 'ArrowDown', () =>
-    wanted.evaluate((b) => b.contains(document.activeElement)),
+  await pressUntil(
+    page,
+    'ArrowDown',
+    () => wanted.evaluate((b) => b.contains(document.activeElement)),
+    60,
   );
 }
 

@@ -76,7 +76,7 @@ const row = (id: string) => document.querySelector<HTMLElement>(`[data-key="${id
 const words = (el: Element) => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
 const amountOf = (host: TestHost) => {
   const together = host.program().types[0]!.methods[0]!.body[1]!;
-  const move = (together as { body: Statement[] }).body[0]!;
+  const move = (together as Statement & { kind: 'doTogether' }).body[0]!;
   return (move as Statement & { kind: 'call' }).args['amount']!;
 };
 const describedBy = (el: Element) =>
@@ -217,7 +217,7 @@ describe('an item of a list', () => {
     const after = applyAll(program, change.edits).program;
     const loop = after.types[0]!.methods[0]!.body[0] as Statement & { kind: 'forEach' };
     expect(loop.items.id).toBe(LIST);
-    expect((loop.items as { items: Expression[] }).items.map((x) => x.id)).toEqual([
+    expect((loop.items as Expression & { kind: 'arrayOf' }).items.map((x) => x.id)).toEqual([
       'chaira',
       'chairc',
     ]);
