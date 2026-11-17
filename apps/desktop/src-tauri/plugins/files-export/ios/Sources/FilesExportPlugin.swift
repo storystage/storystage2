@@ -71,6 +71,11 @@ class FilesExportPlugin: Plugin {
 
   /// Exports copies of the files together, to one place the person picks.
   @objc public func export(_ invoke: Invoke) throws {
+    // The app needs iPadOS 14, where these dialogs arrived; the plugin may be built for older.
+    guard #available(iOS 14.0, *) else {
+      invoke.reject("internal")
+      return
+    }
     let args = try invoke.parseArgs(ExportArgs.self)
     let urls = args.paths.map { URL(fileURLWithPath: $0) }
     guard !urls.isEmpty else {
@@ -85,6 +90,10 @@ class FilesExportPlugin: Plugin {
 
   /// A copy, inside the app, of one file the person picks.
   @objc public func pick(_ invoke: Invoke) throws {
+    guard #available(iOS 14.0, *) else {
+      invoke.reject("internal")
+      return
+    }
     let args = try invoke.parseArgs(PickArgs.self)
     let type: UTType
     switch args.kind {
