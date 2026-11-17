@@ -124,9 +124,10 @@ def blurred(values, mask, radius):
     return box(values * m) / np.maximum(box(m), 1e-6)
 
 
-# The pattern's tile, in pixels, for each outfit: its picture is laid out at a different scale
-# on the body, so one size made the shirt's checks twice the blouse's (trial of 17 Nov).
-PATTERN_TILES = {"male_casualsuit03": 64, "female_elegantsuit01": 40}
+# Each pattern's tile, in metres on the body (owner, 17 Nov 2026: small flowers, not stretched).
+# Patterns are laid out on the cloth where it is on the body, not on its picture, so they're the
+# same size on every outfit and stay round on a lengthened skirt.
+PATTERN_TILES = {"checks": 0.022, "dots": 0.03, "flowers": 0.032, "flecks": 0.03}
 
 # A flower's centre, where its petals meet.
 FLOWER_CENTRE = (0.95, 0.8, 0.3)
@@ -137,30 +138,35 @@ def lighter(colour, by):
     return np.array(colour, dtype=np.float32) * (1 - by) + by
 
 
-def pattern_colours(pattern, colour, x, y, period):
-    """Each cloth pixel's colour before its shade, for a pattern laid out in tiles of `period`
-    pixels (owner, 17 Nov 2026: checks, and fewer of them, spots, flowers and flecks)."""
+def pattern_colours(pattern, colour, x, y):
+    """Each cloth pixel's colour before its shade, from where it is on the body (`x`, `y`, in
+    metres across and up the cloth): checks, spots, small five-petalled flowers or a knitted fleck
+    (owner, 17 Nov 2026)."""
     base = np.array(colour, dtype=np.float32)
     out = np.tile(base, (x.size, 1))
     if pattern == "plain":
         return out
+    tile = PATTERN_TILES[pattern]
     if pattern == "checks":
-        across = (x // period) % 2
-        down = (y // period) % 2
+        across = np.floor(x / tile) % 2
+        down = np.floor(y / tile) % 2
         return out * (1 - 0.28 * (across + down))[:, None]
+    if pattern == "flecks":
+        cell = tile / 10
+        i = np.floor(x / cell).astype(np.int64)
+        j = np.floor(y / cell).astype(np.int64)
+        h = ((i * 73856093) ^ (j * 19349663)) % 1000 / 1000
+        out[h > 0.86] = lighter(colour, 0.45)
+        out[h < 0.1] = base * 0.65
+        return out
     # Spots and flowers sit at each tile's middle, every other row shifted half a tile.
-    row = y // period
-    u = (x + (row % 2) * (period // 2)) % period - period / 2
-    v = y % period - period / 2
+    row = np.floor(y / tile)
+    u = (x + (row % 2) * tile / 2) % tile - tile / 2
+    v = y % tile - tile / 2
     if pattern == "dots":
-        out[np.hypot(u, v) < 0.22 * period] = lighter(colour, 0.75)
+        out[np.hypot(u, v) < 0.22 * tile] = lighter(colour, 0.75)
         return out
     if pattern == "flowers":
-        # On a tile nearly twice the spots', or they read as spots (trial of 17 Nov).
-        tile = int(period * 1.8)
-        row = y // tile
-        u = (x + (row % 2) * (tile // 2)) % tile - tile / 2
-        v = y % tile - tile / 2
         petal = np.zeros(x.size, dtype=bool)
         for k in range(5):
             a = 2 * math.pi * k / 5
@@ -169,23 +175,66 @@ def pattern_colours(pattern, colour, x, y, period):
         out[petal] = lighter(colour, 0.7)
         out[np.hypot(u, v) < 0.08 * tile] = FLOWER_CENTRE
         return out
-    if pattern == "flecks":
-        # A knitted look: small cells, a few light and a few dark, from a fixed hash.
-        cell = max(2, period // 10)
-        h = ((x // cell) * 73856093 ^ (y // cell) * 19349663) % 1000 / 1000
-        out[h > 0.86] = lighter(colour, 0.45)
-        out[h < 0.1] = base * 0.65
-        return out
     raise RuntimeError(f"Unknown pattern {pattern}")
 
 
-def recoloured_outfit(colour, trousers=None, pattern=None, outfit=None):
+def surface_coords(obj, width, height):
+    """For each pixel of `obj`'s picture, where it lies on the cloth, in metres: across and up the
+    face it's on, seen from the front, the side or above, whichever that face looks towards. NaN
+    for a pixel no face uses. The cloth is as it will be shipped, so a lengthened skirt's pattern
+    isn't stretched with it."""
+    mesh = obj.data
+    scale = obj.matrix_world.to_scale()
+    across = np.full(width * height, np.nan, dtype=np.float64)
+    up = np.full(width * height, np.nan, dtype=np.float64)
+    uvs = mesh.uv_layers.active
+    if uvs is None:
+        raise RuntimeError(f"{obj.name} has no UVs")
+    mesh.calc_loop_triangles()
+    for tri in mesh.loop_triangles:
+        n = tri.normal
+        an = (abs(n.x), abs(n.y), abs(n.z))
+        # The two axes the face is seen across: from the front (x, z), the side (y, z) or above.
+        if an[1] >= an[0] and an[1] >= an[2]:
+            axes = (0, 2)
+        elif an[0] >= an[2]:
+            axes = (1, 2)
+        else:
+            axes = (0, 1)
+        corners = [mesh.vertices[i].co for i in tri.vertices]
+        uv = [uvs.data[i].uv for i in tri.loops]
+        px = np.array([c.x * width for c in uv])
+        py = np.array([c.y * height for c in uv])
+        x0, x1 = int(max(0, np.floor(px.min()))), int(min(width - 1, np.ceil(px.max())))
+        y0, y1 = int(max(0, np.floor(py.min()))), int(min(height - 1, np.ceil(py.max())))
+        if x1 < x0 or y1 < y0:
+            continue
+        gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        d = (py[1] - py[2]) * (px[0] - px[2]) + (px[2] - px[1]) * (py[0] - py[2])
+        if abs(d) < 1e-9:
+            continue
+        a = ((py[1] - py[2]) * (gx - px[2]) + (px[2] - px[1]) * (gy - py[2])) / d
+        b = ((py[2] - py[0]) * (gx - px[2]) + (px[0] - px[2]) * (gy - py[2])) / d
+        c = 1 - a - b
+        inside = (a >= -1e-4) & (b >= -1e-4) & (c >= -1e-4)
+        if not inside.any():
+            continue
+        p = [np.array([co[k] * scale[k] for k in range(3)]) for co in corners]
+        pos = a[inside, None] * p[0] + b[inside, None] * p[1] + c[inside, None] * p[2]
+        index = (gy[inside].astype(np.int64)) * width + gx[inside].astype(np.int64)
+        across[index] = pos[:, axes[0]]
+        up[index] = pos[:, axes[1]]
+    return across, up
+
+
+def recoloured_outfit(colour, trousers=None, pattern=None, cloth_obj=None):
     """Everything but denim takes `colour`, and the denim takes `trousers` (owner, 16 Nov 2026:
     not every child in jeans); each keeps its folds, and either may be None to leave it. An
     outfit's shirt and jeans share one texture, so the jeans are told apart by being blue.
 
     `pattern` (owner, 17 Nov 2026: not so many striped shirts) smooths the pack's stripes out of
-    the picture, keeping its folds, and lays a pattern over that (`pattern_colours`).
+    the picture, keeping its folds, and lays a pattern over that (`pattern_colours`), placed by
+    where the cloth is on the body (`surface_coords`, from `cloth_obj`).
     """
 
     def shaded(rgba, where, colour, shade=None):
@@ -210,10 +259,14 @@ def recoloured_outfit(colour, trousers=None, pattern=None, outfit=None):
             where = ~denim
             top = np.percentile(smooth[where], 90) if where.any() else 1.0
             shade = np.clip(smooth[where] / max(top, 1e-3), 0, 1)
-            index = np.flatnonzero(where)
-            y, x = np.divmod(index, width)
-            period = max(8, width // PATTERN_TILES.get(outfit, 48))
-            colours = pattern_colours(pattern, colour, x, y, period)
+            across, up = surface_coords(cloth_obj, width, height)
+            x, y = across[where], up[where]
+            # A pixel no face uses (padding at the picture's seams) takes its neighbour's colour
+            # through filtering at most; any place will do.
+            missing = np.isnan(x)
+            x[missing] = 0.0
+            y[missing] = 0.0
+            colours = pattern_colours(pattern, colour, x, y)
             rgba[where, :3] = shade[:, None] * colours
         elif colour is not None:
             shaded(rgba, ~denim, colour)
@@ -821,8 +874,17 @@ def make_person(info, models):
         repaint(hair, tinted_hair(extra["hairTint"]))
 
     parts = ObjectService.get_list_of_children(rig)
+    outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
+    # The skirt is shaped first, so a pattern painted on it afterwards isn't stretched.
+    if extra.get("straightHem"):
+        if outfit is None:
+            raise RuntimeError(f"No {extra['outfit']} to straighten")
+        if outfit.data.shape_keys:
+            raise RuntimeError(f"{extra['outfit']} has shape keys; its hem can't be moved")
+        straighten_hem(outfit, rig)
+        if extra.get("longSkirt"):
+            lengthen_skirt(outfit, rig, basemesh)
     if extra["clothesColour"] or extra.get("trousersColour"):
-        outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
         if outfit is None:
             raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
         repaint(
@@ -831,18 +893,9 @@ def make_person(info, models):
                 extra["clothesColour"],
                 extra.get("trousersColour"),
                 extra.get("pattern"),
-                extra["outfit"],
+                outfit,
             ),
         )
-    if extra.get("straightHem"):
-        outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
-        if outfit is None:
-            raise RuntimeError(f"No {extra['outfit']} to straighten")
-        if outfit.data.shape_keys:
-            raise RuntimeError(f"{extra['outfit']} has shape keys; its hem can't be moved")
-        straighten_hem(outfit, rig)
-        if extra.get("longSkirt"):
-            lengthen_skirt(outfit, rig, basemesh)
 
     # Pieces no community pack has, made here from the person's own head (owner, 16 Nov 2026).
     if extra.get("headwear"):

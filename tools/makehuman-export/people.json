@@ -724,7 +724,7 @@
   {
     "id": "p30",
     "name": "Eileen",
-    "description": "an older woman of 85 with a white bob, in a lilac blouse and lilac skirt",
+    "description": "an older woman of 85 with a white bob, in a lilac blouse and long lilac skirt",
     "ageYears": 85,
     "gender": 0.15,
     "build": {
@@ -745,6 +745,7 @@
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "lilac",
     "pattern": "plain",
+    "skirtLength": "ankle",
     "shoes": "shoes06"
   },
   {
