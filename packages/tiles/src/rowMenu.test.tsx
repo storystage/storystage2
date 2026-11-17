@@ -84,6 +84,16 @@ describe('a row’s menu (spec 14, 3c.7)', () => {
     expect(screen.getByRole('menu', { name: 'Menu for cat say' })).toBeTruthy();
   });
 
+  it('lets a click open a pill’s menu as soon as the page opens, with no long press before it', () => {
+    setup();
+    // An event's time counts from when the page opened: a click 100 ms in.
+    const click = new MouseEvent('click', { bubbles: true, button: 0 });
+    Object.defineProperty(click, 'timeStamp', { value: 100 });
+    const forward = document.querySelector<HTMLElement>(`[data-key="${IDS.move}"] [data-pill]`)!;
+    act(() => void forward.dispatchEvent(click));
+    expect(screen.getByRole('menu', { name: 'direction' })).toBeTruthy();
+  });
+
   it('adds a detail from the menu through its cascade', async () => {
     const { host, user } = setup();
     fireEvent.contextMenu(row(IDS.say));

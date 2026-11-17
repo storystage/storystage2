@@ -465,3 +465,38 @@ test('a long press by touch opens the row’s menu; Escape closes it with nothin
   await expect(menu).toBeHidden();
   await expect(item(page, 'cat say Hello add detail')).toBeVisible();
 });
+
+test('a question dragged from the palette goes into a value that takes it, and nowhere else', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  await page.getByRole('tab', { name: 'Questions' }).click();
+  const source = (await page.getByRole('option', { name: 'cat distance to ???' }).boundingBox())!;
+  const amount = page.locator('[data-place="movest/args/amount"]');
+  const hello = page.locator('[data-place="saystm/args/text"]');
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 60, source.y + 20, { steps: 5 });
+  // Words don't take a distance: no outline there, and no drop line anywhere.
+  const words = (await hello.boundingBox())!;
+  await page.mouse.move(words.x + 8, words.y + 8, { steps: 10 });
+  await page.waitForTimeout(150);
+  await expect(page.locator('.tl-drop-target')).toHaveCount(0);
+  await expect(page.locator('.tl-drop-line')).toHaveCount(0);
+  // A number does.
+  const box = (await amount.boundingBox())!;
+  await page.mouse.move(box.x + 8, box.y + 8, { steps: 10 });
+  await expect(amount).toHaveClass(/tl-drop-target/);
+  await page.mouse.up();
+  await expect(page.locator('.tl-drop-target')).toHaveCount(0);
+  // Then its own value is asked for, as when it's put in by keyboard.
+  await page
+    .getByRole('menu', { name: 'the other one' })
+    .getByRole('menuitem', { name: 'chair' })
+    .click();
+  expect(await last(page)).toBe('Change 1 to cat distance to chair in cat move');
+  await expect(
+    item(page, 'cat move forward cat distance to chair how long 2 add detail'),
+  ).toBeVisible();
+});

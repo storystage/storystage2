@@ -70,13 +70,13 @@ export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
     onOver: props.drag.onOver,
     onEnd: props.drag.onEnd,
   });
-  // React Aria marks each option with its key, which a drag reads to know what it carries.
+  // React Aria marks each option with its key, which a drag reads to know what it carries. An
+  // action goes between statements; a question onto a value (spec 14, 3c.1).
   const onPointerDown = (e: PointerEvent) => {
     const option = (e.target as HTMLElement).closest<HTMLElement>('[role="option"]');
     const key = option?.dataset['key'];
     const item = key ? items.get(key) : undefined;
-    if (e.button === 0 && key && item && tab === 'actions')
-      begin(key, item.words, e.clientX, e.clientY);
+    if (e.button === 0 && key && item) begin(key, item.words, e.clientX, e.clientY);
   };
   const objectWords = chosen?.words ?? '';
 
