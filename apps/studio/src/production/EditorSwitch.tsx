@@ -30,6 +30,8 @@ export interface EditorSwitchProps {
   readonly shown: EditorId;
   /** The teacher locked the editor (`editor.locked`): the switch shows, but can't change. */
   readonly locked: boolean;
+  /** Why it's locked, in place of the teacher's words: a study task's (spec 14 section 6.5). */
+  readonly lockNote?: string;
   /** The first switch has been explained, and the learner asked not to again. */
   readonly explained: boolean;
   readonly program: Program;
@@ -66,7 +68,7 @@ export function EditorSwitch(props: EditorSwitchProps) {
       </div>
       {locked ? (
         <NeutralNote>
-          {words.t('production.editorLocked', { editor: editorName(shown) })}
+          {props.lockNote ?? words.t('production.editorLocked', { editor: editorName(shown) })}
         </NeutralNote>
       ) : (
         <p className="pr-same-code">

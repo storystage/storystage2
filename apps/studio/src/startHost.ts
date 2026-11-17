@@ -37,11 +37,15 @@ export async function startHost(
   options: { window?: object; load?: () => Promise<TauriCore> } = {},
 ): Promise<HostInterface> {
   if (!inTauri(options.window)) {
-    // A scripted Prompter for the browser tests, in development only: a release build drops it.
-    if (import.meta.env.DEV && globalThis.window && '__storystagePrompter' in globalThis.window) {
-      const { devPrompterHost, devScript } = await import('./prompter/devPrompter.ts');
-      const script = devScript();
-      if (script) return devPrompterHost(script);
+    // A scripted Prompter, or study mode on, for the browser tests, in development only: a
+    // release build drops it.
+    if (
+      import.meta.env.DEV &&
+      globalThis.window &&
+      ('__storystagePrompter' in globalThis.window || '__storystageStudy' in globalThis.window)
+    ) {
+      const { devAsked, devHost } = await import('./prompter/devPrompter.ts');
+      if (devAsked()) return devHost();
     }
     return browserHost;
   }

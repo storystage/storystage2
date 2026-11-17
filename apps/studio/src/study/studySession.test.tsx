@@ -47,7 +47,12 @@ function Harness(props: {
   );
 }
 
-const bar = () => screen.findByRole('region', { name: 'Study' });
+/** The study bar, once it shows and the harness has kept the study it shows. */
+const bar = async () => {
+  const shown = await screen.findByRole('region', { name: 'Study' });
+  await waitFor(() => expect(latest?.study.session).toBeTruthy());
+  return shown;
+};
 
 async function tickedPupil(classes: Classes, ticked = true) {
   const pupil = await classes.addPupil('Ava');
