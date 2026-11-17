@@ -25,6 +25,7 @@ import {
   type ValuePlace,
 } from '@storystage/story-api/editing';
 import { STORY_WORDS } from '@storystage/story-api';
+import blockWords from './strings/en-GB.json' with { type: 'json' };
 import { listsOf, valuesOf } from './gestures.ts';
 import type { FromBlocks } from './mapping.ts';
 import { withNewIds } from './toolbox.ts';
@@ -82,11 +83,16 @@ export type DropOutcome =
   | { readonly kind: 'cancelled' };
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
+const BLOCK_WORDS = blockWords as Readonly<Record<string, string>>;
 
 /** The words for what a value slot is for. */
-function slotWords(place: ValuePlace): string {
-  const name = place.param ?? place.slot;
-  return STORY[`param.${name}`] ?? STORY[`detail.${name}`] ?? name;
+function slotWords(place: ValuePlace, node: Statement | Expression): string {
+  // As Tiles names its question (spec 14, 2.3): a parameter's or detail's words, a variable's
+  // own name for what it starts as, or else the slot's words ("how many times").
+  if (place.param !== undefined)
+    return STORY[`param.${place.param}`] ?? STORY[`detail.${place.param}`] ?? place.param;
+  if (node.kind === 'local') return node.name;
+  return BLOCK_WORDS[`slot.${place.slot}`] ?? place.slot;
 }
 
 /** The node with one of its empty values filled. */
@@ -122,7 +128,7 @@ export async function dropFromPalette(
   if (!drop.ok) return { kind: 'refused', reason: drop.reason };
   if (ask) {
     for (const place of emptySlots(node)) {
-      const value = await ask({ program: drop.program, place, label: slotWords(place) });
+      const value = await ask({ program: drop.program, place, label: slotWords(place, node) });
       if (value === null) return { kind: 'cancelled' };
       // The answer takes the program's own ids too, whoever made it.
       node = filled(node, place, withNewIds(value, mint));
