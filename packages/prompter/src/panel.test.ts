@@ -274,6 +274,22 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
     expect(panel.state.message?.text).toMatch(/Prompter's time for today/);
   });
 
+  it('keeps the limit and its words when the lowered level is read, until the next request', async () => {
+    const { panel, setLevel } = setUp([say('Here you go.')], {
+      fail: { type: 'error', code: 'cap_reached' },
+    });
+    await panel.refresh();
+    await panel.ask('Hello');
+    setLevel('explainOnly');
+    await panel.refresh();
+    expect(panel.state).toMatchObject({
+      phase: 'limit',
+      modes: ['explain', 'storyCoach', 'scriptCheck'],
+      mode: 'explain',
+    });
+    expect(panel.state.message?.text).toMatch(/Prompter's time for today/);
+  });
+
   it('says what happened and what to do next', async () => {
     const { panel } = setUp([], { fail: { type: 'error', code: 'overloaded' } });
     await panel.refresh();
@@ -296,6 +312,21 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
     panel.stop();
     await asking;
     expect(panel.state).toMatchObject({ phase: 'ready', message: null });
+  });
+
+  it('stops a request in flight when the level turns Off, and stays off', async () => {
+    const { panel, setLevel } = setUp([say('A long answer.')]);
+    await panel.refresh();
+    const asking = panel.ask('Tell me a story.');
+    setLevel('off');
+    await panel.refresh();
+    await asking;
+    expect(panel.state).toMatchObject({ phase: 'off', modes: [], message: null });
+    await panel.ask('Are you there?');
+    expect(panel.state.entries.filter((e) => e.kind === 'asked')).toHaveLength(1);
+    setLevel('full');
+    await panel.refresh();
+    expect(panel.state.phase).toBe('ready');
   });
 
   it('takes one request at a time', async () => {

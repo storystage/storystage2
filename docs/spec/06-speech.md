@@ -194,6 +194,15 @@ The Prompter's steps are read aloud as they land, if **Spoken steps** is on. It 
 
 The Prompter panel (S5, WP13c) shows the captions; the speak line block (S1, 14.3) uses the same voices and sanitiser.
 
+### 3.3 Reading a text aloud when asked
+
+For a short text the learner asks to hear, not the Prompter's steps: **Read it to me** on a study task's card (spec 14, section 6.4). `readAloud(speaker, text, onDone?)` says the text, cleaned and split as section 2.2 says, one utterance after another, and returns a stop function.
+
+- Stop stops at once, and `onDone` isn't called. The caller stops it when what it reads closes, and before a second press starts it again.
+- `onDone` is called once, after the last utterance, or at once when there is nothing to say.
+- It doesn't depend on **Spoken steps**, which is the Prompter's: the learner pressed for it. The button isn't shown with no voice (2.1), and the text stays on screen (2.3).
+- The speaker is `browserSpeaker` over an on-device voice from `chooseVoice`, so nothing leaves the device.
+
 ## 4. Speak line (14.3)
 
 **Speak line** is the block that makes a character say a line of the script out loud, with a caption, as in a film. `say` and `think` show a bubble and make no sound; speak line makes a sound and shows a caption instead of a bubble. The block is `Model.speakLine` in the Story API (spec 02, section 7), on the Actions tab beside `say` and `think`.
@@ -286,6 +295,7 @@ Recording the learner's own voice for a line, and lip sync driving the mouth (14
 | Only on-device voices; en-GB first (2.1) | Unit, fake voice lists | `packages/speech` |
 | The sanitiser (2.2) | Unit | `packages/speech` |
 | The queue: order, Stop, shortening, captions without a voice (3.1) | Unit, fake speaker | `packages/speech` |
+| Reading a text aloud: in turn, cleaned, Stop, nothing to say (3.3) | Unit, fake speaker | `packages/speech` |
 | A speak line's duration from its words, and the `duration` detail (4.2) | Unit | `packages/story-api` (`lineDuration`, the procedure); `packages/speech` (the cache uses the same time) |
 | The sound fitted to the duration, faded at the end, cut by the next line and by Stop (4.2, 4.5) | Unit, fake engine and clock | `packages/speech` |
 | Presets given to the cast by class, no two characters alike while voices remain; switching the accent keeps each character's preset (4.3) | Unit | `packages/speech` |

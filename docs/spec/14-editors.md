@@ -3,7 +3,7 @@
 - **Covers:** The editor contract, options B and C, the switch, parity through the interfaces, study mode and its pseudonymous data
 - **Work package:** WP7, WP7c
 - **Owner:** S5 (option B) and S6 (option C, the switch)
-- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails, and the Chromebook run of 3h.3 (7.10). An error's words beside its statement (3g) came with the contract's `HighlightMark` (#233); the **variable** and **assign** tiles and fresh loop item names (2.3) on 10 Nov 2026. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Section 4 written by S6, 17 Nov 2026, before its code (WP7t, 7.11); S5 reviews it, as the switch sits in the Code editor. Section 5 written by S6, 17 Nov 2026, before its code (WP7t, 7.12); S5 reviews it, as its tests drive Blocks. Section 6 comes with WP7t (7.13).
+- **Status:** sections 1, 2 and 3a–3h written by S6, 8 Nov 2026, before the code they govern (WP7c). Section 2 is built in `@storystage/story-api/editing`; 3a–3h are built in `packages/tiles`, except the object picker's figures (3a.1), which wait for the stage's thumbnails, and the Chromebook run of 3h.3 (7.10). An error's words beside its statement (3g) came with the contract's `HighlightMark` (#233); the **variable** and **assign** tiles and fresh loop item names (2.3) on 10 Nov 2026. Section 2 is shared, so S5 reviews it. Section 3i written by S5, 8 Nov 2026, before its code (option B, WP7.2, 7.6). Section 4 written by S6, 17 Nov 2026, before its code (WP7t, 7.11); S5 reviews it, as the switch sits in the Code editor. Section 5 written by S6, 17 Nov 2026, before its code (WP7t, 7.12); S5 reviews it, as its tests drive Blocks. Section 6 written by S6, 17 Nov 2026, before its code (WP7t, 7.13, with 24.6), with the owner’s four choices that day; S5, S8, S2, S7 and D review it.
 
 ## 0. Decisions this spec relies on
 
@@ -258,7 +258,70 @@ Workplan 7.12, written by S6 on 17 Nov 2026 before its code. The tests drive Blo
 
 ## 6. Study mode and its pseudonymous data
 
-_With WP7t (7.13)._
+Workplan 7.13 (and the export, 24.6), written by S6 on 17 Nov 2026 before its code. It builds what the editor study’s draft protocol asks of the study build (`docs/study/protocol.md` section 12, #166) and fits the draft consent sheets (`docs/study/information-and-consent.md`). The owner made four choices on 17 Nov: the tasks use models the library ships, the teacher ticks who takes part once in the class list, a task holds the editor itself, and help is a task’s Hint or Learn. Reviews: S5 (the study bar, the task card and the Settings card are in the studio), S8 (the class list’s tick, the store, the export), S2 (the check’s trace, 6.4), S7 (the Prompter held off, reading aloud) and D (the protocol and the consent sheets, which change to match 6.2 and 6.3).
+
+The rules live in a new package of S6’s, `packages/study` (`@storystage/study`): the log, the session, the tasks with their checks, and the export file. S5 draws them in the studio, and wires the studio’s events to the session’s calls (6.6), as agreed on 17 Nov.
+
+1. **Off unless the school switches it on.** Study mode is on only when the policy in force has `study.enabled: true` from a trusted source (spec 05 section 3.3: a learner’s own file can’t switch it on). With it off, none of this section shows, and no log is started or written. Switching it off doesn’t delete logs already kept: Settings’ Study card stays until they are exported or deleted (6.8).
+
+2. **Who takes part.** Only learners whose parent or carer consented, and who agree on the day (`information-and-consent.md`).
+   - **With a class list:** in Class set-up’s pupil list, the teacher ticks **Taking part in the study** beside each pupil who may take part, once. The ticks are the study’s own list of pupil ids, kept in the study’s store on the device (6.7), never in a pupil’s folder, a production, Collect, an export or a log. A removed pupil’s tick goes with them.
+   - **With no class list** (a club, or home): when a film opens, a dialog asks the adult **Is this learner taking part in the study?**, **No** first and with focus. The answer lasts until the app closes.
+   - A learner not taking part sees nothing of the study, and no log is kept for them.
+
+3. **A session and its code.** A session starts when a ticked pupil’s folder opens (or the adult answers Yes), and ends when the folder closes, another opens, or the app closes.
+   - Each session has a new random **code** of eight letters and digits (no 0, O, 1, I or L), drawn evenly from 31 symbols with `crypto.getRandomValues`: about 40 bits, so two sessions in a study of thousands hardly ever share one. It isn’t made from the device, the pupil, the time or anything else, so sessions can’t be joined up. Nothing on the device links a code to a pupil.
+   - The **study bar**, one row of about 40 px in a Shell slot of its own under the header and above the stage (S5: never the notice slot, whose notes come and go), in a taking-part session only, shows "Study session K7P3-QX2M" and **Study tasks**. So a school that keeps a private list of codes (the consent sheets) can write one down. StoryStage never sees that list.
+   - A session that opens no study task and makes no switch keeps no log at all.
+
+4. **The study tasks.** **Study tasks** lists five tasks, the same in both editors, each about 10 minutes for a 9-year-old. Each opens its own prepared film, in memory only: nothing of the task is saved, saving pauses while it is open, and it never reaches the pupil’s folder. The learner’s own film and its undo history are kept aside, untouched, and closing the task returns them as they were. Each uses only blocks both editors have (section 5.6) and models the library ships (the owner’s choice, 17 Nov; the draft protocol’s animals aren’t in it).
+
+   | Task | The learner makes | Concept | Success, at the end of the scene’s run | Editor |
+   |---|---|---|---|---|
+   | T1 Say hello | Teddy walks to the tree, then says "Hello" | Sequence | Teddy is within 2 m of the tree (on the ground, centre to centre), faces it within 45°, and says "Hello" (compared as captions are, spec 08 section 9.4) no earlier than he first gets there | Held to the class default |
+   | T2 Together | Polybot moves to the fence while Teddy turns to watch | Do together | Polybot ends within 1.5 m of the fence; Teddy ends facing Polybot within 30°; Polybot’s moving and Teddy’s turning overlap for at least half a second | Held |
+   | T3 Three jumps | Dino kid jumps three times | Repetition | Dino kid leaves the ground by at least 0.3 m exactly three times, coming back down each time, and ends on the ground | Held |
+   | T4 Click me | When Autumn the dog is clicked, she says "Woof" | Events | In a run with a click on Autumn 1 second in, she says "Woof" after the click and not before it | Free |
+   | T5 Fix it | Red Riding Hood turns the wrong way: make her face Grandmother | Debugging | Red Riding Hood ends facing Grandmother within 30° | Free |
+
+   - **The task card,** in the Prompter’s place, on the right of the Production stage (its column, folding as it does), while a task is open: its title, its instruction in words and a picture, **Read it to me** (S7’s `readAloud` in `@storystage/speech`, on-device voices only, spec 06 section 2; not shown when `chooseVoice` finds none, checked again when the voices change; stopped when the card closes), **Hint** (one hint per task, in words), **Check my step** and **Stop this task**.
+   - **Check my step** plays the scene offscreen as the automatic check does (spec 08 section 9.2: deterministic, fixed steps, on the hidden stage the frame check’s `useCheckRun` already makes), through the check’s trace (below), and tests the task’s success. Success says "You did it!". Otherwise it says "Not quite yet. Rehearse it and watch what happens." It never says what’s wrong, which would be help that isn’t counted. A run stopped by an error says the error’s words, as the check does.
+   - **The check’s trace:** S2's `@storystage/check` gains `traceScene({ production, stage, startWorker, scene, events?, signal? })`, giving the run it already makes for a frame check (each step’s transforms, which blocks ran and when, what was said, and any error), with `events` played in at their times (T4's click, through `Playback.event`). The study’s success tests read it; the study never runs the program another way.
+   - **Fifteen minutes:** a task still open after 15 minutes ends with "Time’s up for this task. Well done for trying."
+   - **Then two questions,** after every task, however it ended: **How easy was that?** (three faces: Hard, OK, Easy) and **Which way of coding would you choose next time?** (Blocks, Tiles, Don’t mind). Each can be skipped. The answers are logged, never shown again.
+   - A task done in this session is ticked in the list and can’t be done again in it. Nothing records which tasks a pupil did in other sessions: the teacher says which tasks a lesson does.
+
+5. **The editor and the Prompter during a task.**
+   - **T1 to T3 hold the class’s default editor** (`editor.default`), as a lock does (section 4.3): the switch shows both names and can’t change, with the neutral note "Set to Blocks for this study task". Closing the task gives the switch back to the policy and the learner’s choice. T4 and T5 leave the switch as the policy has it, so learners can switch. No policy change is needed between lessons (the owner’s choice, 17 Nov).
+   - **The Prompter is held off** while a task is open, so it can’t confound help and no request goes to Anthropic as part of the study. The studio holds it off by giving the panel the level Off while a task is open (spec 04 section 4.5), and refreshes it as a task opens and closes; a level turning Off stops a request already running (S7). In place of the school-lock words the panel shows the neutral note "The Prompter is off during study tasks". It comes back when the task closes.
+
+6. **What the log holds.** Only these, each with `t`, milliseconds since the session started:
+
+   | Event | Fields | For |
+   |---|---|---|
+   | `session` | the date (`YYYY-MM-DD`, no time), the app’s version, the study class code and age band from Settings (6.8), the policy’s `editor.default` and `editor.locked`, and the editor showing | Who’s comparable with whom |
+   | `task` | the task (`T1`–`T5`), the editor showing, and whether it’s held | Time to success starts here |
+   | `switch` | from and to (`blocks`, `tiles`) | Switches, in a task or not |
+   | `edit` | none: one for each undoable step | "Not attempted" (no edits) |
+   | `undo`, `redo` | none: one for each step | Undo rate |
+   | `help` | `hint` or `learn` | Help requests |
+   | `check` | `success`, `notYet` or `error` | Task success; checks before success |
+   | `end` | `success`, `timeUp` or `stopped` | |
+   | `answer` | `ease` (`hard`, `ok`, `easy`, `skipped`) or `choice` (`blocks`, `tiles`, `dontMind`, `skipped`) | Ease; preference |
+
+   - **Never in it:** names, pupil ids, the class list, program content of any kind (no code, node ids, words said, error words or labels), pictures, camera, voice, the device’s name or any identifier of it, the time of day, and anything typed. An edit, undo or check is counted, never described.
+   - Outside a task only `session` and `switch` are logged.
+   - **Where they come from** (S5 wires them): each step the studio’s one history takes in a task is `edited()`, each Undo `undone()` and each Redo `redone()`; Learn opening is `help('learn')` and the task card’s Hint `help('hint')`; the switch is `switched(from, to)`; Check my step’s result is `checked(...)`. The task card opens and ends the task, and the questions’ dialog gives `answer(...)`.
+
+7. **Where it’s kept.** In the study’s own store on the device: a `FileStore` (`packages/host`, spec 05 section 6.1) rooted in a `study` folder beside the class folders, from S8's host as `host.study()`. One file per session (`<code>.json`), written after each event, so a crash keeps what happened, plus the ticks (6.2). It’s never in a pupil’s folder, so Collect never carries it, and nothing sends it anywhere: there’s no network code in `packages/study`. The diagnostic bundle says only whether study mode is on, as now.
+
+8. **Settings’ Study card** (in Class set-up, behind its teacher check, screen 11's "Study logs"), shown while study mode is on or logs are kept:
+   - **Study class code** and **Age band** (6–8, 9–11, 12–13), which the study team gives the teacher at recruitment. They go in each new session’s `session` event. The code is a short label (up to 12 letters, digits and dashes), never the class’s name.
+   - **Sessions on this device:** each session’s code and date, with how many tasks it did, and **Delete** for each (a pupil who withdraws, by the school’s private list), asked first and not undoable.
+   - **Export study logs:** saves one file through the system’s picker, `study-logs-<date>-<random>.json`: `{ "format": "storystage-study-log", "version": 1, "export": <a new random id>, "sessions": [...] }`, every session kept on the device, each as its events. Once the file is saved, it asks **Delete these logs from this device?** (**Delete from this device**, primary, and **Keep for now**), as the protocol asks (section 12.5). The teacher exports from each device; there is no gathering across devices in the first release.
+   - Leaving study mode on and exporting again later gives only the sessions kept since.
+
+9. **Screen readers and the keyboard.** The study bar is a labelled region ("Study"); the task card is a region named for its task; Check my step’s result is announced through `announce`; the two questions are radio groups in the design system’s Dialog, each with Skip as one of its radios, so each question is one Tab stop, and focus goes to the first. Every task can be done by keyboard alone in both editors, as parity proves (section 5).
 
 ## 7. Tests
 
@@ -282,3 +345,7 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | 4: the switch, its dialog, the hand-over, one history, the lock | `apps/studio/src/production/editorSwitch.test.tsx`, `apps/studio/e2e/switch.e2e.ts` | Component, then end to end |
 | 5.2–5.4, 5.6: the tasks four ways, the same program and labels; the same palettes | `apps/studio/e2e/parity.e2e.ts` | End to end (Playwright) |
 | 5.5: the round trip, every kind of node drawn and edited in the other editor | `apps/studio/e2e/parity.e2e.ts` | End to end (Playwright) |
+| 6.2, 6.3, 6.6: who takes part, the session code, what the log holds and never holds (each event against a list of what may be in it) | `packages/study/src/*.test.ts` | Unit |
+| 6.4: each task’s success test, passing on the task done right and failing on the film as it opens and on near misses, through the real runtime | `packages/study/src/tasks.test.ts` | Unit |
+| 6.7, 6.8: the store, the export file, delete after export, delete a session | `packages/study/src/*.test.ts`, `apps/studio/src/study/*.test.tsx` | Unit, component |
+| 6.1–6.5, 6.9: off without trusted policy; a ticked pupil’s session, a task done in each editor by keyboard, the held editor, the Prompter held off, the questions, then the export’s file read back | `apps/studio/e2e/study.e2e.ts` | End to end (Playwright) |
