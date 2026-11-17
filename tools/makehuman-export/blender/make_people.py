@@ -124,13 +124,117 @@ def blurred(values, mask, radius):
     return box(values * m) / np.maximum(box(m), 1e-6)
 
 
-def recoloured_outfit(colour, trousers=None, pattern=None):
+# Each pattern's tile, in metres on the body (owner, 17 Nov 2026: small flowers, not stretched).
+# Patterns are laid out on the cloth where it is on the body, not on its picture, so they're the
+# same size on every outfit and stay round on a lengthened skirt.
+PATTERN_TILES = {"checks": 0.022, "dots": 0.03, "flowers": 0.032, "flecks": 0.03}
+
+# A flower's centre, where its petals meet.
+FLOWER_CENTRE = (0.95, 0.8, 0.3)
+
+
+def lighter(colour, by):
+    """`colour` mixed towards white."""
+    return np.array(colour, dtype=np.float32) * (1 - by) + by
+
+
+def pattern_colours(pattern, colour, x, y):
+    """Each cloth pixel's colour before its shade, from where it is on the body (`x`, `y`, in
+    metres across and up the cloth): checks, spots, small five-petalled flowers or a knitted fleck
+    (owner, 17 Nov 2026)."""
+    base = np.array(colour, dtype=np.float32)
+    out = np.tile(base, (x.size, 1))
+    if pattern == "plain":
+        return out
+    tile = PATTERN_TILES[pattern]
+    if pattern == "checks":
+        across = np.floor(x / tile) % 2
+        down = np.floor(y / tile) % 2
+        return out * (1 - 0.28 * (across + down))[:, None]
+    if pattern == "flecks":
+        cell = tile / 10
+        i = np.floor(x / cell).astype(np.int64)
+        j = np.floor(y / cell).astype(np.int64)
+        h = ((i * 73856093) ^ (j * 19349663)) % 1000 / 1000
+        out[h > 0.86] = lighter(colour, 0.45)
+        out[h < 0.1] = base * 0.65
+        return out
+    # Spots and flowers sit at each tile's middle, every other row shifted half a tile.
+    row = np.floor(y / tile)
+    u = (x + (row % 2) * tile / 2) % tile - tile / 2
+    v = y % tile - tile / 2
+    if pattern == "dots":
+        out[np.hypot(u, v) < 0.22 * tile] = lighter(colour, 0.75)
+        return out
+    if pattern == "flowers":
+        petal = np.zeros(x.size, dtype=bool)
+        for k in range(5):
+            a = 2 * math.pi * k / 5
+            cu, cv = 0.2 * tile * math.cos(a), 0.2 * tile * math.sin(a)
+            petal |= np.hypot(u - cu, v - cv) < 0.13 * tile
+        out[petal] = lighter(colour, 0.7)
+        out[np.hypot(u, v) < 0.08 * tile] = FLOWER_CENTRE
+        return out
+    raise RuntimeError(f"Unknown pattern {pattern}")
+
+
+def surface_coords(obj, width, height):
+    """For each pixel of `obj`'s picture, where it lies on the cloth, in metres: across and up the
+    face it's on, seen from the front, the side or above, whichever that face looks towards. NaN
+    for a pixel no face uses. The cloth is as it will be shipped, so a lengthened skirt's pattern
+    isn't stretched with it."""
+    mesh = obj.data
+    scale = obj.matrix_world.to_scale()
+    across = np.full(width * height, np.nan, dtype=np.float64)
+    up = np.full(width * height, np.nan, dtype=np.float64)
+    uvs = mesh.uv_layers.active
+    if uvs is None:
+        raise RuntimeError(f"{obj.name} has no UVs")
+    mesh.calc_loop_triangles()
+    for tri in mesh.loop_triangles:
+        n = tri.normal
+        an = (abs(n.x), abs(n.y), abs(n.z))
+        # The two axes the face is seen across: from the front (x, z), the side (y, z) or above.
+        if an[1] >= an[0] and an[1] >= an[2]:
+            axes = (0, 2)
+        elif an[0] >= an[2]:
+            axes = (1, 2)
+        else:
+            axes = (0, 1)
+        corners = [mesh.vertices[i].co for i in tri.vertices]
+        uv = [uvs.data[i].uv for i in tri.loops]
+        px = np.array([c.x * width for c in uv])
+        py = np.array([c.y * height for c in uv])
+        x0, x1 = int(max(0, np.floor(px.min()))), int(min(width - 1, np.ceil(px.max())))
+        y0, y1 = int(max(0, np.floor(py.min()))), int(min(height - 1, np.ceil(py.max())))
+        if x1 < x0 or y1 < y0:
+            continue
+        gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+        d = (py[1] - py[2]) * (px[0] - px[2]) + (px[2] - px[1]) * (py[0] - py[2])
+        if abs(d) < 1e-9:
+            continue
+        a = ((py[1] - py[2]) * (gx - px[2]) + (px[2] - px[1]) * (gy - py[2])) / d
+        b = ((py[2] - py[0]) * (gx - px[2]) + (px[0] - px[2]) * (gy - py[2])) / d
+        c = 1 - a - b
+        inside = (a >= -1e-4) & (b >= -1e-4) & (c >= -1e-4)
+        if not inside.any():
+            continue
+        p = [np.array([co[k] * scale[k] for k in range(3)]) for co in corners]
+        pos = a[inside, None] * p[0] + b[inside, None] * p[1] + c[inside, None] * p[2]
+        index = (gy[inside].astype(np.int64)) * width + gx[inside].astype(np.int64)
+        across[index] = pos[:, axes[0]]
+        up[index] = pos[:, axes[1]]
+    return across, up
+
+
+def recoloured_outfit(colour, trousers=None, pattern=None, cloth_obj=None):
     """Everything but denim takes `colour`, and the denim takes `trousers` (owner, 16 Nov 2026:
     not every child in jeans); each keeps its folds, and either may be None to leave it. An
     outfit's shirt and jeans share one texture, so the jeans are told apart by being blue.
 
-    `pattern` (owner, 17 Nov 2026: not so many striped shirts) is "plain", with the pack's
-    stripes smoothed out of the picture and its folds kept, or "checks", a gingham laid over that.
+    `pattern` (owner, 17 Nov 2026: not so many striped shirts) smooths the pack's stripes out of
+    the picture, keeping its folds, and lays a pattern over that (`pattern_colours`), placed by
+    where the cloth is on the body (`surface_coords`, from `cloth_obj`).
     """
 
     def shaded(rgba, where, colour, shade=None):
@@ -142,7 +246,7 @@ def recoloured_outfit(colour, trousers=None, pattern=None):
     def paint(rgba, size):
         r, g, b = rgba[:, 0], rgba[:, 1], rgba[:, 2]
         denim = (b > r + 0.04) & (b >= g)
-        if colour is not None and pattern in ("plain", "checks"):
+        if colour is not None and pattern is not None:
             width, height = size
             cloth = (~denim) & (rgba[:, 3] > 0.1)
             light = rgba[:, :3].max(axis=1)
@@ -152,13 +256,18 @@ def recoloured_outfit(colour, trousers=None, pattern=None):
             mask = cloth.reshape(height, width)
             smooth = blurred(light.reshape(height, width), mask, radius)
             smooth = blurred(smooth, mask, radius).ravel()
-            if pattern == "checks":
-                period = max(8, width // 40)
-                y, x = np.divmod(np.arange(width * height), width)
-                across = (x // period) % 2
-                down = (y // period) % 2
-                smooth = smooth * (1 - 0.28 * (across + down))
-            shaded(rgba, ~denim, colour, smooth)
+            where = ~denim
+            top = np.percentile(smooth[where], 90) if where.any() else 1.0
+            shade = np.clip(smooth[where] / max(top, 1e-3), 0, 1)
+            across, up = surface_coords(cloth_obj, width, height)
+            x, y = across[where], up[where]
+            # A pixel no face uses (padding at the picture's seams) takes its neighbour's colour
+            # through filtering at most; any place will do.
+            missing = np.isnan(x)
+            x[missing] = 0.0
+            y[missing] = 0.0
+            colours = pattern_colours(pattern, colour, x, y)
+            rgba[where, :3] = shade[:, None] * colours
         elif colour is not None:
             shaded(rgba, ~denim, colour)
         if trousers is not None:
@@ -169,19 +278,9 @@ def recoloured_outfit(colour, trousers=None, pattern=None):
     return paint
 
 
-def straighten_hem(outfit, rig):
-    """A child's skirt hangs to a point between the legs when the pack's skirt is fitted to a
-    child's body (found in the renders, 16 Nov 2026). The skirt's hem is brought level at the
-    height most of it hangs to. Only the piece reaching from above the hips to the hem moves; the
-    socks, a piece of their own, stay."""
-    import bmesh
-
-    pelvis = rig.data.bones.get("pelvis")
-    if pelvis is None:
-        raise RuntimeError("No pelvis bone to find the hips by")
-    hips = (outfit.matrix_world.inverted() @ rig.matrix_world @ pelvis.head_local).z
-    bm = bmesh.new()
-    bm.from_mesh(outfit.data)
+def skirt_piece(bm, hips):
+    """The outfit's piece that reaches from above the hips down past them: the skirt and its
+    blouse, not the socks, which are a piece of their own."""
     seen, pieces = set(), []
     for start in bm.verts:
         if start in seen:
@@ -200,7 +299,31 @@ def straighten_hem(outfit, rig):
     spanning = [p for p in pieces if max(v.co.z for v in p) > hips > min(v.co.z for v in p)]
     if not spanning:
         raise RuntimeError("No skirt reaching past the hips")
-    skirt = max(spanning, key=len)
+    return max(spanning, key=len)
+
+
+def bone_at(rig, outfit, name):
+    """Where a bone starts, in the outfit's own space."""
+    bone = rig.data.bones.get(name)
+    if bone is None:
+        raise RuntimeError(f"No {name} bone")
+    return outfit.matrix_world.inverted() @ rig.matrix_world @ bone.head_local
+
+
+def bone_z(rig, outfit, name):
+    return bone_at(rig, outfit, name).z
+
+
+def straighten_hem(outfit, rig):
+    """A child's skirt hangs to a point between the legs when the pack's skirt is fitted to a
+    child's body, and some adults' a little (found in the renders, 16 and 17 Nov 2026). The hem is
+    brought level at the height most of it hangs to; only the skirt's own piece moves."""
+    import bmesh
+
+    hips = bone_z(rig, outfit, "pelvis")
+    bm = bmesh.new()
+    bm.from_mesh(outfit.data)
+    skirt = skirt_piece(bm, hips)
     hem = sorted(v.co.z for v in skirt if v.is_boundary and v.co.z < hips)
     if not hem:
         raise RuntimeError("No hem found")
@@ -214,6 +337,43 @@ def straighten_hem(outfit, rig):
     bm.free()
     outfit.data.update()
     print(f"straightened the hem at {level:.3f}: {moved} vertices", flush=True)
+
+
+def lengthen_skirt(outfit, rig, body):
+    """An ankle-length skirt (owner, 17 Nov 2026: Margaret's): below the hips the skirt is
+    stretched down to just above the ankles, and widens towards its hem so it stays clear of the
+    legs, which stand apart. Its vertices keep their skin weights, so it moves with the legs."""
+    import bmesh
+
+    hips = bone_z(rig, outfit, "pelvis")
+    ankle = min(bone_z(rig, outfit, "foot_l"), bone_z(rig, outfit, "foot_r"))
+    bm = bmesh.new()
+    bm.from_mesh(outfit.data)
+    skirt = skirt_piece(bm, hips)
+    below = [v for v in skirt if v.co.z < hips]
+    hem = min(v.co.z for v in below)
+    target = ankle + 0.03
+    if target >= hem:
+        raise RuntimeError("The skirt already reaches the ankles")
+    cx = sum(v.co.x for v in below) / len(below)
+    cy = sum(v.co.y for v in below) / len(below)
+    # How far apart the legs stand at the hem, from the ankle joints, with room for the leg
+    # itself (the body's surface at that height wasn't found in the first trial, 17 Nov).
+    ankles = [bone_at(rig, outfit, name) for name in ("foot_l", "foot_r")]
+    needed = max(abs(a.x - cx) for a in ankles) + 0.08
+    width = max(abs(v.co.x - cx) for v in below if v.co.z < hem + 0.02)
+    spread = max(1.0, needed / max(width, 1e-6))
+    for v in below:
+        t = (hips - v.co.z) / (hips - hem)
+        v.co.z = hips - t * (hips - target)
+        # Wider steadily from the hips, and front to back by at least a third at the hem: widening
+        # only near the hem left the knees showing through (trial of 17 Nov).
+        v.co.x = cx + (v.co.x - cx) * (1 + (spread - 1) * t)
+        v.co.y = cy + (v.co.y - cy) * (1 + max(spread - 1, 0.35) * t)
+    bm.to_mesh(outfit.data)
+    bm.free()
+    outfit.data.update()
+    print(f"lengthened the skirt to {target:.3f}, widened {spread:.2f} times at the hem", flush=True)
 
 
 def make_solid(obj):
@@ -715,23 +875,28 @@ def make_person(info, models):
         repaint(hair, tinted_hair(extra["hairTint"]))
 
     parts = ObjectService.get_list_of_children(rig)
-    if extra["clothesColour"] or extra.get("trousersColour"):
-        outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
-        if outfit is None:
-            raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
-        repaint(
-            outfit,
-            recoloured_outfit(
-                extra["clothesColour"], extra.get("trousersColour"), extra.get("pattern")
-            ),
-        )
+    outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
+    # The skirt is shaped first, so a pattern painted on it afterwards isn't stretched.
     if extra.get("straightHem"):
-        outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
         if outfit is None:
             raise RuntimeError(f"No {extra['outfit']} to straighten")
         if outfit.data.shape_keys:
             raise RuntimeError(f"{extra['outfit']} has shape keys; its hem can't be moved")
         straighten_hem(outfit, rig)
+        if extra.get("longSkirt"):
+            lengthen_skirt(outfit, rig, basemesh)
+    if extra["clothesColour"] or extra.get("trousersColour"):
+        if outfit is None:
+            raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
+        repaint(
+            outfit,
+            recoloured_outfit(
+                extra["clothesColour"],
+                extra.get("trousersColour"),
+                extra.get("pattern"),
+                outfit,
+            ),
+        )
 
     # Pieces no community pack has, made here from the person's own head (owner, 16 Nov 2026).
     if extra.get("headwear"):
