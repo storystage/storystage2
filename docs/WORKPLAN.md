@@ -637,8 +637,8 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
     (C)
 - [x] 7.3 Undo and redo across the scene view and the Code editor, with project history. Project history is the studio's one undo history, shared by the three tabs (owner, 16 Nov). (C)
-- [ ] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. (C)
-- [ ] 7.5 Keyboard paths for both views, and accessible names on every control. (C)
+- [x] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. **Play and pause, restart, half, normal and double speed, Rehearse to here, Stop, and a switched-off block skipped (17 Nov); the run that reaches a frame marks it Rehearsed.** (C)
+- [x] 7.5 Keyboard paths for both views, and accessible names on every control. **Checked 17 Nov: axe finds nothing serious in eleven states of the Production stage at 1366 and 1180; the Blocks editor adds, answers, moves and deletes by keyboard alone, each said aloud, with focus kept.** (C)
 
 **Done when:** milestone M2's gate passes, with a manual test script for M2 in `docs/test/`.
 

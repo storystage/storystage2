@@ -32,6 +32,8 @@ export type MenuAction =
   | { readonly kind: 'switch' }
   | { readonly kind: 'addDetail'; readonly detail: string }
   | { readonly kind: 'removeDetail'; readonly detail: string }
+  | { readonly kind: 'moveUp' }
+  | { readonly kind: 'moveDown' }
   | { readonly kind: 'duplicate' }
   | { readonly kind: 'delete' };
 
@@ -51,7 +53,16 @@ const detailWords = (detail: string) => STORY[`detail.${detail}`] ?? detail;
 function placeOf(program: Program, node: NodeId) {
   const at = indexProgram(program).get(node);
   if (!at || !isStatement(at.node) || at.parent === null || typeof at.key !== 'number') return null;
-  return { statement: at.node, parent: at.parent, slot: at.slot as StatementSlot, index: at.key };
+  const list = (indexProgram(program).get(at.parent)?.node as unknown as Record<string, unknown[]>)[
+    at.slot
+  ];
+  return {
+    statement: at.node,
+    parent: at.parent,
+    slot: at.slot as StatementSlot,
+    index: at.key,
+    length: list?.length ?? 0,
+  };
 }
 
 /** The details a block has been given that the learner may take out (not the script's line). */
@@ -81,6 +92,10 @@ export function menuFor(program: Program, node: NodeId): readonly MenuItem[] {
       words: fillIn(WORDS['menu.removeDetail']!, { detail: detailWords(d) }),
     });
   if (place) {
+    // One place up or down in its list, as Tiles' Alt+↑ and Alt+↓ (14-editors 3d).
+    if (place.index > 0) items.push({ action: { kind: 'moveUp' }, words: WORDS['menu.moveUp']! });
+    if (place.index < place.length - 1)
+      items.push({ action: { kind: 'moveDown' }, words: WORDS['menu.moveDown']! });
     items.push({ action: { kind: 'duplicate' }, words: WORDS['menu.duplicate']! });
     items.push({ action: { kind: 'delete' }, words: WORDS['menu.delete']! });
   }
@@ -141,6 +156,14 @@ export function changeFor(
       return drop.ok
         ? { ok: true, edits: drop.edits, label: drop.label }
         : { ok: false, reason: drop.reason };
+    }
+    case 'moveUp':
+    case 'moveDown': {
+      if (!place) return gone();
+      const index = place.index + (action.kind === 'moveUp' ? -1 : 1);
+      if (index < 0) return { ok: false, reason: WORDS['menu.top']! };
+      if (index >= place.length) return { ok: false, reason: WORDS['menu.bottom']! };
+      return single(program, { kind: 'move', node, parent: place.parent, slot: place.slot, index });
     }
     case 'removeDetail':
       return single(program, {
