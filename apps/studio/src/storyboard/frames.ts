@@ -12,7 +12,11 @@ import {
   type SceneId,
 } from '@storystage/production';
 import type { ShotType } from '@storystage/story-api';
+import { sceneFrames } from '@storystage/staging';
 import { LIMITS } from './edits.ts';
+
+// Setting the stage needs it too, so it lives with that (`@storystage/staging`).
+export { sceneFrames };
 
 /** A frame's planned length, in whole seconds (`07-ux.md` section 6.5). */
 export const FRAME_LENGTH = { min: 1, max: 30, start: 3 } as const;
@@ -35,10 +39,6 @@ function freeFrameId(p: Production): FrameId {
     if (!taken.has(id) && SAFE_ID.test(id)) return frameId(id);
   }
 }
-
-/** A scene's frames in order. */
-export const sceneFrames = (p: Production, scene: SceneId): Frame[] =>
-  p.frames.filter((f) => f.scene === scene).sort((a, b) => a.order - b.order);
 
 /** Puts a scene's frames in the order given, numbering them from 0, and leaves the rest alone. */
 function withSceneFrames(p: Production, scene: SceneId, ordered: readonly Frame[]): Production {

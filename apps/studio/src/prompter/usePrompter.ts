@@ -13,7 +13,7 @@ import {
 } from '@storystage/prompter';
 import type { BackstageId } from '@storystage/story-api';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import { placeFromStoryboard, storyboardPlan } from '../production/fromStoryboard.ts';
+import { placeFromStoryboard, storyboardPlan } from '@storystage/staging';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import type { Studio } from '../studio.ts';
 

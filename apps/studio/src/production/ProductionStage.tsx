@@ -25,7 +25,7 @@ import {
   placeFromStoryboard,
   storyboardPlan,
   type PlanBackstage,
-} from './fromStoryboard.ts';
+} from '@storystage/staging';
 import { StoryboardSetup } from './StoryboardSetup.tsx';
 import { liveLinks, withLink } from './links.ts';
 import { MARKER_KEY, ObjectsPanel } from './ObjectsPanel.tsx';

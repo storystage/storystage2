@@ -35,9 +35,14 @@ import type {
   Transform,
   Vec3,
 } from '@storystage/story-api';
-import { sceneFrames } from '../storyboard/frames.ts';
-import { STANDARD_HEIGHT } from '../storyboard/FramePicture.tsx';
-import { backdropPartOf, withBackdrop, withCamera, type BackdropPart } from './setup.ts';
+import {
+  STANDARD_HEIGHT,
+  backdropPartOf,
+  sceneFrames,
+  withBackdrop,
+  withCamera,
+  type BackdropPart,
+} from './scene.ts';
 
 /** The stage's lens when the camera has no field of view of its own: Alice's, in turns. */
 export const DEFAULT_LENS = 0.5 / (2 * Math.PI);
