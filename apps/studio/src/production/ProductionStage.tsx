@@ -633,6 +633,11 @@ export function ProductionStage({
                       : words.t('production.objects.standIn', { kind: o.model.standIn })
                   }
                 />
+                {/* The browser version says so where the Prompter would be (12b), in the side
+                    column, so the code below keeps its height. */}
+                {prompter === null && (
+                  <NeutralNote>{uiMessages.t('note.prompterNotInBrowser')}</NeutralNote>
+                )}
                 {frame && open && (
                   <FrameCheckArea
                     studio={studio}
@@ -725,9 +730,6 @@ export function ProductionStage({
                 {words.t('production.closed.goToStoryboard')}
               </Button>
             </section>
-          )}
-          {prompter === null && (
-            <NeutralNote>{uiMessages.t('note.prompterNotInBrowser')}</NeutralNote>
           )}
         </div>
         {prompter && (
