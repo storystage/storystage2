@@ -57,6 +57,13 @@ describe('stepWords (spec 04, section 6.1, step 5)', () => {
     expect(stepWords(says, world)).toBe("Fox say Don't be scared. I'm lost too.");
   });
 
+  it('keeps to under 20 words, cutting a long line short', () => {
+    const long = { ...world, lines: new Map([['l9', 'word '.repeat(60).trim()]]) };
+    const words = stepWords(step({ actor: 'fox', action: 'say', line: 'l9' }), long);
+    expect(words.split(' ')).toHaveLength(19);
+    expect(words.endsWith('…')).toBe(true);
+  });
+
   it('says how often and whether it runs with the step before', () => {
     const hops = step({
       details: [

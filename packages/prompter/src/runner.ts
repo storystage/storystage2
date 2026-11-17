@@ -106,7 +106,8 @@ export interface RunnerSetup<S extends string = string> {
    * Keeps the agreed plan with its frame (section 6.7), in the build's own undo step: called once,
    * as the build's group opens, when the request carries an agreed plan for a frame. `shown` is
    * the Prompter's plan as last proposed or revised, `agreed` the learner's version. It returns
-   * the production with the plan kept, and may change nothing in the program.
+   * the production with the plan kept, and may change nothing in the program. Returning `p`
+   * itself keeps nothing; so does throwing, and the build goes on either way.
    */
   readonly keepPlan?: (p: Production, plan: KeptPlan) => Production;
 }
@@ -565,7 +566,15 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         shown: this.#plans.get(agreed.plan)?.steps ?? agreed.steps,
         agreed: agreed.steps,
       };
-      session.change(label, source, (p) => withoutProgram(keepPlan(p, plan)));
+      // Keeping the plan never stops the build: a plan that isn't kept (one the studio finds too
+      // big, or a keepPlan that fails) is simply not kept, and nothing is recorded for it.
+      let kept: Production;
+      try {
+        kept = keepPlan(session.production(), plan);
+      } catch {
+        kept = session.production();
+      }
+      if (kept !== session.production()) session.change(label, source, () => withoutProgram(kept));
     }
   }
 

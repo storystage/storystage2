@@ -583,7 +583,7 @@ In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes
 The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
 
 - **Where:** `Frame.plan` (S4, format 1.6.0): when it was agreed, the plan as the Prompter last proposed or revised it (`shown`), and as the learner built it (`agreed`). What the learner changed is read by comparing the two, step by step.
-- **When:** in the build's own undo step, so Undo takes the plan back with what it built. The runner's `keepPlan(p, { frame, shown, agreed })` is called once, as the build's group opens, and the studio's version writes it with `withFramePlan`. A build that changes nothing makes no step, so it keeps nothing.
+- **When:** in the build's own undo step, so Undo takes the plan back with what it built. The runner's `keepPlan(p, { frame, shown, agreed })` is called once, as the build's group opens, and the studio's version writes `{ agreedAt, shown, agreed }` with `withFramePlan` when `isFramePlan` accepts it. A build that changes nothing makes no step, so it keeps nothing. Keeping never stops a build: if `keepPlan` returns `p` unchanged, or throws, nothing is kept and nothing is recorded for it.
 
 ## 7. Errors
 

@@ -674,6 +674,36 @@ describe('PrompterRunner: keeping the plan with its frame (spec 04, section 6.7)
     expect(session.production().frames).toEqual(original.frames);
   });
 
+  it("keeps nothing, and records nothing, when keepPlan won't keep the plan; the build goes on", () => {
+    for (const keepPlan of [
+      (p: Production) => p,
+      () => {
+        throw new Error('That plan is too long to keep.');
+      },
+    ]) {
+      const { runner, run, session } = setUp('s2', exampleProduction(), { keepPlan });
+      runner.begin('code frame f2', {});
+      run('propose_plan', { frame: 'f2', steps: [line()] });
+      runner.end();
+      runner.begin('Build these steps.', agreed([line()], 'f2'));
+      expect(
+        run('insert_statement', {
+          method: 'myFirstMethod',
+          position: 'end',
+          target: 'fox',
+          procedure: 'say',
+          arguments: [{ name: 'text', value: "Don't be scared. I'm lost too." }],
+          line: 'l3',
+          narration: 'The fox speaks.',
+          plan_step: 1,
+        }),
+      ).toMatchObject({ ok: true });
+      runner.end();
+      expect(session.history()).toHaveLength(1);
+      expect(session.production().frames).toEqual(exampleProduction().frames);
+    }
+  });
+
   it('keeps nothing for a plan with no frame, or a build that changed nothing', () => {
     const kept: unknown[] = [];
     const { runner, run } = setUp('s2', exampleProduction(), {

@@ -9,6 +9,9 @@ import { DETAILS, enumValues, findEntry, isEnumName, type TypeName } from '@stor
 import { fill, word } from '@storystage/story-api/editing';
 import type { NameValue, PlanStep, PlanWorld } from './plans.ts';
 
+/** A step's words are under 20 words (section 6.2), which also keeps a kept plan in the format's limits. */
+export const STEP_WORDS_MAX = 19;
+
 /** A value's words: an enum's own words, anything else as given. */
 function valueWords(value: string, type: TypeName | undefined): string {
   if (type && isEnumName(type) && enumValues(type).includes(value))
@@ -62,6 +65,9 @@ export function stepWords(step: PlanStep, world: PlanWorld): string {
   }
   if (step.repeat > 1) words += `, ${step.repeat} times`;
   if (step.together) words += ', at the same time as the step before';
-  const end = /[.!?]$/.test(words) ? '' : '.';
+  // A long script line is cut short here; the block still says all of it.
+  const all = words.split(/\s+/);
+  if (all.length > STEP_WORDS_MAX) words = `${all.slice(0, STEP_WORDS_MAX).join(' ')}…`;
+  const end = /[.!?…]$/.test(words) ? '' : '.';
   return words[0]!.toUpperCase() + words.slice(1) + end;
 }
