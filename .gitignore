@@ -21,3 +21,5 @@ Thumbs.db
 # Speak line's engine files, fetched by pnpm speech:fetch (spec 06, 4.6), and their download cache
 .speech/
 .speech-cache/
+# A live evaluation run's own output, until the owner has read it (docs/eval/README.md)
+docs/eval/results/local/

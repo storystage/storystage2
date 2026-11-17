@@ -12,6 +12,9 @@
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/backstage": "workspace:*",
+    "@storystage/production": "workspace:*",
     "@storystage/prompter": "workspace:*",
     "@storystage/story-api": "workspace:*"
   }
