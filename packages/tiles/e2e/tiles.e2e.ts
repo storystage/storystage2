@@ -6,6 +6,17 @@ import { expect, test, type Page } from '@playwright/test';
 
 const PAGE = 'http://localhost:4183/';
 const WCAG_22_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+/** Best-practice rules, outside the WCAG tags, that an open menu must also pass (S5's ask). */
+const MENU_RULES = ['aria-dialog-name'];
+
+/** Axe's serious and critical findings with a menu open: WCAG 2.2 AA, and MENU_RULES. */
+async function seriousWithMenuOpen(page: Page) {
+  const wcag = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  const menu = await new AxeBuilder({ page }).withRules(MENU_RULES).analyze();
+  return [...wcag.violations, ...menu.violations]
+    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+}
 const SIZES = [
   { name: 'laptop', width: 1536, height: 864 },
   { name: 'Chromebook', width: 1366, height: 768 },
@@ -208,8 +219,7 @@ test('choosing a value from its menu, with axe finding nothing while it is open'
   const menu = page.getByRole('menu', { name: 'direction' });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('menuitemradio', { name: 'forward' })).toBeFocused();
-  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
-  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
   await menu.getByRole('menuitemradio', { name: 'backward' }).click();
   await expect(item(page, 'cat move backward 1 how long 2 add detail')).toBeVisible();
 });
@@ -401,3 +411,18 @@ for (const size of SIZES)
       expect(box.height).toBeGreaterThanOrEqual(44);
     }
   });
+
+test('the add-detail menu is named, with axe finding nothing while it is open', async ({
+  page,
+}) => {
+  await open(page);
+  await page
+    .locator('[data-key="saystm"]')
+    .getByRole('button', { name: 'add detail', exact: true })
+    .click();
+  await expect(page.getByRole('menu', { name: 'add detail' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'add detail' })).toBeAttached();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+});
