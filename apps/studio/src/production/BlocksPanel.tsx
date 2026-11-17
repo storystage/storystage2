@@ -98,7 +98,11 @@ export default function BlocksPanel({
   const editor = useRef<BlocksEditor | null>(null);
   // The text size scales the blocks too; a new size draws the method again at that size.
   const scale = Number(useThemeStyle()['--ss-text-size' as keyof CSSProperties] ?? 1) || 1;
-  const [ready, setReady] = useState(false);
+  // How many times the editor has been made: a new one (another method, a new text size) starts
+  // on the scene's actions with nothing highlighted, so the effects below give it the palette and
+  // the highlights again each time.
+  const [mounts, setMounts] = useState(0);
+  const ready = mounts > 0;
   const [question, setQuestion] = useState<Question | null>(null);
   const [detail, setDetail] = useState<DetailQuestion | null>(null);
   const [variable, setVariable] = useState<VariableQuestion | null>(null);
@@ -176,7 +180,7 @@ export default function BlocksPanel({
           if (editor.current === blocks) blocks.focus(given.focus ?? undefined);
         })
       : 0;
-    setReady(true);
+    setMounts((n) => n + 1);
     return () => {
       cancelAnimationFrame(refocus);
       editor.current = null;
@@ -189,18 +193,18 @@ export default function BlocksPanel({
 
   useEffect(() => {
     editor.current?.setPalette(target, tab);
-  }, [target, tab, ready]);
+  }, [target, tab, mounts]);
 
   useEffect(() => {
     editor.current?.highlight(highlights.rehearse, 'rehearse');
-  }, [highlights.rehearse, ready]);
+  }, [highlights.rehearse, mounts]);
   useEffect(() => {
     editor.current?.highlight(highlights.error, 'error');
-  }, [highlights.error, ready]);
+  }, [highlights.error, mounts]);
   const links = highlights.link ?? NO_MARKS;
   useEffect(() => {
     editor.current?.highlight(links, 'link');
-  }, [links, ready]);
+  }, [links, mounts]);
 
   return (
     <div className="pr-workspace-frame">

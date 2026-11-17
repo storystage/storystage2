@@ -21,10 +21,30 @@ async function key(page: Page, name: string) {
   await page.waitForTimeout(150);
 }
 
+/**
+ * Where focus is after a drop: Blocks puts it on the new block once it's drawn again, a moment
+ * later under load, so the next walk waits for it as a learner sees it (`selector` is the block's).
+ */
+async function focusIn(page: Page, selector: string) {
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (s) => !!document.activeElement?.closest(`.pr-workspace ${s}:not(.blocklyFlyout *)`),
+        selector,
+      ),
+    )
+    .toBe(true);
+}
+
 /** Into the flyout from New, then down to the block whose entry is `entry`. */
 async function toFlyoutBlock(page: Page, entry: string) {
-  await page.getByRole('button', { name: 'New in scene 1' }).focus();
-  await key(page, 'Tab');
+  const inFlyout = () =>
+    page.evaluate(() => !!document.activeElement?.closest('.pr-workspace .blocklyFlyout'));
+  await expect(async () => {
+    await page.getByRole('button', { name: 'New in scene 1' }).focus();
+    await key(page, 'Tab');
+    expect(await inFlyout()).toBe(true);
+  }).toPass();
   const at = () =>
     page.evaluate(() =>
       document.activeElement?.closest('[data-callee]')?.getAttribute('data-callee'),
@@ -80,6 +100,7 @@ test('a variable, set, and a count up to it, by keyboard, each asked as Tiles as
     'There’s no variable here to set. Put in a variable above it first.',
   );
   await expect(blocksOf(page, 'ss_assign')).toHaveCount(0);
+  await focusIn(page, '.ss_method');
 
   // A variable after the say: its name and what it holds, then what it starts as.
   await toFlyoutBlock(page, 'control:variable');
@@ -100,6 +121,7 @@ test('a variable, set, and a count up to it, by keyboard, each asked as Tiles as
   const local = (await blocksOf(page, 'ss_local').getAttribute('data-id'))!;
   const afterVariable = await undoButton(page).textContent();
   expect(afterVariable).toMatch(/^Undo: Add /);
+  await focusIn(page, '.ss_local');
 
   // A count after it, counting up to steps: the cascade offers the variable in scope.
   await toFlyoutBlock(page, 'control:count');
@@ -116,6 +138,7 @@ test('a variable, set, and a count up to it, by keyboard, each asked as Tiles as
     .click();
   await expect(undoButton(page)).toHaveText('Undo: Add count up to steps');
   await expect(blocksOf(page, 'ss_count')).toContainText('steps');
+  await focusIn(page, '.ss_count');
 
   // Set, now there's a variable above: which one, then its new value.
   await toFlyoutBlock(page, 'control:assign');

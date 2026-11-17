@@ -36,7 +36,7 @@ import {
 } from '@storystage/editor-contract';
 import { changeFor, detailPlace, menuFor, type MenuAction } from './blockMenu.ts';
 import { defineBlocks } from './definitions.ts';
-import { dropFromPalette, freshIn, type AskRequest, type Fresh } from './drops.ts';
+import { dropFromPalette, freshIn, holdsKnown, type AskRequest, type Fresh } from './drops.ts';
 import { ADD_DETAIL_INPUT, AddDetailField } from './addDetail.ts';
 import { dragsAlone } from './drag.ts';
 import { editsFor } from './gestures.ts';
@@ -253,6 +253,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   let tab: PaletteTab = 'actions';
   /** While the cascade asks about a dropped block, the workspace waits. */
   let asking = false;
+  /** The block last picked up, by pointer or Blockly's move (M), until its drag is settled. */
+  let moving: NodeId | null = null;
 
   /** The palette for the chosen object, as the program has it now. */
   function updatePalette() {
@@ -290,7 +292,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
 
   /**
    * The blocks back as the program has them, with focus on the block the learner was on: a move
-   * by keyboard that's refused (or left outside the method) keeps their place.
+   * by keyboard that's refused (or left outside the method) keeps their place. If Blockly hasn't
+   * given the moved block focus back yet (later under load), focus goes to that block.
    */
   function putBack() {
     const was = Blockly.getFocusManager().getFocusedNode();
@@ -300,7 +303,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         : was instanceof Blockly.Field
           ? was.getSourceBlock()
           : null;
-    const id = block && block.workspace === ws ? (block.id as NodeId) : null;
+    const id = block && block.workspace === ws ? (block.id as NodeId) : moving;
     rebuild();
     if (id) focusOn(id);
   }
@@ -315,6 +318,15 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       settling = setTimeout(settle, 50);
       return;
     }
+    try {
+      settleNow();
+    } finally {
+      moving = null;
+    }
+  }
+
+  function settleNow() {
+    if (!ws || !host || owner === null) return;
     let read;
     try {
       read = fromBlocks(Blockly.serialization.workspaces.save(ws) as WorkspaceState);
@@ -325,7 +337,11 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     }
     // A block from the palette, landed in the method. (A value it took the place of is left
     // loose on the workspace by Blockly; the drop's edits take it out.)
-    const fresh = freshIn(host.program(), read);
+    const program = host.program();
+    const fresh = freshIn(program, read);
+    // A palette block holding blocks the program has (a drag begun before the drop was a step,
+    // landed in it; S6's find): never made a step, which would copy them. They go back.
+    if (fresh.some((f) => holdsKnown(program, f))) return putBack();
     if (fresh.length === 1) return void dropped(fresh[0]!);
     if (fresh.length > 1) return putBack();
     if (ws.getTopBlocks(false).some((b) => b.id !== owner)) {
@@ -499,7 +515,18 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   }
 
   function onChange(e: Blockly.Events.Abstract) {
-    if (loading || asking || e.isUiEvent) return;
+    if (loading || asking) return;
+    if (e instanceof Blockly.Events.BlockDrag && e.isStart && e.blockId) {
+      moving = e.blockId as NodeId;
+    }
+    // A drag's end is settled as soon as Blockly is done with it, not at the next look 50 ms on,
+    // so a quick learner's next drag is less likely to begin before the drop is a step.
+    if (e instanceof Blockly.Events.BlockDrag && !e.isStart) {
+      if (settling !== null) clearTimeout(settling);
+      settling = setTimeout(settle, 0);
+      return;
+    }
+    if (e.isUiEvent) return;
     if (settling === null) settling = setTimeout(settle, 0);
   }
 
