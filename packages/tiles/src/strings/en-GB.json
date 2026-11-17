@@ -60,5 +60,6 @@
   "tiles.variable.badName": "A name starts with a letter, and has only letters, digits and _ in it.",
   "tiles.variable.taken": "{name} is already used here. Choose another name.",
   "tiles.assign.title": "Which variable to set",
-  "tiles.assign.none": "There’s no variable here to set. Put in a variable above it first."
+  "tiles.assign.none": "There’s no variable here to set. Put in a variable above it first.",
+  "tiles.rowMenu": "Menu for {what}"
 }

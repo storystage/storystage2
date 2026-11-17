@@ -437,5 +437,16 @@
   "value.SceneEdge.back": "the back",
   "value.SceneEdge.front": "the front",
   "value.JointChain.neck": "neck",
-  "value.JointChain.tail": "tail"
+  "value.JointChain.tail": "tail",
+  "menu.switchOff": "Switch off",
+  "menu.switchOn": "Switch on",
+  "menu.addDetail": "Add detail: {detail}",
+  "menu.removeDetail": "Take out {detail}",
+  "menu.duplicate": "Duplicate",
+  "menu.delete": "Delete",
+  "menu.gone": "That block isn’t there any more.",
+  "menu.moveUp": "Move up",
+  "menu.moveDown": "Move down",
+  "menu.top": "It’s already at the top.",
+  "menu.bottom": "It’s already at the bottom."
 }

@@ -426,3 +426,42 @@ test('the add-detail menu is named, with axe finding nothing while it is open', 
   await page.keyboard.press('Escape');
   await expect(page.getByRole('menu')).toHaveCount(0);
 });
+
+// A row's menu (spec 14, 2.6 and 3c.7): right-click, a long press by touch, or the Menu key.
+
+test('a right-click opens the row’s menu, named and axe clean, and its choice is one step', async ({
+  page,
+}) => {
+  await open(page);
+  await page.locator('[data-key="saystm"]').click({ button: 'right', position: { x: 60, y: 20 } });
+  const menu = page.getByRole('menu', { name: 'Menu for cat say' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await menu.getByRole('menuitem', { name: 'Switch off' }).click();
+  await expect(item(page, 'cat say Hello (switched off) add detail')).toBeVisible();
+  expect(await last(page)).toBe('Switch off cat say Hello');
+});
+
+test('a long press by touch opens the row’s menu; Escape closes it with nothing changed', async ({
+  page,
+}) => {
+  await open(page);
+  const row = page.locator('[data-key="saystm"]');
+  const box = (await row.boundingBox())!;
+  const at = {
+    pointerType: 'touch',
+    isPrimary: true,
+    button: 0,
+    clientX: box.x + 60,
+    clientY: box.y + 20,
+  };
+  await row.dispatchEvent('pointerdown', at);
+  await page.waitForTimeout(650);
+  await row.dispatchEvent('pointerup', at);
+  const menu = page.getByRole('menu', { name: 'Menu for cat say' });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(item(page, 'cat say Hello add detail')).toBeVisible();
+});

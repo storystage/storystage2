@@ -6,6 +6,7 @@ export * from './build.ts';
 export * from './cascade.ts';
 export * from './drop.ts';
 export * from './labels.ts';
+export * from './menu.ts';
 export * from './names.ts';
 export * from './palette.ts';
 export * from './words.ts';
