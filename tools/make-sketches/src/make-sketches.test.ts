@@ -108,24 +108,22 @@ describe('makeSketches', () => {
     );
   });
 
-  it('draws named sketches as an outline only, and stops listing those looked at and kept', async () => {
+  it('draws named sketches simplified, and stops listing those looked at and kept', async () => {
     await writeFile(
       join(dir, 'sketches/touch-up.json'),
       JSON.stringify({
-        outlineOnly: ['sketches/test/Biped/robot/front.svg'],
+        simplified: ['sketches/test/Biped/robot/front.svg'],
         kept: ['sketches/test/Prop/sign/side.svg'],
       }),
     );
     const report = await makeSketches(dir);
     expect(report.flagged).toEqual([]);
-    expect(report.outlined).toEqual(['sketches/test/Biped/robot/front.svg']);
+    expect(report.simplified).toEqual(['sketches/test/Biped/robot/front.svg']);
     expect(report.kept).toEqual(['sketches/test/Prop/sign/side.svg']);
-    const outlined = await readFile(join(dir, 'sketches/test/Biped/robot/front.svg'), 'utf8');
-    expect(outlined).toContain('<path class="detail" d=""');
+    const drawn = await readFile(join(dir, 'sketches/test/Biped/robot/front.svg'), 'utf8');
+    expect(drawn).toContain('data-facing="front"');
     const list = await readFile(join(dir, 'sketches/touch-up.md'), 'utf8');
-    expect(list).toContain(
-      '## Drawn as an outline only\n\n- `sketches/test/Biped/robot/front.svg`',
-    );
+    expect(list).toContain('## Drawn simplified\n\n- `sketches/test/Biped/robot/front.svg`');
     expect(list).toContain('## Looked at and kept\n\n- `sketches/test/Prop/sign/side.svg`');
     expect(list).toContain('Nothing: every sketch passed the checks.');
   });
