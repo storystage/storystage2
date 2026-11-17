@@ -55,6 +55,12 @@ export interface SketchOptions {
   /** Words for screen readers: "Cat, side". */
   readonly title?: string;
   readonly pose?: string | null;
+  /**
+   * Only the shape's outer edge, holes included, and no inner lines: for a model whose surface
+   * breaks into tangles of small lines whatever the crease angle, such as a museum scan (a ship's
+   * rigging, a skeleton). Default false.
+   */
+  readonly outlineOnly?: boolean;
 }
 
 export interface SketchMetrics {
@@ -89,6 +95,8 @@ const MIN_DETAIL = 4;
 const MIN_CARD_AREA = 6;
 /** from this size up they are hair, with a heavy line; below it, a light one. */
 const HAIR_AREA = 400;
+/** In an outline-only sketch, loops smaller than this share of the sketch's area are left out. */
+const OUTLINE_MIN_SHARE = 0.004;
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -276,7 +284,13 @@ export function renderSketch(
         0.5,
       ),
     )
-    .filter((loop) => loop.length >= 4);
+    .filter((loop) => loop.length >= 4)
+    // An outline-only sketch leaves out small loops, holes and islands: in a scan they are gaps
+    // and specks in its surface, not shape (trial of 17 Nov).
+    .filter(
+      (loop) =>
+        !options.outlineOnly || Math.abs(loopArea(loop)) >= OUTLINE_MIN_SHARE * width * height,
+    );
 
   // Cards: one line around each shape, heavy for hair, light for an eyebrow; specks go.
   const cardLoops = contours(onCard, W, H)
@@ -290,9 +304,14 @@ export function renderSketch(
     .filter(({ area }) => area >= MIN_CARD_AREA);
   const heavy = cardLoops.filter(({ area }) => area >= HAIR_AREA).map(({ loop }) => loop);
   const light = cardLoops.filter(({ area }) => area < HAIR_AREA).map(({ loop }) => loop);
-  const outlineLines = [...chain(outline), ...heavy];
+  // An outline-only sketch draws the fill's own edge, each loop closed, and nothing inside it.
+  const outlineLines = options.outlineOnly
+    ? fillLoops.map((loop) => [...loop, loop[0]!])
+    : [...chain(outline), ...heavy];
   // Dense models fold in tiny places: short inner lines read as dirt, not shape.
-  const detailLines = [...chain(detail).filter((l) => lineLength(l) >= MIN_DETAIL), ...light];
+  const detailLines = options.outlineOnly
+    ? []
+    : [...chain(detail).filter((l) => lineLength(l) >= MIN_DETAIL), ...light];
   const metrics: SketchMetrics = {
     fillRatio: covered === 0 ? 0 : Math.round((covered / (W * H)) * 1000) / 1000,
     outlineLength: Math.round(outlineLines.reduce((sum, l) => sum + lineLength(l), 0)),
