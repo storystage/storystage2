@@ -481,12 +481,14 @@ The panel's states are spec 07, section 2.4. The studio draws them (S5). `packag
 | `problem` | Anything else that went wrong (section 7) | The message's action: try again, open set-up or undo |
 
 - **Modes** are `modesAt(level)` (section 4.3). A mode the level leaves out isn't offered at all.
-- **What the panel shows** is the conversation so far: what the learner asked, the Prompter's replies as they stream, its `explain` texts, and one line per change as it lands, with its plan step.
+- **What the panel shows** is the conversation so far: what the learner asked, the Prompter's replies, its `explain` texts, and one line per change as it lands, with its plan step.
+  - A reply is one entry that grows as it streams, with `done: false`, and is marked `done` once it is complete, so a screen reader can read it once.
+  - A change carries `nodes`, the blocks it added (the step's comment among them), for the editor's `highlight`. The panel finds them by comparing the program before and after the change. A change to the scene's set-up alone has none.
 - **Each request** carries the production and the storyboard as data (section 2.6), from the production as it stands.
 - **Editing a plan** happens in the client, with no request and no cost: move a step, delete one, change a value, add one. Each edit is checked again (section 6.3), and a step that can't be built carries its problem in plain words. **Build these steps** waits until no step has a problem. The panel keeps the plan as the Prompter showed it beside the learner's version, so it can be kept with the frame (section 6.7).
 - **Build these steps** sends "Build these steps." in the same mode, with the learner's plan as `<agreed_plan>`.
 - **Code this frame** asks for frame `f` in the current mode, so the Prompter's plan is for that frame.
-- **Undo this request** undoes the request's one step, and only if it is still the latest step in the history. Once the learner has changed something since, the Prompter's step is undone from the history, like any other.
+- **Undo this request** (`undoRequest`) is offered in Planned and in Built, as spec 07 lists it. In Planned nothing is built yet, so it drops the plan and goes back to Ready. In Built it undoes the request's one step, and only while that is still the latest step in the history. Once the learner has changed something since, the Prompter's step is undone from the history, like any other.
 - **Stop** stops the request. Changes that already landed stay, as one step, and **Undo this request** is offered for them.
 
 ## 5. Story coach

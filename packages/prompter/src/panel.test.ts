@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { indexProgram, type NodeId } from '@storystage/ast';
 import { ProductionSession, exampleProduction, frameId, sceneId } from '@storystage/production';
 import { checkProgram } from '@storystage/story-api/program-check';
 import type { PrompterLevel } from './levels.ts';
@@ -150,8 +151,26 @@ describe('PrompterPanel: what it shows (spec 07, section 2.4)', () => {
     expect(panel.state.phase).toBe('ready');
     expect(panel.state.entries).toEqual([
       { kind: 'asked', text: "What's the penguin called?" },
-      { kind: 'reply', text: 'The penguin is called Pip.' },
+      { kind: 'reply', text: 'The penguin is called Pip.', done: true },
     ]);
+  });
+
+  it('grows one reply as it streams, and marks it done once, at the end', async () => {
+    const { panel } = setUp([say('The penguin is called Pip.')]);
+    await panel.refresh();
+    const replies: { text: string; done: boolean }[] = [];
+    panel.subscribe((s) => {
+      const last = s.entries.at(-1);
+      if (last?.kind === 'reply') replies.push({ text: last.text, done: last.done });
+    });
+    await panel.ask("What's the penguin called?");
+    const done = replies.findIndex((r) => r.done);
+    // It grew while not done, and never changed once it was.
+    expect(done).toBeGreaterThan(1);
+    expect(new Set(replies.slice(0, done).map((r) => r.text)).size).toBeGreaterThan(1);
+    for (const r of replies.slice(done))
+      expect(r).toEqual({ text: 'The penguin is called Pip.', done: true });
+    expect(panel.state.entries.filter((e) => e.kind === 'reply')).toHaveLength(1);
   });
 
   it('sends the production and the storyboard as data with the request', async () => {
@@ -199,11 +218,15 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
     expect(JSON.stringify(transport.sent.at(-2)!.body.messages)).toContain('<agreed_plan>');
     expect(panel.state.phase).toBe('built');
     expect(panel.state.entries).toContainEqual({ kind: 'asked', text: BUILD_REQUEST });
-    expect(panel.state.entries).toContainEqual({
-      kind: 'change',
-      text: 'The penguin waddles forward.',
-      step: 1,
-    });
+    const change = panel.state.entries.find((e) => e.kind === 'change');
+    expect(change).toMatchObject({ text: 'The penguin waddles forward.', step: 1 });
+    // The blocks that landed, for highlighting: the step's comment and its move block.
+    const index = indexProgram(production.program());
+    const kinds = (change as { nodes: readonly NodeId[] }).nodes.map(
+      (id) => index.get(id)?.node.kind,
+    );
+    expect(kinds).toContain('comment');
+    expect(kinds).toContain('call');
     expect(production.history()).toHaveLength(1);
     expect(panel.state.canUndo).toBe(true);
     panel.undoRequest();
@@ -217,6 +240,14 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
     production.change('Move fox', 'stage', ({ program: _program, ...rest }) => rest);
     panel.setMode('showMeHow');
     expect(panel.state.canUndo).toBe(false);
+  });
+
+  it('offers Undo this request in Planned, where it drops the plan', async () => {
+    const { panel, production } = await planned();
+    expect(panel.state.canUndo).toBe(true);
+    panel.undoRequest();
+    expect(panel.state).toMatchObject({ phase: 'ready', plan: null, canUndo: false });
+    expect(production.history()).toHaveLength(0);
   });
 
   it('never offers Build these steps at the Plan only level', async () => {
@@ -293,6 +324,6 @@ describe('createPrompterPanel', () => {
     const body = transport.sent[0]!.body;
     expect(body.system).toEqual(releaseSystem());
     expect(body.tools).toEqual(releaseTools());
-    expect(panel.state.entries.at(-1)).toEqual({ kind: 'reply', text: 'Hello.' });
+    expect(panel.state.entries.at(-1)).toEqual({ kind: 'reply', text: 'Hello.', done: true });
   });
 });

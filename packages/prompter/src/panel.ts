@@ -4,7 +4,7 @@
  * learner has asked and been told, the plan and the learner's edits to it, and the request's one
  * undo step.
  */
-import type { NodeId } from '@storystage/ast';
+import { indexProgram, type NodeId } from '@storystage/ast';
 import type { FrameId, ProductionSession, SceneId } from '@storystage/production';
 import { productionData, storyboardData } from './context.ts';
 import { modesAt, type PrompterLevel } from './levels.ts';
@@ -30,10 +30,20 @@ export type PanelPhase =
 /** One thing in the conversation, as the panel shows it. */
 export type PanelEntry =
   | { readonly kind: 'asked'; readonly text: string }
-  | { readonly kind: 'reply'; readonly text: string }
+  /** The Prompter's reply. While it streams, `done` is false and `text` grows. */
+  | { readonly kind: 'reply'; readonly text: string; readonly done: boolean }
   | { readonly kind: 'explain'; readonly text: string }
-  /** A change that landed, with its plan step, for highlighting and the narration queue. */
-  | { readonly kind: 'change'; readonly text: string; readonly step?: number }
+  /**
+   * A change that landed, with its plan step, for the narration queue. `nodes` are the blocks it
+   * added, the step's comment among them, for the editor's `highlight`. Empty for a change to the
+   * scene's set-up alone.
+   */
+  | {
+      readonly kind: 'change';
+      readonly text: string;
+      readonly step?: number;
+      readonly nodes: readonly NodeId[];
+    }
   | { readonly kind: 'fresh' };
 
 /** The plan on show: as the Prompter made it, and as the learner has edited it. */
@@ -128,7 +138,7 @@ export class PrompterPanel {
         next.plan.steps.length > 0 &&
         next.plan.problems.length === 0 &&
         next.phase === 'planned',
-      canUndo: this.#undoable(),
+      canUndo: next.phase === 'planned' || this.#undoable(),
     };
     for (const listener of this.#listeners) listener(this.#state);
   }
@@ -142,6 +152,23 @@ export class PrompterPanel {
 
   #add(entry: PanelEntry): void {
     this.#set({ entries: [...this.#state.entries, entry] });
+  }
+
+  /** More of the reply streaming in: the reply being written grows, or a new one starts. */
+  #reply(text: string): void {
+    const entries = this.#state.entries;
+    const last = entries.at(-1);
+    if (last?.kind === 'reply' && !last.done)
+      this.#set({ entries: [...entries.slice(0, -1), { ...last, text: last.text + text }] });
+    else this.#add({ kind: 'reply', text, done: false });
+  }
+
+  /** The reply being written is complete, for a screen reader to read once. */
+  #endReply(): void {
+    const entries = this.#state.entries;
+    const last = entries.at(-1);
+    if (last?.kind === 'reply' && !last.done)
+      this.#set({ entries: [...entries.slice(0, -1), { ...last, done: true }] });
   }
 
   /** Reads the level and the native layer's status again: on opening, and when either changes. */
@@ -207,9 +234,17 @@ export class PrompterPanel {
     this.#stop?.abort();
   }
 
-  /** Undo this request: the request's one step, while it is still the latest. */
+  /**
+   * Undo this request. In Planned, nothing is built yet, so it drops the plan. Otherwise it
+   * undoes the request's one step, while that is still the latest in the history.
+   */
   undoRequest(): void {
-    if (!this.#undoable() || this.#busy) return;
+    if (this.#busy) return;
+    if (this.#state.phase === 'planned') {
+      this.#set({ phase: 'ready', plan: null, message: null });
+      return;
+    }
+    if (!this.#undoable()) return;
     this.#setup.production.undo();
     this.#built = null;
     this.#set({ phase: 'ready', message: null });
@@ -276,22 +311,28 @@ export class PrompterPanel {
     const production = this.#setup.production.production();
     const place = { scene: this.#setup.scene(), open: this.#setup.openMethod?.() ?? null };
     const checkResult = extra.frame ? this.#setup.checkResult?.(extra.frame) : undefined;
-    let replying = '';
+    const nodesNow = () => new Set(indexProgram(this.#setup.production.program()).keys());
+    let known = nodesNow();
     const onEvent = (event: SessionEvent) => {
       if (event.type === 'text') {
-        replying += event.text;
+        this.#reply(event.text);
         return;
       }
-      if (replying) this.#add({ kind: 'reply', text: replying });
-      replying = '';
+      this.#endReply();
       if (event.type === 'fresh') this.#add({ kind: 'fresh' });
       else if (event.type === 'explain') this.#add({ kind: 'explain', text: event.text });
-      else
+      else {
+        // The runner has made the change by now: what's new in the program is what landed.
+        const now = nodesNow();
+        const nodes = [...now].filter((id) => !known.has(id));
+        known = now;
         this.#add({
           kind: 'change',
           text: event.text,
           ...(event.step === undefined ? {} : { step: event.step }),
+          nodes,
         });
+      }
     };
 
     let outcome: AskOutcome;
@@ -309,7 +350,7 @@ export class PrompterPanel {
     } catch {
       outcome = { status: 'error', code: 'internal', toolCalls: 0, changes: 0, fresh: false };
     }
-    if (replying) this.#add({ kind: 'reply', text: replying });
+    this.#endReply();
     this.#stop = null;
     this.#finish(outcome, shownBefore, building);
   }
