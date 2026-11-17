@@ -1,5 +1,6 @@
 /**
- * Where the study keeps its data on the device (spec 14, 6.7): a file store of its own, beside
+ * Where the study keeps its data on the device (spec 14, 6.7): `host.classes.study()`, a file
+ * store of its own (S8, #491), beside
  * the class folders and never in a pupil's folder, so Collect never carries it. It holds a file
  * for each session, the teacher's ticks for who takes part (6.2), and the Study card's class
  * code and age band (6.8). Nothing here sends anything anywhere.
@@ -107,19 +108,32 @@ export class StudyStore {
     for (const code of codes) if (isCode(code)) await this.files.remove(fileOf(code));
   }
 
-  /** The pupils the teacher ticked as taking part (6.2). Only ever read on this device. */
-  async takingPart(): Promise<ReadonlySet<PupilId>> {
+  /**
+   * The pupils the teacher ticked as taking part (6.2), of those in the class now (`pupils`, the
+   * class list's ids). Only ever read on this device. A removed pupil's tick goes with them: it
+   * is dropped here, and the file rewritten, so a pupil restored from the bin is ticked again only
+   * by the teacher (S8, 17 Nov).
+   */
+  async takingPart(pupils: readonly PupilId[]): Promise<ReadonlySet<PupilId>> {
+    const kept = await this.ticks();
+    const inClass = new Set(pupils);
+    const ids = new Set([...kept].filter((id) => inClass.has(id)));
+    if (ids.size !== kept.size) await this.files.write(TAKING_PART, encode([...ids]));
+    return ids;
+  }
+
+  async setTakingPart(pupil: PupilId, on: boolean): Promise<void> {
+    const ids = new Set(await this.ticks());
+    if (on) ids.add(pupil);
+    else ids.delete(pupil);
+    await this.files.write(TAKING_PART, encode([...ids]));
+  }
+
+  private async ticks(): Promise<ReadonlySet<PupilId>> {
     const value = decode(await this.files.read(TAKING_PART));
     return new Set(
       Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string') : [],
     );
-  }
-
-  async setTakingPart(pupil: PupilId, on: boolean): Promise<void> {
-    const ids = new Set(await this.takingPart());
-    if (on) ids.add(pupil);
-    else ids.delete(pupil);
-    await this.files.write(TAKING_PART, encode([...ids]));
   }
 
   async settings(): Promise<StudySettings> {
