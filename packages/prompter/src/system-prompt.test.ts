@@ -69,6 +69,23 @@ describe('the instructions', () => {
     expect(text).toMatch(/trusted adult/);
   });
 
+  it("give the coach the built-in arcs, in the studio's words, without writing the story", () => {
+    const text = words(INSTRUCTIONS);
+    for (const id of ['free', 'threePart', 'fivePart']) expect(INSTRUCTIONS).toContain(`(${id})`);
+    for (const part of [
+      'Beginning',
+      'Middle',
+      'End',
+      'Setup',
+      'Conflict',
+      'Challenge',
+      'Climax',
+      'Resolution',
+    ])
+      expect(INSTRUCTIONS).toContain(`${part} (${part.toLowerCase()})`);
+    expect(text).toMatch(/never say what happens in any part of theirs/);
+  });
+
   it('say no pictures are sent (rule 3)', () => {
     expect(words(INSTRUCTIONS)).toMatch(/you never see pictures/);
   });
