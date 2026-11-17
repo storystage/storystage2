@@ -724,7 +724,7 @@
   {
     "id": "p30",
     "name": "Eileen",
-    "description": "an older woman of 85 with a white bob, in a lilac blouse and long lilac skirt",
+    "description": "an older woman of 85 with white hair tied back, in a green spotted blouse and long green skirt",
     "ageYears": 85,
     "gender": 0.15,
     "build": {
@@ -739,12 +739,12 @@
       "caucasian": 1
     },
     "eyes": "blue",
-    "hair": "bob02",
+    "hair": "ponytail01",
     "hairTint": "white",
     "eyebrows": "eyebrow006",
     "clothes": ["female_elegantsuit01"],
-    "clothesColour": "lilac",
-    "pattern": "plain",
+    "clothesColour": "green",
+    "pattern": "dots",
     "skirtLength": "ankle",
     "shoes": "shoes06"
   },
