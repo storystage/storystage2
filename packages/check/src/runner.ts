@@ -31,6 +31,7 @@ import {
   micros,
   type Micros,
   type ObjectId,
+  type StageEvent,
   type StageQuery,
   type StageQueryResult,
   type Transform,
@@ -59,7 +60,7 @@ export interface CheckRun {
 }
 
 /** One step of the run: where each character and the camera were. */
-interface Sample {
+export interface Sample {
   readonly at: Micros;
   readonly camera: Transform;
   readonly lens: number;
@@ -69,12 +70,20 @@ interface Sample {
   >;
 }
 
-/** What the scene's run did. */
-interface SceneRun {
+/**
+ * What the scene's run did: `traceScene` gives it, for the study's success tests (spec 14,
+ * 6.4), and the frame check compares it with the storyboard.
+ */
+export interface SceneRun {
   readonly length: Micros;
   readonly samples: readonly Sample[];
   readonly blocks: readonly MeasuredBlock[];
-  readonly said: readonly { readonly text: string; readonly start: Micros }[];
+  /** Every `say` (not `think`), with who said it and when. */
+  readonly said: readonly {
+    readonly object: string;
+    readonly text: string;
+    readonly start: Micros;
+  }[];
   /** The speak lines' captions, before they're matched with their blocks. */
   readonly captions: readonly Omit<Spoken, 'node' | 'name'>[];
   readonly error: {
@@ -97,8 +106,16 @@ function ask(stage: Stage, query: StageQuery, kind: StageQueryResult['kind']): u
   }
 }
 
-/** Plays one scene on the hidden stage, noting everything the comparison needs. */
-async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
+/**
+ * Plays one scene on the hidden stage, noting everything the comparison needs. `events` are
+ * played in as the learner's would be (a click, a key), each at the first step at or after its
+ * `at`.
+ */
+async function runScene(
+  run: CheckRun,
+  scene: SceneId,
+  events: readonly StageEvent[] = [],
+): Promise<SceneRun> {
   const { production, stage, signal } = run;
   const setup = production.scenes.find((s) => s.id === scene)?.setup;
   const objects = (setup?.objects ?? []).map((o) => o.id as string);
@@ -115,7 +132,7 @@ async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
     viewerWait: VIEWER_WAIT,
   });
   const blocks: MeasuredBlock[] = [];
-  const said: { text: string; start: Micros }[] = [];
+  const said: { object: string; text: string; start: Micros }[] = [];
   const captions: Omit<Spoken, 'node' | 'name'>[] = [];
   let error: SceneRun['error'] = null;
   let missing: readonly Missing[] = [];
@@ -128,7 +145,7 @@ async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
       case 'commands':
         for (const c of e.commands) {
           if (c.kind !== 'say' || c.bubble === 'think') continue;
-          said.push({ text: c.text, start: c.start });
+          said.push({ object: c.object, text: c.text, start: c.start });
           if (c.bubble === 'caption')
             captions.push({
               object: c.object,
@@ -183,9 +200,11 @@ async function runScene(run: CheckRun, scene: SceneId): Promise<SceneRun> {
     signal?.throwIfAborted();
     await playback.start();
     sample(0);
+    const waiting = [...events].sort((a, b) => a.at - b.at);
     for (let frame = 1; !playback.ended(); frame++) {
       signal?.throwIfAborted();
       now = Math.min(FILM_CAP, Math.round((frame * 1_000_000) / FPS));
+      while (waiting.length > 0 && waiting[0]!.at <= now) playback.event(waiting.shift()!);
       await playback.frame(now);
       sample(now);
       if (now >= FILM_CAP) break;
@@ -328,6 +347,17 @@ function judge(production: Production, scene: SceneId, done: SceneRun): Map<Fram
     results.set(frame.id, { basis: basisFor(production, frame, items), items });
   }
   return results;
+}
+
+/**
+ * Plays one scene on the hidden stage and gives what it did, without comparing anything: for the
+ * study's Check my step (spec 14, 6.4), which tests a task's end state against the run. `events`
+ * are played in at their times, so a task can click on a character.
+ */
+export function traceScene(
+  run: CheckRun & { readonly scene: SceneId; readonly events?: readonly StageEvent[] },
+): Promise<SceneRun> {
+  return runScene(run, run.scene, run.events);
 }
 
 /**

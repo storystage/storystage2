@@ -22,9 +22,16 @@ import {
   type ToRuntime,
 } from '@storystage/runtime';
 import { FakeStage } from '@storystage/stage/testing';
-import { IDENTITY, STORY_LIBRARY, objectId, type Quat, type StandIn } from '@storystage/story-api';
+import {
+  IDENTITY,
+  STORY_LIBRARY,
+  micros,
+  objectId,
+  type Quat,
+  type StandIn,
+} from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import { checkFilm, checkFrame, checkScene, sameOrNew } from './runner.ts';
+import { checkFilm, checkFrame, checkScene, sameOrNew, traceScene } from './runner.ts';
 import { scriptWords } from './script-words.ts';
 import { checkState } from './status.ts';
 
@@ -453,5 +460,75 @@ describe('speak lines against the script (spec 06 section 4.1)', () => {
     expect(scriptWords(p, { id: 'length', kind: 'length', outcome: 'passed', words: 'x' })).toBe(
       null,
     );
+  });
+});
+
+describe('traceScene, the run without the comparison (spec 14, 6.4)', () => {
+  /** The film, with "when something is clicked, the fox says Woof". */
+  function woof(): Production {
+    const p = film();
+    const [type1, ...types] = p.program.types;
+    const fox = (n: string) => ({
+      id: nodeId(`woof${n}r`),
+      kind: 'fieldRef' as const,
+      target: { id: nodeId(`woof${n}s`), kind: 'this' as const },
+      field: nodeId('scene1f'),
+    });
+    const listener = {
+      id: nodeId('wooflis'),
+      kind: 'listener' as const,
+      event: 'clickOnObject',
+      args: {},
+      details: {},
+      params: [],
+      body: [
+        {
+          id: nodeId('woofblk'),
+          kind: 'call' as const,
+          target: fox('1'),
+          callee: { kind: 'story' as const, name: 'say' },
+          args: { text: { id: nodeId('wooftxt'), kind: 'text' as const, value: 'Woof' } },
+          details: {},
+        },
+      ],
+    };
+    return {
+      ...p,
+      program: { ...p.program, types: [{ ...type1!, listeners: [listener] }, ...types] },
+    };
+  }
+
+  const trace = async (production: Production, clickAt?: number) => {
+    await settle();
+    return traceScene({
+      production,
+      stage: new FakeStage(),
+      startWorker: workers().start,
+      scene: S1,
+      ...(clickAt === undefined
+        ? {}
+        : {
+            events: [
+              { kind: 'click', object: objectId('fox'), x: 0.7, y: 0.4, at: micros(clickAt) },
+            ],
+          }),
+    });
+  };
+
+  it('says who said what, and when, with each step’s places', async () => {
+    const run = await trace(film());
+    expect(run.said).toEqual([{ object: 'penguin', text: 'Here is the key.', start: 0 }]);
+    expect(run.error).toBeNull();
+    expect(run.samples[0]!.characters.get('fox')?.transform.position.x).toBe(-1);
+    expect(run.length).toBeGreaterThanOrEqual(micros(6));
+  });
+
+  it('plays a click in at its time, as the learner’s would be', async () => {
+    const clicked = await trace(woof(), 1);
+    const said = clicked.said.find((s) => s.text === 'Woof');
+    expect(said?.object).toBe('fox');
+    expect(said!.start).toBeGreaterThanOrEqual(micros(1));
+    expect(said!.start).toBeLessThan(micros(1.1));
+    expect((await trace(woof())).said.map((s) => s.text)).not.toContain('Woof');
   });
 });
