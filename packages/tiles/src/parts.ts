@@ -5,7 +5,7 @@
  */
 import type { AstNode, Expression, NodeId, TypeRef } from '@storystage/ast';
 import { DETAILS, findEntry } from '@storystage/story-api';
-import { word, type Describer, type ValuePlace } from '@storystage/story-api/editing';
+import { arrowFor, word, type Describer, type ValuePlace } from '@storystage/story-api/editing';
 import { t } from './words.ts';
 
 export type Part =
@@ -17,6 +17,8 @@ export type Part =
   | {
       readonly kind: 'value';
       readonly text: string;
+      /** Drawn after the text, hidden from screen readers: "left ↺" (`arrowOf`). */
+      readonly arrow: string | null;
       /** The parameter or detail, in words, for screen readers ("amount"). */
       readonly label: string;
       readonly node: NodeId;
@@ -55,6 +57,7 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
       ? {
           kind: 'value',
           text: describe(e),
+          arrow: arrowFor(e),
           label,
           node: e.id,
           place,
