@@ -274,6 +274,22 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
     expect(panel.state.message?.text).toMatch(/Prompter's time for today/);
   });
 
+  it('keeps the limit and its words when the lowered level is read, until the next request', async () => {
+    const { panel, setLevel } = setUp([say('Here you go.')], {
+      fail: { type: 'error', code: 'cap_reached' },
+    });
+    await panel.refresh();
+    await panel.ask('Hello');
+    setLevel('explainOnly');
+    await panel.refresh();
+    expect(panel.state).toMatchObject({
+      phase: 'limit',
+      modes: ['explain', 'storyCoach', 'scriptCheck'],
+      mode: 'explain',
+    });
+    expect(panel.state.message?.text).toMatch(/Prompter's time for today/);
+  });
+
   it('says what happened and what to do next', async () => {
     const { panel } = setUp([], { fail: { type: 'error', code: 'overloaded' } });
     await panel.refresh();

@@ -187,7 +187,9 @@ export class PrompterPanel {
     }
     const status = await this.#setup.transport.status();
     if (status.available) {
-      const idle = ['off', 'notSetUp', 'limit', 'problem'].includes(this.#state.phase);
+      // Limit reached keeps the class's words until the next request (spec 07, section 2.4):
+      // the studio refreshes there only so the modes drop what the lowered level leaves out.
+      const idle = ['off', 'notSetUp', 'problem'].includes(this.#state.phase);
       this.#set({ modes, mode, ...(idle ? { phase: 'ready', message: null } : {}) });
       return;
     }
