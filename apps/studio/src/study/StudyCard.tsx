@@ -115,7 +115,7 @@ export function StudyCard({ store, picker, sessions, onSaid, act }: StudyCardPro
           <Segmented
             label={words.t('settings.study.ageBand')}
             options={AGE_BANDS.map((b) => ({ id: b, label: bandWords(b) }))}
-            value={ageBand ?? ('' as AgeBand)}
+            value={ageBand}
             onChange={setAgeBand}
           />
         </div>

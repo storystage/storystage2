@@ -110,6 +110,12 @@ test('a ticked pupil’s sessions: tasks in Blocks and in Tiles by keyboard, the
   // The teacher exports the logs (6.8), and the file reads back (6.7).
   await switchPupil(page);
   const study = await studyCard(page);
+  // Tab reaches the age band before one is chosen (S5's find on #514).
+  await study.getByRole('textbox', { name: 'Study class code' }).focus();
+  await page.keyboard.press('Tab');
+  await expect(
+    study.getByRole('radiogroup', { name: 'Age band' }).getByRole('radio').first(),
+  ).toBeFocused();
   await expect(study.getByText(`Session ${first.shown}`)).toBeVisible();
   await expect(study.getByText(`Session ${second.shown}`)).toBeVisible();
   const saved = await exportLogs(page, study);
