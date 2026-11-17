@@ -40,3 +40,19 @@ export function checkPath(path: StorePath): StorePath {
   if (path.length === 0 || !path.every(isSafePart)) throw new FileError('internal');
   return path;
 }
+
+/**
+ * A store inside another, in one folder of it: every path becomes `[folder, ...path]`, so
+ * nothing through it can reach outside that folder. `list([])` lists the folder itself; every
+ * other path needs at least one part, so the folder as a whole can't be removed or moved.
+ */
+export function storeWithin(store: FileStore, folder: string): FileStore {
+  const inside = (path: StorePath) => checkPath([folder, ...checkPath(path)]);
+  return {
+    read: async (path) => store.read(inside(path)),
+    write: async (path, bytes) => store.write(inside(path), bytes),
+    remove: async (path) => store.remove(inside(path)),
+    list: async (path) => store.list(path.length === 0 ? checkPath([folder]) : inside(path)),
+    move: async (from, to) => store.move(inside(from), inside(to)),
+  };
+}

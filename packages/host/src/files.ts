@@ -9,6 +9,8 @@
  * implementation passes `describeClassFoldersContract` (`@storystage/host/testing`).
  */
 
+import type { FileStore } from './store.ts';
+
 export type PupilId = string;
 export type ProductionKey = string;
 
@@ -262,6 +264,13 @@ export interface ClassFolders {
    * to its bin, with their productions.
    */
   backstage(): ClassBackstage;
+  /**
+   * The study's own store (spec 14 section 6.7), for `packages/study` alone: a `study` folder
+   * beside the pupil folders, in this device's store under the same rules. It is never inside a
+   * pupil's folder, so Collect, Hand back and a production never carry it, and removing a pupil
+   * or emptying the bin never touches it. Its writes don't wait for the folders' changes.
+   */
+  study(): FileStore;
 }
 
 /** A file for Collect or Hand back: `folder/file` inside the folder the teacher chose. */
