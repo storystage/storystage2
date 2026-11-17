@@ -31,6 +31,7 @@ import { changeFor, detailPlace, menuFor, type MenuAction } from './blockMenu.ts
 import { defineBlocks } from './definitions.ts';
 import { dropFromPalette, freshIn, type AskRequest, type Fresh } from './drops.ts';
 import { ADD_DETAIL_INPUT, AddDetailField } from './addDetail.ts';
+import { dragsAlone } from './drag.ts';
 import { editsFor } from './gestures.ts';
 import { RENDERER, registerRenderer, storyTheme } from './renderer.ts';
 import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
@@ -249,6 +250,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         for (const block of ws.getAllBlocks(false)) {
           block.customContextMenu = menuOn(block);
           addDetailOn(block);
+          dragsAlone(block);
         }
       }
     } finally {
