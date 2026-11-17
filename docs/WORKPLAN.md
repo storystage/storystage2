@@ -817,18 +817,18 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - the key is scrubbed from logs and diagnostic bundles;
     - sidecars (FFmpeg, Rhubarb) receive arguments as arrays, never as shell strings.
 
-    (C)
-- [ ] 15.3 **Policy and the school lock** (from StoryStage 1 spec 02 §4):
+    Built: the key store, the gate and the transport (#106, #108 to #111), the real pins (#215), and the leak scan on every desktop build. Still open: the sidecars and the diagnostic bundle's scrub, as neither exists yet. (C)
+- [x] 15.3 **Policy and the school lock** (from StoryStage 1 spec 02 §4):
     - a policy file on desktop;
     - managed app configuration on iPad and Android, so schools set it through their device management;
     - keys `prompter.enabled`, `prompter.explainOnly`, `prompter.voiceInput`, `speech.dictation` (decision 0060), `storyboard.allowImportedWithoutStoryboard`, `editor.default`, `editor.locked`, `study.enabled`, `prompter.dailyCap`, `prompter.capAction`, `prompter.planOnly`, `backstage.import`, `backstage.search`, `update.channel` and `update.pin`;
     - a malformed policy means the Prompter is off.
 
-    (C)
+    Built: the policy crate (#87) with every key above, the desktop file, and managed configuration on iPad and Android (#98 to #103). The owner's real push through managed Google Play and iPad device management is a device check (spec 05). (C)
 - [ ] 15.4 Code signing: Windows (certificate), macOS (notarisation). (C sets up CI; U buys certificate)
 - [ ] 15.5 Apple developer account and App Store listing; Google Play listing with managed Play for schools. (U; C prepares listings and privacy labels)
-- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files at `app.storystage.org` (decision 0046), with the Prompter, key and speech-input features hidden. No server code. (C; U hosts)
-- [ ] 15.7 **Updates and rollback:** a pilot channel and a stable channel, chosen by policy (`update.channel`), with version pinning (`update.pin`) so a school can hold a version through a term; staged rollout; desktop auto-update only within the chosen channel; version shown in About. A rollback drill: push a broken build to the pilot channel and roll it back. (C)
+- [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files at `app.storystage.org` (decision 0046), with the Prompter, key and speech-input features hidden. No server code. Built: the `browser` workflow's zip and its `.htaccess` (#427); waits for the owner to upload it. (C; U hosts)
+- [ ] 15.7 **Updates and rollback:** a pilot channel and a stable channel, chosen by policy (`update.channel`), with version pinning (`update.pin`) so a school can hold a version through a term; staged rollout; desktop auto-update only within the chosen channel; version shown in About. A rollback drill: push a broken build to the pilot channel and roll it back. Built: channels, pins, staged rollout, rollback and the `Release` and `Channel` workflows (#88, #98 to #103); the drill waits for the owner's updater key (0047). (C)
 
 **Done when:** signed builds install on each target, the key survives restart, with the policy lock set the Prompter can't be switched on, a request with an unlisted model or system prompt is refused, 30 simulated clients hitting rate limits back off without a retry storm, and the rollback drill passes.
 
@@ -1046,7 +1046,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 <!-- schedule:wp24 -->
 **Schedule items** (`tools/plan/schedule.yaml`): WP24a after WP1g, WP15a, WP8f; WP24b after WP24a, WP8, WP15k, WP13b.
 <!-- /schedule:wp24 -->
-- [ ] 24.1 **The teacher's journey**, written into `docs/spec/07-ux.md` and the doc: install through device management → set the school lock → start a class → pupils return to their work next lesson → collect films → export study logs → mark. Each step has an owner task. (C drafts; U reviews with a pilot teacher)
+- [ ] 24.1 **The teacher's journey**, written into `docs/spec/07-ux.md` and the doc: install through device management → set the school lock → start a class → pupils return to their work next lesson → collect films → export study logs → mark. Each step has an owner task. Drafted in spec 07 section 8 (#241); waits for the owner's walk-through with a pilot teacher. (C drafts; U reviews with a pilot teacher)
 - [x] 24.2 **Where a pupil's work lives between lessons** (decide before WP8.4 is built). Options: in-app class and pupil folders on a shared device, a device-management profile per class, or school Google or Microsoft accounts. Record the choice in the DPIA. (C proposes; U decides) **Decided 8 Nov 2026 (0065):** pupil folders in the app, with Collect and Hand back through files; to be confirmed after 1.11.
 - [ ] 24.3 **How the Prompter reaches a group** (decide at M1, after 1.11):
     - **A. Clubs, small groups and home:** the Prompter runs where an adult (club leader, teacher with a small group, or parent) owns the key. This fits the adult-account rule, and is the default for the pilot.
@@ -1054,8 +1054,8 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
     - **C. Key on each device by device management:** simplest to build, but conflicts with the decision never to store the key in a settings file.
 
     Whichever is chosen, route requests by mode: a lower-cost model (Haiku class) for Explain only, the story coach and the script check; a stronger model only for Build it and Show me how. Re-run the evaluation set (13.7) on each model before switching. (C prototypes A and B; U decides)
-- [ ] 24.4 Build the chosen model for work between lessons (24.2): class and pupil separation, so pupils can't see each other's productions. (C)
-- [ ] 24.5 **Class usage and graduated limits**, enforced in the native layer (15.2): a usage view per class and per device, then policy keys `prompter.dailyCap` and `prompter.capAction` (`explainOnly`, then `off`). (C)
+- [x] 24.4 Build the chosen model for work between lessons (24.2): class and pupil separation, so pupils can't see each other's productions. Built: pupil folders on every host (#179, #191, #194, #204, #205), the file pickers with Collect and Hand back (#211, #218, #281, #283), the device's own folder (#248, #259), removal that can be undone (#262) and kept storage in the browser (#272). Collect on iPad waits for the Files export (owner, 17 Nov). (C)
+- [x] 24.5 **Class usage and graduated limits**, enforced in the native layer (15.2): a usage view per class and per device, then policy keys `prompter.dailyCap` and `prompter.capAction` (`explainOnly`, then `off`). Built: the cap counted per pupil, or per device, in the native layer, with each pupil's count and level for the teacher (#224). Class totals across devices wait for the Prompter's route (24.3). (C)
 - [ ] 24.6 Study log export for the teacher (7.13), with the pseudonymous session ids. (C)
 - [ ] 24.7 A teacher's guide page for each step of 24.1, published with the website (19.1). (C drafts; U approves)
 
