@@ -33,6 +33,7 @@ import {
   addObject,
   objectName,
   setObject,
+  type Frame,
   type FrameId,
   type Production,
   type ProductionRest,
@@ -115,6 +116,8 @@ const CONTAINERS = new Set([
   'forEach',
   'eachTogether',
 ]);
+/** The statement lists a block can sit in, as the studio's links (10.8) count them. */
+const STATEMENT_SLOTS: ReadonlySet<string> = new Set(['body', 'then', 'else']);
 const NO_STAGING =
   "Setting the stage from the storyboard isn't available here. Add each model with add_model in a plan of its own, or ask the learner to press Set the stage from the storyboard.";
 const SCALE = { min: 0.05, max: 20 };
@@ -173,6 +176,22 @@ function carries(objects: readonly SceneObjectSetup[], rider: string, carrier: s
   return false;
 }
 
+/** The check saved on a frame (spec 08, section 9.6), as data: its words are the learner's file. */
+function savedCheck(frame: Frame): Json | null {
+  if (!frame.check) return null;
+  return {
+    items: frame.check.items.map((i) => ({
+      id: i.id,
+      kind: i.kind,
+      outcome: i.outcome,
+      words: i.words,
+      ...(i.node === undefined ? {} : { node: i.node }),
+      ...(i.line === undefined ? {} : { line: i.line }),
+    })),
+    kept: [...frame.check.kept],
+  };
+}
+
 function asPlan(value: Json | undefined): Plan | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
@@ -193,6 +212,8 @@ export class PrompterRunner implements ToolRunner {
   #commented = new Set<number>();
   #plans = new Map<string, Plan>();
   #latest: string | null = null;
+  /** The frame `code_frame` started in this request: blocks built after it link to it (10.8). */
+  #coding: FrameId | null = null;
 
   constructor(setup: RunnerSetup) {
     this.#setup = setup;
@@ -202,6 +223,7 @@ export class PrompterRunner implements ToolRunner {
     this.#request = request;
     this.#agreed = asPlan(context.agreedPlan);
     this.#commented = new Set();
+    this.#coding = null;
   }
 
   end(): void {
@@ -244,6 +266,7 @@ export class PrompterRunner implements ToolRunner {
         return this.#codeFrame(text(input.frame));
       case 'insert_statement':
       case 'insert_control':
+        return this.#linked(() => this.#change(name, input));
       case 'declare_procedure':
       case 'add_event_listener':
         return this.#change(name, input);
@@ -300,7 +323,7 @@ export class PrompterRunner implements ToolRunner {
   #checkFrame(frame: string): Result {
     const found = this.#setup.session.production().frames.find((f) => f.id === frame);
     if (!found) return fail('unknown_frame', `There is no frame ${frame}.`);
-    const result = this.#setup.checkResult?.(found.id) ?? null;
+    const result = this.#setup.checkResult?.(found.id) ?? savedCheck(found);
     return result === null
       ? ok("This frame hasn't been checked yet. The learner can press Check this frame.")
       : ok(dataBlock('check_result', result));
@@ -370,7 +393,83 @@ export class PrompterRunner implements ToolRunner {
     const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
     const method = type?.methods.find((m) => m.id === scene?.method);
     if (!method) return fail('unknown_method', "This scene's method can't be found.");
-    return ok(`Build frame ${frame} in ${method.name}.`, { method: method.name });
+    this.#coding = frame as FrameId;
+    const where = this.#frameSlot(frame as FrameId, method);
+    const inside = where.block ? `, inside ${where.block}` : '';
+    return ok(
+      `Build frame ${frame} in ${method.name}${inside}, from position ${where.position}. Blocks you build now are linked to the frame.`,
+      {
+        method: method.name,
+        ...(where.block ? { parent_block: where.block } : {}),
+        position: where.position,
+      },
+    );
+  }
+
+  /**
+   * Where a frame's blocks go in the scene's method: after its own linked blocks; else after the
+   * blocks of the frames before it; else before those of the frames after it; else at the end.
+   */
+  #frameSlot(frame: FrameId, method: MethodDecl): { block: string | null; position: string } {
+    const production = this.#setup.session.production();
+    const index = indexProgram(production.program);
+    const own = production.frames.find((f) => f.id === frame)!;
+    const live = (f: (typeof production.frames)[number]) =>
+      f.links.filter((l) => index.has(l) && this.#inside(index, l, method.id));
+    const sceneFrames = production.frames
+      .filter((f) => f.scene === own.scene && f.id !== frame)
+      .sort((a, b) => a.order - b.order);
+    const at = (link: NodeId, after: boolean) => {
+      const place = index.get(link)!;
+      const parent = place.parent!;
+      const container = index.get(parent)?.node;
+      const list =
+        container && place.slot in container
+          ? ((container as unknown as Record<string, readonly { id: NodeId }[]>)[place.slot] ?? [])
+          : [];
+      const i = list.findIndex((n) => n.id === link);
+      const block =
+        parent === method.id ? null : container?.kind === 'if' ? `${parent}:${place.slot}` : parent;
+      return { block, position: String(after ? i + 1 : i) };
+    };
+    const mine = live(own);
+    if (mine.length > 0) return at(mine.at(-1)!, true);
+    const before = sceneFrames.filter((f) => f.order < own.order).flatMap(live);
+    if (before.length > 0) return at(before.at(-1)!, true);
+    const after = sceneFrames.filter((f) => f.order > own.order).flatMap(live);
+    if (after.length > 0) return at(after[0]!, false);
+    return { block: null, position: 'end' };
+  }
+
+  /**
+   * Runs a change; after `code_frame`, links the blocks it added to that frame (10.8), in the
+   * request's undo step. A block inside one the frame already links isn't linked again.
+   */
+  #linked(make: () => Result): Result {
+    const frame = this.#coding;
+    const before = new Set(indexProgram(this.#setup.session.program()).keys());
+    const result = make();
+    if (!result.ok || frame === null) return result;
+    const index = indexProgram(this.#setup.session.program());
+    const linked = new Set(
+      this.#setup.session.production().frames.find((f) => f.id === frame)?.links ?? [],
+    );
+    const fresh = [...index.keys()].filter((id) => !before.has(id));
+    const covered = (id: NodeId) => {
+      for (let at = index.get(id)?.parent ?? null; at !== null; at = index.get(at)?.parent ?? null)
+        if (linked.has(at) || !before.has(at)) return true;
+      return false;
+    };
+    const blocks = fresh.filter((id) => STATEMENT_SLOTS.has(index.get(id)!.slot) && !covered(id));
+    if (blocks.length === 0) return result;
+    const { session, source } = this.#setup;
+    session.change(`Link to frame ${frame}`, source, ({ program: _program, ...rest }) => ({
+      ...rest,
+      frames: rest.frames.map((f) =>
+        f.id === frame ? { ...f, links: [...f.links, ...blocks.filter((b) => !linked.has(b))] } : f,
+      ),
+    }));
+    return result;
   }
 
   // ---- Changes -----------------------------------------------------------------------------------

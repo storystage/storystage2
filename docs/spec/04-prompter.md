@@ -365,11 +365,16 @@ Starts building a frame's agreed plan, and returns where to build it. It adds no
 |---|---|---|
 | `frame` | string | A frame id with an agreed plan |
 
-Result `ids.method`, `ids.parent_block`. Answers `no_agreed_plan` if the learner hasn't pressed **Build these steps**.
+Result `ids.method`, `ids.position`, and `ids.parent_block` when the place is inside a control block. Answers `no_agreed_plan` if the learner hasn't pressed **Build these steps**.
+
+- **Where:** in the scene's method, after the blocks the frame already links to; for a frame with none, after the blocks of the scene's frames before it; else before those of the frames after it; else at the end. Only links to blocks still in the method count.
+- **Linking:** each block `insert_statement` or `insert_control` adds after it, the step's comment among them, is added to `Frame.links` in the same step as the block, so Undo takes both back. A block inside one the frame already links isn't linked again. The runner does this itself, as the studio's link button does (`withLink`): a link is just the block's id on the frame (spec 03, section 7).
 
 #### `check_frame`
 
 Changes nothing. Returns the latest result of the automatic check for a frame (11.6), so the Prompter can explain it in the learner's words. It doesn't run the check. Field: `frame`.
+
+The result is the studio's (`checkResult`), or else the check saved on the frame (`Frame.check`, spec 08, section 9.6): each item's `id`, `kind`, `outcome`, `words`, `node` and `line`, and the flags the learner `kept`. It goes as a `<check_result>` data block, since the words come from the file.
 
 #### `script_check`
 
@@ -662,7 +667,6 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Needs | From | For |
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
-| Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production` | S4 | Section 6.7, a contract pull request |

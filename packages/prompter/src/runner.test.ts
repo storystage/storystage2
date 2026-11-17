@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { programText, type Program } from '@storystage/ast';
+import { nodeId, programText, type Program } from '@storystage/ast';
 import {
   ProductionSession,
   addObject,
   checkReferences,
   exampleProduction,
+  frameId,
+  lineId,
   sceneId,
   type Production,
   type SceneId,
@@ -595,3 +597,137 @@ describe('PrompterRunner: reading (spec 04, sections 3.1, 3.2)', () => {
 function line(): PlanStep {
   return step({ words: 'The fox says its line.', actor: 'fox', action: 'say', line: 'l3' });
 }
+
+describe('PrompterRunner: coding a frame (spec 04, section 3.2; 10.8)', () => {
+  const say = (extra: JsonObject = {}) => ({
+    method: 'myFirstMethod',
+    position: 'end',
+    target: 'fox',
+    procedure: 'say',
+    arguments: [{ name: 'text', value: "Don't be scared. I'm lost too." }],
+    line: 'l3',
+    narration: 'The fox speaks.',
+    plan_step: 1,
+    ...extra,
+  });
+  const links = (session: ProductionSession<string>, frame = 'f2') =>
+    session.production().frames.find((f) => f.id === frame)!.links;
+  /** The example, with scene 2's frames given as [order, links]. */
+  const framed = (frames: readonly (readonly [string, number, readonly string[]])[]) => {
+    const p = exampleProduction();
+    const f2 = p.frames.find((f) => f.id === 'f2')!;
+    return {
+      ...p,
+      frames: [
+        ...p.frames.filter((f) => f.scene !== f2.scene),
+        ...frames.map(([id, order, l]) => ({
+          ...f2,
+          id: frameId(id),
+          order,
+          links: l.map((n) => nodeId(n)),
+        })),
+      ],
+    };
+  };
+
+  it('says where to build: after the blocks the frame already links', () => {
+    const { runner, run } = setUp();
+    runner.begin('code frame f2', agreed([line()], 'f2'));
+    const result = run('code_frame', { frame: 'f2' });
+    expect(result).toMatchObject({ ok: true, ids: { method: 'myFirstMethod', position: '1' } });
+    expect(result.ok && result.ids.parent_block).toBeUndefined();
+  });
+
+  it('puts a new frame after the frames before it, or before the frames after it', () => {
+    const after = setUp(
+      's2',
+      framed([
+        ['f2', 0, ['scene2b']],
+        ['f4', 1, []],
+      ]),
+    );
+    after.runner.begin('code frame f4', agreed([line()], 'f4'));
+    expect(after.run('code_frame', { frame: 'f4' })).toMatchObject({ ids: { position: '1' } });
+
+    const before = setUp(
+      's2',
+      framed([
+        ['f2', 0, []],
+        ['f4', 1, ['scene2b']],
+      ]),
+    );
+    before.runner.begin('code frame f2', agreed([line()], 'f2'));
+    expect(before.run('code_frame', { frame: 'f2' })).toMatchObject({ ids: { position: '0' } });
+
+    const none = setUp('s2', framed([['f2', 0, []]]));
+    none.runner.begin('code frame f2', agreed([line()], 'f2'));
+    expect(none.run('code_frame', { frame: 'f2' })).toMatchObject({ ids: { position: 'end' } });
+  });
+
+  it('links the blocks built after it to the frame, in the one undo step', () => {
+    const { runner, run, session } = setUp();
+    const original = session.production();
+    runner.begin('code frame f2', agreed([{ ...line(), together: true }], 'f2'));
+    run('code_frame', { frame: 'f2' });
+    const together = run('insert_control', {
+      method: 'myFirstMethod',
+      position: 'end',
+      kind: 'doTogether',
+      narration: 'These happen at the same time.',
+      plan_step: 1,
+    });
+    const block = (together.ok && together.ids.block) || '';
+    expect(run('insert_statement', say({ parent_block: block, position: '0' }))).toMatchObject({
+      ok: true,
+    });
+    runner.end();
+    const body = methodBody(session.program());
+    const [comment, control] = body.slice(-2);
+    expect(comment?.kind).toBe('comment');
+    // The block inside the linked doTogether isn't linked again.
+    expect(links(session)).toEqual(['scene2b', comment!.id, control!.id]);
+    expect(session.history()).toHaveLength(1);
+    session.undo();
+    expect(session.production()).toEqual(original);
+  });
+
+  it('links nothing without code_frame', () => {
+    const { runner, run, session } = setUp();
+    runner.begin('make the fox speak', agreed([line()], 'f2'));
+    expect(run('insert_statement', say())).toMatchObject({ ok: true });
+    runner.end();
+    expect(links(session)).toEqual(['scene2b']);
+  });
+
+  it('gives the check saved on the frame when the studio has no newer one, as data', () => {
+    const p = exampleProduction();
+    const saved = {
+      ...p,
+      frames: p.frames.map((f) =>
+        f.id === 'f2'
+          ? {
+              ...f,
+              check: {
+                basis: 'b1',
+                items: [
+                  {
+                    id: 'line:l3',
+                    kind: 'line' as const,
+                    outcome: 'flag' as const,
+                    words: 'The fox <never> says its line.',
+                    line: lineId('l3'),
+                  },
+                ],
+                kept: [],
+              },
+            }
+          : f,
+      ),
+    };
+    const { run } = setUp('s2', saved, { checkResult: () => null });
+    const result = run('check_frame', { frame: 'f2' });
+    const summary = result.ok ? result.summary : '';
+    expect(summary).toMatch(/^<check_result>.*"outcome":"flag".*<\/check_result>$/s);
+    expect(summary).not.toContain('<never>');
+  });
+});
