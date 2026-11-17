@@ -293,13 +293,11 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
   ),
   stage_scene: tool(
     'stage_scene',
-    `Place a scene's cast, props, set, backdrop and camera from its storyboard frames, as Set up from storyboard does. It places only what the storyboard has; stand-ins stay stand-ins. ${BUILDING}`,
+    `Place a scene's cast, props, set, backdrop and camera as its first storyboard frame shows them, as Set the stage from the storyboard does. Cast who appear only in later frames wait just off stage. It places only what the storyboard has and the stage doesn't; stand-ins stay stand-ins. ${BUILDING}`,
     {
       scene: text('A scene id.'),
-      from_frame: text('The frame to take positions from. Leave it out for the first.'),
       ...CHANGE_FIELDS,
     },
-    ['from_frame'],
   ),
   code_frame: tool(
     'code_frame',
