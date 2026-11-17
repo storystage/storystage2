@@ -17,6 +17,7 @@ export * from './browser.ts';
 export * from './dictation.ts';
 export * from './microphone.ts';
 export * from './narration.ts';
+export * from './read-aloud.ts';
 export * from './resample.ts';
 export * from './speak-line/index.ts';
 export * from './speakable.ts';

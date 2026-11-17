@@ -298,6 +298,21 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
     expect(panel.state).toMatchObject({ phase: 'ready', message: null });
   });
 
+  it('stops a request in flight when the level turns Off, and stays off', async () => {
+    const { panel, setLevel } = setUp([say('A long answer.')]);
+    await panel.refresh();
+    const asking = panel.ask('Tell me a story.');
+    setLevel('off');
+    await panel.refresh();
+    await asking;
+    expect(panel.state).toMatchObject({ phase: 'off', modes: [], message: null });
+    await panel.ask('Are you there?');
+    expect(panel.state.entries.filter((e) => e.kind === 'asked')).toHaveLength(1);
+    setLevel('full');
+    await panel.refresh();
+    expect(panel.state.phase).toBe('ready');
+  });
+
   it('takes one request at a time', async () => {
     const { panel, transport } = setUp([say('One.'), say('Two.')]);
     await panel.refresh();

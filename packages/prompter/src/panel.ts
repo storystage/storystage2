@@ -171,13 +171,18 @@ export class PrompterPanel {
       this.#set({ entries: [...entries.slice(0, -1), { ...last, done: true }] });
   }
 
-  /** Reads the level and the native layer's status again: on opening, and when either changes. */
+  /**
+   * Reads the level and the native layer's status again: on opening, and when either changes. A
+   * level that is now Off (a teacher's lock, or a study task, spec 14 section 6.5) stops any
+   * request in flight.
+   */
   async refresh(): Promise<void> {
     if (this.#state.phase === 'absent') return;
     const modes = modesAt(this.#setup.level());
     const mode = modes.includes(this.#state.mode) ? this.#state.mode : (modes[0] ?? 'explain');
     if (modes.length === 0) {
-      this.#set({ modes, mode, phase: 'off' });
+      this.#stop?.abort();
+      this.#set({ modes, mode, phase: 'off', message: null });
       return;
     }
     const status = await this.#setup.transport.status();
@@ -373,6 +378,11 @@ export class PrompterPanel {
         : this.#state.plan;
     const message = outcomeMessage(outcome);
 
+    // Turned off while it ran: it stays off, whatever the request ended with.
+    if (modesAt(this.#setup.level()).length === 0) {
+      this.#set({ phase: 'off', plan, message: null, modes: [] });
+      return;
+    }
     if (outcome.status === 'error' && outcome.code && BLOCKED[outcome.code]) {
       this.#set({ phase: BLOCKED[outcome.code], plan, message: null });
       return;
