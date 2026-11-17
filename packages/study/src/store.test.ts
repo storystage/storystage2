@@ -65,11 +65,22 @@ describe('the study’s store (spec 14, 6.7)', () => {
 
   it('keeps the teacher’s ticks for who takes part (6.2)', async () => {
     const store = new StudyStore(memoryFiles());
-    expect(await store.takingPart()).toEqual(new Set());
+    expect(await store.takingPart(['p1', 'p2'])).toEqual(new Set());
     await store.setTakingPart('p1', true);
     await store.setTakingPart('p2', true);
     await store.setTakingPart('p1', false);
-    expect(await store.takingPart()).toEqual(new Set(['p2']));
+    expect(await store.takingPart(['p1', 'p2'])).toEqual(new Set(['p2']));
+  });
+
+  it('drops a removed pupil’s tick, so one restored is ticked again only by the teacher', async () => {
+    const files = memoryFiles();
+    const store = new StudyStore(files);
+    await store.setTakingPart('p1', true);
+    await store.setTakingPart('p2', true);
+    expect(await store.takingPart(['p2', 'p3'])).toEqual(new Set(['p2']));
+    // The file no longer holds p1, so p1 coming back isn't ticked.
+    expect(await store.takingPart(['p1', 'p2'])).toEqual(new Set(['p2']));
+    expect(new TextDecoder().decode(files.files.get('taking-part.json'))).toBe('["p2"]');
   });
 
   it('keeps the class code and age band, refusing a code that isn’t a short label', async () => {

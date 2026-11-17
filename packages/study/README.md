@@ -13,6 +13,10 @@ Study mode: the pseudonymous study log kept on the device, its session codes, th
 | `exportLogs(store)` | The export file (6.8): `{ name, bytes, codes }`, every session kept on the device under a new random export id; delete `codes` once it's saved |
 | `readExport(bytes)` | Reads an export back, refusing anything that isn't exactly one |
 | `isStudyEvent(value)` | True only for one of the log's events with exactly its fields (6.6) |
+| `STUDY_TASKS`, `studyTask(task)` | The five tasks (6.4): title, instruction, hint, `holdsEditor` (T1 to T3), the `events` Check my step plays in (T4's click), and `film()`, a fresh copy of the prepared film |
+| `checkTask(task, run)` | Check my step's outcome for a run from `@storystage/check`'s `traceScene`: `success`, `notYet` or `error` |
+| `TASK_LIMIT_MS` | 15 minutes: the task card ends a task still open as time up |
+| `t(key)` | The study's words: the tasks, Check my step's results, the questions, the bar and the notes |
 | `newCode()`, `showCode(code)` | A session's code, "K7P3QX2M", shown "K7P3-QX2M" |
 
 There is no network code here, and a test keeps it that way.
