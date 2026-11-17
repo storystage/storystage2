@@ -30,6 +30,7 @@ import {
   type ReactNode,
 } from 'react';
 import { partsOf, type Part } from './parts.ts';
+import { Arrow } from './arrow.tsx';
 import { indexOf, place } from './places.ts';
 import { t } from './words.ts';
 
@@ -283,6 +284,7 @@ function pill(part: Part, layout: Layout): ReactNode {
       aria-describedby={`tl-for-${key}`}
     >
       {part.text}
+      <Arrow arrow={part.arrow} />
     </span>
   );
 }
@@ -789,6 +791,7 @@ export function TilesView(props: ViewProps) {
           onClick={(e) => props.onOpenValue(part, e.currentTarget)}
         >
           {part.text}
+          <Arrow arrow={part.arrow} />
         </button>
       ) : (
         <span key={i}>{part.text}</span>

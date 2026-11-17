@@ -18,6 +18,19 @@ export const word = (key: string): string => all[key] ?? key;
 export const fill = (phrase: string, values: Readonly<Record<string, string>>): string =>
   phrase.replace(/\{(\w+)\}/g, (_, name: string) => values[name] ?? word('words.empty'));
 
+/**
+ * The arrow drawn after a value's words, or null: Blockly Games' turning arrows on left and right
+ * (↺ ↻), as children often mix the two up (owner, 16 Nov 2026). Drawn only: a screen reader
+ * reads ↺ as "anticlockwise open circle arrow", so names and undo labels keep the plain words.
+ */
+export function arrowOf(type: string, value: string): string | null {
+  return all[`arrow.${type}.${value}`] ?? null;
+}
+
+/** The arrow for a value in the program, if it has one (`arrowOf`). */
+export const arrowFor = (e: Expression): string | null =>
+  e.kind === 'enum' ? arrowOf(e.type, e.value) : null;
+
 /** `leftLowerArm` as "left lower arm", for a joint with no words of its own. */
 export const splitWords = (id: string): string =>
   id.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase();

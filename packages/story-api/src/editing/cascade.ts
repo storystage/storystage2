@@ -18,12 +18,14 @@ import { indexOf, typesOf } from './cache.ts';
 import { ENUMS } from '../catalog/types.ts';
 import type { NumberRange, ParamDef } from '../catalog/types.ts';
 import type { ValuePlace } from './drop.ts';
-import { describer, word, type WordsOptions } from './words.ts';
+import { arrowOf, describer, word, type WordsOptions } from './words.ts';
 
 export type Ask = 'number' | 'wholeNumber' | 'text';
 
 export interface Choice {
   readonly words: string;
+  /** Drawn after the words and hidden from screen readers (`arrowOf`): "left ↺". */
+  readonly arrow?: string;
   /** The value it puts in the slot. Absent when it asks (`ask`) or opens a submenu. */
   readonly value?: Expression;
   /** Asks the learner to type a value, checked by `answer`. */
@@ -45,6 +47,8 @@ export interface CascadeOptions extends WordsOptions {
 
 const typeRef = (name: string): TypeRef =>
   name.endsWith('[]') ? { kind: 'array', of: typeRef(name.slice(0, -2)) } : storyType(name);
+
+const withArrow = (arrow: string | null) => (arrow ? { arrow } : {});
 
 /** Alice's common numbers, and the one each starts on. */
 const NUMBERS = [0.25, 0.5, 1, 2, 5, 10];
@@ -245,6 +249,7 @@ export function cascadeFor(
     return [
       ...ENUMS[name].map((v): Choice => ({
         words: word(`value.${name}.${v}`),
+        ...withArrow(arrowOf(name, v)),
         value: { id: mint(), kind: 'enum', type: name, value: v },
         ...(v === suggested ? { suggested: true as const } : {}),
       })),

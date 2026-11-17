@@ -255,3 +255,22 @@ describe('answer', () => {
     });
   });
 });
+
+describe('the turning arrows in the cascade', () => {
+  it('marks left and right on a turn, and nothing on a move', () => {
+    const turn = withBlock(call(field(ID.cat), 'turn'), 'args', 'direction');
+    const arrows = cascadeFor(turn.program, turn.place, mint).map((c) => [c.words, c.arrow]);
+    expect(arrows.slice(0, 4)).toEqual([
+      ['left', '↺'],
+      ['right', '↻'],
+      ['forward', undefined],
+      ['backward', undefined],
+    ]);
+    const move = cascadeFor(
+      scene(),
+      { kind: 'value', node: ID.move, slot: 'args', param: 'direction' },
+      mint,
+    );
+    expect(move.some((c) => c.arrow)).toBe(false);
+  });
+});
