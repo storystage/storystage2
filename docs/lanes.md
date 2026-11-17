@@ -116,7 +116,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 17 Nov (this): **everyone's new clothes in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 6bab468 (187 models), with the teenagers' and adults' new outfits (flowers, spots, flecks, long skirts, more trousers) and the children's checks resized; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
+  - 17 Nov (#495): **everyone's new clothes in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 6bab468 (187 models), with the teenagers' and adults' new outfits (flowers, spots, flecks, long skirts, more trousers) and the children's checks resized; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
 - Merged:
   - 17 Nov (#490, backstage-assets#19): **the teenagers' and adults' clothes** (WP3b; the owner's choices of 17 Nov, from a labelled sheet of the 23): fewer stripes and checks; `pattern` gains spots, flowers and flecks, all laid out by where the cloth is on the body (`surface_coords`, tiles in metres) so they're one size on every outfit and unstretched on a lengthened skirt; `skirtLength: 'ankle'` (Margaret, Eileen, Samira), the skirt stretched below the hips and widened clear of the legs; every skirt's hem levelled; trousers for five more; Eileen made less like Margaret.
   - 17 Nov (#457): **the children's clothes in the shipped Backstage**: `backstage.lock.json` pins backstage-assets ca795b9 (187 models), with the ten children's new outfits; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
