@@ -34,10 +34,15 @@ export interface ShellProps {
   /** A note across every mode, above the working area: a failed save, a film opened read-only. */
   notice?: ReactNode;
   /**
+   * The study bar (spec 14 section 6.3): the working area's first row for a whole study session,
+   * apart from the notices, which come and go.
+   */
+  studyBar?: ReactNode;
+  /**
    * Learn or Settings opened (true) or closed (false). The panels stay mounted under them, so a
    * panel that plays (the Screening room) pauses while it's hidden.
    */
-  onOverlayChange?: (open: boolean) => void;
+  onOverlayChange?: (open: boolean, overlay: Overlay | null) => void;
   /** Something going on in a mode, as a badge on its tab: an export running (S2's #317). */
   badges?: Partial<Record<Mode, ModeBadge>>;
 }
@@ -57,6 +62,7 @@ export function Shell({
   mode: controlled,
   onModeChange,
   notice,
+  studyBar,
   onOverlayChange,
   badges,
 }: ShellProps) {
@@ -65,7 +71,7 @@ export function Shell({
   const [overlay, setShown] = useState<Overlay | null>(null);
   const setOverlay = (next: Overlay | null) => {
     setShown(next);
-    if ((next !== null) !== (overlay !== null)) onOverlayChange?.(next !== null);
+    if (next !== overlay) onOverlayChange?.(next !== null, next);
   };
   const modeName = messages.t(`mode.${mode}`);
   const toggle = (which: Overlay) => (on: boolean) => setOverlay(on ? which : null);
@@ -118,6 +124,7 @@ export function Shell({
             </div>
           </header>
           <main className="studio-frame">
+            {studyBar}
             {notice && <div className="studio-notice">{notice}</div>}
             <div className="studio-panels" hidden={overlay !== null}>
               {MODES.map((m) => (

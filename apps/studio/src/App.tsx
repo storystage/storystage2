@@ -32,6 +32,8 @@ import { useStorageKept } from './lesson/useStorageKept.ts';
 import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { usePrompter } from './prompter/usePrompter.ts';
+import { StudyBar, StudyQuestion } from './study/StudyBar.tsx';
+import { useStudy } from './study/useStudy.ts';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
 import { AccessibilityCard } from './settings/AccessibilityCard.tsx';
@@ -250,6 +252,8 @@ export function App({
   const saving = useSaving(studio.production, film, studio.readOnly, pack);
   const storageKept = useStorageKept(host);
   const p = studio.production;
+  // Study mode (spec 14 section 6): a session while a taking-part learner's folder is open.
+  const study = useStudy({ host, folder, hasClass, inStudio: phase.kind === 'studio', studio });
   // The Prompter for the open film, on the pupil's level (WP13c); none in the browser version.
   const prompter = usePrompter({
     host,
@@ -508,6 +512,7 @@ export function App({
           void openAlice(file).catch((error: unknown) => setNote(folderProblem(error)));
         }}
       />
+      <StudyQuestion isOpen={study.asking} onAnswer={study.answer} />
       {alice && (
         <AliceReport title={alice.title} report={alice.report} onClose={() => setAlice(null)} />
       )}
@@ -521,7 +526,11 @@ export function App({
             badges={
               exporting ? { screening: { text: exporting.short, spoken: exporting.label } } : {}
             }
-            onOverlayChange={setOverlayOpen}
+            onOverlayChange={(open, overlay) => {
+              setOverlayOpen(open);
+              if (overlay === 'learn') study.learnOpened();
+            }}
+            {...(study.session ? { studyBar: <StudyBar session={study.session} /> } : {})}
             title={
               folder ? (
                 <FilmMenu

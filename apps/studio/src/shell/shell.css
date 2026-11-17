@@ -254,3 +254,20 @@ body,
 .studio-notice > * {
   flex: 1;
 }
+
+/* The study bar (spec 14 section 6.3): one quiet row, the session's code, for a whole session. */
+.studio-study-bar {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  color: var(--ss-text-2);
+  background: var(--ss-panel-1);
+  border-bottom: 1px solid var(--ss-line-1);
+  font-weight: 700;
+}
+.studio-study-bar .ss-icon {
+  fill: var(--ss-muted);
+}
