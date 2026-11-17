@@ -867,5 +867,22 @@
   "study.ask": "Is this learner taking part in the study?",
   "study.askWhy": "Only if their parent or carer agreed, and they say yes today. The answer lasts until StoryStage closes.",
   "study.no": "No",
-  "study.yes": "Yes"
+  "study.yes": "Yes",
+  "study.opened": "Study task: {title}. The task is on the right.",
+  "study.checkFailed": "The check couldn’t finish. Try again.",
+  "study.tasksHelp": "Choose a task. Each takes about ten minutes. A task you’ve done is ticked.",
+  "study.taskName": "Task {number}: {title}",
+  "study.taskDone": "Done",
+  "study.start": "Start",
+  "study.startNamed": "Start {title}",
+  "study.card": "Study task: {title}",
+  "study.taskOf": "Study task {number}",
+  "study.readAloud": "Read it to me",
+  "study.stopReading": "Stop reading",
+  "study.hint": "Hint",
+  "study.check": "Check my step",
+  "study.checking": "Checking…",
+  "study.stop": "Stop this task",
+  "study.questions": "Two quick questions",
+  "study.questionsDone": "Done"
 }

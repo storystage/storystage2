@@ -3,7 +3,16 @@ import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon, NeutralNote, messages as uiMessages } from '@storystage/ui';
-import { Suspense, lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import type { Voices } from '../speech/voices.ts';
 import { VoicesDownload } from '../speech/VoicesDownload.tsx';
 import type { StageMaker } from '../stage/makeStage.ts';
@@ -103,6 +112,10 @@ export interface ProductionStageProps {
    * which says so where the panel would be (07-ux 2.4, screen 12b); left out, neither (tests).
    */
   prompter?: PrompterPanel | null;
+  /** A study task's card, in the Prompter's place on the right (spec 14 section 6.4). */
+  taskCard?: ReactNode;
+  /** A study task holds the class's editor, with these words beside the switch (6.5). */
+  heldEditor?: string | null;
 }
 
 /** The current frame's check, with its own run, which stops when the learner leaves the tab. */
@@ -328,6 +341,8 @@ export function ProductionStage({
   voices = null,
   editorDefault,
   prompter,
+  taskCard,
+  heldEditor = null,
 }: ProductionStageProps) {
   const voicesState = useSyncExternalStore(
     (l) => voices?.subscribe(l) ?? (() => {}),
@@ -635,7 +650,7 @@ export function ProductionStage({
                 />
                 {/* The browser version says so where the Prompter would be (12b), in the side
                     column, so the code below keeps its height. */}
-                {prompter === null && (
+                {prompter === null && !taskCard && (
                   <NeutralNote>{uiMessages.t('note.prompterNotInBrowser')}</NeutralNote>
                 )}
                 {frame && open && (
@@ -700,6 +715,7 @@ export function ProductionStage({
                 highlights={highlights}
                 editorRef={editorRef}
                 {...(editorDefault ? { editorDefault } : {})}
+                held={heldEditor}
               />
             </>
           ) : (
@@ -732,7 +748,8 @@ export function ProductionStage({
             </section>
           )}
         </div>
-        {prompter && (
+        {taskCard}
+        {prompter && !taskCard && (
           <PrompterAside
             panel={prompter}
             frame={current ? { id: current.id, number: frameNumber } : null}

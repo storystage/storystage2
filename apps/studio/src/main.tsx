@@ -4,6 +4,7 @@ import './shell/shell.css';
 import './storyboard/storyboard.css';
 import './production/production.css';
 import './prompter/prompter.css';
+import './study/study.css';
 import './lesson/lesson.css';
 import './settings/settings.css';
 import { StrictMode } from 'react';

@@ -33,6 +33,7 @@ import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { usePrompter } from './prompter/usePrompter.ts';
 import { StudyBar, StudyQuestion } from './study/StudyBar.tsx';
+import { QuestionsDialog, TaskCard, TasksDialog, useStudyTasks } from './study/StudyTasks.tsx';
 import { useStudy } from './study/useStudy.ts';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
@@ -187,7 +188,12 @@ export function App({
   const [overlayOpen, setOverlayOpen] = useState(false);
   // One model source for every stage, and the running export, above the tabs (S5's review of
   // #317), so an export goes on when the learner changes tab, and stops when the studio closes.
-  const models = useModelSource(host, studio.production, film?.files ?? NO_FILES);
+  // A study task's film is in memory only, with the shipped Backstage's models (spec 14 6.4).
+  const models = useModelSource(
+    host,
+    studio.production,
+    studio.inTask ? NO_FILES : (film?.files ?? NO_FILES),
+  );
   // Models' own sketches for the Storyboard (WP10.9): the cast's class models are read from the
   // device first, as a stage reads them, and drawn again once they are.
   const castIds = useMemo(
@@ -249,7 +255,8 @@ export function App({
   const pack = useMemo(() => classPacking(host), [host]);
   // The shipped Backstage's Alice models, read when the first world is opened, then kept.
   const aliceModels = useMemo(() => aliceModelSource(host), [host]);
-  const saving = useSaving(studio.production, film, studio.readOnly, pack);
+  // Nothing of a study task is saved: saving waits while one is open (spec 14 6.4).
+  const saving = useSaving(studio.production, studio.inTask ? null : film, studio.readOnly, pack);
   const storageKept = useStorageKept(host);
   const p = studio.production;
   // Study mode (spec 14 section 6): a session while a taking-part learner's folder is open.
@@ -261,6 +268,16 @@ export function App({
     scene: currentPlace(p, place).scene,
     models,
     pupil: folder?.pupil.id ?? null,
+    heldOff: studio.inTask,
+  });
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const tasks = useStudyTasks({
+    study,
+    studio,
+    host,
+    models,
+    beforeOpen: () => saving.save('auto'),
+    onAnnounce: setSaid,
   });
 
   /** Starts working on `production`, saved with `saver`. */
@@ -513,6 +530,18 @@ export function App({
         }}
       />
       <StudyQuestion isOpen={study.asking} onAnswer={study.answer} />
+      {study.session && (
+        <TasksDialog
+          session={study.session}
+          isOpen={tasksOpen}
+          onClose={() => setTasksOpen(false)}
+          onStart={(task) => {
+            setMode('production');
+            void tasks.start(task);
+          }}
+        />
+      )}
+      <QuestionsDialog tasks={tasks} />
       {alice && (
         <AliceReport title={alice.title} report={alice.report} onClose={() => setAlice(null)} />
       )}
@@ -530,9 +559,19 @@ export function App({
               setOverlayOpen(open);
               if (overlay === 'learn') study.learnOpened();
             }}
-            {...(study.session ? { studyBar: <StudyBar session={study.session} /> } : {})}
+            {...(study.session
+              ? {
+                  studyBar: (
+                    <StudyBar
+                      session={study.session}
+                      inTask={studio.inTask}
+                      onTasks={() => setTasksOpen(true)}
+                    />
+                  ),
+                }
+              : {})}
             title={
-              folder ? (
+              folder && !studio.inTask ? (
                 <FilmMenu
                   title={title}
                   pupilName={folder.pupil.name || null}
@@ -632,6 +671,8 @@ export function App({
                   onAnnounce={setSaid}
                   active={!overlayOpen}
                   prompter={prompter}
+                  {...(tasks.open ? { taskCard: <TaskCard tasks={tasks} /> } : {})}
+                  heldEditor={tasks.heldNote}
                 />
               ),
               screening: (

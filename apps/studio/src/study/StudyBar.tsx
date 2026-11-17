@@ -8,13 +8,27 @@ import { Button, Dialog, Icon } from '@storystage/ui';
 import { useEffect, useRef } from 'react';
 import { words } from '../strings.ts';
 
-export function StudyBar({ session }: { session: StudySession }) {
+export function StudyBar({
+  session,
+  inTask = false,
+  onTasks,
+}: {
+  session: StudySession;
+  /** A task is open: Study tasks waits until it ends. */
+  inTask?: boolean;
+  onTasks?: () => void;
+}) {
   return (
     <section className="studio-study-bar" aria-label={words.t('study.bar')}>
       <Icon name="description" size={20} />
       <span className="studio-study-code">
         {t('bar.session', { code: showCode(session.code) })}
       </span>
+      {onTasks && (
+        <Button variant="secondary" icon="flag" isDisabled={inTask} onPress={onTasks}>
+          {t('bar.tasks')}
+        </Button>
+      )}
     </section>
   );
 }

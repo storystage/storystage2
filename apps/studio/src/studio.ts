@@ -43,6 +43,15 @@ export interface Studio {
    * listeners of changes, not of a step closing, so Undo and Redo are named again.
    */
   historyChanged(): void;
+  /**
+   * A study task's film (spec 14 section 6.4), in memory only, with a history of its own. The
+   * learner's film waits aside, with its history, exactly as they left it.
+   */
+  openTask(production: Production): void;
+  /** Back to the learner's own film, as they left it. Nothing of the task is kept. */
+  closeTask(): void;
+  /** A study task's film is open. */
+  readonly inTask: boolean;
 }
 
 const restOf = ({ program: _, ...rest }: Production): ProductionRest => rest;
@@ -70,6 +79,8 @@ export function useStudio(start: Production): Studio {
   const [openLabel, setOpenLabel] = useState<string | null>(null);
   // Bumped when a step closes outside the studio, so the labels are read again.
   const [steps, setSteps] = useState(0);
+  // The learner's own film, while a study task's is open.
+  const [aside, setAside] = useState<typeof film | null>(null);
 
   useEffect(() => session.subscribe((change) => setProduction(change.production)), [session]);
 
@@ -110,10 +121,28 @@ export function useStudio(start: Production): Studio {
       open(next, readOnly = null) {
         open.current = null;
         setOpenLabel(null);
+        setAside(null);
         const fresh = sessionFor(next, readOnly);
         setFilm({ session: fresh, readOnly });
         setProduction(fresh.production());
       },
+      openTask(task) {
+        if (aside) return;
+        close();
+        setAside(film);
+        const fresh = sessionFor(task, null);
+        setFilm({ session: fresh, readOnly: null });
+        setProduction(fresh.production());
+      },
+      closeTask() {
+        if (!aside) return;
+        open.current = null;
+        setOpenLabel(null);
+        setFilm(aside);
+        setProduction(aside.session.production());
+        setAside(null);
+      },
+      inTask: aside !== null,
       readOnly: film.readOnly,
       undoLabel: openLabel ?? session.undoLabel(),
       redoLabel: session.redoLabel(),
@@ -121,5 +150,5 @@ export function useStudio(start: Production): Studio {
     };
     // `steps` names the labels again; the session itself holds them.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, production, openLabel, film.readOnly, steps]);
+  }, [session, production, openLabel, film, aside, steps]);
 }

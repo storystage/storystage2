@@ -50,6 +50,11 @@ export interface CodeEditorProps {
    * none. Whether it's locked is the host's `policy.editorLocked`.
    */
   editorDefault?: EditorId;
+  /**
+   * A study task holds the class's default editor (spec 14 section 6.5): the switch can't change,
+   * and says why in these words. Only what's shown is held; the learner's own choice stays theirs.
+   */
+  held?: string | null;
 }
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
@@ -109,11 +114,13 @@ export function CodeEditor({
   highlights,
   editorRef,
   editorDefault = 'blocks',
+  held = null,
 }: CodeEditorProps) {
   const themeStyle = useThemeStyle();
   // Blocks or Tiles (14-editors section 4): the learner's choice, the class default, or locked.
   // A host without policy (a test's own) leaves the switch unlocked, as the browser's has it.
-  const locked = (host.policy as EditorHost['policy'] | undefined)?.editorLocked === true;
+  const locked =
+    held !== null || (host.policy as EditorHost['policy'] | undefined)?.editorLocked === true;
   const [editorChoice, setEditorChoice] = useEditorSetting();
   const shown = editorShown(editorChoice, { default: editorDefault, locked });
   const handoff = useHandoff();
@@ -157,6 +164,7 @@ export function CodeEditor({
         <EditorSwitch
           shown={shown}
           locked={locked}
+          {...(held !== null ? { lockNote: held } : {})}
           explained={editorChoice.explained}
           program={p.program}
           method={methods.find((m) => m.id === open) ?? null}

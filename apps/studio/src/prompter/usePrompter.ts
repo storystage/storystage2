@@ -51,6 +51,8 @@ export interface PrompterOptions {
   readonly models: ModelSourceHandle;
   /** The pupil whose folder is open, whose count the cap is on. */
   readonly pupil: PupilId | null;
+  /** A study task is open: the Prompter is held off, whatever the level (spec 14 section 6.5). */
+  readonly heldOff?: boolean;
 }
 
 /** The panel for the open film, or `null` in the browser version. */
@@ -60,11 +62,13 @@ export function usePrompter({
   scene,
   models,
   pupil,
+  heldOff = false,
 }: PrompterOptions): PrompterPanel | null {
   // What the panel reads as it runs, kept current without making a new panel.
   const sceneNow = useRef(scene);
   const modelsNow = useRef(models);
   const currentLevel = useRef<PrompterLevel>(host.policy.prompter.level);
+  const held = useRef(heldOff);
   useEffect(() => {
     sceneNow.current = scene;
     modelsNow.current = models;
@@ -86,7 +90,7 @@ export function usePrompter({
       production: session as unknown as Parameters<typeof createPrompterPanel>[0]['production'],
       transport: host.prompter,
       source: 'prompter',
-      level: () => currentLevel.current,
+      level: () => (held.current ? 'off' : currentLevel.current),
       scene: () => (sceneNow.current ?? firstScene()) as SceneId,
       backstageClass: (id) => modelsNow.current.item(id as BackstageId)?.class ?? null,
       stageFromStoryboard: (p, at, label) => {
@@ -133,6 +137,12 @@ export function usePrompter({
       live = false;
     };
   }, [panel, host, pupil, atLimit]);
+
+  // Held off while a study task is open, and back when it closes: a request running stops (S7).
+  useEffect(() => {
+    held.current = heldOff;
+    void panel?.refresh();
+  }, [panel, heldOff]);
 
   return panel;
 }
