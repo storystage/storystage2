@@ -122,17 +122,26 @@ export const WITH_JEANS = ['male_casualsuit03', 'male_casualsuit05'] as const;
 
 /**
  * The shirt's pattern, so not everyone wears the pack's stripes (owner, 17 Nov 2026): "plain"
- * smooths the stripes out of the picture and keeps its folds; "checks" lays a gingham over that.
+ * smooths the stripes out of the picture and keeps its folds, and the others lay a pattern over
+ * that: a gingham ("checks"), spots ("dots"), small five-petalled flowers ("flowers") or a
+ * knitted fleck ("flecks").
  * Only for an outfit that is a shirt or a blouse on its own (`WITH_PATTERN`): the jacket outfit's
  * jacket shares the shirt's picture and would lose its own detail. It needs a `clothesColour`.
  */
-export const PATTERNS = ['plain', 'checks'] as const;
+export const PATTERNS = ['plain', 'checks', 'dots', 'flowers', 'flecks'] as const;
 export type Pattern = (typeof PATTERNS)[number];
 export const WITH_PATTERN = ['male_casualsuit03', 'female_elegantsuit01'] as const;
 
-/** Whether the pipeline levels a skirt's hem: a child's hangs to a point otherwise (16 Nov). */
-export const straightHem = (p: Pick<Person, 'clothes' | 'ageYears'>): boolean =>
-  p.clothes[0] === 'female_elegantsuit01' && p.ageYears <= 12;
+/** How long a skirt is: the pack's, to the knee, or to the ankle (owner, 17 Nov 2026). */
+export const SKIRT_LENGTHS = ['ankle'] as const;
+export type SkirtLength = (typeof SKIRT_LENGTHS)[number];
+
+/**
+ * Whether the pipeline levels a skirt's hem: the pack's skirt hangs to a point on a child (16 Nov
+ * 2026) and, less, on some adults (Lin, Eileen), so every skirt's is levelled (owner, 17 Nov).
+ */
+export const straightHem = (p: Pick<Person, 'clothes'>): boolean =>
+  p.clothes[0] === 'female_elegantsuit01';
 
 /**
  * Headwear the pipeline makes itself (`make_people.py`), as no community pack has any (searched
@@ -206,6 +215,8 @@ export interface Person {
   readonly trousersColour?: TrousersColour;
   /** The shirt's pattern (`PATTERNS`); left out, the pack's stripes. */
   readonly pattern?: Pattern;
+  /** A skirt to the ankle (`SKIRT_LENGTHS`); left out, the pack's, to the knee. */
+  readonly skirtLength?: SkirtLength;
   readonly shoes: string;
   readonly hat?: string;
   /** Glasses from the community's CC0 glasses pack (`GLASSES`). */
@@ -288,6 +299,10 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`pattern needs a shirt or blouse on its own: ${WITH_PATTERN.join(', ')}.`);
     else if (p.pattern !== undefined && p.clothesColour === undefined)
       e('pattern needs a clothesColour.');
+    if (p.skirtLength !== undefined && !has(SKIRT_LENGTHS, p.skirtLength))
+      e(`skirtLength must be one of ${SKIRT_LENGTHS.join(', ')}.`);
+    else if (p.skirtLength !== undefined && p.clothes?.[0] !== 'female_elegantsuit01')
+      e('skirtLength needs the skirt, female_elegantsuit01.');
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
@@ -349,6 +364,7 @@ const clothesWords = (p: Person) =>
       p.clothesColour ? `${c} (${[p.clothesColour, p.pattern].filter(Boolean).join(', ')})` : c,
     ),
     ...(p.trousersColour ? [`${p.trousersColour} trousers`] : []),
+    ...(p.skirtLength ? [`skirt to the ${p.skirtLength}`] : []),
     p.shoes,
     ...(p.hat ? [p.hat] : []),
     ...(p.glasses ? [p.glasses] : []),

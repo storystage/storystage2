@@ -73,12 +73,15 @@ import type { ToolOutcome, ToolErrorCode } from './tools.ts';
 import type { Json, JsonObject } from './transport.ts';
 import { objectRef, toValue, type SceneObjects } from './values.ts';
 
-/** What the runner works on. The studio supplies these for the open production. */
-export interface RunnerSetup {
+/**
+ * What the runner works on. The studio supplies these for the open production. `S` is the
+ * history's names for where changes come from, so the studio's own session fits as it is.
+ */
+export interface RunnerSetup<S extends string = string> {
   /** The open production, with its undo history: program and set-ups together. */
-  readonly session: ProductionSession<string>;
+  readonly session: ProductionSession<S>;
   /** The history's name for Prompter changes. */
-  readonly source: string;
+  readonly source: S;
   /** The scene the learner is in. */
   readonly scene: () => SceneId;
   /** The method open in the editor, kept whole when the program is over its budget. */
@@ -204,8 +207,8 @@ function asPlan(value: Json | undefined): Plan | null {
     : null;
 }
 
-export class PrompterRunner implements ToolRunner {
-  readonly #setup: RunnerSetup;
+export class PrompterRunner<S extends string = string> implements ToolRunner {
+  readonly #setup: RunnerSetup<S>;
   #request = '';
   #agreed: Plan | null = null;
   #open = false;
@@ -215,7 +218,7 @@ export class PrompterRunner implements ToolRunner {
   /** The frame `code_frame` started in this request: blocks built after it link to it (10.8). */
   #coding: FrameId | null = null;
 
-  constructor(setup: RunnerSetup) {
+  constructor(setup: RunnerSetup<S>) {
     this.#setup = setup;
   }
 
