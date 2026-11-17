@@ -116,7 +116,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 17 Nov (this): **the new thumbnails in the shipped Backstage**: `backstage.lock.json` pins backstage-assets fd71e3d (187 models), with the Props and Set thumbnails from three-quarters and above (WP3.10); the Prompter's catalogue is unchanged but for its commit, and the licence audit's What ships is refreshed.
+  - 17 Nov (#498): **the new thumbnails in the shipped Backstage**: `backstage.lock.json` pins backstage-assets fd71e3d (187 models), with the Props and Set thumbnails from three-quarters and above (WP3.10); the Prompter's catalogue is unchanged but for its commit, and the licence audit's What ships is refreshed.
 - Merged:
   - 17 Nov (#497, backstage-assets#20): **WP3.10, each section's thumbnail view** (spec 17 §7a rule 1; the owner's choice of 17 Nov, from a comparison of ten props and sets): `THUMBNAIL_VIEWS` in `packages/sketches`: Cast front on; Props from three-quarters and 25° above; Set from three-quarters and 30° above (front on, a bicycle was a line and a sofa a block); `renderThumbnail` gains `elevation`. The Backstage build and class imports both use it. Placements were all approved on 12 Nov, so **3.10 is ticked**. The thumbnails are rebuilt in backstage-assets, then a lock update.
   - 17 Nov (#495): **everyone's new clothes in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 6bab468 (187 models), with the teenagers' and adults' new outfits (flowers, spots, flecks, long skirts, more trousers) and the children's checks resized; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
