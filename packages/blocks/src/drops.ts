@@ -16,6 +16,7 @@ import {
   type Program,
   type Statement,
   type StatementSlot,
+  walk,
 } from '@storystage/ast';
 import {
   canDrop,
@@ -63,6 +64,20 @@ export function freshIn(program: Program, read: FromBlocks): Fresh[] {
   };
   list(read.owner, 'body', read.body);
   return found;
+}
+
+/**
+ * Whether a new node holds nodes the program has already. That's two gestures read as one, such as
+ * a drag begun before a drop from the palette was a step, landing in the dropped block: made a
+ * step, those nodes would be copied with new ids. The editor puts the blocks back instead.
+ */
+export function holdsKnown(program: Program, fresh: Fresh): boolean {
+  const known = idsOf(program);
+  let held = false;
+  walk(fresh.node, (node) => {
+    if (node !== fresh.node && known.has(node.id)) held = true;
+  });
+  return held;
 }
 
 /** What the editor asks the learner, and where. */

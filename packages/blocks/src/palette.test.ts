@@ -10,7 +10,7 @@ import { CONTROL_KINDS, newCall, newControl, palette } from '@storystage/story-a
 import * as Blockly from 'blockly/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { defineBlocks } from './definitions.ts';
-import { dropFromPalette, freshIn, type Ask } from './drops.ts';
+import { dropFromPalette, freshIn, holdsKnown, type Ask } from './drops.ts';
 import { storyStatementType } from './shapes.ts';
 import { CONTROL_GROUP, paletteEntry, toolboxFor } from './toolbox.ts';
 
@@ -106,6 +106,16 @@ describe('a block dropped from the palette (3i.6)', () => {
       { place: { kind: 'statement', parent: main.id, slot: 'body', index: 1 }, node: say },
     ]);
     expect(freshIn(program, blocksOf(main.body))).toEqual([]);
+  });
+
+  it('is told apart when it holds blocks the program has, which a step would copy', () => {
+    const empty = newControl('doTogether', mint) as Statement & { body: readonly Statement[] };
+    const holding = { ...empty, body: [main.body[0]!] };
+    const [alone] = freshIn(program, blocksOf([...main.body, empty]));
+    const [held] = freshIn(program, blocksOf([holding, ...main.body.slice(1)]));
+    expect(holdsKnown(program, alone!)).toBe(false);
+    expect(held!.node).toBe(holding);
+    expect(holdsKnown(program, held!)).toBe(true);
   });
 
   it('asks for each empty value, then is one insert named for the finished block', async () => {

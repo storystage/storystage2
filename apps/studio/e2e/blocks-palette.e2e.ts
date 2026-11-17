@@ -68,3 +68,23 @@ test('the flyout names each block’s entry, in the shared palette’s order', a
   await chooseTab(page, 'actions');
   await expect.poll(() => drawn(page)).toEqual(expected(objectRef, 'actions'));
 });
+
+test('the palette stays as chosen when the blocks are drawn again at a new text size', async ({
+  page,
+}) => {
+  // A new text size makes the Blocks editor again (BlocksPanel); the new one must be given the
+  // object and kind of block the learner chose, not start on the scene's actions.
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto('/?example');
+  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await chooseTab(page, 'questions');
+  await expect.poll(() => drawn(page)).toEqual(expected(self, 'questions'));
+  await page.getByRole('button', { name: 'Settings' }).click();
+  await page.getByRole('radiogroup', { name: 'Text size' }).getByText('125%').click();
+  await page.getByRole('button', { name: 'Back to Production stage' }).click();
+  await expect(
+    page.getByRole('radiogroup', { name: 'Kind of block' }).getByRole('radio', { checked: true }),
+  ).toHaveAccessibleName(TAB_WORDS.questions);
+  await expect.poll(() => drawn(page)).toEqual(expected(self, 'questions'));
+});
