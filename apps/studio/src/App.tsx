@@ -31,6 +31,7 @@ import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { useStorageKept } from './lesson/useStorageKept.ts';
 import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
+import { usePrompter } from './prompter/usePrompter.ts';
 import { useEditorHost } from './production/editorHost.ts';
 import { ClassSetup } from './settings/ClassSetup.tsx';
 import { AccessibilityCard } from './settings/AccessibilityCard.tsx';
@@ -249,6 +250,14 @@ export function App({
   const saving = useSaving(studio.production, film, studio.readOnly, pack);
   const storageKept = useStorageKept(host);
   const p = studio.production;
+  // The Prompter for the open film, on the pupil's level (WP13c); none in the browser version.
+  const prompter = usePrompter({
+    host,
+    studio,
+    scene: currentPlace(p, place).scene,
+    models,
+    pupil: folder?.pupil.id ?? null,
+  });
 
   /** Starts working on `production`, saved with `saver`. */
   const begin = (
@@ -613,6 +622,7 @@ export function App({
                   models={models}
                   onAnnounce={setSaid}
                   active={!overlayOpen}
+                  prompter={prompter}
                 />
               ),
               screening: (

@@ -38,6 +38,11 @@ export interface Studio {
   redo(): void;
   readonly undoLabel: string | null;
   readonly redoLabel: string | null;
+  /**
+   * Someone else closed a step on the session (the Prompter's request): the session tells its
+   * listeners of changes, not of a step closing, so Undo and Redo are named again.
+   */
+  historyChanged(): void;
 }
 
 const restOf = ({ program: _, ...rest }: Production): ProductionRest => rest;
@@ -63,6 +68,8 @@ export function useStudio(start: Production): Studio {
   // Its label: what Undo would undo while the learner is still typing (07-ux 6.8). Setting it
   // also redraws the undo labels when the group closes, which leaves the production as it was.
   const [openLabel, setOpenLabel] = useState<string | null>(null);
+  // Bumped when a step closes outside the studio, so the labels are read again.
+  const [steps, setSteps] = useState(0);
 
   useEffect(() => session.subscribe((change) => setProduction(change.production)), [session]);
 
@@ -110,6 +117,9 @@ export function useStudio(start: Production): Studio {
       readOnly: film.readOnly,
       undoLabel: openLabel ?? session.undoLabel(),
       redoLabel: session.redoLabel(),
+      historyChanged: () => setSteps((n) => n + 1),
     };
-  }, [session, production, openLabel, film.readOnly]);
+    // `steps` names the labels again; the session itself holds them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session, production, openLabel, film.readOnly, steps]);
 }

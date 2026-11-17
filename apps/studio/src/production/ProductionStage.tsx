@@ -2,7 +2,7 @@ import type { NodeId } from '@storystage/ast';
 import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
-import { Button, Icon, NeutralNote } from '@storystage/ui';
+import { Button, Icon, NeutralNote, messages as uiMessages } from '@storystage/ui';
 import { Suspense, lazy, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import type { Voices } from '../speech/voices.ts';
 import { VoicesDownload } from '../speech/VoicesDownload.tsx';
@@ -56,6 +56,8 @@ import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
 import type { Place } from '../storyboard/place.ts';
+import type { PrompterPanel } from '@storystage/prompter';
+import { PrompterAside } from '../prompter/PrompterAside.tsx';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
 
@@ -96,6 +98,11 @@ export interface ProductionStageProps {
   studio?: Studio;
   /** Opens the Code editor at a block: the check's Go to the block. */
   onReveal?: (node: NodeId) => void;
+  /**
+   * The Prompter (WP13c), drawn beside the scene view and the code. `null` in the browser version,
+   * which says so where the panel would be (07-ux 2.4, screen 12b); left out, neither (tests).
+   */
+  prompter?: PrompterPanel | null;
 }
 
 /** The current frame's check, with its own run, which stops when the learner leaves the tab. */
@@ -249,6 +256,22 @@ export function storyboardChecks(p: Production, scene: SceneId) {
 }
 
 /** The scene's name on the scene view's band: "Scene 1: The kite", or "Scene 1" before it has one. */
+/** The blocks the latest request added, while it builds and once it's built: one string, so it's stable. */
+function usePrompterNodes(panel: PrompterPanel | null): string {
+  return useSyncExternalStore(
+    (l) => panel?.subscribe(l) ?? (() => {}),
+    () => {
+      const state = panel?.state;
+      if (!state || (state.phase !== 'building' && state.phase !== 'built')) return '';
+      const asked = state.entries.findLastIndex((e) => e.kind === 'asked');
+      return state.entries
+        .slice(asked + 1)
+        .flatMap((e) => (e.kind === 'change' ? e.nodes : []))
+        .join(' ');
+    },
+  );
+}
+
 export function sceneTitle(p: Production, scene: SceneId): string {
   const n = sceneNumber(p, scene);
   const heading = p.storyboard.cards.find((c) => c.id === scene)?.heading.trim() ?? '';
@@ -304,6 +327,7 @@ export function ProductionStage({
   onReveal,
   voices = null,
   editorDefault,
+  prompter,
 }: ProductionStageProps) {
   const voicesState = useSyncExternalStore(
     (l) => voices?.subscribe(l) ?? (() => {}),
@@ -398,11 +422,16 @@ export function ProductionStage({
       ? `${numberOfScene(p, scene)}.${sceneFrames(p, scene).findIndex((f) => f.id === current.id) + 1}`
       : '';
   const linked = current ? liveLinks(p, current).join(' ') : '';
-  const highlights = useMemo(
-    () =>
-      linked ? { ...marks, link: linked.split(' ').map((n) => ({ node: n as NodeId })) } : marks,
-    [marks, linked],
-  );
+  // The blocks the Prompter's request added, marked as they land (spec 04 section 6.1, step 8).
+  const built = usePrompterNodes(prompter ?? null);
+  const highlights = useMemo(() => {
+    const withLinks = linked
+      ? { ...marks, link: linked.split(' ').map((n) => ({ node: n as NodeId })) }
+      : marks;
+    return built
+      ? { ...withLinks, prompter: built.split(' ').map((n) => ({ node: n as NodeId })) }
+      : withLinks;
+  }, [marks, linked, built]);
   const setup = scene ? p.scenes.find((s) => s.id === scene)?.setup : undefined;
   const unavailable = !open
     ? words.t('production.rehearse.codeClosed')
@@ -468,224 +497,251 @@ export function ProductionStage({
         )}
         {studio && <StageHistory studio={studio} onAnnounce={onAnnounce} active={active} />}
       </div>
-      {voices && <VoicesDownload voices={voices} />}
-      {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
-      {offer.length > 0 && scene !== null && (
-        <StoryboardSetup
-          key={`${scene}:${again}`}
-          plan={offer}
-          again={again}
-          frameNumber={`${numberOfScene(p, scene)}.1`}
-          onPlace={placeChosen}
-          onNotNow={answer}
-        />
-      )}
-      <div className="pr-top">
-        {studio && models && scene !== null && (
-          <BackstageRail
-            catalogue={models.catalogue}
-            thumbnail={(id) => models.thumbnail(id)}
-            canAdd={studio.readOnly === null}
-            onUse={(item) => use(item)}
-          />
-        )}
-        {scene !== null && models && (
-          // The same height as the scene view, band and all, so nothing below moves as it loads.
-          <Suspense
-            fallback={
-              <div className="pr-scene" aria-hidden="true">
-                <div className="pr-scene-band">
-                  <p className="pr-scene-title">{sceneTitle(p, scene)}</p>
-                  <div className="pr-scene-controls pr-scene-controls-waiting" />
-                </div>
-                {unavailable && <p className="pr-scene-why">{unavailable}</p>}
-                <div className="pr-scene-view" />
-                <div className="pr-scene-tools pr-scene-controls-waiting" />
-              </div>
-            }
-          >
-            <SceneView
-              production={p}
-              scene={scene}
-              title={sceneTitle(p, scene)}
-              models={models}
-              unavailable={unavailable}
-              selectedBlock={() => editorRef.current?.selection()[0] ?? null}
-              onRehearsal={(state) => {
-                setRehearsal(state);
-                // The frames this run has reached are Rehearsed until they change (section 2.3).
-                if (!onRehearsed) return;
-                const reached = framesReached(
-                  p,
-                  scene,
-                  state.ran,
-                  state.status === 'ended' && state.reachedEnd,
-                );
-                const next = withRehearsed(rehearsed, p, reached);
-                if (next !== rehearsed) onRehearsed(next);
-              }}
-              onAnnounce={onAnnounce}
-              active={active}
-              {...(makeStage ? { makeStage } : {})}
-              {...(startWorker ? { startWorker } : {})}
-              speaker={voices ?? undefined}
-              silentLines={silentLines}
-              chosen={chosen}
-              onChoose={choose}
-              {...(studio && studio.readOnly === null && hasFrames && offer.length === 0
-                ? {
-                    onSetUp: () => {
-                      if (plan.length > 0) return setAsking(scene);
-                      setStageNote(words.t('production.fromStoryboard.nothing'));
-                    },
-                  }
-                : {})}
-              canEdit={!!studio && studio.readOnly === null}
-              onMoved={(target, transform) => {
-                if (!studio) return;
-                const step = moved(studio.production, scene, target, transform);
-                if (step) studio.commit(step.label, step.next);
-              }}
-              onDropModel={(id, ground) => {
-                const item = models.catalogue.find((i) => i.id === id);
-                if (item) use(item, ground);
-              }}
-              onAddMarker={(transform) => {
-                if (!studio) return;
-                const { production: next, id } = addMarker(studio.production, scene, transform);
-                studio.commit(words.t('production.view.addMarkerStep', { name: id }), next);
-                choose({ marker: id });
-                onAnnounce(words.t('production.view.markerAdded', { name: id }));
-              }}
-              onMoveCamera={(transform) => {
-                if (!studio) return;
-                studio.commit(
-                  words.t('production.view.cameraStep'),
-                  withCamera(studio.production, scene, transform),
-                );
-                onAnnounce(words.t('production.view.cameraMoved'));
-              }}
-            />
-          </Suspense>
-        )}
-        {studio && models && scene !== null && (
-          <div className="pr-side">
-            <ObjectsPanel
-              studio={studio}
-              scene={scene}
-              chosen={
-                chosen === null
-                  ? null
-                  : 'marker' in chosen
-                    ? `${MARKER_KEY}${chosen.marker}`
-                    : chosen.object
-              }
-              onChoose={(key) =>
-                choose(
-                  key === null
-                    ? null
-                    : key.startsWith(MARKER_KEY)
-                      ? { marker: key.slice(MARKER_KEY.length) }
-                      : { object: key as ObjectId },
-                )
-              }
-              onAnnounce={onAnnounce}
-              poseJoints={(o) =>
-                typeof o.model === 'string' ? poseJoints(o.class, models.item(o.model)?.joints) : []
-              }
-              {...(onReveal ? { onReveal } : {})}
-              modelName={(o) =>
-                typeof o.model === 'string'
-                  ? (models.item(o.model)?.displayName ?? null)
-                  : words.t('production.objects.standIn', { kind: o.model.standIn })
-              }
-            />
-            {frame && open && (
-              <FrameCheckArea
-                studio={studio}
-                models={models}
-                frameId={frame}
-                makeStage={makeStage}
-                startWorker={startWorker}
-                onReveal={(node) => onReveal?.(node)}
-                host={host}
-                onShowFrame={() => {
-                  const chosen = p.frames.find((f) => f.id === frame);
-                  if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });
-                  onGoToStoryboard();
-                }}
-              />
-            )}
-          </div>
-        )}
-      </div>
-      {scene === null ? (
-        <div className="pr-closed">
-          <p>{words.t('production.noScene')}</p>
-          <Button variant="secondary" icon="draw" onPress={onGoToStoryboard}>
-            {words.t('production.closed.goToStoryboard')}
-          </Button>
-        </div>
-      ) : open ? (
-        <>
-          {studio && current && (
-            <FrameLinks
-              production={p}
-              frame={current}
-              number={frameNumber}
-              readOnly={studio.readOnly !== null}
-              chosen={chosenBlock}
-              onLink={(block, link) => {
-                const next = withLink(studio.production, current.id, block, link);
-                if (next === studio.production) return;
-                const n = frameNumber;
-                studio.commit(
-                  words.t(link ? 'production.links.linkStep' : 'production.links.unlinkStep', {
-                    n,
-                  }),
-                  next,
-                );
-                onAnnounce(
-                  words.t(link ? 'production.links.linked' : 'production.links.unlinked', { n }),
-                );
-              }}
+      <div className="pr-work">
+        <div className="pr-main">
+          {voices && <VoicesDownload voices={voices} />}
+          {stageNote && <NeutralNote>{stageNote}</NeutralNote>}
+          {offer.length > 0 && scene !== null && (
+            <StoryboardSetup
+              key={`${scene}:${again}`}
+              plan={offer}
+              again={again}
+              frameNumber={`${numberOfScene(p, scene)}.1`}
+              onPlace={placeChosen}
+              onNotNow={answer}
             />
           )}
-          <CodeEditor
-            production={p}
-            scene={scene}
-            host={host}
-            key={reveal ? `reveal-${reveal.n}` : 'code'}
-            reveal={reveal?.node ?? null}
-            highlights={highlights}
-            editorRef={editorRef}
-            {...(editorDefault ? { editorDefault } : {})}
+          <div className="pr-top">
+            {studio && models && scene !== null && (
+              <BackstageRail
+                catalogue={models.catalogue}
+                thumbnail={(id) => models.thumbnail(id)}
+                canAdd={studio.readOnly === null}
+                onUse={(item) => use(item)}
+              />
+            )}
+            {scene !== null && models && (
+              // The same height as the scene view, band and all, so nothing below moves as it loads.
+              <Suspense
+                fallback={
+                  <div className="pr-scene" aria-hidden="true">
+                    <div className="pr-scene-band">
+                      <p className="pr-scene-title">{sceneTitle(p, scene)}</p>
+                      <div className="pr-scene-controls pr-scene-controls-waiting" />
+                    </div>
+                    {unavailable && <p className="pr-scene-why">{unavailable}</p>}
+                    <div className="pr-scene-view" />
+                    <div className="pr-scene-tools pr-scene-controls-waiting" />
+                  </div>
+                }
+              >
+                <SceneView
+                  production={p}
+                  scene={scene}
+                  title={sceneTitle(p, scene)}
+                  models={models}
+                  unavailable={unavailable}
+                  selectedBlock={() => editorRef.current?.selection()[0] ?? null}
+                  onRehearsal={(state) => {
+                    setRehearsal(state);
+                    // The frames this run has reached are Rehearsed until they change (section 2.3).
+                    if (!onRehearsed) return;
+                    const reached = framesReached(
+                      p,
+                      scene,
+                      state.ran,
+                      state.status === 'ended' && state.reachedEnd,
+                    );
+                    const next = withRehearsed(rehearsed, p, reached);
+                    if (next !== rehearsed) onRehearsed(next);
+                  }}
+                  onAnnounce={onAnnounce}
+                  active={active}
+                  {...(makeStage ? { makeStage } : {})}
+                  {...(startWorker ? { startWorker } : {})}
+                  speaker={voices ?? undefined}
+                  silentLines={silentLines}
+                  chosen={chosen}
+                  onChoose={choose}
+                  {...(studio && studio.readOnly === null && hasFrames && offer.length === 0
+                    ? {
+                        onSetUp: () => {
+                          if (plan.length > 0) return setAsking(scene);
+                          setStageNote(words.t('production.fromStoryboard.nothing'));
+                        },
+                      }
+                    : {})}
+                  canEdit={!!studio && studio.readOnly === null}
+                  onMoved={(target, transform) => {
+                    if (!studio) return;
+                    const step = moved(studio.production, scene, target, transform);
+                    if (step) studio.commit(step.label, step.next);
+                  }}
+                  onDropModel={(id, ground) => {
+                    const item = models.catalogue.find((i) => i.id === id);
+                    if (item) use(item, ground);
+                  }}
+                  onAddMarker={(transform) => {
+                    if (!studio) return;
+                    const { production: next, id } = addMarker(studio.production, scene, transform);
+                    studio.commit(words.t('production.view.addMarkerStep', { name: id }), next);
+                    choose({ marker: id });
+                    onAnnounce(words.t('production.view.markerAdded', { name: id }));
+                  }}
+                  onMoveCamera={(transform) => {
+                    if (!studio) return;
+                    studio.commit(
+                      words.t('production.view.cameraStep'),
+                      withCamera(studio.production, scene, transform),
+                    );
+                    onAnnounce(words.t('production.view.cameraMoved'));
+                  }}
+                />
+              </Suspense>
+            )}
+            {studio && models && scene !== null && (
+              <div className="pr-side">
+                <ObjectsPanel
+                  studio={studio}
+                  scene={scene}
+                  chosen={
+                    chosen === null
+                      ? null
+                      : 'marker' in chosen
+                        ? `${MARKER_KEY}${chosen.marker}`
+                        : chosen.object
+                  }
+                  onChoose={(key) =>
+                    choose(
+                      key === null
+                        ? null
+                        : key.startsWith(MARKER_KEY)
+                          ? { marker: key.slice(MARKER_KEY.length) }
+                          : { object: key as ObjectId },
+                    )
+                  }
+                  onAnnounce={onAnnounce}
+                  poseJoints={(o) =>
+                    typeof o.model === 'string'
+                      ? poseJoints(o.class, models.item(o.model)?.joints)
+                      : []
+                  }
+                  {...(onReveal ? { onReveal } : {})}
+                  modelName={(o) =>
+                    typeof o.model === 'string'
+                      ? (models.item(o.model)?.displayName ?? null)
+                      : words.t('production.objects.standIn', { kind: o.model.standIn })
+                  }
+                />
+                {/* The browser version says so where the Prompter would be (12b), in the side
+                    column, so the code below keeps its height. */}
+                {prompter === null && (
+                  <NeutralNote>{uiMessages.t('note.prompterNotInBrowser')}</NeutralNote>
+                )}
+                {frame && open && (
+                  <FrameCheckArea
+                    studio={studio}
+                    models={models}
+                    frameId={frame}
+                    makeStage={makeStage}
+                    startWorker={startWorker}
+                    onReveal={(node) => onReveal?.(node)}
+                    host={host}
+                    onShowFrame={() => {
+                      const chosen = p.frames.find((f) => f.id === frame);
+                      if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });
+                      onGoToStoryboard();
+                    }}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+          {scene === null ? (
+            <div className="pr-closed">
+              <p>{words.t('production.noScene')}</p>
+              <Button variant="secondary" icon="draw" onPress={onGoToStoryboard}>
+                {words.t('production.closed.goToStoryboard')}
+              </Button>
+            </div>
+          ) : open ? (
+            <>
+              {studio && current && (
+                <FrameLinks
+                  production={p}
+                  frame={current}
+                  number={frameNumber}
+                  readOnly={studio.readOnly !== null}
+                  chosen={chosenBlock}
+                  onLink={(block, link) => {
+                    const next = withLink(studio.production, current.id, block, link);
+                    if (next === studio.production) return;
+                    const n = frameNumber;
+                    studio.commit(
+                      words.t(link ? 'production.links.linkStep' : 'production.links.unlinkStep', {
+                        n,
+                      }),
+                      next,
+                    );
+                    onAnnounce(
+                      words.t(link ? 'production.links.linked' : 'production.links.unlinked', {
+                        n,
+                      }),
+                    );
+                  }}
+                />
+              )}
+              <CodeEditor
+                production={p}
+                scene={scene}
+                host={host}
+                key={reveal ? `reveal-${reveal.n}` : 'code'}
+                reveal={reveal?.node ?? null}
+                highlights={highlights}
+                editorRef={editorRef}
+                {...(editorDefault ? { editorDefault } : {})}
+              />
+            </>
+          ) : (
+            <section className="pr-closed" aria-labelledby="pr-closed-title">
+              <h2 id="pr-closed-title" className="pr-closed-title">
+                {words.t('production.closed.title', {
+                  scene: words
+                    .t('storyboard.script.scene', { n: sceneNumber(p, scene) })
+                    .toLowerCase(),
+                })}
+              </h2>
+              <p>{words.t('production.closed.why')}</p>
+              <ul className="pr-checklist">
+                {checks.map((c) => (
+                  <li key={c.label} className="pr-check" data-done={c.done || undefined}>
+                    <Icon
+                      name={c.done ? 'check_circle' : 'radio_button_unchecked'}
+                      filled={c.done}
+                    />
+                    <span>{c.label}</span>
+                    <span className="pr-check-state">
+                      {words.t(c.done ? 'production.closed.done' : 'production.closed.todo')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <Button variant="primary" icon="draw" onPress={onGoToStoryboard}>
+                {words.t('production.closed.goToStoryboard')}
+              </Button>
+            </section>
+          )}
+        </div>
+        {prompter && (
+          <PrompterAside
+            panel={prompter}
+            frame={current ? { id: current.id, number: frameNumber } : null}
+            onAnnounce={onAnnounce}
+            canChange={!studio || studio.readOnly === null}
+            {...(studio ? { seal: studio.seal } : {})}
           />
-        </>
-      ) : (
-        <section className="pr-closed" aria-labelledby="pr-closed-title">
-          <h2 id="pr-closed-title" className="pr-closed-title">
-            {words.t('production.closed.title', {
-              scene: words.t('storyboard.script.scene', { n: sceneNumber(p, scene) }).toLowerCase(),
-            })}
-          </h2>
-          <p>{words.t('production.closed.why')}</p>
-          <ul className="pr-checklist">
-            {checks.map((c) => (
-              <li key={c.label} className="pr-check" data-done={c.done || undefined}>
-                <Icon name={c.done ? 'check_circle' : 'radio_button_unchecked'} filled={c.done} />
-                <span>{c.label}</span>
-                <span className="pr-check-state">
-                  {words.t(c.done ? 'production.closed.done' : 'production.closed.todo')}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <Button variant="primary" icon="draw" onPress={onGoToStoryboard}>
-            {words.t('production.closed.goToStoryboard')}
-          </Button>
-        </section>
-      )}
+        )}
+      </div>
       <p className="ss-visually-hidden" aria-live="polite">
         {announcement}
       </p>

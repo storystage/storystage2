@@ -10,8 +10,27 @@
   flex-direction: column;
   gap: 12px;
   min-height: 0;
-  padding: 14px 16px;
+  padding: 14px 0 0;
+  overflow: hidden;
+}
+/* Below the frame strip: the main column, scrolling, and the Prompter beside it (section 7.1). */
+.pr-work {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.pr-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 16px 14px;
   overflow-y: auto;
+}
+.pr > .pr-head {
+  margin-inline: 16px;
 }
 
 /* The frame strip, then Undo and Redo at its end (sections 7.1 and 7.5). */

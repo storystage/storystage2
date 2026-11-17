@@ -86,6 +86,10 @@ export default function TilesPanel({
   useEffect(() => {
     editor.current?.highlight(links, 'link');
   }, [links, ready]);
+  const built = highlights.prompter ?? NO_MARKS;
+  useEffect(() => {
+    editor.current?.highlight(built, 'prompter');
+  }, [built, ready]);
 
   return (
     <div className="pr-workspace-frame pr-tiles-frame">

@@ -36,7 +36,15 @@ const loadTauri = async (): Promise<TauriCore> => {
 export async function startHost(
   options: { window?: object; load?: () => Promise<TauriCore> } = {},
 ): Promise<HostInterface> {
-  if (!inTauri(options.window)) return browserHost;
+  if (!inTauri(options.window)) {
+    // A scripted Prompter for the browser tests, in development only: a release build drops it.
+    if (import.meta.env.DEV && globalThis.window && '__storystagePrompter' in globalThis.window) {
+      const { devPrompterHost, devScript } = await import('./prompter/devPrompter.ts');
+      const script = devScript();
+      if (script) return devPrompterHost(script);
+    }
+    return browserHost;
+  }
   try {
     const { invoke, Channel } = await (options.load ?? loadTauri)();
     return await tauriHost(invoke, tauriTransport(invoke, Channel), Channel);

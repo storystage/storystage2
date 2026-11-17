@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 export const ICON_NAMES = [
   '360',
   'add',
+  'add_comment', // the Prompter's New conversation
   'add_photo_alternate',
   'arrow_back',
   'arrow_drop_down',
@@ -22,6 +23,7 @@ export const ICON_NAMES = [
   'chevron_left',
   'chevron_right',
   'close',
+  'construction', // the Prompter's Build these steps
   'deck',
   'delete',
   'description',
@@ -30,6 +32,7 @@ export const ICON_NAMES = [
   'draw',
   'edit',
   'edit_note',
+  'error', // a plan step that can't be built
   'extension',
   'flag',
   'flip',
@@ -48,6 +51,7 @@ export const ICON_NAMES = [
   'ios_share',
   'keep', // the pin on a script line (was push_pin)
   'landscape',
+  'lightbulb', // the Prompter's explain
   'link', // a frame's links to its blocks (WP10.8)
   'link_off',
   'lock',
@@ -64,10 +68,14 @@ export const ICON_NAMES = [
   'redo',
   'remove',
   'replay',
+  'right_panel_close', // hide the Prompter
+  'right_panel_open', // show the Prompter
   'restore_from_trash',
   'school',
+  'send', // ask the Prompter
   'settings',
   'stop',
+  'stop_circle', // the Prompter's Stop
   'theaters',
   'undo',
   'upload',
