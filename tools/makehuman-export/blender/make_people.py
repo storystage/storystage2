@@ -366,9 +366,10 @@ def lengthen_skirt(outfit, rig, body):
     for v in below:
         t = (hips - v.co.z) / (hips - hem)
         v.co.z = hips - t * (hips - target)
-        s = 1 + (spread - 1) * t * t
-        v.co.x = cx + (v.co.x - cx) * s
-        v.co.y = cy + (v.co.y - cy) * s
+        # Wider steadily from the hips, and front to back by at least a third at the hem: widening
+        # only near the hem left the knees showing through (trial of 17 Nov).
+        v.co.x = cx + (v.co.x - cx) * (1 + (spread - 1) * t)
+        v.co.y = cy + (v.co.y - cy) * (1 + max(spread - 1, 0.35) * t)
     bm.to_mesh(outfit.data)
     bm.free()
     outfit.data.update()
