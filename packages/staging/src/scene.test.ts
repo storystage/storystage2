@@ -13,12 +13,25 @@ describe('@storystage/staging', () => {
     expect(typeof staging.storyboardPlan).toBe('function');
   });
 
-  it('gives a scene’s frames in order, its backdrop parts and its camera', () => {
+  it('gives a scene’s own frames, in order, and none of another scene’s', () => {
+    const p = exampleProduction();
+    const [first, second] = p.scenes;
+    // The fixture's frames, shuffled, with a second frame in the first scene out of order.
+    const extra = { ...p.frames.find((f) => f.scene === first!.id)!, id: 'f9', order: -1 };
+    const shuffled = { ...p, frames: [...p.frames, extra].reverse() } as typeof p;
+    const expected = shuffled.frames
+      .filter((f) => f.scene === first!.id)
+      .sort((a, b) => a.order - b.order)
+      .map((f) => f.id);
+    expect(expected.length).toBeGreaterThan(1);
+    expect(sceneFrames(shuffled, first!.id).map((f) => f.id)).toEqual(expected);
+    expect(sceneFrames(shuffled, first!.id).every((f) => f.scene === first!.id)).toBe(true);
+    expect(sceneFrames(shuffled, second!.id).map((f) => f.id)).not.toContain('f9');
+  });
+
+  it('sets a scene’s backdrop parts and its camera, and no other scene’s', () => {
     const p = exampleProduction();
     const scene = p.scenes[0]!.id;
-    expect(sceneFrames(p, scene).map((f) => f.order)).toEqual(
-      [...sceneFrames(p, scene).map((f) => f.order)].sort((a, b) => a - b),
-    );
     expect(backdropPartOf('Sky')).toBe('sky');
     expect(backdropPartOf('Biped')).toBeNull();
     const sky = withBackdrop(p, scene, 'sky', 'storystage/Sky/night');

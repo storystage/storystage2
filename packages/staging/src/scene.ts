@@ -23,7 +23,12 @@ export function backdropPartOf(storyClass: string): BackdropPart | null {
   return (BACKDROP_PARTS as readonly string[]).includes(part) ? (part as BackdropPart) : null;
 }
 
-/** The production with one scene's ground, sky or lighting set to a Backstage item. */
+/**
+ * The production with one scene's ground, sky or lighting set to a Backstage item. It changes the
+ * set-up directly, outside the production's steps: use it inside a step, as
+ * `placeFromStoryboard` does, with an id checked against Backstage first, never with a model's
+ * raw input (S4's review).
+ */
 export function withBackdrop(
   p: Production,
   scene: SceneId,
@@ -40,7 +45,7 @@ export function withBackdrop(
   };
 }
 
-/** One scene's set-up changed by `change`. */
+/** One scene's set-up changed by `change`, directly: inside a step only, as `withCamera` says. */
 export function withSetup(
   p: Production,
   scene: SceneId,
@@ -52,7 +57,11 @@ export function withSetup(
   };
 }
 
-/** The production with the scene's camera moved: Move the camera here, or its handles. */
+/**
+ * The production with the scene's camera moved: Move the camera here, or its handles. It changes
+ * the set-up directly, outside the production's steps: use it inside a step, with a transform
+ * worked out or checked first, never with a model's raw input.
+ */
 export function withCamera(p: Production, scene: SceneId, transform: Transform): Production {
   return withSetup(p, scene, (setup) => ({ ...setup, camera: { ...setup.camera, transform } }));
 }
