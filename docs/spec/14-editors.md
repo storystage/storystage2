@@ -142,7 +142,7 @@ Each is one step with the shared label, the same as the key for it (section 3d).
 
 ### 3c. Pointer and touch
 
-1. **Drag from the palette** puts a copy in the program; **drag from the program** moves the tile. The original stays in the palette.
+1. **Drag from the palette** puts a copy in the program; **drag from the program** moves the tile. The original stays in the palette. **A question** from the Questions tab goes onto a value instead, any pill it can replace, a value inside a value too, and never between statements: the pill it would replace is outlined, drawn over it so nothing moves, and a pill that can't take it isn't (3c.4). Dropped, it asks for its own values through the cascade, as when it's put in by keyboard (WP7t, parity task 6).
 2. **The drop line is an overlay,** with a "Drops here" pill. It never resizes the program while dragging, so nothing shifts under the pointer or finger (spike finding 5).
 3. **A ghost** of the tile at 60% opacity follows the pointer.
 4. **A place that refuses the tile never lights up** (section 2.2).

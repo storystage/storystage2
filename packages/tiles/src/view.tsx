@@ -16,6 +16,7 @@ import {
   detailsToAdd,
   type Describer,
   type StatementPlace,
+  type ValuePlace,
 } from '@storystage/story-api/editing';
 import {
   Fragment,
@@ -92,6 +93,31 @@ export interface Moving {
   readonly node: NodeId;
   /** Where the drop line is, or null when the pointer is somewhere a statement can't go. */
   readonly at: StatementPlace | null;
+  /** A question dragged from the palette: the value it would replace, outlined, or null. */
+  readonly value?: ValuePlace | null;
+}
+
+/** A value place as one string, for the pill that shows it (`data-place`). */
+export const valueKey = (p: ValuePlace) => `${p.node}/${p.slot}/${p.param ?? ''}`;
+
+/**
+ * The value place a dragged question is over (spec 14, 3c): the innermost pill under the
+ * pointer, as a question can go into a value inside a value too. Null if none is.
+ */
+export function valuePlaceAt(tree: HTMLElement, x: number, y: number): ValuePlace | null {
+  for (const el of document.elementsFromPoint(x, y)) {
+    if (!(el instanceof HTMLElement) || !tree.contains(el)) continue;
+    const pill = el.closest<HTMLElement>('[data-place]');
+    if (!pill) continue;
+    const [node, slot, param] = pill.dataset['place']!.split('/');
+    return {
+      kind: 'value',
+      node: node as NodeId,
+      slot: slot!,
+      ...(param ? { param } : {}),
+    };
+  }
+  return null;
 }
 
 export interface ViewProps extends ViewHandlers {
@@ -288,7 +314,8 @@ function pill(part: Part, layout: Layout): ReactNode {
   if (part.kind === 'text') return <span className="tl-words">{part.text}</span>;
   if (part.kind === 'name') return <span className="tl-name">{part.text}</span>;
   if (part.kind === 'object') return <span className="tl-object">{part.text}</span>;
-  if (part.kind === 'whole') return valueButton(part.node, 'tl-whole', layout, part.text);
+  // A value's own words are drawn by its pill, below, which knows the value's place.
+  if (part.kind === 'whole') return null;
   const kind = part.empty
     ? 'tl-pill tl-pill-empty'
     : part.question
@@ -302,12 +329,16 @@ function pill(part: Part, layout: Layout): ReactNode {
       <span className={`${kind} tl-pill-compound`} data-value={part.node}>
         {part.inner.flatMap((inner, i) => [
           i > 0 ? ' ' : null,
-          <Fragment key={i}>{pill(inner, layout)}</Fragment>,
+          <Fragment key={i}>
+            {inner.kind === 'whole'
+              ? valueButton(part, 'tl-whole', layout, inner.text)
+              : pill(inner, layout)}
+          </Fragment>,
         ])}
       </span>
     );
   return valueButton(
-    part.node,
+    part,
     kind,
     layout,
     <>
@@ -320,9 +351,10 @@ function pill(part: Part, layout: Layout): ReactNode {
 /**
  * A value's button: named by the words it shows and described by what the value is for, so a
  * speech-control user can say what they see (WCAG 2.5.3). Enter or a click opens the menu of
- * values that fit.
+ * values that fit; a question dragged from the palette can be dropped on it (`data-place`).
  */
-function valueButton(key: NodeId, className: string, layout: Layout, shows: ReactNode) {
+function valueButton(part: ValuePill, className: string, layout: Layout, shows: ReactNode) {
+  const key = part.node;
   return (
     <span
       role="button"
@@ -330,6 +362,7 @@ function valueButton(key: NodeId, className: string, layout: Layout, shows: Reac
       className={className}
       data-key={key}
       data-pill=""
+      data-place={valueKey(part.place)}
       tabIndex={tab(layout, key)}
       aria-describedby={`tl-for-${key}`}
     >
@@ -691,6 +724,16 @@ export function TilesView(props: ViewProps) {
     const at = moving?.at;
     setLine(at && tree.current && code.current ? lineFor(tree.current, code.current, at) : null);
   }, [moving, program]);
+
+  // A dragged question outlines the value it would replace: drawn over the pill, so nothing
+  // moves under the pointer (3c.2).
+  const value = moving?.value ? valueKey(moving.value) : null;
+  useLayoutEffect(() => {
+    if (!value || !tree.current) return;
+    const pill = tree.current.querySelector(`[data-place="${CSS.escape(value)}"]`);
+    pill?.classList.add('tl-drop-target');
+    return () => pill?.classList.remove('tl-drop-target');
+  }, [value, program]);
 
   // Dragging: a pointer pressed on a row (or a touch on its grip) becomes a drag once it moves.
   useEffect(() => {

@@ -663,3 +663,11 @@
     0 0 0 2px var(--tl-program),
     0 0 0 5px var(--tl-focus);
 }
+
+/* The value a dragged question would replace (spec 14, 3c): an outline drawn over the pill, so
+   nothing moves under the pointer. */
+.tl-drop-target {
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-rehearse);
+}

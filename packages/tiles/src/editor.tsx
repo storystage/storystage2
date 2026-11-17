@@ -80,6 +80,8 @@ import { tileVariables } from './tokens.ts';
 import {
   placeAt,
   TilesView,
+  valueKey,
+  valuePlaceAt,
   type FocusKey,
   type Highlights,
   type KeyAction,
@@ -107,6 +109,9 @@ function firstMethod(program: Program): NodeId | null {
 
 /** How long the pointer stays on a place during a drag before the place is checked. */
 const SETTLE_MS = 60;
+
+/** A drag's place as one string: a statement place, or a value a question would replace. */
+const anyKey = (p: Place) => (p.kind === 'statement' ? placeKey(p) : `value:${valueKey(p)}`);
 
 /** Whether a focus key is a node (not an empty list) still in the program. */
 const isNode = (program: Program, key: FocusKey | null): key is NodeId =>
@@ -192,8 +197,8 @@ export class TileEditor implements CodeEditor {
   private pending: Pending | null = null;
   /** The value pill last in focus, where a question from the palette goes. */
   private pill: ValuePill | null = null;
-  /** A new block being dragged from the palette or the control bar. */
-  private fresh: Statement | null = null;
+  /** A new block being dragged from the palette or the control bar: a question is a value. */
+  private fresh: Statement | Expression | null = null;
   /** Being dragged from the bar: a variable or set tile, which asks its question once dropped. */
   private freshAsk: 'variable' | 'assign' | null = null;
   /** During a drag: the place the pointer is over, and what each place checked so far said. */
@@ -640,6 +645,12 @@ export class TileEditor implements CodeEditor {
         const tree = this.element?.querySelector<HTMLElement>('.tl-tree');
         const node = this.fresh;
         if (!tree || !node) return;
+        // A question goes into a value, not between statements (spec 14, 3c.1).
+        if (!isStatement(node))
+          return this.dragOver(
+            valuePlaceAt(tree, x, y),
+            (at) => canDrop(this.host!.program(), at, node).ok,
+          );
         this.dragOver(placeAt(tree, x, y, null), (at) => {
           const program = this.host!.program();
           return canDrop(program, at, readyFor(program, at, node)).ok;
@@ -649,19 +660,19 @@ export class TileEditor implements CodeEditor {
         this.settle();
         const node = this.fresh;
         const ask = this.freshAsk;
-        const at = this.moving?.at;
+        const at = this.moving?.at ?? this.moving?.value;
         this.fresh = null;
         this.freshAsk = null;
         this.moving = null;
         if (drop && node && at) {
-          if (ask) this.askFirst(ask, at);
+          if (ask && at.kind === 'statement') this.askFirst(ask, at);
           else this.begin(node, at);
         } else this.render();
       },
     };
   }
 
-  private startFresh(node: Statement): void {
+  private startFresh(node: Statement | Expression): void {
     this.fresh = node;
     this.startDrag(node.id);
   }
@@ -680,9 +691,9 @@ export class TileEditor implements CodeEditor {
    * keeps up with the pointer: in a long method a check takes most of a frame (spec 14, 3h).
    * Until a place has passed, it doesn't light up (3c.4).
    */
-  private dragOver(at: StatementPlace | null, fits: (at: StatementPlace) => boolean): void {
+  private dragOver<P extends Place>(at: P | null, fits: (at: P) => boolean): void {
     if (!this.moving) return;
-    const key = at && placeKey(at);
+    const key = at && anyKey(at);
     if (key === this.over) return;
     this.over = key;
     this.checking = null;
@@ -705,11 +716,13 @@ export class TileEditor implements CodeEditor {
     this.checking?.();
   }
 
-  private showDrop(at: StatementPlace | null): void {
+  private showDrop(at: Place | null): void {
     const moving = this.moving;
     if (!moving) return;
-    if ((at && placeKey(at)) === (moving.at && placeKey(moving.at))) return;
-    this.moving = { ...moving, at };
+    const was = moving.at ?? moving.value ?? null;
+    if ((at && anyKey(at)) === (was && anyKey(was))) return;
+    this.moving =
+      at?.kind === 'value' ? { ...moving, at: null, value: at } : { ...moving, at, value: null };
     this.render();
   }
 
@@ -888,7 +901,7 @@ export class TileEditor implements CodeEditor {
             const mint = idMinter(now);
             const target = this.targetExpression(now, mint);
             if (target)
-              this.startFresh(newCall(now, target, item.callee, false, mint) as Statement);
+              this.startFresh(newCall(now, target, item.callee, item.tab === 'questions', mint));
           },
         },
       },

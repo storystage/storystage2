@@ -119,12 +119,6 @@ const move = (direction: string, amount: Expression): Statement => ({
 });
 const number = (value: number): Expression => ({ id: id('n'), kind: 'number', value });
 
-/**
- * Found by this test (17 Nov): Tiles' drags carry statements only, and a number's menu has no
- * questions, so by pointer a question can't go into a value. S6.
- */
-const NO_QUESTION_DROP = 'S6: Tiles can’t drop a question on a value';
-
 type Run = (page: Page) => Promise<void>;
 
 interface Task {
@@ -454,18 +448,15 @@ const TASKS: readonly Task[] = [
         await blocklyKey(page, 'Enter');
         await itemByKeyboard(page, 'the other one', 'fox');
       },
-      'Tiles by pointer': {
-        fixme: NO_QUESTION_DROP,
-        run: async (page) => {
-          await chooseObjectByPointer(page, 'penguin');
-          await paletteTab(page, 'Questions', 'pointer');
-          await dragOnto(
-            page,
-            tilesPaletteTile(page, 'penguin distance to ???'),
-            tilesPill(page, DURATION),
-          );
-          await itemByPointer(page, 'the other one', 'fox');
-        },
+      'Tiles by pointer': async (page) => {
+        await chooseObjectByPointer(page, 'penguin');
+        await paletteTab(page, 'Questions', 'pointer');
+        await dragOnto(
+          page,
+          tilesPaletteTile(page, 'penguin distance to ???'),
+          tilesPill(page, DURATION),
+        );
+        await itemByPointer(page, 'the other one', 'fox');
       },
       'Tiles by keyboard': async (page) => {
         // A question from the palette goes into the pill in focus (section 3d).
