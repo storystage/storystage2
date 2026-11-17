@@ -227,6 +227,81 @@
   color: var(--ss-muted);
 }
 
+/*
+ * The Blocks editor's look (14-editors 3i.5; WP7.6): screen 02's dotted workspace, each block in
+ * its family's colour (the renderer tags it `ss-family-…`), values as white chips, and control
+ * statements and the method as boxes in the workspace's own colours.
+ */
+.pr-workspace .blocklySvg {
+  background-color: var(--ss-code);
+}
+.pr-workspace .blocklyFlyoutBackground {
+  fill: var(--ss-panel-1);
+  fill-opacity: 1;
+}
+.pr-workspace .injectionDiv .blocklyFlyout .blocklyFlyoutLabelText {
+  fill: var(--ss-text-2);
+}
+.pr-workspace .blocklyGridPattern line {
+  stroke: var(--ss-code-dots);
+}
+.pr-workspace .ss-family-move {
+  --block: var(--ss-block-move);
+  --on-block: var(--ss-on-block-move);
+}
+.pr-workspace .ss-family-speech {
+  --block: var(--ss-block-speech);
+  --on-block: var(--ss-on-block-speech);
+}
+.pr-workspace .ss-family-camera {
+  --block: var(--ss-block-camera);
+  --on-block: var(--ss-on-block-camera);
+}
+.pr-workspace .ss-family-look {
+  --block: var(--ss-block-look);
+  --on-block: var(--ss-on-block-look);
+}
+.pr-workspace .ss-family-sound {
+  --block: var(--ss-block-sound);
+  --on-block: var(--ss-on-block-sound);
+}
+.pr-workspace .ss-family-question {
+  --block: var(--ss-block-question);
+  --on-block: var(--ss-on-block-question);
+}
+.pr-workspace .ss-family-yours {
+  --block: var(--ss-block-yours);
+  --on-block: var(--ss-on-block-yours);
+}
+.pr-workspace .ss-family-loop {
+  --block: var(--ss-block-loop);
+  --on-block: var(--ss-on-block-loop);
+}
+.pr-workspace .ss-family-value {
+  --block: var(--ss-block-chip);
+  --on-block: var(--ss-on-block-chip);
+  --block-line: var(--ss-line-2);
+}
+.pr-workspace .ss-family-control,
+.pr-workspace .ss-family-method {
+  --block: var(--ss-code-method);
+  --on-block: var(--ss-text);
+  --block-line: var(--ss-line-2);
+}
+/*
+ * Every block is outlined, a darker shade of its own colour, so two blocks of one colour stacked
+ * together stay two (Blockly's appearance guide: keep visible borders).
+ */
+.pr-workspace [class*='ss-family-'] > .blocklyPath {
+  fill: var(--block);
+  stroke: var(--block-line, color-mix(in srgb, var(--block) 60%, black));
+  stroke-width: 1.5px;
+}
+.pr-workspace [class*='ss-family-'] > .blocklyText,
+.pr-workspace [class*='ss-family-'] > g > .blocklyText {
+  fill: var(--on-block);
+}
+
 /* Highlights on blocks, through the editor contract (14-editors 3i.10). */
 .ss-highlight-rehearse > .blocklyPath {
   stroke: var(--ss-amber);

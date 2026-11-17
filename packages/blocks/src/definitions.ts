@@ -7,6 +7,7 @@ import * as Blockly from 'blockly/core';
 import type { TypeRef } from '@storystage/ast';
 import type { EnumName, TypeName } from '@storystage/story-api';
 import type { Extra } from './mapping.ts';
+import { styleOf } from './renderer.ts';
 import {
   ENTRY_NAMES,
   ENUM_NAMES,
@@ -147,6 +148,7 @@ export function defineBlocks(): void {
     Blockly.Blocks[type] = {
       init(this: StoryBlock) {
         this.ssExtra = {};
+        this.setStyle(styleOf(type));
         const shape = defaultShape(type);
         if (shape.role === 'statement') {
           this.setPreviousStatement(true, null);
