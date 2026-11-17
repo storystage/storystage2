@@ -1,5 +1,5 @@
 import type { NodeId } from '@storystage/ast';
-import type { EditorHost } from '@storystage/editor-contract';
+import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import type { FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon, NeutralNote } from '@storystage/ui';
@@ -81,6 +81,8 @@ export interface ProductionStageProps {
   /** For tests: how the scene view's stage and runtime worker are made. */
   makeStage?: StageMaker;
   startWorker?: () => RuntimeWorker;
+  /** The class's default code editor, from policy (`editor.default`; 14-editors 4.3). */
+  editorDefault?: EditorId;
   /** Speak lines' voices, for Rehearse (spec 06 section 4.5). */
   voices?: Voices | null;
   /** The current frame, shared with the other tabs; the strip shows it chosen. */
@@ -301,6 +303,7 @@ export function ProductionStage({
   studio,
   onReveal,
   voices = null,
+  editorDefault,
 }: ProductionStageProps) {
   const voicesState = useSyncExternalStore(
     (l) => voices?.subscribe(l) ?? (() => {}),
@@ -656,6 +659,7 @@ export function ProductionStage({
             reveal={reveal?.node ?? null}
             highlights={highlights}
             editorRef={editorRef}
+            {...(editorDefault ? { editorDefault } : {})}
           />
         </>
       ) : (
