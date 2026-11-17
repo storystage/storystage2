@@ -634,6 +634,60 @@ function line(): PlanStep {
   return step({ words: 'The fox says its line.', actor: 'fox', action: 'say', line: 'l3' });
 }
 
+describe('PrompterRunner: keeping the plan with its frame (spec 04, section 6.7)', () => {
+  it('keeps the agreed plan in the same undo step as the build, and Undo takes both back', () => {
+    const kept: unknown[] = [];
+    const { runner, run, session } = setUp('s2', exampleProduction(), {
+      keepPlan: (p, plan) => {
+        kept.push(plan);
+        return {
+          ...p,
+          frames: p.frames.map((f) => (f.id === plan.frame ? { ...f, caption: 'kept' } : f)),
+        };
+      },
+    });
+    const original = session.production();
+    const shown = line();
+    runner.begin('code frame f2', {});
+    run('propose_plan', { frame: 'f2', steps: [shown] });
+    runner.end();
+    const edited = { ...shown, words: 'The fox says its line, as I changed it.' };
+    runner.begin('Build these steps.', agreed([edited], 'f2'));
+    expect(
+      run('insert_statement', {
+        method: 'myFirstMethod',
+        position: 'end',
+        target: 'fox',
+        procedure: 'say',
+        arguments: [{ name: 'text', value: "Don't be scared. I'm lost too." }],
+        line: 'l3',
+        narration: 'The fox speaks.',
+        plan_step: 1,
+      }),
+    ).toMatchObject({ ok: true });
+    runner.end();
+    expect(kept).toEqual([{ frame: 'f2', shown: [shown], agreed: [edited] }]);
+    expect(session.production().frames.find((f) => f.id === 'f2')?.caption).toBe('kept');
+    // One step: the build and the kept plan together.
+    expect(session.history()).toHaveLength(1);
+    session.undo();
+    expect(session.production().frames).toEqual(original.frames);
+  });
+
+  it('keeps nothing for a plan with no frame, or a build that changed nothing', () => {
+    const kept: unknown[] = [];
+    const { runner, run } = setUp('s2', exampleProduction(), {
+      keepPlan: (p, plan) => (kept.push(plan), p),
+    });
+    runner.begin('go', agreed([step({})]));
+    run('insert_statement', move('1'));
+    runner.end();
+    runner.begin('Build these steps.', agreed([line()], 'f2'));
+    runner.end();
+    expect(kept).toEqual([]);
+  });
+});
+
 describe('PrompterRunner: coding a frame (spec 04, section 3.2; 10.8)', () => {
   const say = (extra: JsonObject = {}) => ({
     method: 'myFirstMethod',

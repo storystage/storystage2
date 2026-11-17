@@ -67,6 +67,7 @@ import {
   type PlanWorld,
 } from './plans.ts';
 import { scriptFacts } from './script-check.ts';
+import { stepWords } from './step-words.ts';
 import type { ToolRunner, RequestContext } from './session.ts';
 import type { ToolName } from './tool-names.ts';
 import type { ToolOutcome, ToolErrorCode } from './tools.ts';
@@ -101,6 +102,20 @@ export interface RunnerSetup<S extends string = string> {
    * sequence, so a kept run replays with the same ids (`docs/eval/README.md`).
    */
   readonly random?: () => number;
+  /**
+   * Keeps the agreed plan with its frame (section 6.7), in the build's own undo step: called once,
+   * as the build's group opens, when the request carries an agreed plan for a frame. `shown` is
+   * the Prompter's plan as last proposed or revised, `agreed` the learner's version. It returns
+   * the production with the plan kept, and may change nothing in the program.
+   */
+  readonly keepPlan?: (p: Production, plan: KeptPlan) => Production;
+}
+
+/** What `keepPlan` is given. */
+export interface KeptPlan {
+  readonly frame: FrameId;
+  readonly shown: readonly PlanStep[];
+  readonly agreed: readonly PlanStep[];
 }
 
 /** What Set the stage from the storyboard gives: one step, or why not and for which object. */
@@ -200,6 +215,9 @@ function savedCheck(frame: Frame): Json | null {
   };
 }
 
+/** All of a production but its program, for a change to anything else. */
+const withoutProgram = ({ program: _program, ...rest }: Production): ProductionRest => rest;
+
 function asPlan(value: Json | undefined): Plan | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
   const v = value as Record<string, unknown>;
@@ -267,6 +285,11 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
    */
   checkSteps(steps: readonly PlanStep[], frame: string | null): PlanProblem[] {
     return checkPlan(steps, this.#world(frame));
+  }
+
+  /** A step's words from what it does, for a step the learner changed or added (section 6.1). */
+  stepWords(step: PlanStep, frame: string | null): string {
+    return stepWords(step, this.#world(frame));
   }
 
   run(name: ToolName, input: JsonObject): Result {
@@ -531,8 +554,19 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   /** Opens the request's undo group, named after its first change. */
   #group(label: string): void {
     if (this.#open) return;
-    this.#setup.session.begin(label, this.#setup.source);
+    const { session, source, keepPlan } = this.#setup;
+    session.begin(label, source);
     this.#open = true;
+    // The agreed plan is kept with its frame in the same step as what it built (section 6.7).
+    const agreed = this.#agreed;
+    if (keepPlan && agreed?.frame) {
+      const plan: KeptPlan = {
+        frame: agreed.frame as FrameId,
+        shown: this.#plans.get(agreed.plan)?.steps ?? agreed.steps,
+        agreed: agreed.steps,
+      };
+      session.change(label, source, (p) => withoutProgram(keepPlan(p, plan)));
+    }
   }
 
   /** Applies edits, labelled in plain words, opening the request's undo group with the first. */
