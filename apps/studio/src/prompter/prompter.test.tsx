@@ -16,6 +16,7 @@ import { ThemeRoot } from '@storystage/ui';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import type { StudioSource } from '../studio.ts';
 import { PrompterAside, oneMove } from './PrompterAside.tsx';
 import { levelNow, prompterInBuild } from './usePrompter.ts';
 
@@ -68,10 +69,10 @@ interface Options {
 function setUp(replies: PrompterEvent[][], options: Options = {}) {
   let next = 0;
   const scripted = scriptedTransport(() => replies[next++] ?? say('No more.'));
-  const production = new ProductionSession<string>(exampleProduction(), {
+  const production = new ProductionSession<StudioSource>(exampleProduction(), {
     check: (p) => checkProgram(p),
   });
-  const panel: PrompterPanel = createPrompterPanel({
+  const panel: PrompterPanel<StudioSource> = createPrompterPanel({
     production,
     transport: {
       status: async () => options.status ?? { available: true },
@@ -243,6 +244,22 @@ describe('the Prompter panel: Stop and problems (spec 04 section 7)', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Try again' }));
     await screen.findByText('A count repeats the blocks inside it.');
     expect(sent).toHaveLength(2);
+  });
+
+  it('Try again repeats Code this frame for the same frame, as the panel sent it', async () => {
+    const { sent } = setUp([
+      [{ type: 'error', code: 'overloaded' }],
+      proposes([step()]),
+      say("Here's the plan."),
+    ]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await user.click(screen.getByRole('button', { name: 'Code frame 2.1' }));
+    await screen.findByText('Claude is having trouble right now. Try again in a minute.');
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+    await screen.findByRole('grid', { name: 'Plan before change' });
+    expect(sent).toHaveLength(3);
+    expect(JSON.stringify(sent[1])).toContain('Code frame f2-1.');
   });
 
   it('starts a new conversation', async () => {

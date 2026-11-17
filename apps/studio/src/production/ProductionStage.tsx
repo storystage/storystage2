@@ -62,7 +62,7 @@ import {
 } from '@storystage/story-api';
 import type { BackstageItem } from '@storystage/backstage';
 import { useCheckRun } from '../check/useCheckRun.ts';
-import type { Studio } from '../studio.ts';
+import type { Studio, StudioSource } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
 import type { Place } from '../storyboard/place.ts';
 import type { PrompterPanel } from '@storystage/prompter';
@@ -111,7 +111,7 @@ export interface ProductionStageProps {
    * The Prompter (WP13c), drawn beside the scene view and the code. `null` in the browser version,
    * which says so where the panel would be (07-ux 2.4, screen 12b); left out, neither (tests).
    */
-  prompter?: PrompterPanel | null;
+  prompter?: PrompterPanel<StudioSource> | null;
   /** A study task's card, in the Prompter's place on the right (spec 14 section 6.4). */
   taskCard?: ReactNode;
   /** A study task holds the class's editor, with these words beside the switch (6.5). */
@@ -270,7 +270,7 @@ export function storyboardChecks(p: Production, scene: SceneId) {
 
 /** The scene's name on the scene view's band: "Scene 1: The kite", or "Scene 1" before it has one. */
 /** The blocks the latest request added, while it builds and once it's built: one string, so it's stable. */
-function usePrompterNodes(panel: PrompterPanel | null): string {
+function usePrompterNodes(panel: PrompterPanel<StudioSource> | null): string {
   return useSyncExternalStore(
     (l) => panel?.subscribe(l) ?? (() => {}),
     () => {

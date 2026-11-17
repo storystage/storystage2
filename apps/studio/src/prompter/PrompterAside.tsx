@@ -15,13 +15,13 @@ import {
 import { AiBadge, Button, Icon, NeutralNote, PlanSteps, TextField, messages } from '@storystage/ui';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEvent } from 'react';
 import { useFieldSpeech } from '../speech/talkToType.tsx';
+import type { StudioSource } from '../studio.ts';
 import { words } from '../strings.ts';
 
 const BUILDS: readonly PrompterMode[] = ['showMeHow', 'buildIt'];
-const CODE_FRAME = /^Code frame (.+)\.$/;
 
 export interface PrompterAsideProps {
-  panel: PrompterPanel;
+  panel: PrompterPanel<StudioSource>;
   /** The current frame, for Code this frame: its id and its number, such as "2.3". */
   frame: { readonly id: FrameId; readonly number: string } | null;
   /** Says something in the studio's polite live region. */
@@ -32,7 +32,7 @@ export interface PrompterAsideProps {
   seal?: () => void;
 }
 
-export function usePanelState(panel: PrompterPanel): PanelState {
+export function usePanelState(panel: PrompterPanel<StudioSource>): PanelState {
   return useSyncExternalStore(
     (l) => panel.subscribe(l),
     () => panel.state,
@@ -148,7 +148,6 @@ export function PrompterAside({
   const { phase, plan, mode } = state;
   const busy = phase === 'working' || phase === 'building';
   const modes = canChange ? state.modes : state.modes.filter((m) => !BUILDS.includes(m));
-  const lastAsked = [...state.entries].reverse().find((e) => e.kind === 'asked')?.text;
   const ask = (e?: FormEvent) => {
     e?.preventDefault();
     const text = request.trim();
@@ -157,13 +156,10 @@ export function PrompterAside({
     seal();
     void panel.ask(text);
   };
+  // Try again repeats the last request exactly as it was sent: the panel keeps it (S7's #489).
   const tryAgain = () => {
-    if (!lastAsked) return;
     seal();
-    const code = CODE_FRAME.exec(lastAsked);
-    if (lastAsked === BUILD_REQUEST) void panel.build();
-    else if (code) void panel.codeFrame(code[1] as FrameId);
-    else void panel.ask(lastAsked);
+    void panel.retry();
   };
   const undo = () => {
     seal();
@@ -312,7 +308,7 @@ export function PrompterAside({
         {state.message && (
           <div className="pm-message">
             <p>{state.message.text}</p>
-            {state.message.action === 'tryAgain' && lastAsked && !busy && (
+            {state.canRetry && !busy && (
               <Button variant="secondary" icon="replay" onPress={tryAgain}>
                 {words.t('prompter.tryAgain')}
               </Button>

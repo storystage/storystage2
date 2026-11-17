@@ -15,7 +15,7 @@ import type { BackstageId } from '@storystage/story-api';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { placeFromStoryboard, storyboardPlan } from '@storystage/staging';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
-import type { Studio } from '../studio.ts';
+import type { Studio, StudioSource } from '../studio.ts';
 
 export type PrompterHost = Pick<HostInterface, 'prompter' | 'policy' | 'version' | 'prompterUsage'>;
 
@@ -63,7 +63,7 @@ export function usePrompter({
   models,
   pupil,
   heldOff = false,
-}: PrompterOptions): PrompterPanel | null {
+}: PrompterOptions): PrompterPanel<StudioSource> | null {
   // What the panel reads as it runs, kept current without making a new panel.
   const sceneNow = useRef(scene);
   const modelsNow = useRef(models);
@@ -75,7 +75,7 @@ export function usePrompter({
   });
   const { session } = studio;
   // Made once the studio has drawn, as the stage and the editors are: one for each film.
-  const [panel, setPanel] = useState<PrompterPanel | null>(null);
+  const [panel, setPanel] = useState<PrompterPanel<StudioSource> | null>(null);
   useEffect(() => {
     if (!prompterInBuild(host)) return;
     const firstScene = () => session.production().scenes[0]?.id;
@@ -86,8 +86,8 @@ export function usePrompter({
       },
     };
     const made = createPrompterPanel({
-      // The studio's history names its sources; the Prompter's changes are 'prompter'.
-      production: session as unknown as Parameters<typeof createPrompterPanel>[0]['production'],
+      // The studio's own history, whose sources name the Prompter's changes 'prompter'.
+      production: session,
       transport: host.prompter,
       source: 'prompter',
       level: () => (held.current ? 'off' : currentLevel.current),
