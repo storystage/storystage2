@@ -116,7 +116,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 17 Nov (this, with backstage-assets' people build): **the suits** (WP3b; the owner's choice of 17 Nov, from a sheet of the three): `suitColour` (navy, brown or grey) recolours only the dark suit's cloth, its shirt left white; Yusuf in navy and George in brown, Winston as he was.
+  - 17 Nov (#504, with backstage-assets' people build): **the suits** (WP3b; the owner's choice of 17 Nov, from a sheet of the three): `suitColour` (navy, brown or grey) recolours only the dark suit's cloth, its shirt left white; Yusuf in navy and George in brown, Winston as he was.
 - Merged:
   - 17 Nov (#498): **the new thumbnails in the shipped Backstage**: `backstage.lock.json` pins backstage-assets fd71e3d (187 models), with the Props and Set thumbnails from three-quarters and above (WP3.10); the Prompter's catalogue is unchanged but for its commit, and the licence audit's What ships is refreshed.
   - 17 Nov (#497, backstage-assets#20): **WP3.10, each section's thumbnail view** (spec 17 §7a rule 1; the owner's choice of 17 Nov, from a comparison of ten props and sets): `THUMBNAIL_VIEWS` in `packages/sketches`: Cast front on; Props from three-quarters and 25° above; Set from three-quarters and 30° above (front on, a bicycle was a line and a sofa a block); `renderThumbnail` gains `elevation`. The Backstage build and class imports both use it. Placements were all approved on 12 Nov, so **3.10 is ticked**. The thumbnails are rebuilt in backstage-assets, then a lock update.
