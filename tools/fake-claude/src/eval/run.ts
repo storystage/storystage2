@@ -103,9 +103,13 @@ export function evalBackstage(p: Production, shipped: string = SHIPPED): PlanBac
       if (packed) return packed;
       const cls = classFromId(id, shipped);
       if (!cls) return undefined;
-      const line = shipped.split('\n').find((l) => l.startsWith(`    ${id}: `));
-      const name = line ? /^\s+\S+: ([^,]+),/.exec(line)?.[1] : id.split('/').at(-1);
-      const height = Number(line ? /([\d.]+) m, joints/.exec(line)?.[1] : 1) || 1;
+      // A catalogue line: `    <id>: <Name>, <what it looks like> [<themes>] <height> m, joints <set>`.
+      // Read by slicing, not a regular expression: the text is long and the format is fixed.
+      const prefix = `    ${id}: `;
+      const line = shipped.split('\n').find((l) => l.startsWith(prefix));
+      const name = line ? line.slice(prefix.length).split(',')[0]!.trim() : id.split('/').at(-1);
+      const tail = line ? line.slice(line.lastIndexOf(']') + 1).trim() : '';
+      const height = Number(tail.split(' ')[0]) || 1;
       const item: BackstageItem = {
         id: id as BackstageId,
         section: cls === 'Prop' || cls === 'Transport' ? 'props' : 'cast',
