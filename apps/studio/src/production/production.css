@@ -209,9 +209,18 @@
   flex: 1;
   min-height: 420px;
   border-radius: 0 12px 12px 12px;
-  overflow: hidden;
   background: var(--ss-panel-3);
   box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+/*
+ * Blockly's menus and drop-downs open inside its workspace, which would clip a block's menu near
+ * the edge. So nothing around them clips: the workspace's own drawing is rounded instead.
+ */
+.pr-workspace .injectionDiv {
+  overflow: visible;
+}
+.pr-workspace .blocklySvg {
+  border-radius: 0 12px 12px 12px;
 }
 .pr-workspace {
   flex: 1;

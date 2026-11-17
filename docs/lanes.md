@@ -204,7 +204,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S5 Studio interface
 - Merged:
-  - 17 Nov (PR open): **WP7.4 and 7.5, WP7 closed:** Rehearse's controls (Pause and Play, Speed, Restart, Stop) get a browser test, and 7.4 is ticked. For 7.5, axe across eleven states of the Production stage at two sizes, and the Blocks editor by keyboard alone:
+  - 17 Nov (#463): **Turn arrows on Blocks' chips, and Blockly's drop-downs fixed** (spec 14, 2.3 item 4, after S6's #460): a turn's or a roll's left and right chip reads "left ↺" and "right ↻", in Blockly's drop-down too, named "left" and "right" for screen readers (an option's third part). On the way: every value chip's drop-down had stopped opening since #451, which put Blockly's menus on the page, where Blockly 13's focus rules close its drop-down as it opens. They're back in the workspace, and the studio's stylesheet lets them show past its edge instead, so a block's menu at the window's edge is still whole. A new browser test opens a chip's drop-down.
+  - 17 Nov (#458): **WP7.4 and 7.5, WP7 closed:** Rehearse's controls (Pause and Play, Speed, Restart, Stop) get a browser test, and 7.4 is ticked. For 7.5, axe across eleven states of the Production stage at two sizes, and the Blocks editor by keyboard alone:
     - add from the palette (Blockly's move, then the cascade), and Escape;
     - Alt+↑ and Alt+↓ to move one place, also in the block's menu;
     - Blockly's M to move anywhere;

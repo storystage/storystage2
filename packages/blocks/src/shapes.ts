@@ -18,6 +18,7 @@ import {
   type EnumName,
   type TypeName,
 } from '@storystage/story-api';
+import { arrowOf } from '@storystage/story-api/editing';
 import { inputCheck, outputCheck, targetCheck } from './checks.ts';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
 
@@ -30,7 +31,15 @@ export type Part =
   | { readonly kind: 'statements'; readonly input: string }
   | { readonly kind: 'number'; readonly field: string; readonly whole: boolean }
   | { readonly kind: 'text'; readonly field: string }
-  | { readonly kind: 'choice'; readonly field: string; readonly options: [string, string][] };
+  /**
+   * A choice: each option's words, its value, and, where the words carry a drawn arrow
+   * ("left ↺"), the plain words a screen reader says ("left").
+   */
+  | {
+      readonly kind: 'choice';
+      readonly field: string;
+      readonly options: [string, string, string?][];
+    };
 
 export interface Shape {
   readonly type: string;
@@ -376,7 +385,13 @@ export function enumShape(name: EnumName): Shape {
       {
         kind: 'choice',
         field: 'VALUE',
-        options: ENUMS[name].map((v) => [STORY[`value.${name}.${v}`] ?? v, v] as [string, string]),
+        // A turn's or a roll's left and right carry Blockly Games' arrows, drawn only (spec 14,
+        // 2.3 item 4): the option's third part is what a screen reader says.
+        options: ENUMS[name].map((v): [string, string, string?] => {
+          const words = STORY[`value.${name}.${v}`] ?? v;
+          const arrow = arrowOf(name, v);
+          return arrow ? [`${words} ${arrow}`, v, words] : [words, v];
+        }),
       },
     ],
   };
