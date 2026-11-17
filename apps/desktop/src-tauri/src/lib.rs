@@ -59,6 +59,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         // The file dialog, from Rust only (spec 05 section 6.5, decision 0070).
         .plugin(tauri_plugin_dialog::init());
+    // iPad's own Files dialogs, from Rust only (spec 05 section 6.5).
+    #[cfg(target_os = "ios")]
+    let builder = builder.plugin(tauri_plugin_files_export::init());
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())

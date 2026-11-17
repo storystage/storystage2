@@ -8,7 +8,7 @@ rust-version = "1.80"
 publish = false
 
 [workspace]
-members = ["classes", "gate", "policy", "plugins/managed-config", "plugins/secure-key", "speech", "transport"]
+members = ["classes", "gate", "policy", "plugins/files-export", "plugins/managed-config", "plugins/secure-key", "speech", "transport"]
 
 [lib]
 # The mobile targets load the app as a library.
@@ -57,6 +57,10 @@ windows-sys = { version = "0.61", features = [
   "Win32_UI_WindowsAndMessaging",
 ] }
 zeroize = "1"
+
+[target.'cfg(target_os = "ios")'.dependencies]
+# iPad's own Files dialogs, from Rust only (spec 05 section 6.5).
+tauri-plugin-files-export = { path = "plugins/files-export" }
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 # The system's file dialog, from Rust only (spec 05 section 6.5): desktop, and Android (0070).

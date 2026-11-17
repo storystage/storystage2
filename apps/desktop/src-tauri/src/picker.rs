@@ -6,10 +6,12 @@
 //! - **Desktop:** files and folders, as picked.
 //! - **Android:** a picked file is a content URI, opened through the fs plugin. Nothing picks a
 //!   folder there, so Collect saves one zip and Hand back opens one (decision 0070).
-//! - **iPad:** `picker_kind` says `browser` until its export step is built (decision 0070).
+//! - **iPad:** iPadOS has no "save as": a copy is written to the app's cache, then exported
+//!   through iPad's own Files dialog (`tauri-plugin-files-export`). Open and Hand back pick a file,
+//!   which iPadOS copies into the app. Collect is one zip, as on Android (decision 0070).
 //!
 //! An exported film (spec 08 section 4) is one dialog for the video, with its captions written
-//! beside it on desktop, and one zip of all three on Android.
+//! beside it on desktop and iPad, and one zip of all three on Android.
 
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -132,9 +134,9 @@ mod desktop {
     }
 
     /// Every file is already in place on desktop.
-    pub fn collect_finish(_app: &AppHandle, session: Session) -> Result<(), Code> {
+    pub fn collect_finish(_app: &AppHandle, session: Session) -> Result<bool, Code> {
         match session {
-            Session::Collect(_) => Ok(()),
+            Session::Collect(_) => Ok(true),
             Session::HandBack(_) => Err(Code::Internal),
         }
     }
@@ -278,7 +280,7 @@ mod android {
     }
 
     /// Finishes the zip and copies it to the place the teacher picked.
-    pub fn collect_finish(app: &AppHandle, session: Session) -> Result<(), Code> {
+    pub fn collect_finish(app: &AppHandle, session: Session) -> Result<bool, Code> {
         let Session::Collect { writer: Some(writer), temporary, to } = session else {
             return Err(Code::Internal);
         };
@@ -290,7 +292,7 @@ mod android {
             out.sync_all().map_err(|error| io_code(&error))
         })();
         let _ = fs::remove_file(&temporary);
-        copied
+        copied.map(|()| true)
     }
 
     pub fn hand_back_start(app: &AppHandle) -> Result<Option<(Session, Vec<HandBackFile>)>, Code> {
@@ -338,51 +340,183 @@ mod android {
     }
 }
 
-/// iPad: not yet. `picker_kind` says `browser`, so the studio never calls these.
+/// iPad: iPadOS has no "save as", so a copy is written to the app's cache first and exported
+/// after, through iPad's own Files dialog (`tauri-plugin-files-export`). Open and Hand back pick
+/// a file, which iPadOS copies into the app; it's read, then removed. Collect is one zip, as on
+/// Android (decision 0070); an exported film is its three files, exported together.
 #[cfg(target_os = "ios")]
 mod ios {
-    use storystage_classes::picked::FilmPart;
+    use std::fs;
+    use std::io;
+    use std::path::{Path, PathBuf};
+
+    use storystage_classes::class_zip::{ClassZip, ClassZipWriter, ZipFound, UNPACKED_LIMIT};
+    use storystage_classes::picked::{self, is_plain_name, FilmPart};
     use storystage_classes::Code;
-    use tauri::AppHandle;
+    use tauri::{AppHandle, Manager, Wry};
+    use tauri_plugin_files_export::{FilesExport, Kind};
 
     use super::HandBackFile;
 
-    pub enum Session {}
-
-    pub fn save(_app: &AppHandle, _name: &str, _bytes: &[u8]) -> Result<bool, Code> {
-        Err(Code::Internal)
+    /// A Collect's zip being written in a folder of the app's cache, to export when it's done;
+    /// or a Hand back's zip, picked and copied in by iPadOS.
+    pub enum Session {
+        Collect { writer: Option<ClassZipWriter>, folder: PathBuf, zip: PathBuf },
+        HandBack { zip: ClassZip, found: Vec<ZipFound>, picked: PathBuf },
     }
 
-    pub fn save_film(_app: &AppHandle, _name: &str, _body: &[u8], _parts: &[FilmPart]) -> Result<bool, Code> {
-        Err(Code::Internal)
+    fn io_code(error: &io::Error) -> Code {
+        match error.kind() {
+            io::ErrorKind::NotFound => Code::NotFound,
+            io::ErrorKind::PermissionDenied => Code::Locked,
+            _ => Code::Unreadable,
+        }
     }
 
-    pub fn open(_app: &AppHandle) -> Result<Option<(String, Vec<u8>)>, Code> {
-        Err(Code::Internal)
+    fn plugin(app: &AppHandle) -> tauri::State<'_, FilesExport<Wry>> {
+        app.state::<FilesExport<Wry>>()
     }
 
-    pub fn collect_start(_app: &AppHandle) -> Result<Option<Session>, Code> {
-        Err(Code::Internal)
+    /// A new, empty folder of our own in the app's cache, for files on their way out.
+    fn outgoing(app: &AppHandle) -> Result<PathBuf, Code> {
+        let folder = app
+            .path()
+            .app_cache_dir()
+            .map_err(|_| Code::Internal)?
+            .join("picker")
+            .join(storystage_classes::temporary_name());
+        fs::create_dir_all(&folder).map_err(|error| io_code(&error))?;
+        Ok(folder)
     }
 
-    pub fn collect_write(session: &mut Session, _folder: &str, _file: &str, _bytes: &[u8]) -> Result<(), Code> {
-        match *session {}
+    /// Exports the files, then removes the folder they were written in, whatever happened.
+    fn export_from(app: &AppHandle, folder: &Path, files: &[&Path]) -> Result<bool, Code> {
+        let saved = plugin(app).export(files).map_err(|_| Code::Internal);
+        let _ = fs::remove_dir_all(folder);
+        saved
     }
 
-    pub fn collect_finish(_app: &AppHandle, session: Session) -> Result<(), Code> {
-        match session {}
+    /// The copy iPadOS made of a picked file, if the person picked one.
+    fn picked_copy(app: &AppHandle, kind: Kind) -> Result<Option<PathBuf>, Code> {
+        plugin(app).pick(kind).map_err(|_| Code::Internal)
     }
 
-    pub fn hand_back_start(_app: &AppHandle) -> Result<Option<(Session, Vec<HandBackFile>)>, Code> {
-        Err(Code::Internal)
+    pub fn save(app: &AppHandle, name: &str, bytes: &[u8]) -> Result<bool, Code> {
+        if !is_plain_name(name) {
+            return Err(Code::Invalid);
+        }
+        let folder = outgoing(app)?;
+        let file = folder.join(name);
+        if let Err(code) = picked::save(&file, bytes) {
+            let _ = fs::remove_dir_all(&folder);
+            return Err(code);
+        }
+        export_from(app, &folder, &[file.as_path()])
     }
 
-    pub fn hand_back_read(session: &mut Session, _index: usize) -> Result<Vec<u8>, Code> {
-        match *session {}
+    /// The three files side by side in the cache, then exported together to one place.
+    pub fn save_film(app: &AppHandle, name: &str, body: &[u8], parts: &[FilmPart]) -> Result<bool, Code> {
+        let folder = outgoing(app)?;
+        let written: Result<Vec<PathBuf>, Code> = (|| {
+            let first = parts.first().ok_or(Code::Invalid)?;
+            picked::save_film(&folder.join(format!("{name}.{}", first.extension)), body, parts)?;
+            Ok(parts.iter().map(|part| folder.join(format!("{name}.{}", part.extension))).collect())
+        })();
+        let files = match written {
+            Ok(files) => files,
+            Err(code) => {
+                let _ = fs::remove_dir_all(&folder);
+                return Err(code);
+            }
+        };
+        let paths: Vec<&Path> = files.iter().map(PathBuf::as_path).collect();
+        export_from(app, &folder, &paths)
     }
 
+    pub fn open(app: &AppHandle) -> Result<Option<(String, Vec<u8>)>, Code> {
+        let Some(copy) = picked_copy(app, Kind::Production)? else { return Ok(None) };
+        let read = picked::read(&copy);
+        let _ = fs::remove_file(&copy);
+        let name = copy.file_name().and_then(|name| name.to_str()).unwrap_or("file.storystage").to_string();
+        read.map(|bytes| Some((name, bytes)))
+    }
+
+    /// Nothing to ask yet: iPadOS asks where the zip goes once it's written (`collect_finish`).
+    pub fn collect_start(app: &AppHandle) -> Result<Option<Session>, Code> {
+        let folder = outgoing(app)?;
+        let zip = folder.join("StoryStage films.zip");
+        match ClassZipWriter::create(&zip) {
+            Ok(writer) => Ok(Some(Session::Collect { writer: Some(writer), folder, zip })),
+            Err(code) => {
+                let _ = fs::remove_dir_all(&folder);
+                Err(code)
+            }
+        }
+    }
+
+    pub fn collect_write(session: &mut Session, folder: &str, file: &str, bytes: &[u8]) -> Result<(), Code> {
+        match session {
+            Session::Collect { writer: Some(writer), .. } => writer.add(folder, file, bytes),
+            _ => Err(Code::Internal),
+        }
+    }
+
+    /// Finishes the zip and exports it. `false` if the teacher closed the dialog.
+    pub fn collect_finish(app: &AppHandle, session: Session) -> Result<bool, Code> {
+        let Session::Collect { writer: Some(writer), folder, zip } = session else {
+            return Err(Code::Internal);
+        };
+        if let Err(code) = writer.finish() {
+            let _ = fs::remove_dir_all(&folder);
+            return Err(code);
+        }
+        export_from(app, &folder, &[zip.as_path()])
+    }
+
+    pub fn hand_back_start(app: &AppHandle) -> Result<Option<(Session, Vec<HandBackFile>)>, Code> {
+        let Some(copy) = picked_copy(app, Kind::Zip)? else { return Ok(None) };
+        let opened = (|| {
+            // A zip may be bigger than what it unpacks to, but never by much: this bounds it.
+            let meta = fs::symlink_metadata(&copy).map_err(|error| io_code(&error))?;
+            if !meta.is_file() {
+                return Err(Code::Unreadable);
+            }
+            if meta.len() > UNPACKED_LIMIT {
+                return Err(Code::TooBig);
+            }
+            ClassZip::open(&copy)
+        })();
+        let (zip, found) = match opened {
+            Ok(opened) => opened,
+            Err(code) => {
+                let _ = fs::remove_file(&copy);
+                return Err(code);
+            }
+        };
+        let files = found.iter().map(|f| HandBackFile { folder: f.folder.clone(), file: f.file.clone() }).collect();
+        Ok(Some((Session::HandBack { zip, found, picked: copy }, files)))
+    }
+
+    pub fn hand_back_read(session: &mut Session, index: usize) -> Result<Vec<u8>, Code> {
+        match session {
+            Session::HandBack { zip, found, .. } => {
+                let entry = found.get(index).ok_or(Code::NotFound)?.clone();
+                zip.read(&entry)
+            }
+            Session::Collect { .. } => Err(Code::Internal),
+        }
+    }
+
+    /// Removes whatever the session left in the app.
     pub fn end(session: Session) {
-        match session {}
+        match session {
+            Session::Collect { folder, .. } => {
+                let _ = fs::remove_dir_all(folder);
+            }
+            Session::HandBack { picked, .. } => {
+                let _ = fs::remove_file(picked);
+            }
+        }
     }
 }
 
@@ -402,15 +536,10 @@ fn body<'a>(request: &'a Request<'_>) -> Result<&'a [u8], &'static str> {
     }
 }
 
-/// Which picker the studio should use: `native` on desktop and Android, `browser` on iPad until
-/// its export step is built.
+/// Which picker the studio should use: `native` on desktop, Android and iPad.
 #[tauri::command]
 pub fn picker_kind() -> &'static str {
-    if cfg!(target_os = "ios") {
-        "browser"
-    } else {
-        "native"
-    }
+    "native"
 }
 
 /// Save a copy: the bytes are the raw body and the suggested name is in `NAME_HEADER`.
@@ -479,13 +608,18 @@ pub async fn picker_collect_write(request: Request<'_>, picker: State<'_, Picker
     platform::collect_write(session, folder, file, bytes).map_err(Code::name)
 }
 
-/// Collect, step 3: on Android the zip is finished and saved where the teacher picked. Nothing
+/// Collect, step 3: on Android the zip is finished and saved where the teacher picked; on iPad
+/// it's finished, and the teacher picks where it goes now (closing that is `cancelled`). Nothing
 /// to do on desktop. The session ends either way.
 #[tauri::command(async)]
 pub fn picker_collect_finish(app: AppHandle, picker: State<'_, Picker>, session: String) -> Result<(), &'static str> {
     let taken = picker.sessions.lock().unwrap_or_else(|e| e.into_inner()).remove(&session);
     let session = taken.ok_or(Code::Internal.name())?;
-    platform::collect_finish(&app, session).map_err(Code::name)
+    match platform::collect_finish(&app, session) {
+        Ok(true) => Ok(()),
+        Ok(false) => Err(CANCELLED),
+        Err(code) => Err(code.name()),
+    }
 }
 
 /// Hand back, step 1: the teacher picks a folder, or on Android a zip, and what's in it is

@@ -317,10 +317,11 @@ export interface FilePicker {
    * Save an exported film (spec 08 section 4): one system dialog, for the first file (the video),
    * named `name` as `safeFileName` gives it, and the rest written beside it under the name the
    * person chose. On Android, which can't pick a folder, one zip holding them side by side
-   * (decision 0070). Each file is at most `FILE_LIMIT`, and each extension is used once.
+   * (decision 0070); on iPad, the files exported together to one place. Each file is at most
+   * `FILE_LIMIT`, and each extension is used once.
    *
-   * Only where the native layer has the dialog: missing in the browser version and on iPad,
-   * where the studio saves the files its own way.
+   * Only where the native layer has the dialog: missing in the browser version, where the
+   * studio saves the files its own way.
    */
   saveFilm?(name: string, files: readonly FilmFile[]): Promise<void>;
 }

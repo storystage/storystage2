@@ -3300,6 +3300,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
+ "tauri-plugin-files-export",
  "tauri-plugin-fs",
  "tauri-plugin-managed-config",
  "tauri-plugin-secure-key",
@@ -3709,6 +3710,15 @@ dependencies = [
  "tauri-plugin-fs",
  "thiserror 2.0.21",
  "url",
+]
+
+[[package]]
+name = "tauri-plugin-files-export"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tauri",
+ "tauri-plugin",
 ]
 
 [[package]]

@@ -37,7 +37,7 @@ export interface HostInterface {
   /**
    * The system's own file picker, for Save a copy, Open, Collect and Hand back (spec 05 section
    * 6.5). In the Tauri desktop apps, the system's dialog
-   * opened by the native layer; on iPad and Android, the webview's own, for now.
+   * opened by the native layer: on desktop, Android and iPad (iPad's own Files dialogs).
    */
   readonly picker: FilePicker;
   /**
