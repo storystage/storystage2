@@ -323,7 +323,7 @@
   {
     "id": "p14",
     "name": "Leah",
-    "description": "a girl of 16 with short brown hair, in a pink striped shirt and jeans",
+    "description": "a girl of 16 with short brown hair, in a pink flowered shirt and jeans",
     "ageYears": 16,
     "gender": 0.25,
     "build": {
@@ -342,6 +342,7 @@
     "eyebrows": "eyebrow002",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "rose",
+    "pattern": "flowers",
     "shoes": "shoes06"
   },
   {
@@ -372,7 +373,7 @@
   {
     "id": "p16",
     "name": "Sam",
-    "description": "a teenager of 15 with short black hair, in a yellow checked shirt and jeans",
+    "description": "a teenager of 15 with short black hair, in a yellow spotted shirt and jeans",
     "ageYears": 15,
     "gender": 0.5,
     "build": {
@@ -391,13 +392,13 @@
     "eyebrows": "eyebrow004",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "mustard",
-    "pattern": "checks",
+    "pattern": "dots",
     "shoes": "shoes04"
   },
   {
     "id": "p17",
     "name": "Grace",
-    "description": "a woman of 28 with short curly black hair, in a striped blouse, grey skirt and white socks",
+    "description": "a woman of 28 with short curly black hair, in a teal spotted blouse and skirt, and white socks",
     "ageYears": 28,
     "gender": 0.15,
     "build": {
@@ -415,6 +416,8 @@
     "hair": "afro01",
     "eyebrows": "eyebrow005",
     "clothes": ["female_elegantsuit01"],
+    "clothesColour": "teal",
+    "pattern": "dots",
     "shoes": "shoes02"
   },
   {
@@ -568,7 +571,7 @@
   {
     "id": "p24",
     "name": "Morgan",
-    "description": "an adult of 26 with short dark hair, in a purple checked shirt and jeans",
+    "description": "an adult of 26 with short dark hair, in a purple flecked shirt and jeans",
     "ageYears": 26,
     "gender": 0.5,
     "build": {
@@ -587,7 +590,7 @@
     "eyebrows": "eyebrow012",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "lilac",
-    "pattern": "checks",
+    "pattern": "flecks",
     "shoes": "shoes01"
   },
   {
@@ -635,10 +638,11 @@
     "eyebrows": "eyebrow002",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "rose",
-    "pattern": "checks",
+    "pattern": "flowers",
+    "skirtLength": "ankle",
     "shoes": "shoes06",
     "glasses": "kwnet_at_optical_glasses",
-    "description": "an older woman of 72 with a grey bob and glasses, in a pink checked blouse and skirt"
+    "description": "an older woman of 72 with a grey bob and glasses, in a pink flowered blouse and long skirt"
   },
   {
     "id": "p27",
@@ -667,7 +671,7 @@
   {
     "id": "p28",
     "name": "Lin",
-    "description": "an older woman of 68 with a grey bob, in a teal striped blouse and teal skirt",
+    "description": "an older woman of 68 with a grey bob, in a teal flecked blouse and skirt",
     "ageYears": 68,
     "gender": 0.15,
     "build": {
@@ -687,6 +691,7 @@
     "eyebrows": "eyebrow004",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "teal",
+    "pattern": "flecks",
     "shoes": "shoes02"
   },
   {

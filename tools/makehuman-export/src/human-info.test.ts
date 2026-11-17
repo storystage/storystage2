@@ -108,7 +108,7 @@ describe('sourceList', () => {
       id: 'makehuman/Biped/p26',
       displayName: 'Margaret',
       description:
-        'an older woman of 72 with a grey bob and glasses, in a pink checked blouse and skirt',
+        'an older woman of 72 with a grey bob and glasses, in a pink flowered blouse and long skirt',
       class: 'Biped',
       section: 'cast',
       licence: 'CC0-1.0',
