@@ -156,13 +156,18 @@ def pattern_colours(pattern, colour, x, y, period):
         out[np.hypot(u, v) < 0.22 * period] = lighter(colour, 0.75)
         return out
     if pattern == "flowers":
+        # On a tile nearly twice the spots', or they read as spots (trial of 17 Nov).
+        tile = int(period * 1.8)
+        row = y // tile
+        u = (x + (row % 2) * (tile // 2)) % tile - tile / 2
+        v = y % tile - tile / 2
         petal = np.zeros(x.size, dtype=bool)
         for k in range(5):
             a = 2 * math.pi * k / 5
-            cu, cv = 0.17 * period * math.cos(a), 0.17 * period * math.sin(a)
-            petal |= np.hypot(u - cu, v - cv) < 0.12 * period
+            cu, cv = 0.2 * tile * math.cos(a), 0.2 * tile * math.sin(a)
+            petal |= np.hypot(u - cu, v - cv) < 0.13 * tile
         out[petal] = lighter(colour, 0.7)
-        out[np.hypot(u, v) < 0.07 * period] = FLOWER_CENTRE
+        out[np.hypot(u, v) < 0.08 * tile] = FLOWER_CENTRE
         return out
     if pattern == "flecks":
         # A knitted look: small cells, a few light and a few dark, from a fixed hash.
@@ -244,11 +249,16 @@ def skirt_piece(bm, hips):
     return max(spanning, key=len)
 
 
-def bone_z(rig, outfit, name):
+def bone_at(rig, outfit, name):
+    """Where a bone starts, in the outfit's own space."""
     bone = rig.data.bones.get(name)
     if bone is None:
         raise RuntimeError(f"No {name} bone")
-    return (outfit.matrix_world.inverted() @ rig.matrix_world @ bone.head_local).z
+    return outfit.matrix_world.inverted() @ rig.matrix_world @ bone.head_local
+
+
+def bone_z(rig, outfit, name):
+    return bone_at(rig, outfit, name).z
 
 
 def straighten_hem(outfit, rig):
@@ -294,16 +304,10 @@ def lengthen_skirt(outfit, rig, body):
         raise RuntimeError("The skirt already reaches the ankles")
     cx = sum(v.co.x for v in below) / len(below)
     cy = sum(v.co.y for v in below) / len(below)
-    # How wide the legs are where the hem will be, from the body itself.
-    to_outfit = outfit.matrix_world.inverted() @ body.matrix_world
-    legs = [
-        to_outfit @ v.co
-        for v in body.data.vertices
-        if abs((to_outfit @ v.co).z - target) < 0.04
-    ]
-    if not legs:
-        raise RuntimeError("No legs found at the hem's height")
-    needed = max(abs(p.x - cx) for p in legs) + 0.03
+    # How far apart the legs stand at the hem, from the ankle joints, with room for the leg
+    # itself (the body's surface at that height wasn't found in the first trial, 17 Nov).
+    ankles = [bone_at(rig, outfit, name) for name in ("foot_l", "foot_r")]
+    needed = max(abs(a.x - cx) for a in ankles) + 0.08
     width = max(abs(v.co.x - cx) for v in below if v.co.z < hem + 0.02)
     spread = max(1.0, needed / max(width, 1e-6))
     for v in below:
