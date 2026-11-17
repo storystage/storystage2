@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = 'fd0455a377899379688cc31f2f3b6e8256b03b03';
+export const SHIPPED_CATALOGUE_COMMIT = 'ca795b99437cc1831b0f3667946582025980b5e2';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -28,16 +28,16 @@ Cast
     kaykit/Biped/skeleton-minion: Skeleton minion, a small skeleton in a brown scarf and belt [fantasy, spooky] 2.17 m, joints J1
     kaykit/Biped/skeleton-rogue: Skeleton rogue, a skeleton in a dark red hood and cloak [fantasy, spooky] 2.31 m, joints J1
     kaykit/Biped/skeleton-warrior: Skeleton warrior, a skeleton in a horned helmet and armour [fantasy, spooky] 2.59 m, joints J1
-    makehuman/Biped/p01: Alfie, a boy of 6 with short brown hair, in a blue shirt and jeans [everyday, children] 1 m, joints J2
-    makehuman/Biped/p02: Amara, a girl of 7 with short curly black hair, in a yellow jacket and jeans [everyday, children] 1.07 m, joints J2
-    makehuman/Biped/p03: Kai, a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and jeans [everyday, children] 1.1 m, joints J2
-    makehuman/Biped/p04: Aisha, a girl of 9 with short black hair, in a purple striped shirt and jeans [everyday, children] 1.16 m, joints J2
-    makehuman/Biped/p05: Rhys, a boy of 10 with short dark hair, in a dark red striped shirt and jeans [everyday, children] 1.27 m, joints J2
+    makehuman/Biped/p01: Alfie, a boy of 6 with short brown hair, in blue dungarees and a yellow T-shirt [everyday, children] 1 m, joints J2
+    makehuman/Biped/p02: Amara, a girl of 7 with short curly black hair, in a yellow blouse and yellow skirt [everyday, children] 1.07 m, joints J2
+    makehuman/Biped/p03: Kai, a child of 8 with a brown side fringe and red glasses, in a teal shirt and grey trousers [everyday, children] 1.1 m, joints J2
+    makehuman/Biped/p04: Aisha, a girl of 9 with short black hair, in a purple checked shirt and jeans [everyday, children] 1.16 m, joints J2
+    makehuman/Biped/p05: Rhys, a boy of 10 with short dark hair, in an orange checked shirt and navy trousers [everyday, children] 1.27 m, joints J2
     makehuman/Biped/p06: Niamh, a tall girl of 11 with short light brown hair, in a green jacket and jeans [everyday, children] 1.53 m, joints J2
-    makehuman/Biped/p07: Zain, a boy of 12 with short black hair, in a teal jacket and jeans [everyday, children] 1.44 m, joints J2
-    makehuman/Biped/p08: Mei, a girl of 6 with a black bob and a long fringe, in a coral striped shirt and jeans [everyday, children] 0.92 m, joints J2
-    makehuman/Biped/p09: Kofi, a boy of 11 with short black hair, in a khaki jacket and jeans [everyday, children] 1.44 m, joints J2
-    makehuman/Biped/p10: Isla, a girl of 9 with long brown hair, in a green striped shirt and jeans [everyday, children] 1.17 m, joints J2
+    makehuman/Biped/p07: Zain, a boy of 12 with short black hair, in a teal jacket and black trousers [everyday, children] 1.44 m, joints J2
+    makehuman/Biped/p08: Mei, a girl of 6 with a black bob and a long fringe, in a coral checked blouse and skirt [everyday, children] 0.92 m, joints J2
+    makehuman/Biped/p09: Kofi, a boy of 11 with short black hair, in blue dungarees and a white T-shirt [everyday, children] 1.44 m, joints J2
+    makehuman/Biped/p10: Isla, a girl of 9 with long brown hair, in a green striped blouse and green skirt [everyday, children] 1.17 m, joints J2
     makehuman/Biped/p11: Jayden, a tall boy of 14 with short brown hair, in a coral jacket and jeans [everyday, teenagers] 1.68 m, joints J2
     makehuman/Biped/p12: Priya, a girl of 15 with long brown hair, in a purple jacket and jeans [everyday, teenagers] 1.36 m, joints J2
     makehuman/Biped/p13: Oskar, a boy of 13 with short dark hair and black glasses, in a blue shirt and grey jeans [everyday, teenagers] 1.4 m, joints J2
@@ -60,9 +60,9 @@ Cast
     makehuman/Biped/p30: Eileen, an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt [everyday, older people] 1.5 m, joints J2
     makehuman/Biped/p31: Maryam, a girl of 10 in a navy hijab, a teal jacket and jeans [everyday, children] 1.28 m, joints J2
     makehuman/Biped/p32: Samira, a woman of 45 in a maroon hijab, a green striped blouse and green skirt [everyday, adults] 1.59 m, joints J2
-    makehuman/Biped/p33: Arjan, a boy of 11 in a navy patka, a yellow striped shirt and jeans [everyday, children] 1.37 m, joints J2
+    makehuman/Biped/p33: Arjan, a boy of 11 in a navy patka, a yellow striped shirt and navy trousers [everyday, children] 1.37 m, joints J2
     makehuman/Biped/p34: Gurdeep, a man of 38 in an orange turban, a green jacket and jeans [everyday, adults] 1.84 m, joints J2
-    makehuman/Biped/p35: Eli, a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and jeans [everyday, children] 1.14 m, joints J2
+    makehuman/Biped/p35: Eli, a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers [everyday, children] 1.14 m, joints J2
     makehuman/Biped/p36: Poppy, a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans [everyday, children] 1.03 m, joints J2
     makehuman/Biped/p37: George, an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie [everyday, older people] 1.74 m, joints J2
     osa/Biped/astronaut: Astronaut, an astronaut in a yellow spacesuit and a round orange helmet with an aerial [everyday, space] 1.36 m, joints J3
