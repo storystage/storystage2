@@ -108,6 +108,9 @@ importers:
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
+      '@storystage/study':
+        specifier: workspace:*
+        version: link:../../packages/study
       '@storystage/text-view':
         specifier: workspace:*
         version: link:../../packages/text-view

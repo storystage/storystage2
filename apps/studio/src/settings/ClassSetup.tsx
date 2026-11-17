@@ -1,6 +1,6 @@
 /**
  * Settings › Class set-up (`07-ux.md` sections 9.4 and 9.6, Direction A screen 11): Pupils and
- * folders, Class models, Collect and Hand back, the Prompter's use today and the bin. For the teacher, on the trust of
+ * folders, Class models, Collect and Hand back, the Prompter's use today, the study and the bin. For the teacher, on the trust of
  * the name page (PS1); reached from the studio's header, or from the name page's corner.
  */
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
@@ -10,11 +10,13 @@ import type {
   BinnedStoredModel,
   HostInterface,
   ProductionInfo,
+  PupilId,
   UsageToday,
 } from '@storystage/host';
 import { collectClass, handBackClass, type HandBackReport } from '@storystage/production';
 import { Button, Dialog, Icon, NeutralNote } from '@storystage/ui';
-import { useCallback, useEffect, useState } from 'react';
+import { StudyStore, type SessionSummary } from '@storystage/study';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { sinceWords } from '../lesson/LessonPages.tsx';
 import { useStorageKept } from '../lesson/useStorageKept.ts';
 import { words } from '../strings.ts';
@@ -22,6 +24,7 @@ import { ClassModelsCard, classModel, type ClassModel } from './ClassModels.tsx'
 import { DeviceFilmsCard } from './DeviceFilms.tsx';
 import { startImportWorker } from './importWorker.ts';
 import { PupilsCard, type OpenNow, type PupilFilms } from './Pupils.tsx';
+import { StudyCard, studyOn } from '../study/StudyCard.tsx';
 
 const DEVICE = 'device';
 
@@ -50,6 +53,11 @@ export function ClassSetup({
   const [problem, setProblem] = useState<string | null>(null);
   const [said, setSaid] = useState<string | null>(null);
   const storageKept = useStorageKept(host);
+  // The study's own store, beside the pupils' folders (spec 14 sections 6.2, 6.7 and 6.8).
+  const study = useMemo(() => new StudyStore(classes.study()), [classes]);
+  const on = studyOn(host.policy);
+  const [takingPart, setTakingPart] = useState<ReadonlySet<string>>(new Set());
+  const [sessions, setSessions] = useState<readonly SessionSummary[]>([]);
 
   useEffect(() => {
     let gone = false;
@@ -66,7 +74,12 @@ export function ClassSetup({
       const device = await classes.deviceFilms();
       const stored = await classes.backstage().list();
       const storedBin = await classes.backstage().bin();
+      // Only the class's pupils: a tick for anyone else is dropped (6.2).
+      const ticks = await study.takingPart(list.map((p) => p.id));
+      const kept = await study.sessions();
       if (gone) return;
+      setTakingPart(ticks);
+      setSessions(kept);
       setModels(stored.map(classModel).sort((a, b) => a.name.localeCompare(b.name, 'en-GB')));
       setBinnedModels([...storedBin].sort((a, b) => b.binnedAt.localeCompare(a.binnedAt)));
       setDeviceFilms(newestFirst(device));
@@ -79,7 +92,7 @@ export function ClassSetup({
     return () => {
       gone = true;
     };
-  }, [classes, version]);
+  }, [classes, study, version]);
 
   const act = useCallback(async (work: () => Promise<unknown>) => {
     setProblem(null);
@@ -118,7 +131,21 @@ export function ClassSetup({
       {pupils && (
         <div className="st-grid">
           <div className="st-column">
-            <PupilsCard classes={classes} pupils={pupils} open={open} act={act} />
+            <PupilsCard
+              classes={classes}
+              pupils={pupils}
+              open={open}
+              act={act}
+              {...(on
+                ? {
+                    study: {
+                      takingPart,
+                      onTick: (id: string, tick: boolean) =>
+                        void act(() => study.setTakingPart(id as PupilId, tick)),
+                    },
+                  }
+                : {})}
+            />
             <ClassModelsCard
               classes={classes}
               picker={host.picker}
@@ -149,6 +176,15 @@ export function ClassSetup({
             />
             {host.prompterUsage && (
               <UsageCard usage={host.prompterUsage} pupils={pupils} version={version} />
+            )}
+            {(on || sessions.length > 0) && (
+              <StudyCard
+                store={study}
+                picker={host.picker}
+                sessions={sessions}
+                onSaid={setSaid}
+                act={act}
+              />
             )}
             <BinCard
               bin={bin}
