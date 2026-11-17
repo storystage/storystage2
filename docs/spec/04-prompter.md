@@ -579,7 +579,7 @@ In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes
 
 ### 6.7 Kept with the frame
 
-The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
+The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it: `Frame.plan`, as the plan was shown and as it was agreed (format 1.6.0; `03-production-format.md` section 6). `PlanStep` is the format's type, which the Prompter uses. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
 
 ## 7. Errors
 

@@ -35,6 +35,7 @@ import {
 } from './types.ts';
 import {
   checkFrameCheck,
+  checkFramePlan,
   checkFrameShape,
   checkManifestShape,
   checkSceneShape,
@@ -162,6 +163,9 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.5.0 lets a set-up object keep its pose (S3's `SceneObjectSetup.joints`): nothing else
   // changes.
   '1.4.0': { to: '1.5.0', manifest: (m) => m },
+  // 1.6.0 lets a frame keep its agreed plan (spec 04 section 6.7, `Frame.plan`): nothing else
+  // changes.
+  '1.5.0': { to: '1.6.0', manifest: (m) => m },
 };
 
 /**
@@ -180,6 +184,25 @@ function withReadableCheck(
   dropped.push(...problems.map((p) => `${p} (the check is dropped)`));
   const rest: { -readonly [K in keyof Frame]?: Frame[K] } = { ...frame };
   delete rest.check;
+  return rest as Frame;
+}
+
+/**
+ * A frame's agreed plan is a record for the teacher (spec 04 section 6.7): one that doesn't fit
+ * its shape is dropped whole, so the frame opens without it, rather than the file being refused.
+ */
+function withReadablePlan(
+  frame: Frame,
+  where: string,
+  shape: { allowExtra: boolean },
+  dropped: string[],
+): Frame {
+  if (!('plan' in frame)) return frame;
+  const problems = checkFramePlan(frame.plan, where, shape);
+  if (problems.length === 0) return frame;
+  dropped.push(...problems.map((p) => `${p} (the plan is dropped)`));
+  const rest: { -readonly [K in keyof Frame]?: Frame[K] } = { ...frame };
+  delete rest.plan;
   return rest as Frame;
 }
 
@@ -333,7 +356,10 @@ export function openProduction(
     problems.push(...found);
     if (found.length > 0) continue;
     if (scene) scenes.push(withReadablePoses(v as Scene, name, dropped));
-    else frames.push(withReadableCheck(v as Frame, name, shape, dropped));
+    else
+      frames.push(
+        withReadablePlan(withReadableCheck(v as Frame, name, shape, dropped), name, shape, dropped),
+      );
   }
 
   const storyboardJson = json(ZIP_LAYOUT.storyboard);
