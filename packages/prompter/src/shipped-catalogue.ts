@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = 'ca795b99437cc1831b0f3667946582025980b5e2';
+export const SHIPPED_CATALOGUE_COMMIT = '6bab468036153731620458bdda1a4ee91ba9833d';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -38,28 +38,28 @@ Cast
     makehuman/Biped/p08: Mei, a girl of 6 with a black bob and a long fringe, in a coral checked blouse and skirt [everyday, children] 0.92 m, joints J2
     makehuman/Biped/p09: Kofi, a boy of 11 with short black hair, in blue dungarees and a white T-shirt [everyday, children] 1.44 m, joints J2
     makehuman/Biped/p10: Isla, a girl of 9 with long brown hair, in a green striped blouse and green skirt [everyday, children] 1.17 m, joints J2
-    makehuman/Biped/p11: Jayden, a tall boy of 14 with short brown hair, in a coral jacket and jeans [everyday, teenagers] 1.68 m, joints J2
+    makehuman/Biped/p11: Jayden, a tall boy of 14 with short brown hair, in a coral jacket and black trousers [everyday, teenagers] 1.68 m, joints J2
     makehuman/Biped/p12: Priya, a girl of 15 with long brown hair, in a purple jacket and jeans [everyday, teenagers] 1.36 m, joints J2
     makehuman/Biped/p13: Oskar, a boy of 13 with short dark hair and black glasses, in a blue shirt and grey jeans [everyday, teenagers] 1.4 m, joints J2
-    makehuman/Biped/p14: Leah, a girl of 16 with short brown hair, in a pink striped shirt and jeans [everyday, teenagers] 1.44 m, joints J2
-    makehuman/Biped/p15: Hamza, a boy of 17 with short brown hair, in an orange jacket and jeans [everyday, teenagers] 1.6 m, joints J2
-    makehuman/Biped/p16: Sam, a teenager of 15 with short black hair, in a yellow striped shirt and jeans [everyday, teenagers] 1.41 m, joints J2
-    makehuman/Biped/p17: Grace, a woman of 28 with short curly black hair, in a striped blouse, grey skirt and white socks [everyday, adults] 1.79 m, joints J2
+    makehuman/Biped/p14: Leah, a girl of 16 with short brown hair, in a pink flowered shirt and jeans [everyday, teenagers] 1.44 m, joints J2
+    makehuman/Biped/p15: Hamza, a boy of 17 with short brown hair, in an orange jacket and khaki trousers [everyday, teenagers] 1.6 m, joints J2
+    makehuman/Biped/p16: Sam, a teenager of 15 with short black hair, in a yellow spotted shirt and jeans [everyday, teenagers] 1.41 m, joints J2
+    makehuman/Biped/p17: Grace, a woman of 28 with short curly black hair, in a teal spotted blouse and skirt, and white socks [everyday, adults] 1.79 m, joints J2
     makehuman/Biped/p18: Tom, a tall man of 32 with short brown hair, in blue dungarees and a white T-shirt [everyday, adults] 2.1 m, joints J2
     makehuman/Biped/p19: Yusuf, a man of 40 with short black hair, in a dark suit and striped tie [everyday, adults] 1.7 m, joints J2
-    makehuman/Biped/p20: Hannah, a woman of 36 with a black bob and rimless glasses, in a teal striped shirt and jeans [everyday, adults] 1.64 m, joints J2
-    makehuman/Biped/p21: Chen, a man of 45 with a brown side fringe and thin metal glasses, in a green striped shirt and jeans [everyday, adults] 1.6 m, joints J2
-    makehuman/Biped/p22: Tunde, a bald man of 50, in a khaki jacket and jeans [everyday, adults] 1.89 m, joints J2
-    makehuman/Biped/p23: Fatima, a woman of 30 with a short black bob, in a purple striped blouse and purple skirt [everyday, adults] 1.58 m, joints J2
-    makehuman/Biped/p24: Morgan, an adult of 26 with short dark hair, in a purple striped shirt and jeans [everyday, adults] 1.76 m, joints J2
+    makehuman/Biped/p20: Hannah, a woman of 36 with a black bob and rimless glasses, in a teal shirt and jeans [everyday, adults] 1.64 m, joints J2
+    makehuman/Biped/p21: Chen, a man of 45 with a brown side fringe and thin metal glasses, in a green checked shirt and grey trousers [everyday, adults] 1.6 m, joints J2
+    makehuman/Biped/p22: Tunde, a bald man of 50, in a khaki jacket and navy trousers [everyday, adults] 1.89 m, joints J2
+    makehuman/Biped/p23: Fatima, a woman of 30 with a short black bob, in a purple blouse and purple skirt [everyday, adults] 1.58 m, joints J2
+    makehuman/Biped/p24: Morgan, an adult of 26 with short dark hair, in a purple flecked shirt and jeans [everyday, adults] 1.76 m, joints J2
     makehuman/Biped/p25: Siân, a woman of 55 with a silver-blonde bob, in a dark red striped blouse and grey skirt [everyday, adults] 1.59 m, joints J2
-    makehuman/Biped/p26: Margaret, an older woman of 72 with a grey bob and glasses, in a pink striped blouse and pink skirt [everyday, older people] 1.58 m, joints J2
+    makehuman/Biped/p26: Margaret, an older woman of 72 with a grey bob and glasses, in a pink flowered blouse and long skirt [everyday, older people] 1.58 m, joints J2
     makehuman/Biped/p27: Winston, an older man of 78 in a grey hat, dark suit and striped tie [everyday, older people] 1.86 m, joints J2
-    makehuman/Biped/p28: Lin, an older woman of 68 with a grey bob, in a teal striped blouse and teal skirt [everyday, older people] 1.44 m, joints J2
-    makehuman/Biped/p29: Ravi, an older man of 70 with short grey hair, in an orange striped shirt and jeans [everyday, older people] 1.68 m, joints J2
-    makehuman/Biped/p30: Eileen, an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt [everyday, older people] 1.5 m, joints J2
+    makehuman/Biped/p28: Lin, an older woman of 68 with a grey bob, in a teal flecked blouse and skirt [everyday, older people] 1.44 m, joints J2
+    makehuman/Biped/p29: Ravi, an older man of 70 with short grey hair, in an orange shirt and navy trousers [everyday, older people] 1.68 m, joints J2
+    makehuman/Biped/p30: Eileen, an older woman of 85 with white hair tied back, in a green checked blouse and long green skirt [everyday, older people] 1.5 m, joints J2
     makehuman/Biped/p31: Maryam, a girl of 10 in a navy hijab, a teal jacket and jeans [everyday, children] 1.28 m, joints J2
-    makehuman/Biped/p32: Samira, a woman of 45 in a maroon hijab, a green striped blouse and green skirt [everyday, adults] 1.59 m, joints J2
+    makehuman/Biped/p32: Samira, a woman of 45 in a maroon hijab, a green striped blouse and long green skirt [everyday, adults] 1.59 m, joints J2
     makehuman/Biped/p33: Arjan, a boy of 11 in a navy patka, a yellow striped shirt and navy trousers [everyday, children] 1.37 m, joints J2
     makehuman/Biped/p34: Gurdeep, a man of 38 in an orange turban, a green jacket and jeans [everyday, adults] 1.84 m, joints J2
     makehuman/Biped/p35: Eli, a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers [everyday, children] 1.14 m, joints J2
