@@ -2,8 +2,9 @@
  * Which host the studio starts on (spec 05; decision 0003): the Tauri apps' native layer when the
  * studio runs inside one, and the browser version's otherwise. Inside an app, Tauri's own API is
  * loaded here, only there, and `tauriHost` reads the policy, the version, the picker, the shipped
- * Backstage and speech from it. The Prompter's native transport isn't built yet, so the Prompter
- * stays off until it is (`offTransport`).
+ * Backstage and speech from it. The Prompter reaches Claude through the native layer
+ * (`tauriTransport`, over S8's `prompter_send`), with the same `invoke` and `Channel` as speech;
+ * the browser version's host keeps it off.
  */
 import {
   browserHost,
@@ -12,7 +13,7 @@ import {
   type HostInterface,
   type Invoke,
 } from '@storystage/host';
-import { offTransport } from '@storystage/prompter';
+import { tauriTransport } from '@storystage/prompter';
 
 /** What `@tauri-apps/api/core` gives the studio. */
 export interface TauriCore {
@@ -38,7 +39,7 @@ export async function startHost(
   if (!inTauri(options.window)) return browserHost;
   try {
     const { invoke, Channel } = await (options.load ?? loadTauri)();
-    return await tauriHost(invoke, offTransport, Channel);
+    return await tauriHost(invoke, tauriTransport(invoke, Channel), Channel);
   } catch (e) {
     console.error(
       'StoryStage could not reach the app’s native layer; it runs as the browser version.',

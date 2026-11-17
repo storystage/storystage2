@@ -160,9 +160,13 @@ export interface BlocksEditor extends CodeEditor {
  * so it is hidden from screen readers. To report to Blockly; remove when it is fixed there.
  */
 function quietPalette(ws: Blockly.WorkspaceSvg) {
-  const flyout = ws.getFlyout()?.getWorkspace().getParentSvg();
-  for (const path of flyout?.querySelectorAll('.blocklyHighlightedConnectionPath') ?? [])
+  const flyout = ws.getFlyout()?.getWorkspace();
+  for (const path of flyout?.getParentSvg().querySelectorAll('.blocklyHighlightedConnectionPath') ??
+    [])
     path.setAttribute('aria-hidden', 'true');
+  // Which entry each palette block is (`toolbox.ts`), on the block as drawn.
+  for (const block of flyout?.getTopBlocks(false) ?? [])
+    if (block.data) block.getSvgRoot().setAttribute('data-callee', block.data);
 }
 
 /**

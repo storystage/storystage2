@@ -6,13 +6,13 @@ import {
   type Statement,
 } from '@storystage/ast';
 import { sampleProgram } from '@storystage/ast/testing';
-import { newCall, newControl } from '@storystage/story-api/editing';
+import { CONTROL_KINDS, newCall, newControl, palette } from '@storystage/story-api/editing';
 import * as Blockly from 'blockly/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { defineBlocks } from './definitions.ts';
 import { dropFromPalette, freshIn, type Ask } from './drops.ts';
 import { storyStatementType } from './shapes.ts';
-import { toolboxFor } from './toolbox.ts';
+import { paletteEntry, toolboxFor } from './toolbox.ts';
 
 beforeAll(() => defineBlocks());
 
@@ -48,6 +48,23 @@ describe('the palette as a toolbox (3i.2)', () => {
     const types = toolbox.contents.flatMap((c) => (c.kind === 'block' ? [c.type] : []));
     expect(types.length).toBeGreaterThan(0);
     expect(types.every((t) => t.startsWith('ss_storyfn_'))).toBe(true);
+  });
+
+  it('names each block’s entry, in the shared palette’s order and then the control kinds', () => {
+    for (const tab of ['actions', 'questions'] as const) {
+      const target = cat();
+      const entries = toolboxFor(program, target, scene.id, tab).contents.flatMap((c) =>
+        c.kind === 'block' ? [c.data] : [],
+      );
+      const expected = palette(program, target, scene.id, tab).flatMap((g) =>
+        g.items.map((i) => paletteEntry(i.callee)),
+      );
+      if (tab === 'actions') expected.push(...CONTROL_KINDS.map((k) => paletteEntry(k)));
+      expect(entries).toEqual(expected);
+    }
+    expect(paletteEntry({ kind: 'story', name: 'move' })).toBe('story:move');
+    expect(paletteEntry({ kind: 'user', method: main.id })).toBe(`user:${main.id}`);
+    expect(paletteEntry('doTogether')).toBe('control:doTogether');
   });
 
   it('gives every block in it its own id, and Blockly draws each one', () => {

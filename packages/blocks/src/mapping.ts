@@ -50,6 +50,8 @@ export interface BlockState {
   next?: { block?: BlockState };
   disabledReasons?: string[];
   deletable?: boolean;
+  /** Blockly's own free text on a block: a palette block's entry (`toolbox.ts`). */
+  data?: string;
 }
 
 /** Blockly's saved form of a workspace. */
