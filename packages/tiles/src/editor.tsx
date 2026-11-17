@@ -20,6 +20,7 @@ import {
 } from '@storystage/editor-contract';
 import {
   canDrop,
+  changeFor,
   describer,
   namesAt,
   newAssign,
@@ -29,6 +30,7 @@ import {
   type Ask,
   type CascadeOptions,
   type ControlKind,
+  type MenuAction,
   type NameInScope,
   type PaletteItem,
   type PaletteTab,
@@ -67,6 +69,7 @@ import {
   ChooseVariable,
   DetailMenu,
   NewVariable,
+  RowMenu,
   ValueMenu,
   type VariableType,
 } from './menus.tsx';
@@ -130,6 +133,8 @@ type Menu =
       readonly pending?: true;
     }
   | { readonly kind: 'details'; readonly node: NodeId; readonly anchor: Element }
+  /** A row's menu (spec 14, 3c.7). */
+  | { readonly kind: 'row'; readonly node: NodeId; readonly anchor: Element }
   /** The variable tile's question, for a variable at `at`: its name and what it holds. */
   | {
       readonly kind: 'variable';
@@ -316,6 +321,39 @@ export class TileEditor implements CodeEditor {
   private statementAt(key: FocusKey): Statement | null {
     const node = this.host && indexOf(this.host.program()).get(key as NodeId)?.node;
     return node && isStatement(node) ? node : null;
+  }
+
+  /**
+   * A row menu's choice (spec 14, 3c.7). The commands are the keys' own, so a menu and a key do
+   * the same; a detail to add asks for its value first, as "add detail ▾" does.
+   */
+  private rowAction(node: NodeId, action: MenuAction, anchor: Element): void {
+    this.menu = null;
+    switch (action.kind) {
+      case 'switch':
+        void this.act('toggle', node);
+        return;
+      case 'moveUp':
+      case 'moveDown':
+      case 'duplicate':
+      case 'delete':
+        void this.act(action.kind, node);
+        return;
+      case 'addDetail':
+        this.menu = {
+          kind: 'value',
+          place: { kind: 'value', node, slot: 'details', param: action.detail },
+          label: word(`detail.${action.detail}`),
+          anchor,
+        };
+        this.render();
+        return;
+      case 'removeDetail': {
+        const change = changeFor(this.host!.program(), node, action);
+        this.apply(change.ok ? { ...change, focus: node } : change);
+        return;
+      }
+    }
   }
 
   private act(action: KeyAction, key: FocusKey): boolean {
@@ -731,6 +769,16 @@ export class TileEditor implements CodeEditor {
           onChoose={(variable) => this.answered(newAssign(variable, idMinter(program)), menu.at)}
         />
       );
+    if (menu.kind === 'row')
+      return (
+        <RowMenu
+          program={program}
+          node={menu.node}
+          anchor={menu.anchor}
+          onClose={close}
+          onChoose={(action) => this.rowAction(menu.node, action, menu.anchor)}
+        />
+      );
     if (menu.kind === 'details')
       return (
         <DetailMenu
@@ -907,6 +955,11 @@ export class TileEditor implements CodeEditor {
                 onOpenValue={(pill, anchor) => this.openValue(pill, anchor)}
                 onOpenDetails={(node, anchor) => {
                   this.menu = { kind: 'details', node, anchor };
+                  this.render();
+                }}
+                onOpenRowMenu={(node, anchor) => {
+                  this.focusKey = node;
+                  this.menu = { kind: 'row', node, anchor };
                   this.render();
                 }}
                 onDragStart={(node) => this.startDrag(node)}

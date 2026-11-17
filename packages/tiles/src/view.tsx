@@ -65,11 +65,26 @@ export interface ViewHandlers {
   readonly onAction: (action: KeyAction, key: FocusKey) => void;
   readonly onOpenValue: (pill: ValuePill, anchor: Element) => void;
   readonly onOpenDetails: (node: NodeId, anchor: Element) => void;
+  /** A row's menu: by right-click, a long press, or the Menu key or Shift+F10 (section 3c.7). */
+  readonly onOpenRowMenu: (node: NodeId, anchor: Element) => void;
   /** A drag has begun on a statement. */
   readonly onDragStart: (node: NodeId) => void;
   /** The pointer is over a place, or over nowhere a statement can go. */
   readonly onDragOver: (at: StatementPlace | null) => void;
   readonly onDragEnd: (drop: boolean) => void;
+}
+
+/** How long a touch or pen is held still on a row to open its menu, as Blockly's long press. */
+const LONG_PRESS_MS = 500;
+/** How far it may wander and still be held still, in pixels. */
+const LONG_PRESS_SLOP = 10;
+/** After a long press opens a menu, how long the click and menu event that follow are ignored. */
+const LONG_PRESS_QUIET_MS = 700;
+
+interface LongPress {
+  readonly timer: ReturnType<typeof setTimeout>;
+  readonly x: number;
+  readonly y: number;
 }
 
 export interface Moving {
@@ -612,10 +627,20 @@ export function TilesView(props: ViewProps) {
   const [ghost, setGhost] = useState<{ x: number; y: number; words: string } | null>(null);
   const pending = useRef<Pending | null>(null);
   const dragging = useRef(false);
+  const press = useRef<LongPress | null>(null);
+  /** When a long press last opened a row's menu, so the click and menu event after it don't. */
+  const pressedAt = useRef(0);
   const handlers = useRef(props);
   useLayoutEffect(() => {
     handlers.current = props;
   });
+  // A long press still waiting when the view goes opens nothing.
+  useEffect(
+    () => () => {
+      if (press.current) clearTimeout(press.current.timer);
+    },
+    [],
+  );
 
   const found = useMemo(() => {
     for (const type of program.types) {
@@ -728,6 +753,14 @@ export function TilesView(props: ViewProps) {
         return props.onOpenDetails(detail as NodeId, target);
       }
     }
+    // The row's menu from the keyboard: the Menu key or Shift+F10, as a context menu opens.
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      const row = rowElement(rowOf(current));
+      if (row) {
+        e.preventDefault();
+        return props.onOpenRowMenu(row.dataset['key'] as NodeId, row);
+      }
+    }
     const edit = editKey(e);
     if (edit) {
       e.preventDefault();
@@ -754,7 +787,51 @@ export function TilesView(props: ViewProps) {
     }
   };
 
+  /** A statement's row, by its key, if it's a statement (not an empty list). */
+  const rowElement = (key: FocusKey) => {
+    const el = tree.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`);
+    return el && 'statement' in el.dataset ? el : null;
+  };
+
+  /** A right-click on a row opens its menu (section 3c.7), unless a long press just did. */
+  const onContextMenu = (e: MouseEvent) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-statement]');
+    if (!row || dragging.current) return;
+    e.preventDefault();
+    if (e.timeStamp - pressedAt.current < LONG_PRESS_QUIET_MS) return;
+    endPress();
+    props.onOpenRowMenu(row.dataset['key'] as NodeId, row);
+  };
+
+  const endPress = () => {
+    if (press.current) clearTimeout(press.current.timer);
+    press.current = null;
+  };
+
+  /** A long press on a row, by touch or pen, opens its menu: held still, it isn't a drag. */
+  const startPress = (e: ReactPointerEvent) => {
+    endPress();
+    if (e.pointerType === 'mouse') return;
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-statement]');
+    if (!row) return;
+    const { clientX: x, clientY: y } = e;
+    const timer = setTimeout(() => {
+      press.current = null;
+      pending.current = null;
+      pressedAt.current = performance.now(); // the same clock as an event's timeStamp
+      props.onOpenRowMenu(row.dataset['key'] as NodeId, row);
+    }, LONG_PRESS_MS);
+    press.current = { timer, x, y };
+  };
+
+  const onPointerMoveForPress = (e: ReactPointerEvent) => {
+    const p = press.current;
+    if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > LONG_PRESS_SLOP) endPress();
+  };
+
   const onClick = (e: MouseEvent) => {
+    // The click that ends a long press isn't a tap on what's under it.
+    if (e.timeStamp - pressedAt.current < LONG_PRESS_QUIET_MS) return;
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-pill],[data-detail]');
     if (!target || dragging.current) return;
     const key = target.dataset['key']!;
@@ -767,6 +844,7 @@ export function TilesView(props: ViewProps) {
 
   const onPointerDown = (e: ReactPointerEvent) => {
     const el = e.target as HTMLElement;
+    if (e.button === 0) startPress(e);
     if (e.button !== 0 || el.closest('[data-pill],[data-detail]')) return;
     // A touch drags only from the grip, so the rest of a row still scrolls (spec 14, 3c).
     if (e.pointerType === 'touch' && !('grip' in el.dataset)) return;
@@ -810,7 +888,11 @@ export function TilesView(props: ViewProps) {
         className="tl-tree"
         onKeyDown={onKeyDown}
         onClick={onClick}
+        onContextMenu={onContextMenu}
         onPointerDown={onPointerDown}
+        onPointerMove={onPointerMoveForPress}
+        onPointerUp={endPress}
+        onPointerCancel={endPress}
         onFocus={(e) => {
           // Against the editor's focus, not the layout's: with none asked for, the first row takes
           // the tab stop, and landing there must still tell the editor (so a switch hands it on).

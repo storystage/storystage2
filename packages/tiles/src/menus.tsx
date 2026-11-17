@@ -5,13 +5,16 @@
  * React Aria draws a menu's popover as a dialog, so each popover is named as its menu is
  * (axe's aria-dialog-name).
  */
-import { idMinter } from '@storystage/ast';
+import { idMinter, indexProgram } from '@storystage/ast';
 import type { Expression, NodeId, Program } from '@storystage/ast';
 import {
   answer,
   cascadeFor,
+  describer,
   detailsToAdd,
+  menuFor,
   rangeAt,
+  type MenuAction,
   type Ask,
   type CascadeOptions,
   type Choice,
@@ -230,6 +233,44 @@ export interface DetailMenuProps extends Anchored {
   readonly program: Program;
   readonly node: NodeId;
   readonly onChoose: (detail: string) => void;
+}
+
+export interface RowMenuProps extends Anchored {
+  readonly program: Program;
+  readonly node: NodeId;
+  readonly onChoose: (action: MenuAction) => void;
+}
+
+/**
+ * A row's menu (spec 14, 3c.7), opened by right-click, a long press or the Menu key: the shared
+ * statement menu (`menuFor`), the same items in the same words as Blocks' block menu.
+ */
+export function RowMenu(props: RowMenuProps) {
+  const anchorRef = useRef(props.anchor);
+  const items = useMemo(() => menuFor(props.program, props.node), [props.program, props.node]);
+  const name = useMemo(() => {
+    const node = indexProgram(props.program).get(props.node)?.node;
+    return t('rowMenu', { what: node ? describer(props.program).short(node) : '' });
+  }, [props.program, props.node]);
+  const close = useCloseUnlessActed(props.onClose);
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={name}>
+      <Menu
+        aria-label={name}
+        autoFocus="first"
+        onAction={(k) => {
+          close.acted();
+          props.onChoose(items[Number(k)]!.action);
+        }}
+      >
+        {items.map((item, i) => (
+          <MenuItem key={i} id={i} className="tl-menu-item">
+            {item.words}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Popover>
+  );
 }
 
 /** "add detail ▾": the details a block can still take. */
