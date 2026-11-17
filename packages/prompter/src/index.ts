@@ -24,6 +24,7 @@ export * from './session.ts';
 export * from './setup.ts';
 export * from './stream.ts';
 export * from './system-prompt.ts';
+export * from './tauri-transport.ts';
 export * from './tool-names.ts';
 export * from './tools.ts';
 export * from './transport.ts';
