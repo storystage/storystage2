@@ -121,6 +121,19 @@ export type TrousersColour = keyof typeof TROUSERS_COLOURS;
 export const WITH_JEANS = ['male_casualsuit03', 'male_casualsuit05'] as const;
 
 /**
+ * Colours for the dark suit (`male_elegantsuit01`), so the three who wear it don't match (owner,
+ * 17 Nov 2026): the pipeline recolours only its dark cloth, keeping its folds, so the shirt stays
+ * white. Its shirt and tie share the suit's picture, which is why `clothesColour` can't be used.
+ */
+export const SUIT_COLOURS = {
+  brown: [0.4, 0.28, 0.18],
+  grey: [0.5, 0.51, 0.53],
+  navy: [0.16, 0.2, 0.38],
+} as const;
+export type SuitColour = keyof typeof SUIT_COLOURS;
+export const SUIT = 'male_elegantsuit01';
+
+/**
  * The shirt's pattern, so not everyone wears the pack's stripes (owner, 17 Nov 2026): "plain"
  * smooths the stripes out of the picture and keeps its folds, and the others lay a pattern over
  * that: a gingham ("checks"), spots ("dots"), small five-petalled flowers ("flowers") or a
@@ -213,6 +226,8 @@ export interface Person {
   readonly clothesColour?: ClothesColour;
   /** The jeans' colour, for an outfit with jeans (`WITH_JEANS`); left out, they stay denim. */
   readonly trousersColour?: TrousersColour;
+  /** The dark suit's colour (`SUIT_COLOURS`), for `male_elegantsuit01`; left out, it stays dark. */
+  readonly suitColour?: SuitColour;
   /** The shirt's pattern (`PATTERNS`); left out, the pack's stripes. */
   readonly pattern?: Pattern;
   /** A skirt to the ankle (`SKIRT_LENGTHS`); left out, the pack's, to the knee. */
@@ -293,6 +308,12 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`trousersColour must be one of ${Object.keys(TROUSERS_COLOURS).join(', ')}.`);
     else if (p.trousersColour !== undefined && !has(WITH_JEANS, p.clothes?.[0]))
       e(`trousersColour needs an outfit with jeans: ${WITH_JEANS.join(', ')}.`);
+    if (p.suitColour !== undefined && !(p.suitColour in SUIT_COLOURS))
+      e(`suitColour must be one of ${Object.keys(SUIT_COLOURS).join(', ')}.`);
+    else if (p.suitColour !== undefined && p.clothes?.[0] !== SUIT)
+      e(`suitColour needs the suit, ${SUIT}.`);
+    else if (p.suitColour !== undefined && p.clothesColour !== undefined)
+      e('a suit takes suitColour, not clothesColour.');
     if (p.pattern !== undefined && !has(PATTERNS, p.pattern))
       e(`pattern must be one of ${PATTERNS.join(', ')}.`);
     else if (p.pattern !== undefined && !has(WITH_PATTERN, p.clothes?.[0]))
@@ -364,6 +385,7 @@ const clothesWords = (p: Person) =>
       p.clothesColour ? `${c} (${[p.clothesColour, p.pattern].filter(Boolean).join(', ')})` : c,
     ),
     ...(p.trousersColour ? [`${p.trousersColour} trousers`] : []),
+    ...(p.suitColour ? [`${p.suitColour} suit`] : []),
     ...(p.skirtLength ? [`skirt to the ${p.skirtLength}`] : []),
     p.shoes,
     ...(p.hat ? [p.hat] : []),

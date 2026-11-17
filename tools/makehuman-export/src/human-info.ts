@@ -12,6 +12,7 @@ import {
   PIECE_COLOURS,
   skinFor,
   straightHem,
+  SUIT_COLOURS,
   TROUSERS_COLOURS,
   type Person,
 } from './people.ts';
@@ -64,6 +65,8 @@ export interface HumanInfo {
     readonly clothesColour: readonly [number, number, number] | null;
     /** The jeans' colour, or null to leave them denim. */
     readonly trousersColour: readonly [number, number, number] | null;
+    /** The dark suit's colour, or null to leave it dark. */
+    readonly suitColour: readonly [number, number, number] | null;
     /** The shirt's pattern, or null for the pack's stripes. */
     readonly pattern: string | null;
     /** Whether to level a skirt's hem. */
@@ -125,6 +128,7 @@ export function humanInfo(p: Person): HumanInfo {
       outfit: p.clothes[0]!,
       clothesColour: p.clothesColour ? CLOTHES_COLOURS[p.clothesColour] : null,
       trousersColour: p.trousersColour ? TROUSERS_COLOURS[p.trousersColour] : null,
+      suitColour: p.suitColour ? SUIT_COLOURS[p.suitColour] : null,
       pattern: p.pattern ?? null,
       straightHem: straightHem(p),
       longSkirt: p.skirtLength === 'ankle',

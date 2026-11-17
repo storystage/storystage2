@@ -90,7 +90,7 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 | 16 | Sam | 15 | average | African 50%, Asian 50% | young_african_male | short04 | grey | male_casualsuit03 (mustard, dots), shoes04 | a teenager of 15 with short black hair, in a yellow spotted shirt and jeans |
 | 17 | Grace | 28 | average | African 100% | young_african_female | afro01 | brown | female_elegantsuit01 (teal, dots), shoes02 | a woman of 28 with short curly black hair, in a teal spotted blouse and skirt, and white socks |
 | 18 | Tom | 32 | taller | Caucasian 100% | young_caucasian_male | short02 | blue | male_worksuit01, shoes03 | a tall man of 32 with short brown hair, in blue dungarees and a white T-shirt |
-| 19 | Yusuf | 40 | larger | Asian 40%, Caucasian 40%, African 20% | middleage_asian_male | short01 | brown | male_elegantsuit01, shoes01 | a man of 40 with short black hair, in a dark suit and striped tie |
+| 19 | Yusuf | 40 | larger | Asian 40%, Caucasian 40%, African 20% | middleage_asian_male | short01 | brown | male_elegantsuit01, navy suit, shoes01 | a man of 40 with short black hair, in a navy suit and striped tie |
 | 20 | Hannah | 36 | larger | Caucasian 100% | middleage_caucasian_female | bob01 | green | male_casualsuit03 (teal, plain), shoes06, spamrakuen_sagerfrogs_glasses_04 | a woman of 36 with a black bob and rimless glasses, in a teal shirt and jeans |
 | 21 | Chen | 45 | average | Asian 100% | middleage_asian_male | short03 | brown | male_casualsuit03 (green, checks), grey trousers, shoes05, spamrakuen_sagerfrogs_glasses_03 | a man of 45 with a brown side fringe and thin metal glasses, in a green checked shirt and grey trousers |
 | 22 | Tunde | 50 | larger, muscular | African 100% | middleage_african_male | none | brown | male_casualsuit05, navy trousers, shoes04 | a bald man of 50, in a khaki jacket and navy trousers |
@@ -108,7 +108,7 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 | 34 | Gurdeep | 38 | average | Asian 50%, Caucasian 30%, African 20% | middleage_asian_male | covered | brown | male_casualsuit05 (green), shoes04, turban (saffron, made) | a man of 38 in an orange turban, a green jacket and jeans |
 | 35 | Eli | 8 | average | Caucasian 100% | young_caucasian_male | short01 | brownlight | male_casualsuit03 (green, plain), khaki trousers, shoes01, kippah (navy, made) | a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers |
 | 36 | Poppy | 7 | average | Caucasian 60%, African 40% | young_caucasian_female | ponytail01 | brown | male_casualsuit05 (coral), shoes05, hearing aids (purple, made) | a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans |
-| 37 | George | 80 | average | Caucasian 100% | old_caucasian_male | short02, tinted white | blue | male_elegantsuit01, shoes03, hearing aids (beige, made) | an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie |
+| 37 | George | 80 | average | Caucasian 100% | old_caucasian_male | short02, tinted white | blue | male_elegantsuit01, brown suit, shoes03, hearing aids (beige, made) | an older man of 80 with short white hair and hearing aids, in a brown suit and striped tie |
 
 <!-- /people -->
 
