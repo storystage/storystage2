@@ -105,21 +105,20 @@ test('a block dropped outside the method goes back, and the learner hears why', 
 }) => {
   await openCode(page);
   const first = block(page, main.body[0]!.id);
-  // Where the block sits in the workspace. The page above may still grow as the stage loads
-  // (Add a marker here, "In this shot"), moving the whole Code editor down.
-  const inWorkspace = async () => {
-    const at = (await block(page, main.body[0]!.id).boundingBox())!;
-    const area = (await page.locator('.pr-workspace').boundingBox())!;
-    return Math.round(at.y - area.y);
-  };
-  const start = await inWorkspace();
+  // Back where it was is checked by what holds it, not where it's drawn: the workspace may
+  // scroll as the block goes back. Blockly draws a block joined to another inside that block's
+  // group, and the method's first statement directly inside the method's.
+  const inMethod = page.locator(
+    `.pr-workspace .blocklyBlock[data-id="${main.id}"] > .blocklyBlock[data-id="${main.body[0]!.id}"]`,
+  );
+  await expect(inMethod).toHaveCount(1);
   const area = (await page.locator('.pr-workspace').boundingBox())!;
   await drag(page, first, { x: area.x + area.width - 60, y: area.y + area.height - 40 });
   // The studio's live region (Blockly has one of its own too).
   await expect(page.locator('.pr > p[aria-live="polite"]')).toHaveText(
     'Blocks go inside a method.',
   );
-  await expect.poll(inWorkspace).toBe(start);
+  await expect(inMethod).toHaveCount(1);
   await expect(undoButton(page)).toHaveText('Undo');
 });
 
@@ -325,8 +324,9 @@ test('Rehearse plays the scene on the scene view, highlights the blocks running,
   await expect(rehearse).toBeEnabled();
   await rehearse.click();
   await expect(view.getByRole('button', { name: 'Stop' })).toBeVisible();
-  // A block running is marked in the Blocks editor (14-editors 3i.10).
-  await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 10_000 });
+  // A block running is marked in the Blocks editor (14-editors 3i.10). The stage can take a while
+  // to start the run under software drawing on a busy machine (only Stop shows meanwhile).
+  await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 30_000 });
   // The frame the run reached is Rehearsed on the strip (07-ux 2.3, 7.1).
   const strip = page.getByRole('listbox', { name: 'Frames' });
   await expect(strip.getByRole('option').first()).toContainText('Rehearsed', { timeout: 10_000 });
