@@ -812,8 +812,10 @@ export function TilesView(props: ViewProps) {
         onClick={onClick}
         onPointerDown={onPointerDown}
         onFocus={(e) => {
+          // Against the editor's focus, not the layout's: with none asked for, the first row takes
+          // the tab stop, and landing there must still tell the editor (so a switch hands it on).
           const key = (e.target as HTMLElement).dataset['key'];
-          if (key && key !== current) props.onFocus(key, layout.values.get(key));
+          if (key && key !== focus) props.onFocus(key, layout.values.get(key));
         }}
       >
         {items}
