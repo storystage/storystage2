@@ -884,5 +884,16 @@
   "study.checking": "Checking…",
   "study.stop": "Stop this task",
   "study.questions": "Two quick questions",
-  "study.questionsDone": "Done"
+  "study.questionsDone": "Done",
+  "prompter.changeStep": "Change step {n}",
+  "prompter.step.who": "Who",
+  "prompter.step.what": "Does what",
+  "prompter.step.line": "Which line",
+  "prompter.step.together": "At the same time as the step before",
+  "prompter.step.repeat": "How many times",
+  "prompter.step.save": "Save",
+  "prompter.step.cancel": "Cancel",
+  "prompter.addStep": "Add a step",
+  "prompter.stepAdded": "Step {n} added. Change it to say what it does.",
+  "prompter.stepChanged": "Step {n} changed."
 }

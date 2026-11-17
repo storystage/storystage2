@@ -18,6 +18,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { StudioSource } from '../studio.ts';
 import { PrompterAside, oneMove } from './PrompterAside.tsx';
+import type { StepWorld } from './StepEditor.tsx';
+import type { ApiClass } from '@storystage/story-api';
 import { levelNow, prompterInBuild } from './usePrompter.ts';
 
 // The Prompter panel as the studio draws it (07-ux section 2.4; spec 04 section 4.5, WP13c), on
@@ -60,10 +62,21 @@ const moves = testReply([
   }),
 ]);
 
+/** The example's scene 2, as the Production stage gives it for changing steps. */
+const WORLD: StepWorld = {
+  objects: new Map<string, ApiClass>([
+    ['this', 'Scene'],
+    ['penguin', 'Flyer'],
+    ['fox', 'Quadruped'],
+  ]),
+  lines: [],
+};
+
 interface Options {
   readonly level?: PrompterLevel;
   readonly status?: TransportStatus;
   readonly readOnly?: boolean;
+  readonly world?: StepWorld;
 }
 
 function setUp(replies: PrompterEvent[][], options: Options = {}) {
@@ -91,6 +104,7 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
         frame={{ id: frameId('f2-1'), number: '2.1' }}
         onAnnounce={onAnnounce}
         canChange={!options.readOnly}
+        {...(options.world ? { world: options.world } : {})}
       />
     </ThemeRoot>,
   );
@@ -182,6 +196,80 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     await user.click(screen.getByRole('button', { name: 'Undo this request' }));
     expect(production.history().filter((h) => h.done)).toHaveLength(before);
     expect(said(onAnnounce)).toContain('Undone: the Prompter’s request.');
+  });
+
+  it('says why a step is there, at Why this step?', async () => {
+    setUp([proposes([step()]), say("Here's the plan.")]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    expect(within(plan).queryByText('So she can reach the fox.')).toBeNull();
+    const why = within(plan).getByRole('button', { name: 'Why this step? Step 1' });
+    await user.click(why);
+    expect(within(plan).getByText('So she can reach the fox.')).toBeTruthy();
+    expect(why.getAttribute('aria-expanded')).toBe('true');
+    await user.click(why);
+    expect(within(plan).queryByText('So she can reach the fox.')).toBeNull();
+  });
+
+  it('changes a step’s settings with the blocks’ own choices, checked again', async () => {
+    const { panel } = setUp(
+      [
+        proposes([
+          step({
+            details: [
+              { name: 'direction', value: 'forward' },
+              { name: 'amount', value: '1' },
+            ],
+          }),
+        ]),
+        say("Here's the plan."),
+      ],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    expect((within(editor).getByLabelText('Who') as HTMLSelectElement).value).toBe('penguin');
+    await user.selectOptions(within(editor).getByLabelText('direction'), 'backward');
+    const amount = within(editor).getByLabelText('amount');
+    await user.clear(amount);
+    await user.type(amount, '3');
+    await user.click(within(editor).getByRole('checkbox', { name: /At the same time/ }));
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(screen.queryByRole('dialog', { name: 'Change step 1' })).toBeNull();
+    expect(panel.state.plan!.steps[0]).toMatchObject({
+      actor: 'penguin',
+      action: 'move',
+      details: [
+        { name: 'direction', value: 'backward' },
+        { name: 'amount', value: '3' },
+      ],
+    });
+    // The first step has nothing before it to run with.
+    expect(panel.state.plan!.steps[0]!.together).toBe(false);
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
+  it('adds a step at the end, to change from there', async () => {
+    const { panel, onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")], {
+      world: WORLD,
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(screen.getByRole('button', { name: 'Add a step' }));
+    expect(within(plan).getAllByRole('row')).toHaveLength(2);
+    const editor = await screen.findByRole('dialog', { name: 'Change step 2' });
+    await user.selectOptions(within(editor).getByLabelText('Who'), 'fox');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[1]).toMatchObject({ kind: 'do', actor: 'fox', why: '' });
+    expect(said(onAnnounce)).toContain('Step 2 added.');
   });
 
   it('drops a plan not yet built, at Undo this request', async () => {

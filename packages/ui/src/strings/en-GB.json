@@ -39,6 +39,7 @@
   "plan.move": "Move step {n}",
   "plan.edit": "Change step {n}",
   "plan.delete": "Delete step {n}",
+  "plan.why": "Why this step? Step {n}",
   "note.prompterOffBySchool": "The Prompter is switched off by your school. Everything else works as usual.",
   "note.prompterNotInBrowser": "The Prompter isn’t part of the browser version. Rehearse, Blocks and Tiles all work here.",
   "note.tooNarrow": "Turn your iPad sideways, or make the window wider.",
