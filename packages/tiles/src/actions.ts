@@ -113,9 +113,32 @@ export function moveBy(program: Program, id: NodeId, delta: -1 | 1): Change {
 
 /** Puts a value in a slot: a block's parameter or detail, or a condition, count or list. */
 export function setValue(program: Program, at: ValuePlace, value: Expression): Change {
+  if (at.slot === 'items') return setItem(program, at, value);
   const result = canDrop(program, at, value);
   if (!result.ok) return refused(result.reason);
   return { ok: true, edits: result.edits, label: result.label, focus: at.node };
+}
+
+/**
+ * One of a list's items (`at.param` is its index): the AST sets a list as a whole, so the list
+ * is made again with that item changed and put where it is, in one step.
+ */
+function setItem(program: Program, at: ValuePlace, value: Expression): Change {
+  const where = indexOf(program).get(at.node);
+  const list = where?.node;
+  const i = Number(at.param);
+  if (!where?.parent || list?.kind !== 'arrayOf' || !(i >= 0 && i < list.items.length))
+    return refused(t('gone'));
+  const items = list.items.map((x, j) => (j === i ? value : x));
+  const holder: ValuePlace = {
+    kind: 'value',
+    node: where.parent,
+    slot: where.slot,
+    ...(typeof where.key === 'string' ? { param: where.key } : {}),
+  };
+  const result = canDrop(program, holder, { ...list, items });
+  if (!result.ok) return refused(result.reason);
+  return { ok: true, edits: result.edits, label: result.label, focus: list.id };
 }
 
 /** Takes a detail out of a block ("add detail" in reverse). */

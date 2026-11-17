@@ -120,28 +120,10 @@ const move = (direction: string, amount: Expression): Statement => ({
 const number = (value: number): Expression => ({ id: id('n'), kind: 'number', value });
 
 /**
- * Found by this test (17 Nov): a value chosen from Blockly's drop-down keeps the old value's node
- * id, where the shared model (and so Tiles) makes a new value node. One must change: S5.
- */
-const KEEPS_VALUE_ID = 'S5: Blocks keeps the old value node’s id';
-/**
- * Found by this test (17 Nov): a drag in Blocks takes the block and every block under it, as
- * Blockly's stacks do, so the say can't go into the do together below it and goes back. In Tiles,
- * as in Alice, a drag moves one statement. S5.
- */
-/**
  * Found by this test (17 Nov): Tiles' drags carry statements only, and a number's menu has no
  * questions, so by pointer a question can't go into a value. S6.
  */
 const NO_QUESTION_DROP = 'S6: Tiles can’t drop a question on a value';
-/** Blocks' palette has no variable or set block yet (S5, 17 Nov): S5 is adding them. */
-const NO_VARIABLE_BLOCK = 'S5: Blocks has no variable block yet';
-/**
- * Found by this test (17 Nov): Tiles draws a value made of others (a sum, a comparison, a "not",
- * a list, a question's own values) as one pill, so its parts can't be chosen or changed. S6.
- */
-const ONE_PILL = 'S6: Tiles draws a value made of others as one pill';
-const DRAGS_THE_REST = 'S5: a Blocks drag takes the blocks under it too';
 
 type Run = (page: Page) => Promise<void>;
 
@@ -291,22 +273,16 @@ const TASKS: readonly Task[] = [
     label: 'Change forward to backward in penguin move',
     steps: 1,
     ways: {
-      'Blocks by pointer': {
-        fails: KEEPS_VALUE_ID,
-        run: async (page) => {
-          await inView(page);
-          await blocksChip(page, DIRECTION).click();
-          await blocklyOption(page, 'backward').click();
-        },
+      'Blocks by pointer': async (page) => {
+        await inView(page);
+        await blocksChip(page, DIRECTION).click();
+        await blocklyOption(page, 'backward').click();
       },
-      'Blocks by keyboard': {
-        fails: KEEPS_VALUE_ID,
-        run: async (page) => {
-          await blocksFocusBlock(page, MOVE);
-          await blocksAlongTo(page, blocksChip(page, DIRECTION));
-          await blocklyKey(page, 'Enter');
-          await blocklyChooseByKeyboard(page, 'backward');
-        },
+      'Blocks by keyboard': async (page) => {
+        await blocksFocusBlock(page, MOVE);
+        await blocksAlongTo(page, blocksChip(page, DIRECTION));
+        await blocklyKey(page, 'Enter');
+        await blocklyChooseByKeyboard(page, 'backward');
       },
       'Tiles by pointer': async (page) => {
         await tilesPill(page, DIRECTION).click();
@@ -361,17 +337,17 @@ const TASKS: readonly Task[] = [
     label: 'Move penguin say Oh no, the ice is moving! into do together',
     steps: 2,
     ways: {
-      'Blocks by pointer': {
-        fails: DRAGS_THE_REST,
-        run: async (page) => {
-          await blocksDragBelow(page, flyoutBlock(page, 'control:doTogether'), block(page, MOVE));
-          // The say by its top left, into the do together's body, under its header, found once
-          // the say is lifted and the stack has closed up.
-          await blocksDrag(page, block(page, SAY), async () => {
-            const box = await settled(page, '.pr-workspace .ss_doTogether:not(.blocklyFlyout *)');
-            return { x: box.x + 30, y: box.y + 52 };
-          });
-        },
+      'Blocks by pointer': async (page) => {
+        await blocksDragBelow(page, flyoutBlock(page, 'control:doTogether'), block(page, MOVE));
+        // Blocks draws the program again after a drop; a drag begun before it has finished
+        // leaves the say where it was and puts a copy in (found 17 Nov, told to S5).
+        await settled(page, '.pr-workspace .ss_doTogether:not(.blocklyFlyout *)');
+        // The say by its top left, into the do together's body, under its header, found once
+        // the say is lifted and the stack has closed up.
+        await blocksDrag(page, block(page, SAY), async () => {
+          const box = await settled(page, '.pr-workspace .ss_doTogether:not(.blocklyFlyout *)');
+          return { x: box.x + 30, y: box.y + 52 };
+        });
       },
       'Blocks by keyboard': async (page) => {
         await blocksFlyoutByKeyboard(page, 'control:doTogether');
@@ -461,30 +437,22 @@ const TASKS: readonly Task[] = [
     label: 'Change 2 to penguin distance to fox in penguin say',
     steps: 1,
     ways: {
-      'Blocks by pointer': {
-        // Blocks makes the program; it's Tiles that can't draw the fox inside the question.
-        fails: ONE_PILL,
-        run: async (page) => {
-          await chooseObjectByPointer(page, 'penguin');
-          await paletteTab(page, 'Questions', 'pointer');
-          await inView(page);
-          await flyoutScrolledTo(page, flyoutBlock(page, 'getDistanceTo'));
-          await dragOnto(page, flyoutBlock(page, 'getDistanceTo'), blocksValue(page, DURATION));
-          await itemByPointer(page, 'the other one', 'fox');
-        },
+      'Blocks by pointer': async (page) => {
+        await chooseObjectByPointer(page, 'penguin');
+        await paletteTab(page, 'Questions', 'pointer');
+        await inView(page);
+        await flyoutScrolledTo(page, flyoutBlock(page, 'getDistanceTo'));
+        await dragOnto(page, flyoutBlock(page, 'getDistanceTo'), blocksValue(page, DURATION));
+        await itemByPointer(page, 'the other one', 'fox');
       },
-      'Blocks by keyboard': {
-        // Blocks makes the program; it's Tiles that can't draw the fox inside the question.
-        fails: ONE_PILL,
-        run: async (page) => {
-          await chooseObjectByKeyboard(page, 'penguin');
-          await paletteTab(page, 'Questions', 'keyboard');
-          await blocksFlyoutByKeyboard(page, 'getDistanceTo');
-          await blocklyKey(page, 'Enter');
-          await pressUntil(page, 'ArrowDown', () => blocksReplacing(page, DURATION), 12);
-          await blocklyKey(page, 'Enter');
-          await itemByKeyboard(page, 'the other one', 'fox');
-        },
+      'Blocks by keyboard': async (page) => {
+        await chooseObjectByKeyboard(page, 'penguin');
+        await paletteTab(page, 'Questions', 'keyboard');
+        await blocksFlyoutByKeyboard(page, 'getDistanceTo');
+        await blocklyKey(page, 'Enter');
+        await pressUntil(page, 'ArrowDown', () => blocksReplacing(page, DURATION), 12);
+        await blocklyKey(page, 'Enter');
+        await itemByKeyboard(page, 'the other one', 'fox');
       },
       'Tiles by pointer': {
         fixme: NO_QUESTION_DROP,
@@ -518,8 +486,26 @@ const TASKS: readonly Task[] = [
     label: 'Add count up to steps',
     steps: 2,
     ways: {
-      'Blocks by pointer': { fixme: NO_VARIABLE_BLOCK },
-      'Blocks by keyboard': { fixme: NO_VARIABLE_BLOCK },
+      'Blocks by pointer': async (page) => {
+        const known = await madeIds(page, 'Blocks', []);
+        await blocksDragBelow(page, flyoutBlock(page, 'control:variable'), block(page, COPY));
+        await tilesVariable(page, 'steps', 'a whole number', 'pointer');
+        await answerByPointer(page, 'steps', '3');
+        const [made] = await madeIds(page, 'Blocks', known);
+        await blocksDragBelow(page, flyoutBlock(page, 'control:count'), block(page, made!));
+        await answerByPointer(page, 'how many times', 'steps');
+      },
+      'Blocks by keyboard': async (page) => {
+        const known = await madeIds(page, 'Blocks', []);
+        await blocksFlyoutByKeyboard(page, 'control:variable');
+        await blocksPutAfter(page, COPY);
+        await tilesVariable(page, 'steps', 'a whole number', 'keyboard');
+        await answerByKeyboard(page, 'steps', '3');
+        const [made] = await madeIds(page, 'Blocks', known);
+        await blocksFlyoutByKeyboard(page, 'control:count');
+        await blocksPutAfter(page, made!);
+        await answerByKeyboard(page, 'how many times', 'steps');
+      },
       'Tiles by pointer': async (page) => {
         const known = await madeIds(page, 'Tiles', []);
         await tilesDragBelow(page, tilesControl(page, 'variable'), tilesRow(page, COPY));
@@ -734,10 +720,7 @@ test.describe('every block in both (5.6)', () => {
     await palettes(page, 'Tiles');
   });
 
-  test(`Blocks’ control group is Tiles’ control bar, in the same order (known to differ: ${NO_VARIABLE_BLOCK})`, async ({
-    page,
-  }) => {
-    test.fail(true, NO_VARIABLE_BLOCK);
+  test('Blocks’ control group is Tiles’ control bar, in the same order', async ({ page }) => {
     await openFilm(page, demo, 'Blocks');
     const blocks = (await drawnPalette(page, 'Blocks')).control;
     await switchTo(page, 'Tiles');
@@ -804,11 +787,8 @@ const SAMPLE_FILM = oneSceneFilm(sample, sampleScene.methods[0]!.id, [
 ]);
 
 for (const editor of ['Blocks', 'Tiles'] as const)
-  test(`every kind of node is drawn and edited in ${editor} (5.5.3)${editor === 'Tiles' ? ` (known to differ: ${ONE_PILL})` : ''}`, async ({
-    page,
-  }) => {
+  test(`every kind of node is drawn and edited in ${editor} (5.5.3)`, async ({ page }) => {
     test.setTimeout(300_000);
-    test.fail(editor === 'Tiles', ONE_PILL);
     expect(validateProgram(sample)).toEqual([]);
     expect(checkProgram(sample)).toEqual([]);
     await openFilm(page, SAMPLE_FILM, editor);

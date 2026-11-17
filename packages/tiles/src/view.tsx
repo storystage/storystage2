@@ -18,6 +18,7 @@ import {
   type StatementPlace,
 } from '@storystage/story-api/editing';
 import {
+  Fragment,
   memo,
   useEffect,
   useLayoutEffect,
@@ -248,13 +249,20 @@ function layOut(
     const keys: FocusKey[] = [];
     layout.pills.set(s.id, keys);
     const { parts, detail } = rowParts(s, shared);
-    for (const part of parts) {
-      if (part.kind !== 'value') continue;
-      keys.push(part.node);
+    // A value made of others is reached at its own words, where they're drawn, and at each
+    // value inside it, in reading order (spec 14, 3b.1).
+    const value = (part: Part) => {
+      if (part.kind !== 'value') return;
+      if (!part.inner) keys.push(part.node);
+      for (const inner of part.inner ?? []) {
+        if (inner.kind === 'whole') keys.push(inner.node);
+        else value(inner);
+      }
       layout.rows.set(part.node, s.id);
       layout.values.set(part.node, part);
       layout.descriptions.push({ id: `tl-for-${part.node}`, text: part.label });
-    }
+    };
+    parts.forEach(value);
     if (detail) {
       const key = detailKey(s.id);
       keys.push(key);
@@ -280,26 +288,52 @@ function pill(part: Part, layout: Layout): ReactNode {
   if (part.kind === 'text') return <span className="tl-words">{part.text}</span>;
   if (part.kind === 'name') return <span className="tl-name">{part.text}</span>;
   if (part.kind === 'object') return <span className="tl-object">{part.text}</span>;
-  const key = part.node;
+  if (part.kind === 'whole') return valueButton(part.node, 'tl-whole', layout, part.text);
   const kind = part.empty
     ? 'tl-pill tl-pill-empty'
     : part.question
       ? 'tl-pill tl-pill-question'
       : 'tl-pill';
-  // Named by the value it shows and described by what it's for, so a speech-control user can
-  // say what they see (WCAG 2.5.3). Enter or a click opens the menu of values that fit.
+  // A value made of others is a pill holding its own words, which change the whole value, and
+  // a pill for each value in it (spec 14, 3b.1). Only those are buttons, as a button can't hold
+  // another, and the row's name is still the words it shows.
+  if (part.inner)
+    return (
+      <span className={`${kind} tl-pill-compound`} data-value={part.node}>
+        {part.inner.flatMap((inner, i) => [
+          i > 0 ? ' ' : null,
+          <Fragment key={i}>{pill(inner, layout)}</Fragment>,
+        ])}
+      </span>
+    );
+  return valueButton(
+    part.node,
+    kind,
+    layout,
+    <>
+      {part.text}
+      <Arrow arrow={part.arrow} />
+    </>,
+  );
+}
+
+/**
+ * A value's button: named by the words it shows and described by what the value is for, so a
+ * speech-control user can say what they see (WCAG 2.5.3). Enter or a click opens the menu of
+ * values that fit.
+ */
+function valueButton(key: NodeId, className: string, layout: Layout, shows: ReactNode) {
   return (
     <span
       role="button"
       aria-haspopup="menu"
-      className={kind}
+      className={className}
       data-key={key}
       data-pill=""
       tabIndex={tab(layout, key)}
       aria-describedby={`tl-for-${key}`}
     >
-      {part.text}
-      <Arrow arrow={part.arrow} />
+      {shows}
     </span>
   );
 }
