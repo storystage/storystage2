@@ -9,8 +9,10 @@
  * is refused, there are no edits: the editor puts the blocks back as the program has them.
  */
 import {
+  EXPRESSION_KINDS,
   applyEdit,
   indexProgram,
+  mintId,
   type Args,
   type EditOperation,
   type Expression,
@@ -27,7 +29,13 @@ import type { FromBlocks } from './mapping.ts';
 export type GestureEdits =
   /** The blocks say what the program says: nothing to do. */
   | { readonly kind: 'none' }
-  | { readonly kind: 'edits'; readonly edits: readonly EditOperation[]; readonly label: string }
+  | {
+      readonly kind: 'edits';
+      readonly edits: readonly EditOperation[];
+      readonly label: string;
+      /** Values chosen in place, by their block's id and the new node's (`renewChosen`). */
+      readonly renewed: ReadonlyMap<NodeId, NodeId>;
+    }
   /** The blocks can't be the program (a value taken out of its slot, say): put them back. */
   | { readonly kind: 'putBack' };
 
@@ -51,6 +59,47 @@ function same(a: unknown, b: unknown): boolean {
   return ka.every((k) =>
     same((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]),
   );
+}
+
+const EXPRESSIONS: ReadonlySet<string> = new Set(EXPRESSION_KINDS);
+
+/** A node's own content: its fields, with each node in them by its id only. */
+function own(node: object): unknown {
+  const shallow = (v: unknown): unknown => {
+    if (v === null || typeof v !== 'object') return v;
+    if (Array.isArray(v)) return v.map(shallow);
+    if ('id' in v && 'kind' in v) return (v as { id: unknown }).id;
+    return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, shallow(x)]));
+  };
+  return Object.fromEntries(Object.entries(node).map(([k, v]) => [k, shallow(v)]));
+}
+
+/**
+ * A value chosen in place (from a chip's drop-down, or a number typed in) is a new node, as every
+ * answer in the shared model is (spec 14, sections 2.3 and 5.3): a value whose own content differs
+ * from the program's node with its id gets a new id. The nodes in it and around it keep theirs.
+ */
+function renewChosen<T>(
+  node: T,
+  known: ReturnType<typeof indexProgram>,
+  taken: Set<string>,
+  renewed: Map<NodeId, NodeId>,
+): T {
+  if (Array.isArray(node)) return node.map((n) => renewChosen(n, known, taken, renewed)) as T;
+  if (node === null || typeof node !== 'object') return node;
+  const copy: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(node)) copy[k] = renewChosen(v, known, taken, renewed);
+  const { id, kind } = node as { id?: unknown; kind?: unknown };
+  if (typeof id === 'string' && typeof kind === 'string' && EXPRESSIONS.has(kind)) {
+    const was = known.get(id as NodeId)?.node;
+    if (was && !same(own(was), own(node))) {
+      const fresh = mintId(taken);
+      taken.add(fresh);
+      renewed.set(id as NodeId, fresh);
+      copy.id = fresh;
+    }
+  }
+  return copy as T;
 }
 
 /** The statement lists a node holds, by slot. */
@@ -138,8 +187,17 @@ function longestRun(seq: readonly number[]): Set<number> {
 }
 
 /** The edits that make `program`'s method what the blocks say (`after`). */
-export function editsFor(program: Program, after: FromBlocks): GestureEdits {
+export function editsFor(program: Program, read: FromBlocks): GestureEdits {
   let sim = program;
+  const known = indexProgram(program);
+  const taken = new Set<string>(known.keys());
+  const renewed = new Map<NodeId, NodeId>();
+  const after: FromBlocks = {
+    owner: read.owner,
+    body: renewChosen(read.body, known, taken, renewed),
+    args: renewChosen(read.args, known, taken, renewed),
+    details: renewChosen(read.details, known, taken, renewed),
+  };
   const edits: EditOperation[] = [];
   const find = (id: NodeId) => indexProgram(sim).get(id)?.node as Container | undefined;
   const owner = () => find(after.owner) as Owner | undefined;
@@ -255,5 +313,5 @@ export function editsFor(program: Program, after: FromBlocks): GestureEdits {
   if (o.kind === 'listener' && (!same(o.args, after.args) || !same(o.details, after.details)))
     return { kind: 'putBack' };
   if (edits.length === 0) return { kind: 'none' };
-  return { kind: 'edits', edits, label: edits[0]!.label };
+  return { kind: 'edits', edits, label: edits[0]!.label, renewed };
 }

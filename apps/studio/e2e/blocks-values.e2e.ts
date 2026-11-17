@@ -44,12 +44,24 @@ test('a turn’s direction chip shows its arrow, and its drop-down changes it as
   const chip = page.locator('.pr-workspace .ss_enum_TurnDirection:not(.blocklyFlyout *)').first();
   await expect(chip).toHaveText(/left\s↺/);
   await expect(chip.locator('[aria-label="dropdown: left"]').first()).toBeAttached();
+  const before = await chip.getAttribute('data-id');
   // Blockly's drop-down opens on the chip, its options named in plain words too.
   await chip.click();
   const right = page.locator('.blocklyDropDownDiv .blocklyMenuItem', { hasText: 'right' });
   await expect(right).toBeVisible();
   await expect(right).toHaveAttribute('aria-label', 'right');
   await right.click();
+  await expect(chip).toHaveText(/right\s↻/);
+  await expect(undoButton(page)).toHaveText('Undo: Change left to right in penguin turn');
+  // A value chosen is a new value node, as the shared model's answers are (2.3, 5.3).
+  const after = await chip.getAttribute('data-id');
+  expect(after).not.toBe(before);
+  // Changed again: one more step, from the new node.
+  await chip.click();
+  await page.locator('.blocklyDropDownDiv .blocklyMenuItem', { hasText: 'left' }).click();
+  await expect(chip).toHaveText(/left\s↺/);
+  await expect(undoButton(page)).toHaveText('Undo: Change right to left in penguin turn');
+  await undoButton(page).click();
   await expect(chip).toHaveText(/right\s↻/);
   await expect(undoButton(page)).toHaveText('Undo: Change left to right in penguin turn');
 });
