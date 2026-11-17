@@ -928,6 +928,9 @@ importers:
       '@storystage/prompter':
         specifier: workspace:*
         version: link:../../packages/prompter
+      '@storystage/staging':
+        specifier: workspace:*
+        version: link:../../packages/staging
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api

@@ -22,7 +22,7 @@ import {
   withGrades,
   type RowResult,
 } from './report.ts';
-import { classFromId, pilotRows, recordingOf, runRow } from './run.ts';
+import { classFromId, evalBackstage, pilotRows, recordingOf, runRow } from './run.ts';
 import { judgeRequest, liveTransport, passesWhen } from './live.ts';
 import { httpTransport } from '../http-transport.ts';
 import { startFakeClaude } from '../server.ts';
@@ -221,6 +221,37 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
       pass: null,
       notes: 'That one is yours to write. Who is it about?',
     });
+  });
+
+  it("sets the stage from the storyboard with the studio's own step", async () => {
+    const row = rowById('board-07');
+    const stage = [
+      step({ words: 'Set up the scene.', kind: 'stage', actor: 'this', action: 's1' }),
+    ];
+    const { done } = await run({ ...row, mode: 'buildIt', request: 'Set up this scene.' }, [
+      testReply([use('p1', 'propose_plan', { steps: stage })]),
+      text('Shall I?'),
+      testReply([
+        use('s1', 'stage_scene', { scene: 's1', narration: 'The fox waits.', plan_step: 1 }),
+      ]),
+      text('Done.'),
+    ]);
+    const placed = done.calls.find((c) => c.name === 'stage_scene');
+    expect(placed?.outcome).toMatchObject({ ok: true });
+    // The frame's stand-in fox wasn't on the stage; now it is.
+    const objects = done.after.scenes[0]!.setup.objects;
+    expect(objects.length).toBeGreaterThan(done.before.scenes[0]!.setup.objects.length);
+  });
+
+  it("knows a shipped model's name and height from the catalogue", () => {
+    const { production } = openStart(starts.penguin!);
+    const knight = evalBackstage(production).item('kaykit/Biped/knight');
+    expect(knight).toMatchObject({
+      displayName: 'Knight',
+      section: 'cast',
+      defaultSize: { height: 2.47 },
+    });
+    expect(evalBackstage(production).item('nowhere/Biped/ghost')).toBeUndefined();
   });
 
   it('builds nothing at the Plan only level', async () => {

@@ -24,6 +24,9 @@ import {
   type ToolName,
   type ToolOutcome,
 } from '@storystage/prompter';
+import type { BackstageItem } from '@storystage/backstage';
+import { placeFromStoryboard, storyboardPlan, type PlanBackstage } from '@storystage/staging';
+import type { BackstageId, StoryClass } from '@storystage/story-api';
 import { checkProgram } from '@storystage/story-api/program-check';
 import { CATEGORIES, type EvalProduction, type EvalRow } from '../eval.ts';
 import type { Recording, Turn } from '../recording.ts';
@@ -85,6 +88,47 @@ export function classFromId(id: string, shipped: string = SHIPPED): string | nul
   const cls = /^[a-z0-9-]+\/([A-Z][A-Za-z]*)\/[^\s:]+$/.exec(id)?.[1] ?? null;
   if (!cls) return null;
   return id.startsWith('example/') || shipped.includes(`    ${id}:`) ? cls : null;
+}
+
+/**
+ * What Set the stage from the storyboard needs to know of a model (S5): its section, name, class
+ * and height. A class-imported model has its own record. A shipped one is read from the catalogue
+ * the Prompter is given (`id: Name, … 2.47 m`); a start's made-up one is a metre tall. There are no
+ * backdrops: `board-01` scores the cast placed, not the backdrop.
+ */
+export function evalBackstage(p: Production, shipped: string = SHIPPED): PlanBackstage {
+  return {
+    item(id) {
+      const packed = p.manifest.models.find((m) => m.item.id === id)?.item;
+      if (packed) return packed;
+      const cls = classFromId(id, shipped);
+      if (!cls) return undefined;
+      // A catalogue line: `    <id>: <Name>, <what it looks like> [<themes>] <height> m, joints <set>`.
+      // Read by slicing, not a regular expression: the text is long and the format is fixed.
+      const prefix = `    ${id}: `;
+      const line = shipped.split('\n').find((l) => l.startsWith(prefix));
+      const name = line ? line.slice(prefix.length).split(',')[0]!.trim() : id.split('/').at(-1);
+      const tail = line ? line.slice(line.lastIndexOf(']') + 1).trim() : '';
+      const height = Number(tail.split(' ')[0]) || 1;
+      const item: BackstageItem = {
+        id: id as BackstageId,
+        section: cls === 'Prop' || cls === 'Transport' ? 'props' : 'cast',
+        class: cls as StoryClass,
+        displayName: name ?? id,
+        themes: [],
+        files: { model: 'model.glb', thumbnail: 'thumbnail.webp' },
+        joints: 'prop-only',
+        defaultSize: { height },
+        budget: { triangles: 0, textureMaxPx: 0 },
+        licence: 'CC0-1.0',
+        credit: 'Evaluation',
+        origin: 'shipped',
+        sketches: [],
+      };
+      return item;
+    },
+    backdrops: [],
+  };
 }
 
 /** Wraps the transport to keep each stream and count the tokens each turn reports. */
@@ -239,6 +283,16 @@ export async function runRow(
     checkResult: (frame) => opened.checks.get(frame) ?? null,
     // The same ids every run, so a kept run replays exactly.
     random: seeded(29),
+    // The studio's own Set the stage from the storyboard (10.10), as its Prompter passes it.
+    stageFromStoryboard: (p, scene, label) => {
+      const placed = placeFromStoryboard(
+        p,
+        scene,
+        storyboardPlan(p, scene, evalBackstage(p)),
+        label,
+      );
+      return placed.ok ? placed : { ok: false, refusal: placed.refusal, name: placed.name };
+    },
   });
 
   const meter = metered(transport);
