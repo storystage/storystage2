@@ -130,9 +130,12 @@ export const PATTERNS = ['plain', 'checks'] as const;
 export type Pattern = (typeof PATTERNS)[number];
 export const WITH_PATTERN = ['male_casualsuit03', 'female_elegantsuit01'] as const;
 
-/** Whether the pipeline levels a skirt's hem: a child's hangs to a point otherwise (16 Nov). */
-export const straightHem = (p: Pick<Person, 'clothes' | 'ageYears'>): boolean =>
-  p.clothes[0] === 'female_elegantsuit01' && p.ageYears <= 12;
+/**
+ * Whether the pipeline levels a skirt's hem: the pack's skirt hangs to a point on a child (16 Nov
+ * 2026) and, less, on some adults (Lin, Eileen), so every skirt's is levelled (owner, 17 Nov).
+ */
+export const straightHem = (p: Pick<Person, 'clothes'>): boolean =>
+  p.clothes[0] === 'female_elegantsuit01';
 
 /**
  * Headwear the pipeline makes itself (`make_people.py`), as no community pack has any (searched

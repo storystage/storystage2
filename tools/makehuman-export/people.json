@@ -250,7 +250,7 @@
   {
     "id": "p11",
     "name": "Jayden",
-    "description": "a tall boy of 14 with short brown hair, in a coral jacket and jeans",
+    "description": "a tall boy of 14 with short brown hair, in a coral jacket and black trousers",
     "ageYears": 14,
     "gender": 0.75,
     "build": {
@@ -269,6 +269,7 @@
     "eyebrows": "eyebrow011",
     "clothes": ["male_casualsuit05"],
     "clothesColour": "coral",
+    "trousersColour": "black",
     "shoes": "shoes01"
   },
   {
@@ -346,7 +347,7 @@
   {
     "id": "p15",
     "name": "Hamza",
-    "description": "a boy of 17 with short brown hair, in an orange jacket and jeans",
+    "description": "a boy of 17 with short brown hair, in an orange jacket and khaki trousers",
     "ageYears": 17,
     "gender": 0.8,
     "build": {
@@ -365,12 +366,13 @@
     "eyebrows": "eyebrow003",
     "clothes": ["male_casualsuit05"],
     "clothesColour": "rust",
+    "trousersColour": "khaki",
     "shoes": "shoes03"
   },
   {
     "id": "p16",
     "name": "Sam",
-    "description": "a teenager of 15 with short black hair, in a yellow striped shirt and jeans",
+    "description": "a teenager of 15 with short black hair, in a yellow checked shirt and jeans",
     "ageYears": 15,
     "gender": 0.5,
     "build": {
@@ -389,6 +391,7 @@
     "eyebrows": "eyebrow004",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "mustard",
+    "pattern": "checks",
     "shoes": "shoes04"
   },
   {
@@ -481,9 +484,10 @@
     "eyebrows": "eyebrow008",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "teal",
+    "pattern": "plain",
     "shoes": "shoes06",
     "glasses": "spamrakuen_sagerfrogs_glasses_04",
-    "description": "a woman of 36 with a black bob and rimless glasses, in a teal striped shirt and jeans"
+    "description": "a woman of 36 with a black bob and rimless glasses, in a teal shirt and jeans"
   },
   {
     "id": "p21",
@@ -506,14 +510,16 @@
     "eyebrows": "eyebrow009",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "green",
+    "trousersColour": "grey",
+    "pattern": "checks",
     "shoes": "shoes05",
     "glasses": "spamrakuen_sagerfrogs_glasses_03",
-    "description": "a man of 45 with a brown side fringe and thin metal glasses, in a green striped shirt and jeans"
+    "description": "a man of 45 with a brown side fringe and thin metal glasses, in a green checked shirt and grey trousers"
   },
   {
     "id": "p22",
     "name": "Tunde",
-    "description": "a bald man of 50, in a khaki jacket and jeans",
+    "description": "a bald man of 50, in a khaki jacket and navy trousers",
     "ageYears": 50,
     "gender": 0.85,
     "build": {
@@ -531,12 +537,13 @@
     "hair": null,
     "eyebrows": "eyebrow010",
     "clothes": ["male_casualsuit05"],
+    "trousersColour": "navy",
     "shoes": "shoes04"
   },
   {
     "id": "p23",
     "name": "Fatima",
-    "description": "a woman of 30 with a short black bob, in a purple striped blouse and purple skirt",
+    "description": "a woman of 30 with a short black bob, in a purple blouse and purple skirt",
     "ageYears": 30,
     "gender": 0.15,
     "build": {
@@ -555,12 +562,13 @@
     "eyebrows": "eyebrow011",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "plum",
+    "pattern": "plain",
     "shoes": "shoes02"
   },
   {
     "id": "p24",
     "name": "Morgan",
-    "description": "an adult of 26 with short dark hair, in a purple striped shirt and jeans",
+    "description": "an adult of 26 with short dark hair, in a purple checked shirt and jeans",
     "ageYears": 26,
     "gender": 0.5,
     "build": {
@@ -579,6 +587,7 @@
     "eyebrows": "eyebrow012",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "lilac",
+    "pattern": "checks",
     "shoes": "shoes01"
   },
   {
@@ -626,9 +635,10 @@
     "eyebrows": "eyebrow002",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "rose",
+    "pattern": "checks",
     "shoes": "shoes06",
     "glasses": "kwnet_at_optical_glasses",
-    "description": "an older woman of 72 with a grey bob and glasses, in a pink striped blouse and pink skirt"
+    "description": "an older woman of 72 with a grey bob and glasses, in a pink checked blouse and skirt"
   },
   {
     "id": "p27",
@@ -682,7 +692,7 @@
   {
     "id": "p29",
     "name": "Ravi",
-    "description": "an older man of 70 with short grey hair, in an orange striped shirt and jeans",
+    "description": "an older man of 70 with short grey hair, in an orange shirt and navy trousers",
     "ageYears": 70,
     "gender": 0.85,
     "build": {
@@ -702,12 +712,14 @@
     "eyebrows": "eyebrow005",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "rust",
+    "trousersColour": "navy",
+    "pattern": "plain",
     "shoes": "shoes04"
   },
   {
     "id": "p30",
     "name": "Eileen",
-    "description": "an older woman of 85 with a white bob, in a lilac striped blouse and lilac skirt",
+    "description": "an older woman of 85 with a white bob, in a lilac blouse and lilac skirt",
     "ageYears": 85,
     "gender": 0.15,
     "build": {
@@ -727,6 +739,7 @@
     "eyebrows": "eyebrow006",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "lilac",
+    "pattern": "plain",
     "shoes": "shoes06"
   },
   {

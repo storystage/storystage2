@@ -302,9 +302,8 @@ describe('pattern', () => {
 });
 
 describe('straightHem', () => {
-  it("levels a child's skirt, not an adult's or trousers", () => {
-    expect(straightHem({ clothes: ['female_elegantsuit01'], ageYears: 7 })).toBe(true);
-    expect(straightHem({ clothes: ['female_elegantsuit01'], ageYears: 30 })).toBe(false);
-    expect(straightHem({ clothes: ['male_casualsuit03'], ageYears: 7 })).toBe(false);
+  it('levels every skirt, not trousers', () => {
+    expect(straightHem({ clothes: ['female_elegantsuit01'] })).toBe(true);
+    expect(straightHem({ clothes: ['male_casualsuit03'] })).toBe(false);
   });
 });
