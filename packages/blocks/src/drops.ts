@@ -16,6 +16,7 @@ import {
   type Program,
   type Statement,
   type StatementSlot,
+  walk,
 } from '@storystage/ast';
 import {
   canDrop,
@@ -25,6 +26,7 @@ import {
   type ValuePlace,
 } from '@storystage/story-api/editing';
 import { STORY_WORDS } from '@storystage/story-api';
+import blockWords from './strings/en-GB.json' with { type: 'json' };
 import { listsOf, valuesOf } from './gestures.ts';
 import type { FromBlocks } from './mapping.ts';
 import { withNewIds } from './toolbox.ts';
@@ -64,6 +66,20 @@ export function freshIn(program: Program, read: FromBlocks): Fresh[] {
   return found;
 }
 
+/**
+ * Whether a new node holds nodes the program has already. That's two gestures read as one, such as
+ * a drag begun before a drop from the palette was a step, landing in the dropped block: made a
+ * step, those nodes would be copied with new ids. The editor puts the blocks back instead.
+ */
+export function holdsKnown(program: Program, fresh: Fresh): boolean {
+  const known = idsOf(program);
+  let held = false;
+  walk(fresh.node, (node) => {
+    if (node !== fresh.node && known.has(node.id)) held = true;
+  });
+  return held;
+}
+
 /** What the editor asks the learner, and where. */
 export interface AskRequest {
   /** The program as it would be with the drop and the answers so far. */
@@ -82,11 +98,16 @@ export type DropOutcome =
   | { readonly kind: 'cancelled' };
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
+const BLOCK_WORDS = blockWords as Readonly<Record<string, string>>;
 
 /** The words for what a value slot is for. */
-function slotWords(place: ValuePlace): string {
-  const name = place.param ?? place.slot;
-  return STORY[`param.${name}`] ?? STORY[`detail.${name}`] ?? name;
+function slotWords(place: ValuePlace, node: Statement | Expression): string {
+  // As Tiles names its question (spec 14, 2.3): a parameter's or detail's words, a variable's
+  // own name for what it starts as, or else the slot's words ("how many times").
+  if (place.param !== undefined)
+    return STORY[`param.${place.param}`] ?? STORY[`detail.${place.param}`] ?? place.param;
+  if (node.kind === 'local') return node.name;
+  return BLOCK_WORDS[`slot.${place.slot}`] ?? place.slot;
 }
 
 /** The node with one of its empty values filled. */
@@ -122,7 +143,7 @@ export async function dropFromPalette(
   if (!drop.ok) return { kind: 'refused', reason: drop.reason };
   if (ask) {
     for (const place of emptySlots(node)) {
-      const value = await ask({ program: drop.program, place, label: slotWords(place) });
+      const value = await ask({ program: drop.program, place, label: slotWords(place, node) });
       if (value === null) return { kind: 'cancelled' };
       // The answer takes the program's own ids too, whoever made it.
       node = filled(node, place, withNewIds(value, mint));

@@ -5,7 +5,7 @@
  */
 import type { AstNode, Expression, NodeId, TypeRef } from '@storystage/ast';
 import { DETAILS, findEntry } from '@storystage/story-api';
-import { word, type Describer, type ValuePlace } from '@storystage/story-api/editing';
+import { arrowFor, word, type Describer, type ValuePlace } from '@storystage/story-api/editing';
 import { t } from './words.ts';
 
 export type Part =
@@ -17,6 +17,8 @@ export type Part =
   | {
       readonly kind: 'value';
       readonly text: string;
+      /** Drawn after the text, hidden from screen readers: "left ↺" (`arrowOf`). */
+      readonly arrow: string | null;
       /** The parameter or detail, in words, for screen readers ("amount"). */
       readonly label: string;
       readonly node: NodeId;
@@ -24,7 +26,15 @@ export type Part =
       readonly empty: boolean;
       /** A value that's a question (a function), drawn green. */
       readonly question: boolean;
-    };
+      /**
+       * A value made of others ("score + 1", "penguin distance to cat"): what's drawn inside its
+       * pill, its own words (one `whole` part, its button) and a pill for each value in it, so
+       * each can be changed on its own (spec 14, 3b.1). Null for a value of one piece.
+       */
+      readonly inner: readonly Part[] | null;
+    }
+  /** A value's own words, inside its pill: the button that opens the whole value's menu. */
+  | { readonly kind: 'whole'; readonly text: string; readonly node: NodeId };
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 
@@ -44,30 +54,136 @@ function phraseParts(phrase: string, fill: (name: string) => Part | null): Part[
   return parts;
 }
 
+const placeIn = (node: NodeId, slot: string, param?: string): ValuePlace => ({
+  kind: 'value',
+  node,
+  slot,
+  ...(param === undefined ? {} : { param }),
+});
+
+/** A value's pill, with the pills inside it if it's made of others. */
+function valuePart(
+  e: Expression | undefined,
+  place: ValuePlace,
+  label: string,
+  describe: Describer,
+  self: TypeRef,
+): Part | null {
+  if (!e) return null;
+  return {
+    kind: 'value',
+    text: describe(e),
+    arrow: arrowFor(e),
+    label,
+    node: e.id,
+    place,
+    empty: e.kind === 'none',
+    question: e.kind === 'functionCall',
+    inner: innerOf(e, describe, self),
+  };
+}
+
+/** The phrase placeholders inside a value, and the slot and words each stands for. */
+const SLOTS: Record<string, { slot: string; label: string }> = {
+  left: { slot: 'left', label: 'slot.left' },
+  right: { slot: 'right', label: 'slot.right' },
+  value: { slot: 'value', label: 'slot.value' },
+  index: { slot: 'index', label: 'slot.index' },
+  list: { slot: 'array', label: 'slot.items' },
+};
+
+/**
+ * The parts inside a value made of others, or null. Its first words become its `whole` part,
+ * with the object a question is asked of in front, so the row still reads as it's written and
+ * its name is still the words it shows (3f.2).
+ */
+function innerOf(e: Expression, describe: Describer, self: TypeRef): Part[] | null {
+  const pill = (x: Expression | undefined, slot: string, label: string, param?: string) =>
+    valuePart(x, placeIn(e.id, slot, param), label, describe, self);
+  const phrase = (key: string) =>
+    withWhole(
+      phraseParts(word(key), (name) => {
+        const s = SLOTS[name];
+        const held = (e as unknown as Record<string, Expression | undefined>)[s?.slot ?? ''];
+        return s ? pill(held, s.slot, t(s.label)) : null;
+      }),
+      e.id,
+    );
+  switch (e.kind) {
+    case 'arithmetic':
+    case 'compare':
+    case 'logic':
+      return phrase(`words.${e.op}`);
+    case 'join':
+      return phrase('words.join');
+    case 'not':
+      return phrase('words.not');
+    case 'arrayItem':
+      return phrase('words.item');
+    case 'arrayLength':
+      return phrase('words.length');
+    case 'arrayOf': {
+      // The AST sets a list as a whole, so choosing an item makes the list again with that item
+      // changed (`setValue`).
+      const items = e.items.flatMap((x, i) => pill(x, 'items', t('slot.item'), String(i)) ?? []);
+      const words = word('words.list').replace('{items}', '').trim();
+      return withWhole([{ kind: 'text', text: words }, ...items], e.id);
+    }
+    case 'functionCall': {
+      const target = describe(e.target);
+      const details = Object.entries(e.details).flatMap(([name, x]) => {
+        const label = word(`detail.${name}`);
+        const part = pill(x, 'details', label, name);
+        return part ? [{ kind: 'text', text: label } as Part, part] : [];
+      });
+      const { types } = describe;
+      if (e.callee.kind === 'user') {
+        const method = types.methods.get(e.callee.method)?.method;
+        const params = (method?.params ?? []).flatMap((p) => {
+          const part = pill(e.args[p.id], 'args', p.name, p.id);
+          return part ? [{ kind: 'text', text: p.name } as Part, part] : [];
+        });
+        return withWhole([...params, ...details], e.id, `${target} ${method?.name ?? ''}`);
+      }
+      const cls = types.classOf(types.typeOf(e.target, self));
+      const entry = cls && findEntry(cls, e.callee.name);
+      const words = entry ? word(`entry.${entry.on}.${entry.name}`) : e.callee.name;
+      const parts = phraseParts(words, (name) =>
+        pill(e.args[name], 'args', word(`param.${name}`), name),
+      );
+      return withWhole([...parts, ...details], e.id, target);
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Parts with their first words made the value's `whole` part (`lead`, and the words after it
+ * if they come first), or null if no value is inside: a question with nothing to fill is one pill.
+ */
+function withWhole(parts: Part[], node: NodeId, lead?: string): Part[] | null {
+  if (!parts.some((p) => p.kind === 'value')) return null;
+  const first = parts[0];
+  if (lead !== undefined) {
+    const words = first?.kind === 'text';
+    const text = words ? `${lead} ${first.text}` : lead;
+    return [{ kind: 'whole', text: text.trim(), node }, ...(words ? parts.slice(1) : parts)];
+  }
+  const at = parts.findIndex((p) => p.kind === 'text');
+  if (at < 0) return null;
+  return parts.map((p, i) => (i === at ? { kind: 'whole', text: p.text, node } : p));
+}
+
 /** The pieces of a statement's row (and of a container's header row). */
 export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
   const owner = describe.ownerOf(node.id);
   const self: TypeRef = owner ? { kind: 'user', type: owner } : { kind: 'story', name: 'Scene' };
   const { types } = describe;
 
-  const value = (e: Expression | undefined, place: ValuePlace, label: string): Part | null =>
-    e
-      ? {
-          kind: 'value',
-          text: describe(e),
-          label,
-          node: e.id,
-          place,
-          empty: e.kind === 'none',
-          question: e.kind === 'functionCall',
-        }
-      : null;
-  const at = (slot: string, param?: string): ValuePlace => ({
-    kind: 'value',
-    node: node.id,
-    slot,
-    ...(param === undefined ? {} : { param }),
-  });
+  const value = (e: Expression | undefined, place: ValuePlace, label: string) =>
+    valuePart(e, place, label, describe, self);
+  const at = (slot: string, param?: string): ValuePlace => placeIn(node.id, slot, param);
 
   switch (node.kind) {
     case 'call': {

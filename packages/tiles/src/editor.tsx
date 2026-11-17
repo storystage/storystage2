@@ -20,6 +20,7 @@ import {
 } from '@storystage/editor-contract';
 import {
   canDrop,
+  changeFor,
   describer,
   namesAt,
   newAssign,
@@ -29,6 +30,7 @@ import {
   type Ask,
   type CascadeOptions,
   type ControlKind,
+  type MenuAction,
   type NameInScope,
   type PaletteItem,
   type PaletteTab,
@@ -67,6 +69,7 @@ import {
   ChooseVariable,
   DetailMenu,
   NewVariable,
+  RowMenu,
   ValueMenu,
   type VariableType,
 } from './menus.tsx';
@@ -77,6 +80,8 @@ import { tileVariables } from './tokens.ts';
 import {
   placeAt,
   TilesView,
+  valueKey,
+  valuePlaceAt,
   type FocusKey,
   type Highlights,
   type KeyAction,
@@ -105,6 +110,9 @@ function firstMethod(program: Program): NodeId | null {
 /** How long the pointer stays on a place during a drag before the place is checked. */
 const SETTLE_MS = 60;
 
+/** A drag's place as one string: a statement place, or a value a question would replace. */
+const anyKey = (p: Place) => (p.kind === 'statement' ? placeKey(p) : `value:${valueKey(p)}`);
+
 /** Whether a focus key is a node (not an empty list) still in the program. */
 const isNode = (program: Program, key: FocusKey | null): key is NodeId =>
   key !== null && indexOf(program).has(key as NodeId);
@@ -130,6 +138,8 @@ type Menu =
       readonly pending?: true;
     }
   | { readonly kind: 'details'; readonly node: NodeId; readonly anchor: Element }
+  /** A row's menu (spec 14, 3c.7). */
+  | { readonly kind: 'row'; readonly node: NodeId; readonly anchor: Element }
   /** The variable tile's question, for a variable at `at`: its name and what it holds. */
   | {
       readonly kind: 'variable';
@@ -155,6 +165,12 @@ interface MovingState extends Moving {
 }
 
 export interface TileEditorOptions extends CascadeOptions {
+  /**
+   * In the studio (spec 14, 4.1): the Code editor's bar gives the palette's object and tab
+   * (`setPalette`) and the method tabs (`openMethod`), so Tiles draws no object picker, palette
+   * tabs or method tabs of its own. Its palette list and control tiles bar stay.
+   */
+  readonly studio?: boolean;
   /** Told each time a row is drawn, not when one is skipped: for measuring spec 14, 3h. */
   readonly onRowDrawn?: (node: NodeId) => void;
 }
@@ -181,8 +197,8 @@ export class TileEditor implements CodeEditor {
   private pending: Pending | null = null;
   /** The value pill last in focus, where a question from the palette goes. */
   private pill: ValuePill | null = null;
-  /** A new block being dragged from the palette or the control bar. */
-  private fresh: Statement | null = null;
+  /** A new block being dragged from the palette or the control bar: a question is a value. */
+  private fresh: Statement | Expression | null = null;
   /** Being dragged from the bar: a variable or set tile, which asks its question once dropped. */
   private freshAsk: 'variable' | 'assign' | null = null;
   /** During a drag: the place the pointer is over, and what each place checked so far said. */
@@ -196,6 +212,16 @@ export class TileEditor implements CodeEditor {
   /** `jointsOf` and `references` feed the cascade from the scene and Backstage (spec 14, 2.3). */
   constructor(options: TileEditorOptions = {}) {
     this.options = options;
+  }
+
+  /**
+   * The palette's object and tab, from the studio's bar (spec 14, 4.1), as Blocks takes them:
+   * `this`, or one of its fields.
+   */
+  setPalette(target: Expression, tab: PaletteTab): void {
+    this.target = target.kind === 'fieldRef' ? target.field : 'this';
+    this.tab = tab;
+    this.render();
   }
 
   mount(element: HTMLElement, host: EditorHost, view: ViewState = EMPTY_VIEW): void {
@@ -300,6 +326,39 @@ export class TileEditor implements CodeEditor {
   private statementAt(key: FocusKey): Statement | null {
     const node = this.host && indexOf(this.host.program()).get(key as NodeId)?.node;
     return node && isStatement(node) ? node : null;
+  }
+
+  /**
+   * A row menu's choice (spec 14, 3c.7). The commands are the keys' own, so a menu and a key do
+   * the same; a detail to add asks for its value first, as "add detail ▾" does.
+   */
+  private rowAction(node: NodeId, action: MenuAction, anchor: Element): void {
+    this.menu = null;
+    switch (action.kind) {
+      case 'switch':
+        void this.act('toggle', node);
+        return;
+      case 'moveUp':
+      case 'moveDown':
+      case 'duplicate':
+      case 'delete':
+        void this.act(action.kind, node);
+        return;
+      case 'addDetail':
+        this.menu = {
+          kind: 'value',
+          place: { kind: 'value', node, slot: 'details', param: action.detail },
+          label: word(`detail.${action.detail}`),
+          anchor,
+        };
+        this.render();
+        return;
+      case 'removeDetail': {
+        const change = changeFor(this.host!.program(), node, action);
+        this.apply(change.ok ? { ...change, focus: node } : change);
+        return;
+      }
+    }
   }
 
   private act(action: KeyAction, key: FocusKey): boolean {
@@ -586,6 +645,12 @@ export class TileEditor implements CodeEditor {
         const tree = this.element?.querySelector<HTMLElement>('.tl-tree');
         const node = this.fresh;
         if (!tree || !node) return;
+        // A question goes into a value, not between statements (spec 14, 3c.1).
+        if (!isStatement(node))
+          return this.dragOver(
+            valuePlaceAt(tree, x, y),
+            (at) => canDrop(this.host!.program(), at, node).ok,
+          );
         this.dragOver(placeAt(tree, x, y, null), (at) => {
           const program = this.host!.program();
           return canDrop(program, at, readyFor(program, at, node)).ok;
@@ -595,19 +660,19 @@ export class TileEditor implements CodeEditor {
         this.settle();
         const node = this.fresh;
         const ask = this.freshAsk;
-        const at = this.moving?.at;
+        const at = this.moving?.at ?? this.moving?.value;
         this.fresh = null;
         this.freshAsk = null;
         this.moving = null;
         if (drop && node && at) {
-          if (ask) this.askFirst(ask, at);
+          if (ask && at.kind === 'statement') this.askFirst(ask, at);
           else this.begin(node, at);
         } else this.render();
       },
     };
   }
 
-  private startFresh(node: Statement): void {
+  private startFresh(node: Statement | Expression): void {
     this.fresh = node;
     this.startDrag(node.id);
   }
@@ -626,9 +691,9 @@ export class TileEditor implements CodeEditor {
    * keeps up with the pointer: in a long method a check takes most of a frame (spec 14, 3h).
    * Until a place has passed, it doesn't light up (3c.4).
    */
-  private dragOver(at: StatementPlace | null, fits: (at: StatementPlace) => boolean): void {
+  private dragOver<P extends Place>(at: P | null, fits: (at: P) => boolean): void {
     if (!this.moving) return;
-    const key = at && placeKey(at);
+    const key = at && anyKey(at);
     if (key === this.over) return;
     this.over = key;
     this.checking = null;
@@ -651,11 +716,13 @@ export class TileEditor implements CodeEditor {
     this.checking?.();
   }
 
-  private showDrop(at: StatementPlace | null): void {
+  private showDrop(at: Place | null): void {
     const moving = this.moving;
     if (!moving) return;
-    if ((at && placeKey(at)) === (moving.at && placeKey(moving.at))) return;
-    this.moving = { ...moving, at };
+    const was = moving.at ?? moving.value ?? null;
+    if ((at && anyKey(at)) === (was && anyKey(was))) return;
+    this.moving =
+      at?.kind === 'value' ? { ...moving, at: null, value: at } : { ...moving, at, value: null };
     this.render();
   }
 
@@ -713,6 +780,16 @@ export class TileEditor implements CodeEditor {
           names={menu.names}
           onClose={nothing}
           onChoose={(variable) => this.answered(newAssign(variable, idMinter(program)), menu.at)}
+        />
+      );
+    if (menu.kind === 'row')
+      return (
+        <RowMenu
+          program={program}
+          node={menu.node}
+          anchor={menu.anchor}
+          onClose={close}
+          onChoose={(action) => this.rowAction(menu.node, action, menu.anchor)}
         />
       );
     if (menu.kind === 'details')
@@ -824,7 +901,7 @@ export class TileEditor implements CodeEditor {
             const mint = idMinter(now);
             const target = this.targetExpression(now, mint);
             if (target)
-              this.startFresh(newCall(now, target, item.callee, false, mint) as Statement);
+              this.startFresh(newCall(now, target, item.callee, item.tab === 'questions', mint));
           },
         },
       },
@@ -862,6 +939,7 @@ export class TileEditor implements CodeEditor {
               targets={targets(program, type)}
               target={this.target}
               tab={this.tab}
+              controls={!this.options.studio}
               {...panel}
             />
           ) : null}
@@ -869,6 +947,7 @@ export class TileEditor implements CodeEditor {
             <MethodTabs
               program={program}
               method={this.method}
+              tabs={!this.options.studio}
               onOpen={(method) => this.openMethod(method)}
               onAddEvent={(event) => this.addEvent(event)}
             >
@@ -889,6 +968,11 @@ export class TileEditor implements CodeEditor {
                 onOpenValue={(pill, anchor) => this.openValue(pill, anchor)}
                 onOpenDetails={(node, anchor) => {
                   this.menu = { kind: 'details', node, anchor };
+                  this.render();
+                }}
+                onOpenRowMenu={(node, anchor) => {
+                  this.focusKey = node;
+                  this.menu = { kind: 'row', node, anchor };
                   this.render();
                 }}
                 onDragStart={(node) => this.startDrag(node)}

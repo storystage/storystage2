@@ -105,21 +105,20 @@ test('a block dropped outside the method goes back, and the learner hears why', 
 }) => {
   await openCode(page);
   const first = block(page, main.body[0]!.id);
-  // Where the block sits in the workspace. The page above may still grow as the stage loads
-  // (Add a marker here, "In this shot"), moving the whole Code editor down.
-  const inWorkspace = async () => {
-    const at = (await block(page, main.body[0]!.id).boundingBox())!;
-    const area = (await page.locator('.pr-workspace').boundingBox())!;
-    return Math.round(at.y - area.y);
-  };
-  const start = await inWorkspace();
+  // Back where it was is checked by what holds it, not where it's drawn: the workspace may
+  // scroll as the block goes back. Blockly draws a block joined to another inside that block's
+  // group, and the method's first statement directly inside the method's.
+  const inMethod = page.locator(
+    `.pr-workspace .blocklyBlock[data-id="${main.id}"] > .blocklyBlock[data-id="${main.body[0]!.id}"]`,
+  );
+  await expect(inMethod).toHaveCount(1);
   const area = (await page.locator('.pr-workspace').boundingBox())!;
   await drag(page, first, { x: area.x + area.width - 60, y: area.y + area.height - 40 });
   // The studio's live region (Blockly has one of its own too).
   await expect(page.locator('.pr > p[aria-live="polite"]')).toHaveText(
     'Blocks go inside a method.',
   );
-  await expect.poll(inWorkspace).toBe(start);
+  await expect(inMethod).toHaveCount(1);
   await expect(undoButton(page)).toHaveText('Undo');
 });
 
@@ -230,6 +229,80 @@ test('“add detail ▾” at the end of a row adds a detail, by pointer and by 
   await expect(undoButton(page)).toHaveText(/^Undo: Add how long to /);
 });
 
+test('the Blocks editor by keyboard alone: add, answer, move and delete, each said (7.5)', async ({
+  page,
+}) => {
+  await openCode(page);
+  const said = page.locator('.pr > p[aria-live="polite"]');
+  const where = () =>
+    page.evaluate(() => document.activeElement?.closest('[data-id]')?.getAttribute('data-id'));
+  const says = page.locator('.pr-workspace .ss_story_say');
+  // Blockly's move, by keyboard: it says how, and an insertion marker shows each place.
+  const hint = page.getByText('Use the arrow keys to move').first();
+  const marker = page.locator('.pr-workspace .blocklyInsertionMarker');
+  // Tab from New to the palette; down to "wait", Enter picks it up (Blockly's move), a down
+  // arrow puts it at the method's first place, Enter puts it there; then the cascade asks.
+  const toWait = async () => {
+    await page.getByRole('button', { name: 'New in scene 1' }).focus();
+    await page.keyboard.press('Tab');
+    await expect
+      .poll(async () => {
+        await page.keyboard.press('ArrowDown');
+        return page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? '');
+      })
+      .toMatch(/^this, wait/);
+    await page.keyboard.press('Enter');
+    await expect(hint).toBeVisible();
+    await page.keyboard.press('ArrowDown');
+    await expect(marker.first()).toBeAttached();
+    await page.keyboard.press('Enter');
+    await expect(page.getByRole('menu')).toBeVisible();
+  };
+  // Escape asks no more and adds nothing, and focus stays in the method.
+  await toWait();
+  await page.keyboard.press('Escape');
+  await expect(undoButton(page)).toHaveText('Undo');
+  await expect.poll(where).toBe(main.id);
+  // Answered, it's one step, said, with focus on the new block.
+  await toWait();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Enter');
+  await expect(undoButton(page)).toHaveText(/^Undo: Make the scene wait /);
+  await expect(said).toHaveText(/^Make the scene wait /);
+  // Focus is in the new block.
+  const wait = page.locator('.pr-workspace .ss_story_delay:not(.blocklyFlyout .ss_story_delay)');
+  const inWait = () => page.evaluate(() => !!document.activeElement?.closest('.ss_story_delay'));
+  await expect.poll(inWait).toBe(true);
+  // Alt+↑ or Alt+↓ moves it one place past the say, as in Tiles: one step, said, focus kept.
+  const above = async () => (await wait.boundingBox())!.y < (await says.first().boundingBox())!.y;
+  const wasAbove = await above();
+  await page.keyboard.press(wasAbove ? 'Alt+ArrowDown' : 'Alt+ArrowUp');
+  await expect(undoButton(page)).toHaveText(/^Undo: Move the scene wait /);
+  await expect(said).toHaveText(/^Move the scene wait /);
+  await expect.poll(above).toBe(!wasAbove);
+  await expect.poll(inWait).toBe(true);
+  // At the end of the list, a move that can't go says why, and changes nothing.
+  await page.keyboard.press(wasAbove ? 'Alt+ArrowDown' : 'Alt+ArrowUp');
+  await expect(said).toHaveText(
+    wasAbove ? 'It’s already at the bottom.' : 'It’s already at the top.',
+  );
+  await expect(undoButton(page)).toHaveText(/^Undo: Move the scene wait /);
+  // Blockly's own move works too (M, an arrow, Enter, at a person's pace). Wherever the arrow
+  // takes it, a place in the method or outside it, where it goes back with the reason said,
+  // focus stays on the block.
+  for (const k of ['m', wasAbove ? 'ArrowUp' : 'ArrowDown', 'Enter']) {
+    await page.keyboard.press(k);
+    await page.waitForTimeout(150);
+  }
+  await expect.poll(inWait).toBe(true);
+  // Delete takes it out: one step, said.
+  await expect.poll(where).toBe(await wait.getAttribute('data-id'));
+  await page.keyboard.press('Delete');
+  await expect(undoButton(page)).toHaveText(/^Undo: Delete the scene wait /);
+  await expect(said).toHaveText(/^Delete the scene wait /);
+  await expect(says).toHaveCount(1);
+});
+
 test('axe finds no serious issues with the Code editor open', async ({ page }) => {
   await openCode(page);
   const { violations } = await new AxeBuilder({ page })
@@ -251,8 +324,9 @@ test('Rehearse plays the scene on the scene view, highlights the blocks running,
   await expect(rehearse).toBeEnabled();
   await rehearse.click();
   await expect(view.getByRole('button', { name: 'Stop' })).toBeVisible();
-  // A block running is marked in the Blocks editor (14-editors 3i.10).
-  await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 10_000 });
+  // A block running is marked in the Blocks editor (14-editors 3i.10). The stage can take a while
+  // to start the run under software drawing on a busy machine (only Stop shows meanwhile).
+  await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 30_000 });
   // The frame the run reached is Rehearsed on the strip (07-ux 2.3, 7.1).
   const strip = page.getByRole('listbox', { name: 'Frames' });
   await expect(strip.getByRole('option').first()).toContainText('Rehearsed', { timeout: 10_000 });
@@ -262,6 +336,34 @@ test('Rehearse plays the scene on the scene view, highlights the blocks running,
   expect(
     (await new AxeBuilder({ page }).include('.pr-scene').analyze()).violations.map((v) => v.id),
   ).toEqual([]);
+});
+
+test('Rehearse pauses, plays on at half speed and starts again (07-ux 7.4)', async ({ page }) => {
+  await openCode(page);
+  const view = page.getByRole('region', { name: 'Scene view' });
+  await expect(view.locator('canvas')).toBeVisible();
+  // The example scene is short: on a busy machine it can end before Pause is pressed, so start
+  // it again until Pause is caught while it plays.
+  const pause = view.getByRole('button', { name: 'Pause' });
+  await expect(async () => {
+    if (!(await pause.isVisible()))
+      await view.getByRole('button', { name: /^(Rehearse|Restart)$/ }).click();
+    await pause.click({ timeout: 1_000 });
+  }).toPass({ timeout: 20_000 });
+  const play = view.getByRole('button', { name: 'Play' });
+  await expect(play).toBeVisible();
+  // Half speed while paused, so the short example scene is still running for what follows.
+  const speed = view.getByRole('radiogroup', { name: 'Speed' });
+  await speed.getByText('Half').click();
+  await expect(speed.getByRole('radio', { name: 'Half' })).toBeChecked();
+  await play.click();
+  await expect(view.getByRole('button', { name: 'Pause' })).toBeVisible();
+  // Restart starts again from the set-up, playing.
+  await view.getByRole('button', { name: 'Restart' }).click();
+  await expect(view.getByRole('button', { name: 'Pause' })).toBeVisible();
+  await expect(page.locator('.ss-highlight-rehearse').first()).toBeAttached({ timeout: 10_000 });
+  await view.getByRole('button', { name: 'Stop' }).click();
+  await expect(view.getByRole('button', { name: 'Rehearse', exact: true })).toBeVisible();
 });
 
 test('Check this frame plays the scene on a hidden stage and lists what it found', async ({

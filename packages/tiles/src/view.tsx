@@ -16,8 +16,10 @@ import {
   detailsToAdd,
   type Describer,
   type StatementPlace,
+  type ValuePlace,
 } from '@storystage/story-api/editing';
 import {
+  Fragment,
   memo,
   useEffect,
   useLayoutEffect,
@@ -30,6 +32,7 @@ import {
   type ReactNode,
 } from 'react';
 import { partsOf, type Part } from './parts.ts';
+import { Arrow } from './arrow.tsx';
 import { indexOf, place } from './places.ts';
 import { t } from './words.ts';
 
@@ -64,6 +67,8 @@ export interface ViewHandlers {
   readonly onAction: (action: KeyAction, key: FocusKey) => void;
   readonly onOpenValue: (pill: ValuePill, anchor: Element) => void;
   readonly onOpenDetails: (node: NodeId, anchor: Element) => void;
+  /** A row's menu: by right-click, a long press, or the Menu key or Shift+F10 (section 3c.7). */
+  readonly onOpenRowMenu: (node: NodeId, anchor: Element) => void;
   /** A drag has begun on a statement. */
   readonly onDragStart: (node: NodeId) => void;
   /** The pointer is over a place, or over nowhere a statement can go. */
@@ -71,10 +76,48 @@ export interface ViewHandlers {
   readonly onDragEnd: (drop: boolean) => void;
 }
 
+/** How long a touch or pen is held still on a row to open its menu, as Blockly's long press. */
+const LONG_PRESS_MS = 500;
+/** How far it may wander and still be held still, in pixels. */
+const LONG_PRESS_SLOP = 10;
+/** After a long press opens a menu, how long the click and menu event that follow are ignored. */
+const LONG_PRESS_QUIET_MS = 700;
+
+interface LongPress {
+  readonly timer: ReturnType<typeof setTimeout>;
+  readonly x: number;
+  readonly y: number;
+}
+
 export interface Moving {
   readonly node: NodeId;
   /** Where the drop line is, or null when the pointer is somewhere a statement can't go. */
   readonly at: StatementPlace | null;
+  /** A question dragged from the palette: the value it would replace, outlined, or null. */
+  readonly value?: ValuePlace | null;
+}
+
+/** A value place as one string, for the pill that shows it (`data-place`). */
+export const valueKey = (p: ValuePlace) => `${p.node}/${p.slot}/${p.param ?? ''}`;
+
+/**
+ * The value place a dragged question is over (spec 14, 3c): the innermost pill under the
+ * pointer, as a question can go into a value inside a value too. Null if none is.
+ */
+export function valuePlaceAt(tree: HTMLElement, x: number, y: number): ValuePlace | null {
+  for (const el of document.elementsFromPoint(x, y)) {
+    if (!(el instanceof HTMLElement) || !tree.contains(el)) continue;
+    const pill = el.closest<HTMLElement>('[data-place]');
+    if (!pill) continue;
+    const [node, slot, param] = pill.dataset['place']!.split('/');
+    return {
+      kind: 'value',
+      node: node as NodeId,
+      slot: slot!,
+      ...(param ? { param } : {}),
+    };
+  }
+  return null;
 }
 
 export interface ViewProps extends ViewHandlers {
@@ -232,13 +275,20 @@ function layOut(
     const keys: FocusKey[] = [];
     layout.pills.set(s.id, keys);
     const { parts, detail } = rowParts(s, shared);
-    for (const part of parts) {
-      if (part.kind !== 'value') continue;
-      keys.push(part.node);
+    // A value made of others is reached at its own words, where they're drawn, and at each
+    // value inside it, in reading order (spec 14, 3b.1).
+    const value = (part: Part) => {
+      if (part.kind !== 'value') return;
+      if (!part.inner) keys.push(part.node);
+      for (const inner of part.inner ?? []) {
+        if (inner.kind === 'whole') keys.push(inner.node);
+        else value(inner);
+      }
       layout.rows.set(part.node, s.id);
       layout.values.set(part.node, part);
       layout.descriptions.push({ id: `tl-for-${part.node}`, text: part.label });
-    }
+    };
+    parts.forEach(value);
     if (detail) {
       const key = detailKey(s.id);
       keys.push(key);
@@ -264,25 +314,59 @@ function pill(part: Part, layout: Layout): ReactNode {
   if (part.kind === 'text') return <span className="tl-words">{part.text}</span>;
   if (part.kind === 'name') return <span className="tl-name">{part.text}</span>;
   if (part.kind === 'object') return <span className="tl-object">{part.text}</span>;
-  const key = part.node;
+  // A value's own words are drawn by its pill, below, which knows the value's place.
+  if (part.kind === 'whole') return null;
   const kind = part.empty
     ? 'tl-pill tl-pill-empty'
     : part.question
       ? 'tl-pill tl-pill-question'
       : 'tl-pill';
-  // Named by the value it shows and described by what it's for, so a speech-control user can
-  // say what they see (WCAG 2.5.3). Enter or a click opens the menu of values that fit.
+  // A value made of others is a pill holding its own words, which change the whole value, and
+  // a pill for each value in it (spec 14, 3b.1). Only those are buttons, as a button can't hold
+  // another, and the row's name is still the words it shows.
+  if (part.inner)
+    return (
+      <span className={`${kind} tl-pill-compound`} data-value={part.node}>
+        {part.inner.flatMap((inner, i) => [
+          i > 0 ? ' ' : null,
+          <Fragment key={i}>
+            {inner.kind === 'whole'
+              ? valueButton(part, 'tl-whole', layout, inner.text)
+              : pill(inner, layout)}
+          </Fragment>,
+        ])}
+      </span>
+    );
+  return valueButton(
+    part,
+    kind,
+    layout,
+    <>
+      {part.text}
+      <Arrow arrow={part.arrow} />
+    </>,
+  );
+}
+
+/**
+ * A value's button: named by the words it shows and described by what the value is for, so a
+ * speech-control user can say what they see (WCAG 2.5.3). Enter or a click opens the menu of
+ * values that fit; a question dragged from the palette can be dropped on it (`data-place`).
+ */
+function valueButton(part: ValuePill, className: string, layout: Layout, shows: ReactNode) {
+  const key = part.node;
   return (
     <span
       role="button"
       aria-haspopup="menu"
-      className={kind}
+      className={className}
       data-key={key}
       data-pill=""
+      data-place={valueKey(part.place)}
       tabIndex={tab(layout, key)}
       aria-describedby={`tl-for-${key}`}
     >
-      {part.text}
+      {shows}
     </span>
   );
 }
@@ -610,10 +694,24 @@ export function TilesView(props: ViewProps) {
   const [ghost, setGhost] = useState<{ x: number; y: number; words: string } | null>(null);
   const pending = useRef<Pending | null>(null);
   const dragging = useRef(false);
+  const press = useRef<LongPress | null>(null);
+  /**
+   * When a long press last opened a row's menu, so the click and menu event after it don't. Never,
+   * to begin with: 0 would swallow every click in the page's first 700 ms, as an event's time
+   * counts from when the page opened (found by CI, 17 Nov).
+   */
+  const pressedAt = useRef(-Infinity);
   const handlers = useRef(props);
   useLayoutEffect(() => {
     handlers.current = props;
   });
+  // A long press still waiting when the view goes opens nothing.
+  useEffect(
+    () => () => {
+      if (press.current) clearTimeout(press.current.timer);
+    },
+    [],
+  );
 
   const found = useMemo(() => {
     for (const type of program.types) {
@@ -630,6 +728,16 @@ export function TilesView(props: ViewProps) {
     const at = moving?.at;
     setLine(at && tree.current && code.current ? lineFor(tree.current, code.current, at) : null);
   }, [moving, program]);
+
+  // A dragged question outlines the value it would replace: drawn over the pill, so nothing
+  // moves under the pointer (3c.2).
+  const value = moving?.value ? valueKey(moving.value) : null;
+  useLayoutEffect(() => {
+    if (!value || !tree.current) return;
+    const pill = tree.current.querySelector(`[data-place="${CSS.escape(value)}"]`);
+    pill?.classList.add('tl-drop-target');
+    return () => pill?.classList.remove('tl-drop-target');
+  }, [value, program]);
 
   // Dragging: a pointer pressed on a row (or a touch on its grip) becomes a drag once it moves.
   useEffect(() => {
@@ -726,6 +834,14 @@ export function TilesView(props: ViewProps) {
         return props.onOpenDetails(detail as NodeId, target);
       }
     }
+    // The row's menu from the keyboard: the Menu key or Shift+F10, as a context menu opens.
+    if (e.key === 'ContextMenu' || (e.shiftKey && e.key === 'F10')) {
+      const row = rowElement(rowOf(current));
+      if (row) {
+        e.preventDefault();
+        return props.onOpenRowMenu(row.dataset['key'] as NodeId, row);
+      }
+    }
     const edit = editKey(e);
     if (edit) {
       e.preventDefault();
@@ -752,7 +868,51 @@ export function TilesView(props: ViewProps) {
     }
   };
 
+  /** A statement's row, by its key, if it's a statement (not an empty list). */
+  const rowElement = (key: FocusKey) => {
+    const el = tree.current?.querySelector<HTMLElement>(`[data-key="${CSS.escape(key)}"]`);
+    return el && 'statement' in el.dataset ? el : null;
+  };
+
+  /** A right-click on a row opens its menu (section 3c.7), unless a long press just did. */
+  const onContextMenu = (e: MouseEvent) => {
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-statement]');
+    if (!row || dragging.current) return;
+    e.preventDefault();
+    if (e.timeStamp - pressedAt.current < LONG_PRESS_QUIET_MS) return;
+    endPress();
+    props.onOpenRowMenu(row.dataset['key'] as NodeId, row);
+  };
+
+  const endPress = () => {
+    if (press.current) clearTimeout(press.current.timer);
+    press.current = null;
+  };
+
+  /** A long press on a row, by touch or pen, opens its menu: held still, it isn't a drag. */
+  const startPress = (e: ReactPointerEvent) => {
+    endPress();
+    if (e.pointerType === 'mouse') return;
+    const row = (e.target as HTMLElement).closest<HTMLElement>('[data-statement]');
+    if (!row) return;
+    const { clientX: x, clientY: y } = e;
+    const timer = setTimeout(() => {
+      press.current = null;
+      pending.current = null;
+      pressedAt.current = performance.now(); // the same clock as an event's timeStamp
+      props.onOpenRowMenu(row.dataset['key'] as NodeId, row);
+    }, LONG_PRESS_MS);
+    press.current = { timer, x, y };
+  };
+
+  const onPointerMoveForPress = (e: ReactPointerEvent) => {
+    const p = press.current;
+    if (p && Math.hypot(e.clientX - p.x, e.clientY - p.y) > LONG_PRESS_SLOP) endPress();
+  };
+
   const onClick = (e: MouseEvent) => {
+    // The click that ends a long press isn't a tap on what's under it.
+    if (e.timeStamp - pressedAt.current < LONG_PRESS_QUIET_MS) return;
     const target = (e.target as HTMLElement).closest<HTMLElement>('[data-pill],[data-detail]');
     if (!target || dragging.current) return;
     const key = target.dataset['key']!;
@@ -765,6 +925,7 @@ export function TilesView(props: ViewProps) {
 
   const onPointerDown = (e: ReactPointerEvent) => {
     const el = e.target as HTMLElement;
+    if (e.button === 0) startPress(e);
     if (e.button !== 0 || el.closest('[data-pill],[data-detail]')) return;
     // A touch drags only from the grip, so the rest of a row still scrolls (spec 14, 3c).
     if (e.pointerType === 'touch' && !('grip' in el.dataset)) return;
@@ -789,6 +950,7 @@ export function TilesView(props: ViewProps) {
           onClick={(e) => props.onOpenValue(part, e.currentTarget)}
         >
           {part.text}
+          <Arrow arrow={part.arrow} />
         </button>
       ) : (
         <span key={i}>{part.text}</span>
@@ -807,10 +969,16 @@ export function TilesView(props: ViewProps) {
         className="tl-tree"
         onKeyDown={onKeyDown}
         onClick={onClick}
+        onContextMenu={onContextMenu}
         onPointerDown={onPointerDown}
+        onPointerMove={onPointerMoveForPress}
+        onPointerUp={endPress}
+        onPointerCancel={endPress}
         onFocus={(e) => {
+          // Against the editor's focus, not the layout's: with none asked for, the first row takes
+          // the tab stop, and landing there must still tell the editor (so a switch hands it on).
           const key = (e.target as HTMLElement).dataset['key'];
-          if (key && key !== current) props.onFocus(key, layout.values.get(key));
+          if (key && key !== focus) props.onFocus(key, layout.values.get(key));
         }}
       >
         {items}

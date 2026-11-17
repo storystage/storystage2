@@ -625,3 +625,49 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* A value's turning arrow (arrow.tsx). A margin, not a space: pills and menu items are flex
+   boxes, which drop a space at the start of an item. */
+.tl-arrow {
+  margin-inline-start: 0.3em;
+}
+
+/* A value made of others (spec 14, 3b.1): a pill holding its own words and a pill for each value
+   in it. Its words are the button for the whole value. */
+.tl-pill-compound {
+  gap: 4px;
+  padding: 3px 4px;
+  cursor: default;
+}
+
+.tl-pill-compound > .tl-words {
+  font-weight: 700;
+}
+
+.tl-whole {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 6px;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+}
+
+.tl-whole:hover {
+  text-decoration: underline;
+}
+
+.tl-whole:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-focus);
+}
+
+/* The value a dragged question would replace (spec 14, 3c): an outline drawn over the pill, so
+   nothing moves under the pointer. */
+.tl-drop-target {
+  box-shadow:
+    0 0 0 2px var(--tl-program),
+    0 0 0 5px var(--tl-rehearse);
+}

@@ -1,7 +1,7 @@
 import { applyAll, indexProgram, type NodeId, type Program, type Statement } from '@storystage/ast';
 import { ids, sampleProgram } from '@storystage/ast/testing';
 import { describe, expect, it } from 'vitest';
-import { changeFor, menuFor, type MenuAction, type MenuChange } from './blockMenu.ts';
+import { changeFor, menuFor, type MenuAction, type MenuChange } from './menu.ts';
 
 const program = sampleProgram();
 const at = (p: Program, id: NodeId) => indexProgram(p).get(id)?.node as Statement | undefined;
@@ -12,7 +12,7 @@ function applied(change: MenuChange): Program {
   return applyAll(program, change.edits).program;
 }
 
-describe("a block's menu (14-editors 3i.7, 2.3)", () => {
+describe("a statement's menu, shared by both editors (14-editors 2.6, 3i.7)", () => {
   it('offers a statement switch off, its details, duplicate and delete, in that order', () => {
     const move = words(ids.move);
     expect(move[0]).toBe('Switch off');
@@ -53,6 +53,19 @@ describe("a block's menu (14-editors 3i.7, 2.3)", () => {
     expect(out.ok && out.label).toBe('Take how long out of cat move');
     const moved = at(applied(out), ids.move) as Extract<Statement, { kind: 'call' }>;
     expect(moved.details).toEqual({});
+  });
+
+  it('moves a statement one place up or down in its list, offered only where it can go', () => {
+    expect(words(ids.say)).not.toContain('Move up');
+    expect(words(ids.say)).toContain('Move down');
+    const down = changeFor(program, ids.say, { kind: 'moveDown' });
+    expect(down.ok && down.label).toMatch(/^Move cat say/u);
+    const body = applied(down).types[0]!.methods.find((m) => m.id === ids.main)!.body;
+    expect(body[1]!.id).toBe(ids.say);
+    expect(changeFor(program, ids.say, { kind: 'moveUp' })).toEqual({
+      ok: false,
+      reason: 'It’s already at the top.',
+    });
   });
 
   it('duplicates a statement just after itself, and deletes one', () => {

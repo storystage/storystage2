@@ -6,6 +6,17 @@ import { expect, test, type Page } from '@playwright/test';
 
 const PAGE = 'http://localhost:4183/';
 const WCAG_22_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+/** Best-practice rules, outside the WCAG tags, that an open menu must also pass (S5's ask). */
+const MENU_RULES = ['aria-dialog-name'];
+
+/** Axe's serious and critical findings with a menu open: WCAG 2.2 AA, and MENU_RULES. */
+async function seriousWithMenuOpen(page: Page) {
+  const wcag = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  const menu = await new AxeBuilder({ page }).withRules(MENU_RULES).analyze();
+  return [...wcag.violations, ...menu.violations]
+    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+}
 const SIZES = [
   { name: 'laptop', width: 1536, height: 864 },
   { name: 'Chromebook', width: 1366, height: 768 },
@@ -208,8 +219,7 @@ test('choosing a value from its menu, with axe finding nothing while it is open'
   const menu = page.getByRole('menu', { name: 'direction' });
   await expect(menu).toBeVisible();
   await expect(menu.getByRole('menuitemradio', { name: 'forward' })).toBeFocused();
-  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
-  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
   await menu.getByRole('menuitemradio', { name: 'backward' }).click();
   await expect(item(page, 'cat move backward 1 how long 2 add detail')).toBeVisible();
 });
@@ -401,3 +411,92 @@ for (const size of SIZES)
       expect(box.height).toBeGreaterThanOrEqual(44);
     }
   });
+
+test('the add-detail menu is named, with axe finding nothing while it is open', async ({
+  page,
+}) => {
+  await open(page);
+  await page
+    .locator('[data-key="saystm"]')
+    .getByRole('button', { name: 'add detail', exact: true })
+    .click();
+  await expect(page.getByRole('menu', { name: 'add detail' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'add detail' })).toBeAttached();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+});
+
+// A row's menu (spec 14, 2.6 and 3c.7): right-click, a long press by touch, or the Menu key.
+
+test('a right-click opens the row’s menu, named and axe clean, and its choice is one step', async ({
+  page,
+}) => {
+  await open(page);
+  await page.locator('[data-key="saystm"]').click({ button: 'right', position: { x: 60, y: 20 } });
+  const menu = page.getByRole('menu', { name: 'Menu for cat say' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await menu.getByRole('menuitem', { name: 'Switch off' }).click();
+  await expect(item(page, 'cat say Hello (switched off) add detail')).toBeVisible();
+  expect(await last(page)).toBe('Switch off cat say Hello');
+});
+
+test('a long press by touch opens the row’s menu; Escape closes it with nothing changed', async ({
+  page,
+}) => {
+  await open(page);
+  const row = page.locator('[data-key="saystm"]');
+  const box = (await row.boundingBox())!;
+  const at = {
+    pointerType: 'touch',
+    isPrimary: true,
+    button: 0,
+    clientX: box.x + 60,
+    clientY: box.y + 20,
+  };
+  await row.dispatchEvent('pointerdown', at);
+  await page.waitForTimeout(650);
+  await row.dispatchEvent('pointerup', at);
+  const menu = page.getByRole('menu', { name: 'Menu for cat say' });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(item(page, 'cat say Hello add detail')).toBeVisible();
+});
+
+test('a question dragged from the palette goes into a value that takes it, and nowhere else', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  await page.getByRole('tab', { name: 'Questions' }).click();
+  const source = (await page.getByRole('option', { name: 'cat distance to ???' }).boundingBox())!;
+  const amount = page.locator('[data-place="movest/args/amount"]');
+  const hello = page.locator('[data-place="saystm/args/text"]');
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 60, source.y + 20, { steps: 5 });
+  // Words don't take a distance: no outline there, and no drop line anywhere.
+  const words = (await hello.boundingBox())!;
+  await page.mouse.move(words.x + 8, words.y + 8, { steps: 10 });
+  await page.waitForTimeout(150);
+  await expect(page.locator('.tl-drop-target')).toHaveCount(0);
+  await expect(page.locator('.tl-drop-line')).toHaveCount(0);
+  // A number does.
+  const box = (await amount.boundingBox())!;
+  await page.mouse.move(box.x + 8, box.y + 8, { steps: 10 });
+  await expect(amount).toHaveClass(/tl-drop-target/);
+  await page.mouse.up();
+  await expect(page.locator('.tl-drop-target')).toHaveCount(0);
+  // Then its own value is asked for, as when it's put in by keyboard.
+  await page
+    .getByRole('menu', { name: 'the other one' })
+    .getByRole('menuitem', { name: 'chair' })
+    .click();
+  expect(await last(page)).toBe('Change 1 to cat distance to chair in cat move');
+  await expect(
+    item(page, 'cat move forward cat distance to chair how long 2 add detail'),
+  ).toBeVisible();
+});

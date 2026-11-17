@@ -23,6 +23,14 @@
 
 `packages/prompter` builds each request in TypeScript, without the key, and hands it to a `PrompterTransport` (`packages/prompter/src/transport.ts`). In the Tauri apps the native layer checks it (section 1.8), adds the key and streams the reply back as `PrompterEvent`s. In the browser version the transport is `offTransport`, so no Prompter feature appears. Tests use `tools/fake-claude`.
 
+**In the Tauri apps** the transport is `tauriTransport(invoke, Channel)`, over S8's `prompter_send`, `prompter_cancel` and `prompter_status`:
+
+- A request holding anything like a key is refused as `refused_by_policy` before it's sent (`containsSecret`); the native layer checks again.
+- Events come back on a Tauri `Channel`, in order. The stream ends at the first `end` or `error`, and anything after it is ignored. Anything that isn't a `PrompterEvent` ends it as `internal`, and so does a command that fails.
+- Stopping (the `AbortSignal`) calls `prompter_cancel` with the request's id and ends the stream at once with `cancelled`.
+- The native layer runs one request at a time and answers a second with `rate_limited` (spec 05, section 2.4). The session never sends two at once.
+- A status reply it can't read counts as `internal`, so the panel never shows a Prompter it can't reach as ready.
+
 ### 1.2 Request settings
 
 The body is a Messages API request. These settings hold for every mode unless the next table changes them.
@@ -236,10 +244,10 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
 
-One step, joined to the rest of the request's (section 1.7): a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
+One step, joined to the rest of the request's (section 1.7): Backstage's own Add (`addObject` in `@storystage/production`), which declares a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
 
 - The model must be in the shipped catalogue or the production's imported models, or the answer is `unknown_object`.
-- The name is made into a name the program accepts ("Abyssinian cat" becomes `abyssinianCat`), and given a number if the scene's type already uses it (`cat2`). The result says the final name.
+- The name is made as Backstage makes it (`objectName`): "Abyssinian cat" becomes `abyssinianCat`, with a number if the scene already uses it (`cat2`). The result says the final name.
 - `turn_degrees` turns it about the vertical axis. A `scale` outside 0.05 to 20, or a position that isn't three numbers, is `bad_argument`.
 
 #### `set_property`
@@ -253,7 +261,7 @@ Changes how an object starts in the scene.
 | `value` | string | A position as `"x, y, z"`, a number, a paint name or `#rrggbb`, opacity 0 to 1, or the object it rides on; checked per property |
 | `narration`, `plan_step` | | |
 
-It changes only the scene's set-up, never the program, as one step joined to the rest of the request's.
+It changes only the scene's set-up, never the program, as one step joined to the rest of the request's. Position, turn, scale, paint and opacity go through the stage's own change to an object (`setObject` in `@storystage/production`).
 
 | Property | Value | Objects |
 |---|---|---|
@@ -337,15 +345,17 @@ Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` 
 
 #### `stage_scene`
 
-Places a scene's cast, props, set, backdrop and camera from its frames, as Set the stage from the storyboard does (10.10), using the same code.
+Places a scene's cast, props, set, backdrop and camera as its first frame shows them, by running the studio's own Set the stage from the storyboard (10.10). The studio passes that step to the runner as `stageFromStoryboard`, the same `placeFromStoryboard(…, storyboardPlan(…), …)` its button runs, so the two always agree.
 
 | Field | Type | Notes |
 |---|---|---|
 | `scene` | string | A scene id |
-| `from_frame` | string, optional | The frame to take positions from; default the first |
 | `narration`, `plan_step` | | |
 
-It places only what the storyboard has. Anything else is `add_model` in a plan of its own. Stand-ins stay stand-ins.
+- It places only what the storyboard has and the stage doesn't. Cast who appear only in later frames wait just off stage, on the side they come in from. Stand-ins stay stand-ins. Anything else is `add_model` in a plan of its own.
+- It is one step, joined to the rest of the request's, labelled "Set up <heading> from the storyboard".
+- If there's nothing to place, it says so and changes nothing. A scene that doesn't exist is `unknown_object`. Too many objects is `limit_reached`.
+- Without the studio's step (a host that has no stage), it answers `not_allowed_here`.
 
 #### `code_frame`
 
@@ -355,11 +365,16 @@ Starts building a frame's agreed plan, and returns where to build it. It adds no
 |---|---|---|
 | `frame` | string | A frame id with an agreed plan |
 
-Result `ids.method`, `ids.parent_block`. Answers `no_agreed_plan` if the learner hasn't pressed **Build these steps**.
+Result `ids.method`, `ids.position`, and `ids.parent_block` when the place is inside a control block. Answers `no_agreed_plan` if the learner hasn't pressed **Build these steps**.
+
+- **Where:** in the scene's method, after the blocks the frame already links to; for a frame with none, after the blocks of the scene's frames before it; else before those of the frames after it; else at the end. Only links to blocks still in the method count.
+- **Linking:** each block `insert_statement` or `insert_control` adds after it, the step's comment among them, is added to `Frame.links` in the same step as the block, so Undo takes both back. A block inside one the frame already links isn't linked again. The runner does this itself, as the studio's link button does (`withLink`): a link is just the block's id on the frame (spec 03, section 7).
 
 #### `check_frame`
 
 Changes nothing. Returns the latest result of the automatic check for a frame (11.6), so the Prompter can explain it in the learner's words. It doesn't run the check. Field: `frame`.
+
+The result is the studio's (`checkResult`), or else the check saved on the frame (`Frame.check`, spec 08, section 9.6): each item's `id`, `kind`, `outcome`, `words`, `node` and `line`, and the flags the learner `kept`. It goes as a `<check_result>` data block, since the words come from the file.
 
 #### `script_check`
 
@@ -452,6 +467,34 @@ The set-up wizard's pages and the system dialog are spec 05, section 1. The stud
 - **A command that fails** (the native layer is missing or gives something unexpected) keeps the page where it is, with "That didn't work. Try again."
 - The words for each outcome are `KEY_OUTCOME_WORDS`, exactly as spec 05, section 1.3 gives them. S5 shows them; it doesn't write its own.
 - **The usage meter** is `PrompterUsage` in `@storystage/host` (S8, spec 05 section 2.4), for the teacher's screen (S5). The wizard doesn't count anything.
+
+### 4.5 The Prompter panel (WP13c)
+
+The panel's states are spec 07, section 2.4. The studio draws them (S5). `packages/prompter/src/panel.ts` holds what they run on, `PrompterPanel`, so every state is tested on scripted replies without a screen. It sits over the request loop (`PrompterSession`), the tool runner (`PrompterRunner`) and the production's undo history (`ProductionSession`). The studio makes all three with one call, `createPrompterPanel`, which always sends this release's pinned `system` and `tools` (section 1.9).
+
+| Phase | When | What the learner can do |
+|---|---|---|
+| `absent` | The browser version: no panel at all | Nothing |
+| `off` | The school has switched the Prompter off (`prompter_off`, `refused_by_policy`) | Nothing |
+| `notSetUp` | No key (`no_key`) | Adults see **Set up…** (section 4.4) |
+| `ready` | The Prompter can take a request | Ask, in any mode the level allows |
+| `working` | A request is running, before any change | Stop |
+| `planned` | The last request showed a plan | Edit the plan; **Build these steps**, unless the level is Plan only; ask for changes in words; Stop |
+| `building` | The agreed plan is being built | Stop |
+| `built` | The request changed the production | **Undo this request**; ask again |
+| `limit` | The day's cap (`cap_reached`) | What the new level allows |
+| `problem` | Anything else that went wrong (section 7) | The message's action: try again, open set-up or undo |
+
+- **Modes** are `modesAt(level)` (section 4.3). A mode the level leaves out isn't offered at all.
+- **What the panel shows** is the conversation so far: what the learner asked, the Prompter's replies, its `explain` texts, and one line per change as it lands, with its plan step.
+  - A reply is one entry that grows as it streams, with `done: false`, and is marked `done` once it is complete, so a screen reader can read it once.
+  - A change carries `nodes`, the blocks it added (the step's comment among them), for the editor's `highlight`. The panel finds them by comparing the program before and after the change. A change to the scene's set-up alone has none.
+- **Each request** carries the production and the storyboard as data (section 2.6), from the production as it stands.
+- **Editing a plan** happens in the client, with no request and no cost: move a step, delete one, change a value, add one. Each edit is checked again (section 6.3), and a step that can't be built carries its problem in plain words. **Build these steps** waits until no step has a problem. The panel keeps the plan as the Prompter showed it beside the learner's version, so it can be kept with the frame (section 6.7).
+- **Build these steps** sends "Build these steps." in the same mode, with the learner's plan as `<agreed_plan>`.
+- **Code this frame** asks for frame `f` in the current mode, so the Prompter's plan is for that frame.
+- **Undo this request** (`undoRequest`) is offered in Planned and in Built, as spec 07 lists it. In Planned nothing is built yet, so it drops the plan and goes back to Ready. In Built it undoes the request's one step, and only while that is still the latest step in the history. Once the learner has changed something since, the Prompter's step is undone from the history, like any other.
+- **Stop** stops the request. Changes that already landed stay, as one step, and **Undo this request** is offered for them.
 
 ## 5. Story coach
 
@@ -624,8 +667,6 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Needs | From | For |
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
-| Set the stage from the storyboard (10.10), for `stage_scene` to reuse. Until it exists, `stage_scene` answers `not_allowed_here`. The production's undo session it needed is done (`ProductionSession`, #186), and `add_model` and `set_property` use it | S5 (WP10c) | Section 3.2 |
-| Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production` | S4 | Section 6.7, a contract pull request |

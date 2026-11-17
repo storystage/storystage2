@@ -17,7 +17,14 @@ import {
   type Program,
 } from '@storystage/ast';
 import { STORY_WORDS } from '@storystage/story-api';
-import type { PaletteTab } from '@storystage/story-api/editing';
+import {
+  namesAt,
+  newAssign,
+  newLocal,
+  type NameInScope,
+  type PaletteTab,
+  type VARIABLE_TYPES,
+} from '@storystage/story-api/editing';
 import {
   EMPTY_VIEW,
   type CodeEditor,
@@ -29,8 +36,9 @@ import {
 } from '@storystage/editor-contract';
 import { changeFor, detailPlace, menuFor, type MenuAction } from './blockMenu.ts';
 import { defineBlocks } from './definitions.ts';
-import { dropFromPalette, freshIn, type AskRequest, type Fresh } from './drops.ts';
+import { dropFromPalette, freshIn, holdsKnown, type AskRequest, type Fresh } from './drops.ts';
 import { ADD_DETAIL_INPUT, AddDetailField } from './addDetail.ts';
+import { dragsAlone } from './drag.ts';
 import { editsFor } from './gestures.ts';
 import { RENDERER, registerRenderer, storyTheme } from './renderer.ts';
 import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
@@ -72,8 +80,9 @@ function blockFor(scope: { focusedNode?: unknown }): Blockly.BlockSvg | null {
 }
 
 /**
- * Our keys, as in Tiles (`14-editors.md` section 3d): Ctrl+/ switches a statement off or on and
- * Ctrl+D duplicates it (Cmd on a Mac or iPad). Blockly's D makes a loose copy, so it goes.
+ * Our keys, as in Tiles (`14-editors.md` section 3d): Ctrl+/ switches a statement off or on,
+ * Ctrl+D duplicates it (Cmd on a Mac or iPad), and Alt+↑ and Alt+↓ move it one place in its list.
+ * Blockly's D makes a loose copy, so it goes.
  */
 function registerKeys() {
   const keys = Blockly.ShortcutRegistry.registry;
@@ -83,11 +92,14 @@ function registerKeys() {
     keys.createSerializedKey(code, [KeyCodes.META]),
   ];
   if (keys.getRegistry()['duplicate']) keys.unregister('duplicate');
+  const alt = (code: number) => [keys.createSerializedKey(code, [KeyCodes.ALT])];
   const ours = [
-    ['ss_switch', KeyCodes.SLASH, { kind: 'switch' }],
-    ['ss_duplicate', KeyCodes.D, { kind: 'duplicate' }],
+    ['ss_switch', both(KeyCodes.SLASH), { kind: 'switch' }],
+    ['ss_duplicate', both(KeyCodes.D), { kind: 'duplicate' }],
+    ['ss_move_up', alt(KeyCodes.UP), { kind: 'moveUp' }],
+    ['ss_move_down', alt(KeyCodes.DOWN), { kind: 'moveDown' }],
   ] as const;
-  for (const [name, code, action] of ours) {
+  for (const [name, keyCodes, action] of ours) {
     if (keys.getRegistry()[name]) continue;
     keys.register({
       name,
@@ -100,7 +112,7 @@ function registerKeys() {
         run(block.id as NodeId, action);
         return true;
       },
-      keyCodes: both(code),
+      keyCodes: [...keyCodes],
     });
   }
 }
@@ -143,7 +155,27 @@ export interface BlocksEditorOptions {
     readonly node: NodeId;
     readonly anchor: Element;
   }) => Promise<string | null>;
+  /**
+   * The variable block's question, as it's dropped (the shared `NewVariable`, spec 14 2.3): a
+   * name not in `taken`, and what kind of value it holds. `null` for Escape, which cancels the
+   * drop. Without it, a dropped variable block puts nothing in.
+   */
+  readonly newVariable?: (request: {
+    readonly taken: readonly string[];
+    readonly anchor: Element | null;
+  }) => Promise<{ readonly name: string; readonly type: VariableType } | null>;
+  /**
+   * The set block's question, as it's dropped (the shared `ChooseVariable`): which of the
+   * variables there that may change. `null` for Escape, which cancels the drop.
+   */
+  readonly chooseVariable?: (request: {
+    readonly names: readonly NameInScope[];
+    readonly anchor: Element | null;
+  }) => Promise<NodeId | null>;
 }
+
+/** What a variable may hold, as the variable block's question offers it. */
+export type VariableType = (typeof VARIABLE_TYPES)[number];
 
 /** The Blocks editor, with the palette's object and tab, which the studio's picker sets. */
 export interface BlocksEditor extends CodeEditor {
@@ -156,9 +188,13 @@ export interface BlocksEditor extends CodeEditor {
  * so it is hidden from screen readers. To report to Blockly; remove when it is fixed there.
  */
 function quietPalette(ws: Blockly.WorkspaceSvg) {
-  const flyout = ws.getFlyout()?.getWorkspace().getParentSvg();
-  for (const path of flyout?.querySelectorAll('.blocklyHighlightedConnectionPath') ?? [])
+  const flyout = ws.getFlyout()?.getWorkspace();
+  for (const path of flyout?.getParentSvg().querySelectorAll('.blocklyHighlightedConnectionPath') ??
+    [])
     path.setAttribute('aria-hidden', 'true');
+  // Which entry each palette block is (`toolbox.ts`), on the block as drawn.
+  for (const block of flyout?.getTopBlocks(false) ?? [])
+    if (block.data) block.getSvgRoot().setAttribute('data-callee', block.data);
 }
 
 /**
@@ -217,8 +253,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   let tab: PaletteTab = 'actions';
   /** While the cascade asks about a dropped block, the workspace waits. */
   let asking = false;
-  /** A palette drop just applied: redraw when it comes back, to show the program's own ids. */
-  let redraw = false;
+  /** The block last picked up, by pointer or Blockly's move (M), until its drag is settled. */
+  let moving: NodeId | null = null;
 
   /** The palette for the chosen object, as the program has it now. */
   function updatePalette() {
@@ -243,6 +279,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         for (const block of ws.getAllBlocks(false)) {
           block.customContextMenu = menuOn(block);
           addDetailOn(block);
+          dragsAlone(block);
         }
       }
     } finally {
@@ -253,48 +290,121 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     updatePalette();
   }
 
+  /**
+   * The blocks back as the program has them, with focus on the block the learner was on: a move
+   * by keyboard that's refused (or left outside the method) keeps their place. If Blockly hasn't
+   * given the moved block focus back yet (later under load), focus goes to that block.
+   */
+  function putBack() {
+    const was = Blockly.getFocusManager().getFocusedNode();
+    const block =
+      was instanceof Blockly.BlockSvg
+        ? was
+        : was instanceof Blockly.Field
+          ? was.getSourceBlock()
+          : null;
+    const id = block && block.workspace === ws ? (block.id as NodeId) : moving;
+    rebuild();
+    if (id) focusOn(id);
+  }
+
   /** After a gesture: the edits it made, one step, or the blocks back as they were. */
   function settle() {
     settling = null;
     if (!ws || !host || owner === null) return;
-    if (ws.isDragging()) {
+    // A drag, or words being typed in a block (Blockly's text editor, which sets the value at
+    // each key): the step is made when it's done, so a value chosen anew can be drawn again.
+    if (ws.isDragging() || Blockly.WidgetDiv.isVisible()) {
       settling = setTimeout(settle, 50);
       return;
     }
+    try {
+      settleNow();
+    } finally {
+      moving = null;
+    }
+  }
+
+  function settleNow() {
+    if (!ws || !host || owner === null) return;
     let read;
     try {
       read = fromBlocks(Blockly.serialization.workspaces.save(ws) as WorkspaceState);
     } catch (e) {
       if (!(e instanceof BlocksMismatch)) throw e;
-      rebuild();
+      putBack();
       return;
     }
     // A block from the palette, landed in the method. (A value it took the place of is left
     // loose on the workspace by Blockly; the drop's edits take it out.)
-    const fresh = freshIn(host.program(), read);
+    const program = host.program();
+    const fresh = freshIn(program, read);
+    // A palette block holding blocks the program has (a drag begun before the drop was a step,
+    // landed in it; S6's find): never made a step, which would copy them. They go back.
+    if (fresh.some((f) => holdsKnown(program, f))) return putBack();
     if (fresh.length === 1) return void dropped(fresh[0]!);
-    if (fresh.length > 1) return rebuild();
+    if (fresh.length > 1) return putBack();
     if (ws.getTopBlocks(false).some((b) => b.id !== owner)) {
       host.announce(WORDS['editor.looseBlock']!);
-      rebuild();
+      putBack();
       return;
     }
     const result = editsFor(host.program(), read);
     if (result.kind === 'none') return;
-    if (result.kind === 'putBack') return rebuild();
+    if (result.kind === 'putBack') return putBack();
     const applied = host.apply(result.edits, result.label, 'blocks');
-    if (!applied.ok) {
-      host.announce(applied.reason);
+    // Said aloud, as Tiles says it (14-editors 3f.5, 3i.9): "Move penguin say …".
+    host.announce(applied.ok ? result.label : applied.reason);
+    if (!applied.ok) return putBack();
+    // A value chosen in place is a new node: drawn again with its new id, focus on it if it had it.
+    if (result.renewed.size > 0) {
+      const was = Blockly.getFocusManager().getFocusedNode();
+      const on = was instanceof Blockly.BlockSvg ? (was.id as NodeId) : null;
       rebuild();
+      const next = on ? (result.renewed.get(on) ?? on) : null;
+      if (next) focusOn(next);
     }
   }
 
   /** A block from the palette: placed, its values asked for, then one step (or nothing). */
-  async function dropped(fresh: Fresh) {
+  /**
+   * The variable or set block's question, before its values are asked (spec 14, 2.3), as Tiles'
+   * bar asks it: the block that's asked about, or `null` if nothing goes in.
+   */
+  async function askedFirst(fresh: Fresh, anchor: Element | null): Promise<Fresh | null> {
+    const entry = ws?.getBlockById(fresh.node.id)?.data;
+    if (!host || fresh.place.kind !== 'statement') return fresh;
+    if (entry !== 'control:variable' && entry !== 'control:assign') return fresh;
+    const program = host.program();
+    const names = namesAt(program, fresh.place);
+    const mint = idMinter(program);
+    if (entry === 'control:variable') {
+      const made = await options.newVariable?.({ taken: names.map((v) => v.name), anchor });
+      if (!made) return null;
+      return { ...fresh, node: newLocal(made.name, { kind: 'story', name: made.type }, mint) };
+    }
+    const settable = names.filter((v) => v.assignable);
+    if (settable.length === 0) {
+      host.announce(WORDS['editor.nothingToSet']!);
+      return null;
+    }
+    const variable = await options.chooseVariable?.({ names: settable, anchor });
+    if (!variable) return null;
+    return { ...fresh, node: newAssign(variable, mint) };
+  }
+
+  async function dropped(dropping: Fresh) {
     if (!host) return;
-    const anchor = ws?.getBlockById(fresh.node.id)?.getSvgRoot() ?? null;
+    const anchor = ws?.getBlockById(dropping.node.id)?.getSvgRoot() ?? null;
+    let fresh = dropping;
+    // Where focus goes afterwards: the new block, or else where it would have gone, so a learner
+    // on the keyboard (Blockly's move, then the cascade) keeps their place, even after Escape.
+    let then: NodeId = fresh.place.kind === 'statement' ? fresh.place.parent : fresh.place.node;
     asking = true;
     try {
+      const asked = await askedFirst(dropping, anchor);
+      if (!asked || !host) return;
+      fresh = asked;
       const ask = options.ask;
       const outcome = await dropFromPalette(
         host.program(),
@@ -305,13 +415,17 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       if (outcome.kind === 'refused') host.announce(outcome.reason);
       if (outcome.kind === 'edits') {
         const applied = host.apply(outcome.edits, outcome.label, 'blocks');
-        if (applied.ok) redraw = true;
-        else host.announce(applied.reason);
+        if (applied.ok) {
+          host.announce(outcome.label);
+          const first = outcome.edits[0];
+          if (first?.kind === 'insert') then = first.node.id;
+        } else host.announce(applied.reason);
       }
     } finally {
       asking = false;
       // The new blocks take the program's ids, and a cancelled drop goes.
       rebuild();
+      focusOn(then);
     }
   }
 
@@ -401,7 +515,18 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   }
 
   function onChange(e: Blockly.Events.Abstract) {
-    if (loading || asking || e.isUiEvent) return;
+    if (loading || asking) return;
+    if (e instanceof Blockly.Events.BlockDrag && e.isStart && e.blockId) {
+      moving = e.blockId as NodeId;
+    }
+    // A drag's end is settled as soon as Blockly is done with it, not at the next look 50 ms on,
+    // so a quick learner's next drag is less likely to begin before the drop is a step.
+    if (e instanceof Blockly.Events.BlockDrag && !e.isStart) {
+      if (settling !== null) clearTimeout(settling);
+      settling = setTimeout(settle, 0);
+      return;
+    }
+    if (e.isUiEvent) return;
     if (settling === null) settling = setTimeout(settle, 0);
   }
 
@@ -444,9 +569,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       host = editorHost;
       owner = ownerIn(host.program(), view.method)?.id ?? ownerIn(host.program(), null)?.id ?? null;
       const self = typeOf(host.program(), owner);
-      // Blockly's menus and text fields go on the page, not in the workspace, which clips them:
-      // a block near the workspace's edge would have its menu cut off.
-      Blockly.common.setParentContainer(element.ownerDocument.body);
+      // Blockly's menus stay in the workspace, where its focus rules expect them: on the page, its
+      // drop-down closed as it opened. The studio's stylesheet lets them show past its edge.
       registerRenderer();
       ws = Blockly.inject(element, {
         renderer: RENDERER,
@@ -469,10 +593,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       menuActions.set(ws, (node, action) => void act(node, action));
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {
-        if (change.source !== 'blocks' || redraw) {
-          redraw = false;
-          rebuild();
-        }
+        // The editor's own steps are drawn already (a palette drop redraws itself when done).
+        if (change.source !== 'blocks') rebuild();
       });
       rebuild();
       if (view.focus) this.focus(view.focus);
@@ -527,6 +649,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       switch (command) {
         case 'delete':
         case 'duplicate':
+        case 'moveUp':
+        case 'moveDown':
         case 'toggleEnabled': {
           // A value stays in its slot, and the method's own block stays too.
           const item = offered(command === 'toggleEnabled' ? 'switch' : command);
@@ -548,7 +672,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           return menu.callback(ws, new KeyboardEvent('keydown'), menu, { focusedNode: block });
         }
         default:
-          // Copy, paste, and moving a statement up or down come next.
+          // Copy and paste come next.
           return false;
       }
     },

@@ -105,6 +105,7 @@ packages/
   playback/        Plays a production on the page: the runtime worker, the stage and the production's player; used by Rehearse, the Screening room and export (decision 0067)
   screening/       The Screening room's screen: rough cut, compare, retake notes, export (decision 0067)
   check/           The automatic check against the storyboard: the comparison, its words and the runner (decision 0071)
+  study/           Study mode (7.13): the pseudonymous study log on the device, session codes, the study tasks, the export file
   export/          Frame-by-frame render to MP4 (WebCodecs + muxer), captions (WebVTT/SRT), title and credits; AR pack (baker, GLB, USDZ, page, QR)
   ar/              AR placement and playback: WebXR (Android), bridge to the native ARKit plugin (iPad), recording
   host/            The host interface (decision 0028): what the build hands the studio (policy in force, Prompter transport, files)
@@ -637,8 +638,8 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 
     (C)
 - [x] 7.3 Undo and redo across the scene view and the Code editor, with project history. Project history is the studio's one undo history, shared by the three tabs (owner, 16 Nov). (C)
-- [ ] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. (C)
-- [ ] 7.5 Keyboard paths for both views, and accessible names on every control. (C)
+- [x] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. **Play and pause, restart, half, normal and double speed, Rehearse to here, Stop, and a switched-off block skipped (17 Nov); the run that reaches a frame marks it Rehearsed.** (C)
+- [x] 7.5 Keyboard paths for both views, and accessible names on every control. **Checked 17 Nov: axe finds nothing serious in eleven states of the Production stage at 1366 and 1180; the Blocks editor adds, answers, moves and deletes by keyboard alone, each said aloud, with focus kept.** (C)
 
 **Done when:** milestone M2's gate passes, with a manual test script for M2 in `docs/test/`.
 
@@ -649,8 +650,8 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 7.8 **Accessibility from the start:** full keyboard editing (move between tiles, insert, change arguments, move statements), screen-reader names and announcements, focus that is always visible, and touch targets for iPad. Checked with axe and a manual screen-reader pass. **Built, and axe-clean at the three sizes; the manual screen-reader pass is still to do.** (C)
 - [x] 7.9 Highlighting during Rehearse, error highlighting, and the Prompter's highlighting, all through the editor contract. Built with the error's words beside its statement (#193, #233). (C)
 - [ ] 7.10 Performance: large programs (500 statements) stay responsive on the reference Chromebook. **In Edge on the PC, every keystroke or drop is drawn within 100 ms (#193), timed in CI; the run on the reference Chromebook waits for the device.** (C)
-- [ ] 7.11 **The switch:** a control in the Code editor to swap between "Blocks" (option B) and "Tiles" (option C) at any time. The program, undo history and selection are kept. The teacher sets the default per class through policy (`editor.default`), and can lock it (`editor.locked`). Each editor has its own name and look, so learners and teachers know which one they're using. (C)
-- [ ] 7.12 **Parity tests through the interfaces:** Playwright drives each editor's own interface, by pointer and by keyboard, through the same set of tasks, and the resulting programs must be identical. A round trip checks that every kind of node made in one editor renders and can be edited in the other. Every block in the Story API exists in both. (Scripted edit operations alone would pass by construction, so they don't count.) (C)
+- [x] 7.11 **The switch:** a control in the Code editor to swap between "Blocks" (option B) and "Tiles" (option C) at any time. The program, undo history and selection are kept. The teacher sets the default per class through policy (`editor.default`), and can lock it (`editor.locked`). Each editor has its own name and look, so learners and teachers know which one they're using. (C)
+- [x] 7.12 **Parity tests through the interfaces:** Playwright drives each editor's own interface, by pointer and by keyboard, through the same set of tasks, and the resulting programs must be identical. A round trip checks that every kind of node made in one editor renders and can be edited in the other. Every block in the Story API exists in both. (Scripted edit operations alone would pass by construction, so they don't count.) (C) **The tests run on every pull request (17 Nov, spec 14 §5); 7.12 is done when the differences and gaps they found are fixed (`docs/lanes.md`).** Done 17 Nov: every way of every task passes, with nothing marked or skipped.
 - [ ] 7.13 **Study build:** an opt-in study mode, switched on by the teacher through policy (`study.enabled`). It keeps a pseudonymous log on the device, under a random id per session and with no device identifier, (which editor, switches, time per study task, errors, undos, help requests; no names, program content, camera or voice), shows three to five built-in study tasks, and asks two short questions after each task. The teacher exports the logs as a file. Nothing is sent automatically. (C)
 
 **Done when:** both editors pass the same M2 and M4 gate tests and the parity suite, both pass the keyboard and screen-reader checks, and switching mid-task loses nothing.

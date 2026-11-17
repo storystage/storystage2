@@ -22,6 +22,8 @@ function sourceOf(source: ProductionChange<StudioSource>['source']): ChangeSourc
 export function editorHost(
   session: ProductionSession<StudioSource>,
   announce: (text: string) => void,
+  /** From policy: `editor.locked` keeps the class's default editor (14-editors 4.3). */
+  editorLocked = false,
 ): EditorHost {
   return {
     program: () => session.program(),
@@ -47,7 +49,7 @@ export function editorHost(
     undoLabel: () => session.undoLabel(),
     redoLabel: () => session.redoLabel(),
     announce,
-    policy: { editorLocked: false },
+    policy: { editorLocked },
   };
 }
 
@@ -58,6 +60,10 @@ export function editorHost(
 export function useEditorHost(
   session: ProductionSession<StudioSource>,
   announce: (text: string) => void,
+  editorLocked = false,
 ): EditorHost {
-  return useMemo(() => editorHost(session, announce), [session, announce]);
+  return useMemo(
+    () => editorHost(session, announce, editorLocked),
+    [session, announce, editorLocked],
+  );
 }

@@ -5,13 +5,26 @@
  * one cascade for both editors.
  */
 import type { Expression, NodeId, Program } from '@storystage/ast';
-import { createBlocksEditor, type AskRequest, type BlocksEditor } from '@storystage/blocks';
+import {
+  createBlocksEditor,
+  type AskRequest,
+  type BlocksEditor,
+  type VariableType,
+} from '@storystage/blocks';
 import type { EditorHost, HighlightMark } from '@storystage/editor-contract';
 import type { Ask as AskKind, PaletteTab } from '@storystage/story-api/editing';
-import { AskValue, DetailMenu, ValueMenu } from '@storystage/tiles/cascade';
+import type { NameInScope } from '@storystage/story-api/editing';
+import {
+  AskValue,
+  ChooseVariable,
+  DetailMenu,
+  NewVariable,
+  ValueMenu,
+} from '@storystage/tiles/cascade';
 import { useThemeStyle } from '@storystage/ui';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
+import type { Handoff } from './handoff.ts';
 
 export interface BlocksPanelProps {
   method: NodeId;
@@ -25,6 +38,8 @@ export interface BlocksPanelProps {
   highlights?: Highlights;
   /** Where the Code editor finds the editor showing, for the block chosen in it. */
   editorRef?: { current: { selection(): readonly NodeId[] } | null };
+  /** Where the learner was in Tiles, after a switch (`14-editors.md` section 4.2). */
+  handoff?: Handoff;
 }
 
 /** What Rehearse highlights in the editor (`07-ux.md` section 7.4), and the frame's links. */
@@ -54,6 +69,21 @@ interface DetailQuestion {
   readonly answer: (detail: string | null) => void;
 }
 
+/** The variable or set block's question as it's dropped (14-editors 2.3), and its answer. */
+type VariableQuestion =
+  | {
+      readonly kind: 'variable';
+      readonly taken: readonly string[];
+      readonly anchor: Element;
+      readonly answer: (made: { name: string; type: VariableType } | null) => void;
+    }
+  | {
+      readonly kind: 'assign';
+      readonly names: readonly NameInScope[];
+      readonly anchor: Element;
+      readonly answer: (variable: NodeId | null) => void;
+    };
+
 export default function BlocksPanel({
   method,
   host,
@@ -62,14 +92,20 @@ export default function BlocksPanel({
   focus = null,
   highlights = NO_HIGHLIGHTS,
   editorRef,
+  handoff,
 }: BlocksPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<BlocksEditor | null>(null);
   // The text size scales the blocks too; a new size draws the method again at that size.
   const scale = Number(useThemeStyle()['--ss-text-size' as keyof CSSProperties] ?? 1) || 1;
-  const [ready, setReady] = useState(false);
+  // How many times the editor has been made: a new one (another method, a new text size) starts
+  // on the scene's actions with nothing highlighted, so the effects below give it the palette and
+  // the highlights again each time.
+  const [mounts, setMounts] = useState(0);
+  const ready = mounts > 0;
   const [question, setQuestion] = useState<Question | null>(null);
   const [detail, setDetail] = useState<DetailQuestion | null>(null);
+  const [variable, setVariable] = useState<VariableQuestion | null>(null);
   // Choosing "Other words…" closes the menu on its way to the typing field: not an Escape.
   const toTyping = useRef(false);
 
@@ -101,15 +137,55 @@ export default function BlocksPanel({
             },
           });
         }),
+      // The variable and set blocks ask Tiles' questions as they're dropped; Escape adds nothing.
+      newVariable: ({ taken, anchor }) =>
+        new Promise((resolve) => {
+          if (!anchor) return resolve(null);
+          setVariable({
+            kind: 'variable',
+            taken,
+            anchor,
+            answer: (made) => {
+              setVariable(null);
+              resolve(made);
+            },
+          });
+        }),
+      chooseVariable: ({ names, anchor }) =>
+        new Promise((resolve) => {
+          if (!anchor) return resolve(null);
+          setVariable({
+            kind: 'assign',
+            names,
+            anchor,
+            answer: (id) => {
+              setVariable(null);
+              resolve(id);
+            },
+          });
+        }),
     });
-    blocks.mount(box.current, host, { method, selection: focus ? [focus] : [], focus });
+    const given = handoff?.take();
+    blocks.mount(
+      box.current,
+      host,
+      given ? { ...given, method } : { method, selection: focus ? [focus] : [], focus },
+    );
     editor.current = blocks;
     if (editorRef) editorRef.current = blocks;
-    setReady(true);
+    // After a switch, focus goes back to the statement that had it, or into the editor (4.5): a
+    // frame later, after the switch's dialog has handed focus back to where it opened from.
+    const refocus = given
+      ? requestAnimationFrame(() => {
+          if (editor.current === blocks) blocks.focus(given.focus ?? undefined);
+        })
+      : 0;
+    setMounts((n) => n + 1);
     return () => {
+      cancelAnimationFrame(refocus);
       editor.current = null;
       if (editorRef?.current === blocks) editorRef.current = null;
-      blocks.unmount();
+      handoff?.leave(blocks.unmount());
     };
     // `focus` is for opening only: the Code editor opens afresh for each block it's asked to show.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,18 +193,18 @@ export default function BlocksPanel({
 
   useEffect(() => {
     editor.current?.setPalette(target, tab);
-  }, [target, tab, ready]);
+  }, [target, tab, mounts]);
 
   useEffect(() => {
     editor.current?.highlight(highlights.rehearse, 'rehearse');
-  }, [highlights.rehearse, ready]);
+  }, [highlights.rehearse, mounts]);
   useEffect(() => {
     editor.current?.highlight(highlights.error, 'error');
-  }, [highlights.error, ready]);
+  }, [highlights.error, mounts]);
   const links = highlights.link ?? NO_MARKS;
   useEffect(() => {
     editor.current?.highlight(links, 'link');
-  }, [links, ready]);
+  }, [links, mounts]);
 
   return (
     <div className="pr-workspace-frame">
@@ -158,6 +234,22 @@ export default function BlocksPanel({
           anchor={detail.anchor}
           onChoose={(name) => detail.answer(name)}
           onClose={() => detail.answer(null)}
+        />
+      )}
+      {variable?.kind === 'variable' && (
+        <NewVariable
+          anchor={variable.anchor}
+          taken={variable.taken}
+          onMake={(name, type) => variable.answer({ name, type })}
+          onClose={() => variable.answer(null)}
+        />
+      )}
+      {variable?.kind === 'assign' && (
+        <ChooseVariable
+          anchor={variable.anchor}
+          names={variable.names}
+          onChoose={(id) => variable.answer(id)}
+          onClose={() => variable.answer(null)}
         />
       )}
       {question?.typing && (

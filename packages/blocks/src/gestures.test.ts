@@ -1,4 +1,5 @@
 import {
+  NODE_ID_PATTERN,
   applyEdits,
   type Expression,
   type MethodDecl,
@@ -69,7 +70,7 @@ describe('a gesture as edit operations (3i.8)', () => {
     expect(applied(result).body).toEqual(after);
   });
 
-  it('changes a value in its slot, keeping its id', () => {
+  it('changes a value in its slot as a new value, as the shared model’s answers are (2.3)', () => {
     const say = main.body[0] as Extract<Statement, { kind: 'call' }>;
     const text = say.args.text as Extract<Expression, { kind: 'text' }>;
     const after = [
@@ -80,7 +81,41 @@ describe('a gesture as edit operations (3i.8)', () => {
     expect(result.kind === 'edits' && result.edits).toMatchObject([
       { kind: 'setArgument', node: say.id, slot: 'args', param: 'text' },
     ]);
-    expect(applied(result).body).toEqual(after);
+    if (result.kind !== 'edits') throw new Error('expected edits');
+    const fresh = result.renewed.get(text.id)!;
+    expect(fresh).toMatch(new RegExp(NODE_ID_PATTERN));
+    expect(fresh).not.toBe(text.id);
+    const [first] = applied(result).body as Extract<Statement, { kind: 'call' }>[];
+    expect(first!.args.text).toEqual({ id: fresh, kind: 'text', value: 'Goodbye' });
+    // The statement and its other values keep their ids.
+    expect(first!.id).toBe(say.id);
+    expect(first!.target).toEqual(say.target);
+  });
+
+  it('gives only the value that changed a new id, not the ones in or around it', () => {
+    const count = main.body.find((x) => x.kind === 'count') as Extract<
+      Statement,
+      { kind: 'count' }
+    >;
+    const add = count.body[0] as Extract<Statement, { kind: 'assign' }>;
+    const sum = add.value as Extract<Expression, { kind: 'arithmetic' }>;
+    const right = sum.right as Extract<Expression, { kind: 'wholeNumber' }>;
+    const changed = { ...add, value: { ...sum, right: { ...right, value: 2 } } };
+    const after = main.body.map((x) => (x.id === count.id ? { ...count, body: [changed] } : x));
+    const result = editsFor(program, blocksOf(after));
+    if (result.kind !== 'edits') throw new Error('expected edits');
+    expect([...result.renewed.keys()]).toEqual([right.id]);
+    const now = applied(result).body.find((x) => x.id === count.id) as typeof count;
+    const value = (now.body[0] as typeof add).value as typeof sum;
+    expect(value.id).toBe(sum.id);
+    expect(value.left).toEqual(sum.left);
+    expect(value.right).toEqual({
+      id: result.renewed.get(right.id),
+      kind: 'wholeNumber',
+      value: 2,
+    });
+    // Nothing changed: nothing renewed.
+    expect(editsFor(program, blocksOf(main.body))).toEqual({ kind: 'none' });
   });
 
   it('switches a statement off, and changes a note’s words', () => {

@@ -1,10 +1,12 @@
-import { applyEdits, type NodeId } from '@storystage/ast';
+import { applyEdits, nodeId, type Expression, type NodeId } from '@storystage/ast';
+import { palette } from '@storystage/story-api/editing';
 import { TestHost } from '@storystage/editor-contract/testing';
 import { act, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it } from 'vitest';
 import { TileEditor } from './editor.tsx';
 import { fixture, IDS } from './fixture.ts';
+import { calleeKey } from './panel.tsx';
 
 let editor: TileEditor | null = null;
 
@@ -65,6 +67,20 @@ describe('the methods panel (spec 14, 3a and 2.1)', () => {
     await user.click(screen.getByRole('tab', { name: 'Questions' }));
     expect(block('cat is touching ???')).toBeTruthy();
     expect(screen.queryByRole('option', { name: 'cat say ???' })).toBeNull();
+  });
+
+  it('names each tile’s entry as Blocks names its blocks, in the palette’s order (5.6)', () => {
+    const { host } = setup();
+    const program = host.program();
+    const self: Expression = { id: nodeId('palself'), kind: 'this' };
+    const expected = palette(program, self, program.types[0]!.id, 'actions').flatMap((g) =>
+      g.items.map((i) => calleeKey(i.callee)),
+    );
+    const drawn = [...document.querySelectorAll('.tl-palette [data-callee]')].map((e) =>
+      e.getAttribute('data-callee'),
+    );
+    expect(drawn).toEqual(expected);
+    expect(drawn).toContain('story:delay');
   });
 });
 

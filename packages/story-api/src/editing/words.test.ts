@@ -2,7 +2,7 @@ import { validateProgram, type Expression } from '@storystage/ast';
 import { describe, expect, it } from 'vitest';
 import { checkProgram } from '../catalog/program-check.ts';
 import { call, choice, field, ID, mint, none, num, scene, self } from './testing.ts';
-import { describer, fill, splitWords } from './words.ts';
+import { arrowFor, arrowOf, describer, fill, splitWords } from './words.ts';
 
 describe('the fixture', () => {
   it('is a valid program, for S2 and the Story API', () => {
@@ -87,5 +87,23 @@ describe('helpers', () => {
 
   it('splits an id into words', () => {
     expect(splitWords('leftLowerArm')).toBe('left lower arm');
+  });
+});
+
+describe('arrowOf (owner, 16 Nov; Blockly Games’ LEFT_TURN and RIGHT_TURN)', () => {
+  it('gives the turning arrows for turn and roll, left and right only', () => {
+    expect(arrowOf('TurnDirection', 'left')).toBe('↺');
+    expect(arrowOf('TurnDirection', 'right')).toBe('↻');
+    expect(arrowOf('RollDirection', 'left')).toBe('↺');
+    expect(arrowOf('RollDirection', 'right')).toBe('↻');
+    expect(arrowOf('TurnDirection', 'forward')).toBeNull();
+    expect(arrowOf('MoveDirection', 'left')).toBeNull();
+  });
+
+  it('reads a value in the program, and leaves the words plain', () => {
+    const left: Expression = { id: mint(), kind: 'enum', type: 'TurnDirection', value: 'left' };
+    expect(arrowFor(left)).toBe('↺');
+    expect(arrowFor(num(1))).toBeNull();
+    expect(describer(scene())(left)).toBe('left');
   });
 });

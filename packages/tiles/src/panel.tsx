@@ -3,7 +3,7 @@
  * the palette in Alice's categories. Enter or a click puts a block in; so does dragging it onto
  * the program. React Aria gives the list one tab stop, arrow keys and type-ahead.
  */
-import type { NodeId, Program } from '@storystage/ast';
+import type { Callee, NodeId, Program } from '@storystage/ast';
 import { palette, type PaletteItem, type PaletteTab } from '@storystage/story-api/editing';
 import { memo, useMemo, type PointerEvent } from 'react';
 import {
@@ -37,6 +37,11 @@ export interface PanelProps {
   readonly onTarget: (key: string) => void;
   readonly onTab: (tab: PaletteTab) => void;
   readonly onInsert: (item: PaletteItem) => void;
+  /**
+   * False in the studio, whose bar chooses the object and the tab (spec 14, 4.1): only the
+   * palette list is drawn.
+   */
+  readonly controls?: boolean;
   /** A drag from the palette; `item` says which block it carries. */
   readonly drag: DragTarget & { readonly item: (item: PaletteItem) => void };
 }
@@ -65,13 +70,13 @@ export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
     onOver: props.drag.onOver,
     onEnd: props.drag.onEnd,
   });
-  // React Aria marks each option with its key, which a drag reads to know what it carries.
+  // React Aria marks each option with its key, which a drag reads to know what it carries. An
+  // action goes between statements; a question onto a value (spec 14, 3c.1).
   const onPointerDown = (e: PointerEvent) => {
     const option = (e.target as HTMLElement).closest<HTMLElement>('[role="option"]');
     const key = option?.dataset['key'];
     const item = key ? items.get(key) : undefined;
-    if (e.button === 0 && key && item && tab === 'actions')
-      begin(key, item.words, e.clientX, e.clientY);
+    if (e.button === 0 && key && item) begin(key, item.words, e.clientX, e.clientY);
   };
   const objectWords = chosen?.words ?? '';
 
@@ -94,6 +99,7 @@ export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
               key={`${g.key}:${i}`}
               id={`${g.key}:${i}`}
               textValue={item.words}
+              data-callee={calleeKey(item.callee)}
               className={
                 tab === 'actions' ? 'tl-palette-item tl-tile' : 'tl-palette-item tl-question'
               }
@@ -106,6 +112,13 @@ export const MethodsPanel = memo(function MethodsPanel(props: PanelProps) {
     </ListBox>
   );
 
+  if (props.controls === false)
+    return (
+      <div className="tl-panel">
+        {list}
+        <Ghost ghost={ghost} />
+      </div>
+    );
   return (
     <div className="tl-panel">
       <Select
@@ -156,6 +169,7 @@ function samePanel(a: PanelProps, b: PanelProps): boolean {
     a.type === b.type &&
     a.target === b.target &&
     a.tab === b.tab &&
+    a.controls === b.controls &&
     a.onTarget === b.onTarget &&
     a.onTab === b.onTab &&
     a.onInsert === b.onInsert &&
@@ -163,3 +177,10 @@ function samePanel(a: PanelProps, b: PanelProps): boolean {
     words(a) === words(b)
   );
 }
+
+/**
+ * The entry a palette tile makes, as Blocks' flyout names its blocks (`story:move`,
+ * `user:<method id>`), so the parity tests can compare the two palettes (spec 14, 5.6).
+ */
+export const calleeKey = (callee: Callee): string =>
+  callee.kind === 'story' ? `story:${callee.name}` : `user:${callee.method}`;

@@ -6,13 +6,13 @@ import {
   type Statement,
 } from '@storystage/ast';
 import { sampleProgram } from '@storystage/ast/testing';
-import { newCall, newControl } from '@storystage/story-api/editing';
+import { CONTROL_KINDS, newCall, newControl, palette } from '@storystage/story-api/editing';
 import * as Blockly from 'blockly/core';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { defineBlocks } from './definitions.ts';
-import { dropFromPalette, freshIn, type Ask } from './drops.ts';
+import { dropFromPalette, freshIn, holdsKnown, type Ask } from './drops.ts';
 import { storyStatementType } from './shapes.ts';
-import { toolboxFor } from './toolbox.ts';
+import { CONTROL_GROUP, paletteEntry, toolboxFor } from './toolbox.ts';
 
 beforeAll(() => defineBlocks());
 
@@ -50,6 +50,33 @@ describe('the palette as a toolbox (3i.2)', () => {
     expect(types.every((t) => t.startsWith('ss_storyfn_'))).toBe(true);
   });
 
+  it('names each block’s entry, in the shared palette’s order and then Tiles’ control bar’s', () => {
+    for (const tab of ['actions', 'questions'] as const) {
+      const target = cat();
+      const entries = toolboxFor(program, target, scene.id, tab).contents.flatMap((c) =>
+        c.kind === 'block' ? [c.data] : [],
+      );
+      const expected = palette(program, target, scene.id, tab).flatMap((g) =>
+        g.items.map((i) => paletteEntry(i.callee)),
+      );
+      if (tab === 'actions') expected.push(...CONTROL_GROUP.map((k) => paletteEntry(k)));
+      expect(entries).toEqual(expected);
+    }
+    // As Tiles' bar has them: variable and set before the note.
+    const control = toolboxFor(program, cat(), scene.id, 'actions').contents.flatMap((c) =>
+      c.kind === 'block' && c.data?.startsWith('control:') ? [c.data] : [],
+    );
+    expect(control).toEqual([
+      ...CONTROL_KINDS.filter((k) => k !== 'comment').map((k) => `control:${k}`),
+      'control:variable',
+      'control:assign',
+      'control:comment',
+    ]);
+    expect(paletteEntry({ kind: 'story', name: 'move' })).toBe('story:move');
+    expect(paletteEntry({ kind: 'user', method: main.id })).toBe(`user:${main.id}`);
+    expect(paletteEntry('doTogether')).toBe('control:doTogether');
+  });
+
   it('gives every block in it its own id, and Blockly draws each one', () => {
     const toolbox = toolboxFor(program, cat(), scene.id, 'actions');
     const blocks = toolbox.contents.filter((c) => c.kind === 'block');
@@ -79,6 +106,16 @@ describe('a block dropped from the palette (3i.6)', () => {
       { place: { kind: 'statement', parent: main.id, slot: 'body', index: 1 }, node: say },
     ]);
     expect(freshIn(program, blocksOf(main.body))).toEqual([]);
+  });
+
+  it('is told apart when it holds blocks the program has, which a step would copy', () => {
+    const empty = newControl('doTogether', mint) as Statement & { body: readonly Statement[] };
+    const holding = { ...empty, body: [main.body[0]!] };
+    const [alone] = freshIn(program, blocksOf([...main.body, empty]));
+    const [held] = freshIn(program, blocksOf([holding, ...main.body.slice(1)]));
+    expect(holdsKnown(program, alone!)).toBe(false);
+    expect(held!.node).toBe(holding);
+    expect(holdsKnown(program, held!)).toBe(true);
   });
 
   it('asks for each empty value, then is one insert named for the finished block', async () => {
