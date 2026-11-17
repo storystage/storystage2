@@ -530,6 +530,42 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
     });
   });
 
+  it('when building, takes the words of the request that made the plan, and no others', () => {
+    const { runner, run } = setUp();
+    const free = step({ actor: 'fox', action: 'say' });
+    runner.begin('make the fox say Hello there', {});
+    run('propose_plan', { steps: [free] });
+    runner.end();
+    // The panel's build request is only its button's words (spec 04, section 4.5).
+    runner.begin('Build these steps.', agreed([free]));
+    expect(run('insert_statement', say('Hello there'))).toMatchObject({ ok: true });
+    expect(run('insert_statement', say('Something funny'))).toMatchObject({
+      error: 'not_in_script',
+    });
+  });
+
+  it('takes the words of a step the learner added to the plan themselves', () => {
+    const { runner, run } = setUp();
+    const shown = step({ words: 'The fox waves.', actor: 'fox', action: 'say' });
+    runner.begin('make the fox wave', {});
+    run('propose_plan', { steps: [shown] });
+    runner.end();
+    const added = step({
+      words: 'The fox says Good morning.',
+      actor: 'fox',
+      action: 'say',
+      details: [{ name: 'text', value: 'Good morning' }],
+    });
+    runner.begin('Build these steps.', agreed([shown, added]));
+    expect(run('insert_statement', say('Good morning', { plan_step: 2 }))).toMatchObject({
+      ok: true,
+    });
+    // What the Prompter wrote in its own steps isn't the learner's.
+    expect(run('insert_statement', say('The fox waves.'))).toMatchObject({
+      error: 'not_in_script',
+    });
+  });
+
   it("outside a frame, takes only the learner's own words", () => {
     const { runner, run } = setUp();
     const free = step({ actor: 'fox', action: 'say' });

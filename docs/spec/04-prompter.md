@@ -571,7 +571,7 @@ When the loop ends, every agreed step must have landed. A step that didn't is re
 
 ### 6.5 What characters say
 
-Text in `say`, `think` and the speak line block comes from one of two places, and code checks it: a script line (`line`), or, outside a frame, the learner's own request. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
+Text in `say`, `think` and the speak line block comes from one of two places, and code checks it: a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
 
 ### 6.6 Plan only
 
