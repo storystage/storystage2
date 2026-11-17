@@ -469,3 +469,12 @@ export async function tilesVariable(
   await page.keyboard.press('Enter');
   await expect(dialog).toBeHidden();
 }
+
+/** A row's menu (spec 14, 3c.7), opened by right-click, then one of its items. */
+export async function tilesMenu(page: Page, id: string, item: string) {
+  await tilesRow(page, id).click({ button: 'right', position: { x: 30, y: 20 } });
+  const menu = page.getByRole('menu', { name: /^Menu for / });
+  await expect(menu).toBeVisible();
+  await menu.getByRole('menuitem', { name: item, exact: true }).click();
+  await expect(menu).toBeHidden();
+}

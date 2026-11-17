@@ -60,6 +60,7 @@ import {
   tilesAlongTo,
   tilesControl,
   tilesDragRow,
+  tilesMenu,
   tilesMoveByKeyboard,
   tilesVariable,
   dropLineIn,
@@ -128,12 +129,6 @@ const KEEPS_VALUE_ID = 'S5: Blocks keeps the old value node’s id';
  * Blockly's stacks do, so the say can't go into the do together below it and goes back. In Tiles,
  * as in Alice, a drag moves one statement. S5.
  */
-/**
- * Found by this test (17 Nov): Tiles has the commands only as keys (section 3d), with no menu on a
- * row for the pointer, so on a touch screen a statement can't be duplicated, moved by a step,
- * switched off or deleted. S6.
- */
-const NO_ROW_MENU = 'S6: Tiles has no menu on a row for the commands';
 /**
  * Found by this test (17 Nov): Tiles' drags carry statements only, and a number's menu has no
  * questions, so by pointer a question can't go into a value. S6.
@@ -435,7 +430,15 @@ const TASKS: readonly Task[] = [
         await blocksFocusBlock(page, MOVE);
         await blocklyKey(page, 'Delete');
       },
-      'Tiles by pointer': { fixme: NO_ROW_MENU },
+      'Tiles by pointer': async (page) => {
+        const known = await madeIds(page, 'Tiles', []);
+        await tilesMenu(page, MOVE, 'Duplicate');
+        await expect.poll(async () => (await madeIds(page, 'Tiles', known)).length).toBe(1);
+        const [copy] = await madeIds(page, 'Tiles', known);
+        await tilesMenu(page, copy!, 'Move up');
+        await tilesMenu(page, copy!, 'Switch off');
+        await tilesMenu(page, MOVE, 'Delete');
+      },
       'Tiles by keyboard': async (page) => {
         const known = await madeIds(page, 'Tiles', []);
         await tilesRow(page, MOVE).focus();
