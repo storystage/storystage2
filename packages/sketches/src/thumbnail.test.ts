@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { meshFromDocument } from './gltf.ts';
 import type { SketchMaterial, SketchMesh } from './mesh.ts';
 import { box, documentFromMesh, figure } from './testing.ts';
-import { THUMBNAIL_SIZE, renderThumbnail, type Picture } from './thumbnail.ts';
+import { THUMBNAIL_SIZE, THUMBNAIL_VIEWS, renderThumbnail, type Picture } from './thumbnail.ts';
 
 const material = (over: Partial<SketchMaterial> = {}): SketchMaterial => ({
   colour: [1, 1, 1, 1],
@@ -142,5 +142,37 @@ describe('meshFromDocument surfaces', () => {
     const { surface } = meshFromDocument(documentFromMesh(cube));
     expect(surface!.materials[0]).toMatchObject({ colour: [1, 1, 1, 1], image: -1 });
     expect([...surface!.triangleMaterial].every((i) => i === 0)).toBe(true);
+  });
+});
+
+describe("each section's view (WP3.10)", () => {
+  const lit = dressed(cube, material({ colour: [0.6, 0.6, 0.6, 1], unlit: false }));
+  /** The shade a third of the way down the picture, and two thirds down, in the middle. */
+  const upperAndLower = (p: Picture) => [
+    pixel(p, p.width >> 1, Math.round(p.height * 0.3))[0],
+    pixel(p, p.width >> 1, Math.round(p.height * 0.7))[0],
+  ];
+
+  it('shows characters front on, and props and set from three-quarters and above', () => {
+    expect(THUMBNAIL_VIEWS.cast).toEqual({ facing: 'front', elevation: 0 });
+    for (const section of ['props', 'set'] as const) {
+      expect(THUMBNAIL_VIEWS[section].facing).toBe('threeQuarter');
+      expect(THUMBNAIL_VIEWS[section].elevation).toBeGreaterThan(0);
+    }
+  });
+
+  it('looks down from above: a box shows its top as well as its front', async () => {
+    const [levelTop, levelBottom] = upperAndLower(await renderThumbnail(lit));
+    expect(levelTop).toBe(levelBottom);
+    const [top, front] = upperAndLower(await renderThumbnail(lit, { elevation: 30 }));
+    expect(top).not.toBe(front);
+  });
+
+  it('keeps the view between level and 60 degrees down', async () => {
+    const steep = await renderThumbnail(lit, { elevation: 90 });
+    const limit = await renderThumbnail(lit, { elevation: 60 });
+    expect([...steep.data]).toEqual([...limit.data]);
+    const below = await renderThumbnail(lit, { elevation: -20 });
+    expect([...below.data]).toEqual([...(await renderThumbnail(lit)).data]);
   });
 });

@@ -25,7 +25,7 @@ export { sketchFile, sketchPlan, sketchTitle } from './library.ts';
 export type { PlannedSketch } from './library.ts';
 export { makeItemSketches } from './make.ts';
 export type { MadeSketch } from './make.ts';
-export { THUMBNAIL_SIZE, renderThumbnail } from './thumbnail.ts';
+export { THUMBNAIL_SIZE, THUMBNAIL_VIEWS, renderThumbnail } from './thumbnail.ts';
 export type { ImageDecoder, Picture, ThumbnailOptions } from './thumbnail.ts';
 
 // WP10.6, the frame canvas model (S5).

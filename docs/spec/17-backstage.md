@@ -402,7 +402,7 @@ Each model's colour picture for Backstage's browse views (`files.thumbnail`, sec
 
 ### Rules
 
-1. **Front view, standing,** as the manifest says: a model that can be posed stands in the sketches' standing pose, arms down; anything else as modelled. Looked at square on, fitted to a 320-pixel square (a sketch's default size) with a small margin, on a clear background.
+1. **Each section's own view** (WP3.10; the owner's choice of 17 Nov 2026, `THUMBNAIL_VIEWS`): **Cast** from the front, level, so a face shows; **Props** from three-quarters and 25 degrees above, and **Set** from three-quarters and 30 degrees above, so shape and depth show (front on, a bicycle is a line and a sofa a block); **Backdrops** are their own pictures (rule 6). A model that can be posed stands in the sketches' standing pose, arms down; anything else as modelled. Orthographic, fitted to a 320-pixel square (a sketch's default size) with a small margin, on a clear background. Shipped models and class imports alike (section 5).
 2. **Its own colours,** softly lit from the front, above and to the left, never darker than half its colour, so it reads on light and dark themes alike. The material's base colour, picture and vertex colours are used; unlit materials (`KHR_materials_unlit`, many VRM avatars) are drawn as they are. Masked parts are cut out, and see-through parts are drawn last, back to front.
 3. **Smooth edges:** each pixel is the average of nine samples.
 4. **The caller decodes pictures:** sharp in the build tools, as a devDependency only (section 4, rule 4), and the browser's own decoder in the app. A picture that can't be decoded is left out, and its material's plain colour stands in.
