@@ -26,7 +26,7 @@
   {
     "id": "p02",
     "name": "Amara",
-    "description": "a girl of 7 with short curly black hair, in a yellow striped blouse and yellow skirt",
+    "description": "a girl of 7 with short curly black hair, in a yellow blouse and yellow skirt",
     "ageYears": 7,
     "gender": 0.3,
     "build": {
@@ -45,6 +45,7 @@
     "eyebrows": "eyebrow002",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "mustard",
+    "pattern": "plain",
     "shoes": "shoes02"
   },
   {
@@ -69,14 +70,15 @@
     "clothes": ["male_casualsuit03"],
     "clothesColour": "teal",
     "trousersColour": "grey",
+    "pattern": "plain",
     "shoes": "shoes03",
     "glasses": "spamrakuen_sagerfrogs_glasses_02",
-    "description": "a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and grey trousers"
+    "description": "a child of 8 with a brown side fringe and red glasses, in a teal shirt and grey trousers"
   },
   {
     "id": "p04",
     "name": "Aisha",
-    "description": "a girl of 9 with short black hair, in a purple striped shirt and jeans",
+    "description": "a girl of 9 with short black hair, in a purple checked shirt and jeans",
     "ageYears": 9,
     "gender": 0.3,
     "build": {
@@ -95,12 +97,13 @@
     "eyebrows": "eyebrow004",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "plum",
+    "pattern": "checks",
     "shoes": "shoes01"
   },
   {
     "id": "p05",
     "name": "Rhys",
-    "description": "a boy of 10 with short dark hair, in a dark red striped shirt and navy trousers",
+    "description": "a boy of 10 with short dark hair, in an orange checked shirt and navy trousers",
     "ageYears": 10,
     "gender": 0.7,
     "build": {
@@ -118,7 +121,9 @@
     "hair": "short01",
     "eyebrows": "eyebrow005",
     "clothes": ["male_casualsuit03"],
+    "clothesColour": "rust",
     "trousersColour": "navy",
+    "pattern": "checks",
     "shoes": "shoes04"
   },
   {
@@ -173,7 +178,7 @@
   {
     "id": "p08",
     "name": "Mei",
-    "description": "a girl of 6 with a black bob and a long fringe, in a coral striped blouse and coral skirt",
+    "description": "a girl of 6 with a black bob and a long fringe, in a coral checked blouse and skirt",
     "ageYears": 6,
     "gender": 0.3,
     "build": {
@@ -192,6 +197,7 @@
     "eyebrows": "eyebrow008",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "coral",
+    "pattern": "checks",
     "shoes": "shoes06"
   },
   {
@@ -856,14 +862,15 @@
     "hair": "short01",
     "eyebrows": "eyebrow001",
     "clothes": ["male_casualsuit03"],
-    "clothesColour": "rust",
+    "clothesColour": "green",
     "trousersColour": "khaki",
+    "pattern": "plain",
     "shoes": "shoes01",
     "headwear": {
       "kind": "kippah",
       "colour": "navy"
     },
-    "description": "a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and khaki trousers"
+    "description": "a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers"
   },
   {
     "id": "p36",

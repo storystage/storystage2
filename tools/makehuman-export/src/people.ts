@@ -121,6 +121,20 @@ export type TrousersColour = keyof typeof TROUSERS_COLOURS;
 export const WITH_JEANS = ['male_casualsuit03', 'male_casualsuit05'] as const;
 
 /**
+ * The shirt's pattern, so not everyone wears the pack's stripes (owner, 17 Nov 2026): "plain"
+ * smooths the stripes out of the picture and keeps its folds; "checks" lays a gingham over that.
+ * Only for an outfit that is a shirt or a blouse on its own (`WITH_PATTERN`): the jacket outfit's
+ * jacket shares the shirt's picture and would lose its own detail. It needs a `clothesColour`.
+ */
+export const PATTERNS = ['plain', 'checks'] as const;
+export type Pattern = (typeof PATTERNS)[number];
+export const WITH_PATTERN = ['male_casualsuit03', 'female_elegantsuit01'] as const;
+
+/** Whether the pipeline levels a skirt's hem: a child's hangs to a point otherwise (16 Nov). */
+export const straightHem = (p: Pick<Person, 'clothes' | 'ageYears'>): boolean =>
+  p.clothes[0] === 'female_elegantsuit01' && p.ageYears <= 12;
+
+/**
  * Headwear the pipeline makes itself (`make_people.py`), as no community pack has any (searched
  * 10 Nov 2026; the owner's choice of 16 Nov: make our own, CC0). Each is shaped from the person's
  * own head, so it fits and moves with it. A hijab, a turban and a patka cover the hair, so whoever
@@ -190,6 +204,8 @@ export interface Person {
   readonly clothesColour?: ClothesColour;
   /** The jeans' colour, for an outfit with jeans (`WITH_JEANS`); left out, they stay denim. */
   readonly trousersColour?: TrousersColour;
+  /** The shirt's pattern (`PATTERNS`); left out, the pack's stripes. */
+  readonly pattern?: Pattern;
   readonly shoes: string;
   readonly hat?: string;
   /** Glasses from the community's CC0 glasses pack (`GLASSES`). */
@@ -266,6 +282,12 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`trousersColour must be one of ${Object.keys(TROUSERS_COLOURS).join(', ')}.`);
     else if (p.trousersColour !== undefined && !has(WITH_JEANS, p.clothes?.[0]))
       e(`trousersColour needs an outfit with jeans: ${WITH_JEANS.join(', ')}.`);
+    if (p.pattern !== undefined && !has(PATTERNS, p.pattern))
+      e(`pattern must be one of ${PATTERNS.join(', ')}.`);
+    else if (p.pattern !== undefined && !has(WITH_PATTERN, p.clothes?.[0]))
+      e(`pattern needs a shirt or blouse on its own: ${WITH_PATTERN.join(', ')}.`);
+    else if (p.pattern !== undefined && p.clothesColour === undefined)
+      e('pattern needs a clothesColour.');
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
@@ -323,7 +345,9 @@ const hairWords = (p: Person) =>
 
 const clothesWords = (p: Person) =>
   [
-    ...p.clothes.map((c) => (p.clothesColour ? `${c} (${p.clothesColour})` : c)),
+    ...p.clothes.map((c) =>
+      p.clothesColour ? `${c} (${[p.clothesColour, p.pattern].filter(Boolean).join(', ')})` : c,
+    ),
     ...(p.trousersColour ? [`${p.trousersColour} trousers`] : []),
     p.shoes,
     ...(p.hat ? [p.hat] : []),

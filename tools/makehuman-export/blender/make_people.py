@@ -81,7 +81,7 @@ def repaint(obj, paint):
                 pixels = np.empty(width * height * 4, dtype=np.float32)
                 source.pixels.foreach_get(pixels)
                 rgba = pixels.reshape(-1, 4)
-                paint(rgba)
+                paint(rgba, (width, height))
                 image = bpy.data.images.new(f"{source.name}-{obj.name}", width, height, alpha=True)
                 image.pixels.foreach_set(rgba.ravel())
                 image.update()
@@ -96,7 +96,7 @@ def tinted_hair(colour):
     """Grey or white; each strand keeps its light and shade."""
     base, span = (0.32, 0.42) if colour == "grey" else (0.6, 0.36)
 
-    def paint(rgba):
+    def paint(rgba, size):
         light = rgba[:, :3].dot([0.2126, 0.7152, 0.0722])
         opaque = rgba[:, 3] > 0.1
         top = np.percentile(light[opaque], 95) if opaque.any() else 1.0
@@ -105,21 +105,60 @@ def tinted_hair(colour):
     return paint
 
 
-def recoloured_outfit(colour, trousers=None):
+def blurred(values, mask, radius):
+    """A box blur of `values` over `mask` only (both height by width), so the picture's empty
+    space between its parts doesn't darken their edges."""
+
+    def box(a):
+        h, w = a.shape
+        c = np.pad(a, ((1, 0), (1, 0))).cumsum(0).cumsum(1)
+        y0 = np.clip(np.arange(h) - radius, 0, h)
+        y1 = np.clip(np.arange(h) + radius + 1, 0, h)
+        x0 = np.clip(np.arange(w) - radius, 0, w)
+        x1 = np.clip(np.arange(w) + radius + 1, 0, w)
+        return (
+            c[np.ix_(y1, x1)] - c[np.ix_(y0, x1)] - c[np.ix_(y1, x0)] + c[np.ix_(y0, x0)]
+        )
+
+    m = mask.astype(np.float32)
+    return box(values * m) / np.maximum(box(m), 1e-6)
+
+
+def recoloured_outfit(colour, trousers=None, pattern=None):
     """Everything but denim takes `colour`, and the denim takes `trousers` (owner, 16 Nov 2026:
     not every child in jeans); each keeps its folds, and either may be None to leave it. An
-    outfit's shirt and jeans share one texture, so the jeans are told apart by being blue."""
+    outfit's shirt and jeans share one texture, so the jeans are told apart by being blue.
 
-    def shaded(rgba, where, colour):
-        light = rgba[:, :3].max(axis=1)
+    `pattern` (owner, 17 Nov 2026: not so many striped shirts) is "plain", with the pack's
+    stripes smoothed out of the picture and its folds kept, or "checks", a gingham laid over that.
+    """
+
+    def shaded(rgba, where, colour, shade=None):
+        light = rgba[:, :3].max(axis=1) if shade is None else shade
         top = np.percentile(light[where], 90) if where.any() else 1.0
         shade = np.clip(light[where] / max(top, 1e-3), 0, 1)
         rgba[where, :3] = shade[:, None] * np.array(colour, dtype=np.float32)
 
-    def paint(rgba):
+    def paint(rgba, size):
         r, g, b = rgba[:, 0], rgba[:, 1], rgba[:, 2]
         denim = (b > r + 0.04) & (b >= g)
-        if colour is not None:
+        if colour is not None and pattern in ("plain", "checks"):
+            width, height = size
+            cloth = (~denim) & (rgba[:, 3] > 0.1)
+            light = rgba[:, :3].max(axis=1)
+            # Stripes are fine and folds are broad: a blur a little wider than a stripe keeps one.
+            radius = max(4, width // 128)
+            smooth = blurred(
+                light.reshape(height, width), cloth.reshape(height, width), radius
+            ).ravel()
+            if pattern == "checks":
+                period = max(8, width // 40)
+                y, x = np.divmod(np.arange(width * height), width)
+                across = (x // period) % 2
+                down = (y // period) % 2
+                smooth = smooth * (1 - 0.28 * (across + down))
+            shaded(rgba, ~denim, colour, smooth)
+        elif colour is not None:
             shaded(rgba, ~denim, colour)
         if trousers is not None:
             if not denim.any():
@@ -127,6 +166,53 @@ def recoloured_outfit(colour, trousers=None):
             shaded(rgba, denim, trousers)
 
     return paint
+
+
+def straighten_hem(outfit, rig):
+    """A child's skirt hangs to a point between the legs when the pack's skirt is fitted to a
+    child's body (found in the renders, 16 Nov 2026). The skirt's hem is brought level at the
+    height most of it hangs to. Only the piece reaching from above the hips to the hem moves; the
+    socks, a piece of their own, stay."""
+    import bmesh
+
+    pelvis = rig.data.bones.get("pelvis")
+    if pelvis is None:
+        raise RuntimeError("No pelvis bone to find the hips by")
+    hips = (outfit.matrix_world.inverted() @ rig.matrix_world @ pelvis.head_local).z
+    bm = bmesh.new()
+    bm.from_mesh(outfit.data)
+    seen, pieces = set(), []
+    for start in bm.verts:
+        if start in seen:
+            continue
+        piece, todo = [], [start]
+        seen.add(start)
+        while todo:
+            v = todo.pop()
+            piece.append(v)
+            for e in v.link_edges:
+                o = e.other_vert(v)
+                if o not in seen:
+                    seen.add(o)
+                    todo.append(o)
+        pieces.append(piece)
+    spanning = [p for p in pieces if max(v.co.z for v in p) > hips > min(v.co.z for v in p)]
+    if not spanning:
+        raise RuntimeError("No skirt reaching past the hips")
+    skirt = max(spanning, key=len)
+    hem = sorted(v.co.z for v in skirt if v.is_boundary and v.co.z < hips)
+    if not hem:
+        raise RuntimeError("No hem found")
+    level = hem[len(hem) // 2]
+    moved = 0
+    for v in skirt:
+        if v.co.z < level:
+            v.co.z = level
+            moved += 1
+    bm.to_mesh(outfit.data)
+    bm.free()
+    outfit.data.update()
+    print(f"straightened the hem at {level:.3f}: {moved} vertices", flush=True)
 
 
 def make_solid(obj):
@@ -632,7 +718,19 @@ def make_person(info, models):
         outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
         if outfit is None:
             raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
-        repaint(outfit, recoloured_outfit(extra["clothesColour"], extra.get("trousersColour")))
+        repaint(
+            outfit,
+            recoloured_outfit(
+                extra["clothesColour"], extra.get("trousersColour"), extra.get("pattern")
+            ),
+        )
+    if extra.get("straightHem"):
+        outfit = next((p for p in parts if extra["outfit"] in p.name + p.data.name), None)
+        if outfit is None:
+            raise RuntimeError(f"No {extra['outfit']} to straighten")
+        if outfit.data.shape_keys:
+            raise RuntimeError(f"{extra['outfit']} has shape keys; its hem can't be moved")
+        straighten_hem(outfit, rig)
 
     # Pieces no community pack has, made here from the person's own head (owner, 16 Nov 2026).
     if extra.get("headwear"):

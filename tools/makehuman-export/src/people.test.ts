@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ageToMacro, peopleTable, skinFor, validatePeople, type Person } from './people.ts';
+import {
+  ageToMacro,
+  peopleTable,
+  skinFor,
+  straightHem,
+  validatePeople,
+  type Person,
+} from './people.ts';
 
 const person = (over: Partial<Person> = {}): Person => ({
   id: 'p01',
@@ -267,5 +274,37 @@ describe('people.json', () => {
     expect(count(13, 17)).toBeGreaterThanOrEqual(5);
     expect(count(18, 64)).toBeGreaterThanOrEqual(8);
     expect(count(65, 90)).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('pattern', () => {
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+  const shirt = { clothes: ['male_casualsuit03'], clothesColour: 'teal' } as const;
+
+  it('makes a shirt or blouse on its own plain or checked, in its colour', () => {
+    expect(ok({ ...shirt, pattern: 'plain' })).toBe(true);
+    expect(ok({ ...shirt, pattern: 'checks' })).toBe(true);
+    expect(
+      ok({ clothes: ['female_elegantsuit01'], clothesColour: 'coral', pattern: 'checks' }),
+    ).toBe(true);
+    expect(ok({ ...shirt, pattern: 'tartan' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit03'], pattern: 'plain' })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit05'], clothesColour: 'teal', pattern: 'plain' })).toBe(
+      false,
+    );
+  });
+
+  it('shows in the review table', () => {
+    expect(peopleTable([person({ ...shirt, pattern: 'checks' })])).toContain(
+      'male_casualsuit03 (teal, checks), shoes01',
+    );
+  });
+});
+
+describe('straightHem', () => {
+  it("levels a child's skirt, not an adult's or trousers", () => {
+    expect(straightHem({ clothes: ['female_elegantsuit01'], ageYears: 7 })).toBe(true);
+    expect(straightHem({ clothes: ['female_elegantsuit01'], ageYears: 30 })).toBe(false);
+    expect(straightHem({ clothes: ['male_casualsuit03'], ageYears: 7 })).toBe(false);
   });
 });

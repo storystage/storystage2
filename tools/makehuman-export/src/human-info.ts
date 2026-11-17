@@ -11,6 +11,7 @@ import {
   CLOTHES_COLOURS,
   PIECE_COLOURS,
   skinFor,
+  straightHem,
   TROUSERS_COLOURS,
   type Person,
 } from './people.ts';
@@ -63,6 +64,10 @@ export interface HumanInfo {
     readonly clothesColour: readonly [number, number, number] | null;
     /** The jeans' colour, or null to leave them denim. */
     readonly trousersColour: readonly [number, number, number] | null;
+    /** The shirt's pattern, or null for the pack's stripes. */
+    readonly pattern: string | null;
+    /** Whether to level a child's skirt hem. */
+    readonly straightHem: boolean;
     /** The glasses, whose lenses stay clear (`make_people.py` exports them as glTF's MASK). */
     readonly glasses: string | null;
     /** Headwear for `make_people.py` to make from the head, and its colour. */
@@ -118,6 +123,8 @@ export function humanInfo(p: Person): HumanInfo {
       outfit: p.clothes[0]!,
       clothesColour: p.clothesColour ? CLOTHES_COLOURS[p.clothesColour] : null,
       trousersColour: p.trousersColour ? TROUSERS_COLOURS[p.trousersColour] : null,
+      pattern: p.pattern ?? null,
+      straightHem: straightHem(p),
       glasses: p.glasses ?? null,
       headwear: p.headwear
         ? { kind: p.headwear.kind, colour: PIECE_COLOURS[p.headwear.colour] }
