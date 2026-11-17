@@ -463,6 +463,32 @@ The set-up wizard's pages and the system dialog are spec 05, section 1. The stud
 - The words for each outcome are `KEY_OUTCOME_WORDS`, exactly as spec 05, section 1.3 gives them. S5 shows them; it doesn't write its own.
 - **The usage meter** is `PrompterUsage` in `@storystage/host` (S8, spec 05 section 2.4), for the teacher's screen (S5). The wizard doesn't count anything.
 
+### 4.5 The Prompter panel (WP13c)
+
+The panel's states are spec 07, section 2.4. The studio draws them (S5). `packages/prompter/src/panel.ts` holds what they run on, `PrompterPanel`, so every state is tested on scripted replies without a screen. It sits over the request loop (`PrompterSession`), the tool runner (`PrompterRunner`) and the production's undo history (`ProductionSession`). The studio makes all three with one call, `createPrompterPanel`, which always sends this release's pinned `system` and `tools` (section 1.9).
+
+| Phase | When | What the learner can do |
+|---|---|---|
+| `absent` | The browser version: no panel at all | Nothing |
+| `off` | The school has switched the Prompter off (`prompter_off`, `refused_by_policy`) | Nothing |
+| `notSetUp` | No key (`no_key`) | Adults see **Set up…** (section 4.4) |
+| `ready` | The Prompter can take a request | Ask, in any mode the level allows |
+| `working` | A request is running, before any change | Stop |
+| `planned` | The last request showed a plan | Edit the plan; **Build these steps**, unless the level is Plan only; ask for changes in words; Stop |
+| `building` | The agreed plan is being built | Stop |
+| `built` | The request changed the production | **Undo this request**; ask again |
+| `limit` | The day's cap (`cap_reached`) | What the new level allows |
+| `problem` | Anything else that went wrong (section 7) | The message's action: try again, open set-up or undo |
+
+- **Modes** are `modesAt(level)` (section 4.3). A mode the level leaves out isn't offered at all.
+- **What the panel shows** is the conversation so far: what the learner asked, the Prompter's replies as they stream, its `explain` texts, and one line per change as it lands, with its plan step.
+- **Each request** carries the production and the storyboard as data (section 2.6), from the production as it stands.
+- **Editing a plan** happens in the client, with no request and no cost: move a step, delete one, change a value, add one. Each edit is checked again (section 6.3), and a step that can't be built carries its problem in plain words. **Build these steps** waits until no step has a problem. The panel keeps the plan as the Prompter showed it beside the learner's version, so it can be kept with the frame (section 6.7).
+- **Build these steps** sends "Build these steps." in the same mode, with the learner's plan as `<agreed_plan>`.
+- **Code this frame** asks for frame `f` in the current mode, so the Prompter's plan is for that frame.
+- **Undo this request** undoes the request's one step, and only if it is still the latest step in the history. Once the learner has changed something since, the Prompter's step is undone from the history, like any other.
+- **Stop** stops the request. Changes that already landed stay, as one step, and **Undo this request** is offered for them.
+
 ## 5. Story coach
 
 The coach helps a learner think. The learner writes every word.
