@@ -1,4 +1,16 @@
 import { expect, test, type Page } from '@playwright/test';
+import { readExport } from '@storystage/study';
+import {
+  answer,
+  exportLogs,
+  openFolder,
+  sessionCode,
+  startTask,
+  startWithClass,
+  studyCard,
+  switchPupil,
+  tick,
+} from '../study-steps.ts';
 
 // The M7 gate, "Pilot ready" (workplan section 5; WP18.2): curriculum mapping published; DPIA
 // done; pilot schools recruited; a class can be set up (WP24). The manual script is
@@ -154,6 +166,23 @@ test.fixme('M7: the chosen Prompter route works within its caps', () => {
   // native layer (24.5, S8). By hand: the script's section 4.
 });
 
-test.fixme('M7: the teacher exports the class’s study logs', () => {
-  // Waits on the study log export (WP24.6, with 7.13). By hand: the script's section 5.
+test('M7: the teacher exports the class’s study logs', async ({ page }) => {
+  // WP24.6, on the development server, where a test can switch study mode on (a school's policy
+  // does it in the app). The whole of study mode is `study.e2e.ts`; this is the teacher's part.
+  test.setTimeout(120_000);
+  await startWithClass(page, ['Ana', 'Ben'], true);
+  await tick(page, 'Ana');
+  await openFolder(page, 'Ana');
+  const { shown, code } = await sessionCode(page);
+  const card = await startTask(page, 'Say hello');
+  await card.getByRole('button', { name: 'Stop this task' }).click();
+  await answer(page, null, null);
+  await switchPupil(page);
+  const study = await studyCard(page);
+  await expect(study.getByText(`Session ${shown}`)).toBeVisible();
+  const file = await exportLogs(page, study);
+  // A file with pseudonymous session ids, and no pupil's name (the script's section 6).
+  expect(readExport(file.bytes).sessions.map((s) => s.code)).toEqual([code]);
+  const text = new TextDecoder().decode(file.bytes);
+  for (const name of ['Ana', 'Ben']) expect(text).not.toContain(name);
 });

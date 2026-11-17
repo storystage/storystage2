@@ -11,7 +11,8 @@ export interface SegmentedProps<K extends string> {
   /** Names the group for screen readers, for example "Shot". */
   label: string;
   options: readonly SegmentedOption<K>[];
-  value: K;
+  /** The chosen segment, or `null` before any is (a question not answered yet). */
+  value: K | null;
   onChange: (value: K) => void;
   isDisabled?: boolean;
 }
@@ -19,7 +20,9 @@ export interface SegmentedProps<K extends string> {
 /**
  * A segmented control (Direction A): one choice from a few, such as Wide, Medium or Close-up, or
  * Blocks or Tiles. It is a radio group: Tab lands on the chosen segment and the arrow keys choose
- * the next one, so one segment is always chosen.
+ * the next one, so one segment is always chosen once one has been. A question still to be answered
+ * has `null`, and Tab still reaches it. (A value matching no segment would take every segment out
+ * of the Tab order, as React Aria's radio group does.)
  */
 export function Segmented<K extends string>({
   label,

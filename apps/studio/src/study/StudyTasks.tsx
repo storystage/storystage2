@@ -453,7 +453,7 @@ export function QuestionsDialog({ tasks }: { tasks: StudyTasks }) {
             ...EASES.map((e) => ({ id: e, label: t(`question.ease.${e}`) })),
             { id: 'skipped' as const, label: t('question.skip') },
           ]}
-          value={ease ?? ('' as Ease)}
+          value={ease}
           onChange={setEase}
         />
       </div>
@@ -467,7 +467,7 @@ export function QuestionsDialog({ tasks }: { tasks: StudyTasks }) {
             ...CHOICES.map((c) => ({ id: c, label: t(`question.choice.${c}`) })),
             { id: 'skipped' as const, label: t('question.skip') },
           ]}
-          value={choice ?? ('' as Choice)}
+          value={choice}
           onChange={setChoice}
         />
       </div>

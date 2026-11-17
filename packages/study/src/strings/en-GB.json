@@ -31,6 +31,5 @@
   "question.skip": "Skip",
   "bar.session": "Study session {code}",
   "bar.tasks": "Study tasks",
-  "held.note": "Set to {editor} for this study task",
-  "prompter.note": "The Prompter is off during study tasks"
+  "held.note": "Set to {editor} for this study task"
 }

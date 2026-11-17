@@ -2,7 +2,7 @@
 
 **Gate (workplan section 5):** curriculum mapping published; DPIA done; pilot schools recruited; a class can be set up (WP24). WP24 is done when, in a test with 30 devices, a teacher sets up a class in under 15 minutes, every pupil reopens their own production next lesson and no one else's, the chosen Prompter route works within its caps, and the study logs export. **Who:** the owner, with a pilot teacher where the steps say so; S1 writes up.
 
-**What CI already checks on every pull request** (`apps/studio/e2e/gates/m7-pilot-ready.e2e.ts`), so these steps don't repeat it in one browser: a class of 30 imported on an empty device; two pupils' films, each found by its own pupil after a reload and not by the other; and Collect and Hand back, one folder for each pupil, with each film handed back beside the pupil's own. What CI can't check is many devices, a real teacher's time, and the documents.
+**What CI already checks on every pull request** (`apps/studio/e2e/gates/m7-pilot-ready.e2e.ts`), so these steps don't repeat it in one browser: a class of 30 imported on an empty device; two pupils' films, each found by its own pupil after a reload and not by the other; Collect and Hand back, one folder for each pupil, with each film handed back beside the pupil's own; and a ticked pupil's study session exported by the teacher, with its session id and no names. What CI can't check is many devices, a real teacher's time, and the documents.
 
 **Where:** a classroom or a room set up like one: the teacher's device and as many pupils' devices as you have (30 for WP24's done-when; start with 3), on the school's own Wi-Fi, with the build the run names. Steps marked _(waits)_ need work not built yet; the step says what.
 
@@ -54,7 +54,7 @@ With a pilot teacher if you can, using their own class list (record no names in 
 | 2 | With `prompter.dailyCap` set low in the policy file (M6 section 2), use the Prompter until the cap. | It steps down as `prompter.capAction` says (Explain only, then off), in plain words. | |
 | 3 | Look at the class's usage view. | Usage per class and per device. | |
 
-## 6. Study logs _(waits: 24.6)_
+## 6. Study logs _(24.6)_
 
 | # | Do | Expect | ✓ |
 |---|---|---|---|
