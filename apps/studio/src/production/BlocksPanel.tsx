@@ -9,7 +9,7 @@ import { createBlocksEditor, type AskRequest, type BlocksEditor } from '@storyst
 import type { EditorHost, HighlightMark } from '@storystage/editor-contract';
 import type { Ask as AskKind, PaletteTab } from '@storystage/story-api/editing';
 import { AskValue, ValueMenu } from '@storystage/tiles/cascade';
-import { themeVariables, useThemeStyle } from '@storystage/ui';
+import { useThemeStyle } from '@storystage/ui';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
 
@@ -34,12 +34,6 @@ export interface Highlights {
   /** The blocks the current frame links to (WP10.8). */
   readonly link?: readonly HighlightMark[];
 }
-
-/**
- * Blockly's workspace is white in both themes until the Alice-like look themes it (WP7.6), so
- * what the studio draws on it (highlights, a switched-off block) takes the light theme's tokens.
- */
-const ON_WHITE = themeVariables('light') as CSSProperties;
 
 const NO_MARKS: readonly HighlightMark[] = [];
 const NO_HIGHLIGHTS: Highlights = { rehearse: NO_MARKS, error: NO_MARKS };
@@ -119,7 +113,7 @@ export default function BlocksPanel({
   return (
     <div className="pr-workspace-frame">
       {!ready && <p className="pr-loading">{words.t('production.loading')}</p>}
-      <div ref={box} className="pr-workspace" style={ON_WHITE} data-ready={ready || undefined} />
+      <div ref={box} className="pr-workspace" data-ready={ready || undefined} />
       {question && !question.typing && (
         <ValueMenu
           program={question.request.program}

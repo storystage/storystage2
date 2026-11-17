@@ -31,6 +31,7 @@ import { changeFor, detailPlace, menuFor, type MenuAction } from './blockMenu.ts
 import { defineBlocks } from './definitions.ts';
 import { dropFromPalette, freshIn, type AskRequest, type Fresh } from './drops.ts';
 import { editsFor } from './gestures.ts';
+import { RENDERER, registerRenderer, storyTheme } from './renderer.ts';
 import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
 import { toolboxFor, withNewIds } from './toolbox.ts';
@@ -408,7 +409,12 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       // Blockly's menus and text fields go on the page, not in the workspace, which clips them:
       // a block near the workspace's edge would have its menu cut off.
       Blockly.common.setParentContainer(element.ownerDocument.body);
+      registerRenderer();
       ws = Blockly.inject(element, {
+        renderer: RENDERER,
+        theme: storyTheme(),
+        // Screen 02's dotted workspace; the stylesheet gives the dots their colour.
+        grid: { spacing: 20, length: 1, colour: '#3D342C', snap: false },
         toolbox: self ? (toolboxFor(host.program(), target, self, tab) as never) : undefined,
         trashcan: false,
         sounds: false,
@@ -491,10 +497,13 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           return true;
         }
         case 'addDetail':
-        case 'openMenu':
-          if (items.length === 0) return false;
-          block.showContextMenu(new KeyboardEvent('keydown'));
-          return true;
+        case 'openMenu': {
+          // Through Blockly's own menu key: `showContextMenu` is internal to Blockly.
+          const menu = Blockly.ShortcutRegistry.registry.getRegistry()['menu'];
+          if (items.length === 0 || !menu?.callback || !ws) return false;
+          Blockly.getFocusManager().focusNode(block);
+          return menu.callback(ws, new KeyboardEvent('keydown'), menu, { focusedNode: block });
+        }
         default:
           // Copy, paste, and moving a statement up or down come next.
           return false;

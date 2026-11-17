@@ -18,18 +18,28 @@ async function openCode(page: Page) {
   await page.goto('/?example');
   await page.getByRole('tab', { name: /Production stage/ }).click();
   await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
-  await expect(block(page, main.body[0]!.id)).toBeVisible();
+  // The whole workspace in the window: the code sits below the scene view, and the rows'
+  // height can put the first block at the window's edge, where a drag can't start.
+  await page.locator('.pr-workspace').scrollIntoViewIfNeeded();
+  await expect(block(page, main.body[0]!.id)).toBeInViewport({ ratio: 1 });
 }
 
 /** Drags a block by a point near its top left to (x, y) on the page. */
 async function drag(page: Page, from: Locator, to: { x: number; y: number }) {
   const box = (await from.boundingBox())!;
+  const view = page.viewportSize()!;
+  expect(box.y + 8, 'the block to drag is in the window').toBeLessThan(view.height);
+  expect(to.y, 'where it goes is in the window').toBeLessThan(view.height);
   await page.mouse.move(box.x + 8, box.y + 8);
   await page.mouse.down();
   await page.mouse.move(box.x + 40, box.y + 40, { steps: 5 });
   await page.mouse.move(to.x, to.y, { steps: 10 });
   await page.mouse.up();
 }
+
+/** The block keyboard focus is in, by its node id. */
+const focusedBlock = (page: Page) =>
+  page.evaluate(() => document.activeElement?.closest('[data-id]')?.getAttribute('data-id'));
 
 /** The stage's own Undo (07-ux section 7.5), named for its step. */
 const undoButton = (page: Page) =>
@@ -117,7 +127,8 @@ test('New adds a procedure in its own tab, offered in the palette, one undo step
   page,
 }) => {
   await openCode(page);
-  await page.getByRole('button', { name: 'New in scene 1' }).click();
+  // From the keyboard: the page may still move as the stage loads, which can spoil a click.
+  await page.getByRole('button', { name: 'New in scene 1' }).press('Enter');
   await page.getByRole('menuitem', { name: 'Procedure…' }).click();
   const dialog = page.getByRole('dialog', { name: 'New procedure' });
   await dialog.getByRole('textbox', { name: 'Name' }).fill('walkToTheDoor');
@@ -157,14 +168,14 @@ test('a block’s menu and keys switch it off, add a detail and duplicate, each 
   await expect(undoButton(page)).toHaveText(/^Undo: Switch off /);
   await expect(said).toHaveText(/^Switch off /);
   // Ctrl+/ on the block in focus switches it on again, as in Tiles.
-  await expect(block(page, id).locator('> .blocklyPath')).toBeFocused();
+  await expect.poll(() => focusedBlock(page)).toBe(id);
   await page.keyboard.press('Control+/');
   await expect(block(page, id)).not.toHaveClass(/blocklyDisabledPattern/);
   await expect(undoButton(page)).toHaveText(/^Undo: Switch on /);
   // Ctrl+D duplicates it just after itself, in the method (not loose, as Blockly's D would).
   const says = page.locator('.pr-workspace .ss_story_say');
   const before = await says.count();
-  await expect(block(page, id).locator('> .blocklyPath')).toBeFocused();
+  await expect.poll(() => focusedBlock(page)).toBe(id);
   await page.keyboard.press('Control+d');
   await expect(says).toHaveCount(before + 1);
   await expect(undoButton(page)).toHaveText(/^Undo: Make /);
