@@ -72,8 +72,9 @@ function blockFor(scope: { focusedNode?: unknown }): Blockly.BlockSvg | null {
 }
 
 /**
- * Our keys, as in Tiles (`14-editors.md` section 3d): Ctrl+/ switches a statement off or on and
- * Ctrl+D duplicates it (Cmd on a Mac or iPad). Blockly's D makes a loose copy, so it goes.
+ * Our keys, as in Tiles (`14-editors.md` section 3d): Ctrl+/ switches a statement off or on,
+ * Ctrl+D duplicates it (Cmd on a Mac or iPad), and Alt+↑ and Alt+↓ move it one place in its list.
+ * Blockly's D makes a loose copy, so it goes.
  */
 function registerKeys() {
   const keys = Blockly.ShortcutRegistry.registry;
@@ -83,11 +84,14 @@ function registerKeys() {
     keys.createSerializedKey(code, [KeyCodes.META]),
   ];
   if (keys.getRegistry()['duplicate']) keys.unregister('duplicate');
+  const alt = (code: number) => [keys.createSerializedKey(code, [KeyCodes.ALT])];
   const ours = [
-    ['ss_switch', KeyCodes.SLASH, { kind: 'switch' }],
-    ['ss_duplicate', KeyCodes.D, { kind: 'duplicate' }],
+    ['ss_switch', both(KeyCodes.SLASH), { kind: 'switch' }],
+    ['ss_duplicate', both(KeyCodes.D), { kind: 'duplicate' }],
+    ['ss_move_up', alt(KeyCodes.UP), { kind: 'moveUp' }],
+    ['ss_move_down', alt(KeyCodes.DOWN), { kind: 'moveDown' }],
   ] as const;
-  for (const [name, code, action] of ours) {
+  for (const [name, keyCodes, action] of ours) {
     if (keys.getRegistry()[name]) continue;
     keys.register({
       name,
@@ -100,7 +104,7 @@ function registerKeys() {
         run(block.id as NodeId, action);
         return true;
       },
-      keyCodes: both(code),
+      keyCodes: [...keyCodes],
     });
   }
 }
@@ -217,8 +221,6 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   let tab: PaletteTab = 'actions';
   /** While the cascade asks about a dropped block, the workspace waits. */
   let asking = false;
-  /** A palette drop just applied: redraw when it comes back, to show the program's own ids. */
-  let redraw = false;
 
   /** The palette for the chosen object, as the program has it now. */
   function updatePalette() {
@@ -253,6 +255,23 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     updatePalette();
   }
 
+  /**
+   * The blocks back as the program has them, with focus on the block the learner was on: a move
+   * by keyboard that's refused (or left outside the method) keeps their place.
+   */
+  function putBack() {
+    const was = Blockly.getFocusManager().getFocusedNode();
+    const block =
+      was instanceof Blockly.BlockSvg
+        ? was
+        : was instanceof Blockly.Field
+          ? was.getSourceBlock()
+          : null;
+    const id = block && block.workspace === ws ? (block.id as NodeId) : null;
+    rebuild();
+    if (id) focusOn(id);
+  }
+
   /** After a gesture: the edits it made, one step, or the blocks back as they were. */
   function settle() {
     settling = null;
@@ -266,33 +285,35 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       read = fromBlocks(Blockly.serialization.workspaces.save(ws) as WorkspaceState);
     } catch (e) {
       if (!(e instanceof BlocksMismatch)) throw e;
-      rebuild();
+      putBack();
       return;
     }
     // A block from the palette, landed in the method. (A value it took the place of is left
     // loose on the workspace by Blockly; the drop's edits take it out.)
     const fresh = freshIn(host.program(), read);
     if (fresh.length === 1) return void dropped(fresh[0]!);
-    if (fresh.length > 1) return rebuild();
+    if (fresh.length > 1) return putBack();
     if (ws.getTopBlocks(false).some((b) => b.id !== owner)) {
       host.announce(WORDS['editor.looseBlock']!);
-      rebuild();
+      putBack();
       return;
     }
     const result = editsFor(host.program(), read);
     if (result.kind === 'none') return;
-    if (result.kind === 'putBack') return rebuild();
+    if (result.kind === 'putBack') return putBack();
     const applied = host.apply(result.edits, result.label, 'blocks');
-    if (!applied.ok) {
-      host.announce(applied.reason);
-      rebuild();
-    }
+    // Said aloud, as Tiles says it (14-editors 3f.5, 3i.9): "Move penguin say …".
+    host.announce(applied.ok ? result.label : applied.reason);
+    if (!applied.ok) putBack();
   }
 
   /** A block from the palette: placed, its values asked for, then one step (or nothing). */
   async function dropped(fresh: Fresh) {
     if (!host) return;
     const anchor = ws?.getBlockById(fresh.node.id)?.getSvgRoot() ?? null;
+    // Where focus goes afterwards: the new block, or else where it would have gone, so a learner
+    // on the keyboard (Blockly's move, then the cascade) keeps their place, even after Escape.
+    let then: NodeId = fresh.place.kind === 'statement' ? fresh.place.parent : fresh.place.node;
     asking = true;
     try {
       const ask = options.ask;
@@ -305,13 +326,17 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       if (outcome.kind === 'refused') host.announce(outcome.reason);
       if (outcome.kind === 'edits') {
         const applied = host.apply(outcome.edits, outcome.label, 'blocks');
-        if (applied.ok) redraw = true;
-        else host.announce(applied.reason);
+        if (applied.ok) {
+          host.announce(outcome.label);
+          const first = outcome.edits[0];
+          if (first?.kind === 'insert') then = first.node.id;
+        } else host.announce(applied.reason);
       }
     } finally {
       asking = false;
       // The new blocks take the program's ids, and a cancelled drop goes.
       rebuild();
+      focusOn(then);
     }
   }
 
@@ -468,10 +493,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       menuActions.set(ws, (node, action) => void act(node, action));
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {
-        if (change.source !== 'blocks' || redraw) {
-          redraw = false;
-          rebuild();
-        }
+        // The editor's own steps are drawn already (a palette drop redraws itself when done).
+        if (change.source !== 'blocks') rebuild();
       });
       rebuild();
       if (view.focus) this.focus(view.focus);
@@ -526,6 +549,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       switch (command) {
         case 'delete':
         case 'duplicate':
+        case 'moveUp':
+        case 'moveDown':
         case 'toggleEnabled': {
           // A value stays in its slot, and the method's own block stays too.
           const item = offered(command === 'toggleEnabled' ? 'switch' : command);
@@ -547,7 +572,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           return menu.callback(ws, new KeyboardEvent('keydown'), menu, { focusedNode: block });
         }
         default:
-          // Copy, paste, and moving a statement up or down come next.
+          // Copy and paste come next.
           return false;
       }
     },

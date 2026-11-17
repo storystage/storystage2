@@ -12,6 +12,7 @@ import { AskValue, DetailMenu, ValueMenu } from '@storystage/tiles/cascade';
 import { useThemeStyle } from '@storystage/ui';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
+import type { Handoff } from './handoff.ts';
 
 export interface BlocksPanelProps {
   method: NodeId;
@@ -25,6 +26,8 @@ export interface BlocksPanelProps {
   highlights?: Highlights;
   /** Where the Code editor finds the editor showing, for the block chosen in it. */
   editorRef?: { current: { selection(): readonly NodeId[] } | null };
+  /** Where the learner was in Tiles, after a switch (`14-editors.md` section 4.2). */
+  handoff?: Handoff;
 }
 
 /** What Rehearse highlights in the editor (`07-ux.md` section 7.4), and the frame's links. */
@@ -62,6 +65,7 @@ export default function BlocksPanel({
   focus = null,
   highlights = NO_HIGHLIGHTS,
   editorRef,
+  handoff,
 }: BlocksPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<BlocksEditor | null>(null);
@@ -102,14 +106,27 @@ export default function BlocksPanel({
           });
         }),
     });
-    blocks.mount(box.current, host, { method, selection: focus ? [focus] : [], focus });
+    const given = handoff?.take();
+    blocks.mount(
+      box.current,
+      host,
+      given ? { ...given, method } : { method, selection: focus ? [focus] : [], focus },
+    );
     editor.current = blocks;
     if (editorRef) editorRef.current = blocks;
+    // After a switch, focus goes back to the statement that had it, or into the editor (4.5): a
+    // frame later, after the switch's dialog has handed focus back to where it opened from.
+    const refocus = given
+      ? requestAnimationFrame(() => {
+          if (editor.current === blocks) blocks.focus(given.focus ?? undefined);
+        })
+      : 0;
     setReady(true);
     return () => {
+      cancelAnimationFrame(refocus);
       editor.current = null;
       if (editorRef?.current === blocks) editorRef.current = null;
-      blocks.unmount();
+      handoff?.leave(blocks.unmount());
     };
     // `focus` is for opening only: the Code editor opens afresh for each block it's asked to show.
     // eslint-disable-next-line react-hooks/exhaustive-deps

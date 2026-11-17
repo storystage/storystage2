@@ -239,7 +239,7 @@ export function App({
   // What came across from the Alice world just opened, until it's read and closed.
   const [alice, setAlice] = useState<{ title: string; report: ImportReport } | null>(null);
   const aliceInput = useRef<HTMLInputElement>(null);
-  const editors = useEditorHost(studio.session, setSaid);
+  const editors = useEditorHost(studio.session, setSaid, host.policy.editor.locked);
   // The frames Rehearse has played since they last changed (07-ux 2.3), for this session only.
   const [rehearsed, setRehearsed] = useState<Rehearsed>(NONE_REHEARSED);
   // One packer for the host: a new one each render would make every save look new to useSaving.
@@ -606,6 +606,7 @@ export function App({
                   voices={voices}
                   onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}
                   host={editors}
+                  editorDefault={host.policy.editor.default}
                   onGoToStoryboard={() => setMode('storyboard')}
                   announcement={said}
                   reveal={reveal}

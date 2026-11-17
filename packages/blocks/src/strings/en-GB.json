@@ -37,5 +37,9 @@
   "menu.delete": "Delete",
   "menu.gone": "That block isn’t there any more.",
   "block.addDetail": "add detail ▾",
-  "block.addDetailName": "add detail"
+  "block.addDetailName": "add detail",
+  "menu.moveUp": "Move up",
+  "menu.moveDown": "Move down",
+  "menu.top": "It’s already at the top.",
+  "menu.bottom": "It’s already at the bottom."
 }

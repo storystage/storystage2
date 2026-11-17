@@ -5,7 +5,7 @@ import {
   type MethodDecl,
   type NodeId,
 } from '@storystage/ast';
-import type { EditorHost } from '@storystage/editor-contract';
+import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import type { Production, SceneId } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
 import { PALETTE_TABS, describer, type PaletteTab } from '@storystage/story-api/editing';
@@ -31,6 +31,9 @@ import type { Highlights } from './BlocksPanel.tsx';
 import { sceneNumber } from '../storyboard/edits.ts';
 import { NewMethod } from './NewMethod.tsx';
 import { useTextViewSetting } from './textViewSetting.ts';
+import { EditorSwitch, editorName } from './EditorSwitch.tsx';
+import { editorShown, useEditorSetting } from './editorSetting.ts';
+import { useHandoff } from './handoff.ts';
 
 export interface CodeEditorProps {
   production: Production;
@@ -42,6 +45,11 @@ export interface CodeEditorProps {
   highlights?: Highlights;
   /** Set to the editor showing, for the block chosen in it (Rehearse to here). */
   editorRef?: { current: { selection(): readonly NodeId[] } | null };
+  /**
+   * The class's default editor, from policy (`editor.default`; `14-editors.md` 4.3). Blocks with
+   * none. Whether it's locked is the host's `policy.editorLocked`.
+   */
+  editorDefault?: EditorId;
 }
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
@@ -77,6 +85,7 @@ const tabName = (p: Production, m: MethodDecl | ListenerDecl) =>
   m.kind === 'method' ? m.name : describer(p.program)(m);
 
 const BlocksPanel = lazy(() => import('./BlocksPanel.tsx'));
+const TilesPanel = lazy(() => import('./TilesPanel.tsx'));
 
 /** The palette's object: the scene itself, or one of its objects. */
 function paletteTarget(key: Key): Expression {
@@ -99,8 +108,15 @@ export function CodeEditor({
   reveal = null,
   highlights,
   editorRef,
+  editorDefault = 'blocks',
 }: CodeEditorProps) {
   const themeStyle = useThemeStyle();
+  // Blocks or Tiles (14-editors section 4): the learner's choice, the class default, or locked.
+  // A host without policy (a test's own) leaves the switch unlocked, as the browser's has it.
+  const locked = (host.policy as EditorHost['policy'] | undefined)?.editorLocked === true;
+  const [editorChoice, setEditorChoice] = useEditorSetting();
+  const shown = editorShown(editorChoice, { default: editorDefault, locked });
+  const handoff = useHandoff();
   const methods = sceneMethods(p, scene);
   // Opened to show a block: its method first. Each reveal opens the editor afresh (a new key).
   const [chosen, setChosen] = useState<Key | null>(() =>
@@ -132,8 +148,27 @@ export function CodeEditor({
   const target = useMemo(() => paletteTarget(picked), [picked]);
   if (open === null) return null;
   return (
-    <section className="pr-code" aria-label={words.t('production.codeOf', { n })}>
+    <section
+      className="pr-code"
+      aria-label={words.t('production.codeOf', { n, editor: editorName(shown) })}
+      data-editor={shown}
+    >
       <div className="pr-palette-bar">
+        <EditorSwitch
+          shown={shown}
+          locked={locked}
+          explained={editorChoice.explained}
+          program={p.program}
+          method={methods.find((m) => m.id === open) ?? null}
+          onSwitch={(to, explained) => {
+            handoff.switching();
+            setEditorChoice({ chosen: to, explained: editorChoice.explained || explained });
+            host.announce(words.t('production.nowShowing', { editor: editorName(to) }));
+          }}
+          onStay={(explained) => {
+            if (explained) setEditorChoice({ ...editorChoice, explained: true });
+          }}
+        />
         <Select
           className="pr-picker"
           selectedKey={picked}
@@ -193,15 +228,29 @@ export function CodeEditor({
             data-text={text.shown || undefined}
           >
             <Suspense fallback={<p className="pr-loading">{words.t('production.loading')}</p>}>
-              <BlocksPanel
-                method={m.id}
-                host={host}
-                target={target}
-                tab={tab}
-                focus={reveal && m.id === chosen ? reveal : null}
-                {...(highlights ? { highlights } : {})}
-                {...(editorRef ? { editorRef } : {})}
-              />
+              {shown === 'tiles' ? (
+                <TilesPanel
+                  method={m.id}
+                  host={host}
+                  target={target}
+                  tab={tab}
+                  focus={reveal && m.id === chosen ? reveal : null}
+                  handoff={handoff}
+                  {...(highlights ? { highlights } : {})}
+                  {...(editorRef ? { editorRef } : {})}
+                />
+              ) : (
+                <BlocksPanel
+                  method={m.id}
+                  host={host}
+                  target={target}
+                  tab={tab}
+                  focus={reveal && m.id === chosen ? reveal : null}
+                  handoff={handoff}
+                  {...(highlights ? { highlights } : {})}
+                  {...(editorRef ? { editorRef } : {})}
+                />
+              )}
             </Suspense>
             {text.shown && (
               <div className="pr-text">
