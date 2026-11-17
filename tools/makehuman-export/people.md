@@ -25,6 +25,11 @@ Thirty-seven people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2
     - Nobody wears a T-shirt with MakeHuman's logo. People wear the logo-free outfits, each in their own colour (`clothesColour`), so they don't look like a team in uniform.
     - The checker refuses retired outfits (`RETIRED_CLOTHES`).
     - **8 Nov:** the renders showed that the T-shirt outfit (`male_casualsuit06`) also carries the logo, plainly on white and faintly once recoloured, so it is retired too. Amara, Kai, Niamh, Mei, Jayden, Leah and Morgan changed to a striped shirt or a jacket in their own colours, and were made again (owner, 8 Nov 2026). The plain shirt and grey jeans (`male_casualsuit01`) can't be recoloured: its colour stained the belt and jeans and left the shirt navy, so it is only worn as it comes (`NOT_RECOLOURED`).
+- **16 and 17 Nov: the children's clothes.** Every child was in one of three outfits, all with jeans and most with the same striped shirt. Within the free pack:
+    - Alfie and Kofi wear dungarees; Amara, Mei and Isla a blouse and skirt, whose hem the pipeline levels, as the pack's skirt hangs to a point on a child (`straightHem`).
+    - Kai, Rhys, Zain, Arjan and Eli wear grey, navy, black or khaki trousers: the pipeline recolours the jeans (`trousersColour`, only on the two outfits with jeans).
+    - Kai, Eli and Amara wear plain shirts, and Aisha, Rhys and Mei checked ones: the pipeline smooths the stripes out of the picture, keeping its folds, and lays a gingham over it for checks (`pattern`, only on a shirt or blouse on its own: the jacket shares the shirt's picture).
+    - The adults keep their outfits for now.
 - **Oskar's hair:** `bob02`'s built-in colour is pale silver, so Oskar, aged 13, now has a short style. Siân (55) keeps `bob02`.
 
 ## How the list was chosen
@@ -53,7 +58,7 @@ The CC0 system pack is small, so some people StoryStage should show can't be mad
 | Glasses | Done: five people of mixed ages wear plain frames from the community's CC0 `glasses01` pack | — |
 | Wheelchairs, walking aids | No one is shown using them yet | A wheelchair and crutches are Props from Poly Pizza (CC BY 3.0), which a character can sit in or hold |
 | Grey or white hair | The pack's hair has fixed colours, none of them grey | Tinted in the pipeline (owner, 1 Nov 2026) |
-| Children's clothes | Children wear adult outfits refitted to their bodies | Check the first build; commission if they look wrong |
+| Children's clothes | Children wear adult outfits refitted to their bodies | More variety within the pack: dungarees, skirts with a level hem, trousers in four colours, plain and checked shirts (owner, 16 and 17 Nov 2026). Children's own cuts would need a commission |
 | Only 10 hairstyles | Some repetition | Community CC0 hair through the audit |
 
 ## The people
