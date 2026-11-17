@@ -47,6 +47,7 @@ import {
   meshFromModel,
   readModel,
   renderThumbnail,
+  THUMBNAIL_VIEWS,
   type ImageDecoder,
 } from '@storystage/sketches';
 import { backstageId, type JointName } from '@storystage/story-api';
@@ -179,7 +180,11 @@ export async function buildSources(
     // A backdrop's is its own picture: a flat tile seen from the front would show nothing.
     await writeFile(
       join(dir, thumbnail),
-      made ? made.thumbnail : await thumbnailWebp(await renderThumbnail(mesh, { decodeImage })),
+      made
+        ? made.thumbnail
+        : await thumbnailWebp(
+            await renderThumbnail(mesh, { decodeImage, ...THUMBNAIL_VIEWS[item.section] }),
+          ),
     );
 
     built.set(item.id, {

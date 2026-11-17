@@ -49,6 +49,7 @@ import {
   makeItemSketches,
   meshFromDocument,
   renderThumbnail,
+  THUMBNAIL_VIEWS,
   type ImageDecoder,
   type Picture,
   type SketchMesh,
@@ -431,6 +432,8 @@ export async function buildModel(
   const sketches = makeItemSketches({ id, section: details.section, displayName, themes }, mesh);
   const thumbnailPicture = await renderThumbnail(mesh, {
     ...(tools.decodeImage ? { decodeImage: tools.decodeImage } : {}),
+    // Its section's own view (WP3.10; spec 17, section 7a, rule 1).
+    ...THUMBNAIL_VIEWS[details.section],
   });
   const thumbnail = await tools.encodeThumbnail(thumbnailPicture);
   const thumbnailPath = `thumbnail.${thumbnail.mimeType === 'image/webp' ? 'webp' : 'png'}`;
