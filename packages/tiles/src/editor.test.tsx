@@ -187,6 +187,16 @@ describe('the contract (spec 14, 1)', () => {
     expect(view).toEqual({ method: IDS.main, selection: [IDS.count], focus: IDS.count });
   });
 
+  it('hands back the first row when the learner tabbed to it and moved no further', () => {
+    const { editor: e } = mountEditor();
+    act(() => item('cat say Hello').focus());
+    expect(e.selection()).toEqual([IDS.say]);
+    let view: ReturnType<TileEditor['unmount']> | null = null;
+    act(() => void (view = e.unmount()));
+    editor = null;
+    expect(view).toEqual({ method: IDS.main, selection: [IDS.say], focus: IDS.say });
+  });
+
   it('moves focus to a block when asked', () => {
     const { editor: e } = mountEditor();
     act(() => e.focus(IDS.ouch));
