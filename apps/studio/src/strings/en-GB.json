@@ -862,5 +862,10 @@
   "settings.study.deletedAfter.other": "{count} sessions deleted from this device.",
   "settings.study.tick": "Taking part in the study",
   "settings.study.tickHelp": "Tick each pupil taking part in the study.",
-  "settings.study.tickNamed": "Taking part in the study: {name}"
+  "settings.study.tickNamed": "Taking part in the study: {name}",
+  "study.bar": "Study",
+  "study.ask": "Is this learner taking part in the study?",
+  "study.askWhy": "Only if their parent or carer agreed, and they say yes today. The answer lasts until StoryStage closes.",
+  "study.no": "No",
+  "study.yes": "Yes"
 }
