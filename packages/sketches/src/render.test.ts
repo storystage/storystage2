@@ -140,3 +140,34 @@ describe('renderSketch', () => {
     expect(s.svg).not.toMatch(/NaN|Infinity/);
   });
 });
+
+describe('renderSketch, outline only', () => {
+  // A body with a step in front of it, which draws inner lines, and a speck beside it.
+  const scan = boxes([
+    { min: [-0.5, 0, 0], max: [0.5, 1, 0.5] },
+    { min: [-0.3, 0.2, -0.2], max: [0.3, 0.6, 0] },
+    { min: [0.9, 0, 0], max: [0.92, 0.02, 0.02] },
+  ]);
+  const d = (svg: string, part: string) => new RegExp(`class="${part}" d="([^"]*)"`).exec(svg)![1]!;
+
+  it('draws only the outer edge, closed, and no inner lines', () => {
+    const lines = renderSketch(scan, 'front');
+    const outline = renderSketch(scan, 'front', { outlineOnly: true });
+    // The step's edges are lines in an ordinary sketch; outline only, they're gone.
+    expect(outline.metrics.outlineLength).toBeLessThan(
+      lines.metrics.outlineLength + lines.metrics.detailLength,
+    );
+    expect(d(outline.svg, 'detail')).toBe('');
+    expect(outline.metrics.detailLength).toBe(0);
+    expect(d(outline.svg, 'outline')).toMatch(/^M/);
+  });
+
+  it('leaves out loops too small to be shape, such as a scan’s specks', () => {
+    const lines = renderSketch(scan, 'front');
+    const outline = renderSketch(scan, 'front', { outlineOnly: true });
+    // Drawn with lines the speck is its own little outline; outline only, there's one loop.
+    expect(lines.metrics.lines).toBeGreaterThan(1);
+    expect(outline.metrics.lines).toBe(1);
+    expect(d(outline.svg, 'fill').match(/M/g)).toHaveLength(1);
+  });
+});

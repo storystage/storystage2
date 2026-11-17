@@ -25,7 +25,11 @@ type Item = Pick<BackstageItem, 'id' | 'section' | 'displayName' | 'themes'>;
 export function makeItemSketches(
   item: Item,
   mesh: SketchMesh | null,
-  options: { readonly size?: number } = {},
+  options: {
+    readonly size?: number;
+    /** Sketch files (`sketches/<id>/<facing>.svg`) to draw as an outline only (`renderSketch`). */
+    readonly outlineOnly?: ReadonlySet<string>;
+  } = {},
 ): MadeSketch[] {
   if (item.section === 'backdrops') {
     const hand = backdropSketchFor(item);
@@ -49,6 +53,7 @@ export function makeItemSketches(
       title: sketchTitle(item.displayName, p.facing, p.pose),
       pose: p.pose,
       ...(options.size === undefined ? {} : { size: options.size }),
+      ...(options.outlineOnly?.has(p.file) ? { outlineOnly: true } : {}),
     });
     return { ...p, svg: sketch.svg, flags: checkSketch(sketch) };
   });
