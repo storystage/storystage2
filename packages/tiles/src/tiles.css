@@ -625,3 +625,9 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* A value's turning arrow (arrow.tsx). A margin, not a space: pills and menu items are flex
+   boxes, which drop a space at the start of an item. */
+.tl-arrow {
+  margin-inline-start: 0.3em;
+}

@@ -32,6 +32,7 @@ import {
   TextField,
 } from 'react-aria-components';
 import { tileVariables } from './tokens.ts';
+import { Arrow } from './arrow.tsx';
 import { t } from './words.ts';
 
 /** The kinds of value a new variable may hold. */
@@ -125,6 +126,7 @@ export function ValueMenu(props: ValueMenuProps) {
       const item = (
         <MenuItem key={key} id={key} textValue={c.words} className="tl-menu-item">
           {c.words}
+          <Arrow arrow={c.arrow} />
         </MenuItem>
       );
       if (!c.choices) return [item];

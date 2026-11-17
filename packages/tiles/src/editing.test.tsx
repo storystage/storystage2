@@ -239,3 +239,27 @@ describe('undo and redo are the studio’s (07-ux §7.3, S5’s window handler)'
     });
   }
 });
+
+describe('the turning arrows on left and right (owner, 16 Nov; Blockly Games)', () => {
+  it('draws ↺ after left and ↻ after right, but names and undo labels keep the plain words', async () => {
+    const { host, user } = setup(IDS.turn);
+    const turn = item('cat turn left 0.25 (switched off)');
+    const left = within(turn).getByRole('button', { name: 'left' });
+    expect(left.textContent).toBe('left↺');
+    expect(left.querySelector('.tl-arrow')!.getAttribute('aria-hidden')).toBe('true');
+    await user.click(left);
+    const menu = await screen.findByRole('menu', { name: 'direction' });
+    const right = within(menu).getByRole('menuitemradio', { name: 'right' });
+    expect(right.textContent).toBe('right↻');
+    // Forward and backward turn the other way about, so they have no arrow.
+    expect(within(menu).getByRole('menuitemradio', { name: 'forward' }).textContent).toBe(
+      'forward',
+    );
+    await user.click(right);
+    expect(
+      within(item('cat turn right 0.25 (switched off)')).getByRole('button', { name: 'right' })
+        .textContent,
+    ).toBe('right↻');
+    expect(last(host)).toBe('Change left to right in cat turn');
+  });
+});
