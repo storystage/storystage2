@@ -35,7 +35,8 @@ import {
   blocksChip,
   blocksDrag,
   blocksDragBelow,
-  blocksMarkerIn,
+  blocksMarkerInside,
+  blocksReplacing,
   blocksMenu,
   madeIds,
   blocksMoveByKeyboard,
@@ -133,11 +134,6 @@ const KEEPS_VALUE_ID = 'S5: Blocks keeps the old value node’s id';
  * switched off or deleted. S6.
  */
 const NO_ROW_MENU = 'S6: Tiles has no menu on a row for the commands';
-/**
- * Found by this test (17 Nov): a question dragged from Blocks' flyout onto a value doesn't go in,
- * and Blockly's keyboard move of one shows no place for it. S5 to check: they were untested.
- */
-const NO_QUESTION_IN_BLOCKS = 'S5: a question from the flyout doesn’t go into a value';
 /**
  * Found by this test (17 Nov): Tiles' drags carry statements only, and a number's menu has no
  * questions, so by pointer a question can't go into a value. S6.
@@ -374,9 +370,12 @@ const TASKS: readonly Task[] = [
         fails: DRAGS_THE_REST,
         run: async (page) => {
           await blocksDragBelow(page, flyoutBlock(page, 'control:doTogether'), block(page, MOVE));
-          const box = await settled(page, '.pr-workspace .ss_doTogether:not(.blocklyFlyout *)');
-          // The say by its top left, into the do together's body, under its header.
-          await blocksDrag(page, block(page, SAY), { x: box.x + 30, y: box.y + 52 });
+          // The say by its top left, into the do together's body, under its header, found once
+          // the say is lifted and the stack has closed up.
+          await blocksDrag(page, block(page, SAY), async () => {
+            const box = await settled(page, '.pr-workspace .ss_doTogether:not(.blocklyFlyout *)');
+            return { x: box.x + 30, y: box.y + 52 };
+          });
         },
       },
       'Blocks by keyboard': async (page) => {
@@ -386,7 +385,7 @@ const TASKS: readonly Task[] = [
           .locator('.pr-workspace .ss_doTogether:not(.blocklyFlyout *)')
           .first()
           .getAttribute('data-id');
-        await blocksMoveByKeyboard(page, SAY, blocksMarkerIn(page, made!));
+        await blocksMoveByKeyboard(page, SAY, () => blocksMarkerInside(page, made!));
       },
       'Tiles by pointer': async (page) => {
         await tilesDragBelow(page, tilesControl(page, 'do together'), tilesRow(page, MOVE));
@@ -460,7 +459,8 @@ const TASKS: readonly Task[] = [
     steps: 1,
     ways: {
       'Blocks by pointer': {
-        fixme: NO_QUESTION_IN_BLOCKS,
+        // Blocks makes the program; it's Tiles that can't draw the fox inside the question.
+        fails: ONE_PILL,
         run: async (page) => {
           await chooseObjectByPointer(page, 'penguin');
           await paletteTab(page, 'Questions', 'pointer');
@@ -471,18 +471,14 @@ const TASKS: readonly Task[] = [
         },
       },
       'Blocks by keyboard': {
-        fixme: NO_QUESTION_IN_BLOCKS,
+        // Blocks makes the program; it's Tiles that can't draw the fox inside the question.
+        fails: ONE_PILL,
         run: async (page) => {
           await chooseObjectByKeyboard(page, 'penguin');
           await paletteTab(page, 'Questions', 'keyboard');
           await blocksFlyoutByKeyboard(page, 'getDistanceTo');
           await blocklyKey(page, 'Enter');
-          await pressUntil(
-            page,
-            'ArrowDown',
-            async () => (await blocksMarkerIn(page, SAY).count()) > 0,
-            12,
-          );
+          await pressUntil(page, 'ArrowDown', () => blocksReplacing(page, DURATION), 12);
           await blocklyKey(page, 'Enter');
           await itemByKeyboard(page, 'the other one', 'fox');
         },

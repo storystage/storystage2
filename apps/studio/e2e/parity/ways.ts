@@ -107,15 +107,14 @@ export const block = (page: Page, id: string) =>
   page.locator(`.pr-workspace .blocklyDraggable[data-id="${id}"]`).first();
 
 /**
- * A block in the flyout: a Story API block by its name ("move"), or a control block by its kind
- * ("control:doTogether"), by the block type Blocks marks it with.
+ * A block in the flyout by the entry it makes (S5's `data-callee`, #470): a Story API block by
+ * its name ("move", "getDistanceTo"), or a control block as "control:doTogether". Exact: a block
+ * type's class would match the value blocks inside a flyout block too (S5's review).
  */
 export const flyoutBlock = (page: Page, name: string) =>
   page
     .locator(
-      name.startsWith('control:')
-        ? `.blocklyFlyout .ss_${name.slice(8)}`
-        : `.blocklyFlyout .ss_story_${name}, .blocklyFlyout .ss_storyfn_${name}`,
+      `.blocklyFlyout [data-callee="${name.startsWith('control:') ? name : `story:${name}`}"]`,
     )
     .first();
 
@@ -127,16 +126,25 @@ export async function inView(page: Page) {
   await page.locator('.pr-workspace').scrollIntoViewIfNeeded();
 }
 
-/** Drags a block by a point near its top left to (x, y) on the page (as production.e2e does). */
-export async function blocksDrag(page: Page, from: Locator, to: { x: number; y: number }) {
+type Point = { readonly x: number; readonly y: number };
+
+/**
+ * Drags a block by a point near its top left to `to` on the page (as production.e2e does). The
+ * grab is 8 px in from the block's corner, which is the block's own edge for every statement block
+ * today; a chip that started nearer the corner would be pulled out instead (S5's review). `to`
+ * may be worked out once the drag has begun, as Blocks closes up the stack when a statement is
+ * lifted, so what was below it moves up (S5, #473).
+ */
+export async function blocksDrag(page: Page, from: Locator, to: Point | (() => Promise<Point>)) {
   const box = (await from.boundingBox())!;
   const view = page.viewportSize()!;
   expect(box.y + 8, 'the block to drag is in the window').toBeLessThan(view.height);
-  expect(to.y, 'where it goes is in the window').toBeLessThan(view.height);
   await page.mouse.move(box.x + 8, box.y + 8);
   await page.mouse.down();
   await page.mouse.move(box.x + 40, box.y + 40, { steps: 5 });
-  await page.mouse.move(to.x, to.y, { steps: 10 });
+  const there = typeof to === 'function' ? await to() : to;
+  expect(there.y, 'where it goes is in the window').toBeLessThan(view.height);
+  await page.mouse.move(there.x, there.y, { steps: 10 });
   await page.mouse.up();
 }
 
@@ -269,16 +277,28 @@ export async function blocksAddDetail(page: Page, id: string): Promise<Locator> 
 }
 
 /** Blockly's keyboard move of a block in the method (M), then ↓ until `there` holds its marker. */
-export async function blocksMoveByKeyboard(page: Page, id: string, there: Locator) {
+export async function blocksMoveByKeyboard(page: Page, id: string, there: () => Promise<boolean>) {
   await blocksFocusBlock(page, id);
   await blocklyKey(page, 'm');
-  await pressUntil(page, 'ArrowDown', async () => (await there.count()) > 0, 12);
+  await pressUntil(page, 'ArrowDown', there, 12);
   await blocklyKey(page, 'Enter');
 }
 
-/** The insertion marker inside a container block's first statement input, where its body goes. */
-export const blocksMarkerIn = (page: Page, container: string) =>
-  page.locator(`.pr-workspace .blocklyBlock[data-id="${container}"] > .blocklyInsertionMarker`);
+/**
+ * Whether Blockly's insertion marker is inside a block: in a container's body, or in one of a
+ * block's value inputs. The marker for "after the block" is drawn in the block's group too, so it
+ * is told apart by where it sits (S5's review): one inside is indented, x > 0; one after it is at
+ * x = 0, below it.
+ */
+export const blocksMarkerInside = (page: Page, block: string) =>
+  page
+    .locator(`.pr-workspace .blocklyBlock[data-id="${block}"] > .blocklyInsertionMarker`)
+    .evaluateAll((markers) =>
+      markers.some((m) => {
+        const x = /translate\(\s*([-\d.]+)/.exec(m.getAttribute('transform') ?? '')?.[1];
+        return x !== undefined && Number(x) > 0;
+      }),
+    );
 
 /** The control bar's tile, by its words (Tiles' "Control blocks" toolbar). */
 export const tilesControl = (page: Page, words: string) =>
@@ -402,13 +422,23 @@ export async function paletteTab(
 export async function dragOnto(page: Page, from: Locator, onto: Locator) {
   const source = (await from.boundingBox())!;
   const target = (await onto.boundingBox())!;
-  await page.mouse.move(source.x + 8, source.y + 8);
+  // Grabbed half its height in from its left, at its middle: a question is drawn rounded, so its
+  // corner is outside it (S5). Dropped the same way onto the value.
+  const grab = source.height / 2;
+  await page.mouse.move(source.x + grab, source.y + grab);
   await page.mouse.down();
-  await page.mouse.move(source.x + 40, source.y + 30, { steps: 5 });
-  await page.mouse.move(target.x + 8, target.y + target.height / 2, { steps: 10 });
+  await page.mouse.move(source.x + grab + 30, source.y + grab + 20, { steps: 5 });
+  await page.mouse.move(target.x + grab, target.y + target.height / 2, { steps: 10 });
   await page.waitForTimeout(120);
   await page.mouse.up();
 }
+
+/**
+ * Blockly's keyboard move has a value in reach to replace: an occupied value slot gets no
+ * insertion marker, its value is faded instead (`blocklyReplaceable`, S5).
+ */
+export const blocksReplacing = async (page: Page, valueId: string) =>
+  (await page.locator(`.pr-workspace [data-id="${valueId}"].blocklyReplaceable`).count()) > 0;
 
 /** A value's block in Blocks (its shadow or chip), by its node id. */
 export const blocksValue = (page: Page, valueId: string) =>
