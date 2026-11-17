@@ -63,15 +63,13 @@ export interface StudyTasksOptions {
   readonly studio: Studio;
   readonly host: Pick<HostInterface, 'policy'>;
   readonly models: ModelSourceHandle;
-  /** Before a task's film opens, the learner's own is saved. */
-  readonly beforeOpen: () => Promise<unknown>;
+  /** Before a task's film opens, the learner's own is saved: false, or a throw, if it couldn't be. */
+  readonly beforeOpen: () => Promise<boolean>;
   readonly onAnnounce: (text: string) => void;
   /** For tests: how the hidden stage and the runtime worker are made. */
   readonly makeStage?: StageMaker;
   readonly startWorker?: () => RuntimeWorker;
 }
-
-const NO_PHASE = () => () => {};
 
 /** Runs the study's tasks: opening one, Check my step, the time limit, the end and the questions. */
 export function useStudyTasks({
@@ -85,38 +83,45 @@ export function useStudyTasks({
   startWorker,
 }: StudyTasksOptions): StudyTasks {
   const { session, settle } = study;
-  const phase = useSyncExternalStore(
-    session ? (l) => session.subscribe(l) : NO_PHASE,
-    () => session?.current() ?? IDLE,
+  // One subscription for the session, not a new one for every edit.
+  const subscribe = useCallback(
+    (listener: () => void) => (session ? session.subscribe(listener) : () => {}),
+    [session],
   );
+  const phase = useSyncExternalStore(subscribe, () => session?.current() ?? IDLE);
   const [said, setSaid] = useState<CheckSaid>(null);
   const [ended, setEnded] = useState<Ended | null>(null);
   const stopping = useRef<AbortController | null>(null);
   const open = phase.kind === 'task' ? phase.task : null;
 
-  const end = useCallback(
-    (outcome: Ended) => {
-      if (!session || session.current().kind !== 'task') return;
-      stopping.current?.abort();
-      // The last run of typing counts before the task ends (S6's review of #500).
-      settle();
-      session.endTask(outcome);
-      studio.closeTask();
-      setSaid(null);
-      setEnded(outcome);
-    },
-    [session, settle, studio],
-  );
+  // The studio changes with every edit; what ends a task reads it as it is then, so the fifteen
+  // minutes run from the task opening, not from the last edit (S6's review of #508).
+  const now = useRef({ session, settle, studio, onAnnounce });
+  useEffect(() => {
+    now.current = { session, settle, studio, onAnnounce };
+  });
+  const end = useCallback((outcome: Ended) => {
+    const { session, settle, studio } = now.current;
+    if (!session || session.current().kind !== 'task') return;
+    stopping.current?.abort();
+    // The last run of typing counts before the task ends, even one still open (S6's reviews).
+    studio.seal();
+    settle();
+    session.endTask(outcome);
+    studio.closeTask();
+    setSaid(null);
+    setEnded(outcome);
+  }, []);
 
-  // Fifteen minutes, then the task ends (6.4).
+  // Fifteen minutes from the task opening, then it ends (6.4).
   useEffect(() => {
     if (open === null) return;
     const timer = setTimeout(() => {
-      onAnnounce(t('task.timeUp'));
+      now.current.onAnnounce(t('task.timeUp'));
       end('timeUp');
     }, TASK_LIMIT_MS);
     return () => clearTimeout(timer);
-  }, [open, end, onAnnounce]);
+  }, [open, end]);
 
   // The folder closing ends a task with the session: the learner's own film comes back.
   useEffect(() => {
@@ -126,7 +131,14 @@ export function useStudyTasks({
   const policy = host.policy.editor;
   const start = async (task: StudyTask) => {
     if (!session || session.current().kind !== 'idle' || session.done().has(task)) return;
-    await beforeOpen();
+    // The learner's own film is saved first. If it can't be, the task waits: the studio already
+    // says why, with Try again.
+    try {
+      if (!(await beforeOpen())) return;
+    } catch (e) {
+      console.error('The film could not be saved before the study task.', e);
+      return;
+    }
     const def = studyTask(task);
     const shown = def.holdsEditor ? policy.default : editorShown(editorSetting.get(), policy);
     if (!session.openTask(task, shown, def.holdsEditor)) return;
@@ -138,6 +150,7 @@ export function useStudyTasks({
 
   const check = async () => {
     if (!session || open === null || stopping.current) return;
+    studio.seal();
     settle();
     const stop = new AbortController();
     stopping.current = stop;

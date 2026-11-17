@@ -227,6 +227,50 @@ describe('Study tasks (6.4)', () => {
     });
   });
 
+  it('runs the fifteen minutes from the task opening, whatever the learner edits', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const classes = await opened();
+    await startTask(/^Start Three jumps$/);
+    act(() => vi.advanceTimersByTime(10 * 60 * 1000));
+    // An edit at ten minutes, which once started the fifteen again.
+    const film = latest!.studio.production;
+    act(() =>
+      latest!.studio.commit('Rename', { ...film, manifest: { ...film.manifest, title: 'Jumps' } }),
+    );
+    act(() => vi.advanceTimersByTime(5 * 60 * 1000));
+    await screen.findByRole('dialog', { name: 'Two quick questions' });
+    expect((await logOf(classes)).find((e) => e.kind === 'end')).toMatchObject({
+      outcome: 'timeUp',
+    });
+  });
+
+  it('counts a run of typing still open when the task ends', async () => {
+    const classes = await opened();
+    const card = await startTask(/^Start Fix it$/);
+    // Two changes with one key, and no leaving the field: the step is still open.
+    for (const title of ['F', 'Fi']) {
+      const film = latest!.studio.production;
+      act(() =>
+        latest!.studio.commit(
+          'Rename',
+          { ...film, manifest: { ...film.manifest, title } },
+          'title',
+        ),
+      );
+    }
+    await userEvent.setup().click(within(card).getByRole('button', { name: 'Stop this task' }));
+    await screen.findByRole('dialog', { name: 'Two quick questions' });
+    expect((await logOf(classes)).slice(1).map((e) => e.kind)).toEqual(['task', 'edit', 'end']);
+  });
+
+  it('waits to open a task if the learner’s own film can’t be saved first', async () => {
+    saved.mockResolvedValueOnce(false);
+    await opened();
+    await startTask(/^Start Say hello$/).catch(() => null);
+    expect(latest!.studio.inTask).toBe(false);
+    expect(screen.queryByRole('region', { name: /^Study task: / })).toBeNull();
+  });
+
   it('ticks a task done in this session, and won’t open it again', async () => {
     await opened();
     const card = await startTask(/^Start Fix it$/);
