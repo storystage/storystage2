@@ -557,6 +557,12 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
 
+  packages/study:
+    dependencies:
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
+
   packages/text-view:
     dependencies:
       '@storystage/ast':
