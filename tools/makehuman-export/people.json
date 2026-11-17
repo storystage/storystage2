@@ -797,12 +797,13 @@
     "eyebrows": "eyebrow008",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "green",
+    "skirtLength": "ankle",
     "shoes": "shoes06",
     "headwear": {
       "kind": "hijab",
       "colour": "maroon"
     },
-    "description": "a woman of 45 in a maroon hijab, a green striped blouse and green skirt"
+    "description": "a woman of 45 in a maroon hijab, a green striped blouse and long green skirt"
   },
   {
     "id": "p33",
