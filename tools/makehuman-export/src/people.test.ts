@@ -326,3 +326,16 @@ describe('more patterns, and a long skirt', () => {
     );
   });
 });
+
+describe('suitColour', () => {
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+  const suit = { clothes: ['male_elegantsuit01'] } as const;
+
+  it('recolours only the suit, in a listed colour, not with clothesColour', () => {
+    expect(ok({ ...suit, suitColour: 'navy' })).toBe(true);
+    expect(ok({ ...suit, suitColour: 'pink' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit03'], suitColour: 'navy' })).toBe(false);
+    expect(ok({ ...suit, suitColour: 'navy', clothesColour: 'teal' })).toBe(false);
+    expect(peopleTable([person({ ...suit, suitColour: 'brown' })])).toContain('brown suit');
+  });
+});

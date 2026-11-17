@@ -227,6 +227,23 @@ def surface_coords(obj, width, height):
     return across, up
 
 
+def recoloured_suit(colour):
+    """The dark suit in another colour (owner, 17 Nov 2026): only its dark cloth changes, keeping
+    its folds, so the white shirt stays white. The tie's darker stripes take the colour too."""
+    target = np.array(colour, dtype=np.float32)
+
+    def paint(rgba, size):
+        light = rgba[:, :3].max(axis=1)
+        cloth = (light < 0.35) & (rgba[:, 3] > 0.1)
+        if not cloth.any():
+            raise RuntimeError("No dark cloth to recolour")
+        top = np.percentile(light[cloth], 95)
+        shade = np.clip(light[cloth] / max(top, 1e-3), 0, 1)
+        rgba[cloth, :3] = (0.35 + 0.65 * shade)[:, None] * target
+
+    return paint
+
+
 def recoloured_outfit(colour, trousers=None, pattern=None, cloth_obj=None):
     """Everything but denim takes `colour`, and the denim takes `trousers` (owner, 16 Nov 2026:
     not every child in jeans); each keeps its folds, and either may be None to leave it. An
@@ -885,6 +902,10 @@ def make_person(info, models):
         straighten_hem(outfit, rig)
         if extra.get("longSkirt"):
             lengthen_skirt(outfit, rig, basemesh)
+    if extra.get("suitColour"):
+        if outfit is None:
+            raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")
+        repaint(outfit, recoloured_suit(extra["suitColour"]))
     if extra["clothesColour"] or extra.get("trousersColour"):
         if outfit is None:
             raise RuntimeError(f"No {extra['outfit']} among {[p.name for p in parts]}")

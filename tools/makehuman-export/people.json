@@ -446,7 +446,7 @@
   {
     "id": "p19",
     "name": "Yusuf",
-    "description": "a man of 40 with short black hair, in a dark suit and striped tie",
+    "description": "a man of 40 with short black hair, in a navy suit and striped tie",
     "ageYears": 40,
     "gender": 0.85,
     "build": {
@@ -464,6 +464,7 @@
     "hair": "short01",
     "eyebrows": "eyebrow007",
     "clothes": ["male_elegantsuit01"],
+    "suitColour": "navy",
     "shoes": "shoes01"
   },
   {
@@ -938,8 +939,9 @@
     "hairTint": "white",
     "eyebrows": "eyebrow010",
     "clothes": ["male_elegantsuit01"],
+    "suitColour": "brown",
     "shoes": "shoes03",
     "hearingAids": "beige",
-    "description": "an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie"
+    "description": "an older man of 80 with short white hair and hearing aids, in a brown suit and striped tie"
   }
 ]
