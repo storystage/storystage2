@@ -206,7 +206,7 @@ Workplan 7.11, written by S6 on 17 Nov 2026 before its code. The switch sits in 
 3. **Which editor opens.**
    - The learner's last choice on this device opens.
    - Before they choose, the class default from policy (`editor.default`, spec 05 section 3.3) opens. With no policy, that is Blocks.
-   - When the teacher locks it (`editor.locked`), the default always opens, and the learner's choice is kept for later. The switch still shows both names, so learners know which one they're using, but it can't be changed. Beside it is the neutral note (`07-ux.md` 12a), "Set to Blocks by your school". It is never styled as an error.
+   - When the teacher locks it (`editor.locked`), the default always opens, and the learner's choice is kept for later. The switch still shows both names, so learners know which one they're using, but it can't be changed. Beside it is the neutral note (`07-ux.md` 12a), "Set to {editor} by your school", with the editor's name filled in ("Set to Blocks by your school"). It is never styled as an error.
 4. **The first switch explains** (screen 05). A dialog titled "⇄ Switching to Tiles" (or to Blocks):
    - It opens with "Blocks and Tiles are two ways of showing the same instructions, like one story in a picture book or a chapter book. Your program stays the same."
    - Next, the open method's first three statements, side by side in each editor's look, then "and 2 more".
@@ -214,7 +214,7 @@ Workplan 7.11, written by S6 on 17 Nov 2026 before its code. The switch sits in 
    - The buttons are **Show me Tiles** (primary, with focus) and **Stay with Blocks**, with a tick box, "Don't explain this again".
    - It explains again until that box is ticked. Escape is Stay.
    - It is never shown when the switch is locked.
-5. **Keyboard and screen readers.** The switch is a radio group: Tab reaches it, and the arrow keys choose. With the dialog, focus goes to its primary button. After a switch, focus goes to the statement that had it, or into the editor, and the studio says "Now showing Tiles. Your program is the same." through `announce`.
+5. **Keyboard and screen readers.** The switch is a radio group named "Code editor": Tab reaches it, and the arrow keys choose. With the dialog, focus goes to its primary button. After a switch, focus goes to the statement that had it, or into the editor, and the studio says "Now showing Tiles. Your program is the same." through `announce`.
 6. **Each editor keeps its own name and look** (section 3i.5), from `displayName`. The Code region's name says which is showing ("Code for scene 1, in Tiles").
 7. **Study mode** (section 6) logs each switch, with which editor and when, never the program.
 
