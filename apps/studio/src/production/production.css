@@ -302,6 +302,19 @@
   fill: var(--on-block);
 }
 
+/*
+ * "add detail ▾" at the end of a row (14-editors 3i.5): in the block's own words' colour, with a
+ * dashed outline, not a white value chip. (Specific enough to outrank Blockly's field rules.)
+ */
+.pr-workspace .blocklyBlockCanvas .blocklyEditableField.ss-add-detail > rect.blocklyFieldRect {
+  fill: transparent;
+  stroke: var(--on-block);
+  stroke-dasharray: 4 3;
+}
+.pr-workspace .blocklyBlockCanvas .blocklyEditableField.ss-add-detail > text.blocklyText {
+  fill: var(--on-block);
+}
+
 /* Highlights on blocks, through the editor contract (14-editors 3i.10). */
 .ss-highlight-rehearse > .blocklyPath {
   stroke: var(--ss-amber);

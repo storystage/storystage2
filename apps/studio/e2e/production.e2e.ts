@@ -56,7 +56,7 @@ test('the scene’s method opens in the Blocks editor, one tab per method', asyn
 test('a value changed in a block is one undo step in the studio’s history', async ({ page }) => {
   await openCode(page);
   const say = block(page, main.body[0]!.id);
-  const words = say.locator('.blocklyEditableField').last();
+  const words = say.locator('.blocklyEditableField:not(.ss-add-detail)').last();
   await words.click();
   const input = page.locator('.blocklyHtmlInput');
   await expect(input).toBeVisible();
@@ -192,6 +192,42 @@ test('a block’s menu and keys switch it off, add a detail and duplicate, each 
   await expect(undoButton(page)).toHaveText(/^Undo: Add how long to /);
   await undoButton(page).click();
   await expect(block(page, id)).not.toContainText('how long');
+});
+
+test('“add detail ▾” at the end of a row adds a detail, by pointer and by keyboard', async ({
+  page,
+}) => {
+  await openCode(page);
+  const id = main.body[0]!.id;
+  const button = block(page, id).getByRole('button', { name: 'add detail' });
+  await expect(button).toBeVisible();
+  // By pointer: Tiles' detail menu, then the cascade for its value, as one step.
+  await button.click();
+  await page
+    .getByRole('menu', { name: 'add detail' })
+    .getByRole('menuitem', { name: 'how long' })
+    .click();
+  await page
+    .getByRole('menu', { name: 'how long' })
+    .getByRole('menuitemradio', { name: '2', exact: true })
+    .click();
+  await expect(block(page, id)).toContainText('how long');
+  await expect(undoButton(page)).toHaveText(/^Undo: Add how long to /);
+  // By keyboard: along the row to it, then Enter; Escape adds nothing.
+  await block(page, id).click({ position: { x: 20, y: 20 } });
+  await expect
+    .poll(async () => {
+      await page.keyboard.press('ArrowRight');
+      return button.evaluate((b) => b === document.activeElement);
+    })
+    .toBe(true);
+  await page.keyboard.press('Enter');
+  const menu = page.getByRole('menu', { name: 'add detail' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: 'how long' })).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(undoButton(page)).toHaveText(/^Undo: Add how long to /);
 });
 
 test('axe finds no serious issues with the Code editor open', async ({ page }) => {

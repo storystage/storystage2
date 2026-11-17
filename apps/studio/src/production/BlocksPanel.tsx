@@ -4,11 +4,11 @@
  * menus stay out of the Storyboard's bundle. The menus are Tiles' own (`@storystage/tiles/cascade`):
  * one cascade for both editors.
  */
-import type { Expression, NodeId } from '@storystage/ast';
+import type { Expression, NodeId, Program } from '@storystage/ast';
 import { createBlocksEditor, type AskRequest, type BlocksEditor } from '@storystage/blocks';
 import type { EditorHost, HighlightMark } from '@storystage/editor-contract';
 import type { Ask as AskKind, PaletteTab } from '@storystage/story-api/editing';
-import { AskValue, ValueMenu } from '@storystage/tiles/cascade';
+import { AskValue, DetailMenu, ValueMenu } from '@storystage/tiles/cascade';
 import { useThemeStyle } from '@storystage/ui';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
@@ -46,6 +46,14 @@ interface Question {
   readonly answer: (value: Expression | null) => void;
 }
 
+/** "add detail ▾" asking which detail (14-editors 2.3), and how to answer it. */
+interface DetailQuestion {
+  readonly program: Program;
+  readonly node: NodeId;
+  readonly anchor: Element;
+  readonly answer: (detail: string | null) => void;
+}
+
 export default function BlocksPanel({
   method,
   host,
@@ -61,6 +69,7 @@ export default function BlocksPanel({
   const scale = Number(useThemeStyle()['--ss-text-size' as keyof CSSProperties] ?? 1) || 1;
   const [ready, setReady] = useState(false);
   const [question, setQuestion] = useState<Question | null>(null);
+  const [detail, setDetail] = useState<DetailQuestion | null>(null);
   // Choosing "Other words…" closes the menu on its way to the typing field: not an Escape.
   const toTyping = useRef(false);
 
@@ -78,6 +87,17 @@ export default function BlocksPanel({
             answer: (value) => {
               setQuestion(null);
               resolve(value);
+            },
+          });
+        }),
+      // "add detail ▾" opens Tiles' detail menu at the block; Escape adds nothing.
+      chooseDetail: (request) =>
+        new Promise((resolve) => {
+          setDetail({
+            ...request,
+            answer: (name) => {
+              setDetail(null);
+              resolve(name);
             },
           });
         }),
@@ -129,6 +149,15 @@ export default function BlocksPanel({
             if (toTyping.current) toTyping.current = false;
             else question.answer(null);
           }}
+        />
+      )}
+      {detail && (
+        <DetailMenu
+          program={detail.program}
+          node={detail.node}
+          anchor={detail.anchor}
+          onChoose={(name) => detail.answer(name)}
+          onClose={() => detail.answer(null)}
         />
       )}
       {question?.typing && (

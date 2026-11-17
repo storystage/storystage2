@@ -35,5 +35,7 @@
   "menu.removeDetail": "Take out {detail}",
   "menu.duplicate": "Duplicate",
   "menu.delete": "Delete",
-  "menu.gone": "That block isn’t there any more."
+  "menu.gone": "That block isn’t there any more.",
+  "block.addDetail": "add detail ▾",
+  "block.addDetailName": "add detail"
 }
