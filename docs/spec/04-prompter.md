@@ -442,7 +442,7 @@ The levels pick from the modes (decision 0034); `prompter.enabled`, `prompter.ex
 | **Plan only** | Those, plus `showMeHow` and `buildIt`, which write and revise plans | None. The learner builds every block and ticks steps off |
 | **Full** | All | After an agreed plan |
 
-If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
+If `explainOnly` and `planOnly` are both set, Explain only wins. When the level turns Off while a request runs (a teacher's lock, or a study task, spec 14 section 6.5, where the studio gives the panel the level Off), `refresh` stops the request and the panel stays Off; it comes back with the level. At Limit reached, `refresh` updates the modes to the lowered level but keeps the phase and the class's words until the next request (spec 07, section 2.4). A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
 
 ### 4.4 Set-up (13.6)
 
