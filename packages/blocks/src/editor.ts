@@ -30,6 +30,7 @@ import {
 import { changeFor, detailPlace, menuFor, type MenuAction } from './blockMenu.ts';
 import { defineBlocks } from './definitions.ts';
 import { dropFromPalette, freshIn, type AskRequest, type Fresh } from './drops.ts';
+import { ADD_DETAIL_INPUT, AddDetailField } from './addDetail.ts';
 import { editsFor } from './gestures.ts';
 import { RENDERER, registerRenderer, storyTheme } from './renderer.ts';
 import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
@@ -132,6 +133,16 @@ export interface BlocksEditorOptions {
   readonly ask?: (
     request: AskRequest & { readonly anchor: Element | null },
   ) => Promise<Expression | null>;
+  /**
+   * Asks which detail to add to a block, for its "add detail ▾" (the shared `DetailMenu`), shown
+   * at `anchor`. Resolves to the detail's name, or `null` for Escape. Without it, a row has no
+   * "add detail ▾" and details are added from the block's menu.
+   */
+  readonly chooseDetail?: (request: {
+    readonly program: Program;
+    readonly node: NodeId;
+    readonly anchor: Element;
+  }) => Promise<string | null>;
 }
 
 /** The Blocks editor, with the palette's object and tab, which the studio's picker sets. */
@@ -229,7 +240,10 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         owner = method.id;
         Blockly.serialization.workspaces.load(toBlocks(host.program(), method), ws);
         ws.getBlockById(method.id)?.setMovable(false);
-        for (const block of ws.getAllBlocks(false)) block.customContextMenu = menuOn(block);
+        for (const block of ws.getAllBlocks(false)) {
+          block.customContextMenu = menuOn(block);
+          addDetailOn(block);
+        }
       }
     } finally {
       Blockly.Events.enable();
@@ -299,6 +313,30 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       // The new blocks take the program's ids, and a cancelled drop goes.
       rebuild();
     }
+  }
+
+  /** "add detail ▾" at the end of a statement's row, while it can take another detail. */
+  function addDetailOn(block: Blockly.BlockSvg) {
+    if (!host || !options.chooseDetail || !block.previousConnection) return;
+    const items = menuFor(host.program(), block.id as NodeId);
+    if (!items.some((i) => i.action.kind === 'addDetail')) return;
+    block
+      .appendDummyInput(ADD_DETAIL_INPUT)
+      .appendField(new AddDetailField((b) => void chooseDetail(b.id as NodeId)));
+  }
+
+  /** Which detail, from the shared menu, then its value, as one step. */
+  async function chooseDetail(node: NodeId) {
+    const anchor = ws?.getBlockById(node)?.getSvgRoot();
+    if (!host || !options.chooseDetail || !anchor || asking) return;
+    asking = true;
+    let detail: string | null;
+    try {
+      detail = await options.chooseDetail({ program: host.program(), node, anchor });
+    } finally {
+      asking = false;
+    }
+    if (detail) await act(node, { kind: 'addDetail', detail });
   }
 
   /** A block's menu: ours, in place of whatever Blockly offers. */
@@ -498,6 +536,11 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         }
         case 'addDetail':
         case 'openMenu': {
+          // "add detail ▾"'s own menu, where the studio gives one; else the block's menu.
+          if (command === 'addDetail' && options.chooseDetail && offered('addDetail')) {
+            void chooseDetail(id);
+            return true;
+          }
           // Through Blockly's own menu key: `showContextMenu` is internal to Blockly.
           const menu = Blockly.ShortcutRegistry.registry.getRegistry()['menu'];
           if (items.length === 0 || !menu?.callback || !ws) return false;

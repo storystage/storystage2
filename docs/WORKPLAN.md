@@ -627,13 +627,13 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 <!-- /schedule:wp7 -->
 - [x] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
 - [x] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. **New adds a procedure, a function or a listener to the scene (16 Nov); parameters, and adding to a class of the learner's own, are still to come.** (C)
-- [ ] 7.6 **Option B made Alice-like:**
-    - a custom Blockly renderer with text-like statement rows. **Built (16 Nov), keeping Blockly's notch where statements stack (the owner's choice, after Blockly's appearance guide and Blockly Games), with screen 02's colours and Blockly Games' hues as tokens. "add detail ▾" on the row, and labelled boxes for do in order and do together, are still to come.**
+- [x] 7.6 **Option B made Alice-like:**
+    - a custom Blockly renderer with text-like statement rows. **Built (16 Nov), keeping Blockly's notch where statements stack (the owner's choice, after Blockly's appearance guide and Blockly Games), with screen 02's colours and Blockly Games' hues as tokens; do in order and do together are labelled boxes.**
     - no loose blocks: a block dropped outside a method goes back where it came from (decision 0064), and no empty slots (default values in every slot);
     - arguments asked for when a block is dropped, as Alice's cascading menus do;
     - "add detail" for optional arguments (duration, animation style, as seen by);
-    - switch a statement off and on. **Both are built, in the block's menu, with Ctrl+/ to switch (16 Nov).**
-    - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters. **The text view and both wordings are built (`packages/text-view`, S6); the switch in the Code editor's bar is S5's.**
+    - switch a statement off and on. **Both are built, in the block's menu, with Ctrl+/ to switch (16 Nov), and "add detail ▾" sits at the end of each row that can take one (17 Nov).**
+    - the text view's wording switchable between Python-like and Java-like, following Alice's two formatters. **The text view and both wordings are built (`packages/text-view`, S6); the switch in the Code editor's bar is S5's (16 Nov).**
 
     (C)
 - [x] 7.3 Undo and redo across the scene view and the Code editor, with project history. Project history is the studio's one undo history, shared by the three tabs (owner, 16 Nov). (C)
