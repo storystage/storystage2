@@ -146,11 +146,12 @@ def recoloured_outfit(colour, trousers=None, pattern=None):
             width, height = size
             cloth = (~denim) & (rgba[:, 3] > 0.1)
             light = rgba[:, :3].max(axis=1)
-            # Stripes are fine and folds are broad: a blur a little wider than a stripe keeps one.
-            radius = max(4, width // 128)
-            smooth = blurred(
-                light.reshape(height, width), cloth.reshape(height, width), radius
-            ).ravel()
+            # Stripes are fine and folds are broad: a blur as wide as a few stripes, done twice,
+            # keeps the folds (a narrower one, once, left faint stripes: trial of 17 Nov).
+            radius = max(6, width // 48)
+            mask = cloth.reshape(height, width)
+            smooth = blurred(light.reshape(height, width), mask, radius)
+            smooth = blurred(smooth, mask, radius).ravel()
             if pattern == "checks":
                 period = max(8, width // 40)
                 y, x = np.divmod(np.arange(width * height), width)
