@@ -102,11 +102,24 @@ Every step's undo label is written from the Story API's words, naming what chang
 | `emptySlots`, `cascadeFor`, `answer`, `rangeAt` | Section 2.3: what to ask, the menu for each value, a typed value checked against its limit |
 | `detailsToAdd` | The details a block can still take, for "add detail ▾" |
 | `labelFor(program, edit)` | Section 2.4 |
+| `menuFor(program, node)`, `changeFor` | Section 2.6: a statement's menu, and the edit for each of its items |
 | `describer(program)` | Any statement or value in words (`cat move forward 1`), its short name (`cat move`), and its type, for rows, screen-reader names and labels (section 3f) |
 
 The joints in a cascade come from the caller (`jointsOf`), because which joints a model has is in the manifest, not the program. Backstage surfaces, sounds, scenes and clips come the same way (`references`).
 
 **Variables.** The control bar's **variable** tile asks first for a name and what the variable holds (a number, a whole number, words, true or false, or an object), refusing a name that's empty, too long, not a name, or already in scope there (`namesAt`). Then the cascade asks what it starts as, like any value. The **assign** tile ("set") asks first which variable it sets, from those in scope that may change (not a loop's item or a constant), then its new value; where there's none it says so and puts nothing in. Escape at either question puts nothing in. A new loop's item takes a name that's free where the loop goes (`readyFor`: `item`, then `item2`), so a loop inside a loop isn't refused for both being called `item`.
+
+### 2.6 A statement's menu
+
+Both editors offer one menu for a statement (`editing/menu.ts`, moved there from Blocks on 17 Nov, when the parity tests found Tiles had no way to the commands by pointer). In order:
+- **Switch off** or **Switch on**;
+- **Add detail:** for each detail the block can still take, which asks for its value as "add detail ▾" does;
+- **Take out** for each detail it has (never the script's line);
+- **Move up** and **Move down**, where it can go;
+- **Duplicate**;
+- **Delete**.
+
+Each is one step with the shared label, the same as the key for it (section 3d). Blocks opens it as Blockly's block menu (3i.7); Tiles on a row (3c.7). Both open it by right-click, by a long press on a touch screen, and from the keyboard.
 
 ## 3. Option C, the tile editor
 
@@ -135,6 +148,7 @@ The joints in a cascade come from the caller (`jointsOf`), because which joints 
 4. **A place that refuses the tile never lights up** (section 2.2).
 5. **Dropping anywhere else** cancels, and the tile goes back.
 6. **Every target is at least 44 × 44 px,** for iPad and for young hands. A touch drags from a tile's grip, so the rest of a row still scrolls the program.
+7. **A row's menu** (section 2.6) opens on a right-click, or a long press by touch or pen: held for half a second and moved no more than 10 px, as Blockly's is (the owner's choice, 17 Nov, over a ⋯ button on each row). A press that moves is a scroll or a drag, not a menu. The menu is named for its statement ("Menu for penguin move"), and Escape or a click outside closes it with nothing changed.
 
 ### 3d. Keyboard
 
@@ -151,6 +165,7 @@ Every path works without a pointer (7.8):
 | Ctrl+D, Ctrl+C, Ctrl+V | Duplicate, copy, paste (the contract's commands) |
 | Ctrl+/ | Switches a statement off or on |
 | Alt+↑, Alt+↓ | Moves a statement one place up or down in its list |
+| The Menu key, Shift+F10 | Opens the row's menu (section 3c.7) |
 
 In the palette, Enter on a block inserts it after the statement in focus, or in the empty slot, then runs its cascade. Focus is always visible, with the handoff's ring on Tiles surfaces.
 
