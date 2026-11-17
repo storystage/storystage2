@@ -528,7 +528,27 @@ describe('traceScene, the run without the comparison (spec 14, 6.4)', () => {
     const said = clicked.said.find((s) => s.text === 'Woof');
     expect(said?.object).toBe('fox');
     expect(said!.start).toBeGreaterThanOrEqual(micros(1));
-    expect(said!.start).toBeLessThan(micros(1.1));
+    // Within a tenth of a second after, as a click in Rehearse is (the runtime's lookahead).
+    expect(said!.start).toBeLessThan(micros(1.2));
+    expect(clicked.unplayed).toEqual([]);
     expect((await trace(woof())).said.map((s) => s.text)).not.toContain('Woof');
+  });
+
+  it('plays a click at the very start, once the runtime’s listeners are there (S2’s finding)', async () => {
+    for (const at of [0, 0.02]) {
+      const run = await trace(woof(), at);
+      const said = run.said.find((s) => s.text === 'Woof');
+      expect(said?.object, `a click at ${at} s`).toBe('fox');
+      expect(said!.start).toBeLessThan(micros(0.2));
+    }
+  });
+
+  it('gives back a click that came after the scene ended, never played', async () => {
+    const run = await trace(woof(), 30);
+    expect(run.said.map((s) => s.text)).not.toContain('Woof');
+    expect(run.unplayed).toEqual([
+      { kind: 'click', object: objectId('fox'), x: 0.7, y: 0.4, at: micros(30) },
+    ]);
+    expect(run.length).toBeLessThan(micros(30));
   });
 });

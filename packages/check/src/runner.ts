@@ -78,7 +78,7 @@ export interface SceneRun {
   readonly length: Micros;
   readonly samples: readonly Sample[];
   readonly blocks: readonly MeasuredBlock[];
-  /** Every `say` (not `think`), with who said it and when. */
+  /** Every `say` and speak line (not `think`), with who said it and when. */
   readonly said: readonly {
     readonly object: string;
     readonly text: string;
@@ -92,6 +92,11 @@ export interface SceneRun {
     readonly words: string;
   } | null;
   readonly missing: readonly Missing[];
+  /**
+   * The events `traceScene` was given that never played, because the scene ended before their
+   * `at`: so a caller can tell "the code didn't react" from "the click came too late".
+   */
+  readonly unplayed: readonly StageEvent[];
   readonly heights: ReadonlyMap<string, number>;
 }
 
@@ -108,8 +113,9 @@ function ask(stage: Stage, query: StageQuery, kind: StageQueryResult['kind']): u
 
 /**
  * Plays one scene on the hidden stage, noting everything the comparison needs. `events` are
- * played in as the learner's would be (a click, a key), each at the first step at or after its
- * `at`.
+ * played in as the learner's would be (a click, a key): each goes to the runtime just after the
+ * first step at or after its `at`, once the runtime has started and its listeners are there, so
+ * it takes effect within about a tenth of a second after `at`, as a click in Rehearse does.
  */
 async function runScene(
   run: CheckRun,
@@ -196,23 +202,34 @@ async function runScene(
     samples.push({ at, camera, lens, characters });
   };
 
+  const waiting = [...events].sort((a, b) => a.at - b.at);
   try {
     signal?.throwIfAborted();
     await playback.start();
     sample(0);
-    const waiting = [...events].sort((a, b) => a.at - b.at);
     for (let frame = 1; !playback.ended(); frame++) {
       signal?.throwIfAborted();
       now = Math.min(FILM_CAP, Math.round((frame * 1_000_000) / FPS));
-      while (waiting.length > 0 && waiting[0]!.at <= now) playback.event(waiting.shift()!);
       await playback.frame(now);
+      // After the step, not before: on the first step the runtime hasn't started its listeners.
+      while (waiting.length > 0 && waiting[0]!.at <= now) playback.event(waiting.shift()!);
       sample(now);
       if (now >= FILM_CAP) break;
     }
   } finally {
     playback.dispose();
   }
-  return { length: now, samples, blocks, said, captions, error, missing, heights };
+  return {
+    length: now,
+    samples,
+    blocks,
+    said,
+    captions,
+    error,
+    missing,
+    heights,
+    unplayed: waiting,
+  };
 }
 
 /** The sample at or just before `t`. */
