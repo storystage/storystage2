@@ -2,6 +2,8 @@
  * The cascade on a value pill, "Other number…", and "add detail ▾" (spec 14, 2.3 and 3e), with
  * React Aria's menus, so arrows, Enter, Escape and submenus behave as screen readers expect.
  * They open in a portal, outside the editor's root, so each carries the tile colours itself.
+ * React Aria draws a menu's popover as a dialog, so each popover is named as its menu is
+ * (axe's aria-dialog-name).
  */
 import { idMinter } from '@storystage/ast';
 import type { Expression, NodeId, Program } from '@storystage/ast';
@@ -137,7 +139,11 @@ export function ValueMenu(props: ValueMenuProps) {
           >
             {t('partsOf', { name: c.words })}
           </MenuItem>
-          <Popover className="tl-popover" style={tileVariables()}>
+          <Popover
+            className="tl-popover"
+            style={tileVariables()}
+            aria-label={t('partsOf', { name: c.words })}
+          >
             <Menu aria-label={t('partsOf', { name: c.words })} onAction={(k) => pick(String(k))}>
               {items(c.choices, `${key}.`)}
             </Menu>
@@ -148,7 +154,7 @@ export function ValueMenu(props: ValueMenuProps) {
     });
 
   return (
-    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)}>
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={props.label}>
       <Menu
         aria-label={props.label}
         autoFocus={chosen >= 0 ? true : 'first'}
@@ -233,7 +239,7 @@ export function DetailMenu(props: DetailMenuProps) {
   );
   const close = useCloseUnlessActed(props.onClose);
   return (
-    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)}>
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={t('addDetail')}>
       <Menu
         aria-label={t('addDetail')}
         autoFocus="first"
@@ -340,7 +346,7 @@ export function ChooseVariable(props: ChooseVariableProps) {
   const anchorRef = useRef(props.anchor);
   const close = useCloseUnlessActed(props.onClose);
   return (
-    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)}>
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={t('assign.title')}>
       <Menu
         aria-label={t('assign.title')}
         autoFocus="first"
