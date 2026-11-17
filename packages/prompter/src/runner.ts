@@ -96,6 +96,11 @@ export interface RunnerSetup<S extends string = string> {
    * `stage_scene` answers `not_allowed_here`.
    */
   readonly stageFromStoryboard?: (p: Production, scene: SceneId, label: string) => StageResult;
+  /**
+   * Where new node ids come from. `Math.random` by default; the evaluation harness gives a fixed
+   * sequence, so a kept run replays with the same ids (`docs/eval/README.md`).
+   */
+  readonly random?: () => number;
 }
 
 /** What Set the stage from the storyboard gives: one step, or why not and for which object. */
@@ -489,7 +494,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const type = this.#sceneType(program);
     if (!type) return fail('unknown_method', "This scene can't be found in the program.");
     const scene = this.#sceneObjects(type, program);
-    const mint = idMinter(program);
+    const mint = idMinter(program, this.#setup.random);
 
     switch (name) {
       case 'insert_statement':
@@ -807,6 +812,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         },
       },
       `Add ${name}`,
+      this.#setup.random,
     );
     if (!added.ok) return refusal(added.refusal, name);
     return this.#step(added.step) ?? ok(`Added ${name}.`, { name });

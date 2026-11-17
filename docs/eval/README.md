@@ -53,8 +53,23 @@ Each request names the production it starts from, in `productions/`. They're pla
 
 **Not yet in the harness:**
 
-- **The command to run it live.** It reads the key from the environment and keeps each run as a recording.
 - **Set the stage from the storyboard.** It is the studio's own step (`stageFromStoryboard`), in its React code, so `stage_scene` answers `not_allowed_here` in the harness until that step is in a package. `board-01` checks only that the tool was used, which still scores.
+
+### A live run
+
+The owner's choices of 17 Nov 2026: the key from the environment, recordings kept and reviewed before commit, a model judge whose grades the owner confirms, and a pilot first.
+
+1. **The pilot.** `pnpm eval -- --live --pilot --judge` runs the first row of each category, 13 in all, with `ANTHROPIC_API_KEY` set in that terminal only. The key goes in one header to api.anthropic.com and nowhere else, and nothing writes or prints it. Requests are sent as the native layer sends them (API version `2023-06-01`, the pinned body and betas), with no retries; a row the API was too busy for is run once more after 30 seconds.
+2. **What it writes**, to `docs/eval/results/local/<date>-<who>-<model>/`, which git ignores:
+   - `results.csv` and `usage.csv`;
+   - `recordings/<id>.json`, each row's replies, which hold no key;
+   - with `--judge`, `grades.proposed.csv`: the judge's pass or fail for each reply check, with a reason.
+3. **The judge** is `claude-opus-5-5` at low effort, with structured output and the server-side refusal fallback. It sees the row's request, the Prompter's reply, the changes and the plan, as data, and grades each reply check by its words in the table below.
+4. **Confirm the grades.** Read each reply and its proposed grade, change any you disagree with, and save the file as `grades.csv`.
+5. **Score with the grades**, for nothing: `pnpm eval -- --replay docs/eval/results/local/<run> --pilot --grades docs/eval/results/local/<run>/grades.csv`. This replays the recordings through the fake server and scores the run against the bars below.
+6. **Keep it.** Move the reviewed recordings, `results.csv`, `usage.csv` and `grades.csv` up to `docs/eval/results/`, named as Scoring says. Push protection is a second guard. Then run the whole set with `--all`.
+
+A recording is valid only for the system prompt and tools that made it (Recorded runs, below). The harness runs with fixed node ids, so a replay builds the same blocks.
 
 ## Checks
 

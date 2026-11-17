@@ -25,8 +25,9 @@ import {
   type ToolOutcome,
 } from '@storystage/prompter';
 import { checkProgram } from '@storystage/story-api/program-check';
-import type { EvalProduction, EvalRow } from '../eval.ts';
-import { openStart } from './start.ts';
+import { CATEGORIES, type EvalProduction, type EvalRow } from '../eval.ts';
+import type { Recording, Turn } from '../recording.ts';
+import { openStart, seeded } from './start.ts';
 
 /** One tool call, as the runner answered it. */
 export interface ToolCall {
@@ -236,6 +237,8 @@ export async function runRow(
     scene: () => opened.scene,
     backstageClass: (id) => classFromId(id, SHIPPED) as never,
     checkResult: (frame) => opened.checks.get(frame) ?? null,
+    // The same ids every run, so a kept run replays exactly.
+    random: seeded(29),
   });
 
   const meter = metered(transport);
@@ -294,5 +297,39 @@ export async function runRow(
     message: panel.state.message?.text ?? null,
     usage: { ...meter.usage, requests: meter.streams.length },
     streams: meter.streams,
+  };
+}
+
+/** The pilot: the first row of each category, so every kind of check runs once. */
+export const pilotRows = (all: readonly EvalRow[]) =>
+  CATEGORIES.map((c) => all.find((r) => r.category === c)!).filter(Boolean);
+
+/** A run's streams as a recording the fake server replays (`recording.ts`). */
+export function recordingOf(run: RowRun): Recording {
+  const status: Record<string, number> = {
+    rate_limited: 429,
+    overloaded: 529,
+    key_revoked: 401,
+    no_credit: 402,
+    internal: 400,
+  };
+  const turns: Turn[] = run.streams.map((events: readonly PrompterEvent[]) => {
+    const error = events.find((e) => e.type === 'error');
+    if (error && error.type === 'error')
+      return error.code === 'offline'
+        ? { events: [], cutAfter: 0 }
+        : {
+            status: status[error.code] ?? 500,
+            error: { type: 'api_error', message: error.code },
+          };
+    return {
+      events: events.flatMap((e) => (e.type === 'event' ? [e.event as JsonObject] : [])),
+    };
+  });
+  return {
+    id: run.row.id,
+    source: 'recorded',
+    note: `Live run of ${run.row.id}, for replay. Valid only for the system prompt and tools that made it.`,
+    turns,
   };
 }

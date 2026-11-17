@@ -40,4 +40,4 @@ pnpm --filter @storystage/fake-claude start -- --port 8787 --require-key
 
 ## The evaluation set
 
-`src/eval.ts` defines the shape of `docs/eval/requests.jsonl` and checks it. `src/eval/` runs a row through the real Prompter panel on any transport and scores its checks: `openStart`, `runRow`, `scoreRow` and the report. See `docs/eval/README.md`, "The harness". The command for a live run comes next.
+`src/eval.ts` defines the shape of `docs/eval/requests.jsonl` and checks it. `src/eval/` runs a row through the real Prompter panel on any transport and scores its checks: `openStart`, `runRow`, `scoreRow` and the report. See `docs/eval/README.md`, "The harness". `pnpm eval` runs it live or replays a kept run: see "A live run" there.

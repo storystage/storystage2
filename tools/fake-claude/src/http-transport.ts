@@ -1,7 +1,8 @@
 /**
- * A `PrompterTransport` over HTTP, for tests against the fake server. It does what the native
+ * A `PrompterTransport` over HTTP: to the fake server in tests, or the live API in a live
+ * evaluation run (`eval/live.ts`). It does what the native
  * layer will do (WP15.2): send the body, add the beta header, and turn each HTTP status into one
- * error code (spec 04, section 7). It adds no key and makes no retries.
+ * error code (spec 04, section 7). It makes no retries, and adds a key only when given one.
  */
 import {
   containsSecret,
@@ -30,7 +31,14 @@ export function splitEvents(buffer: string): { events: JsonObject[]; rest: strin
   return { events, rest };
 }
 
-export function httpTransport(baseUrl: string): PrompterTransport {
+/**
+ * `headers` are added to each request: a live run passes the key and the API version here
+ * (`eval/live.ts`). The fake server needs none.
+ */
+export function httpTransport(
+  baseUrl: string,
+  headers: Readonly<Record<string, string>> = {},
+): PrompterTransport {
   return {
     status: async () => ({ available: true }),
     async *send(request, signal): AsyncGenerator<PrompterEvent> {
@@ -43,6 +51,7 @@ export function httpTransport(baseUrl: string): PrompterTransport {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
+            ...headers,
             ...(request.betas?.length ? { 'anthropic-beta': request.betas.join(',') } : {}),
           },
           body: JSON.stringify(request.body),
