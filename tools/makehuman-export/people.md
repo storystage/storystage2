@@ -35,6 +35,7 @@ Thirty-seven people in Backstage's Cast, made with MakeHuman's CC0 assets: MPFB2
     - Jayden, Hamza, Chen, Ravi and Tunde wear black, khaki, grey or navy trousers.
     - Eileen, less like Margaret: white hair tied back, and a green check.
     - The children's checks are now the same size as everyone's.
+- **17 Nov: the suits.** Yusuf, Winston and George all wore the same dark suit. Yusuf's is now navy and George's brown (`suitColour`): the pipeline recolours only the suit's dark cloth, as its shirt and tie share its picture, so the shirt stays white. Winston keeps his dark suit and hat.
 - **Oskar's hair:** `bob02`'s built-in colour is pale silver, so Oskar, aged 13, now has a short style. Siân (55) keeps `bob02`.
 
 ## How the list was chosen
