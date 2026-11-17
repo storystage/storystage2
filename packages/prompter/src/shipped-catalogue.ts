@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = 'fd71e3d3b0846ea9ecc555dc8994532d5a809bda';
+export const SHIPPED_CATALOGUE_COMMIT = '88d88d7966a68f093b16f3f92db9f9ba70883233';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -46,7 +46,7 @@ Cast
     makehuman/Biped/p16: Sam, a teenager of 15 with short black hair, in a yellow spotted shirt and jeans [everyday, teenagers] 1.41 m, joints J2
     makehuman/Biped/p17: Grace, a woman of 28 with short curly black hair, in a teal spotted blouse and skirt, and white socks [everyday, adults] 1.79 m, joints J2
     makehuman/Biped/p18: Tom, a tall man of 32 with short brown hair, in blue dungarees and a white T-shirt [everyday, adults] 2.1 m, joints J2
-    makehuman/Biped/p19: Yusuf, a man of 40 with short black hair, in a dark suit and striped tie [everyday, adults] 1.7 m, joints J2
+    makehuman/Biped/p19: Yusuf, a man of 40 with short black hair, in a navy suit and striped tie [everyday, adults] 1.7 m, joints J2
     makehuman/Biped/p20: Hannah, a woman of 36 with a black bob and rimless glasses, in a teal shirt and jeans [everyday, adults] 1.64 m, joints J2
     makehuman/Biped/p21: Chen, a man of 45 with a brown side fringe and thin metal glasses, in a green checked shirt and grey trousers [everyday, adults] 1.6 m, joints J2
     makehuman/Biped/p22: Tunde, a bald man of 50, in a khaki jacket and navy trousers [everyday, adults] 1.89 m, joints J2
@@ -64,7 +64,7 @@ Cast
     makehuman/Biped/p34: Gurdeep, a man of 38 in an orange turban, a green jacket and jeans [everyday, adults] 1.84 m, joints J2
     makehuman/Biped/p35: Eli, a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers [everyday, children] 1.14 m, joints J2
     makehuman/Biped/p36: Poppy, a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans [everyday, children] 1.03 m, joints J2
-    makehuman/Biped/p37: George, an older man of 80 with short white hair and hearing aids, in a dark suit and striped tie [everyday, older people] 1.74 m, joints J2
+    makehuman/Biped/p37: George, an older man of 80 with short white hair and hearing aids, in a brown suit and striped tie [everyday, older people] 1.74 m, joints J2
     osa/Biped/astronaut: Astronaut, an astronaut in a yellow spacesuit and a round orange helmet with an aerial [everyday, space] 1.36 m, joints J3
     osa/Biped/david: David, a garden gnome with a red pointed hat and a white beard, in a blue shirt [everyday] 1.58 m, joints J3
     osa/Biped/dino-kid: Dino kid, a child in a green dinosaur costume [everyday, dinosaurs] 1.24 m, joints J3
