@@ -36,6 +36,11 @@ export interface Study {
   answer(yes: boolean): void;
   /** Learn was opened: help, if a task is open (6.6). */
   learnOpened(): void;
+  /**
+   * Counts the steps closed since the last change, such as the last run of typing. The task card
+   * calls it before `checked` and `endTask`, so no step is missed.
+   */
+  settle(): void;
 }
 
 /** The adult's answer on a device with no class list, until the app closes (6.2). */
@@ -61,7 +66,9 @@ export function useStudy({ host, folder, hasClass, inStudio, studio }: StudyOpti
     let made: StudySession | null = null;
     const store = new StudyStore(host.classes.study());
     void (async () => {
-      if (hasClass && !(await store.takingPart([pupil])).has(pupil)) return;
+      // The whole class: `takingPart` drops any tick that isn't one of its pupils (6.2).
+      const pupils = hasClass ? (await host.classes.pupils()).map((p) => p.id) : [];
+      if (hasClass && !(await store.takingPart(pupils)).has(pupil)) return;
       const settings = await store.settings();
       if (!live) return;
       const { policy } = host;
@@ -87,22 +94,38 @@ export function useStudy({ host, folder, hasClass, inStudio, studio }: StudyOpti
     };
   }, [on, host, pupil, hasClass, answered]);
 
-  // Each step the history closes, each undo and redo (6.6).
+  // Each step the history closes, each undo and redo (6.6). The session's `commit()` closes a
+  // run of typing without telling its listeners, so a step closed since the last change is
+  // counted at the next one, whatever it is, or at `settle()`.
   const history = studio.session;
+  const settling = useRef<(() => void) | null>(null);
   useEffect(() => {
     if (!session) return;
     const done = () => history.history().filter((h) => h.done).length;
     let steps = done();
-    return history.subscribe((change) => {
+    /** Each step closed beyond what the history held, `moved` by this change's undo or redo. */
+    const count = (moved: number) => {
       const now = done();
+      for (let n = steps + moved; n < now; n++) session.edited();
+      steps = now;
+    };
+    settling.current = () => count(0);
+    const stop = history.subscribe((change) => {
+      if (change.source === 'load') {
+        steps = done();
+        return;
+      }
+      const moved = change.source === 'undo' ? -1 : change.source === 'redo' ? 1 : 0;
+      count(moved);
       if (change.source === 'undo') session.undone();
       else if (change.source === 'redo') session.redone();
-      else if (change.source !== 'load' && change.source !== 'check')
-        // A run of typing is one step: it's counted once it's closed, at the next change.
-        for (let n = steps; n < now; n++) session.edited();
-      steps = now;
     });
+    return () => {
+      stop();
+      settling.current = null;
+    };
   }, [session, history]);
+  const settle = useCallback(() => settling.current?.(), []);
 
   // The learner's switch of editor, in a task or not (6.6).
   const policy = host.policy.editor;
@@ -126,5 +149,5 @@ export function useStudy({ host, folder, hasClass, inStudio, studio }: StudyOpti
     setAnswered(yes);
   }, []);
 
-  return { session, asking, answer, learnOpened };
+  return { session, asking, answer, learnOpened, settle };
 }

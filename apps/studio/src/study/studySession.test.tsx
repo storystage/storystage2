@@ -78,6 +78,18 @@ describe('who takes part, and the study bar (6.2, 6.3)', () => {
     expect(shown.textContent).toBe(`Study session ${code.slice(0, 4)}-${code.slice(4)}`);
   });
 
+  it('keeps every other pupil’s tick when one pupil’s folder opens', async () => {
+    const classes = memoryClassFolders();
+    const ava = await classes.addPupil('Ava');
+    const ben = await classes.addPupil('Ben');
+    const store = new StudyStore(classes.study());
+    await store.setTakingPart(ava.id, true);
+    await store.setTakingPart(ben.id, true);
+    render(<Harness host={hostWith(classes)} folder={await classes.open(ava.id)} hasClass />);
+    await bar();
+    expect(await store.takingPart([ava.id, ben.id])).toEqual(new Set([ava.id, ben.id]));
+  });
+
   it('keeps nothing for a pupil not ticked, or while study mode is off', async () => {
     const classes = memoryClassFolders();
     const folder = await tickedPupil(classes, false);
@@ -161,6 +173,38 @@ describe('what the session is told (6.6)', () => {
       'redo',
       'help',
     ]);
+  });
+
+  it('counts a run of typing as one step before the undo that follows it', async () => {
+    const classes = memoryClassFolders();
+    const folder = await tickedPupil(classes);
+    render(<Harness host={hostWith(classes)} folder={folder} hasClass />);
+    await bar();
+    act(() => void latest!.study.session!.openTask('T1', 'blocks', true));
+    // Two changes with one key are one step, closed by the undo without a change of its own.
+    for (const title of ['T', 'Tw']) {
+      const now = latest!.studio.production;
+      act(() =>
+        latest!.studio.commit('Rename', { ...now, manifest: { ...now.manifest, title } }, 'title'),
+      );
+    }
+    act(() => latest!.studio.undo());
+    expect((await logOf(classes)).map((e) => e.kind)).toEqual(['session', 'task', 'edit', 'undo']);
+  });
+
+  it('counts the last run of typing when the task card settles before a check', async () => {
+    const classes = memoryClassFolders();
+    const folder = await tickedPupil(classes);
+    render(<Harness host={hostWith(classes)} folder={folder} hasClass />);
+    await bar();
+    act(() => void latest!.study.session!.openTask('T1', 'blocks', true));
+    const now = latest!.studio.production;
+    act(() =>
+      latest!.studio.commit('Rename', { ...now, manifest: { ...now.manifest, title: 'T' } }, 'k'),
+    );
+    act(() => latest!.studio.seal());
+    act(() => latest!.study.settle());
+    expect((await logOf(classes)).map((e) => e.kind)).toEqual(['session', 'task', 'edit']);
   });
 
   it('logs the learner’s switch of editor, in a task or not', async () => {
