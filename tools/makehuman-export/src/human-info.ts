@@ -66,8 +66,10 @@ export interface HumanInfo {
     readonly trousersColour: readonly [number, number, number] | null;
     /** The shirt's pattern, or null for the pack's stripes. */
     readonly pattern: string | null;
-    /** Whether to level a child's skirt hem. */
+    /** Whether to level a skirt's hem. */
     readonly straightHem: boolean;
+    /** Whether the skirt goes to the ankle. */
+    readonly longSkirt: boolean;
     /** The glasses, whose lenses stay clear (`make_people.py` exports them as glTF's MASK). */
     readonly glasses: string | null;
     /** Headwear for `make_people.py` to make from the head, and its colour. */
@@ -125,6 +127,7 @@ export function humanInfo(p: Person): HumanInfo {
       trousersColour: p.trousersColour ? TROUSERS_COLOURS[p.trousersColour] : null,
       pattern: p.pattern ?? null,
       straightHem: straightHem(p),
+      longSkirt: p.skirtLength === 'ankle',
       glasses: p.glasses ?? null,
       headwear: p.headwear
         ? { kind: p.headwear.kind, colour: PIECE_COLOURS[p.headwear.colour] }

@@ -48,6 +48,8 @@ export interface Highlights {
   readonly error: readonly HighlightMark[];
   /** The blocks the current frame links to (WP10.8). */
   readonly link?: readonly HighlightMark[];
+  /** The blocks the Prompter's request added, as they land (spec 04 section 6.1). */
+  readonly prompter?: readonly HighlightMark[];
 }
 
 const NO_MARKS: readonly HighlightMark[] = [];
@@ -205,6 +207,10 @@ export default function BlocksPanel({
   useEffect(() => {
     editor.current?.highlight(links, 'link');
   }, [links, mounts]);
+  const built = highlights.prompter ?? NO_MARKS;
+  useEffect(() => {
+    editor.current?.highlight(built, 'prompter');
+  }, [built, mounts]);
 
   return (
     <div className="pr-workspace-frame">

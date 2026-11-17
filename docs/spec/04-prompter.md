@@ -443,7 +443,7 @@ The levels pick from the modes (decision 0034); `prompter.enabled`, `prompter.ex
 | **Plan only** | Those, plus `showMeHow` and `buildIt`, which write and revise plans | None. The learner builds every block and ticks steps off |
 | **Full** | All | After an agreed plan |
 
-If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
+If `explainOnly` and `planOnly` are both set, Explain only wins. When the level turns Off while a request runs (a teacher's lock, or a study task, spec 14 section 6.5, where the studio gives the panel the level Off), `refresh` stops the request and the panel stays Off; it comes back with the level. At Limit reached, `refresh` updates the modes to the lowered level but keeps the phase and the class's words until the next request (spec 07, section 2.4). A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
 
 ### 4.4 Set-up (13.6)
 
@@ -471,7 +471,7 @@ The set-up wizard's pages and the system dialog are spec 05, section 1. The stud
 
 ### 4.5 The Prompter panel (WP13c)
 
-The panel's states are spec 07, section 2.4. The studio draws them (S5). `packages/prompter/src/panel.ts` holds what they run on, `PrompterPanel`, so every state is tested on scripted replies without a screen. It sits over the request loop (`PrompterSession`), the tool runner (`PrompterRunner`) and the production's undo history (`ProductionSession`). The studio makes all three with one call, `createPrompterPanel`, which always sends this release's pinned `system` and `tools` (section 1.9).
+The panel's states are spec 07, section 2.4. The studio draws them (S5). `packages/prompter/src/panel.ts` holds what they run on, `PrompterPanel`, so every state is tested on scripted replies without a screen. It sits over the request loop (`PrompterSession`), the tool runner (`PrompterRunner`) and the production's undo history (`ProductionSession`). The studio makes all three with one call, `createPrompterPanel`, which always sends this release's pinned `system` and `tools` (section 1.9). It takes the studio's own session as it is: the runner and the panel are generic over the history's names for where changes come from (`ProductionSession<S>`, with `source: S`).
 
 | Phase | When | What the learner can do |
 |---|---|---|
@@ -494,6 +494,7 @@ The panel's states are spec 07, section 2.4. The studio draws them (S5). `packag
 - **Editing a plan** happens in the client, with no request and no cost: move a step, delete one, change a value, add one. Each edit is checked again (section 6.3), and a step that can't be built carries its problem in plain words. **Build these steps** waits until no step has a problem. The panel keeps the plan as the Prompter showed it beside the learner's version, so it can be kept with the frame (section 6.7).
 - **Build these steps** sends "Build these steps." in the same mode, with the learner's plan as `<agreed_plan>`.
 - **Code this frame** asks for frame `f` in the current mode, so the Prompter's plan is for that frame.
+- **Try again** (`retry`, offered while `canRetry`) sends the last request again as it was sent: the same words, Code this frame for the same frame, or Build these steps with the plan as it stands. It is offered for a problem whose action is try again, and only when that request changed nothing. A build that stopped part-way is undone with Undo this request, not built again on top.
 - **Undo this request** (`undoRequest`) is offered in Planned and in Built, as spec 07 lists it. In Planned nothing is built yet, so it drops the plan and goes back to Ready. In Built it undoes the request's one step, and only while that is still the latest step in the history. Once the learner has changed something since, the Prompter's step is undone from the history, like any other.
 - **Stop** stops the request. Changes that already landed stay, as one step, and **Undo this request** is offered for them.
 

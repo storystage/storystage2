@@ -557,6 +557,31 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
 
+  packages/study:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+    devDependencies:
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../check
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+
   packages/text-view:
     dependencies:
       '@storystage/ast':

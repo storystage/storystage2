@@ -19,7 +19,12 @@ targets = [
 # An entry in `ignore` needs its advisory id and the reason it can't reach the app.
 [advisories]
 unmaintained = "all"
-ignore = []
+ignore = [
+  # chrono is unmaintained: no known vulnerability. Tauri needs it anyway (tauri-utils, through
+  # serde_with), and our one use is the local date the Prompter's daily cap counts by
+  # (src/prompter.rs). Replace it once Tauri drops it.
+  { id = "RUSTSEC-2026-0543", reason = "chrono unmaintained, not a vulnerability; Tauri depends on it" },
+]
 
 [licenses]
 confidence-threshold = 0.9

@@ -302,9 +302,27 @@ describe('pattern', () => {
 });
 
 describe('straightHem', () => {
-  it("levels a child's skirt, not an adult's or trousers", () => {
-    expect(straightHem({ clothes: ['female_elegantsuit01'], ageYears: 7 })).toBe(true);
-    expect(straightHem({ clothes: ['female_elegantsuit01'], ageYears: 30 })).toBe(false);
-    expect(straightHem({ clothes: ['male_casualsuit03'], ageYears: 7 })).toBe(false);
+  it('levels every skirt, not trousers', () => {
+    expect(straightHem({ clothes: ['female_elegantsuit01'] })).toBe(true);
+    expect(straightHem({ clothes: ['male_casualsuit03'] })).toBe(false);
+  });
+});
+
+describe('more patterns, and a long skirt', () => {
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+  const blouse = { clothes: ['female_elegantsuit01'], clothesColour: 'rose' } as const;
+
+  it('takes spots, flowers and flecks as well as plain and checks', () => {
+    for (const pattern of ['dots', 'flowers', 'flecks'] as const)
+      expect(ok({ ...blouse, pattern })).toBe(true);
+  });
+
+  it('lengthens only the skirt, to the ankle', () => {
+    expect(ok({ ...blouse, skirtLength: 'ankle' })).toBe(true);
+    expect(ok({ ...blouse, skirtLength: 'floor' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit03'], skirtLength: 'ankle' })).toBe(false);
+    expect(peopleTable([person({ ...blouse, skirtLength: 'ankle' })])).toContain(
+      'skirt to the ankle',
+    );
   });
 });

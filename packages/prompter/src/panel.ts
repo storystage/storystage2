@@ -67,18 +67,23 @@ export interface PanelState {
   readonly canBuild: boolean;
   /** Whether Undo this request is offered. */
   readonly canUndo: boolean;
+  /**
+   * Whether Try again is offered: a problem whose action is `tryAgain`, from a request that changed
+   * nothing. A build that stopped part-way is undone first, not built again on top.
+   */
+  readonly canRetry: boolean;
   /** What went wrong, in plain words, and what to do about it. */
   readonly message: { readonly text: string; readonly action?: OutcomeAction } | null;
 }
 
-export interface PanelSetup {
+export interface PanelSetup<S extends string = string> {
   readonly prompter: PrompterSession;
-  readonly runner: PrompterRunner;
+  readonly runner: PrompterRunner<S>;
   readonly transport: PrompterTransport;
   /** The open production and its undo history, which the runner changes too. */
-  readonly production: ProductionSession<string>;
+  readonly production: ProductionSession<S>;
   /** The history's name for the Prompter's changes: the runner's `source`. */
-  readonly source: string;
+  readonly source: S;
   readonly level: () => PrompterLevel;
   readonly scene: () => SceneId;
   readonly openMethod?: () => NodeId | null;
@@ -88,6 +93,8 @@ export interface PanelSetup {
 }
 
 export const BUILD_REQUEST = 'Build these steps.';
+
+type RequestExtra = { readonly frame?: FrameId; readonly agreedPlan?: Json };
 const BUILDS: readonly PrompterMode[] = ['showMeHow', 'buildIt'];
 const BLOCKED: Partial<Record<TransportErrorCode, PanelPhase>> = {
   prompter_off: 'off',
@@ -95,15 +102,19 @@ const BLOCKED: Partial<Record<TransportErrorCode, PanelPhase>> = {
   no_key: 'notSetUp',
 };
 
-export class PrompterPanel {
-  readonly #setup: PanelSetup;
+export class PrompterPanel<S extends string = string> {
+  readonly #setup: PanelSetup<S>;
   readonly #listeners = new Set<(state: PanelState) => void>();
   #state: PanelState;
   #stop: AbortController | null = null;
   /** The history's length just after this panel's last build, while Undo this request stands. */
   #built: number | null = null;
+  /** The last request, as it was sent, for Try again. */
+  #last: { readonly text: string; readonly extra: RequestExtra } | null = null;
+  /** Whether the last request may be sent again: it changed nothing. */
+  #retryable = false;
 
-  constructor(setup: PanelSetup) {
+  constructor(setup: PanelSetup<S>) {
     this.#setup = setup;
     const modes = modesAt(setup.level());
     this.#state = {
@@ -114,6 +125,7 @@ export class PrompterPanel {
       plan: null,
       canBuild: false,
       canUndo: false,
+      canRetry: false,
       message: null,
     };
   }
@@ -139,6 +151,11 @@ export class PrompterPanel {
         next.plan.problems.length === 0 &&
         next.phase === 'planned',
       canUndo: next.phase === 'planned' || this.#undoable(),
+      canRetry:
+        this.#retryable &&
+        this.#last !== null &&
+        next.phase === 'problem' &&
+        next.message?.action === 'tryAgain',
     };
     for (const listener of this.#listeners) listener(this.#state);
   }
@@ -171,18 +188,25 @@ export class PrompterPanel {
       this.#set({ entries: [...entries.slice(0, -1), { ...last, done: true }] });
   }
 
-  /** Reads the level and the native layer's status again: on opening, and when either changes. */
+  /**
+   * Reads the level and the native layer's status again: on opening, and when either changes. A
+   * level that is now Off (a teacher's lock, or a study task, spec 14 section 6.5) stops any
+   * request in flight.
+   */
   async refresh(): Promise<void> {
     if (this.#state.phase === 'absent') return;
     const modes = modesAt(this.#setup.level());
     const mode = modes.includes(this.#state.mode) ? this.#state.mode : (modes[0] ?? 'explain');
     if (modes.length === 0) {
-      this.#set({ modes, mode, phase: 'off' });
+      this.#stop?.abort();
+      this.#set({ modes, mode, phase: 'off', message: null });
       return;
     }
     const status = await this.#setup.transport.status();
     if (status.available) {
-      const idle = ['off', 'notSetUp', 'limit', 'problem'].includes(this.#state.phase);
+      // Limit reached keeps the class's words until the next request (spec 07, section 2.4):
+      // the studio refreshes there only so the modes drop what the lowered level leaves out.
+      const idle = ['off', 'notSetUp', 'problem'].includes(this.#state.phase);
       this.#set({ modes, mode, ...(idle ? { phase: 'ready', message: null } : {}) });
       return;
     }
@@ -254,6 +278,7 @@ export class PrompterPanel {
   restart(): void {
     if (this.#busy) return;
     this.#setup.prompter.reset();
+    this.#last = null;
     this.#built = null;
     this.#set({ entries: [], plan: null, phase: 'ready', message: null });
   }
@@ -293,14 +318,28 @@ export class PrompterPanel {
     });
   }
 
+  /**
+   * Try again: the last request, as it was sent (Ask, Code this frame, or Build these steps with
+   * the plan as it stands now). Only while `canRetry`.
+   */
+  retry(): Promise<void> {
+    const last = this.#last;
+    if (!this.#state.canRetry || !last) return Promise.resolve();
+    if (last.extra.agreedPlan === undefined) return this.#run(last.text, last.extra);
+    const plan = this.#state.plan;
+    if (!plan || plan.problems.length > 0) return Promise.resolve();
+    return this.#run(last.text, {
+      agreedPlan: { plan: plan.plan, frame: plan.frame, steps: plan.steps } as unknown as Json,
+    });
+  }
+
   // ---- Running a request --------------------------------------------------------------------
 
-  async #run(
-    text: string,
-    extra: { readonly frame?: FrameId; readonly agreedPlan?: Json },
-  ): Promise<void> {
+  async #run(text: string, extra: RequestExtra): Promise<void> {
     const phase = this.#state.phase;
     if (this.#busy || ['absent', 'off', 'notSetUp'].includes(phase)) return;
+    this.#last = { text, extra };
+    this.#retryable = false;
     const level = this.#setup.level();
     const building = extra.agreedPlan !== undefined;
     const shownBefore = this.#setup.runner.latestPlan();
@@ -356,6 +395,7 @@ export class PrompterPanel {
   }
 
   #finish(outcome: AskOutcome, shownBefore: Plan | undefined, building: boolean): void {
+    this.#retryable = outcome.changes === 0;
     if (outcome.changes > 0)
       this.#built = this.#setup.production.history().filter((h) => h.done).length;
     const shown = this.#setup.runner.latestPlan();
@@ -373,6 +413,11 @@ export class PrompterPanel {
         : this.#state.plan;
     const message = outcomeMessage(outcome);
 
+    // Turned off while it ran: it stays off, whatever the request ended with.
+    if (modesAt(this.#setup.level()).length === 0) {
+      this.#set({ phase: 'off', plan, message: null, modes: [] });
+      return;
+    }
     if (outcome.status === 'error' && outcome.code && BLOCKED[outcome.code]) {
       this.#set({ phase: BLOCKED[outcome.code], plan, message: null });
       return;
@@ -394,20 +439,22 @@ export class PrompterPanel {
 }
 
 /** What the studio gives `createPrompterPanel`: the runner's setup, and the panel's. */
-export interface PrompterPanelOptions
+export interface PrompterPanelOptions<S extends string = string>
   extends
-    Omit<RunnerSetup, 'session'>,
-    Omit<PanelSetup, 'prompter' | 'runner' | 'production' | 'source'> {
-  readonly production: ProductionSession<string>;
+    Omit<RunnerSetup<S>, 'session'>,
+    Omit<PanelSetup<S>, 'prompter' | 'runner' | 'production' | 'source'> {
+  readonly production: ProductionSession<S>;
 }
 
 /**
  * The Prompter as the studio sets it up: the tool runner on the open production, the request
  * loop with this release's pinned `system` and `tools` (section 1.9), and the panel over both.
  */
-export function createPrompterPanel(options: PrompterPanelOptions): PrompterPanel {
+export function createPrompterPanel<S extends string>(
+  options: PrompterPanelOptions<S>,
+): PrompterPanel<S> {
   const { production, transport, ...rest } = options;
-  const runner = new PrompterRunner({ ...rest, session: production });
+  const runner = new PrompterRunner<S>({ ...rest, session: production });
   const prompter = new PrompterSession({
     transport,
     system: releaseSystem(),
@@ -415,5 +462,5 @@ export function createPrompterPanel(options: PrompterPanelOptions): PrompterPane
     runner,
     newId: () => globalThis.crypto.randomUUID(),
   });
-  return new PrompterPanel({ ...rest, prompter, runner, transport, production });
+  return new PrompterPanel<S>({ ...rest, prompter, runner, transport, production });
 }

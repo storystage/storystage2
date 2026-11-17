@@ -588,9 +588,28 @@
   color: var(--ss-on-strong);
   background: var(--ss-strong);
 }
-.ss-plan-text {
+.ss-plan-words {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+  padding: 6px 0;
+  line-height: 1.3;
+}
+.ss-plan-step[data-problem] {
+  box-shadow: inset 0 0 0 1.5px var(--ss-stop);
+}
+.ss-plan-problem {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--ss-text-2);
+  font-size: calc(15px * var(--ss-text-size, 1));
+}
+.ss-plan-problem .ss-icon {
+  flex: none;
+  fill: var(--ss-stop);
 }
 
 /* Frame strip: 140 × 50 cards grouped by scene; the current frame has a 2 px amber line on amber-tint. */

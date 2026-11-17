@@ -274,6 +274,22 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
     expect(panel.state.message?.text).toMatch(/Prompter's time for today/);
   });
 
+  it('keeps the limit and its words when the lowered level is read, until the next request', async () => {
+    const { panel, setLevel } = setUp([say('Here you go.')], {
+      fail: { type: 'error', code: 'cap_reached' },
+    });
+    await panel.refresh();
+    await panel.ask('Hello');
+    setLevel('explainOnly');
+    await panel.refresh();
+    expect(panel.state).toMatchObject({
+      phase: 'limit',
+      modes: ['explain', 'storyCoach', 'scriptCheck'],
+      mode: 'explain',
+    });
+    expect(panel.state.message?.text).toMatch(/Prompter's time for today/);
+  });
+
   it('says what happened and what to do next', async () => {
     const { panel } = setUp([], { fail: { type: 'error', code: 'overloaded' } });
     await panel.refresh();
@@ -298,6 +314,21 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
     expect(panel.state).toMatchObject({ phase: 'ready', message: null });
   });
 
+  it('stops a request in flight when the level turns Off, and stays off', async () => {
+    const { panel, setLevel } = setUp([say('A long answer.')]);
+    await panel.refresh();
+    const asking = panel.ask('Tell me a story.');
+    setLevel('off');
+    await panel.refresh();
+    await asking;
+    expect(panel.state).toMatchObject({ phase: 'off', modes: [], message: null });
+    await panel.ask('Are you there?');
+    expect(panel.state.entries.filter((e) => e.kind === 'asked')).toHaveLength(1);
+    setLevel('full');
+    await panel.refresh();
+    expect(panel.state.phase).toBe('ready');
+  });
+
   it('takes one request at a time', async () => {
     const { panel, transport } = setUp([say('One.'), say('Two.')]);
     await panel.refresh();
@@ -308,7 +339,58 @@ describe('PrompterPanel: limits and problems (spec 04, section 7)', () => {
   });
 });
 
+describe('PrompterPanel: Try again (spec 04, section 7)', () => {
+  const overloaded: PrompterEvent[] = [{ type: 'error', code: 'overloaded' }];
+
+  it('sends the last request again, as it was', async () => {
+    const { panel, transport } = setUp([overloaded, say('Hello.')]);
+    await panel.refresh();
+    await panel.ask('Hi there');
+    expect(panel.state).toMatchObject({ phase: 'problem', canRetry: true });
+    await panel.retry();
+    expect(transport.sent).toHaveLength(2);
+    expect(panel.state).toMatchObject({ phase: 'ready', canRetry: false });
+    const asked = panel.state.entries.filter((e) => e.kind === 'asked');
+    expect(asked).toEqual([
+      { kind: 'asked', text: 'Hi there' },
+      { kind: 'asked', text: 'Hi there' },
+    ]);
+  });
+
+  it('builds again with the plan as it stands, when the build changed nothing', async () => {
+    const { panel, transport } = await planned([overloaded, moves, say('Done.')]);
+    await panel.build();
+    expect(panel.state).toMatchObject({ phase: 'problem', canRetry: true });
+    await panel.retry();
+    expect(panel.state.phase).toBe('built');
+    expect(JSON.stringify(transport.sent.at(-2)!.body.messages)).toContain('<agreed_plan>');
+  });
+
+  it("isn't offered after a build that stopped part-way: that is undone, not built on top", async () => {
+    const { panel, transport } = await planned([moves, overloaded]);
+    await panel.build();
+    expect(panel.state).toMatchObject({ phase: 'problem', canRetry: false, canUndo: true });
+    const sent = transport.sent.length;
+    await panel.retry();
+    expect(transport.sent).toHaveLength(sent);
+  });
+});
+
 describe('createPrompterPanel', () => {
+  it("takes the studio's own session, with its own names for where changes come from", () => {
+    const studio = new ProductionSession<'learner' | 'prompter'>(exampleProduction());
+    const options = {
+      transport: scriptedTransport(() => say('Hello.')),
+      production: studio,
+      level: () => 'full' as const,
+      scene: () => sceneId('s2'),
+      backstageClass: () => null,
+    };
+    expect(createPrompterPanel({ ...options, source: 'prompter' })).toBeInstanceOf(PrompterPanel);
+    // @ts-expect-error: a source the studio's history doesn't have.
+    createPrompterPanel({ ...options, source: 'robot' });
+  });
+
   it("sends this release's pinned system and tools, through the runner on the open production", async () => {
     const transport = scriptedTransport(() => say('Hello.'));
     const panel = createPrompterPanel({

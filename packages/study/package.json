@@ -1,0 +1,24 @@
+{
+  "name": "@storystage/study",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Study mode (workplan 7.13, spec 14 section 6): the pseudonymous study log on the device, its session codes, the study tasks and the export file.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/host": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  },
+  "devDependencies": {
+    "@storystage/check": "workspace:*",
+    "@storystage/runtime": "workspace:*",
+    "@storystage/stage": "workspace:*"
+  }
+}
