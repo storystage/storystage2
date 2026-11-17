@@ -234,6 +234,30 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
     expect(panel.state).toMatchObject({ phase: 'ready', canUndo: false });
   });
 
+  it('builds what a character says from the request that made the plan (section 6.5)', async () => {
+    const hello = step({ words: 'The penguin says Hello.', action: 'say' });
+    const says = testReply([
+      use('t2', 'insert_statement', {
+        method: 'myFirstMethod',
+        position: 'end',
+        target: 'penguin',
+        procedure: 'say',
+        arguments: [{ name: 'text', value: 'Hello' }],
+        narration: 'The penguin says Hello.',
+        plan_step: 1,
+      }),
+    ]);
+    const { panel } = setUp([proposes([hello]), say("Here's the plan."), says, say('Done.')]);
+    await panel.refresh();
+    panel.setMode('buildIt');
+    await panel.ask('Make the penguin say Hello.');
+    await panel.build();
+    expect(panel.state).toMatchObject({ phase: 'built', message: null });
+    expect(panel.state.entries).toContainEqual(
+      expect.objectContaining({ kind: 'change', step: 1 }),
+    );
+  });
+
   it('stops offering Undo this request once the learner changes something after it', async () => {
     const { panel, production } = await planned([moves, say('Done.')]);
     await panel.build();

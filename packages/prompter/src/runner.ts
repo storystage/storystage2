@@ -209,7 +209,12 @@ function asPlan(value: Json | undefined): Plan | null {
 
 export class PrompterRunner<S extends string = string> implements ToolRunner {
   readonly #setup: RunnerSetup<S>;
-  #request = '';
+  /**
+   * The learner's own words, for what characters say outside a frame (section 6.5): every request
+   * they have made since the film opened, and the steps they wrote or changed in the agreed plan.
+   * A build's request is only "Build these steps.", so the words come from what came before.
+   */
+  #learnerWords: string[] = [];
   #agreed: Plan | null = null;
   #open = false;
   #commented = new Set<number>();
@@ -223,8 +228,15 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   }
 
   begin(request: string, context: RequestContext = {}): void {
-    this.#request = request;
     this.#agreed = asPlan(context.agreedPlan);
+    this.#learnerWords.push(request);
+    // A step the Prompter never showed is the learner's own: they added it, or changed it.
+    const shown = this.#agreed ? this.#plans.get(this.#agreed.plan)?.steps : undefined;
+    const theirs = (this.#agreed?.steps ?? []).filter(
+      (s) => !shown?.some((p) => JSON.stringify(p) === JSON.stringify(s)),
+    );
+    for (const step of theirs)
+      this.#learnerWords.push(step.words, ...step.details.map((d) => d.value));
     this.#commented = new Set();
     this.#coding = null;
   }
@@ -668,7 +680,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         'not_in_script',
         'In a frame, what a character says is a script line: give its exact words and its id in line.',
       );
-    return squash(this.#request).includes(squash(words)) && words.trim() !== ''
+    return words.trim() !== '' && this.#learnerWords.some((w) => squash(w).includes(squash(words)))
       ? null
       : fail(
           'not_in_script',
