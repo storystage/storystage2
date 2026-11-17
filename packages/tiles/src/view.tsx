@@ -695,8 +695,12 @@ export function TilesView(props: ViewProps) {
   const pending = useRef<Pending | null>(null);
   const dragging = useRef(false);
   const press = useRef<LongPress | null>(null);
-  /** When a long press last opened a row's menu, so the click and menu event after it don't. */
-  const pressedAt = useRef(0);
+  /**
+   * When a long press last opened a row's menu, so the click and menu event after it don't. Never,
+   * to begin with: 0 would swallow every click in the page's first 700 ms, as an event's time
+   * counts from when the page opened (found by CI, 17 Nov).
+   */
+  const pressedAt = useRef(-Infinity);
   const handlers = useRef(props);
   useLayoutEffect(() => {
     handlers.current = props;
