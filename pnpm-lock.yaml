@@ -895,6 +895,15 @@ importers:
 
   tools/fake-claude:
     dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../../packages/ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../../packages/backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../../packages/production
       '@storystage/prompter':
         specifier: workspace:*
         version: link:../../packages/prompter

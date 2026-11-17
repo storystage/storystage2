@@ -42,6 +42,20 @@ Each request names the production it starts from, in `productions/`. They're pla
 3. If a plan appears, send `follow_up` if the row has one, make the row's `plan_edits`, then press **Build these steps**. At Plan only, stop at the plan.
 4. Score the checks.
 
+### The harness
+
+`tools/fake-claude/src/eval/` runs a row the way the studio would, so a score says something about the Prompter learners will use.
+
+- **`openStart`** builds the row's start as a real production with the production's own steps (`addScene`, `addObject`). Its program lines become blocks in the request's scene, which is the scene of a frame the request names, else the first scene with frames. Ids come from a fixed seed, so every run starts from the same film. A class's own names (`imported`, `displayName`) are class-imported models, so they reach the Prompter as they would in the studio.
+- **`runRow`** runs the row through the real `PrompterPanel`, `PrompterSession` and `PrompterRunner`, with this release's pinned `system` and `tools`, on a transport the caller gives: the fake server for a recorded run, the API for a live one. It follows the steps above: the request, the follow-up, the plan edits as the panel's own edits, then **Build these steps**. It keeps the film before, before the build and after; every tool call and its answer, read from the conversation, so calls the mode refused count too; the replies; and the tokens each turn used.
+- **`scoreRow`** scores each check. A `reply` check comes back with no result and the replies in its notes, for grading.
+- **`resultsCsv`**, **`usageCsv`**, **`readGrades`**, **`withGrades`** and **`summarise`** give the CSV, the tokens per row, and the score against the bars below. A reply check counts only once it has a grade, and no bar is met while any wait.
+
+**Not yet in the harness:**
+
+- **The command to run it live.** It reads the key from the environment and keeps each run as a recording.
+- **Set the stage from the storyboard.** It is the studio's own step (`stageFromStoryboard`), in its React code, so `stage_scene` answers `not_allowed_here` in the harness until that step is in a package. `board-01` checks only that the tool was used, which still scores.
+
 ## Checks
 
 A check passes or fails. `code` checks read the production and the tool calls, so they need no judgement. `reply` checks read the words. The Prompter's own rules (spec 04, section 6) also enforce several `code` checks: a pass there shows the guard held, not only that the model behaved.

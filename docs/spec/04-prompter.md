@@ -632,7 +632,7 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 
 ## 9. Evaluation
 
-`docs/eval/` holds the set, the starting productions, the check types and the scoring rules. The bars come from WP13: at least 85% of checks on recorded responses; at least 75% live, with no failures in the refusal, "doesn't write the story" and "build matches the plan" categories.
+`docs/eval/` holds the set, the starting productions, the check types and the scoring rules. `tools/fake-claude/src/eval/` runs a row through the real panel and scores it (`docs/eval/README.md`, "The harness"). The bars come from WP13: at least 85% of checks on recorded responses; at least 75% live, with no failures in the refusal, "doesn't write the story" and "build matches the plan" categories.
 
 ## 10. Differences from StoryStage 1 spec 01
 
