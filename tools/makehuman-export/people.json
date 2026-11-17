@@ -2,7 +2,7 @@
   {
     "id": "p01",
     "name": "Alfie",
-    "description": "a boy of 6 with short brown hair, in a blue shirt and jeans",
+    "description": "a boy of 6 with short brown hair, in blue dungarees and a yellow T-shirt",
     "ageYears": 6,
     "gender": 0.7,
     "build": {
@@ -19,13 +19,14 @@
     "eyes": "blue",
     "hair": "short02",
     "eyebrows": "eyebrow001",
-    "clothes": ["male_casualsuit01"],
+    "clothes": ["male_worksuit01"],
+    "clothesColour": "mustard",
     "shoes": "shoes01"
   },
   {
     "id": "p02",
     "name": "Amara",
-    "description": "a girl of 7 with short curly black hair, in a yellow jacket and jeans",
+    "description": "a girl of 7 with short curly black hair, in a yellow blouse and yellow skirt",
     "ageYears": 7,
     "gender": 0.3,
     "build": {
@@ -42,8 +43,9 @@
     "eyes": "brown",
     "hair": "afro01",
     "eyebrows": "eyebrow002",
-    "clothes": ["male_casualsuit05"],
+    "clothes": ["female_elegantsuit01"],
     "clothesColour": "mustard",
+    "pattern": "plain",
     "shoes": "shoes02"
   },
   {
@@ -67,14 +69,16 @@
     "eyebrows": "eyebrow003",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "teal",
+    "trousersColour": "grey",
+    "pattern": "plain",
     "shoes": "shoes03",
     "glasses": "spamrakuen_sagerfrogs_glasses_02",
-    "description": "a child of 8 with a brown side fringe and red glasses, in a teal striped shirt and jeans"
+    "description": "a child of 8 with a brown side fringe and red glasses, in a teal shirt and grey trousers"
   },
   {
     "id": "p04",
     "name": "Aisha",
-    "description": "a girl of 9 with short black hair, in a purple striped shirt and jeans",
+    "description": "a girl of 9 with short black hair, in a purple checked shirt and jeans",
     "ageYears": 9,
     "gender": 0.3,
     "build": {
@@ -93,12 +97,13 @@
     "eyebrows": "eyebrow004",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "plum",
+    "pattern": "checks",
     "shoes": "shoes01"
   },
   {
     "id": "p05",
     "name": "Rhys",
-    "description": "a boy of 10 with short dark hair, in a dark red striped shirt and jeans",
+    "description": "a boy of 10 with short dark hair, in an orange checked shirt and navy trousers",
     "ageYears": 10,
     "gender": 0.7,
     "build": {
@@ -116,6 +121,9 @@
     "hair": "short01",
     "eyebrows": "eyebrow005",
     "clothes": ["male_casualsuit03"],
+    "clothesColour": "rust",
+    "trousersColour": "navy",
+    "pattern": "checks",
     "shoes": "shoes04"
   },
   {
@@ -145,7 +153,7 @@
   {
     "id": "p07",
     "name": "Zain",
-    "description": "a boy of 12 with short black hair, in a teal jacket and jeans",
+    "description": "a boy of 12 with short black hair, in a teal jacket and black trousers",
     "ageYears": 12,
     "gender": 0.7,
     "build": {
@@ -164,12 +172,13 @@
     "eyebrows": "eyebrow007",
     "clothes": ["male_casualsuit05"],
     "clothesColour": "teal",
+    "trousersColour": "black",
     "shoes": "shoes02"
   },
   {
     "id": "p08",
     "name": "Mei",
-    "description": "a girl of 6 with a black bob and a long fringe, in a coral striped shirt and jeans",
+    "description": "a girl of 6 with a black bob and a long fringe, in a coral checked blouse and skirt",
     "ageYears": 6,
     "gender": 0.3,
     "build": {
@@ -186,14 +195,15 @@
     "eyes": "brown",
     "hair": "bob01",
     "eyebrows": "eyebrow008",
-    "clothes": ["male_casualsuit03"],
+    "clothes": ["female_elegantsuit01"],
     "clothesColour": "coral",
+    "pattern": "checks",
     "shoes": "shoes06"
   },
   {
     "id": "p09",
     "name": "Kofi",
-    "description": "a boy of 11 with short black hair, in a khaki jacket and jeans",
+    "description": "a boy of 11 with short black hair, in blue dungarees and a white T-shirt",
     "ageYears": 11,
     "gender": 0.7,
     "build": {
@@ -210,13 +220,13 @@
     "eyes": "brown",
     "hair": "short01",
     "eyebrows": "eyebrow009",
-    "clothes": ["male_casualsuit05"],
+    "clothes": ["male_worksuit01"],
     "shoes": "shoes03"
   },
   {
     "id": "p10",
     "name": "Isla",
-    "description": "a girl of 9 with long brown hair, in a green striped shirt and jeans",
+    "description": "a girl of 9 with long brown hair, in a green striped blouse and green skirt",
     "ageYears": 9,
     "gender": 0.3,
     "build": {
@@ -233,7 +243,7 @@
     "eyes": "blue",
     "hair": "long01",
     "eyebrows": "eyebrow010",
-    "clothes": ["male_casualsuit03"],
+    "clothes": ["female_elegantsuit01"],
     "clothesColour": "green",
     "shoes": "shoes04"
   },
@@ -796,12 +806,13 @@
     "eyebrows": "eyebrow007",
     "clothes": ["male_casualsuit03"],
     "clothesColour": "mustard",
+    "trousersColour": "navy",
     "shoes": "shoes03",
     "headwear": {
       "kind": "patka",
       "colour": "navy"
     },
-    "description": "a boy of 11 in a navy patka, a yellow striped shirt and jeans"
+    "description": "a boy of 11 in a navy patka, a yellow striped shirt and navy trousers"
   },
   {
     "id": "p34",
@@ -851,13 +862,15 @@
     "hair": "short01",
     "eyebrows": "eyebrow001",
     "clothes": ["male_casualsuit03"],
-    "clothesColour": "rust",
+    "clothesColour": "green",
+    "trousersColour": "khaki",
+    "pattern": "plain",
     "shoes": "shoes01",
     "headwear": {
       "kind": "kippah",
       "colour": "navy"
     },
-    "description": "a boy of 8 with short dark hair and a navy kippah, in an orange striped shirt and jeans"
+    "description": "a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers"
   },
   {
     "id": "p36",
