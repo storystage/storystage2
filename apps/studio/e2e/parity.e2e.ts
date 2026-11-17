@@ -129,6 +129,7 @@ const KEEPS_VALUE_ID = 'S5: Blocks keeps the old value node’s id';
  * Blockly's stacks do, so the say can't go into the do together below it and goes back. In Tiles,
  * as in Alice, a drag moves one statement. S5.
  */
+const DRAGS_THE_REST = 'S5: a Blocks drag takes the blocks under it too';
 /**
  * Found by this test (17 Nov): Tiles' drags carry statements only, and a number's menu has no
  * questions, so by pointer a question can't go into a value. S6.
@@ -136,11 +137,6 @@ const KEEPS_VALUE_ID = 'S5: Blocks keeps the old value node’s id';
 const NO_QUESTION_DROP = 'S6: Tiles can’t drop a question on a value';
 /** Blocks' palette has no variable or set block yet (S5, 17 Nov): S5 is adding them. */
 const NO_VARIABLE_BLOCK = 'S5: Blocks has no variable block yet';
-/**
- * Found by this test (17 Nov): Tiles draws a value made of others (a sum, a comparison, a "not",
- * a list, a question's own values) as one pill, so its parts can't be chosen or changed. S6.
- */
-const DRAGS_THE_REST = 'S5: a Blocks drag takes the blocks under it too';
 
 type Run = (page: Page) => Promise<void>;
 
