@@ -724,7 +724,7 @@
   {
     "id": "p30",
     "name": "Eileen",
-    "description": "an older woman of 85 with white hair tied back, in a green spotted blouse and long green skirt",
+    "description": "an older woman of 85 with white hair tied back, in a green checked blouse and long green skirt",
     "ageYears": 85,
     "gender": 0.15,
     "build": {
@@ -744,7 +744,7 @@
     "eyebrows": "eyebrow006",
     "clothes": ["female_elegantsuit01"],
     "clothesColour": "green",
-    "pattern": "dots",
+    "pattern": "checks",
     "skirtLength": "ankle",
     "shoes": "shoes06"
   },
