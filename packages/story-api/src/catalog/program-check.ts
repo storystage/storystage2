@@ -66,10 +66,18 @@ const REASON_OF_CALL_PROBLEM = {
   wrong_type: 'wrongType',
 } as const;
 
-/** Everything wrong with a program as far as the Story API can tell. Empty means it's fine. */
+/**
+ * Everything wrong with a program as far as the Story API can tell. Empty means it's fine.
+ *
+ * `only` checks just those methods and event handlers, for an edit that changes nothing else
+ * (`canDrop`, spec 14 3h): a method's return type is declared and each node is checked on its own,
+ * so an edit inside one method can't make a problem in another. Problems elsewhere, and in the
+ * types and fields, aren't looked for.
+ */
 export function checkProgram(
   program: Program,
   options: ProgramCheckOptions = {},
+  only?: ReadonlySet<NodeId>,
 ): readonly Problem[] {
   const problems: Problem[] = [];
   const add = (node: NodeId, key: string, message: string, name?: string, word?: string) =>
@@ -275,11 +283,22 @@ export function checkProgram(
 
   for (const type of program.types) {
     const self: TypeRef = { kind: 'user', type: type.id };
-    if (type.extends.kind === 'story' && !EXTENDABLE.has(type.extends.name))
-      add(type.id, 'cantExtend', `${type.name} can't extend ${type.extends.name}.`, type.name, '');
-    walk(type, (node) => visit(node, self));
+    if (only) {
+      for (const owner of [...type.methods, ...type.listeners])
+        if (only.has(owner.id)) walk(owner, (node) => visit(node, self));
+    } else {
+      if (type.extends.kind === 'story' && !EXTENDABLE.has(type.extends.name))
+        add(
+          type.id,
+          'cantExtend',
+          `${type.name} can't extend ${type.extends.name}.`,
+          type.name,
+          '',
+        );
+      walk(type, (node) => visit(node, self));
+    }
     for (const method of type.methods) {
-      if (method.returns === null) continue;
+      if (method.returns === null || (only && !only.has(method.id))) continue;
       const returns = method.returns;
       walk(method, (node) => {
         if (node.kind === 'return' && node.value) fit(node.value, returns, self, node.id);

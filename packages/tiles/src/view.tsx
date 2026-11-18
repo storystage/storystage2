@@ -475,13 +475,11 @@ function statementList(
       </li>
     );
   }
-  return list.map((s, index) => (
+  return list.map((s) => (
     <Row
       key={s.id}
       s={s}
       level={level}
-      index={index}
-      size={list.length}
       parent={parent}
       slot={slot}
       marks={drawing.layout.marks.get(s.id) ?? ''}
@@ -494,8 +492,6 @@ function statementList(
 interface RowProps {
   readonly s: Statement;
   readonly level: number;
-  readonly index: number;
-  readonly size: number;
   readonly parent: NodeId;
   readonly slot: StatementSlot;
   readonly marks: string;
@@ -507,8 +503,6 @@ interface RowProps {
 const sameRow = (a: RowProps, b: RowProps) =>
   a.s === b.s &&
   a.level === b.level &&
-  a.index === b.index &&
-  a.size === b.size &&
   a.parent === b.parent &&
   a.slot === b.slot &&
   a.marks === b.marks &&
@@ -517,9 +511,11 @@ const sameRow = (a: RowProps, b: RowProps) =>
 /**
  * One statement, and for a container everything inside it. Defined once, here, and keyed by
  * node id, so an update never remounts a row and loses focus (spike 1.5, finding 7); and skipped
- * when its node and marks are unchanged, so an edit redraws only what changed (spec 14, 3h).
+ * when its node and marks are unchanged, so an edit redraws only what changed (spec 14, 3h). Its
+ * place in its list isn't a prop: the list sets it (`usePlaces`), so a statement put in at the
+ * top doesn't redraw the 500 rows after it.
  */
-const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: RowProps) {
+const Row = memo(function Row({ s, level, parent, slot, drawing }: RowProps) {
   drawing.onRowDrawn?.(s.id);
   const { layout, shared } = drawing;
   const key = s.id;
@@ -527,13 +523,10 @@ const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: 
   const common = {
     role: 'treeitem',
     'aria-level': level,
-    'aria-setsize': size,
-    'aria-posinset': index + 1,
     'aria-selected': layout.focus === key,
     'data-key': key,
     'data-parent': parent,
     'data-slot': slot,
-    'data-index': index,
     'data-statement': '',
     tabIndex: tab(layout, key),
   } as const;
@@ -557,9 +550,9 @@ const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: 
   const inner = shared.describe.short(s);
   const firstSlot: StatementSlot = s.kind === 'if' ? 'then' : 'body';
   const group = (list: readonly Statement[], groupSlot: StatementSlot, label: string) => (
-    <ul role="group" className="tl-group" aria-label={label}>
+    <Group list={list} label={label}>
       {statementList(list, drawing, level + 1, s.id, groupSlot, inner)}
-    </ul>
+    </Group>
   );
   return (
     <li role="none" className={`tl-box${marks}`}>
@@ -583,6 +576,56 @@ const Row = memo(function Row({ s, level, index, size, parent, slot, drawing }: 
     </li>
   );
 }, sameRow);
+
+/** A container's statements: a group in the tree, which sets its rows' places (`usePlaces`). */
+function Group({
+  list,
+  label,
+  children,
+}: {
+  readonly list: readonly Statement[];
+  readonly label: string;
+  readonly children: ReactNode;
+}) {
+  const ref = useRef<HTMLUListElement>(null);
+  usePlaces(ref, list);
+  return (
+    <ul ref={ref} role="group" className="tl-group" aria-label={label}>
+      {children}
+    </ul>
+  );
+}
+
+/**
+ * Each row's place in its list, set on the page once the list is drawn: `aria-posinset` and
+ * `aria-setsize` for screen readers (3f.1), and `data-index` for moving. Kept out of a row's
+ * props, so a row whose place changes isn't drawn again (3h.2), and set only where it changed. A
+ * list's rows are its items, or a container's header inside its box.
+ */
+function usePlaces(
+  ref: { readonly current: HTMLElement | null },
+  list: readonly Statement[] | undefined,
+) {
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el || !list || list.length === 0) return;
+    const set = (row: Element, name: string, value: string) => {
+      if (row.getAttribute(name) !== value) row.setAttribute(name, value);
+    };
+    const size = String(list.length);
+    let index = 0;
+    for (const item of el.children) {
+      const row = item.hasAttribute('data-statement')
+        ? item
+        : item.querySelector(':scope > [data-statement]');
+      if (!row) continue;
+      set(row, 'aria-posinset', String(index + 1));
+      set(row, 'aria-setsize', size);
+      set(row, 'data-index', String(index));
+      index++;
+    }
+  }, [ref, list]);
+}
 
 /** The hidden words each pill is described by: redrawn only when they change. */
 const Descriptions = memo(
@@ -722,6 +765,8 @@ export function TilesView(props: ViewProps) {
     }
     return null;
   }, [program, method, describe]);
+  // The top level's places, before the drop line below reads them.
+  usePlaces(tree, found?.body);
 
   // The drop line follows wherever moving puts it, by keyboard or by pointer.
   useLayoutEffect(() => {
