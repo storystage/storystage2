@@ -22,7 +22,7 @@ import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.5.0';
+export const FORMAT_VERSION = '1.6.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -170,6 +170,54 @@ export interface Frame {
    * one that doesn't fit its shape is dropped when the file opens, never refused.
    */
   readonly check?: FrameCheck;
+  /**
+   * The plan the learner agreed with the Prompter for this frame (spec 04 section 6.7): as the
+   * Prompter proposed it and as the learner built it, so a teacher can see what was changed.
+   * Format 1.6.0. Kept with the frame, never in the program; a record, so later edits to the
+   * blocks leave it as it was. One that doesn't fit its shape is dropped when the file opens.
+   */
+  readonly plan?: FramePlan;
+}
+
+/** The kinds of plan step (spec 04 section 6.2). */
+export const PLAN_STEP_KINDS = ['do', 'add', 'change', 'when', 'stage'] as const;
+export type PlanStepKind = (typeof PLAN_STEP_KINDS)[number];
+
+/**
+ * One step of a plan (spec 04 section 6.2, S7's): its 11 plain fields. The Prompter's own type
+ * is this one, or the same shape: the format keeps it, so it lives here.
+ */
+export interface PlanStep {
+  /** The step in plain words. */
+  readonly words: string;
+  readonly kind: PlanStepKind;
+  /** An object's name, or `scene` for `stage`. */
+  readonly actor: string;
+  /** A Story API procedure, a Backstage id, a property, an event kind or a scene id, by kind. */
+  readonly action: string;
+  /** The object or marker it acts on, or `""`. */
+  readonly target: string;
+  readonly details: readonly { readonly name: string; readonly value: string }[];
+  /** A script line id, or `""`. */
+  readonly line: string;
+  /** A placed sketch id, or `""`. */
+  readonly sketch: string;
+  /** Runs at the same time as the step before it. */
+  readonly together: boolean;
+  /** Times to run; 1 for once. */
+  readonly repeat: number;
+  /** One sentence. */
+  readonly why: string;
+}
+
+/** A frame's agreed plan (format 1.6.0). */
+export interface FramePlan {
+  /** When the learner pressed Build these steps: an ISO 8601 time, in UTC. */
+  readonly agreedAt: string;
+  /** The steps as the Prompter proposed them. */
+  readonly shown: readonly PlanStep[];
+  /** The steps as the learner agreed and built them. */
+  readonly agreed: readonly PlanStep[];
 }
 
 /** What a check compares (spec 08 section 9.4). */

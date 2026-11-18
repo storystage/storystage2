@@ -11,6 +11,7 @@
 export * from './types.ts';
 export * from './voices.ts';
 export * from './pose.ts';
+export * from './plan.ts';
 export { demoProduction, exampleProduction } from './example.ts';
 export * from './scenes.ts';
 export * from './objects.ts';
