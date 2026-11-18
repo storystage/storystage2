@@ -4,11 +4,12 @@
  * level. A new film is a new session and history, so it gets a new panel.
  */
 import type { HostInterface, PupilId } from '@storystage/host';
-import type { SceneId } from '@storystage/production';
+import { isFramePlan, withFramePlan, type Production, type SceneId } from '@storystage/production';
 import {
   createPrompterPanel,
   offTransport,
   type PrompterLevel,
+  type KeptPlan,
   type PrompterPanel,
 } from '@storystage/prompter';
 import type { BackstageId } from '@storystage/story-api';
@@ -41,6 +42,16 @@ export async function levelNow(
   } catch {
     return host.policy.prompter.level;
   }
+}
+
+/**
+ * Keeps the agreed plan with its frame, in the build's own undo step (spec 04 section 6.7): the
+ * plan as last shown and as the learner agreed it. One over the format's limits isn't kept, and
+ * the build goes on without it.
+ */
+export function keepFramePlan(p: Production, { frame, shown, agreed }: KeptPlan): Production {
+  const plan = { agreedAt: new Date().toISOString(), shown, agreed };
+  return isFramePlan(plan) ? withFramePlan(p, frame, plan) : p;
 }
 
 export interface PrompterOptions {
@@ -97,6 +108,7 @@ export function usePrompter({
         const placed = placeFromStoryboard(p, at, storyboardPlan(p, at, backstage), label);
         return placed.ok ? placed : { ok: false, refusal: placed.refusal, name: placed.name };
       },
+      keepPlan: keepFramePlan,
     });
     setPanel(made);
     return () => {

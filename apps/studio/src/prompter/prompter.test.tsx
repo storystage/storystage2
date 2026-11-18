@@ -18,7 +18,9 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { StudioSource } from '../studio.ts';
 import { PrompterAside, oneMove } from './PrompterAside.tsx';
-import { levelNow, prompterInBuild } from './usePrompter.ts';
+import type { StepWorld } from './StepEditor.tsx';
+import type { ApiClass } from '@storystage/story-api';
+import { keepFramePlan, levelNow, prompterInBuild } from './usePrompter.ts';
 
 // The Prompter panel as the studio draws it (07-ux section 2.4; spec 04 section 4.5, WP13c), on
 // S7's panel with scripted replies: what each state shows, and what each control does.
@@ -44,7 +46,8 @@ const toolUse = (id: string, name: string, input: unknown): TestBlock => ({
   input,
 });
 const say = (text: string) => testReply([{ type: 'text', text }]);
-const proposes = (steps: PlanStep[]) => testReply([toolUse('t1', 'propose_plan', { steps })]);
+const proposes = (steps: PlanStep[], frame?: string) =>
+  testReply([toolUse('t1', 'propose_plan', { steps, ...(frame ? { frame } : {}) })]);
 const moves = testReply([
   toolUse('t2', 'insert_statement', {
     method: 'myFirstMethod',
@@ -60,10 +63,21 @@ const moves = testReply([
   }),
 ]);
 
+/** The example's scene 2, as the Production stage gives it for changing steps. */
+const WORLD: StepWorld = {
+  objects: new Map<string, ApiClass>([
+    ['this', 'Scene'],
+    ['penguin', 'Flyer'],
+    ['fox', 'Quadruped'],
+  ]),
+  lines: [],
+};
+
 interface Options {
   readonly level?: PrompterLevel;
   readonly status?: TransportStatus;
   readonly readOnly?: boolean;
+  readonly world?: StepWorld;
 }
 
 function setUp(replies: PrompterEvent[][], options: Options = {}) {
@@ -82,6 +96,7 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
     level: () => options.level ?? 'full',
     scene: () => sceneId('s2'),
     backstageClass: () => null,
+    keepPlan: keepFramePlan,
   });
   const onAnnounce = vi.fn<(text: string) => void>();
   render(
@@ -91,6 +106,7 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
         frame={{ id: frameId('f2-1'), number: '2.1' }}
         onAnnounce={onAnnounce}
         canChange={!options.readOnly}
+        {...(options.world ? { world: options.world } : {})}
       />
     </ThemeRoot>,
   );
@@ -182,6 +198,197 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     await user.click(screen.getByRole('button', { name: 'Undo this request' }));
     expect(production.history().filter((h) => h.done)).toHaveLength(before);
     expect(said(onAnnounce)).toContain('Undone: the Prompter’s request.');
+  });
+
+  it('says why a step is there, at Why this step?', async () => {
+    setUp([proposes([step()]), say("Here's the plan.")]);
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    expect(within(plan).queryByText('So she can reach the fox.')).toBeNull();
+    const why = within(plan).getByRole('button', { name: 'Why this step? Step 1' });
+    await user.click(why);
+    expect(within(plan).getByText('So she can reach the fox.')).toBeTruthy();
+    expect(why.getAttribute('aria-expanded')).toBe('true');
+    await user.click(why);
+    expect(within(plan).queryByText('So she can reach the fox.')).toBeNull();
+  });
+
+  it('changes a step’s settings with the blocks’ own choices, checked again', async () => {
+    const { panel } = setUp(
+      [
+        proposes([
+          step({
+            details: [
+              { name: 'direction', value: 'forward' },
+              { name: 'amount', value: '1' },
+            ],
+          }),
+        ]),
+        say("Here's the plan."),
+      ],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    expect((within(editor).getByLabelText('Who') as HTMLSelectElement).value).toBe('penguin');
+    await user.selectOptions(within(editor).getByLabelText('direction'), 'backward');
+    const amount = within(editor).getByLabelText('amount');
+    await user.clear(amount);
+    await user.type(amount, '3');
+    await user.click(within(editor).getByRole('checkbox', { name: /At the same time/ }));
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(screen.queryByRole('dialog', { name: 'Change step 1' })).toBeNull();
+    expect(panel.state.plan!.steps[0]).toMatchObject({
+      actor: 'penguin',
+      action: 'move',
+      details: [
+        { name: 'direction', value: 'backward' },
+        { name: 'amount', value: '3' },
+      ],
+    });
+    // The first step has nothing before it to run with.
+    expect(panel.state.plan!.steps[0]!.together).toBe(false);
+    expect(panel.state.plan!.problems).toEqual([]);
+    // Its words are written again from what it now does (S7's stepWords).
+    expect(panel.state.plan!.steps[0]!.words).not.toBe('The penguin waddles forward.');
+    expect(within(plan).queryByText('The penguin waddles forward.')).toBeNull();
+  });
+
+  it('keeps the plan as shown and as agreed with its frame, in the build’s one step', async () => {
+    const { production } = setUp(
+      [proposes([step()], 'f2'), say("Here's the plan."), moves, say('Done.')],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    const times = within(editor).getByLabelText('How many times');
+    await user.clear(times);
+    await user.type(times, '2');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    const before = production.history().filter((h) => h.done).length;
+    await user.click(screen.getByRole('button', { name: 'Build these steps' }));
+    await waitFor(() =>
+      expect(production.production().frames.find((f) => f.id === 'f2')?.plan).toBeTruthy(),
+    );
+    const kept = production.production().frames.find((f) => f.id === 'f2')!.plan!;
+    expect(kept.shown).toMatchObject([{ actor: 'penguin', repeat: 1 }]);
+    expect(kept.agreed).toMatchObject([{ actor: 'penguin', repeat: 2 }]);
+    expect(Number.isNaN(Date.parse(kept.agreedAt))).toBe(false);
+    expect(production.history().filter((h) => h.done)).toHaveLength(before + 1);
+    // Undo takes the plan back with what it built.
+    await user.click(screen.getByRole('button', { name: 'Undo this request' }));
+    expect(production.production().frames.find((f) => f.id === 'f2')?.plan).toBeUndefined();
+  });
+
+  it('keeps no plan over the format’s limits, and builds all the same', () => {
+    const p = exampleProduction();
+    const long = Array.from({ length: 51 }, () => step());
+    expect(keepFramePlan(p, { frame: frameId('f2'), shown: long, agreed: [step()] })).toBe(p);
+    const kept = keepFramePlan(p, { frame: frameId('f2'), shown: [step()], agreed: [step()] });
+    expect(kept.frames.find((f) => f.id === 'f2')?.plan?.agreed).toHaveLength(1);
+  });
+
+  it('adds no more than the 50 steps a frame keeps', async () => {
+    // The Prompter proposes up to 12; the learner adds the rest.
+    const { panel } = setUp(
+      [proposes(Array.from({ length: 12 }, () => step())), say("Here's the plan.")],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    await screen.findByRole('grid', { name: 'Plan before change' });
+    const add = screen.getByRole('button', { name: 'Add a step' });
+    act(() => {
+      for (let i = 12; i < 49; i++) panel.addStep(step());
+    });
+    expect(add.hasAttribute('disabled')).toBe(false);
+    act(() => panel.addStep(step()));
+    expect(panel.state.plan!.steps).toHaveLength(50);
+    expect(add.hasAttribute('disabled')).toBe(true);
+  });
+
+  it('keeps a number’s value when its field is left empty', async () => {
+    const { panel } = setUp(
+      [
+        proposes([
+          step({
+            details: [
+              { name: 'direction', value: 'forward' },
+              { name: 'amount', value: '2' },
+            ],
+          }),
+        ]),
+        say("Here's the plan."),
+      ],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    await user.selectOptions(within(editor).getByLabelText('direction'), 'backward');
+    await user.clear(within(editor).getByLabelText('amount'));
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]!.details).toEqual([
+      { name: 'direction', value: 'backward' },
+      { name: 'amount', value: '2' },
+    ]);
+  });
+
+  it('takes a step just added out again at Cancel', async () => {
+    const { panel, onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")], {
+      world: WORLD,
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(screen.getByRole('button', { name: 'Add a step' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 2' });
+    await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    expect(within(plan).getAllByRole('row')).toHaveLength(1);
+    expect(panel.state.plan!.steps).toHaveLength(1);
+    expect(said(onAnnounce)).toContain('Step 2 deleted.');
+    // Cancel on a step that was there already leaves it.
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    await user.click(
+      within(await screen.findByRole('dialog', { name: 'Change step 1' })).getByRole('button', {
+        name: 'Cancel',
+      }),
+    );
+    expect(panel.state.plan!.steps).toHaveLength(1);
+  });
+
+  it('adds a step at the end, to change from there', async () => {
+    const { panel, onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")], {
+      world: WORLD,
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(screen.getByRole('button', { name: 'Add a step' }));
+    expect(within(plan).getAllByRole('row')).toHaveLength(2);
+    const editor = await screen.findByRole('dialog', { name: 'Change step 2' });
+    await user.selectOptions(within(editor).getByLabelText('Who'), 'fox');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[1]).toMatchObject({ kind: 'do', actor: 'fox', why: '' });
+    // Saved, it stays.
+    expect(within(plan).getAllByRole('row')).toHaveLength(2);
+    expect(said(onAnnounce)).toContain('Step 2 added.');
   });
 
   it('drops a plan not yet built, at Undo this request', async () => {

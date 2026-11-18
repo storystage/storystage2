@@ -3,7 +3,7 @@
  * drawn beside the scene view and the code. Its state says what to show; every control calls the
  * panel. The browser version has no panel (`usePrompter` gives none).
  */
-import type { FrameId } from '@storystage/production';
+import { PLAN_LIMITS, type FrameId } from '@storystage/production';
 import {
   BUILD_REQUEST,
   FRESH_CONVERSATION,
@@ -17,6 +17,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEven
 import { useFieldSpeech } from '../speech/talkToType.tsx';
 import type { StudioSource } from '../studio.ts';
 import { words } from '../strings.ts';
+import { StepEditor, newStep, type StepWorld } from './StepEditor.tsx';
 
 const BUILDS: readonly PrompterMode[] = ['showMeHow', 'buildIt'];
 
@@ -30,6 +31,8 @@ export interface PrompterAsideProps {
   canChange?: boolean;
   /** Closes the studio's open step (typing in a field) before a request opens its own. */
   seal?: () => void;
+  /** The scene's objects and lines, for changing and adding plan steps. Without it, neither. */
+  world?: StepWorld;
 }
 
 export function usePanelState(panel: PrompterPanel<StudioSource>): PanelState {
@@ -131,10 +134,15 @@ export function PrompterAside({
   onAnnounce,
   canChange = true,
   seal = () => {},
+  world,
 }: PrompterAsideProps) {
   const state = usePanelState(panel);
   useAnnouncements(state, onAnnounce);
   const [open, setOpen] = useState(true);
+  // The plan step being changed, by its place in the plan.
+  const [editing, setEditing] = useState<number | null>(null);
+  // Whether the step being changed was just added: Cancel then takes it out again.
+  const [adding, setAdding] = useState(false);
   const [request, setRequest] = useState('');
   const speech = useFieldSpeech('prompter.request');
   const titleId = useId();
@@ -227,7 +235,12 @@ export function PrompterAside({
   const steps =
     plan?.steps.map((s, i) => {
       const problem = plan.problems.find((p) => p.step === i + 1)?.message;
-      return { id: String(i), text: s.words, ...(problem ? { problem } : {}) };
+      return {
+        id: String(i),
+        text: s.words,
+        ...(problem ? { problem } : {}),
+        ...(s.why ? { why: s.why } : {}),
+      };
     }) ?? [];
   const showPlan = plan !== null && (phase === 'planned' || phase === 'working');
 
@@ -294,7 +307,55 @@ export function PrompterAside({
                 panel.deleteStep(Number(id));
                 onAnnounce(words.t('prompter.stepDeleted', { n: Number(id) + 1 }));
               }}
+              {...(world
+                ? {
+                    onEdit: (id: string) => {
+                      setAdding(false);
+                      setEditing(Number(id));
+                    },
+                  }
+                : {})}
             />
+            {world && phase === 'planned' && (
+              <Button
+                variant="secondary"
+                icon="add"
+                // The format keeps a plan of up to 50 steps with its frame (spec 04 section 6.7).
+                isDisabled={plan.steps.length >= PLAN_LIMITS.steps}
+                onPress={() => {
+                  // A new step at the end, to change from there (spec 04 section 6.1, step 5).
+                  panel.addStep(newStep(world));
+                  setEditing(plan.steps.length);
+                  setAdding(true);
+                  onAnnounce(words.t('prompter.stepAdded', { n: plan.steps.length + 1 }));
+                }}
+              >
+                {words.t('prompter.addStep')}
+              </Button>
+            )}
+            {world && editing !== null && plan.steps[editing] && (
+              <StepEditor
+                key={editing}
+                step={plan.steps[editing]}
+                number={editing + 1}
+                world={world}
+                onClose={() => {
+                  // Cancel straight after Add a step leaves the plan as it was (S7, #519).
+                  if (adding) {
+                    panel.deleteStep(editing);
+                    onAnnounce(words.t('prompter.stepDeleted', { n: editing + 1 }));
+                  }
+                  setAdding(false);
+                  setEditing(null);
+                }}
+                onSave={(change) => {
+                  panel.changeStep(editing, change);
+                  setAdding(false);
+                  onAnnounce(words.t('prompter.stepChanged', { n: editing + 1 }));
+                  setEditing(null);
+                }}
+              />
+            )}
             {plan.problems.length > 0 && <p className="pm-note">{words.t('prompter.fixSteps')}</p>}
             {phase === 'planned' &&
               builds &&

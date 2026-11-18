@@ -279,3 +279,42 @@
 .pm-actions > .ss-button {
   flex: 1 1 auto;
 }
+
+/* Change step N (spec 04 section 6.1, step 5): who, which block and its settings, as the blocks
+   offer them, then at the same time and how many times. */
+.pm-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pm-field {
+  display: grid;
+  grid-template-columns: 9em minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+.pm-field > label {
+  font-weight: 700;
+}
+/* The Story API's own words ("direction", "how long") start a label with a capital. */
+.pm-field > label::first-letter {
+  text-transform: uppercase;
+}
+.pm-select,
+.pm-input {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--ss-text);
+  background: var(--ss-field);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  font: inherit;
+}
+.pm-select:focus-visible,
+.pm-input:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 1.5px var(--ss-amber-line),
+    0 0 0 3px var(--ss-focus);
+}

@@ -537,6 +537,7 @@
 .ss-plan-step {
   --ss-surface: var(--ss-panel-3);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-height: 52px;
@@ -606,6 +607,19 @@
   align-items: flex-start;
   color: var(--ss-text-2);
   font-size: calc(15px * var(--ss-text-size, 1));
+}
+/* Why, Change and Delete, in a row under the step's words, lined up with them. */
+.ss-plan-actions {
+  display: flex;
+  flex: 1 0 100%;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-block-start: -6px;
+}
+.ss-plan-why {
+  color: var(--ss-text-2);
+  font-size: calc(15px * var(--ss-text-size, 1));
+  font-style: italic;
 }
 .ss-plan-problem .ss-icon {
   flex: none;

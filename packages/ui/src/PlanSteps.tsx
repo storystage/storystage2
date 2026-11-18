@@ -5,6 +5,7 @@ import {
   useDragAndDrop,
   type Key,
 } from 'react-aria-components';
+import { useState } from 'react';
 import { Button } from './Button.tsx';
 import { Icon } from './Icon.tsx';
 import { messages } from './messages.ts';
@@ -15,6 +16,8 @@ export interface PlanStep {
   text: string;
   /** Why the step can't be built as it stands, in plain words (04-prompter §6.3). */
   problem?: string;
+  /** Why the step is there, in one sentence: Why this step? reads it (04-prompter §6.1). */
+  why?: string;
 }
 
 export interface PlanStepsProps {
@@ -44,6 +47,14 @@ export function PlanSteps({
   label = messages.t('plan.label'),
   isDisabled = false,
 }: PlanStepsProps) {
+  // The steps whose Why this step? is open.
+  const [asked, setAsked] = useState<ReadonlySet<string>>(new Set());
+  const toggleWhy = (id: string) =>
+    setAsked((now) => {
+      const next = new Set(now);
+      if (!next.delete(id)) next.add(id);
+      return next;
+    });
   const { dragAndDropHooks } = useDragAndDrop({
     getItems: (keys) =>
       [...keys].map((key) => ({ 'text/plain': steps.find((s) => s.id === key)?.text ?? '' })),
@@ -57,10 +68,13 @@ export function PlanSteps({
       className="ss-plan"
       aria-label={label}
       items={steps}
+      // The rows draw again when a Why this step? opens or closes, not only when the steps change.
+      dependencies={[asked]}
       dragAndDropHooks={dragAndDropHooks}
     >
       {(step) => {
         const n = steps.findIndex((s) => s.id === step.id) + 1;
+        const whyShown = step.why !== undefined && step.why !== '' && asked.has(step.id);
         return (
           <GridListItem
             id={step.id}
@@ -86,24 +100,39 @@ export function PlanSteps({
                   {step.problem}
                 </span>
               )}
+              {whyShown && <span className="ss-plan-why">{step.why}</span>}
             </span>
-            {onEdit && (
-              <Button
-                variant="quiet"
-                icon="edit"
-                aria-label={messages.t('plan.edit', { n })}
-                isDisabled={isDisabled}
-                onPress={() => onEdit(step.id)}
-              />
-            )}
-            {onDelete && (
-              <Button
-                variant="quiet"
-                icon="delete"
-                aria-label={messages.t('plan.delete', { n })}
-                isDisabled={isDisabled}
-                onPress={() => onDelete(step.id)}
-              />
+            {/* The step's own buttons, under its words, so the words keep the row's width. */}
+            {(step.why || onEdit || onDelete) && (
+              <span className="ss-plan-actions">
+                {step.why && (
+                  <Button
+                    variant="quiet"
+                    icon="info"
+                    aria-label={messages.t('plan.why', { n })}
+                    aria-expanded={whyShown}
+                    onPress={() => toggleWhy(step.id)}
+                  />
+                )}
+                {onEdit && (
+                  <Button
+                    variant="quiet"
+                    icon="edit"
+                    aria-label={messages.t('plan.edit', { n })}
+                    isDisabled={isDisabled}
+                    onPress={() => onEdit(step.id)}
+                  />
+                )}
+                {onDelete && (
+                  <Button
+                    variant="quiet"
+                    icon="delete"
+                    aria-label={messages.t('plan.delete', { n })}
+                    isDisabled={isDisabled}
+                    onPress={() => onDelete(step.id)}
+                  />
+                )}
+              </span>
             )}
           </GridListItem>
         );

@@ -67,6 +67,8 @@ import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
 import type { Place } from '../storyboard/place.ts';
 import type { PrompterPanel } from '@storystage/prompter';
 import { PrompterAside } from '../prompter/PrompterAside.tsx';
+import type { StepWorld } from '../prompter/StepEditor.tsx';
+import type { ApiClass } from '@storystage/story-api';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
 
@@ -437,6 +439,20 @@ export function ProductionStage({
       ? `${numberOfScene(p, scene)}.${sceneFrames(p, scene).findIndex((f) => f.id === current.id) + 1}`
       : '';
   const linked = current ? liveLinks(p, current).join(' ') : '';
+  // What plan steps are changed against: the scene's objects (`this` is the scene) and lines.
+  const stepWorld = useMemo<StepWorld | null>(() => {
+    if (scene === null) return null;
+    const setup = p.scenes.find((s) => s.id === scene)?.setup;
+    return {
+      objects: new Map<string, ApiClass>([
+        ['this', 'Scene'],
+        ...(setup?.objects ?? []).map((o): [string, ApiClass] => [o.id, o.class]),
+      ]),
+      lines: p.script
+        .filter((l) => l.scene === scene)
+        .map((l) => ({ id: l.id, words: l.character ? `${l.character}: ${l.text}` : l.text })),
+    };
+  }, [p, scene]);
   // The blocks the Prompter's request added, marked as they land (spec 04 section 6.1, step 8).
   const built = usePrompterNodes(prompter ?? null);
   const highlights = useMemo(() => {
@@ -756,6 +772,7 @@ export function ProductionStage({
             onAnnounce={onAnnounce}
             canChange={!studio || studio.readOnly === null}
             {...(studio ? { seal: studio.seal } : {})}
+            {...(stepWorld ? { world: stepWorld } : {})}
           />
         )}
       </div>
