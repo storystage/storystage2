@@ -5,6 +5,7 @@
  * its blocks, never describe a different step. They use the Story API's own phrases, the ones the
  * tile editor's rows and the undo labels read ("penguin move forward 3").
  */
+import { PLAN_LIMITS } from '@storystage/production';
 import { DETAILS, enumValues, findEntry, isEnumName, type TypeName } from '@storystage/story-api';
 import { fill, word } from '@storystage/story-api/editing';
 import type { NameValue, PlanStep, PlanWorld } from './plans.ts';
@@ -68,6 +69,8 @@ export function stepWords(step: PlanStep, world: PlanWorld): string {
   // A long script line is cut short here; the block still says all of it.
   const all = words.split(/\s+/);
   if (all.length > STEP_WORDS_MAX) words = `${all.slice(0, STEP_WORDS_MAX).join(' ')}…`;
+  // And within the format's characters for a step's words (6.7), with room for the stop.
+  if (words.length > PLAN_LIMITS.text - 1) words = `${words.slice(0, PLAN_LIMITS.text - 2)}…`;
   const end = /[.!?…]$/.test(words) ? '' : '.';
   return words[0]!.toUpperCase() + words.slice(1) + end;
 }

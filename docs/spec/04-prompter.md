@@ -551,12 +551,14 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | `actor` | string | Object name, or `scene` for `stage` |
 | `action` | string | For `do`: a Story API procedure. For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
 | `target` | string | Object or marker it acts on, or `""` for none |
-| `details` | list of `{name, value}` | |
+| `details` | list of `{name, value}` | At most 20, names up to 64 characters, values up to 300 |
 | `line` | string | A script line id, or `""` for none |
 | `sketch` | string | A placed sketch id, or `""` for none |
 | `together` | boolean | Runs at the same time as the step before it |
-| `repeat` | integer | Times to run; 1 for once |
+| `repeat` | integer | Times to run, 1 to 1,000; 1 for once |
 | `why` | string | One sentence, under 25 words |
+
+Every text field is at most 300 characters. These are the production format's `PLAN_LIMITS` (1.6.0), since a frame keeps its plan (6.7), and the input check refuses a step outside them with `bad_argument`, as it does a plan with more than 12 steps. The type is production's `PlanStep`, which the Prompter re-exports.
 
 Steps are flat, because strict mode allows no recursive schemas: a plan expresses "at the same time" and "repeat", not nesting. A request that needs more than that is a sign to suggest smaller steps.
 
@@ -675,7 +677,7 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
-| A `plan` field on `Frame` in `packages/production`: agreed (17 Nov) as `Frame.plan` in format 1.6.0, with `PlanStep` moving to production. The Prompter then re-exports production's `PlanStep` | S4 | Section 6.7 |
+| A `plan` field on `Frame` in `packages/production`: done, `Frame.plan` in format 1.6.0 (#517). The Prompter uses production's `PlanStep` and keeps steps within `PLAN_LIMITS` | S4 | Section 6.7 |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |

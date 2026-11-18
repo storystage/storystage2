@@ -12,6 +12,7 @@
  * Story API type; optional fields are few; and `checkToolInput` checks what the schema can't.
  */
 import type { Statement } from '@storystage/ast';
+import { PLAN_LIMITS, PLAN_STEP_KINDS } from '@storystage/production';
 import { EVENTS } from '@storystage/story-api';
 import { TOOL_NAMES, type ToolName } from './tool-names.ts';
 
@@ -117,7 +118,7 @@ const POSITION = text(
 const PLAN_STEP = object({
   words: text('The step in plain words for a child, under 20 words: "The owl walks to the tree."'),
   kind: oneOf(
-    ['do', 'add', 'change', 'when', 'stage'],
+    [...PLAN_STEP_KINDS],
     'do: a Story API block. add: add a model. change: how something starts. when: an event. stage: set the scene from the storyboard.',
   ),
   actor: text('The object that acts, by its name in the scene; "scene" for stage.'),
@@ -318,20 +319,46 @@ const wholeFrom1 = (v: unknown) =>
     : null;
 const upToWords = (most: number) => (v: unknown) =>
   typeof v === 'string' && wordCount(v) > most ? `should be under ${most + 1} words` : null;
+/** A plan step's text, kept with its frame, stays within the format's limits (section 6.7). */
+const planText =
+  (also?: (v: unknown) => string | null) =>
+  (v: unknown): string | null =>
+    typeof v === 'string' && v.length > PLAN_LIMITS.text
+      ? `should be at most ${PLAN_LIMITS.text} characters`
+      : (also?.(v) ?? null);
+const nameValues = (v: unknown) =>
+  Array.isArray(v) &&
+  (v.length > PLAN_LIMITS.details ||
+    v.some(
+      (d: { name?: unknown; value?: unknown }) =>
+        (typeof d?.name === 'string' && d.name.length > PLAN_LIMITS.detailName) ||
+        (typeof d?.value === 'string' && d.value.length > PLAN_LIMITS.detailValue),
+    ))
+    ? `should hold at most ${PLAN_LIMITS.details}, with names up to ${PLAN_LIMITS.detailName} characters and values up to ${PLAN_LIMITS.detailValue}`
+    : null;
 
 /** What the schema can't say, by field name. */
 const RULES: Readonly<Record<string, (value: unknown) => string | null>> = {
   plan_step: wholeFrom1,
-  repeat: wholeFrom1,
+  repeat: (v) =>
+    typeof v === 'number' && (!Number.isInteger(v) || v < 1 || v > PLAN_LIMITS.repeat)
+      ? `should be a whole number from 1 to ${PLAN_LIMITS.repeat}`
+      : null,
   count: wholeFrom1,
+  details: nameValues,
+  actor: planText(),
+  action: planText(),
+  target: planText(),
+  line: planText(),
+  sketch: planText(),
   scale: (v) =>
     typeof v === 'number' && (v < 0.05 || v > 20) ? 'should be from 0.05 to 20' : null,
   position: (v) =>
     typeof v === 'string' && !/^(end|\d+)$/.test(v) ? 'should be "end" or a whole number' : null,
   narration: upToWords(24),
   text: upToWords(119),
-  words: upToWords(19),
-  why: upToWords(24),
+  words: planText(upToWords(19)),
+  why: planText(upToWords(24)),
   steps: (v) =>
     Array.isArray(v) && (v.length < 1 || v.length > 12) ? 'should have 1 to 12 steps' : null,
 };

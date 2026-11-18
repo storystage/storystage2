@@ -64,6 +64,13 @@ describe('stepWords (spec 04, section 6.1, step 5)', () => {
     expect(words.endsWith('…')).toBe(true);
   });
 
+  it("keeps within the format's characters for a step's words, however long the words", () => {
+    const long = { ...world, lines: new Map([['l9', 'x'.repeat(400)]]) };
+    const words = stepWords(step({ actor: 'fox', action: 'say', line: 'l9' }), long);
+    expect(words.length).toBeLessThanOrEqual(300);
+    expect(words.endsWith('…')).toBe(true);
+  });
+
   it('says how often and whether it runs with the step before', () => {
     const hops = step({
       details: [
