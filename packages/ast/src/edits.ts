@@ -6,7 +6,8 @@
 import type { NodeId } from './ids.ts';
 import type { AstNode, Declaration, Expression, Program, Statement, TypeDecl } from './nodes.ts';
 import { isStatement } from './nodes.ts';
-import { isTooDeep, validateSchemaPart } from './schema.ts';
+import { addsTooDeep, rulesStillHold } from './cheap.ts';
+import { validateSchemaPart } from './schema.ts';
 import {
   TOO_DEEP,
   nameOf,
@@ -16,7 +17,7 @@ import {
   type Problem,
   type ValidateOptions,
 } from './validate.ts';
-import { indexProgram, shapeOf, walk, withChild, type Location } from './walk.ts';
+import { indexProgram, shapeOf, walk, withChild, type Location, type SlotKey } from './walk.ts';
 
 export type StatementSlot = 'body' | 'then' | 'else';
 
@@ -201,6 +202,48 @@ function update(
   return update(program, index, at.parent, (parent) => withChild(parent, at.slot, at.key, next));
 }
 
+/**
+ * As `update`, in a program made from the indexed one by taking a statement out, as a move does
+ * first: each node on the way down is read from `program` itself and found in its list by its
+ * id, since places in a list after the one taken out have moved up. Saves indexing the program
+ * again in the middle of a move.
+ */
+function updateFound(
+  program: Program,
+  index: Index,
+  id: NodeId,
+  change: (node: AstNode) => AstNode,
+): Program {
+  const chain: Location[] = [];
+  for (let at = index.get(id)!; ; at = index.get(at.parent)!) {
+    chain.unshift(at);
+    if (at.parent === null) break;
+  }
+  const typeAt = program.types.findIndex((t) => t.id === chain[0]!.node.id);
+  const nodes: AstNode[] = [program.types[typeAt]!];
+  const keys: SlotKey[] = [];
+  for (const { node, slot, key } of chain.slice(1)) {
+    const parent = nodes.at(-1)!;
+    const held = (parent as unknown as Record<string, unknown>)[slot];
+    const place =
+      typeof key === 'number'
+        ? (held as readonly AstNode[]).findIndex((n) => n.id === node.id)
+        : key;
+    keys.push(place);
+    nodes.push(
+      place === null
+        ? (held as AstNode)
+        : (held as Record<string | number, AstNode>)[place as string | number]!,
+    );
+  }
+  let next = change(nodes.at(-1)!);
+  for (let i = nodes.length - 2; i >= 0; i--)
+    next = withChild(nodes[i]!, chain[i + 1]!.slot, keys[i]!, next);
+  const types = [...program.types];
+  types[typeAt] = next as TypeDecl;
+  return { ...program, types };
+}
+
 function placeInList(
   program: Program,
   index: Index,
@@ -279,13 +322,17 @@ function move(program: Program, index: Index, edit: Move) {
   walk(at.node, (inside) => {
     if (inside.id === edit.parent) throw new EditRefused('into_itself');
   });
-  const out = takeOut(program, index, at);
-  const afterIndex = indexProgram(out);
-  const length = listAt(afterIndex.get(edit.parent)!.node, edit.slot).length;
+  // The list it goes into, counted after it has left: one shorter if it's the one it leaves.
+  const leaves = at.parent === edit.parent && at.slot === edit.slot ? 1 : 0;
+  const length = listAt(parent.node, edit.slot).length - leaves;
   if (!isIndex(edit.index, length)) throw new EditRefused('not_here');
+  const out = takeOut(program, index, at);
   const { label } = edit;
   return {
-    program: placeInList(out, afterIndex, edit.parent, edit.slot, edit.index, at.node),
+    program: updateFound(out, index, edit.parent, (p) => ({
+      ...p,
+      [edit.slot]: inserted(listAt(p, edit.slot), edit.index, at.node),
+    })),
     inverse: {
       kind: 'move',
       label,
@@ -454,9 +501,11 @@ function newParts(edit: EditOperation, index: Index): [unknown, string, string?]
 }
 
 /**
- * The program after an edit, checked as `validateProgram` checks it, but with the schema applied
- * only to what the edit adds: the rest is the same objects, which were valid (spec section 4.2).
- * The depth and the rules a schema can't state are still checked over the whole program.
+ * The program after an edit, checked as `validateProgram` checks it, but only where the edit adds
+ * or takes away: the rest is the same objects, which were valid (spec section 4.2). The schema
+ * and the depth are checked against what the edit adds. The rules a schema can't state are
+ * checked over the whole program unless what the edit changed can't break one (`cheap.ts`); the
+ * check from outside always is.
  */
 function validateEdited(
   program: Program,
@@ -464,16 +513,36 @@ function validateEdited(
   index: Index,
   options: ValidateOptions,
 ): Problem[] {
-  if (isTooDeep(program)) return [TOO_DEEP];
+  if (addsTooDeep(edit, index)) return [TOO_DEEP];
   const shape = newParts(edit, index).flatMap(([value, def, property]) =>
     validateSchemaPart(value, def, property),
   );
-  return shape.length > 0 ? shapeProblems(shape) : validateRules(program, options);
+  if (shape.length > 0) return shapeProblems(shape);
+  if (rulesStillHold(edit, index)) return [...(options.check?.(program) ?? [])];
+  return validateRules(program, options);
+}
+
+/**
+ * Each edit made on each program, so the same edit made again (tried by a drop, then made by the
+ * session) gives back the same program, and whatever was worked out for it carries over.
+ */
+const performed = new WeakMap<Program, WeakMap<object, Applied>>();
+
+function performOnce(program: Program, index: Index, edit: EditOperation): Applied {
+  if (typeof edit !== 'object' || edit === null) return perform(program, index, edit);
+  let made = performed.get(program);
+  const kept = made?.get(edit);
+  if (kept) return kept;
+  const result = perform(program, index, edit);
+  if (!made) performed.set(program, (made = new WeakMap()));
+  made.set(edit, result);
+  return result;
 }
 
 /**
  * Applies one edit and returns the new program with the edit that undoes it. `program` must be
- * valid, as every program a session holds is.
+ * valid, as every program a session holds is. The same edit object on the same program gives the
+ * same program each time, still checked each time with the `options` given.
  */
 export function applyEdit(
   program: Program,
@@ -481,7 +550,7 @@ export function applyEdit(
   options: ApplyOptions = {},
 ): Applied {
   const index = indexProgram(program);
-  const result = perform(program, index, edit);
+  const result = performOnce(program, index, edit);
   const problems = options.checkWholeShape
     ? validateProgram(result.program, options)
     : validateEdited(result.program, edit, index, options);
