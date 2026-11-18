@@ -239,7 +239,10 @@ test('M5: in the desktop app, the Prompter plans, builds and undoes through the 
     id: 'm5-app',
     source: 'synthetic',
     note: 'The M5 gate in the app: a plan, then its build.',
-    turns: REPLIES.map((events) => ({ events: events as unknown as readonly JsonObject[] })),
+    // `testReply` gives what a transport hands the studio; the fake streams the API's own events.
+    turns: REPLIES.map((reply) => ({
+      events: reply.flatMap((e): JsonObject[] => (e.type === 'event' ? [e.event] : [])),
+    })),
   });
   const asked: string[] = [];
   page.on('request', (r) => asked.push(r.url()));
