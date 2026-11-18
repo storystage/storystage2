@@ -56,11 +56,13 @@ export interface SketchOptions {
   readonly title?: string;
   readonly pose?: string | null;
   /**
-   * Only the shape's outer edge, holes included, and no inner lines: for a model whose surface
-   * breaks into tangles of small lines whatever the crease angle, such as a museum scan (a ship's
-   * rigging, a skeleton). Default false.
+   * A simplified sketch, for a model whose surface breaks into tangles of small lines whatever the
+   * crease angle, such as a museum scan (a wrecked ship, a skeleton): the shape's outer edge,
+   * holes included, with specks and pinholes left out, and only the inner lines that say what it
+   * is: at least `SIMPLE_INNER_MIN` long, with the surface stepping back across them by at least
+   * `SIMPLE_STEP_MIN` of the model's size (the owner's choice of 17 Nov 2026). Default false.
    */
-  readonly outlineOnly?: boolean;
+  readonly simplified?: boolean;
 }
 
 export interface SketchMetrics {
@@ -95,8 +97,12 @@ const MIN_DETAIL = 4;
 const MIN_CARD_AREA = 6;
 /** from this size up they are hair, with a heavy line; below it, a light one. */
 const HAIR_AREA = 400;
-/** In an outline-only sketch, loops smaller than this share of the sketch's area are left out. */
-const OUTLINE_MIN_SHARE = 0.004;
+/** In a simplified sketch, loops smaller than this share of the sketch's area are left out; */
+const SIMPLE_LOOP_MIN = 0.004;
+/** inner lines shorter than this (SVG units) are left out; */
+export const SIMPLE_INNER_MIN = 20;
+/** and so are those the surface steps back across by less than this share of the model's size. */
+export const SIMPLE_STEP_MIN = 0.07;
 
 const esc = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -285,11 +291,10 @@ export function renderSketch(
       ),
     )
     .filter((loop) => loop.length >= 4)
-    // An outline-only sketch leaves out small loops, holes and islands: in a scan they are gaps
-    // and specks in its surface, not shape (trial of 17 Nov).
+    // A simplified sketch leaves out small loops, holes and islands: in a scan they are gaps and
+    // specks in its surface, not shape (trial of 17 Nov).
     .filter(
-      (loop) =>
-        !options.outlineOnly || Math.abs(loopArea(loop)) >= OUTLINE_MIN_SHARE * width * height,
+      (loop) => !options.simplified || Math.abs(loopArea(loop)) >= SIMPLE_LOOP_MIN * width * height,
     );
 
   // Cards: one line around each shape, heavy for hair, light for an eyebrow; specks go.
@@ -304,13 +309,43 @@ export function renderSketch(
     .filter(({ area }) => area >= MIN_CARD_AREA);
   const heavy = cardLoops.filter(({ area }) => area >= HAIR_AREA).map(({ loop }) => loop);
   const light = cardLoops.filter(({ area }) => area < HAIR_AREA).map(({ loop }) => loop);
-  // An outline-only sketch draws the fill's own edge, each loop closed, and nothing inside it.
-  const outlineLines = options.outlineOnly
+  // A simplified sketch draws the fill's own edge as its outline, each loop closed.
+  const outlineLines = options.simplified
     ? fillLoops.map((loop) => [...loop, loop[0]!])
     : [...chain(outline), ...heavy];
-  // Dense models fold in tiny places: short inner lines read as dirt, not shape.
-  const detailLines = options.outlineOnly
-    ? []
+  /**
+   * How far the surface steps back across a line, in model units: the depth just to each side of
+   * it, compared along its length (the median, so a stray sample doesn't decide). A real edge (a
+   * deck, a wheelhouse, a rib) has something much further behind it; a scan's noise folds don't.
+   */
+  const stepBack = (line: readonly Point[]): number => {
+    const jumps: number[] = [];
+    const off = 3;
+    const at = (x: number, y: number) => {
+      const px = Math.round(x * RS);
+      const py = Math.round(y * RS);
+      return px < 0 || py < 0 || px >= W || py >= H ? Infinity : depth[py * W + px]!;
+    };
+    for (let i = 1; i < line.length; i++) {
+      const [x0, y0] = line[i - 1]!;
+      const [x1, y1] = line[i]!;
+      const len = Math.hypot(x1 - x0, y1 - y0);
+      if (len < 1e-9) continue;
+      const [nx, ny] = [-(y1 - y0) / len, (x1 - x0) / len];
+      const [mx, my] = [(x0 + x1) / 2, (y0 + y1) / 2];
+      const a = at(mx + nx * off, my + ny * off);
+      const b = at(mx - nx * off, my - ny * off);
+      jumps.push(a === Infinity || b === Infinity ? Infinity : Math.abs(a - b));
+    }
+    jumps.sort((p, q) => p - q);
+    return jumps.length ? jumps[jumps.length >> 1]! : 0;
+  };
+  // Dense models fold in tiny places: short inner lines read as dirt, not shape. A simplified
+  // sketch keeps only the long inner lines with the surface stepping well back across them.
+  const detailLines = options.simplified
+    ? [...chain(outline), ...chain(detail)].filter(
+        (l) => lineLength(l) >= SIMPLE_INNER_MIN && stepBack(l) >= SIMPLE_STEP_MIN * diag,
+      )
     : [...chain(detail).filter((l) => lineLength(l) >= MIN_DETAIL), ...light];
   const metrics: SketchMetrics = {
     fillRatio: covered === 0 ? 0 : Math.round((covered / (W * H)) * 1000) / 1000,

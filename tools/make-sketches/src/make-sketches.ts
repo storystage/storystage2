@@ -8,13 +8,13 @@
  *   {
  *     "overrides": { "sketches/kenney/Prop/sign/side.svg": "touch-up/sign-side.svg" },
  *     "backdrops": { "polyhaven/Ground/meadow": "backdrop/hills" },
- *     "outlineOnly": ["sketches/smithsonian/Prop/triceratops/back.svg"],
+ *     "simplified": ["sketches/smithsonian/Prop/triceratops/back.svg"],
  *     "kept": ["sketches/polypizza/Prop/books/side.svg"]
  *   }
  *
- * `outlineOnly` draws a sketch as its outer edge alone, for a scan whose surface tangles into
- * small lines; `kept` names sketches a person looked at and found fine, so the checks stop
- * listing them (owner, 17 Nov 2026).
+ * `simplified` draws a sketch as its outer edge and only its long, deep inner lines, for a scan
+ * whose surface tangles into small lines; `kept` names sketches a person looked at and found
+ * fine, so the checks stop listing them (owner, 17 Nov 2026).
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -37,8 +37,8 @@ export interface TouchUp {
   readonly overrides?: Readonly<Record<string, string>>;
   /** Backdrop item id → hand-made backdrop sketch id, instead of the one its name suggests. */
   readonly backdrops?: Readonly<Record<string, string>>;
-  /** Sketch files drawn as an outline only. */
-  readonly outlineOnly?: readonly string[];
+  /** Sketch files drawn simplified (`renderSketch`). */
+  readonly simplified?: readonly string[];
   /** Sketch files a person looked at and kept as they are: no longer listed to look at. */
   readonly kept?: readonly string[];
 }
@@ -48,8 +48,8 @@ export interface MakeReport {
   readonly written: number;
   readonly overridden: readonly string[];
   readonly flagged: readonly { readonly file: string; readonly flags: readonly SketchFlag[] }[];
-  /** Sketches drawn as an outline only, and sketches looked at and kept, from touch-up.json. */
-  readonly outlined: readonly string[];
+  /** Sketches drawn simplified, and sketches looked at and kept, from touch-up.json. */
+  readonly simplified: readonly string[];
   readonly kept: readonly string[];
   /** Cast members drawn without poses, because their skeleton doesn't map (WP3.3). */
   readonly unposed: readonly string[];
@@ -69,9 +69,9 @@ export async function makeSketches(
   let written = 0;
   const overridden: string[] = [];
   const flagged: { file: string; flags: readonly SketchFlag[] }[] = [];
-  const outlineOnly = new Set(touchUp.outlineOnly ?? []);
+  const toSimplify = new Set(touchUp.simplified ?? []);
   const keptFiles = new Set(touchUp.kept ?? []);
-  const outlined: string[] = [];
+  const simplified: string[] = [];
   const kept: string[] = [];
   const unposed: string[] = [];
   const items: BackstageItem[] = [];
@@ -82,7 +82,7 @@ export async function makeSketches(
         ? null
         : await meshFromModel(await readFile(join(dir, item.files.model)));
     if (mesh && item.section === 'cast' && !canPose(mesh)) unposed.push(item.id);
-    const made = makeItemSketches(item, mesh, { outlineOnly });
+    const made = makeItemSketches(item, mesh, { simplified: toSimplify });
     for (const sketch of made) {
       let svg = sketch.svg;
       const override = touchUp.overrides?.[sketch.file];
@@ -96,7 +96,7 @@ export async function makeSketches(
         svg = hand.svg.replace('<svg ', `<svg data-backstage-id="${item.id}" `);
         overridden.push(sketch.file);
       } else {
-        if (outlineOnly.has(sketch.file)) outlined.push(sketch.file);
+        if (toSimplify.has(sketch.file)) simplified.push(sketch.file);
         if (keptFiles.has(sketch.file)) kept.push(sketch.file);
         else if (sketch.flags.length) flagged.push({ file: sketch.file, flags: sketch.flags });
       }
@@ -120,9 +120,9 @@ export async function makeSketches(
   const manifest: BackstageManifest = { ...checked.manifest, items };
   // A name in touch-up.json that matches no sketch is a mistake, not something to ignore.
   const all = new Set(items.flatMap((i) => i.sketches.map((s) => s.file)));
-  const unknown = [...outlineOnly, ...keptFiles].filter((f) => !all.has(f));
+  const unknown = [...toSimplify, ...keptFiles].filter((f) => !all.has(f));
   if (unknown.length) throw new Error(`touch-up.json names no such sketch: ${unknown.join(', ')}`);
-  const report = { manifest, written, overridden, flagged, unposed, outlined, kept };
+  const report = { manifest, written, overridden, flagged, unposed, simplified, kept };
   if (write) {
     await writeFile(join(dir, 'backstage.json'), `${JSON.stringify(manifest, null, 2)}\n`);
     await mkdir(join(dir, 'sketches'), { recursive: true });
@@ -138,7 +138,7 @@ export function touchUpList(report: Omit<MakeReport, 'manifest'>): string {
     '',
     `Written by \`tools/make-sketches\`: ${report.written} sketches, ${report.overridden.length} replaced by hand, ${report.flagged.length} to look at.`,
     '',
-    'To replace a sketch, draw it in the same style (black lines 3 units wide on a white shape, the model facing left in side and three-quarter views), save it beside this file, and name it in `touch-up.json` under `overrides`. To draw one as its outline only, name it under `outlineOnly`; to keep one as it is, under `kept`.',
+    'To replace a sketch, draw it in the same style (black lines 3 units wide on a white shape, the model facing left in side and three-quarter views), save it beside this file, and name it in `touch-up.json` under `overrides`. To draw one simplified (its outer edge and only its long, deep inner lines), name it under `simplified`; to keep one as it is, under `kept`.',
     '',
     '## To look at',
     '',
@@ -161,8 +161,10 @@ export function touchUpList(report: Omit<MakeReport, 'manifest'>): string {
   lines.push(
     ...(report.overridden.length ? report.overridden.map((f) => `- \`${f}\``) : ['None.']),
   );
-  lines.push('', '## Drawn as an outline only', '');
-  lines.push(...(report.outlined.length ? report.outlined.map((f) => `- \`${f}\``) : ['None.']));
+  lines.push('', '## Drawn simplified', '');
+  lines.push(
+    ...(report.simplified.length ? report.simplified.map((f) => `- \`${f}\``) : ['None.']),
+  );
   lines.push('', '## Looked at and kept', '');
   lines.push(...(report.kept.length ? report.kept.map((f) => `- \`${f}\``) : ['None.']));
   return `${lines.join('\n')}\n`;

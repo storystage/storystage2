@@ -27,8 +27,8 @@ export function makeItemSketches(
   mesh: SketchMesh | null,
   options: {
     readonly size?: number;
-    /** Sketch files (`sketches/<id>/<facing>.svg`) to draw as an outline only (`renderSketch`). */
-    readonly outlineOnly?: ReadonlySet<string>;
+    /** Sketch files (`sketches/<id>/<facing>.svg`) to draw simplified (`renderSketch`). */
+    readonly simplified?: ReadonlySet<string>;
   } = {},
 ): MadeSketch[] {
   if (item.section === 'backdrops') {
@@ -53,7 +53,7 @@ export function makeItemSketches(
       title: sketchTitle(item.displayName, p.facing, p.pose),
       pose: p.pose,
       ...(options.size === undefined ? {} : { size: options.size }),
-      ...(options.outlineOnly?.has(p.file) ? { outlineOnly: true } : {}),
+      ...(options.simplified?.has(p.file) ? { simplified: true } : {}),
     });
     return { ...p, svg: sketch.svg, flags: checkSketch(sketch) };
   });
