@@ -32,6 +32,7 @@ Verdicts:
 | **Museum scans**: [Science Museum Group, Scottish Maritime Museum, University of Dundee](https://sketchfab.com/blogs/community/sketchfab-launches-public-domain-dedication-for-3d-cultural-heritage) on Sketchfab, and the Smithsonian's Open Access | CC0 per item, through Sketchfab's public-domain dedication for cultural organisations (2020) and Smithsonian Open Access. Other items from the same museums can carry other licences | Historical and scientific objects as props and sets (3.7) | "<Object>, <museum> (CC0)" | **Ship per item** | Only items whose own page shows CC0. Record the item URL and the date. Leave out items that note third-party rights. Usually needs simplifying (3.9) |
 | **[Blender Studio](https://studio.blender.org/remixing/)** (optional, 3.8) | CC-BY, copyright Blender Foundation. Each asset page gives its version (older films CC BY 3.0, newer CC BY 4.0) | Two or three open-movie characters, if they simplify to the budget | "<Character> from <film> by Blender Studio, CC BY <version>" | **Ship per item**, only if 3.8 passes | Check each asset page for exceptions. The credit line is required and goes into every film that uses the character (WP11.4). **15 Nov:** Autumn (CC BY 4.0) passed and ships; Spring was left out (owner) |
 | **[NASA 3D Resources](https://science.nasa.gov/3d-resources/)** (NASA's own models) | US government works: "generally [are] not subject to copyright in the United States" ([guidelines](https://www.nasa.gov/nasa-brand-center/images-and-media/)); the [README](https://github.com/nasa/NASA-3D-Resources) says "free and without copyright". The insignia, logotype and seal are not public domain | Space vehicles and kit: the Saturn V, the Apollo lunar module, a spacesuit, the Curiosity rover | "<Model> by NASA (public domain)", or "by NASA/<modeller>" where the page names one | **Ship per item** (owner, 18 Nov 2026), as `public-domain` with [its record](public-domain/nasa.md) | Credit NASA; never suggest NASA endorses StoryStage; paint out or leave out any model with a NASA insignia; only models whose page names NASA as the source |
+| **[Styloo: Animals Asset Pack](https://styloo.itch.io/animals)** | CC0 1.0: the page's asset licence is "Creative Commons Zero v1.0 Universal", and the author confirms it in the comments. Sold at a $3 minimum; the owner bought it on 18 Nov 2026 | Seven rigged animals: dog, cat, cow, giraffe, chicken, butterfly, ladybird | "<Animal> by styloo, Animals Asset Pack (CC0)" | **Ship** (owner, 18 Nov 2026) | The originals are kept, public and credited, in backstage-assets' `originals/styloo/` (the owner's choice), with the pack's page and each file's SHA-256 |
 | **Mixamo** | Adobe's terms forbid redistributing the raw files, and need an Adobe account | Nothing | — | **Don't ship** | Learners may import their own Mixamo files (3.11). The skeleton mapper reads Mixamo names (spec 17, section 2a) |
 | **General Sketchfab** | Varies per model, including non-commercial | Nothing in the shipped catalogue, except the storybook characters the owner chose per item (14 Nov 2026) | "<Model> by <author>, CC BY <version>, via Sketchfab; rigged and reduced for StoryStage, changed for StoryStage" | **Don't ship**, except **per item** as chosen by the owner | Only CC0 or CC BY 3.0 or 4.0, on the item's own page. Two ship: Little Red Riding Hood (leafar112) and her Grandmother (Imagine), both CC BY 4.0 and rigged by us. Red Riding Hood's page asks that she not be used for AI, so she is never fed to generative AI services. Otherwise, as for Mixamo: learner imports only, with the licence recorded (3.12) |
 
@@ -72,7 +73,7 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets 25d85cb (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets 47230e5 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
@@ -87,7 +88,8 @@ Generated from `backstage.json` at storystage/backstage-assets 25d85cb (the comm
 | Sketchfab, per item | CC-BY-4.0 | 2 | Old Village Granny by Imagine, CC BY 4.0, via Sketchfab; rigged and reduced for StoryStage, changed for StoryStage |
 | Smithsonian Open Access | CC0-1.0 | 7 | Abraham Lincoln's Patent Model, Smithsonian National Museum of American History (CC0) |
 | Storybook cast, KayKit models and characters made from their parts | CC0-1.0 | 12 | Anansi, made from Barbarian by Kay Lousberg, KayKit (CC0) |
-| **All** | | **187** | |
+| styloo | CC0-1.0 | 7 | Butterfly by styloo, Animals Asset Pack (CC0) |
+| **All** | | **194** | |
 
 <!-- /shipped -->
 
