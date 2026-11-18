@@ -3,7 +3,7 @@
  * drawn beside the scene view and the code. Its state says what to show; every control calls the
  * panel. The browser version has no panel (`usePrompter` gives none).
  */
-import type { FrameId } from '@storystage/production';
+import { PLAN_LIMITS, type FrameId } from '@storystage/production';
 import {
   BUILD_REQUEST,
   FRESH_CONVERSATION,
@@ -311,6 +311,8 @@ export function PrompterAside({
               <Button
                 variant="secondary"
                 icon="add"
+                // The format keeps a plan of up to 50 steps with its frame (spec 04 section 6.7).
+                isDisabled={plan.steps.length >= PLAN_LIMITS.steps}
                 onPress={() => {
                   // A new step at the end, to change from there (spec 04 section 6.1, step 5).
                   panel.addStep(newStep(world));

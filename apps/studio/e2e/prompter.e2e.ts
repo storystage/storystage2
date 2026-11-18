@@ -114,6 +114,40 @@ test('a plan is shown with nothing built, then built as one step, marked, and un
   await expect(prompter.getByRole('button', { name: 'Undo this request' })).toHaveCount(0);
 });
 
+test('a step is changed with the blocks’ own choices, and its words follow', async ({ page }) => {
+  await openStage(page);
+  const prompter = panel(page);
+  await prompter.getByRole('radio', { name: 'Show me how' }).check();
+  const field = prompter.getByRole('textbox', { name: 'Ask the Prompter' });
+  await field.fill('Make the penguin walk to the fox.');
+  await field.press('Enter');
+  const plan = prompter.getByRole('grid', { name: 'Plan before change' });
+  await expect(plan.getByText('The penguin waddles forward.')).toBeVisible();
+
+  await plan.getByRole('button', { name: 'Change step 1' }).click();
+  const editor = page.getByRole('dialog', { name: 'Change step 1' });
+  await expect(editor.getByLabel('Who')).toHaveValue('penguin');
+  await editor.getByLabel('direction').selectOption('backward');
+  const { violations } = await new AxeBuilder({ page })
+    .include('.pm-editor')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  await editor.getByRole('button', { name: 'Save' }).click();
+  await expect(editor).toHaveCount(0);
+  // The words are written again from what the step now does.
+  await expect(plan.getByText('The penguin waddles forward.')).toHaveCount(0);
+  await expect(plan.getByText(/backward/)).toBeVisible();
+
+  await prompter.getByRole('button', { name: 'Add a step' }).click();
+  await expect(plan.getByRole('row')).toHaveCount(2);
+  await page
+    .getByRole('dialog', { name: 'Change step 2' })
+    .getByRole('button', { name: 'Cancel' })
+    .click();
+  await expect(prompter.getByRole('button', { name: 'Build these steps' })).toBeEnabled();
+});
+
 test('the panel folds to its rail, giving the code its room', async ({ page }) => {
   await openStage(page);
   const prompter = panel(page);

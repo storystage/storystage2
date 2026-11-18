@@ -198,11 +198,13 @@ export function StepEditor({
   step: PlanStep;
   number: number;
   world: StepWorld;
-  /** The step's changed fields. Its words are written again from them by the panel. */
+  /** The step's changed fields, without words: the panel writes them again from these. */
   onSave: (change: Partial<PlanStep>) => void;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState(step);
+  // How many times, as typed: clamped to 1 to 1000 only on Save, so the field can be cleared.
+  const [times, setTimes] = useState(String(step.repeat));
   const ids = { who: useId(), what: useId(), line: useId(), repeat: useId() };
   const set = (change: Partial<PlanStep>) => setDraft((d) => ({ ...d, ...change }));
   const cls = world.objects.get(draft.actor);
@@ -228,9 +230,8 @@ export function StepEditor({
             details: draft.details,
             line: draft.line,
             together: draft.together,
-            repeat: draft.repeat,
-            // The panel writes the words again from the fields (S7).
-            words: '',
+            repeat: Math.min(1000, Math.max(1, Math.round(Number(times)) || 1)),
+            // No words: the panel writes them again from what the step now does (S7).
           });
         }}
       >
@@ -328,10 +329,8 @@ export function StepEditor({
             min={1}
             max={1000}
             step={1}
-            value={draft.repeat}
-            onChange={(e) =>
-              set({ repeat: Math.min(1000, Math.max(1, Math.round(Number(e.target.value) || 1))) })
-            }
+            value={times}
+            onChange={(e) => setTimes(e.target.value)}
           />
         </div>
         <div className="st-actions">

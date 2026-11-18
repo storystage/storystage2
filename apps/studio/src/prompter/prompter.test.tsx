@@ -20,7 +20,7 @@ import type { StudioSource } from '../studio.ts';
 import { PrompterAside, oneMove } from './PrompterAside.tsx';
 import type { StepWorld } from './StepEditor.tsx';
 import type { ApiClass } from '@storystage/story-api';
-import { levelNow, prompterInBuild } from './usePrompter.ts';
+import { keepFramePlan, levelNow, prompterInBuild } from './usePrompter.ts';
 
 // The Prompter panel as the studio draws it (07-ux section 2.4; spec 04 section 4.5, WP13c), on
 // S7's panel with scripted replies: what each state shows, and what each control does.
@@ -46,7 +46,8 @@ const toolUse = (id: string, name: string, input: unknown): TestBlock => ({
   input,
 });
 const say = (text: string) => testReply([{ type: 'text', text }]);
-const proposes = (steps: PlanStep[]) => testReply([toolUse('t1', 'propose_plan', { steps })]);
+const proposes = (steps: PlanStep[], frame?: string) =>
+  testReply([toolUse('t1', 'propose_plan', { steps, ...(frame ? { frame } : {}) })]);
 const moves = testReply([
   toolUse('t2', 'insert_statement', {
     method: 'myFirstMethod',
@@ -95,6 +96,7 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
     level: () => options.level ?? 'full',
     scene: () => sceneId('s2'),
     backstageClass: () => null,
+    keepPlan: keepFramePlan,
   });
   const onAnnounce = vi.fn<(text: string) => void>();
   render(
@@ -253,6 +255,67 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     // The first step has nothing before it to run with.
     expect(panel.state.plan!.steps[0]!.together).toBe(false);
     expect(panel.state.plan!.problems).toEqual([]);
+    // Its words are written again from what it now does (S7's stepWords).
+    expect(panel.state.plan!.steps[0]!.words).not.toBe('The penguin waddles forward.');
+    expect(within(plan).queryByText('The penguin waddles forward.')).toBeNull();
+  });
+
+  it('keeps the plan as shown and as agreed with its frame, in the build’s one step', async () => {
+    const { production } = setUp(
+      [proposes([step()], 'f2'), say("Here's the plan."), moves, say('Done.')],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    const times = within(editor).getByLabelText('How many times');
+    await user.clear(times);
+    await user.type(times, '2');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    const before = production.history().filter((h) => h.done).length;
+    await user.click(screen.getByRole('button', { name: 'Build these steps' }));
+    await waitFor(() =>
+      expect(production.production().frames.find((f) => f.id === 'f2')?.plan).toBeTruthy(),
+    );
+    const kept = production.production().frames.find((f) => f.id === 'f2')!.plan!;
+    expect(kept.shown).toMatchObject([{ actor: 'penguin', repeat: 1 }]);
+    expect(kept.agreed).toMatchObject([{ actor: 'penguin', repeat: 2 }]);
+    expect(Number.isNaN(Date.parse(kept.agreedAt))).toBe(false);
+    expect(production.history().filter((h) => h.done)).toHaveLength(before + 1);
+    // Undo takes the plan back with what it built.
+    await user.click(screen.getByRole('button', { name: 'Undo this request' }));
+    expect(production.production().frames.find((f) => f.id === 'f2')?.plan).toBeUndefined();
+  });
+
+  it('keeps no plan over the format’s limits, and builds all the same', () => {
+    const p = exampleProduction();
+    const long = Array.from({ length: 51 }, () => step());
+    expect(keepFramePlan(p, { frame: frameId('f2'), shown: long, agreed: [step()] })).toBe(p);
+    const kept = keepFramePlan(p, { frame: frameId('f2'), shown: [step()], agreed: [step()] });
+    expect(kept.frames.find((f) => f.id === 'f2')?.plan?.agreed).toHaveLength(1);
+  });
+
+  it('adds no more than the 50 steps a frame keeps', async () => {
+    // The Prompter proposes up to 12; the learner adds the rest.
+    const { panel } = setUp(
+      [proposes(Array.from({ length: 12 }, () => step())), say("Here's the plan.")],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    await screen.findByRole('grid', { name: 'Plan before change' });
+    const add = screen.getByRole('button', { name: 'Add a step' });
+    act(() => {
+      for (let i = 12; i < 49; i++) panel.addStep(step());
+    });
+    expect(add.hasAttribute('disabled')).toBe(false);
+    act(() => panel.addStep(step()));
+    expect(panel.state.plan!.steps).toHaveLength(50);
+    expect(add.hasAttribute('disabled')).toBe(true);
   });
 
   it('adds a step at the end, to change from there', async () => {
