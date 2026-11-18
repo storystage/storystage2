@@ -72,7 +72,7 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets 86ae8fe (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets 25d85cb (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
