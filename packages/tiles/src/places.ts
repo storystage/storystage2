@@ -25,20 +25,11 @@ export function listsOf(
   }));
 }
 
-const indexes = new WeakMap<Program, ReadonlyMap<NodeId, Location>>();
-
 /**
- * Where every node in a program is, worked out once for each program: a program is immutable,
- * and a long method asks this for every row and every keystroke (spec 14, 3h).
+ * Where every node in a program is. The AST keeps one for each program (#529), as a long method
+ * asks this for every row and every keystroke (spec 14, 3h).
  */
-export function indexOf(program: Program): ReadonlyMap<NodeId, Location> {
-  let index = indexes.get(program);
-  if (!index) {
-    index = indexProgram(program);
-    indexes.set(program, index);
-  }
-  return index;
-}
+export const indexOf: (program: Program) => ReadonlyMap<NodeId, Location> = indexProgram;
 
 /** The list a statement is in, and its place there. */
 export function whereIs(program: Program, id: NodeId): Where | null {
