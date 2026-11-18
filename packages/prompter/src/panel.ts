@@ -313,7 +313,15 @@ export class PrompterPanel<S extends string = string> {
    */
   changeStep(index: number, change: Partial<PlanStep>): void {
     this.#edit((steps) =>
-      steps.map((s, i) => (i === index ? this.#worded({ ...s, ...change }, 'words' in change) : s)),
+      steps.map((s, i) => {
+        if (i !== index) return s;
+        const next = { ...s, ...change };
+        // A change that changes nothing, such as Save with nothing changed, keeps the words.
+        const same = (Object.keys(change) as (keyof PlanStep)[]).every(
+          (k) => JSON.stringify(next[k]) === JSON.stringify(s[k]),
+        );
+        return same ? s : this.#worded(next, 'words' in change);
+      }),
     );
   }
 

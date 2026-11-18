@@ -85,6 +85,15 @@ describe('stepWords (spec 04, section 6.1, step 5)', () => {
     );
   });
 
+  it("says the scene's own steps as the scene, not as this", () => {
+    expect(stepWords(step({ actor: 'this', action: 'somethingNew' }), world)).toMatch(
+      /^The scene /,
+    );
+    expect(stepWords(step({ kind: 'change', actor: 'this', action: 'paint' }), world)).toMatch(
+      /^The scene paint/,
+    );
+  });
+
   it('gives the other kinds short words of their own', () => {
     expect(stepWords(step({ kind: 'add', actor: 'owl', action: 'example/Flyer/owl' }), world)).toBe(
       'Add owl.',

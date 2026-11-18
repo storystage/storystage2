@@ -292,6 +292,22 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
     expect(panel.state.plan?.shown[0]?.words).toBe('The penguin waddles forward.');
   });
 
+  it('keeps the words of a step saved with nothing changed', async () => {
+    const { panel } = await planned();
+    const before = panel.state.plan!.steps[0]!;
+    panel.changeStep(0, {
+      actor: before.actor,
+      action: before.action,
+      details: before.details,
+      line: before.line,
+      together: before.together,
+      repeat: before.repeat,
+    });
+    expect(panel.state.plan?.steps[0]?.words).toBe(before.words);
+    panel.changeStep(0, { repeat: 2 });
+    expect(panel.state.plan?.steps[0]?.words).not.toBe(before.words);
+  });
+
   it('never offers Build these steps at the Plan only level', async () => {
     const { panel } = await planned([], { level: 'planOnly' });
     expect(panel.state.phase).toBe('planned');

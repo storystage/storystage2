@@ -20,10 +20,13 @@ function valueWords(value: string, type: TypeName | undefined): string {
   return value;
 }
 
+/** Who does it: an object's name, or the scene's words for the scene itself (`this`). */
+const who = (actor: string): string => (actor === 'this' ? word('words.scene') : actor);
+
 function doWords(step: PlanStep, world: PlanWorld): string {
   const cls = world.objects.get(step.actor);
   const entry = cls ? findEntry(cls, step.action) : undefined;
-  if (!entry || entry.kind !== 'procedure') return `${step.actor} ${step.action}`;
+  if (!entry || entry.kind !== 'procedure') return `${who(step.actor)} ${step.action}`;
   const given = new Map(step.details.map((d: NameValue) => [d.name, d.value] as const));
   if (step.target && !given.has('target')) given.set('target', step.target);
   // A line's words are the line's, exactly (section 6.5).
@@ -39,7 +42,7 @@ function doWords(step: PlanStep, world: PlanWorld): string {
   const extra = step.details
     .filter((d) => !entry.params.some((p) => p.name === d.name) && d.name !== 'target')
     .map((d) => `${word(`detail.${d.name}`)} ${valueWords(d.value, DETAILS[d.name]?.type)}`);
-  return [`${step.actor} ${phrase}`, ...extra].join(', ');
+  return [`${who(step.actor)} ${phrase}`, ...extra].join(', ');
 }
 
 /** The step's words, from what it does. */
@@ -54,7 +57,7 @@ export function stepWords(step: PlanStep, world: PlanWorld): string {
       break;
     case 'change': {
       const value = step.details.find((d) => d.name === step.action || d.name === 'value');
-      words = [step.actor, step.action, value?.value].filter(Boolean).join(' ');
+      words = [who(step.actor), step.action, value?.value].filter(Boolean).join(' ');
       break;
     }
     case 'when':
