@@ -28,6 +28,13 @@
   background: var(--ss-panel-3);
   line-height: 1.35;
 }
+/* Focused after Hint: the studio's ring, a 2 px gap then the focus colour (Direction A). */
+.study-hint:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
 .study-hint .ss-icon {
   flex: none;
   fill: var(--ss-amber-text);
