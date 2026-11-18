@@ -192,6 +192,17 @@ The contract's `highlight(marks, kind)` takes each node with its words, `{node, 
 1. **A row is one memoised component, defined once and keyed by node id,** never a component defined inside the editor's render, so an update doesn't remount it and lose focus (spike finding 7).
 2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object, with the same focus, highlights and names, is skipped. A pass before drawing works out the focus order and each row's pills, so a skipped row is still known to the keyboard. The palette and the control bar are drawn again only when what they show changes.
 3. **A method of 500 statements** stays responsive: a keystroke or drop draws within 100 ms. It's tested in CI, then on the reference Chromebook (7.10). The test times each key, press, release and click with Event Timing, on the production build, two ways: to the next frame drawn, which is what the learner sees, and to the end of the editor's work on it. On real hardware the time to the frame is held to 100 ms. CI's browser draws in software, on the CPU, so CI holds the editor's work to 100 ms and reports the time to the frame.
+   - **A stand-in for the Chromebook (18 Nov):** the same test on the owner's PC, in Edge drawing with the GPU, three runs each, the slowest time to the frame:
+
+     | Input | Full speed | CPU slowed 4× |
+     |---|---|---|
+     | Arrow keys | 32 ms | 72 ms |
+     | Changing a value from its menu | 40–56 ms | 192–208 ms |
+     | Moving a statement by keyboard | 40–48 ms | 152–200 ms |
+     | Dropping a dragged statement | 24–48 ms | 112–136 ms |
+     | A new block from the palette | 72 ms | 360–480 ms |
+
+     At full speed every input is drawn within 72 ms. If the Chromebook is about four times slower than the PC, everything but the arrow keys would miss 100 ms in a method of 500 statements. Most of the time is the editor's own work (a value's change is 165–173 ms of it, slowed), so S6 looks at where it goes before the device run (7.10) settles it. A method of 500 statements is far longer than a lesson's, which are tens of statements.
 4. **Whole-program work is done once for each program:** the shared model keeps its index, types, describer and the problems a program already has with the program (`editing/cache.ts`), since a long method asks for them on every row.
 5. **A keyboard move checks a place only when a step reaches it,** not every place when the statement is picked up. **A drag checks a place once,** when the pointer has stayed on it for 60 ms, so sweeping across rows checks nothing. A drop checks at once.
 6. **Top-level rows off screen** aren't styled or laid out (`content-visibility: auto`). They stay in the accessibility tree.
