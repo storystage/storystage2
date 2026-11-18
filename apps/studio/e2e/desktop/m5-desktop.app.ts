@@ -74,6 +74,29 @@ test.beforeAll(async () => {
   });
 });
 
+// Over DevTools Playwright can't snapshot the page, so a failure says what the Prompter's panel
+// showed, what the fake was asked, and what the page complained of. No key is in any of these.
+// eslint-disable-next-line no-empty-pattern -- Playwright needs its fixtures destructured.
+test.afterEach(async ({}, info) => {
+  if (info.status === info.expectedStatus || !shared || shared.isClosed()) return;
+  const panel = await shared
+    .getByRole('complementary', { name: 'The Prompter' })
+    .innerText({ timeout: 2_000 })
+    .catch(() => '(no panel)');
+  const asked = (claude?.requests ?? []).map((r) => ({
+    hadKey: r.hadKey,
+    model: r.body.model,
+    messages: (r.body.messages as unknown[] | undefined)?.length,
+  }));
+  const said = [
+    `The Prompter's panel:\n${panel}`,
+    `Requests the fake had: ${JSON.stringify(asked)}`,
+    `The page's errors:\n${problems.join('\n')}`,
+  ].join('\n\n');
+  console.log(said);
+  await info.attach('diagnosis', { body: said, contentType: 'text/plain' });
+});
+
 test.afterAll(async () => {
   await browser?.close().catch(() => {});
   await claude?.close();
@@ -91,7 +114,7 @@ test('M5: in the desktop app, the studio is on the native layer, with its versio
   const asked: string[] = [];
   page.on('request', (r) => asked.push(r.url()));
   page.on('console', (m) => {
-    if (m.type() === 'error') problems.push(m.text());
+    if (m.type() === 'error' || m.type() === 'warning') problems.push(`${m.type()}: ${m.text()}`);
   });
   await page.goto(`${origin}/?example`);
 
