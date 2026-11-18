@@ -585,6 +585,24 @@ describe('checking only some methods (canDrop, spec 14 3h)', () => {
     expect(checkProgram(program, {}, new Set())).toEqual([]);
   });
 
+  it('checks just a statement named, and what’s inside it', () => {
+    const bad = () => call(field(PROP), 'walkTo', { target: cat() });
+    const first = bad();
+    const program = programWith([first, call(cat(), 'move', move()), bad()]);
+    expect(checkProgram(program)).toHaveLength(2);
+    expect(checkProgram(program, {}, new Set([first.id])).map((p) => p.node)).toEqual([first.id]);
+    expect(checkProgram(program, {}, new Set([program.types[0]!.methods[0]!.body[1]!.id]))).toEqual(
+      [],
+    );
+  });
+
+  it('checks a return named against the function it’s in', () => {
+    const wrong = { id: id(), kind: 'return', value: text('no') } as Statement;
+    const answer = method('answer', [wrong], story('Number'));
+    const program = programWith([], { methods: [answer] });
+    expect(checkProgram(program, {}, new Set([wrong.id]))).toHaveLength(1);
+  });
+
   it('checks a function’s returns only when it’s named', () => {
     const wrong = { id: id(), kind: 'return', value: text('no') } as Statement;
     const answer = method('answer', [wrong], story('Number'));
