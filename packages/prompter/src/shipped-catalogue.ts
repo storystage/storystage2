@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '88d88d7966a68f093b16f3f92db9f9ba70883233';
+export const SHIPPED_CATALOGUE_COMMIT = '86ae8fe53c8c2df644b787051403ae3b0c539c90';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -176,10 +176,10 @@ Set
     polypizza/Prop/well: Well, a stone well with a red roof and a bucket [fairy tale, countryside] 2.2 m, no joints
     polypizza/Prop/wooden-fence: Wooden fence, a short wooden rail fence [farm, countryside] 1.11 m, no joints
     scottishmaritime/Prop/steam-hammer: Steam hammer, a tall iron steam hammer from a shipyard [engines, inventions, history] 3.45 m, no joints
-    smithsonian/Prop/triceratops: Triceratops skeleton, a Triceratops skeleton, with three horns and a bony frill [fossils, dinosaurs, museum] 1.65 m, no joints
+    smithsonian/Prop/triceratops: Triceratops skeleton, a Triceratops fossil skeleton, lying on its side, with three horns and a bony frill [fossils, dinosaurs, museum] 1.65 m, no joints
     smithsonian/Prop/woolly-mammoth: Woolly mammoth skeleton, a woolly mammoth's skeleton, with long curved tusks [fossils, museum, science] 3.4 m, no joints
   Transport
-    scottishmaritime/Transport/mv-spartan: Puffer ship, a small old cargo ship with a tall funnel [sea, boats, history] 9.14 m, no joints
+    scottishmaritime/Transport/mv-spartan: Wrecked puffer ship, the wreck of a small old cargo ship, its hull broken and rusted [sea, boats, history] 9.14 m, no joints
     scottishmaritime/Transport/rnlb-jane-anne: Lifeboat, an old wooden lifeboat with a dark hull [sea, boats, history] 2.74 m, no joints
     smithsonian/Transport/apollo-11-command-module: Apollo 11 command module, the cone-shaped Apollo 11 spacecraft that brought three astronauts home from the Moon [space, history] 3.2 m, no joints
     smithsonian/Transport/bell-x-1: Bell X-1, the orange rocket plane that first flew faster than sound [flight, history] 3.2 m, no joints
