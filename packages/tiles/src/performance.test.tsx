@@ -62,6 +62,90 @@ describe('a method of 500 statements (spec 14, 3h)', () => {
     expect(drawn.rows).toBe(2);
   });
 
+  /** The top-level rows, in order, each with the place it says it's at. */
+  const places = () =>
+    [
+      ...document.querySelectorAll('.tl-tree > [data-statement], .tl-tree > li > [data-statement]'),
+    ].map((row) => [
+      row.getAttribute('aria-posinset'),
+      row.getAttribute('aria-setsize'),
+      row.getAttribute('data-index'),
+    ]);
+
+  it('puts a statement in at the top and redraws only it, every place said again', () => {
+    const { host } = setup(large(500));
+    const top = host.program().types[0]!.methods[0]!.body.length;
+    drawn.rows = 0;
+    act(() => {
+      host.apply(
+        [
+          {
+            kind: 'insert',
+            parent: IDS.main,
+            slot: 'body',
+            index: 0,
+            node: {
+              id: nodeId('newsay'),
+              kind: 'call',
+              target: {
+                id: nodeId('newref'),
+                kind: 'fieldRef',
+                target: { id: nodeId('newthi'), kind: 'this' },
+                field: IDS.cat,
+              },
+              callee: { kind: 'story', name: 'say' },
+              args: { text: { id: nodeId('newtxt'), kind: 'text', value: 'First' } },
+              details: {},
+            },
+            label: 'Add cat say First',
+          },
+        ],
+        'Add cat say First',
+        'tiles',
+      );
+    });
+    // The new row, and the old first row, which hands it the tab stop (with nothing focused, the
+    // first row has it). The 500 rows after it moved down one, which isn't drawing them again.
+    expect(drawn.rows).toBe(2);
+    const after = places();
+    expect(after).toHaveLength(top + 1);
+    after.forEach(([posinset, setsize, index], i) => {
+      expect(posinset).toBe(String(i + 1));
+      expect(setsize).toBe(String(top + 1));
+      expect(index).toBe(String(i));
+    });
+    const first = screen.getByRole('treeitem', { name: 'cat say First add detail' });
+    expect(first.getAttribute('aria-posinset')).toBe('1');
+  });
+
+  it('moves a statement to the end and redraws none of the rows it passes', () => {
+    const { host } = setup(large(500));
+    const top = host.program().types[0]!.methods[0]!.body.length;
+    drawn.rows = 0;
+    act(() => {
+      host.apply(
+        [
+          {
+            kind: 'move',
+            node: IDS.say,
+            parent: IDS.main,
+            slot: 'body',
+            index: top - 1,
+            label: 'Move cat say Hello',
+          },
+        ],
+        'Move cat say Hello',
+        'tiles',
+      );
+    });
+    // The moved row, and the do together that's first now and takes the tab stop from it.
+    expect(drawn.rows).toBe(2);
+    const say = screen.getByRole('treeitem', { name: 'cat say Hello add detail' });
+    expect(say.getAttribute('aria-posinset')).toBe(String(top));
+    expect(say.getAttribute('data-index')).toBe(String(top - 1));
+    places().forEach(([posinset], i) => expect(posinset).toBe(String(i + 1)));
+  });
+
   it('redraws only the two rows focus moves between', async () => {
     const { user } = setup(large(500));
     const first = screen.getByRole('treeitem', { name: 'cat say Hello add detail' });

@@ -572,3 +572,24 @@ describe('plain words', () => {
     }
   });
 });
+
+describe('checking only some methods (canDrop, spec 14 3h)', () => {
+  it('finds the problems in the methods named, and none elsewhere', () => {
+    const bad = () => call(field(PROP), 'walkTo', { target: cat() });
+    const other = method('other', [bad()]);
+    const program = programWith([bad()], { methods: [other] });
+    const main = program.types[0]!.methods[0]!.id;
+    expect(checkProgram(program)).toHaveLength(2);
+    expect(checkProgram(program, {}, new Set([main]))).toHaveLength(1);
+    expect(checkProgram(program, {}, new Set([other.id]))[0]?.node).toBe(other.body[0]!.id);
+    expect(checkProgram(program, {}, new Set())).toEqual([]);
+  });
+
+  it('checks a function’s returns only when it’s named', () => {
+    const wrong = { id: id(), kind: 'return', value: text('no') } as Statement;
+    const answer = method('answer', [wrong], story('Number'));
+    const program = programWith([], { methods: [answer] });
+    expect(checkProgram(program, {}, new Set([answer.id]))).toHaveLength(1);
+    expect(checkProgram(program, {}, new Set([program.types[0]!.methods[0]!.id]))).toEqual([]);
+  });
+});

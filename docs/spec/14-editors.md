@@ -190,19 +190,24 @@ The contract's `highlight(marks, kind)` takes each node with its words, `{node, 
 ### 3h. Performance
 
 1. **A row is one memoised component, defined once and keyed by node id,** never a component defined inside the editor's render, so an update doesn't remount it and lose focus (spike finding 7).
-2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object, with the same focus, highlights and names, is skipped. A pass before drawing works out the focus order and each row's pills, so a skipped row is still known to the keyboard. The palette and the control bar are drawn again only when what they show changes.
+2. **An edit redraws only what changed:** a program is immutable and shares what didn't change (spec 01), so a row whose node is the same object, with the same focus, highlights and names, is skipped. **A row's place in its list isn't part of that:** each list sets its rows' `aria-posinset`, `aria-setsize` and `data-index` on the page once it's drawn, so a statement put in at the top, or moved past 500 rows, redraws only itself (and the row the tab stop moves from). A pass before drawing works out the focus order and each row's pills, so a skipped row is still known to the keyboard. The palette and the control bar are drawn again only when what they show changes.
 3. **A method of 500 statements** stays responsive: a keystroke or drop draws within 100 ms. It's tested in CI, then on the reference Chromebook (7.10). The test times each key, press, release and click with Event Timing, on the production build, two ways: to the next frame drawn, which is what the learner sees, and to the end of the editor's work on it. On real hardware the time to the frame is held to 100 ms. CI's browser draws in software, on the CPU, so CI holds the editor's work to 100 ms and reports the time to the frame.
-   - **A stand-in for the Chromebook (18 Nov):** the same test on the owner's PC, in Edge drawing with the GPU, three runs each, the slowest time to the frame:
+   - **A stand-in for the Chromebook (18 Nov):** the same test on the owner's PC, in Edge drawing with the GPU, three runs each, the slowest time to the frame, before and after the changes below:
 
-     | Input | Full speed | CPU slowed 4× |
-     |---|---|---|
-     | Arrow keys | 32 ms | 72 ms |
-     | Changing a value from its menu | 40–56 ms | 192–208 ms |
-     | Moving a statement by keyboard | 40–48 ms | 152–200 ms |
-     | Dropping a dragged statement | 24–48 ms | 112–136 ms |
-     | A new block from the palette | 72 ms | 360–480 ms |
+     | Input | Full speed, before | CPU slowed 4×, before | Full speed, after | CPU slowed 4×, after |
+     |---|---|---|---|---|
+     | Arrow keys | 32 ms | 72 ms | 32 ms | 56–64 ms |
+     | Changing a value from its menu | 40–56 ms | 192–208 ms | 40–56 ms | 152–176 ms |
+     | Moving a statement by keyboard | 40–48 ms | 152–200 ms | 32 ms | 96–136 ms |
+     | Dropping a dragged statement | 24–48 ms | 112–136 ms | 32–48 ms | 96–112 ms |
+     | A new block from the palette | 72 ms | 360–480 ms | 48–56 ms | 232–312 ms |
 
-     At full speed every input is drawn within 72 ms. If the Chromebook is about four times slower than the PC, everything but the arrow keys would miss 100 ms in a method of 500 statements. Most of the time is the editor's own work (a value's change is 165–173 ms of it, slowed), so S6 looks at where it goes before the device run (7.10) settles it. A method of 500 statements is far longer than a lesson's, which are tens of statements.
+     **What changed (profiled with the CPU slowed):**
+     - **React Aria's `TabPanel` walked the whole method after every change.** It looks for something that can take focus, to decide whether the panel needs a tab stop of its own. While a menu is open, everything outside it is inert, so the walk found nothing and went through all 5,600 elements, after each change to the page. Tiles' method tabs keep React Aria's tabs but draw their own panel, named from the selected tab, beside `Tabs` (React Aria draws what's inside `Tabs` twice). **The studio's code tabs (S5's `CodeEditor`) wrap both editors in the same `TabPanel`, so the studio has the same cost until they change.**
+     - **A row's place** is set by its list, not drawn by the row (item 2).
+     - **`canDrop` checks only the methods an edit touches:** the one it goes in, and the one a moved statement leaves (`checkProgram`'s `only`). A method's return type is declared and each node is checked on its own, so an edit can't make a problem in another method.
+
+     **What's left** is mostly whole-program work in the shared AST (`packages/ast`, S2's): each `applyEdit` indexes the program again, walks it for depth and checks its rules, once when `canDrop` tries the edit and again when the session makes it. A value's change still spends about 60 ms of its slowed time there. A method of 500 statements is far longer than a lesson's, which are tens of statements, and whether the Chromebook is four times slower than the PC is for the device run (7.10) to show.
 4. **Whole-program work is done once for each program:** the shared model keeps its index, types, describer and the problems a program already has with the program (`editing/cache.ts`), since a long method asks for them on every row.
 5. **A keyboard move checks a place only when a step reaches it,** not every place when the statement is picked up. **A drag checks a place once,** when the pointer has stayed on it for 60 ms, so sweeping across rows checks nothing. A drop checks at once.
 6. **Top-level rows off screen** aren't styled or laid out (`content-visibility: auto`). They stay in the accessibility tree.
