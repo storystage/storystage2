@@ -83,6 +83,29 @@ describe('models', () => {
     expect(found.missing()).toEqual([]);
   });
 
+  it('say which posed joints the model has not got, after its model, and never for a stand-in (spec 03, 2.2)', async () => {
+    const wing = jointName('leftWing');
+    const turn = { x: 0, y: 0, z: 0, w: 1 };
+    const posed = (id: ObjectId, x: number, model?: BackstageId) => ({
+      ...place(id, x, model),
+      joints: { [head]: turn, [wing]: turn },
+    });
+    const ghost = backstageId('test/Biped/ghost');
+    const stage = new BabylonStage(headlessEngine(), { models: source });
+    // Bob's model is missing, so he's a stand-in: only his model is reported.
+    await stage.load({ ...setup, objects: [posed(ann, -2), posed(bob, 2, ghost)] });
+    expect(stage.missing()).toEqual([
+      { kind: 'joint', object: ann, joint: wing },
+      { kind: 'model', object: bob, model: ghost },
+    ]);
+    // A load that only changes the pose keeps the scene, and says again what's missing.
+    await stage.load({
+      ...setup,
+      objects: [{ ...posed(ann, -2), joints: { [head]: turn } }, posed(bob, 2, ghost)],
+    });
+    expect(stage.missing()).toEqual([{ kind: 'model', object: bob, model: ghost }]);
+  });
+
   it('are found through a manifest', () => {
     const manifest = {
       items: [{ id: robot, files: { model: 'robot.glb' }, joints: 'prop-only' }],

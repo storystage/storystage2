@@ -92,6 +92,22 @@ describe('FakeStage', () => {
     expect(withIt.missing()).toEqual([]);
   });
 
+  it('says which posed joints a model has not got, and none for a stand-in (spec 03, 2.2)', async () => {
+    const turn = { x: 0, y: 0, z: 0, w: 1 };
+    const wing = jointName('leftWing');
+    const pose = { [jointName('head')]: turn, [wing]: turn };
+    const cat = backstageId('Quadruped/Cat/AbyssinianCat');
+    const stage = new FakeStage({ knownModels: [cat] });
+    await stage.load({
+      ...SETUP,
+      objects: [
+        { ...SETUP.objects[0]!, model: cat, joints: pose },
+        { ...SETUP.objects[1]!, joints: pose },
+      ],
+    });
+    expect(stage.missing()).toEqual([{ kind: 'joint', object: SETUP.objects[0]!.id, joint: wing }]);
+  });
+
   it('reports a tap only while editing, and a drag as a test makes it', async () => {
     const stage = new FakeStage();
     await stage.load(SETUP);

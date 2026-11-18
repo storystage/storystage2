@@ -69,6 +69,7 @@ import {
 } from '../handles.ts';
 import { KEY_TURN, orbitBy, orbitDrag, orbitFrom, orbitView, type Orbit } from '../orbit.ts';
 import { hullOf, within, type Box } from '../hull.ts';
+import { inOrder } from '../missing.ts';
 import { add, mul, rotate, scale, sub, v } from '../math.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, standInBox, standInShape, type Touching } from '../timeline.ts';
@@ -336,7 +337,7 @@ export class BabylonStage implements EditableStage {
         };
       } else this.dropScene(this.scene, this.library);
       this.timeline = timeline;
-      this.lost = missing;
+      this.lost = inOrder(setup, missing, (id) => objects.get(id)?.shape.joints ?? []);
       this.scene = scene;
       this.library = library;
       this.camera = camera;
@@ -377,6 +378,8 @@ export class BabylonStage implements EditableStage {
     if (overtaken()) return;
     timeline.useHumanoids(humanoids.library, humanoids.navigation);
     this.timeline = timeline;
+    // The same models and backdrop, but the pose may have changed.
+    this.lost = inOrder(setup, this.lost, (id) => this.shapes.get(id)?.joints ?? []);
     this.watches = [];
     this.keepSceneView();
     this.show();
