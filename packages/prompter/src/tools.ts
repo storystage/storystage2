@@ -126,7 +126,10 @@ const PLAN_STEP = object({
     'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id.',
   ),
   target: text('The object or marker it acts on, or "" for none.'),
-  details: list(nameValue, 'Details and parameters, as name and value pairs.'),
+  details: list(
+    nameValue,
+    'For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words.',
+  ),
   line: text('The script line id this step says or follows, or "" for none.'),
   sketch: text('The placed sketch id this step comes from, or "" for none.'),
   together: yesNo('True if it runs at the same time as the step before it.'),

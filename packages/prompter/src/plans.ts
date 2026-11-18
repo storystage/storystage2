@@ -7,7 +7,14 @@
  * Messages for a step are shown to the learner on that step, so they are in plain words (rule 9).
  */
 import type { PlanStep } from '@storystage/production';
-import { findEntry, findEvent, type ApiClass } from '@storystage/story-api';
+import {
+  classOfType,
+  findEntry,
+  findEvent,
+  type ApiClass,
+  type ParamDef,
+} from '@storystage/story-api';
+import { word } from '@storystage/story-api/editing';
 import { LISTENER_EVENTS } from './tools.ts';
 
 /**
@@ -34,6 +41,14 @@ export interface PlanProblem {
   /** From 1, as the learner sees the steps numbered. */
   readonly step: number;
   readonly message: string;
+}
+
+/** A setting's name as the blocks show it ("amount", "words"). */
+function settingWords(name: string): string {
+  const param = word(`param.${name}`);
+  if (param !== `param.${name}`) return param;
+  const detail = word(`detail.${name}`);
+  return detail !== `detail.${name}` ? detail : name;
 }
 
 export const SETTABLE_PROPERTIES = [
@@ -71,7 +86,18 @@ function stepProblem(
         return `The ${step.actor} has no ${step.action} block.`;
       const known = new Set([...entry.params.map((p) => p.name), ...entry.details]);
       const unknown = step.details.find((d) => !known.has(d.name));
-      return unknown ? `A ${step.action} block has no ${unknown.name} setting.` : null;
+      if (unknown) return `A ${step.action} block has no ${unknown.name} setting.`;
+      // Every setting the block needs is in the step, with a value, so the learner sees and can
+      // change it, and the build is held to it (6.4). The step's target and line fill the
+      // block's object and its words.
+      const filled = (p: ParamDef) =>
+        step.details.some((d) => d.name === p.name) ||
+        (p.name === 'text' && step.line !== '') ||
+        (classOfType(p.type) !== null && step.target !== '');
+      const needed =
+        step.details.find((d) => d.value.trim() === '')?.name ??
+        entry.params.find((p) => !filled(p))?.name;
+      return needed ? `A ${step.action} block needs a value for ${settingWords(needed)}.` : null;
     }
     case 'add':
       if (!world.isBackstageItem(step.action)) return `${step.action} isn't in Backstage.`;
