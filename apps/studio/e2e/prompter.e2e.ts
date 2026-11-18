@@ -145,6 +145,8 @@ test('a step is changed with the blocks’ own choices, and its words follow', a
     .getByRole('dialog', { name: 'Change step 2' })
     .getByRole('button', { name: 'Cancel' })
     .click();
+  // Cancel straight after Add a step takes the new step out again.
+  await expect(plan.getByRole('row')).toHaveCount(1);
   await expect(prompter.getByRole('button', { name: 'Build these steps' })).toBeEnabled();
 });
 

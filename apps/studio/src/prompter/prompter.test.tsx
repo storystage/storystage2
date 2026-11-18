@@ -318,6 +318,60 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(add.hasAttribute('disabled')).toBe(true);
   });
 
+  it('keeps a number’s value when its field is left empty', async () => {
+    const { panel } = setUp(
+      [
+        proposes([
+          step({
+            details: [
+              { name: 'direction', value: 'forward' },
+              { name: 'amount', value: '2' },
+            ],
+          }),
+        ]),
+        say("Here's the plan."),
+      ],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    await user.selectOptions(within(editor).getByLabelText('direction'), 'backward');
+    await user.clear(within(editor).getByLabelText('amount'));
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]!.details).toEqual([
+      { name: 'direction', value: 'backward' },
+      { name: 'amount', value: '2' },
+    ]);
+  });
+
+  it('takes a step just added out again at Cancel', async () => {
+    const { panel, onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")], {
+      world: WORLD,
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(screen.getByRole('button', { name: 'Add a step' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 2' });
+    await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    expect(within(plan).getAllByRole('row')).toHaveLength(1);
+    expect(panel.state.plan!.steps).toHaveLength(1);
+    expect(said(onAnnounce)).toContain('Step 2 deleted.');
+    // Cancel on a step that was there already leaves it.
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    await user.click(
+      within(await screen.findByRole('dialog', { name: 'Change step 1' })).getByRole('button', {
+        name: 'Cancel',
+      }),
+    );
+    expect(panel.state.plan!.steps).toHaveLength(1);
+  });
+
   it('adds a step at the end, to change from there', async () => {
     const { panel, onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")], {
       world: WORLD,
@@ -332,6 +386,8 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     await user.selectOptions(within(editor).getByLabelText('Who'), 'fox');
     await user.click(within(editor).getByRole('button', { name: 'Save' }));
     expect(panel.state.plan!.steps[1]).toMatchObject({ kind: 'do', actor: 'fox', why: '' });
+    // Saved, it stays.
+    expect(within(plan).getAllByRole('row')).toHaveLength(2);
     expect(said(onAnnounce)).toContain('Step 2 added.');
   });
 

@@ -141,6 +141,8 @@ export function PrompterAside({
   const [open, setOpen] = useState(true);
   // The plan step being changed, by its place in the plan.
   const [editing, setEditing] = useState<number | null>(null);
+  // Whether the step being changed was just added: Cancel then takes it out again.
+  const [adding, setAdding] = useState(false);
   const [request, setRequest] = useState('');
   const speech = useFieldSpeech('prompter.request');
   const titleId = useId();
@@ -305,7 +307,14 @@ export function PrompterAside({
                 panel.deleteStep(Number(id));
                 onAnnounce(words.t('prompter.stepDeleted', { n: Number(id) + 1 }));
               }}
-              {...(world ? { onEdit: (id: string) => setEditing(Number(id)) } : {})}
+              {...(world
+                ? {
+                    onEdit: (id: string) => {
+                      setAdding(false);
+                      setEditing(Number(id));
+                    },
+                  }
+                : {})}
             />
             {world && phase === 'planned' && (
               <Button
@@ -317,6 +326,7 @@ export function PrompterAside({
                   // A new step at the end, to change from there (spec 04 section 6.1, step 5).
                   panel.addStep(newStep(world));
                   setEditing(plan.steps.length);
+                  setAdding(true);
                   onAnnounce(words.t('prompter.stepAdded', { n: plan.steps.length + 1 }));
                 }}
               >
@@ -329,9 +339,18 @@ export function PrompterAside({
                 step={plan.steps[editing]}
                 number={editing + 1}
                 world={world}
-                onClose={() => setEditing(null)}
+                onClose={() => {
+                  // Cancel straight after Add a step leaves the plan as it was (S7, #519).
+                  if (adding) {
+                    panel.deleteStep(editing);
+                    onAnnounce(words.t('prompter.stepDeleted', { n: editing + 1 }));
+                  }
+                  setAdding(false);
+                  setEditing(null);
+                }}
                 onSave={(change) => {
                   panel.changeStep(editing, change);
+                  setAdding(false);
                   onAnnounce(words.t('prompter.stepChanged', { n: editing + 1 }));
                   setEditing(null);
                 }}

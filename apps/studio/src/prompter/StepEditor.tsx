@@ -51,6 +51,21 @@ export const settingWords = (name: string): string => {
 const typeOf = (entry: ApiEntry | undefined, name: string): TypeName | undefined =>
   entry?.params.find((p) => p.name === name)?.type ?? DETAILS[name]?.type;
 
+/**
+ * A number left empty keeps the value it had, or the block's first, so the step's words and its
+ * build never read "move forward ." (S7, #519).
+ */
+function filledNumber(
+  d: PlanStep['details'][number],
+  type: TypeName | undefined,
+  before: PlanStep['details'],
+  world: StepWorld,
+): PlanStep['details'][number] {
+  if ((type !== 'Number' && type !== 'WholeNumber') || d.value.trim() !== '') return d;
+  const was = before.find((b) => b.name === d.name)?.value ?? '';
+  return { ...d, value: was.trim() !== '' ? was : startValue(type, world) };
+}
+
 /** A first value for a setting a block needs, as `propose_plan` would write it. */
 function startValue(type: TypeName | undefined, world: StepWorld): string {
   if (!type) return '';
@@ -211,6 +226,8 @@ export function StepEditor({
   const blocks = procedures(cls);
   const entry = blocks.find((e) => e.name === draft.action);
   const isDo = draft.kind === 'do';
+  const filled = (d: PlanStep['details'][number], type: TypeName | undefined) =>
+    filledNumber(d, type, step.details, world);
 
   return (
     <Dialog
@@ -227,7 +244,7 @@ export function StepEditor({
           onSave({
             actor: draft.actor,
             action: draft.action,
-            details: draft.details,
+            details: draft.details.map((d) => filled(d, typeOf(entry, d.name))),
             line: draft.line,
             together: draft.together,
             repeat: Math.min(1000, Math.max(1, Math.round(Number(times)) || 1)),
