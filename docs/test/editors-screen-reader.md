@@ -66,7 +66,7 @@ Choose **Blocks** in the switch.
 | 1 | Open a ticked pupil's folder (or answer **Yes** on a device with no class list). | The question, if asked, is read with **No** first and focused. The study bar is a region named "Study", with "Study session" and its code. | |
 | 2 | Open **Study tasks** and start **Say hello**. | The list is read with each task's number and name. The task card is a region named "Study task: Say hello", with the instruction, **Read it to me**, **Hint**, **Check my step** and **Stop this task**. | |
 | 3 | Tab to the editor switch. | It's read as unavailable, with "Set to Blocks for this study task". | |
-| 4 | Choose **Hint**, then **Check my step**. | The hint is read, and focus isn't lost (it stays on or near the hint, not back at the top of the page). The check's result is said when it's ready ("Not quite yet…"), without moving focus. | |
+| 4 | Choose **Hint**, then **Check my step**. | Focus moves to the hint, in Hint's place, and it's read (#522). The check's result is said when it's ready ("Not quite yet…"), without moving focus. | |
 | 5 | Choose **Stop this task**. | "Two quick questions" opens with focus on the first answer. Each question is one Tab stop, the arrows choose, and **Skip** is one of the answers. **Done** closes it, and focus goes back to the studio. | |
 | 6 | Start **Fix it** and fix it by keyboard. Choose **Check my step**. | "You did it!" is said, and the questions open as above. | |
 
