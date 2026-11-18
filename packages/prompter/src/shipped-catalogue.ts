@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '25d85cb4466606f302ab052d8f368ef8bb45e9d9';
+export const SHIPPED_CATALOGUE_COMMIT = '47230e5842b0fe930e228a02c4d3055c36e09983';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -15,7 +15,9 @@ Joint sets
   J3: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J4: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftMiddleProximal, leftRingProximal, leftLittleProximal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightMiddleProximal, rightRingProximal, rightLittleProximal, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J5: hips, spine, chest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, rightShoulder, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot
-  J6: spineBase, spineMiddle, spineUpper, neck, head, leftEar, rightEar, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftAnkle, backRightHip, backRightKnee, backRightHock, backRightAnkle
+  J6: spineBase, spineMiddle, head, leftWingShoulder, leftWingTip, rightWingShoulder, rightWingTip
+  J7: spineBase, spineMiddle, spineUpper, neck, head, leftEar, rightEar, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftAnkle, backRightHip, backRightKnee, backRightHock, backRightAnkle
+  J8: spineBase, spineMiddle, spineUpper, neck, head, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontLeftToe, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, frontRightToe, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftToe, backRightHip, backRightKnee, backRightHock, backRightToe
 
 Cast
   Biped
@@ -89,8 +91,16 @@ Cast
     storybook/Biped/robin-hood: Robin Hood, Robin Hood, the outlaw of Sherwood Forest, in a green hood and cloak [storybook, legend, history] 2.25 m, joints J1
     storybook/Biped/selkie: Selkie, a selkie, a seal-woman of Scottish and Irish tales, in a silver-grey hooded sealskin cloak [storybook, folk tale, myth, sea] 2.25 m, joints J1
     storybook/Biped/sherlock-holmes: Sherlock Holmes, Sherlock Holmes the detective, with black hair, in a tweed deerstalker and a brown cape coat, holding a magnifying glass [storybook, mystery, Victorian] 2.2 m, joints J1
+  Flyer
+    styloo/Flyer/butterfly: Butterfly, an orange and black butterfly with white spots, its wings open [animals, minibeasts, garden] 0.6 m, joints J6
+    styloo/Flyer/chicken: Chicken, a brown hen with a red comb [animals, farm] 0.45 m, no joints
+    styloo/Flyer/ladybird: Ladybird, a red ladybird with a black head and six legs [animals, minibeasts, garden] 0.06 m, no joints
   Quadruped
-    blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J6
+    blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J7
+    styloo/Quadruped/cat: Cat, a cream cat with light brown legs, ears and face, and blue eyes [animals, pets] 0.3 m, joints J8
+    styloo/Quadruped/cow: Cow, a black and white cow with a pink nose [animals, farm] 1.6 m, joints J8
+    styloo/Quadruped/dog: Dog, a grey dog with a black and white head and floppy ears [animals, pets] 0.65 m, joints J8
+    styloo/Quadruped/giraffe: Giraffe, a tall giraffe with orange-brown patches and a long neck [animals, savanna] 4.99 m, joints J8
 
 Props
   Prop
