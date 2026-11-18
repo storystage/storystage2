@@ -837,7 +837,7 @@
   "setup.key.adultsOnly": "Adults only. Learners never see or type the key.",
   "setup.key.step.one": "Go to the Claude Console at platform.claude.com, and sign up or sign in with your own account. Add credit or billing.",
   "setup.key.step.two": "Make a workspace called StoryStage, and set a monthly spend limit on it.",
-  "setup.key.step.three": "Make an API key in that workspace. If the Console offers identity federation, choose Continue with an API key. Copy the key straight away: it’s shown only once.",
+  "setup.key.step.three": "Create a key in that workspace. If the Console asks about identity federation, choose to carry on with a key instead. Copy the key straight away: it’s shown only once.",
   "setup.key.step.four": "Press Add key, paste the key into the box that opens, and press Add there.",
   "setup.key.kept": "The key is checked, then kept in this device’s secure store. It never appears in StoryStage, and it is never saved in films, exports or study logs.",
   "setup.key.noKey": "No key? You can still use everything else in StoryStage.",
