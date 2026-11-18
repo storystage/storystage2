@@ -96,6 +96,11 @@ export interface ProductionStageProps {
   startWorker?: () => RuntimeWorker;
   /** The class's default code editor, from policy (`editor.default`; 14-editors 4.3). */
   editorDefault?: EditorId;
+  /**
+   * The school lets an imported Alice world's Code editor open before it's storyboarded (policy
+   * `storyboard.allowImportedWithoutStoryboard`; 10.8, 07-ux 1.4). Default false.
+   */
+  allowImportedWithoutStoryboard?: boolean;
   /** Speak lines' voices, for Rehearse (spec 06 section 4.5). */
   voices?: Voices | null;
   /** The current frame, shared with the other tabs; the strip shows it chosen. */
@@ -352,6 +357,7 @@ export function ProductionStage({
   onReveal,
   voices = null,
   editorDefault,
+  allowImportedWithoutStoryboard = false,
   prompter,
   onSetUp,
   taskCard,
@@ -371,7 +377,9 @@ export function ProductionStage({
         ? words.plural('production.voices.silent', voicesState.silent)
         : null;
   const checks = scene ? storyboardChecks(p, scene) : [];
-  const open = scene !== null && checks.every((c) => c.done);
+  // An imported Alice world arrives with code and no storyboard; a school may let it be coded as it is.
+  const relaxed = allowImportedWithoutStoryboard && p.manifest.origin === 'alice';
+  const open = scene !== null && (relaxed || checks.every((c) => c.done));
   // The Prompter panel, open or folded to its rail: asking from the frame card opens it.
   const [prompterOpen, setPrompterOpen] = useState(true);
   const prompterState = useSyncExternalStore(
