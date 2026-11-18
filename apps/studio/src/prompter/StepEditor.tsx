@@ -77,17 +77,28 @@ function startValue(type: TypeName | undefined, world: StepWorld): string {
   return '';
 }
 
-/** The block's required settings, keeping any value the step already had. */
+/**
+ * The block's required settings, keeping any value the step already had. A setting the step's
+ * line or target fills (a say's words, the block's object) is left to them, as the plan check
+ * reads them (spec 04 section 6.3).
+ */
 function settingsFor(
   entry: ApiEntry | undefined,
   before: PlanStep['details'],
   world: StepWorld,
+  step: Pick<PlanStep, 'line' | 'target'>,
 ): PlanStep['details'] {
   if (!entry) return before;
-  const required = entry.params.map((p) => ({
-    name: p.name,
-    value: before.find((d) => d.name === p.name)?.value ?? startValue(p.type, world),
-  }));
+  const filledByStep = (p: ApiEntry['params'][number]) =>
+    !before.some((d) => d.name === p.name) &&
+    ((p.name === 'text' && step.line !== '') ||
+      (classOfType(p.type) !== null && step.target !== ''));
+  const required = entry.params
+    .filter((p) => !filledByStep(p))
+    .map((p) => ({
+      name: p.name,
+      value: before.find((d) => d.name === p.name)?.value ?? startValue(p.type, world),
+    }));
   // Details the step had that this block can take too (how long, and the rest).
   const extra = before.filter(
     (d) => !entry.params.some((p) => p.name === d.name) && entry.details.includes(d.name),
@@ -106,7 +117,7 @@ export function newStep(world: StepWorld): PlanStep {
     actor: actor as string,
     action: entry?.name ?? '',
     target: '',
-    details: settingsFor(entry, [], world),
+    details: settingsFor(entry, [], world, { line: '', target: '' }),
     line: '',
     sketch: '',
     together: false,
@@ -268,7 +279,7 @@ export function StepEditor({
                   set({
                     actor,
                     action: keep?.name ?? '',
-                    details: settingsFor(keep, draft.details, world),
+                    details: settingsFor(keep, draft.details, world, draft),
                   });
                 }}
               >
@@ -287,7 +298,10 @@ export function StepEditor({
                 value={draft.action}
                 onChange={(e) => {
                   const next = blocks.find((b) => b.name === e.target.value);
-                  set({ action: e.target.value, details: settingsFor(next, draft.details, world) });
+                  set({
+                    action: e.target.value,
+                    details: settingsFor(next, draft.details, world, draft),
+                  });
                 }}
               >
                 {blocks.map((b) => (
