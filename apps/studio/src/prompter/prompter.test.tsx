@@ -372,6 +372,41 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(panel.state.plan!.steps).toHaveLength(1);
   });
 
+  it('leaves a say’s words to its script line when who says it changes', async () => {
+    const { panel } = setUp(
+      [
+        proposes([
+          step({
+            words: 'The fox says its line.',
+            actor: 'fox',
+            action: 'say',
+            line: 'l3',
+            details: [],
+          }),
+        ]),
+        say("Here's the plan."),
+      ],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the fox speak.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    await user.selectOptions(within(editor).getByLabelText('Who'), 'penguin');
+    // The line gives the words: no empty words setting to fill (spec 04 section 6.3).
+    expect(within(editor).queryByLabelText('words')).toBeNull();
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]).toMatchObject({
+      actor: 'penguin',
+      action: 'say',
+      line: 'l3',
+    });
+    expect(panel.state.plan!.steps[0]!.details.map((d) => d.name)).not.toContain('text');
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
   it('adds a step at the end, to change from there', async () => {
     const { panel, onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")], {
       world: WORLD,
