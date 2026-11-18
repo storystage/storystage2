@@ -27,16 +27,16 @@
 | `joints` | Its mapped joints in map order (section 2a), or `prop-only` |
 | `defaultSize.height` | Metres at scale 1 |
 | `budget` | What it costs as shipped or imported, after any reduction (section 4): `triangles`, and `textureMaxPx`, the longer side of its largest texture (0 if none) |
-| `licence`, `credit`, `source`, `permission` | Section 3 |
+| `licence`, `credit`, `source`, `permission`, `publicDomain` | Section 3 |
 | `origin` | `shipped` or `imported` |
 | `sketches` | Its storyboard sketches (section 7) |
 
 ### Rules
 
-1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` has a source URL; a `permission` licence names its record in `docs/legal/`.
-2. **Shipped items carry only CC0, CC BY 3.0 or 4.0, or `permission`** (`SHIPPED_LICENCES`; licence audit, section 2, rule 1). A class may import share-alike, non-commercial, own-work or "not sure" models (3.12); `mayDistribute` then keeps films that use them in school.
+1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` has a source URL; a `permission` licence names its record in `docs/legal/`, and so does a `public-domain` one (`publicDomain`, for example `docs/legal/public-domain/nasa.md`).
+2. **Shipped items carry only CC0, CC BY 3.0 or 4.0, `permission`, or `public-domain`** (`SHIPPED_LICENCES`; licence audit, section 2, rule 1). A class may import share-alike, non-commercial, own-work or "not sure" models (3.12); `mayDistribute` then keeps films that use them in school.
 3. **Every model faces +Z.** The pipelines turn models that don't (Alice's, section 3), except VRM files, which are kept byte for byte: **a VRM 0.x avatar faces -Z, and whatever shows it (the stage, sketches, the AR baker) turns it half a turn.** `vrm` says which files need it.
-4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule; 2.1.0 added `description`.
+4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule; 2.1.0 added `description`; 2.2.0 (owner, 18 Nov 2026) added the `public-domain` licence and `publicDomain`. `permission` and `public-domain` are for shipped items only: an imported item with either is refused, since a class picks from the short list (section 6).
 5. **Descriptions say what a learner would see.** A person is described by age, hair, glasses, clothes and anything they use, such as a wheelchair: "a child of 7 with an afro, in a mustard suit". **Never by skin colour or ancestry** (owner, 8 Nov 2026). A shipped item's description comes from its source list and is reviewed with it. An imported item's is typed by the learner or teacher, so the Prompter reads it as data in the user turn, never in `system` (spec 04, section 2.1).
 
 ## 2. Sections
@@ -131,7 +131,7 @@ The bone-name fixtures in the tests are written from each tool's documented nami
 
 The licence audit, `docs/legal/licence-audit.md` (workplan 3.1), lists every candidate source with its licence as checked, the credit line, and a verdict: ship, ship per item, not yet, or don't ship. Its appendix A lists every model in Alice's gallery. In short:
 
-1. **Shipped licences:** CC0, CC BY 3.0 or 4.0, or `permission` with a written record in `docs/legal/` (Alice's models if CMU agrees; the commissioned cast). Never CC BY-SA, NC or ND, and never "not sure", in the shipped catalogue. Learners' imports may use any licence on the short list (section 6), with the limits in `mayDistribute`.
+1. **Shipped licences:** CC0, CC BY 3.0 or 4.0, `permission` with a written record in `docs/legal/` (Alice's models if CMU agrees; the commissioned cast), or `public-domain` with its record in `docs/legal/public-domain/` saying why, and keeping any guidelines that come with it (NASA's own models, the owner's choice of 18 Nov 2026: credit NASA, no endorsement, no NASA insignia). Never CC BY-SA, NC or ND, and never "not sure", in the shipped catalogue. Learners' imports may use any licence on the short list (section 6), with the limits in `mayDistribute`.
 2. **A credit line for every item, CC0 included,** so the About screen and film credits name every maker (WP11.4).
 3. **A source URL for every item,** pointing at the item's own page, with the date retrieved. The licence is checked item by item, never per pack.
 4. **Not shipped:**
@@ -341,7 +341,7 @@ Workplan 3.12. Licences and credits are part of what learners learn, as they are
     - I made it;
     - not sure.
 
-   These are the manifest's `LICENCES`, plus `permission`, which only shipped items have.
+   These are the manifest's `LICENCES`, but for `permission` and `public-domain`, which only shipped items have.
 2. **They give where it came from:** the model's own page (`source.url`), required except for "I made it". For any CC BY licence, they also give **who made it**, for the credit.
 3. **The credit line is made from these.**
     - CC0: "<Name> by <maker> (CC0)", or "<Name> (CC0)" with no maker.

@@ -12,7 +12,7 @@ import type { Exclude } from './exclude.ts';
 import { kitbashProblems, type Kitbash } from './kitbash.ts';
 
 /** Licences the audit allows in the shipped catalogue (audit, section 2, rule 1). */
-export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0'] as const;
+export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0', 'public-domain'] as const;
 export type ShippableLicence = (typeof SHIPPABLE_LICENCES)[number];
 
 export type FetchSpec =
@@ -51,6 +51,11 @@ export interface SourceItem {
    */
   readonly turn?: { readonly x?: number; readonly y?: number };
   readonly licence: ShippableLicence;
+  /**
+   * For `public-domain`, and only there: its record in `docs/legal/` (for NASA's models,
+   * `docs/legal/public-domain/nasa.md`), which says why and keeps the guidelines that come with it.
+   */
+  readonly publicDomain?: string;
   readonly credit: string;
   /** The item's own page: the manifest's `source.url`. */
   readonly page: string;
@@ -167,6 +172,13 @@ export function validateSources(json: unknown): Result {
     }
     if (!SHIPPABLE_LICENCES.includes(item.licence as ShippableLicence))
       e(`licence must be one the audit allows to ship: ${SHIPPABLE_LICENCES.join(', ')}.`);
+    if (
+      item.licence === 'public-domain' &&
+      !/^docs\/legal\/[\w./-]+\.md$/.test(String(item.publicDomain ?? ''))
+    )
+      e('a public-domain item must name its record, as a path under docs/legal/ ending .md.');
+    if (item.licence !== 'public-domain' && item.publicDomain !== undefined)
+      e('publicDomain is only for a public-domain item.');
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);

@@ -77,7 +77,30 @@ describe('validateManifest', () => {
     ).toBe(true);
   });
 
-  it('ships only the licences the audit allows: CC0, CC BY and written permission', () => {
+  it('needs a record for a "public-domain" licence, and keeps it for shipped models', () => {
+    expect(validateManifest(manifest({ ...cat, licence: 'public-domain' })).ok).toBe(false);
+    const nasa = {
+      ...cat,
+      licence: 'public-domain',
+      publicDomain: 'docs/legal/public-domain/nasa.md',
+    };
+    expect(validateManifest(manifest(nasa)).ok).toBe(true);
+    const imported = validateManifest(manifest({ ...nasa, origin: 'imported' }));
+    expect(imported.ok).toBe(false);
+    if (!imported.ok) expect(imported.errors.join('\n')).toMatch(/short list/);
+    expect(
+      validateManifest(
+        manifest({
+          ...cat,
+          origin: 'imported',
+          licence: 'permission',
+          permission: 'docs/legal/cmu.md',
+        }),
+      ).ok,
+    ).toBe(false);
+  });
+
+  it('ships only the licences the audit allows: CC0, CC BY, written permission and public domain', () => {
     for (const licence of ['CC-BY-SA-4.0', 'CC-BY-NC-4.0', 'own-work', 'not-sure']) {
       const r = validateManifest(manifest({ ...cat, licence }));
       expect(r.ok, licence).toBe(false);
@@ -89,7 +112,13 @@ describe('validateManifest', () => {
     const imported = { ...cat, origin: 'imported' };
     expect(validateManifest(manifest({ ...imported, licence: 'CC-BY-SA-4.0' })).ok).toBe(true);
     expect(validateManifest(manifest({ ...imported, licence: 'CC-BY-NC-4.0' })).ok).toBe(true);
-    expect(SHIPPED_LICENCES).toEqual(['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0', 'permission']);
+    expect(SHIPPED_LICENCES).toEqual([
+      'CC0-1.0',
+      'CC-BY-3.0',
+      'CC-BY-4.0',
+      'permission',
+      'public-domain',
+    ]);
   });
 
   it('needs what every model was reduced to', () => {
@@ -128,7 +157,7 @@ describe('validateManifest', () => {
   });
 
   it('refuses the wrong version and junk', () => {
-    expect(MANIFEST_VERSION).toBe('2.1.0');
+    expect(MANIFEST_VERSION).toBe('2.2.0');
     expect(validateManifest({ manifestVersion: '1.0.0', items: [] }).ok).toBe(false);
     expect(validateManifest({ manifestVersion: '0.1', items: [] }).ok).toBe(false);
     expect(validateManifest(null).ok).toBe(false);

@@ -14,6 +14,7 @@ Session D keeps this folder (WP17). It holds the drafts the owner sends or signs
 | [trade-mark-storystage.md](trade-mark-storystage.md) | 17.6 | A clearance brief for a trade mark attorney: the classes, a first knock-out search, and the questions to ask | Owner |
 | [storybook-characters.md](storybook-characters.md) | 17.8 | The rights check for each candidate storybook character, with a recommendation and the owner's decision | Owner decides |
 | [commission-contract.md](commission-contract.md) | 17.9 | A short contract template for 3D artists: assigns copyright to the project, credits the artist, confirms the work is original | Owner approves, with legal advice |
+| [public-domain/nasa.md](public-domain/nasa.md) | 3.1 | S4's record for NASA's own models, shipped as `public-domain`: why, and NASA's conditions (credit, no endorsement, no insignia) | S4 keeps it; owner decided 18 Nov 2026 |
 | `permissions/` | 17.1, 17.7, 17.9 | One record per written permission, created when it arrives (see below) | D, from the owner's filed answer |
 
 Files without a link yet arrive in their own pull requests.

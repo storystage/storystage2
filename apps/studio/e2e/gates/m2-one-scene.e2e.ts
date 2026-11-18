@@ -58,7 +58,7 @@ async function smallBackstage(page: Page) {
   });
   await page.route('**/backstage/**', (route) =>
     route.request().url().endsWith('/backstage/backstage.json')
-      ? route.fulfill({ json: { manifestVersion: '2.1.0', items: [item('Owl'), item('Hare')] } })
+      ? route.fulfill({ json: { manifestVersion: '2.2.0', items: [item('Owl'), item('Hare')] } })
       : route.fulfill({ status: 404 }),
   );
 }

@@ -93,6 +93,25 @@ describe('validateSources', () => {
     expect(r.errors.join('\n')).toMatch(/credit/);
   });
 
+  it('takes a public-domain item only with its record in docs/legal/', () => {
+    const nasa = { licence: 'public-domain', credit: 'Saturn V by NASA (public domain)' };
+    expect(
+      validateSources({
+        source: 'nasa',
+        items: [item({ ...nasa, publicDomain: 'docs/legal/public-domain/nasa.md' })],
+      }).ok,
+    ).toBe(true);
+    for (const bad of [
+      item(nasa),
+      item({ ...nasa, publicDomain: 'nasa.md' }),
+      item({ publicDomain: 'docs/legal/public-domain/nasa.md' }),
+    ]) {
+      const r = validateSources({ source: 'nasa', items: [bad] });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(/public-domain|publicDomain/);
+    }
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({
