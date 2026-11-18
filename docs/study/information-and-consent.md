@@ -21,15 +21,15 @@
 **The study.** StoryStage 2 has two ways to code: **Blocks** and **Tiles**. In the pilot we want to find out which works better for learners aged 6 to 13, so that one can be kept, or both for a clear reason. We are asking your school or club to take part.
 
 **What it involves:**
-- Classes use StoryStage in normal lessons that teach the curriculum. During five short tasks of about 10 minutes each, each class uses one way of coding, chosen in advance; afterwards learners can use either.
+- Classes use StoryStage in normal lessons that teach the curriculum. For the first three of five short tasks (about 10 minutes each), each class uses one way of coding, chosen in advance; after that, learners can use either.
 - StoryStage keeps a record of how the tasks went, on the device. The teacher exports it as a file and sends it to us.
 - A short interview with each teacher taking part, at the end.
 
-**What the record holds:** which way of coding was used, whether the task was finished, how long it took, undos, requests for help, switches between the two, and answers to two questions ("How easy was that?" and "Which would you choose next time?"). It uses a random code that changes every session. **It holds no names, no work, no pictures, no voice and nothing that identifies the device.**
+**What the record holds:** which way of coding was used, whether the task was finished, how long it took, undos, requests for help, switches between the two, and answers to two questions ("How easy was that?" and "Which would you choose next time?"). It also holds the date, and a study code and age band for the class, which we give you. It uses a random code that changes every session. **It holds no names, no work, no pictures, no voice and nothing that identifies the device.**
 
 **Your agreement.** Taking part is voluntary. You can pilot StoryStage without the study. Your school or club can stop at any time. We also ask each teacher, and each parent or carer, and each learner.
 
-**Data protection.** StoryStage keeps the records under a random code, deletes them from the devices once exported, and keeps the exported records only until the decision about the two ways of coding, plus 12 months, then deletes them. The school can choose to keep a private list linking codes to pupils, so that a pupil can withdraw later; we never see that list. The study is covered by StoryStage's data protection impact assessment. **[Link.]**
+**Data protection.** StoryStage keeps the records under a random code, asks the teacher to delete them from each device once exported, and keeps the exported records only until the decision about the two ways of coding, plus 12 months, then deletes them. The school can choose to keep a private list linking codes to pupils, so that a pupil can withdraw later; we never see that list. The study is covered by StoryStage's data protection impact assessment. **[Link.]**
 
 **Ethics.** The study has been reviewed by **[the university partner's ethics committee / an independent reviewer]**.
 
@@ -47,14 +47,18 @@ Name: __________________ Role: __________________ Signature: __________________ 
 
 **Before the study:**
 - We'll agree with you how the results will decide which way of coding is kept (the decision rule), before the study starts.
-- Your class is given one way of coding for the first three tasks, decided by a coin toss with another class. You'll lock it during those tasks only.
+- Your class is given one way of coding for the first three tasks, decided by a coin toss with another class. You set it as your class's default editor; StoryStage holds it during those three tasks by itself, so you don't change anything between lessons.
+- Enter the class's **study code** and **age band**, which we give you, in Settings › Class set-up › **Study**.
+- In the class list, tick **Taking part in the study** for each pupil whose parent or carer has consented. You do this once.
 
 **On the day:**
-- At the start of each session, choose **Taking part: yes** only for pupils whose parent or carer has consented and who agree. For everyone else, choose **no**: StoryStage keeps no record of their session, and they do the same lesson.
+- Check that each ticked pupil still agrees. If one doesn't, untick them for that lesson: StoryStage keeps no record for a pupil who isn't ticked, and they do the same lesson.
+- With no class list (a club), StoryStage asks **Is this learner taking part in the study?** when a film opens. Answer **Yes** only for a learner whose parent or carer has consented and who agrees.
+- Each learner opens a task from **Study tasks** on the bar at the top. The task has a **Hint** if they're stuck, and **Check my step**. It ends when it works, when they stop it, or after 15 minutes, and then asks two quick questions.
 - The Prompter is off during the study tasks.
 - Please don't write pupils' names anywhere in StoryStage during the study.
 
-**Afterwards:** export the record (Settings › Class set-up › **Export study logs**), and send us the file **[how]**. StoryStage then deletes it from the devices.
+**Afterwards:** export the record on each device (Settings › Class set-up › **Export study logs**), and send us the files **[how]**. StoryStage then asks to delete the record from the device: please choose **Delete from this device**.
 
 **Withdrawal:** if a pupil or parent wants to withdraw before you export, delete that session in Settings. After export, the record can be removed only if your school kept a private list of which code was which pupil's.
 
@@ -111,9 +115,9 @@ Parent or carer's name: __________________ Signature: __________________ Date: _
 >
 > StoryStage has two ways to code: **Blocks** and **Tiles**. We want to find out which is easier for children like you.
 >
-> - You'll do five little coding jobs, like making a cat say hello.
+> - You'll do five little coding jobs, like making Teddy say hello.
 > - The computer will remember if you finished, and how long it took. It **won't** remember your name, your film, or your voice.
-> - After each job, you'll tap a face: was it hard, OK, or easy?
+> - After each job, you'll choose: was it hard, OK, or easy?
 > - **You don't have to help.** If you'd rather not, tell your teacher. That's fine, and you still do the same fun lessons.
 >
 > Do you want to help? 👍 or 👎
