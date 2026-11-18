@@ -4,6 +4,7 @@
  * reach it. A test puts what it wants on the window before the page loads:
  *
  *     window.__storystagePrompter = { level: 'full', replies: [testReply([...]), …] };
+ *     window.__storystagePrompter = { replies: [], key: 'absent' }; // the set-up wizard
  *     window.__storystageStudy = true;
  *
  * Each Prompter request takes the next reply, built with `@storystage/prompter/testing`'s
@@ -11,13 +12,24 @@
  * would be (spec 14 section 6.1); the browser version's own policy never has it.
  */
 import { browserHost, type HostInterface, type PrompterLevel } from '@storystage/host';
-import { scriptedTransport, type PrompterEvent } from '@storystage/prompter';
+import {
+  scriptedTransport,
+  type KeyStatus,
+  type PrompterEvent,
+  type PrompterKey,
+} from '@storystage/prompter';
 
 export interface DevPrompter {
   /** The class's level. Full by default. */
   readonly level?: PrompterLevel;
   /** One reply for each request, in order. A request after the last is told there's no more. */
   readonly replies: readonly (readonly PrompterEvent[])[];
+  /**
+   * The key's commands, for the set-up wizard (WP13.6), starting with a key stored or not. Add
+   * key stores one at once, with no system dialog; while there's none the Prompter isn't set up.
+   * Left out, the host has no key commands and the Prompter is set up.
+   */
+  readonly key?: KeyStatus;
 }
 
 declare global {
@@ -38,13 +50,29 @@ export function devPrompterHost(script: DevPrompter, host = browserHost): HostIn
   const transport = scriptedTransport(
     () => script.replies[next++] ?? [{ type: 'error', code: 'internal' }],
   );
+  let stored = script.key;
+  const keys: PrompterKey = {
+    add: async () => {
+      stored = 'present';
+      return 'saved';
+    },
+    status: async () => stored ?? 'absent',
+    remove: async () => {
+      stored = 'absent';
+    },
+  };
   return {
     ...host,
+    ...(script.key ? { prompterKey: keys } : {}),
     policy: {
       ...host.policy,
       prompter: { ...host.policy.prompter, level: script.level ?? 'full' },
     },
-    prompter: transport,
+    prompter: {
+      status: async () =>
+        stored === 'absent' ? { available: false, reason: 'no_key' } : transport.status(),
+      send: (request, signal) => transport.send(request, signal),
+    },
   };
 }
 

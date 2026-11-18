@@ -54,14 +54,18 @@ const REPLIES: PrompterEvent[][] = [
   say('Built. The penguin now waddles forward.'),
 ];
 
-async function openStage(page: Page) {
+async function openStage(page: Page, key?: 'absent' | 'present') {
   await page.setViewportSize({ width: 1366, height: 900 });
-  await page.addInitScript((replies: string) => {
-    (window as { __storystagePrompter?: unknown }).__storystagePrompter = {
-      level: 'full',
-      replies: JSON.parse(replies),
-    };
-  }, JSON.stringify(REPLIES));
+  await page.addInitScript(
+    ({ replies, key }: { replies: string; key: string | null }) => {
+      (window as { __storystagePrompter?: unknown }).__storystagePrompter = {
+        level: 'full',
+        replies: JSON.parse(replies),
+        ...(key ? { key } : {}),
+      };
+    },
+    { replies: JSON.stringify(REPLIES), key: key ?? null },
+  );
   await page.goto(STUDIO);
   await page.getByRole('tab', { name: /Production stage/ }).click();
   await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
@@ -148,6 +152,47 @@ test('a step is changed with the blocks’ own choices, and its words follow', a
   // Cancel straight after Add a step takes the new step out again.
   await expect(plan.getByRole('row')).toHaveCount(1);
   await expect(prompter.getByRole('button', { name: 'Build these steps' })).toBeEnabled();
+});
+
+test('an adult sets the Prompter up from the panel, and removes the key in Settings', async ({
+  page,
+}) => {
+  // The dev server's key commands store a key at once, with no system dialog (devPrompter.ts).
+  await openStage(page, 'absent');
+  const prompter = panel(page);
+  await expect(prompter.getByText('Ask an adult to set up the Prompter.')).toBeVisible();
+  await prompter.getByRole('button', { name: 'Set up…' }).click();
+
+  const wizard = page.getByRole('dialog', { name: 'Set up the Prompter' });
+  await expect(wizard.getByText('Step 1 of 4')).toBeVisible();
+  // React Aria's radio and checkbox inputs are hidden: a person presses the card or its words.
+  await wizard.getByText('I’m the adult who owns the Claude key').click();
+  await expect(wizard.getByRole('radio', { name: /I’m the adult/ })).toBeChecked();
+  await wizard.getByRole('button', { name: 'Next' }).click();
+  await expect(wizard.getByRole('heading', { name: /Meet the Prompter/ })).toBeVisible();
+  await wizard.getByText(/I’m the responsible adult/).click();
+  await expect(wizard.getByRole('checkbox', { name: /I’m the responsible adult/ })).toBeChecked();
+  await wizard.getByRole('button', { name: 'I agree, continue' }).click();
+  await expect(wizard.getByRole('heading', { name: 'Add your Claude key' })).toBeVisible();
+  // No key field in the studio: the system's dialog takes it (decision 0056).
+  await expect(wizard.getByRole('textbox')).toHaveCount(0);
+  const { violations } = await new AxeBuilder({ page })
+    .include('.ss-modal')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  await wizard.getByRole('button', { name: 'Add key' }).click();
+  await expect(wizard.getByText('Key works. Checked just now.')).toBeVisible();
+  await wizard.getByRole('button', { name: 'Done' }).click();
+  await expect(wizard).toHaveCount(0);
+  // The panel reads its status again, and is ready.
+  await expect(prompter.getByRole('textbox', { name: 'Ask the Prompter' })).toBeVisible();
+
+  await page.getByRole('button', { name: 'Settings' }).click();
+  const card = page.getByRole('region', { name: 'The Prompter' });
+  await expect(card.getByText(/a Claude key is in its secure store/)).toBeVisible();
+  await card.getByRole('button', { name: 'Remove key' }).click();
+  await expect(card.getByText(/Not set up on this device/)).toBeVisible();
 });
 
 test('the panel folds to its rail, giving the code its room', async ({ page }) => {

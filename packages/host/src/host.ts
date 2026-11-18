@@ -6,7 +6,12 @@
  * Owners: S8 and S5, and S7 for `speech`. `classes` and `picker` are S4's to use (8.4) and S8's to provide.
  */
 
-import { offTransport, type PrompterTransport } from '@storystage/prompter';
+import {
+  offTransport,
+  tauriKey,
+  type PrompterKey,
+  type PrompterTransport,
+} from '@storystage/prompter';
 import { browserPicker } from './browser-picker.ts';
 import { browserStore } from './browser-store.ts';
 import { storedClassFolders } from './class-folders.ts';
@@ -22,6 +27,11 @@ export interface HostInterface {
   readonly policy: PolicyInForce;
   /** The native layer in the Tauri apps. `offTransport` in the browser version: no Prompter. */
   readonly prompter: PrompterTransport;
+  /**
+   * The Claude key's three commands, for the set-up wizard (spec 05 section 1.3; spec 04 section
+   * 4.4). None of them takes or gives the key. `null` in the browser version, which has no Prompter.
+   */
+  readonly prompterKey: PrompterKey | null;
   /** The installed version, for About (spec 05 section 4.6). `null` in the browser version. */
   readonly version: string | null;
   /**
@@ -90,6 +100,7 @@ async function readBackstageFolder(invoke: Invoke): Promise<string> {
 export const browserHost: HostInterface = {
   policy: BROWSER_POLICY,
   prompter: offTransport,
+  prompterKey: null,
   version: null,
   speech: null,
   classes: storedClassFolders(browserFiles),
@@ -136,6 +147,8 @@ export async function tauriHost(
   return {
     policy,
     prompter: reachable,
+    // The native layer refuses `key_add` itself while the level is Off (`refusedByPolicy`).
+    prompterKey: tauriKey(invoke),
     version,
     speech,
     // Requests count against whoever's folder is open (24.5).

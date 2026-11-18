@@ -33,6 +33,8 @@ export interface PrompterAsideProps {
   seal?: () => void;
   /** The scene's objects and lines, for changing and adding plan steps. Without it, neither. */
   world?: StepWorld;
+  /** Opens the set-up wizard: Set up… shows while there's no key (WP13.6). */
+  onSetUp?: () => void;
 }
 
 export function usePanelState(panel: PrompterPanel<StudioSource>): PanelState {
@@ -135,6 +137,7 @@ export function PrompterAside({
   canChange = true,
   seal = () => {},
   world,
+  onSetUp,
 }: PrompterAsideProps) {
   const state = usePanelState(panel);
   useAnnouncements(state, onAnnounce);
@@ -227,6 +230,12 @@ export function PrompterAside({
               ? words.t('prompter.notSetUp')
               : messages.t('note.prompterOffBySchool')}
           </NeutralNote>
+          {/* For anyone: the wizard's first page sends a learner back (the owner's choice). */}
+          {phase === 'notSetUp' && onSetUp && (
+            <Button icon="key" onPress={onSetUp}>
+              {words.t('prompter.setUp')}
+            </Button>
+          )}
         </div>
       </aside>
     );

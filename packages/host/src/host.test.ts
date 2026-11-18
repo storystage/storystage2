@@ -123,3 +123,29 @@ describe('the browser host', () => {
     expect(browserHost.speech).toBeNull();
   });
 });
+
+describe('the Claude key’s commands', () => {
+  it('are the native layer’s three, and none takes or gives the key', async () => {
+    const calls: [string, unknown][] = [];
+    const invoke = async (command: string, args?: unknown): Promise<unknown> => {
+      calls.push([command, args]);
+      if (command === 'key_status') return 'present';
+      if (command === 'key_add') return 'saved';
+      if (command === 'key_remove') return null;
+      return answering('1.4.2')(command);
+    };
+    const key = (await tauriHost(invoke, native)).prompterKey!;
+    expect(await key.status()).toBe('present');
+    expect(await key.add()).toBe('saved');
+    await key.remove();
+    expect(calls.filter(([c]) => c.startsWith('key_'))).toEqual([
+      ['key_status', undefined],
+      ['key_add', undefined],
+      ['key_remove', undefined],
+    ]);
+  });
+
+  it('are not in the browser version', () => {
+    expect(browserHost.prompterKey).toBeNull();
+  });
+});
