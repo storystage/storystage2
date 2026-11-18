@@ -37,14 +37,19 @@ function gatedStage() {
   return { stage, open, readyNow: () => (ready = true) };
 }
 
-/** Whether a promise has settled, after everything already queued has run. */
-async function settled(p: Promise<unknown>): Promise<boolean> {
+/**
+ * Whether a promise settles within `within` milliseconds. By the clock, not by counting ticks:
+ * Babylon.js checks whether a scene is ready every 100 ms, and timer ticks are far shorter on
+ * Linux (CI) than on Windows.
+ */
+async function settled(p: Promise<unknown>, within = 400): Promise<boolean> {
   let done = false;
   void p.then(
     () => (done = true),
     () => (done = true),
   );
-  for (let i = 0; i < 50; i++) await new Promise((r) => setTimeout(r, 0));
+  const end = performance.now() + within;
+  while (!done && performance.now() < end) await new Promise((r) => setTimeout(r, 5));
   return done;
 }
 
