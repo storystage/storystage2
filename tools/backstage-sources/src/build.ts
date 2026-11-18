@@ -149,6 +149,7 @@ export async function buildSources(
     let fetchedSize: Budget;
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
+      if (item.bones) renameBones(doc, item.bones);
       const reduced = await reduceModel(doc, budget, { encodeTexture });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
@@ -433,4 +434,15 @@ function report(
     `**Prompter catalogue:** about ${tokens.toLocaleString('en-GB')} of ${CATALOGUE_TOKEN_BUDGET.toLocaleString('en-GB')} tokens. \`prompter-catalogue.txt\` is exactly what Claude reads; check its descriptions with the sketches.`,
     '',
   ].join('\n');
+}
+
+/** Renames a model's own bones to our joint ids (a source-list item's `bones`); a name not found throws. */
+export function renameBones(doc: Document, bones: Readonly<Record<string, string>>): void {
+  const nodes = doc.getRoot().listNodes();
+  for (const [bone, joint] of Object.entries(bones)) {
+    const found = nodes.filter((n) => n.getName() === bone);
+    if (found.length !== 1)
+      throw new Error(`bones: the model has ${found.length} nodes called "${bone}", not one.`);
+    found[0]!.setName(joint);
+  }
 }

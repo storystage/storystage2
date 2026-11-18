@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { WebIO } from '@gltf-transform/core';
+import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { validateManifest } from '@storystage/backstage';
 import {
@@ -14,7 +14,7 @@ import {
   glbFromMesh,
   vrmFromMesh,
 } from '@storystage/sketches/testing';
-import { buildSources } from './build.ts';
+import { buildSources, renameBones } from './build.ts';
 import { fetchModel, type Fetcher } from './fetch.ts';
 import { validateSources } from './sources.ts';
 
@@ -91,6 +91,45 @@ describe('validateSources', () => {
     expect(r.errors.join('\n')).toMatch(/commit/);
     expect(r.errors.join('\n')).toMatch(/sha256/);
     expect(r.errors.join('\n')).toMatch(/credit/);
+  });
+
+  it("takes bones only as joints of the item's class, each once", () => {
+    const butterfly = {
+      id: 'styloo/Flyer/butterfly',
+      class: 'Flyer',
+      bones: { body: 'spineBase', 'Body.002': 'head', 'wingsupper.l': 'leftWingShoulder' },
+    };
+    expect(validateSources({ source: 'styloo', items: [item(butterfly)] }).ok).toBe(true);
+    for (const [bones, why] of [
+      [{ body: 'hips' }, /not a flyer joint/],
+      [{ body: 'head', 'Body.002': 'head' }, /twice/],
+      [['body'], /must map/],
+    ] as const) {
+      const r = validateSources({ source: 'styloo', items: [item({ ...butterfly, bones })] });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+    const prop = validateSources({
+      source: 'styloo',
+      items: [item({ id: 'styloo/Prop/x', class: 'Prop', section: 'props', bones: { a: 'head' } })],
+    });
+    expect(prop.ok).toBe(false);
+  });
+});
+
+describe('renameBones', () => {
+  it("renames a model's own bones to our joint ids, and refuses a name it can't find once", () => {
+    const doc = new Document();
+    doc.createNode('Body.002');
+    doc.createNode('wingsupper.l');
+    renameBones(doc, { 'Body.002': 'head', 'wingsupper.l': 'leftWingShoulder' });
+    expect(
+      doc
+        .getRoot()
+        .listNodes()
+        .map((n) => n.getName()),
+    ).toEqual(['head', 'leftWingShoulder']);
+    expect(() => renameBones(doc, { tail: 'tail' })).toThrow(/0 nodes called "tail"/);
   });
 
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {

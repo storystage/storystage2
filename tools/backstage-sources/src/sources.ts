@@ -5,7 +5,13 @@
  * file's SHA-256, or an Arweave address (whose transaction id names fixed content). Pinning
  * means a build fetches exactly what was reviewed.
  */
-import { SECTIONS, descriptionProblem, type Section } from '@storystage/backstage';
+import {
+  SECTIONS,
+  descriptionProblem,
+  jointsOf,
+  skeletonOf,
+  type Section,
+} from '@storystage/backstage';
 import { groundLook } from '@storystage/stage';
 import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
 import type { Exclude } from './exclude.ts';
@@ -55,6 +61,13 @@ export interface SourceItem {
   /** The item's own page: the manifest's `source.url`. */
   readonly page: string;
   readonly fetch: FetchSpec;
+  /**
+   * The model's own bone names, each with the joint it is (`{ "Body.002": "head" }`), for a
+   * glTF model whose maker named its bones in a way the joint map can't read (spec 17, section
+   * 2a): the build renames them before mapping, so the joint map reads our own ids. Every joint
+   * must be one of the item's class, and each at most once. Not for VRM files.
+   */
+  readonly bones?: Readonly<Record<string, string>>;
   /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
   readonly exclude?: Exclude;
   /**
@@ -170,6 +183,10 @@ export function validateSources(json: unknown): Result {
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
+    if (item.bones !== undefined) {
+      const problem = bonesProblem(item.bones, item.class as StoryClass);
+      if (problem) e(problem);
+    }
     if (item.kitbash !== undefined) {
       kitbashProblems(item.kitbash).forEach(e);
       const kf = item.fetch as Record<string, unknown> | undefined;
@@ -286,4 +303,22 @@ function backdropProblems(item: Record<string, unknown>): string[] {
       "a backdrop's fetch is its picture, pinned: { github, commit, path } or { url, sha256, ext }.",
     );
   return problems;
+}
+
+/** What is wrong with an item's `bones`, or null: each a joint of its class, used once. */
+export function bonesProblem(bones: unknown, cls: StoryClass): string | null {
+  const skeleton = skeletonOf(cls);
+  if (!skeleton) return `bones is only for a class with joints, not ${cls}.`;
+  if (typeof bones !== 'object' || bones === null || Array.isArray(bones))
+    return 'bones must map bone names to joints.';
+  const joints = new Set<string>(jointsOf(skeleton).map((d) => d.id));
+  const used = new Set<string>();
+  for (const [bone, joint] of Object.entries(bones)) {
+    if (!bone.trim()) return 'bones has an empty bone name.';
+    if (typeof joint !== 'string' || !joints.has(joint))
+      return `bones: "${String(joint)}" is not a ${skeleton} joint.`;
+    if (used.has(joint)) return `bones: ${joint} is given twice.`;
+    used.add(joint);
+  }
+  return null;
 }

@@ -117,6 +117,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 18 Nov (this): **a source-list item's `bones`** (spec 17 §3; for the new animals): the model's own bone names, each with the joint it is, renamed by the build before mapping; each joint one of the class's and given once, each bone found once. For Styloo's butterfly first, whose bones are `body`, `Body.002` and `wingsupper.l`.
   - 18 Nov (this): **Rigify's four-legged animals map** (spec 17 §2a; the first of the new subjects, the owner's choice of 18 Nov): `mapSkeleton` reads Rigify's wolf, cat and horse metarig for `quadruped` (the tail, pelvis, back, neck, head and all four legs), and a deform bone wins a tie over its ORG, MCH and control twins. Styloo's dog, cow, giraffe and cat (CC0) map with every required joint. **S3:** the stage maps bones with `mapSkeleton`, so such an animal's joints work in the stage with no change; there's no four-legged walk cycle yet (asking you separately).
   - 18 Nov (this): **the sketch touch-ups in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 86ae8fe (187 models), with the puffer ship and the triceratops from behind drawn simplified, and the two described as a wrecked ship and a fossil skeleton; the Prompter's catalogue and pins and the licence audit's What ships are refreshed.
 - Merged:
