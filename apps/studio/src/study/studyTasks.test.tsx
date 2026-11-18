@@ -158,8 +158,13 @@ describe('Study tasks (6.4)', () => {
     const card = await startTask(/^Start Click me$/);
     expect(latest!.tasks.heldNote).toBeNull();
     const user = userEvent.setup();
-    await user.click(within(card).getByRole('button', { name: 'Hint' }));
-    expect(within(card).getByText(/An event starts blocks/)).toBeTruthy();
+    // By keyboard: focus moves to the hint in Hint's place, not to the page (S6, 7.8).
+    within(card).getByRole('button', { name: 'Hint' }).focus();
+    await user.keyboard('{Enter}');
+    const hint = within(card)
+      .getByText(/An event starts blocks/)
+      .closest('p')!;
+    await waitFor(() => expect(document.activeElement).toBe(hint));
     await user.click(within(card).getByRole('button', { name: 'Stop this task' }));
     const questions = await screen.findByRole('dialog', { name: 'Two quick questions' });
     // The learner's own film is back, as they left it.

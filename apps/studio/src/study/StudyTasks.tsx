@@ -333,6 +333,16 @@ function useReadAloud() {
 export function TaskCard({ tasks }: { tasks: StudyTasks }) {
   const task = tasks.open;
   const [hinted, setHinted] = useState(false);
+  // Hint goes as it's pressed, so focus moves to the hint in its place, which a screen reader
+  // then reads, rather than falling to the page (S6, 7.8).
+  const hint = useRef<HTMLParagraphElement>(null);
+  const focusHint = useRef(false);
+  useEffect(() => {
+    if (hinted && focusHint.current) {
+      focusHint.current = false;
+      hint.current?.focus();
+    }
+  }, [hinted]);
   const reader = useReadAloud();
   if (task === null) return null;
   const def = studyTask(task);
@@ -362,7 +372,7 @@ export function TaskCard({ tasks }: { tasks: StudyTasks }) {
           </Button>
         )}
         {hinted ? (
-          <p className="study-hint">
+          <p className="study-hint" ref={hint} tabIndex={-1}>
             <Icon name="lightbulb" size={20} />
             <span>{def.hint}</span>
           </p>
@@ -371,6 +381,7 @@ export function TaskCard({ tasks }: { tasks: StudyTasks }) {
             variant="quiet"
             icon="lightbulb"
             onPress={() => {
+              focusHint.current = true;
               setHinted(true);
               tasks.hint();
             }}
