@@ -533,7 +533,8 @@ Show me how and Build it never change anything until the learner agrees a plan (
 2. The Prompter calls `propose_plan`, made from the frame's sketches, its script lines and its shot.
 3. The client checks the plan (section 6.3). Problems go back to the Prompter as an error it can fix, or are shown on the step if it can't.
 4. The Prompter ends its turn. The panel shows the numbered plan, in plain words.
-5. The learner edits it. These edits happen in the client, with no request and no cost: reorder by drag or keyboard, delete, change a value with the same dropdowns the blocks use, add from a short menu. **Why this step?** reads the step's `why`.
+5. The learner edits it. These edits happen in the client, with no request and no cost: reorder by drag or keyboard, delete, change a value with the same dropdowns the blocks use, add from a short menu. **Why this step?** reads the step's `why`, and isn't offered for a step the learner added, which has none.
+   - A step the learner changes or adds gets its words written again from what it now does (`stepWords`), in the Story API's own phrases, the ones the tile editor's rows read ("Penguin move forward 3."). The panel does this itself unless the change gives words of its own. The plan on show, and the comment the build writes above the step's blocks, then never describe a different step.
 6. The learner can also ask for changes in words. That's an ordinary turn, and the Prompter answers with `revise_plan`.
 7. The learner presses **Build these steps**. The next turn carries the plan in `<agreed_plan>`.
 8. The Prompter builds it, in order, step by step, with one `plan_step` on each call. Each step's words become a comment above its blocks, and each step is highlighted as it lands.
@@ -579,7 +580,10 @@ In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes
 
 ### 6.7 Kept with the frame
 
-The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
+The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it: `Frame.plan`, as the plan was shown and as it was agreed (format 1.6.0; `03-production-format.md` section 6). `PlanStep` is the format's type, which the Prompter uses. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
+
+- **Where:** `Frame.plan` (S4, format 1.6.0): when it was agreed, the plan as the Prompter last proposed or revised it (`shown`), and as the learner built it (`agreed`). What the learner changed is read by comparing the two, step by step.
+- **When:** in the build's own undo step, so Undo takes the plan back with what it built. The runner's `keepPlan(p, { frame, shown, agreed })` is called once, as the build's group opens, and the studio's version writes `{ agreedAt, shown, agreed }` with `withFramePlan` when `isFramePlan` accepts it. A build that changes nothing makes no step, so it keeps nothing. Keeping never stops a build: if `keepPlan` returns `p` unchanged, or throws, nothing is kept and nothing is recorded for it.
 
 ## 7. Errors
 
@@ -671,7 +675,7 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
-| A `plan` field on `Frame` in `packages/production` | S4 | Section 6.7, a contract pull request |
+| A `plan` field on `Frame` in `packages/production`: agreed (17 Nov) as `Frame.plan` in format 1.6.0, with `PlanStep` moving to production. The Prompter then re-exports production's `PlanStep` | S4 | Section 6.7 |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |

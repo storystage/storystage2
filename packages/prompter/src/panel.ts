@@ -307,15 +307,28 @@ export class PrompterPanel<S extends string = string> {
     this.#edit((steps) => steps.filter((_, i) => i !== index));
   }
 
+  /**
+   * Changes a step's values. Its words are written again from what it now does (`stepWords`),
+   * unless the change gives words of its own, so the plan never describes a different step.
+   */
   changeStep(index: number, change: Partial<PlanStep>): void {
-    this.#edit((steps) => steps.map((s, i) => (i === index ? { ...s, ...change } : s)));
+    this.#edit((steps) =>
+      steps.map((s, i) => (i === index ? this.#worded({ ...s, ...change }, 'words' in change) : s)),
+    );
   }
 
+  /** Adds a step. One with no words gets them from what it does. */
   addStep(step: PlanStep, at = Infinity): void {
     this.#edit((steps) => {
-      steps.splice(Math.min(at, steps.length), 0, step);
+      steps.splice(Math.min(at, steps.length), 0, this.#worded(step, step.words.trim() !== ''));
       return steps;
     });
+  }
+
+  #worded(step: PlanStep, keep: boolean): PlanStep {
+    if (keep) return step;
+    const frame = this.#state.plan?.frame ?? null;
+    return { ...step, words: this.#setup.runner.stepWords(step, frame) };
   }
 
   /**

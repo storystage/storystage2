@@ -10,7 +10,7 @@
  */
 import { validateManifest as validateBackstage, MANIFEST_VERSION } from '@storystage/backstage';
 import { SHOT_TYPES, STORY_CLASSES } from '@storystage/story-api';
-import { CHECK_KINDS, CHECK_OUTCOMES } from './types.ts';
+import { CHECK_KINDS, CHECK_OUTCOMES, PLAN_STEP_KINDS } from './types.ts';
 
 export interface ShapeOptions {
   /** True for a newer file, opened read-only: fields this version doesn't know are allowed. */
@@ -274,13 +274,14 @@ export function checkStoryboardShape(v: unknown, options: ShapeOptions = {}): st
 const FACINGS = ['front', 'threeQuarter', 'side', 'back'] as const;
 
 /**
- * `frames/<id>.json`. Its `check` is only allowed here; `checkFrameCheck` judges it, and a file
- * whose check doesn't fit opens without it (`openProduction`).
+ * `frames/<id>.json`. Its `check` and `plan` are only allowed here; `checkFrameCheck` and
+ * `checkFramePlan` judge them, and a file whose check or plan doesn't fit opens without it
+ * (`openProduction`).
  */
 export function checkFrameShape(v: unknown, where: string, options: ShapeOptions = {}): string[] {
   const s = new Shape(where, options);
   const keys = ['id', 'scene', 'order', 'caption', 'shot', 'lengthSeconds', 'sketches', 'links'];
-  if (!s.object(v, '', keys, ['check'])) return s.problems;
+  if (!s.object(v, '', keys, ['check', 'plan'])) return s.problems;
   s.string(v.id, 'id');
   s.string(v.scene, 'scene');
   s.number(v.order, 'order', 0);
@@ -298,6 +299,72 @@ export function checkFrameShape(v: unknown, where: string, options: ShapeOptions
     s.boolean(k.flipped, join(p, 'flipped'));
   });
   s.array(v.links, 'links', (l, p) => s.string(l, p));
+  return s.problems;
+}
+
+/**
+ * Limits for a frame's agreed plan (format 1.6.0, spec 04 section 6.7, agreed with S5 on 17 Nov
+ * 2026). Generous, as the learner edits the steps: a plan over them is dropped when the file
+ * opens, never the file.
+ */
+export const PLAN_LIMITS = {
+  /** Steps in each of `shown` and `agreed`. */
+  steps: 50,
+  /** Each text field of a step but its details. */
+  text: 300,
+  /** Details in one step, and each detail's name and value. */
+  details: 20,
+  detailName: 64,
+  detailValue: 300,
+  /** A step's `repeat`. */
+  repeat: 1000,
+} as const;
+
+/** An ISO 8601 time in UTC, as `Date.prototype.toISOString` writes it, that is a real time. */
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+
+/**
+ * A frame's `plan` (format 1.6.0): its problems, or none. A plan with any problem is dropped as a
+ * whole when the file opens: half a plan would mislead the teacher reading it.
+ */
+export function checkFramePlan(v: unknown, where: string, options: ShapeOptions = {}): string[] {
+  const s = new Shape(where, options);
+  if (!s.object(v, 'plan', ['agreedAt', 'shown', 'agreed'])) return s.problems;
+  if (
+    s.string(v.agreedAt, 'plan.agreedAt', 40) &&
+    (!ISO_UTC.test(v.agreedAt) || Number.isNaN(Date.parse(v.agreedAt)))
+  )
+    s.fail('plan.agreedAt', 'should be an ISO 8601 time in UTC');
+  for (const list of ['shown', 'agreed'] as const) {
+    const at = `plan.${list}`;
+    if (Array.isArray(v[list]) && v[list].length > PLAN_LIMITS.steps) {
+      s.fail(at, `should hold at most ${PLAN_LIMITS.steps} steps`);
+      continue;
+    }
+    s.array(v[list], at, (step, p) => {
+      const keys = ['words', 'kind', 'actor', 'action', 'target', 'details', 'line', 'sketch'];
+      if (!s.object(step, p, [...keys, 'together', 'repeat', 'why'])) return;
+      for (const k of ['words', 'actor', 'action', 'target', 'line', 'sketch', 'why'] as const)
+        s.string(step[k], join(p, k), PLAN_LIMITS.text);
+      s.oneOf(step.kind, join(p, 'kind'), PLAN_STEP_KINDS);
+      s.boolean(step.together, join(p, 'together'));
+      if (
+        s.number(step.repeat, join(p, 'repeat'), 1, PLAN_LIMITS.repeat) &&
+        !Number.isInteger(step.repeat)
+      )
+        s.fail(join(p, 'repeat'), 'should be a whole number');
+      const details = join(p, 'details');
+      if (Array.isArray(step.details) && step.details.length > PLAN_LIMITS.details) {
+        s.fail(details, `should hold at most ${PLAN_LIMITS.details}`);
+        return;
+      }
+      s.array(step.details, details, (d, dp) => {
+        if (!s.object(d, dp, ['name', 'value'])) return;
+        s.string(d.name, join(dp, 'name'), PLAN_LIMITS.detailName);
+        s.string(d.value, join(dp, 'value'), PLAN_LIMITS.detailValue);
+      });
+    });
+  }
   return s.problems;
 }
 

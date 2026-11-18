@@ -59,7 +59,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 ### 1.2 Versions
 
-`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.5.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
+`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.6.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
 - **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
@@ -73,6 +73,7 @@ A reader takes the older-is-migrated, newer-is-read-only decision on `formatVers
 
 **What each version added** (newest first; the details are in the changelog):
 
+- **1.6.0** (17 Nov 2026, S5's ask, for spec 04 section 6.7): a frame's agreed plan, `Frame.plan` (section 6).
 - **1.5.0** (15 Nov 2026, with S3's #424, for S5's Pose panel): a set-up object's pose, `SceneObjectSetup.joints` (section 2.2).
 - **1.4.0** (with S1): the characters' speak-line voices, `manifest.voices` (section 1.6).
 - **1.3.0** (with S2): a frame's saved check, `Frame.check` (section 6).
@@ -296,6 +297,10 @@ One file per frame, `frames/<id>.json`. `order` is the frame's place in its scen
 **A frame's check** (format 1.3.0, optional): the frame's latest automatic check against the storyboard and the flags the learner kept, `check: { basis, items, kept }` (`FrameCheck`; spec 08 section 9.6, S2's `@storystage/check`). Each item has an `id` (unique in the frame), a `kind` (`CHECK_KINDS`), an `outcome` (`passed`, `flag` or `note`), its `words`, and the `node`, `sketch` or `line` it's about, where one applies. Within `CHECK_LIMITS`: at most 200 items, words of at most 300 characters, ids of at most 200 characters, a `basis` of at most 128 and at most 200 kept ids.
 
 It's only a cached result, so **a check that doesn't fit this shape is dropped** when the file opens, and the frame opens without it; the file isn't refused. What it names isn't checked against the film: a stale result may name a block, sketch or line since deleted, and `kept` may hold ids that match no flag. Whether it's stale is `@storystage/check`'s to judge, from `basis`; a stale result is kept and still shows. Its words come from a file, so they're data: the studio draws them as plain text, and the Prompter's `check_frame` never passes them as instructions.
+
+**A frame's agreed plan** (format 1.6.0, optional; spec 04 section 6.7, agreed with S5 on 17 Nov 2026): the plan the learner agreed with the Prompter for this frame, `plan: { agreedAt, shown, agreed }` (`FramePlan`). `agreedAt` is when they pressed **Build these steps**, an ISO 8601 time in UTC; `shown` is the plan as the Prompter proposed it and `agreed` as the learner built it, so a teacher can see what the learner changed. Each step is a `PlanStep`, spec 04 section 6.2's eleven plain fields (`words`, `kind`, `actor`, `action`, `target`, `details`, `line`, `sketch`, `together`, `repeat`, `why`); the type lives in `@storystage/production`, since the format keeps it, and the Prompter uses it. The studio writes it with `withFramePlan` in the same step as the build (one undo), and checks it first with `isFramePlan`. It's a record, so later edits to the blocks leave it as it was, and removing the frame removes it.
+
+**Limits** (`PLAN_LIMITS`), generous because the learner edits the steps: 50 steps in each list; 300 characters in each text field but the details; 20 details, each name up to 64 characters and each value up to 300; `repeat` a whole number from 1 to 1,000. **A plan that doesn't fit is dropped whole** when the file opens, with a line in `dropped` (section 1.0), and the frame opens without it: half a plan would mislead the teacher reading it. The file isn't refused.
 
 ## 7. Links
 
