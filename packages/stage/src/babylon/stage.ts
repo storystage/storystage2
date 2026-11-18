@@ -204,6 +204,8 @@ export class BabylonStage implements EditableStage {
   private readonly tapListeners = new Set<(p: Picked) => void>();
   private readonly pointers = new Map<number, { x: number; y: number }>();
   private gesture: Gesture | null = null;
+  /** How many loads have been asked for: the newest wins (`load`). */
+  private loads = 0;
   /** When each character's skin was last brought to its drawn pose, for picking. */
   private skinned = new WeakMap<AbstractMesh, string>();
 
@@ -261,10 +263,17 @@ export class BabylonStage implements EditableStage {
     return this.lost;
   }
 
+  /**
+   * Loads may overlap, as the studio's set-up load and Rehearse's can: the newest call wins,
+   * whichever finishes first. A load overtaken by a newer one drops only the scene it was
+   * building and settles without taking over (found by S2: Rehearse stuck at starting).
+   */
   async load(setup: SceneSetup, options: LoadOptions = {}): Promise<void> {
+    const ticket = ++this.loads;
+    const overtaken = () => ticket !== this.loads;
     const placedAs = placement(setup);
     if (this.scene && placedAs === this.placedAs && !options.crossfade && !this.leaving) {
-      await this.loadInPlace(setup);
+      await this.loadInPlace(setup, overtaken);
       return;
     }
     const known = resolveBackdropKnown(setup.backdrop);
@@ -295,6 +304,10 @@ export class BabylonStage implements EditableStage {
       timeline.load(setup, (o) => objects.get(o.id)!.shape);
       const humanoids = await humanoidsFor(setup);
       timeline.useHumanoids(humanoids.library, humanoids.navigation);
+      if (overtaken()) {
+        this.dropScene(scene, library);
+        return;
+      }
       this.dropLeaving();
       if (crossfade > 0 && this.scene && this.camera) {
         // The old scene, drawn into a picture each frame, laid over the new one (`fadeLeaving`).
@@ -348,7 +361,8 @@ export class BabylonStage implements EditableStage {
     this.keepSceneView();
     this.show();
     this.notice(false);
-    await scene.whenReadyAsync();
+    // A newer load may drop this scene before it's ready, and then it never will be.
+    await readyOrGone(scene);
   }
 
   /**
@@ -356,10 +370,11 @@ export class BabylonStage implements EditableStage {
    * or faded differently: a new timeline on the same scene, so nothing is built again and the
    * picture doesn't flicker (the studio loads the set-up again after each change in the scene view).
    */
-  private async loadInPlace(setup: SceneSetup): Promise<void> {
+  private async loadInPlace(setup: SceneSetup, overtaken: () => boolean): Promise<void> {
     const timeline = new Timeline();
     timeline.load(setup, (o) => this.shapes.get(o.id)!);
     const humanoids = await humanoidsFor(setup);
+    if (overtaken()) return;
     timeline.useHumanoids(humanoids.library, humanoids.navigation);
     this.timeline = timeline;
     this.watches = [];
@@ -492,10 +507,13 @@ export class BabylonStage implements EditableStage {
   async renderFrame(): Promise<FrameImage> {
     const scene = this.loaded();
     // A material can need a new shader part-way through a film (spike 1.4, rule 5).
-    await scene.whenReadyAsync();
+    await readyOrGone(scene);
+    // A load meanwhile replaced the scene: the frame is the new one's.
+    if (scene !== this.scene) return this.renderFrame();
     if (this.leaving) {
-      await this.leaving.scene.whenReadyAsync();
-      this.leaving.target.render();
+      await readyOrGone(this.leaving.scene);
+      if (scene !== this.scene) return this.renderFrame();
+      this.leaving?.target.render();
     }
     const drawnWidth = this.engine.getRenderWidth();
     const drawnHeight = this.engine.getRenderHeight();
@@ -540,7 +558,8 @@ export class BabylonStage implements EditableStage {
   async picture(at: Micros, width: number, height: number): Promise<FrameImage> {
     const scene = this.loaded();
     checkPictureSize(width, height);
-    await scene.whenReadyAsync();
+    await readyOrGone(scene);
+    if (scene !== this.scene) return this.picture(at, width, height);
     // Smoothed edges, as an export's frames are: drawn bigger with no multisampling, which a GPU
     // doesn't repeat exactly, then averaged. A picture too big for that is drawn as asked.
     const most = this.engine.getCaps().maxTextureSize;
@@ -584,6 +603,8 @@ export class BabylonStage implements EditableStage {
     this.tapListeners.clear();
     this.editView?.dispose();
     this.editView = null;
+    // A load still going is overtaken, so it drops what it was building.
+    this.loads++;
     this.dropLeaving();
     this.dropPreloaded();
     this.dropScene(this.scene, this.library);
@@ -1252,6 +1273,28 @@ function placeForPicture(scene: Scene): void {
   scene.activeCamera?.getViewMatrix(true);
   for (const node of scene.transformNodes) node.computeWorldMatrix(true);
   for (const mesh of scene.meshes) mesh.computeWorldMatrix(true);
+}
+
+/**
+ * Waits until a scene is ready to draw, or is dropped. Babylon.js never settles `whenReadyAsync`
+ * for a scene disposed before it's ready, which left a load overtaken by a newer one waiting for
+ * ever (found by S2).
+ */
+function readyOrGone(scene: Scene): Promise<void> {
+  if (scene.isDisposed) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const gone = scene.onDisposeObservable.addOnce(() => resolve());
+    scene.whenReadyAsync().then(
+      () => {
+        scene.onDisposeObservable.remove(gone);
+        resolve();
+      },
+      (e: unknown) => {
+        scene.onDisposeObservable.remove(gone);
+        reject(e instanceof Error ? e : new Error(String(e)));
+      },
+    );
+  });
 }
 
 /** A stand-in has its class's joints, so code written for the real model still runs. */
