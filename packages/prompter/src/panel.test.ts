@@ -274,6 +274,24 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
     expect(production.history()).toHaveLength(0);
   });
 
+  it("writes a changed or added step's words again from what it now does", async () => {
+    const { panel } = await planned();
+    panel.changeStep(0, {
+      details: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: '3' },
+      ],
+    });
+    expect(panel.state.plan?.steps[0]?.words).toBe('Penguin move forward 3.');
+    // Words the change gives are kept.
+    panel.changeStep(0, { words: 'Pip walks three steps.' });
+    expect(panel.state.plan?.steps[0]?.words).toBe('Pip walks three steps.');
+    panel.addStep(step({ words: '', actor: 'fox', action: 'turnToFace', target: 'penguin' }));
+    expect(panel.state.plan?.steps[1]?.words).toBe('Fox turn to face penguin.');
+    // The Prompter's version is unchanged beside it, for keeping with the frame (6.7).
+    expect(panel.state.plan?.shown[0]?.words).toBe('The penguin waddles forward.');
+  });
+
   it('never offers Build these steps at the Plan only level', async () => {
     const { panel } = await planned([], { level: 'planOnly' });
     expect(panel.state.phase).toBe('planned');
