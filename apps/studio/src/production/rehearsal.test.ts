@@ -179,6 +179,65 @@ describe('Rehearsal', () => {
   });
 });
 
+// Two loads at once on one stage: the second disposes the first's scene before it's ready, and
+// Babylon never says a disposed scene is ready, so the run stayed at `starting` (S2, 18 Nov).
+describe('Rehearsal and the set-up shown when the scene view opens', () => {
+  /** Holds the stage's next load until `open` is called. */
+  function holdNextLoad(stage: FakeStage) {
+    const load = stage.load.bind(stage);
+    let open: () => void = () => {};
+    const gate = new Promise<void>((resolve) => (open = resolve));
+    vi.spyOn(stage, 'load').mockImplementationOnce(async (setup) => {
+      await gate;
+      return load(setup);
+    });
+    return () => open();
+  }
+
+  it('waits for the set-up still loading before it loads its own', async () => {
+    const p = withSceneOne([say(words('Hi'))]);
+    const { rehearsal, stage } = rehearse(p);
+    const open = holdNextLoad(stage);
+    const shown = rehearsal.showSetup();
+    const started = rehearsal.start();
+    await new Promise((r) => setTimeout(r, 10));
+    // Only the set-up's load has begun; the run hasn't loaded over it.
+    expect(stage.load).toHaveBeenCalledTimes(1);
+    expect(rehearsal.state.status).toBe('starting');
+    open();
+    await shown;
+    await started;
+    expect(stage.load).toHaveBeenCalledTimes(2);
+    expect(rehearsal.state.status).toBe('playing');
+  });
+
+  it('leaves the stage to a run that has already begun', async () => {
+    const p = withSceneOne([say(words('Hi'))]);
+    const { rehearsal, stage } = rehearse(p);
+    const started = rehearsal.start();
+    // The scene view's set-up arrives once the models are ready, after Rehearse was pressed.
+    await rehearsal.showSetup();
+    await started;
+    expect(loads(stage)).toHaveLength(1);
+    expect(rehearsal.state.status).toBe('playing');
+  });
+
+  it('can be stopped while it waits, and never starts', async () => {
+    const p = withSceneOne([say(words('Hi'))]);
+    const { rehearsal, stage, ended } = rehearse(p);
+    const open = holdNextLoad(stage);
+    const shown = rehearsal.showSetup();
+    const started = rehearsal.start();
+    await rehearsal.stop();
+    open();
+    await shown;
+    await started;
+    expect(rehearsal.state.status).toBe('idle');
+    expect(stage.load).toHaveBeenCalledTimes(1);
+    expect(ended()).toBe(0);
+  });
+});
+
 describe('Rehearsal’s speak lines (spec 06 section 4.5)', () => {
   const speaker = () => ({ start: vi.fn<(node: NodeId, delay: number) => void>(), stop: vi.fn() });
 

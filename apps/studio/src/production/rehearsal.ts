@@ -100,6 +100,12 @@ export class Rehearsal {
   private readonly listeners = new Set<() => void>();
   /** Each run's number: events from a run that was replaced are ignored. */
   private run = 0;
+  /**
+   * The set-up's load in flight, if any. A run waits for it: two loads at once on one stage leave
+   * the first one's scene disposed before it was ready, and Babylon then never says it's ready, so
+   * the run would stay at `starting` (S2's finding, 18 Nov).
+   */
+  private setupLoad: Promise<void> | null = null;
 
   constructor(options: RehearsalOptions) {
     this.options = options;
@@ -206,20 +212,38 @@ export class Rehearsal {
     this.listeners.clear();
   }
 
-  /** The scene's set-up on the stage, its first moment drawn. */
+  /**
+   * The scene's set-up on the stage, its first moment drawn. Once a run has begun it leaves the
+   * stage to the run, which loads the set-up itself.
+   */
   async showSetup(): Promise<void> {
+    if (this.active) return;
     const { production, scene, stage } = this.options;
     const setup = production.scenes.find((s) => s.id === scene)?.setup;
     if (!setup) return;
-    await stage.load(setup);
-    stage.seek(0);
+    const loading = stage.load(setup).then(() => {
+      // A run that began while this loaded draws its own first moment.
+      if (!this.active) stage.seek(0);
+    });
+    this.setupLoad = loading;
+    try {
+      await loading;
+    } finally {
+      if (this.setupLoad === loading) this.setupLoad = null;
+    }
   }
 
   /** A fresh run, loaded and started but with the clock still at 0. `null` if it was replaced. */
   private async begin(): Promise<number | null> {
     this.playback?.dispose();
+    this.playback = null;
     this.end();
     const run = ++this.run;
+    const speed = this.current.speed;
+    this.set({ ...IDLE, speed, status: 'starting' });
+    // Its failure is the scene view's to report; the run loads the set-up again anyway.
+    await this.setupLoad?.catch(() => undefined);
+    if (run !== this.run) return null;
     const { production, scene, stage, startWorker } = this.options;
     const worker = startWorker();
     const playback = new Playback({
@@ -237,10 +261,8 @@ export class Rehearsal {
     playback.on((event) => {
       if (run === this.run) this.event(event);
     });
-    const speed = this.current.speed;
     this.clock = new LiveClock(this.options.wall);
     this.clock.setSpeed(speed);
-    this.set({ ...IDLE, speed, status: 'starting' });
     await playback.start();
     return run === this.run ? run : null;
   }
