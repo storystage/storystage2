@@ -13,6 +13,8 @@ on:
       - apps/studio/e2e/desktop/**
       - apps/studio/src/startHost.ts
       - packages/host/**
+      - packages/prompter/**
+      - tools/fake-claude/**
       - .github/workflows/desktop.yml
       - .github/actions/**
   workflow_dispatch:
@@ -138,7 +140,8 @@ jobs:
 
   # The M5 gate in the app itself (apps/studio/e2e/desktop/README.md): the real studio on the real
   # native layer in WebView2, driven by Playwright through a DevTools port that only this test
-  # build has (the leak scan's job checks the shipped config has none).
+  # build has (the leak scan's job checks the shipped config has none). The Prompter's requests
+  # go to tools/fake-claude, with a random test key in the system's store.
   app-gate:
     name: M5 gate (desktop app)
     if: github.event_name != 'schedule'
@@ -168,11 +171,18 @@ jobs:
         run: pnpm -w run speech:fetch
       - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
         run: node apps/desktop/scripts/fetch-whisper.mjs
+      # With the leak scan's test endpoint, so the Prompter talks to tools/fake-claude.
       - name: Build the test app
         working-directory: apps/desktop
-        run: pnpm tauri build --debug --no-bundle --config ../studio/e2e/desktop/tauri.conf.json -- --locked
+        run: pnpm tauri build --debug --no-bundle --features test-endpoint --config ../studio/e2e/desktop/tauri.conf.json -- --locked
+      - name: Build the key helper
+        working-directory: apps/desktop/src-tauri
+        run: cargo build -p storystage-transport --features test-endpoint --bin test-key --locked
       - name: Run the gate in the app
         run: pnpm exec playwright test -c apps/studio/e2e/desktop/playwright.config.ts
+      - name: Delete the test key
+        if: always()
+        run: apps/desktop/src-tauri/target/debug/test-key.exe delete || true
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
