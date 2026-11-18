@@ -162,6 +162,7 @@ A production plays its scenes in running order (spec 03 section 3.1). The player
   - It goes once the crossfade is over, at the next `seek` past it, or at a `reset` or another `load`. Rewinding doesn't bring it back.
   - A `picture` (5.7) is of the new scene alone.
 - **Fade to black** is the `fade` command, at the end of one scene and the start of the next.
+- **Loads that overlap** (the scene view's set-up and Rehearse's, say): the newest call wins, whichever finishes building first. An older one drops only the scene it was building and settles without taking over, and no load waits for ever on a scene a newer one dropped before it was ready (found by S2). `FakeStage` does the same.
 - **Cost:** on the owner's PC, a crossfade adds 1 to 2 ms a frame with 20 characters in each scene ("What characters cost", below). The reference Chromebook is still to measure (#6).
 
 ## The scene view (07-ux 7.2)

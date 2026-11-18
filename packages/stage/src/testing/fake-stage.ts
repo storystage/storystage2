@@ -78,6 +78,8 @@ export class FakeStage implements EditableStage {
   private listeners = new Set<(e: StageEvent) => void>();
   private readonly options: FakeStageOptions;
   private isEditing = false;
+  /** How many loads have been asked for: the newest wins. */
+  private loads = 0;
   private chosenTarget: EditTarget | null = null;
   /** Look around's camera while it's on. */
   private around: Transform | null = null;
@@ -102,8 +104,10 @@ export class FakeStage implements EditableStage {
   }
 
   /** A crossfade is recorded; the fake stage draws nothing, so the old scene simply goes. */
+  /** Loads may overlap: the newest call wins, and an older one settles without taking over. */
   async load(setup: SceneSetup, options?: LoadOptions): Promise<void> {
     this.record('load', options ? [setup, options] : [setup]);
+    const ticket = ++this.loads;
     // What it can't find shows as a stand-in, and the scene plays on (spec 03 section 1.3).
     const known = this.options.knownModels;
     const resolved = resolveBackdropKnown(setup.backdrop);
@@ -123,9 +127,11 @@ export class FakeStage implements EditableStage {
         typeof o.model === 'string' ? undefined : o.model.size,
       ),
     );
-    const { library, navigation } = await humanoidsFor(setup);
-    this.timeline.useHumanoids(library, navigation);
     this.lost = lost;
+    const humanoids = await humanoidsFor(setup);
+    // A newer load has its own timeline by now; this one leaves it alone.
+    if (ticket !== this.loads) return;
+    this.timeline.useHumanoids(humanoids.library, humanoids.navigation);
     // The scene view stays as it was: edit mode, what's chosen if it's still here, Look around.
     if (this.isEditing) this.timeline.reset();
     const chosen = this.chosenTarget;
