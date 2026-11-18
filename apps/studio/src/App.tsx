@@ -32,6 +32,7 @@ import { useStorageKept } from './lesson/useStorageKept.ts';
 import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { ProductionStage } from './production/ProductionStage.tsx';
 import { usePrompter } from './prompter/usePrompter.ts';
+import { usePrompterSetup } from './prompter/usePrompterSetup.tsx';
 import { StudyBar, StudyQuestion } from './study/StudyBar.tsx';
 import { QuestionsDialog, TaskCard, TasksDialog, useStudyTasks } from './study/StudyTasks.tsx';
 import { useStudy } from './study/useStudy.ts';
@@ -270,6 +271,8 @@ export function App({
     pupil: folder?.pupil.id ?? null,
     heldOff: studio.inTask,
   });
+  // Set up… in the panel and in Settings, and the wizard both open (WP13.6; the owner's choice).
+  const setup = usePrompterSetup({ host, panel: prompter, onAnnounce: setSaid });
   const [tasksOpen, setTasksOpen] = useState(false);
   const tasks = useStudyTasks({
     study,
@@ -458,6 +461,7 @@ export function App({
               >
                 {words.t('lesson.backToNames')}
               </Button>
+              {setup.card}
               <ClassSetup host={host} />
             </main>
           )}
@@ -502,6 +506,7 @@ export function App({
             />
           )}
         </div>
+        {setup.wizard}
       </ThemeRoot>
     );
   }
@@ -629,6 +634,7 @@ export function App({
                 <AccessibilityCard />
                 <TalkToTypeCard host={host} />
                 <VoicesCard studio={phase.kind === 'studio' ? studio : null} voices={voices} />
+                {setup.card}
                 <ClassSetup
                   host={host}
                   open={{ pupil: folder?.pupil.id ?? null, film: film?.saver.key ?? null }}
@@ -671,6 +677,7 @@ export function App({
                   onAnnounce={setSaid}
                   active={!overlayOpen}
                   prompter={prompter}
+                  {...(setup.openSetUp ? { onSetUp: setup.openSetUp } : {})}
                   {...(tasks.open ? { taskCard: <TaskCard tasks={tasks} /> } : {})}
                   heldEditor={tasks.heldNote}
                 />
@@ -700,6 +707,7 @@ export function App({
           />
         </TalkToType>
       </SketchSourceProvider>
+      {setup.wizard}
     </ThemeRoot>
   );
 }

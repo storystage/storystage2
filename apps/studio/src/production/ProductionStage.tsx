@@ -114,6 +114,8 @@ export interface ProductionStageProps {
    * which says so where the panel would be (07-ux 2.4, screen 12b); left out, neither (tests).
    */
   prompter?: PrompterPanel<StudioSource> | null;
+  /** Opens the Prompter's set-up wizard, for the panel's Set up… (WP13.6). */
+  onSetUp?: () => void;
   /** A study task's card, in the Prompter's place on the right (spec 14 section 6.4). */
   taskCard?: ReactNode;
   /** A study task holds the class's editor, with these words beside the switch (6.5). */
@@ -343,6 +345,7 @@ export function ProductionStage({
   voices = null,
   editorDefault,
   prompter,
+  onSetUp,
   taskCard,
   heldEditor = null,
 }: ProductionStageProps) {
@@ -768,6 +771,7 @@ export function ProductionStage({
         {prompter && !taskCard && (
           <PrompterAside
             panel={prompter}
+            {...(onSetUp ? { onSetUp } : {})}
             frame={current ? { id: current.id, number: frameNumber } : null}
             onAnnounce={onAnnounce}
             canChange={!studio || studio.readOnly === null}

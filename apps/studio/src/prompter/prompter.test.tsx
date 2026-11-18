@@ -85,6 +85,7 @@ interface Options {
   readonly status?: TransportStatus;
   readonly readOnly?: boolean;
   readonly world?: StepWorld;
+  readonly onSetUp?: () => void;
 }
 
 function setUp(replies: PrompterEvent[][], options: Options = {}) {
@@ -114,6 +115,7 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
         onAnnounce={onAnnounce}
         canChange={!options.readOnly}
         {...(options.world ? { world: options.world } : {})}
+        {...(options.onSetUp ? { onSetUp: options.onSetUp } : {})}
       />
     </ThemeRoot>,
   );
@@ -143,6 +145,25 @@ describe('the Prompter panel: what each state shows (07-ux 2.4)', () => {
     const noKey = setUp([], { status: { available: false, reason: 'no_key' } });
     await act(() => noKey.panel.refresh());
     expect(within(aside()).getByText('Ask an adult to set up the Prompter.')).toBeTruthy();
+    // Without the wizard (the browser version has none), no Set up….
+    expect(within(aside()).queryByRole('button', { name: 'Set up…' })).toBeNull();
+  });
+
+  it('offers Set up… to anyone when there is no key, which opens the wizard (WP13.6)', async () => {
+    const onSetUp = vi.fn();
+    const noKey = setUp([], { status: { available: false, reason: 'no_key' }, onSetUp });
+    await act(() => noKey.panel.refresh());
+    await userEvent.setup().click(within(aside()).getByRole('button', { name: 'Set up…' }));
+    expect(onSetUp).toHaveBeenCalledOnce();
+  });
+
+  it('has no Set up… while the school has switched it off', async () => {
+    const off = setUp([], {
+      status: { available: false, reason: 'prompter_off' },
+      onSetUp: vi.fn(),
+    });
+    await act(() => off.panel.refresh());
+    expect(within(aside()).queryByRole('button', { name: 'Set up…' })).toBeNull();
   });
 
   it('offers only the modes the level allows', async () => {
