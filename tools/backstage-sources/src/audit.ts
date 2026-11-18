@@ -61,6 +61,8 @@ export function auditProblems(manifest: BackstageManifest): string[] {
     if (!(SHIPPED_LICENCES as readonly string[]).includes(item.licence))
       p(`licence "${item.licence}" may not ship.`);
     if (!item.credit?.trim()) p('has no credit line.');
+    if (item.licence === 'public-domain' && !item.publicDomain?.startsWith('docs/legal/'))
+      p('is public domain but names no record in docs/legal/.');
     if (!item.source?.url?.startsWith('https://')) p("has no https link to the item's own page.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(item.source?.retrieved ?? ''))
       p('has no date it was retrieved.');

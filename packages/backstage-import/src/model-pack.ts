@@ -121,6 +121,7 @@ export async function openModelPack(
       item.origin !== 'imported' ||
       !item.id.startsWith('class/') ||
       item.licence === 'permission' ||
+      item.licence === 'public-domain' ||
       !LICENCES.includes(item.licence)
     ) {
       leave("It isn't a class's imported model.");
