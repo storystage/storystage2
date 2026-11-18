@@ -93,6 +93,25 @@ describe('validateSources', () => {
     expect(r.errors.join('\n')).toMatch(/credit/);
   });
 
+  it('takes a public-domain item only with its record in docs/legal/', () => {
+    const nasa = { licence: 'public-domain', credit: 'Saturn V by NASA (public domain)' };
+    expect(
+      validateSources({
+        source: 'nasa',
+        items: [item({ ...nasa, publicDomain: 'docs/legal/public-domain/nasa.md' })],
+      }).ok,
+    ).toBe(true);
+    for (const bad of [
+      item(nasa),
+      item({ ...nasa, publicDomain: 'nasa.md' }),
+      item({ publicDomain: 'docs/legal/public-domain/nasa.md' }),
+    ]) {
+      const r = validateSources({ source: 'nasa', items: [bad] });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(/public-domain|publicDomain/);
+    }
+  });
+
   it("takes bones only as joints of the item's class, each once", () => {
     const butterfly = {
       id: 'styloo/Flyer/butterfly',
@@ -114,22 +133,6 @@ describe('validateSources', () => {
       items: [item({ id: 'styloo/Prop/x', class: 'Prop', section: 'props', bones: { a: 'head' } })],
     });
     expect(prop.ok).toBe(false);
-  });
-});
-
-describe('renameBones', () => {
-  it("renames a model's own bones to our joint ids, and refuses a name it can't find once", () => {
-    const doc = new Document();
-    doc.createNode('Body.002');
-    doc.createNode('wingsupper.l');
-    renameBones(doc, { 'Body.002': 'head', 'wingsupper.l': 'leftWingShoulder' });
-    expect(
-      doc
-        .getRoot()
-        .listNodes()
-        .map((n) => n.getName()),
-    ).toEqual(['head', 'leftWingShoulder']);
-    expect(() => renameBones(doc, { tail: 'tail' })).toThrow(/0 nodes called "tail"/);
   });
 
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
@@ -486,5 +489,21 @@ describe('buildSources', () => {
     expect(after.items.filter((i: { id: string }) => i.id === 'kaykit/Biped/knight')).toHaveLength(
       1,
     );
+  });
+});
+
+describe('renameBones', () => {
+  it("renames a model's own bones to our joint ids, and refuses a name it can't find once", () => {
+    const doc = new Document();
+    doc.createNode('Body.002');
+    doc.createNode('wingsupper.l');
+    renameBones(doc, { 'Body.002': 'head', 'wingsupper.l': 'leftWingShoulder' });
+    expect(
+      doc
+        .getRoot()
+        .listNodes()
+        .map((n) => n.getName()),
+    ).toEqual(['head', 'leftWingShoulder']);
+    expect(() => renameBones(doc, { tail: 'tail' })).toThrow(/0 nodes called "tail"/);
   });
 });

@@ -202,6 +202,7 @@ export async function buildSources(
       defaultSize: { height: height(mesh.positions) },
       budget: { triangles, textureMaxPx },
       licence: item.licence,
+      ...(item.publicDomain ? { publicDomain: item.publicDomain } : {}),
       // A changed CC BY model says so (owner, 8 Nov 2026); VRM files are kept as they are.
       credit: creditFor(item, ext === 'glb'),
       source: { url: item.page, retrieved },

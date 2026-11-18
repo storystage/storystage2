@@ -164,7 +164,8 @@ export async function checkFilmModels(
     if (
       item.origin !== 'imported' ||
       !item.id.startsWith('class/') ||
-      item.licence === 'permission'
+      item.licence === 'permission' ||
+      item.licence === 'public-domain'
     ) {
       refuse("It isn't a class's imported model.");
       continue;
