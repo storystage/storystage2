@@ -26,7 +26,14 @@ const step = (s: Partial<PlanStep> = {}): PlanStep => ({
   actor: 'penguin',
   action: 'move',
   target: '',
-  details: [],
+  // A move's settings, for the default block; another block's step gives its own.
+  details:
+    s.action === undefined || s.action === 'move'
+      ? [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '1' },
+        ]
+      : [],
   line: '',
   sketch: '',
   together: false,
@@ -235,7 +242,11 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
   });
 
   it('builds what a character says from the request that made the plan (section 6.5)', async () => {
-    const hello = step({ words: 'The penguin says Hello.', action: 'say' });
+    const hello = step({
+      words: 'The penguin says Hello.',
+      action: 'say',
+      details: [{ name: 'text', value: 'Hello' }],
+    });
     const says = testReply([
       use('t2', 'insert_statement', {
         method: 'myFirstMethod',

@@ -42,6 +42,10 @@ describe('checkPlan (spec 04, section 6.3)', () => {
             actor: 'cat',
             action: 'move',
             target: '',
+            details: [
+              { name: 'direction', value: 'up' },
+              { name: 'amount', value: '0.5' },
+            ],
             together: true,
           }),
         ],
@@ -80,6 +84,30 @@ describe('checkPlan (spec 04, section 6.3)', () => {
       checkPlan([step({ details: [{ name: 'colour', value: 'red' }] })], world)[0]?.message,
     ).toBe('A moveTo block has no colour setting.');
     expect(checkPlan([step({ details: [{ name: 'duration', value: '2' }] })], world)).toEqual([]);
+  });
+
+  it('wants every setting the block needs, each with a value; the target and line fill theirs', () => {
+    const cat = step({ actor: 'cat', action: 'move', target: '' });
+    expect(checkPlan([cat], world)[0]?.message).toBe('A move block needs a value for direction.');
+    const half = { ...cat, details: [{ name: 'direction', value: 'up' }] };
+    expect(checkPlan([half], world)[0]?.message).toBe('A move block needs a value for amount.');
+    const empty = {
+      ...cat,
+      details: [
+        { name: 'direction', value: 'up' },
+        { name: 'amount', value: ' ' },
+      ],
+    };
+    expect(checkPlan([empty], world)[0]?.message).toBe('A move block needs a value for amount.');
+    // The target is a moveTo's object, and a line is a say's words.
+    expect(checkPlan([step({})], world)).toEqual([]);
+    expect(checkPlan([step({ action: 'moveTo', target: '' })], world)[0]?.message).toMatch(
+      /needs a value for target/,
+    );
+    expect(checkPlan([step({ action: 'say', target: '', line: 'l4' })], world)).toEqual([]);
+    expect(checkPlan([step({ action: 'say', target: '' })], world)[0]?.message).toBe(
+      'A say block needs a value for words.',
+    );
   });
 
   it('finds a missing target, line or sketch', () => {

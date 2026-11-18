@@ -24,7 +24,14 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   actor: 'penguin',
   action: 'move',
   target: '',
-  details: [],
+  // A move's settings, for the default block; another block's step gives its own.
+  details:
+    s.action === undefined || s.action === 'move'
+      ? [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '1' },
+        ]
+      : [],
   line: '',
   sketch: '',
   together: false,
@@ -206,8 +213,16 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
 
   it('says what is wrong with a block it cannot build, and builds nothing', () => {
     const { runner, run, now, original } = setUp();
-    runner.begin('go', agreed([step({}), step({ actor: 'owl' }), step({ action: 'fly' })]));
-    expect(run('insert_statement', move('far'))).toMatchObject({ error: 'bad_argument' });
+    const far = step({
+      details: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: 'far' },
+      ],
+    });
+    runner.begin('go', agreed([step({}), step({ actor: 'owl' }), step({ action: 'fly' }), far]));
+    expect(run('insert_statement', move('far', { plan_step: 4 }))).toMatchObject({
+      error: 'bad_argument',
+    });
     expect(run('insert_statement', move('1', { method: 'nope' }))).toMatchObject({
       error: 'unknown_method',
     });
@@ -546,7 +561,12 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
 
   it('takes the words of a step the learner added to the plan themselves', () => {
     const { runner, run } = setUp();
-    const shown = step({ words: 'The fox waves.', actor: 'fox', action: 'say' });
+    const shown = step({
+      words: 'The fox waves.',
+      actor: 'fox',
+      action: 'say',
+      details: [{ name: 'text', value: 'The fox waves.' }],
+    });
     runner.begin('make the fox wave', {});
     run('propose_plan', { steps: [shown] });
     runner.end();

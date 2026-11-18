@@ -31,7 +31,14 @@ const step = (s: Partial<PlanStep> = {}): PlanStep => ({
   actor: 'penguin',
   action: 'move',
   target: '',
-  details: [],
+  // A move's settings, for the default block; another block's step gives its own (S7's 6.3 check).
+  details:
+    s.action === undefined || s.action === 'move'
+      ? [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '1' },
+        ]
+      : [],
   line: '',
   sketch: '',
   together: false,
@@ -170,7 +177,17 @@ describe('the Prompter panel: what each state shows (07-ux 2.4)', () => {
 describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
   it('shows the plan with nothing built, builds it as one step, and undoes it', async () => {
     const { production, onAnnounce } = setUp([
-      proposes([step(), step({ words: 'The penguin waves.', action: 'turn' })]),
+      proposes([
+        step(),
+        step({
+          words: 'The penguin waves.',
+          action: 'turn',
+          details: [
+            { name: 'direction', value: 'left' },
+            { name: 'amount', value: '0.25' },
+          ],
+        }),
+      ]),
       say("Here's the plan."),
       moves,
       say('Done.'),

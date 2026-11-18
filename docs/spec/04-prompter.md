@@ -551,7 +551,7 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | `actor` | string | Object name, or `scene` for `stage` |
 | `action` | string | For `do`: a Story API procedure. For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
 | `target` | string | Object or marker it acts on, or `""` for none |
-| `details` | list of `{name, value}` | At most 20, names up to 64 characters, values up to 300 |
+| `details` | list of `{name, value}` | For `do`, every setting the block needs, with the value to build, and any of its details. At most 20, names up to 64 characters, values up to 300 |
 | `line` | string | A script line id, or `""` for none |
 | `sketch` | string | A placed sketch id, or `""` for none |
 | `together` | boolean | Runs at the same time as the step before it |
@@ -564,7 +564,9 @@ Steps are flat, because strict mode allows no recursive schemas: a plan expresse
 
 ### 6.3 Checking a plan
 
-Before a plan is shown, and again when the learner presses **Build these steps**, code checks each step against the Story API and the production: the actor exists; the action exists on its class; the target exists; required details are there; the line and sketch exist; an `add` names a real Backstage item or a stand-in. A step that can't be built says so in plain words on the step, before building, not after ("There's no owl in this scene yet. Add one first, or change who does this.").
+Before a plan is shown, and again when the learner presses **Build these steps**, code checks each step against the Story API and the production: the actor exists; the action exists on its class; the target exists; every setting the block needs is there, with a value (the step's `target` fills the block's object, and its `line` a say's words); the line and sketch exist; an `add` names a real Backstage item or a stand-in. A step that can't be built says so in plain words on the step, before building, not after ("There's no owl in this scene yet. Add one first, or change who does this.", "A move block needs a value for amount.").
+
+A step gives every setting so the learner can see and change each one with the dropdowns (6.1, step 5), and so the build is held to the values agreed (6.4): a setting left out would be the Prompter's to choose while building. The owner chose this on 18 Nov, and the system prompt asks for it.
 
 ### 6.4 The build matches the plan
 

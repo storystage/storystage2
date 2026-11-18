@@ -45,7 +45,14 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   actor: 'penguin',
   action: 'move',
   target: '',
-  details: [],
+  // A move's settings, for the default block; another block's step gives its own.
+  details:
+    s.action === undefined || s.action === 'move'
+      ? [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '1' },
+        ]
+      : [],
   line: '',
   sketch: '',
   together: false,
@@ -128,14 +135,24 @@ describe('the starts (docs/eval/productions)', () => {
 describe('running and scoring a row (docs/eval/README.md)', () => {
   it('scores a plan edited, agreed and built as it was agreed', async () => {
     const row = rowById('plan-02');
-    const plan = [step({ details: [{ name: 'amount', value: '2' }] })];
+    const plan = [
+      step({
+        details: [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '2' },
+        ],
+      }),
+    ];
     const { done, scores } = await run(row, [
       testReply([use('p1', 'propose_plan', { steps: plan })]),
       text("Here's my plan."),
       move('3'),
       text('Done.'),
     ]);
-    expect(done.agreedPlan?.[0]?.details).toEqual([{ name: 'amount', value: '3' }]);
+    expect(done.agreedPlan?.[0]?.details).toEqual([
+      { name: 'direction', value: 'forward' },
+      { name: 'amount', value: '3' },
+    ]);
     expect(byCheck(scores)).toEqual({
       plan_shown: true,
       no_change_before_agreement: true,
@@ -146,7 +163,14 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
 
   it("fails a build that doesn't do what the learner changed", async () => {
     const row = rowById('plan-02');
-    const plan = [step({ details: [{ name: 'amount', value: '2' }] })];
+    const plan = [
+      step({
+        details: [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '2' },
+        ],
+      }),
+    ];
     const { scores } = await run(row, [
       testReply([use('p1', 'propose_plan', { steps: plan })]),
       text("Here's my plan."),
@@ -316,7 +340,14 @@ describe('the whole set', () => {
 describe('a live run (docs/eval/README.md, "A live run")', () => {
   it('keeps a run as a recording that replays to the same scores, for nothing', async () => {
     const row = rowById('plan-02');
-    const plan = [step({ details: [{ name: 'amount', value: '2' }] })];
+    const plan = [
+      step({
+        details: [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '2' },
+        ],
+      }),
+    ];
     const live = await run(row, [
       testReply([use('p1', 'propose_plan', { steps: plan })]),
       text("Here's my plan."),
