@@ -271,6 +271,22 @@ describe('checkToolInput (spec 04, section 1.6)', () => {
       /words/,
     );
   });
+
+  it("keeps a plan step within the format's limits, so its frame can keep it (6.7)", () => {
+    const [step] = (good.propose_plan as { steps: Record<string, unknown>[] }).steps;
+    const plan = (change: Record<string, unknown>) =>
+      refused('propose_plan', { steps: [{ ...step, ...change }] });
+    expect(plan({ repeat: 1000 })).toBeNull();
+    expect(plan({ repeat: 1001 })).toMatch(/repeat should be a whole number from 1 to 1000/);
+    expect(plan({ why: 'x'.repeat(301) })).toMatch(/why should be at most 300 characters/);
+    expect(plan({ words: 'x'.repeat(301) })).toMatch(/words should be at most 300/);
+    expect(plan({ action: 'x'.repeat(301) })).toMatch(/action/);
+    const detail = { name: 'amount', value: '3' };
+    expect(plan({ details: Array(20).fill(detail) })).toBeNull();
+    expect(plan({ details: Array(21).fill(detail) })).toMatch(/details should hold at most 20/);
+    expect(plan({ details: [{ name: 'n'.repeat(65), value: '3' }] })).toMatch(/details/);
+    expect(plan({ details: [{ name: 'amount', value: 'v'.repeat(301) }] })).toMatch(/details/);
+  });
 });
 
 describe('toolResult (spec 04, section 3)', () => {

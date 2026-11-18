@@ -6,28 +6,17 @@
  *
  * Messages for a step are shown to the learner on that step, so they are in plain words (rule 9).
  */
+import type { PlanStep } from '@storystage/production';
 import { findEntry, findEvent, type ApiClass } from '@storystage/story-api';
 import { LISTENER_EVENTS } from './tools.ts';
 
-export interface NameValue {
-  readonly name: string;
-  readonly value: string;
-}
+/**
+ * A plan step, as `propose_plan` sends it (section 6.2). `""` means none. It's the production
+ * format's own type (1.6.0), since a frame keeps its plan (6.7), so there is one type.
+ */
+export type { PlanStep };
 
-/** A plan step, as `propose_plan` sends it (section 6.2). `""` means none. */
-export interface PlanStep {
-  readonly words: string;
-  readonly kind: 'do' | 'add' | 'change' | 'when' | 'stage';
-  readonly actor: string;
-  readonly action: string;
-  readonly target: string;
-  readonly details: readonly NameValue[];
-  readonly line: string;
-  readonly sketch: string;
-  readonly together: boolean;
-  readonly repeat: number;
-  readonly why: string;
-}
+export type NameValue = PlanStep['details'][number];
 
 /** What a plan is checked against: the scene it's for and the production around it. */
 export interface PlanWorld {

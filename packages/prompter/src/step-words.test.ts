@@ -64,6 +64,13 @@ describe('stepWords (spec 04, section 6.1, step 5)', () => {
     expect(words.endsWith('…')).toBe(true);
   });
 
+  it("keeps within the format's characters for a step's words, however long the words", () => {
+    const long = { ...world, lines: new Map([['l9', 'x'.repeat(400)]]) };
+    const words = stepWords(step({ actor: 'fox', action: 'say', line: 'l9' }), long);
+    expect(words.length).toBeLessThanOrEqual(300);
+    expect(words.endsWith('…')).toBe(true);
+  });
+
   it('says how often and whether it runs with the step before', () => {
     const hops = step({
       details: [
@@ -75,6 +82,15 @@ describe('stepWords (spec 04, section 6.1, step 5)', () => {
     });
     expect(stepWords(hops, world)).toBe(
       'Penguin move up 1, 3 times, at the same time as the step before.',
+    );
+  });
+
+  it("says the scene's own steps as the scene, not as this", () => {
+    expect(stepWords(step({ actor: 'this', action: 'somethingNew' }), world)).toMatch(
+      /^The scene /,
+    );
+    expect(stepWords(step({ kind: 'change', actor: 'this', action: 'paint' }), world)).toMatch(
+      /^The scene paint/,
     );
   });
 
