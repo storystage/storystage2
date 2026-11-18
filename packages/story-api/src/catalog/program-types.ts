@@ -41,7 +41,17 @@ export interface ProgramTypes {
   typeOf(e: Expression, self: TypeRef): Known;
 }
 
+/** Each program's types, worked out once: a program never changes, so they stay right (3h). */
+const kept = new WeakMap<Program, ProgramTypes>();
+
+/** What the program declares, and the types of its values. Worked out once for each program. */
 export function programTypes(program: Program): ProgramTypes {
+  let made = kept.get(program);
+  if (!made) kept.set(program, (made = typesOf(program)));
+  return made;
+}
+
+function typesOf(program: Program): ProgramTypes {
   const types = new Map<NodeId, TypeDecl>(program.types.map((t) => [t.id, t]));
   const fields = new Map<NodeId, FieldDecl>();
   const methods = new Map<NodeId, { method: MethodDecl; owner: TypeDecl }>();

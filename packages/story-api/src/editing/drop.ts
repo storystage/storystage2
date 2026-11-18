@@ -110,26 +110,34 @@ const hasOptions = (options: ProgramCheckOptions) =>
   Object.values(options).some((v) => v !== undefined);
 
 /** The method or event handler a node is in, or `null` for one outside them (a field's value). */
-function ownerOf(index: ReturnType<typeof indexOf>, node: NodeId): NodeId | null {
-  for (let at = index.get(node); at; at = at.parent === null ? undefined : index.get(at.parent))
-    if (at.slot === 'methods' || at.slot === 'listeners') return at.node.id;
-  return null;
-}
+/** What holds a value outside a statement: these are checked as a whole, with their values. */
+const HOLDERS: ReadonlySet<string> = new Set(['field', 'parameter', 'listener', 'method']);
 
 /**
- * The methods an edit at `place` can change the problems of: the one it goes in, and for a
- * statement moved there, the one it leaves. `undefined`, the whole program, when either isn't in
- * a method.
+ * What an edit at `place` can change the problems of (`checkProgram`'s `only`): the statement
+ * put in or moved there, or the statement a value goes into (a value's fit is checked by the
+ * statement it's in), or the field, parameter or event handler a value outside a statement goes
+ * in. Each node is checked on its own against declared types, so nothing else can change; what a
+ * statement leaving its old place could break (a variable used later) is the AST's rules, which
+ * `applyAll` has already checked. `undefined`, the whole program, when it can't be told.
  */
 function touched(
   program: Program,
   place: Place,
   candidate: Candidate,
 ): ReadonlySet<NodeId> | undefined {
+  if (place.kind === 'statement') {
+    const id = 'existing' in candidate ? candidate.existing : candidate.id;
+    return new Set([id]);
+  }
   const index = indexOf(program);
-  const into = ownerOf(index, place.kind === 'statement' ? place.parent : place.node);
-  const from = 'existing' in candidate ? ownerOf(index, candidate.existing) : into;
-  return into && from ? new Set([into, from]) : undefined;
+  for (
+    let at = index.get(place.node);
+    at;
+    at = at.parent === null ? undefined : index.get(at.parent)
+  )
+    if (isStatement(at.node) || HOLDERS.has(at.node.kind)) return new Set([at.node.id]);
+  return undefined;
 }
 
 /** Whether `candidate` may go at `place`, and if so, the edits and their label. */
@@ -152,8 +160,8 @@ export function canDrop(
   const before = hasOptions(options)
     ? new Set(checkProgram(program, options).map(key))
     : problemsIn(program);
-  // Only where the edit can make a problem: a full check of 500 statements on every edit, and
-  // on every place a move passes, was much of an edit's time with the CPU slowed (spec 14, 3h).
+  // Only where the edit can make a problem: a full check of a method of 500 statements on every
+  // edit, and on every place a move passes, was much of an edit's time with the CPU slowed (3h).
   const made = checkProgram(after, options, touched(program, place, candidate)).find(
     (p) => !before.has(key(p)),
   );

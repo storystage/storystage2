@@ -116,10 +116,11 @@ The joint map (workplan 3.3) is the list of joints every model is mapped onto, s
     | `alice` | Alice's `JointId` names, from the converter (3.2) | `LEFT_SHOULDER` |
     | `mixamo` | Mixamo, common in files learners bring in (3.11) | `mixamorig:LeftArm` |
     | `unreal` | The Unreal mannequin, and MakeHuman's "game engine" skeleton (3.5) | `upperarm_l` |
-    | `rigify` | Blender Rigify deform bones | `DEF-upper_arm.L` |
+    | `rigify` | Blender Rigify deform bones; for four-legged animals, Rigify's wolf, cat and horse metarigs | `DEF-upper_arm.L` (an animal's front left shoulder: `DEF-front_thigh.L`) |
     | `generic` | A plain name with a side before or after: UniVRM 0.x, Kenney, KayKit and hand-made rigs | `upperarm.l`, `L_UpperArm` |
 
-    Animals are matched by `storystage` and `alice` names only. An animal from elsewhere imports as prop only until a later version adds a mapping step for the teacher (WP3i).
+    Animals are matched by `storystage` and `alice` names, and four-legged animals also by Rigify's four-legged metarig (18 Nov 2026, for Styloo's CC0 animals; Blender makes it, so galleries' animals often come with it). There the spine is numbered from the tail's tip: `spine` to `spine.003` are the tail (`tail4` to `tail`), `spine.004` the pelvis, `spine.005` to `spine.008` the back (`spineBase`, `spineMiddle`, `spineUpper`), `spine.009` the neck and `spine.011` the head. The back legs are `thigh`, `shin`, `foot` and `toe` (hip, knee, hock, toe); the front legs `shoulder`, `front_thigh`, `front_shin`, `front_foot` and `front_toe` (collarbone, shoulder, knee, ankle, toe). Any other animal from elsewhere imports as prop only, until a later version adds a mapping step for the teacher (WP3i); a shipped one may rename its bones in its source list.
+- **A deform bone wins a tie** over its `ORG-`, `MCH-` and control twins of the same name, since a file that keeps Rigify's whole control rig has them all and only the deform bone moves the mesh.
 - **The convention that finds the most required joints wins.** A tie goes to the one that maps more joints, then to the order in the table.
 - **Within a convention,** the preferred name wins (wrist over hand, ankle over foot), then the bone nearer the root. A spine numbered from the hips (`spine_01` to `spine_05`) is spread over `spine`, `chest` and `upperChest`: the first, middle and last bones.
 - **No bone maps to two joints, and no joint to two bones.** The result lists the bones left unmapped and the required joints missing. The import report (3.11) turns these into plain words ("skeleton mapped (20 of 22 joints)").
