@@ -18,8 +18,8 @@ export function perProgram<T>(make: (program: Program) => T): (program: Program)
   };
 }
 
-/** Where every node is. Read-only: every caller shares it. */
-export const indexOf: (program: Program) => ReadonlyMap<NodeId, Location> =
-  perProgram(indexProgram);
+/** Where every node is. The AST keeps one for each program (#529); every caller shares it. */
+export const indexOf: (program: Program) => ReadonlyMap<NodeId, Location> = indexProgram;
 
-export const typesOf = perProgram(programTypes);
+/** What the program declares, and its values' types: worked out once for each program. */
+export const typesOf = programTypes;
