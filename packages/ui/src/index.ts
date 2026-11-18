@@ -53,6 +53,7 @@ export {
 } from './Choice.tsx';
 export { TextField, insertWords, type FieldSpeech, type TextFieldProps } from './TextField.tsx';
 export { Dialog, type DialogProps } from './Dialog.tsx';
+export { linkTabPanel, useTabPanel } from './tabPanel.ts';
 export { PlanSteps, moveSteps, type PlanStep, type PlanStepsProps } from './PlanSteps.tsx';
 export {
   FrameStrip,

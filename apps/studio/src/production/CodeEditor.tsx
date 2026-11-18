@@ -10,7 +10,7 @@ import type { Production, SceneId } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
 import { PALETTE_TABS, describer, type PaletteTab } from '@storystage/story-api/editing';
 import { TEXT_STYLES, TextView, textViewWord } from '@storystage/text-view';
-import { Icon, Segmented, Toggle, useThemeStyle } from '@storystage/ui';
+import { Icon, Segmented, Toggle, useTabPanel, useThemeStyle } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useState } from 'react';
 import {
   Button as AriaButton,
@@ -22,7 +22,6 @@ import {
   SelectValue,
   Tab,
   TabList,
-  TabPanel,
   Tabs,
   type Key,
 } from 'react-aria-components';
@@ -153,7 +152,11 @@ export function CodeEditor({
   ];
   const picked = objects.some((o) => o.id === object) ? object : SCENE;
   const target = useMemo(() => paletteTarget(picked), [picked]);
+  // The open method's panel is our own, not React Aria's TabPanel, whose search for a tab stop
+  // walked the whole editor on every change (S6, #526; `useTabPanel`).
+  const { tabRef, panelRef } = useTabPanel();
   if (open === null) return null;
+  const m = methods.find((x) => x.id === open)!;
   return (
     <section
       className="pr-code"
@@ -217,63 +220,72 @@ export function CodeEditor({
           )}
         </div>
       </div>
-      <Tabs selectedKey={open} onSelectionChange={setChosen}>
-        <div className="pr-tab-row">
-          <TabList className="pr-tabs" aria-label={words.t('production.methods', { n })}>
-            {methods.map((m) => (
-              <Tab key={m.id} id={m.id} className="pr-tab">
-                {tabName(p, m)}
-              </Tab>
-            ))}
-          </TabList>
-          {type && <NewMethod host={host} type={type.id} n={n} onAdded={setChosen} />}
-        </div>
-        {methods.map((m) => (
-          <TabPanel
-            key={m.id}
-            id={m.id}
-            className="pr-tab-panel"
-            data-text={text.shown || undefined}
-          >
-            <Suspense fallback={<p className="pr-loading">{words.t('production.loading')}</p>}>
-              {shown === 'tiles' ? (
-                <TilesPanel
-                  method={m.id}
-                  host={host}
-                  target={target}
-                  tab={tab}
-                  focus={reveal && m.id === chosen ? reveal : null}
-                  handoff={handoff}
-                  {...(highlights ? { highlights } : {})}
-                  {...(editorRef ? { editorRef } : {})}
-                />
-              ) : (
-                <BlocksPanel
-                  method={m.id}
-                  host={host}
-                  target={target}
-                  tab={tab}
-                  focus={reveal && m.id === chosen ? reveal : null}
-                  handoff={handoff}
-                  {...(highlights ? { highlights } : {})}
-                  {...(editorRef ? { editorRef } : {})}
-                />
-              )}
-            </Suspense>
-            {text.shown && (
-              <div className="pr-text">
-                <TextView
-                  program={p.program}
-                  style={text.style}
-                  method={m.id}
-                  label={words.t('production.textOf', { name: tabName(p, m) })}
-                  {...(highlights ? { highlight: highlights } : {})}
-                />
-              </div>
+      {/* Tabs and the panel in one box, as Tabs' own held them, so the layout is as it was. */}
+      <div className="pr-tabs-box">
+        <Tabs selectedKey={open} onSelectionChange={setChosen}>
+          <div className="pr-tab-row">
+            <TabList className="pr-tabs" aria-label={words.t('production.methods', { n })}>
+              {methods.map((x) => (
+                <Tab
+                  key={x.id}
+                  id={x.id}
+                  className="pr-tab"
+                  {...(x.id === open ? { ref: tabRef } : {})}
+                >
+                  {tabName(p, x)}
+                </Tab>
+              ))}
+            </TabList>
+            {type && <NewMethod host={host} type={type.id} n={n} onAdded={setChosen} />}
+          </div>
+        </Tabs>
+        {/* Beside Tabs, not in it: React Aria draws what's in Tabs twice, once hidden. A new
+            method's panel is a new one, as React Aria's was. */}
+        <div
+          key={m.id}
+          ref={panelRef}
+          role="tabpanel"
+          className="pr-tab-panel"
+          data-text={text.shown || undefined}
+        >
+          <Suspense fallback={<p className="pr-loading">{words.t('production.loading')}</p>}>
+            {shown === 'tiles' ? (
+              <TilesPanel
+                method={m.id}
+                host={host}
+                target={target}
+                tab={tab}
+                focus={reveal && m.id === chosen ? reveal : null}
+                handoff={handoff}
+                {...(highlights ? { highlights } : {})}
+                {...(editorRef ? { editorRef } : {})}
+              />
+            ) : (
+              <BlocksPanel
+                method={m.id}
+                host={host}
+                target={target}
+                tab={tab}
+                focus={reveal && m.id === chosen ? reveal : null}
+                handoff={handoff}
+                {...(highlights ? { highlights } : {})}
+                {...(editorRef ? { editorRef } : {})}
+              />
             )}
-          </TabPanel>
-        ))}
-      </Tabs>
+          </Suspense>
+          {text.shown && (
+            <div className="pr-text">
+              <TextView
+                program={p.program}
+                style={text.style}
+                method={m.id}
+                label={words.t('production.textOf', { name: tabName(p, m) })}
+                {...(highlights ? { highlight: highlights } : {})}
+              />
+            </div>
+          )}
+        </div>
+      </div>
     </section>
   );
 }
