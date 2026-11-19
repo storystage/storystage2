@@ -331,13 +331,31 @@ export function scaleToHeight(doc: Document, metres: number): void {
  * pose as a renderer draws it (a skinned mesh by its joints) is at y = 0. The stage stands an
  * object by its origin (S3, 19 Nov 2026), and some makers put theirs mid-body: the African
  * penguin's was 0.48 m above its feet, so it stood sunk to its head.
+ *
+ * Across and front to back, it's centred only where its origin is near or outside its edge
+ * (outside the middle 80% of its width or length), so a turn doesn't swing it round a point
+ * outside it (the same penguin's body was all behind its beak). A model whose origin is within,
+ * if off-centre because of a long tail or trunk, keeps it.
  */
 export function standOnGround(doc: Document): void {
   const positions = meshFromDocument(doc).positions;
-  let lo = Infinity;
-  for (let i = 1; i < positions.length; i += 3) lo = Math.min(lo, positions[i]!);
-  if (!Number.isFinite(lo) || Math.abs(lo) < 1e-4) return;
-  wrapScene(doc, () => doc.createNode('storystage-ground').setTranslation([0, -lo, 0]));
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < positions.length; i += 3)
+    for (let a = 0; a < 3; a++) {
+      lo[a] = Math.min(lo[a]!, positions[i + a]!);
+      hi[a] = Math.max(hi[a]!, positions[i + a]!);
+    }
+  if (!Number.isFinite(lo[1]!)) return;
+  const shift = [0, -lo[1]!, 0];
+  for (const a of [0, 2]) {
+    const margin = 0.1 * (hi[a]! - lo[a]!);
+    if (lo[a]! + margin > 0 || hi[a]! - margin < 0) shift[a] = -(lo[a]! + hi[a]!) / 2;
+  }
+  if (shift.every((s) => Math.abs(s) < 1e-4)) return;
+  wrapScene(doc, () =>
+    doc.createNode('storystage-ground').setTranslation(shift as [number, number, number]),
+  );
 }
 
 /** Height in metres at scale 1: the model's extent along Y. */

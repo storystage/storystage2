@@ -181,16 +181,24 @@ describe('turnModel', () => {
 });
 
 describe('standOnGround', () => {
-  const lowest = (doc: Document) => {
+  /** Lowest and highest x, y and z as drawn. */
+  const extent = (doc: Document) => {
     const p = meshFromDocument(doc).positions;
-    let lo = Infinity;
-    for (let i = 1; i < p.length; i += 3) lo = Math.min(lo, p[i]!);
-    return lo;
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < p.length; i += 3)
+      for (let a = 0; a < 3; a++) {
+        lo[a] = Math.min(lo[a]!, p[i + a]!);
+        hi[a] = Math.max(hi[a]!, p[i + a]!);
+      }
+    return { lo, hi };
   };
+  const lowest = (doc: Document) => extent(doc).lo[1]!;
 
-  it('stands a skinned model on its rest pose as drawn, not on its mesh node', () => {
+  it('stands a skinned model on its rest pose as drawn, centred if its origin is at its edge', () => {
     // As the African penguin: the skinned mesh's node sits far from where its joints put it
-    // (glTF ignores a skinned mesh's own transform), and the maker's origin is mid-body.
+    // (glTF ignores a skinned mesh's own transform), the maker's origin is mid-body, and the
+    // body is all to one side of it (here across, 0 to 1 m).
     const doc = new Document();
     const buffer = doc.createBuffer();
     const acc = (type: 'VEC3' | 'VEC4' | 'MAT4', array: Float32Array | Uint16Array) =>
@@ -218,6 +226,8 @@ describe('standOnGround', () => {
     expect(lowest(doc)).toBeCloseTo(-0.3, 6);
     standOnGround(doc);
     expect(lowest(doc)).toBeCloseTo(0, 6);
+    const { lo, hi } = extent(doc);
+    expect([lo[0], hi[0]].map((x) => Math.round(x! * 1e6) / 1e6)).toEqual([-0.5, 0.5]);
     expect(
       doc
         .getRoot()
@@ -227,15 +237,16 @@ describe('standOnGround', () => {
     ).toEqual(['storystage-ground']);
   });
 
-  it('leaves a model already on the ground as it is', () => {
+  it('leaves a model on the ground with its origin inside it as it is, even off-centre', () => {
     const doc = new Document();
     const buffer = doc.createBuffer();
+    // Its origin a fifth of the way along it, as an animal with a long tail behind.
     const prim = doc.createPrimitive().setAttribute(
       'POSITION',
       doc
         .createAccessor()
         .setType('VEC3')
-        .setArray(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]))
+        .setArray(new Float32Array([-0.5, 0, -0.8, 0.5, 0, -0.8, 0, 1, 0.2]))
         .setBuffer(buffer),
     );
     const node = doc.createNode('table').setMesh(doc.createMesh().addPrimitive(prim));
