@@ -144,7 +144,7 @@ export function BackstageRail({
                   >
                     <span className="pr-backstage-thumb" aria-hidden="true">
                       {picture ? (
-                        <img src={picture} alt="" />
+                        <img src={picture} alt="" loading="lazy" decoding="async" />
                       ) : (
                         <Icon name="view_in_ar" size={32} />
                       )}
