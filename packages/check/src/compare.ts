@@ -451,6 +451,29 @@ export function compareFrame(run: FrameRun): CheckItem[] {
         outcome: 'note',
         words: t('missing.note', { name: m.object }),
       });
+  for (const [object, joints] of jointsMissing(run.missing))
+    add({
+      id: `missingJoints:${object}`,
+      kind: 'missing',
+      outcome: 'note',
+      words: plural('missingJoints.note', joints.length, { name: object, joints: names(joints) }),
+    });
 
   return items.sort((a, b) => ITEM_ORDER.indexOf(a.outcome) - ITEM_ORDER.indexOf(b.outcome));
 }
+
+/** Each object's posed joints its model hasn't got (spec 03 section 2.2), in the stage's order. */
+function jointsMissing(missing: readonly Missing[]): Map<string, string[]> {
+  const byObject = new Map<string, string[]>();
+  for (const m of missing)
+    if (m.kind === 'joint') {
+      const joints = byObject.get(m.object) ?? [];
+      if (!joints.includes(m.joint)) joints.push(m.joint);
+      byObject.set(m.object, joints);
+    }
+  return byObject;
+}
+
+/** "tailFan", "tailFan and crest", "tailFan, crest and wing". */
+const names = (all: readonly string[]) =>
+  all.length <= 1 ? (all[0] ?? '') : `${all.slice(0, -1).join(', ')} and ${all.at(-1)!}`;

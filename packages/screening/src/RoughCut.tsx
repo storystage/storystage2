@@ -202,6 +202,15 @@ export function RoughCut(props: RoughCutProps) {
                 ),
               ),
             ];
+            const joints = new Map<string, string[]>();
+            for (const m of missing)
+              if (m.kind === 'joint') {
+                const list = joints.get(m.object) ?? [];
+                if (!list.includes(m.joint)) list.push(m.joint);
+                joints.set(m.object, list);
+              }
+            const backdrop = missing.some((m) => m.kind === 'backdrop');
+            if (models.length === 0 && !backdrop && joints.size === 0) return null;
             return (
               <NeutralNote key={scene}>
                 {models.length > 0 && (
@@ -212,9 +221,17 @@ export function RoughCut(props: RoughCutProps) {
                     })}
                   </span>
                 )}
-                {missing.some((m) => m.kind === 'backdrop') && (
-                  <span> {words.t('roughCut.missingBackdrop', { n })}</span>
-                )}
+                {backdrop && <span> {words.t('roughCut.missingBackdrop', { n })}</span>}
+                {[...joints].map(([object, list]) => (
+                  <span key={object}>
+                    {' '}
+                    {words.plural('roughCut.missingJoints', list.length, {
+                      n,
+                      name: object,
+                      joints: names(list),
+                    })}
+                  </span>
+                ))}
               </NeutralNote>
             );
           })}
