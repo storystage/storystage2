@@ -7,6 +7,7 @@
 import {
   CAMERA,
   ease,
+  type JointName,
   type Micros,
   type ObjectId,
   type Quat,
@@ -14,6 +15,13 @@ import {
   type Target,
   type Vec3,
 } from '@storystage/story-api';
+import {
+  codedSpeed,
+  codedStride,
+  codedTurns,
+  type CodedGait,
+  type CodedLayer,
+} from './coded-gait.ts';
 import type { Gait, GaitName } from './gaits.ts';
 import type { Box } from './hull.ts';
 import type { Body, Hand } from './humanoid/body.ts';
@@ -48,6 +56,8 @@ export interface Layer {
   /** The whole body; a gesture turns only the bones it names. */
   readonly whole: boolean;
   readonly own: boolean;
+  /** An animal's walk or run in code (`coded-gait.ts`): `clip` is which, `time` its cycles. */
+  readonly coded?: boolean;
 }
 
 /** What a character's body is doing at a moment, once an action has set it. */
@@ -92,6 +102,8 @@ export interface World {
   ownClip(object: ObjectId, clip: string): number | null;
   /** A model's own clip for walking, running or standing, if it isn't a humanoid. */
   gait(object: ObjectId, gait: GaitName): Gait | null;
+  /** An animal's walk in code, if it has legs or wings but no walk clip of its own. */
+  coded(object: ObjectId): CodedGait | null;
   pose(state: unknown, object: ObjectId): Pose;
   targetPose(state: unknown, target: Target): Pose;
   /** The box round a target in the scene's axes. */
@@ -124,6 +136,11 @@ export type Action =
        * keeps pace with the ground covered; one without plays at its own pace.
        */
       own: { walk: Gait; run: Gait | null } | null;
+      /**
+       * An animal's walk in code, with no clip of its own, and how far a cycle of its steps goes
+       * in the scene (null for wings alone, which beat by the clock).
+       */
+      coded: { gait: CodedGait; walkStride: number | null; runStride: number | null } | null;
     }
   | {
       kind: 'posture';
@@ -282,6 +299,11 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
     // An animal walks as fast as its own clip carries it, if that can be told.
     const walk = world.gait(object, 'walk');
     const run = world.gait(object, 'run');
+    // With no walk of its own, one in code goes as fast as its legs are long.
+    const coded = walk ? null : world.coded(object);
+    const codedWalk = coded ? codedSpeed(coded, 'walk') : null;
+    if (coded && codedWalk)
+      return { walkSpeed: codedWalk * height, runSpeed: codedSpeed(coded, 'run')! * height };
     if (!walk?.speed) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
     const walkSpeed = walk.speed * height;
     return {
@@ -320,6 +342,11 @@ function walkAction(
   const body = world.body(object);
   const height = world.scale(state as ReadonlyMap<ObjectId, { scale: Vec3 }>, object).y;
   const ownWalk = body ? null : world.gait(object, 'walk');
+  const coded = body || ownWalk ? null : world.coded(object);
+  const stride = (gait: 'walk' | 'run') => {
+    const s = coded && codedStride(coded, gait);
+    return s ? s * height : null;
+  };
   return {
     kind: 'walk',
     points,
@@ -332,6 +359,7 @@ function walkAction(
     gait,
     body: body !== null,
     own: ownWalk ? { walk: ownWalk, run: world.gait(object, 'run') } : null,
+    coded: coded ? { gait: coded, walkStride: stride('walk'), runStride: stride('run') } : null,
     ...speeds(world, object, body, height),
   };
 }
@@ -635,7 +663,7 @@ export function applyAction(
       const from = a.enter ? a.points[a.points.length - 1]! : a.points[0]!;
       s.position = add(s.position, sub(at, from));
       s.rotation = mul(yawTurn(shortest(yaw - a.startYaw)), s.rotation);
-      if ((a.body || a.own) && going && duration > 0) {
+      if ((a.body || a.own || a.coded) && going && duration > 0) {
         // How fast it's going now, from how the command eases.
         const e = 1e-3;
         const slope =
@@ -649,6 +677,10 @@ export function applyAction(
         const moving = Math.min(1, speed / (0.3 * a.walkSpeed));
         if (a.own) {
           ownGaitLayers(body.layers, a.own, { d, elapsed, run, moving }, a);
+          return;
+        }
+        if (a.coded) {
+          codedLayers(body.layers, a.coded, { d, elapsed, run, moving });
           return;
         }
         body.layers.push({
@@ -799,6 +831,8 @@ export function applyAction(
 export interface Shown {
   readonly human: HumanPose | null;
   readonly own: readonly { name: string; time: number; weight: number }[];
+  /** An animal's walk in code: each joint's turn, in the model's own axes, on top of its pose. */
+  readonly turns: ReadonlyMap<JointName, Quat> | null;
   readonly face: { expression: string; amount: number } | null;
   readonly fading: { expression: string; amount: number } | null;
   readonly blink: number;
@@ -811,7 +845,6 @@ const REST_CLIP: Record<Rest, string> = {
   lie: 'lying',
 };
 
-/** A humanoid's pose at a moment, from what its body is doing. */
 /**
  * An animal's own walk, and run, at a moment of a walk: a clip with a speed keeps pace with the
  * ground covered (`d` metres), one without plays at its own pace. Without a run of its own it
@@ -834,6 +867,23 @@ function ownGaitLayers(
   if (at.run > 0) layer(own.run, time(own.run, speeds.runSpeed), at.moving * at.run);
 }
 
+/**
+ * An animal's walk, and run, in code at a moment of a walk: its legs keep pace with the ground
+ * covered (`d` metres), so its feet stay planted; wings alone beat by the clock.
+ */
+function codedLayers(
+  layers: Layer[],
+  coded: { gait: CodedGait; walkStride: number | null; runStride: number | null },
+  at: { d: number; elapsed: number; run: number; moving: number },
+): void {
+  const cycles = (stride: number | null) => (stride ? at.d / stride : at.elapsed * coded.gait.beat);
+  const layer = (moving: 'walk' | 'run', time: number, weight: number) =>
+    layers.push({ clip: moving, time, weight, whole: true, own: false, coded: true });
+  layer('walk', cycles(coded.walkStride), at.moving * (1 - at.run));
+  if (at.run > 0) layer('run', cycles(coded.runStride), at.moving * at.run);
+}
+
+/** A humanoid's pose at a moment, from what its body is doing. */
 export function bodyPose(
   world: World,
   state: unknown,
@@ -850,15 +900,21 @@ export function bodyPose(
   if (!shape) {
     // An animal stands with its own idle, under whatever else it's playing.
     const idle = world.gait(object, 'idle');
-    const busy = own.reduce((sum, l) => sum + l.weight, 0);
+    const busy = b.layers.reduce((sum, l) => sum + (l.own || l.coded ? l.weight : 0), 0);
     if (idle && busy < 1) own.unshift({ name: idle.clip, time: t / SECOND, weight: 1 - busy });
   }
-  if (!shape || !library)
-    return { human: null, own, face: b.face, fading: b.fading, blink: b.blink };
+  if (!shape || !library) {
+    const coded = shape ? null : world.coded(object);
+    const steps: CodedLayer[] = b.layers.flatMap((l) =>
+      l.coded ? [{ moving: l.clip as 'walk' | 'run', cycles: l.time, weight: l.weight }] : [],
+    );
+    const turns = coded && steps.length > 0 ? codedTurns(coded, steps) : null;
+    return { human: null, own, turns, face: b.face, fading: b.fading, blink: b.blink };
+  }
   const rest = library.get(REST_CLIP[b.rest])!;
   let pose = sample(rest, (t - b.restSince) / SECOND, true);
   for (const layer of b.layers) {
-    if (layer.own) continue;
+    if (layer.own || layer.coded) continue;
     const clip = library.get(layer.clip);
     if (clip) pose = overlay(pose, sample(clip, layer.time, clip.loop), layer.weight, layer.whole);
   }
@@ -893,10 +949,11 @@ export function bodyPose(
       : world.targetPose(state, b.look.target).position;
     pose = shape.look(pose, model(point), b.look.weight, LOOK_LIMIT);
   }
-  // Surprised, the head tips back a little, as the face comes and goes (owner, 19 Nov, by S4).
+  // Surprised, the head tips back a little, as the face comes and goes, so a surprise reads on
+  // 100Avatars' small mouths (S3's decision, as S4 suggested, 19 Nov).
   const surprise =
     (b.face?.expression === 'surprised' ? b.face.amount : 0) +
     (b.fading?.expression === 'surprised' ? b.fading.amount : 0);
   if (surprise > 0) pose = shape.tipBack(pose, SURPRISE_LIFT * Math.min(1, surprise));
-  return { human: pose, own, face: b.face, fading: b.fading, blink: b.blink };
+  return { human: pose, own, turns: null, face: b.face, fading: b.fading, blink: b.blink };
 }

@@ -154,6 +154,7 @@ export class Body {
   /**
    * The head tipped back `turns` (a surprise), about the model's own left-right axis, the rest
    * of the body as it was. A camera with no turn looks along +Z, so tipping back turns about -X.
+   * So a surprise reads on 100Avatars' small mouths (S3's decision, as S4 suggested, 19 Nov).
    */
   tipBack(pose: HumanPose, turns: number): HumanPose {
     if (turns === 0) return pose;
