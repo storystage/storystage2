@@ -80,7 +80,8 @@ export function PrompterCard({
                 : ''}
         </p>
         <div className="st-actions">
-          <Button onPress={onSetUp} isDisabled={busy}>
+          {/* Switched off by the school, a key would be refused at Add key: not offered. */}
+          <Button onPress={onSetUp} isDisabled={busy || off}>
             {words.t('prompter.setUp')}
           </Button>
           {status === 'present' && (

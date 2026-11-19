@@ -180,8 +180,17 @@ describe('Settings › The Prompter', () => {
     expect(onRemoved).toHaveBeenCalledOnce();
   });
 
-  it('says when the school has switched the Prompter off', async () => {
+  it('says when the school has switched the Prompter off, and offers no Set up…', async () => {
     card(fakeKeys('absent'), true);
     expect(await screen.findByText(/switched off by your school/)).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Set up…' }).hasAttribute('disabled')).toBe(true);
+  });
+
+  it('still removes a stored key when the school has switched the Prompter off', async () => {
+    const keys = fakeKeys('present');
+    const { user } = card(keys, true);
+    expect(await screen.findByText(/a Claude key is in its secure store/)).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Remove key' }));
+    expect(keys.remove).toHaveBeenCalledOnce();
   });
 });
