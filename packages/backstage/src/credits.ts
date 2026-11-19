@@ -42,6 +42,7 @@ export const LICENCE_LINKS: Readonly<Partial<Record<Licence, { name: string; url
   'CC-BY-4.0': { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
   'CC-BY-SA-4.0': { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
   'CC-BY-NC-4.0': { name: 'CC BY-NC 4.0', url: 'https://creativecommons.org/licenses/by-nc/4.0/' },
+  'VRM-PL-1.0': { name: 'VRM Public License 1.0', url: 'https://vrm.dev/licenses/1.0/' },
 };
 
 /**

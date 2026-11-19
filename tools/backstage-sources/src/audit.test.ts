@@ -20,7 +20,7 @@ const item = (over: Partial<Omit<Item, 'id'>> & { id?: string } = {}): Item =>
   }) as Item;
 
 const manifest = (...items: Item[]): BackstageManifest =>
-  ({ manifestVersion: '2.2.0', items }) as BackstageManifest;
+  ({ manifestVersion: '2.3.0', items }) as BackstageManifest;
 
 describe('shippedTable', () => {
   it('counts the shipped models by source and licence, with a credit line from each', () => {

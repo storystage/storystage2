@@ -16,6 +16,7 @@
 import {
   LICENCES,
   MANIFEST_VERSION,
+  SHIPPED_ONLY_LICENCES,
   validateManifest,
   type BackstageItem,
 } from '@storystage/backstage';
@@ -120,8 +121,7 @@ export async function openModelPack(
     if (
       item.origin !== 'imported' ||
       !item.id.startsWith('class/') ||
-      item.licence === 'permission' ||
-      item.licence === 'public-domain' ||
+      SHIPPED_ONLY_LICENCES.includes(item.licence) ||
       !LICENCES.includes(item.licence)
     ) {
       leave("It isn't a class's imported model.");

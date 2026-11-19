@@ -121,6 +121,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 19 Nov (this, `contract`, with backstage-assets' build): **manifest 2.3.0, the VRM Public License 1.0** (spec 17 §1, §3; the owner's choice of 19 Nov, for S3's expressions): `VRM-PL-1.0` for a shipped VRM file kept as it is, such as Seed-san, who has all five expressions; `SHIPPED_ONLY_LICENCES` (`permission`, `public-domain`, `VRM-PL-1.0`) is refused on an import; credits link the licence. With it, 86 of 100Avatars' round 3 (CC0; happy, angry, sad and relaxed), the owner's pick of 19 Nov. **S5, S2:** one more `Licence`; the studio's credits and Export for distribution treat it like CC BY.
   - 18 Nov (this): **Styloo's seven animals in the shipped Backstage**: `backstage.lock.json` pins backstage-assets 47230e5 (194 models), with the dog, cat, cow and giraffe as four-legged animals (#533), the butterfly as a flyer (#535), and the chicken and ladybird as props (the owner approved the renders on 18 Nov, the butterfly and ladybird at storybook size); the licence audit gains Styloo's row, and the Prompter's catalogue and pins are refreshed.
 - Merged:
   - 18 Nov (#535, backstage-assets#25): **a source-list item's `bones`** (spec 17 §3; for the new animals): the model's own bone names, each with the joint it is, renamed by the build before mapping; each joint one of the class's and given once, each bone found once. For Styloo's butterfly first, whose bones are `body`, `Body.002` and `wingsupper.l`.

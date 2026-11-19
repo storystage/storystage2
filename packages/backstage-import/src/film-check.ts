@@ -18,7 +18,12 @@
  * Models that pass are listed in `checked`; the others in `refused`, with the reason in plain
  * words. `filmBackstage(models, files, { checked })` then shows only the checked ones.
  */
-import { ITEM_BUDGETS, MANIFEST_VERSION, validateManifest } from '@storystage/backstage';
+import {
+  ITEM_BUDGETS,
+  MANIFEST_VERSION,
+  SHIPPED_ONLY_LICENCES,
+  validateManifest,
+} from '@storystage/backstage';
 import { countTriangles, largestTexture } from '@storystage/backstage/optimize';
 import { checkPicture } from './checks.ts';
 import { checkEmbeddedPictures, readPicked } from './import.ts';
@@ -164,8 +169,7 @@ export async function checkFilmModels(
     if (
       item.origin !== 'imported' ||
       !item.id.startsWith('class/') ||
-      item.licence === 'permission' ||
-      item.licence === 'public-domain'
+      SHIPPED_ONLY_LICENCES.includes(item.licence)
     ) {
       refuse("It isn't a class's imported model.");
       continue;
