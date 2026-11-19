@@ -707,7 +707,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - **Rules:** deterministic, so it needs no Prompter and works in the browser version; one undo; it sets up the scene, not code; when the storyboard later gains new cast, offer to add them. With the Prompter on, Stage a scene (Build it) can do a richer layout.
 
     (C)
-- [ ] 10.8 **The storyboard rule:** a scene's Code editor stays closed until the scene has a heading and at least one frame, and the script has a logline and synopsis. A teacher policy switch relaxes the rule for imported Alice worlds. The rule is explained in plain words when it blocks something. (C)
+- [x] 10.8 **The storyboard rule:** a scene's Code editor stays closed until the scene has a heading and at least one frame, and the script has a logline and synopsis. A teacher policy switch relaxes the rule for imported Alice worlds. The rule is explained in plain words when it blocks something. (C)
+
+    Built: the rule and its checklist on the Production stage, and (18 Nov) the teacher's switch for imported Alice worlds.
 
 **Done when:** a production can be planned end to end in the Storyboard by keyboard alone, and the M4 manual test passes; a learner can find, import or stand in for a missing character without leaving the Storyboard; and setting the stage from a five-sketch frame places each model on the correct side, facing the right way, with the matching backdrop and shot, in one undo.
 

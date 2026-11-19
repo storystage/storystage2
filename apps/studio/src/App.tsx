@@ -670,6 +670,9 @@ export function App({
                   onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}
                   host={editors}
                   editorDefault={host.policy.editor.default}
+                  allowImportedWithoutStoryboard={
+                    host.policy.storyboard.allowImportedWithoutStoryboard
+                  }
                   onGoToStoryboard={() => setMode('storyboard')}
                   announcement={said}
                   reveal={reveal}

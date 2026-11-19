@@ -1,4 +1,5 @@
 import type { EditorHost, ViewState } from '@storystage/editor-contract';
+import { BROWSER_POLICY, browserHost, type HostInterface } from '@storystage/host';
 import { exampleProduction, type Production } from '@storystage/production';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -98,6 +99,36 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     expect(mounted).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Go to the Storyboard' }));
     expect(screen.getByRole('tab', { name: /Storyboard/, selected: true })).toBeTruthy();
+  });
+
+  describe('an imported Alice world (10.8; policy storyboard.allowImportedWithoutStoryboard)', () => {
+    const alice = (): Production => {
+      const p = unplanned();
+      return { ...p, manifest: { ...p.manifest, origin: 'alice' } };
+    };
+    const allowing = (allow: boolean): HostInterface => ({
+      ...browserHost,
+      policy: { ...BROWSER_POLICY, storyboard: { allowImportedWithoutStoryboard: allow } },
+    });
+
+    it('opens its Code editor before it is storyboarded, when the school allows it', async () => {
+      const user = userEvent.setup();
+      render(<App start={alice()} host={allowing(true)} />);
+      await openStage(user);
+      expect(screen.queryByRole('heading', { name: 'Storyboard scene 1 first' })).toBeNull();
+      expect(await screen.findByRole('tablist', { name: /^Methods/ }, LOADED)).toBeTruthy();
+    });
+
+    it('keeps the rule otherwise, and for a world made in StoryStage', async () => {
+      const user = userEvent.setup();
+      const { unmount } = render(<App start={alice()} host={allowing(false)} />);
+      await openStage(user);
+      expect(screen.getByRole('heading', { name: 'Storyboard scene 1 first' })).toBeTruthy();
+      unmount();
+      render(<App start={unplanned()} host={allowing(true)} />);
+      await openStage(user);
+      expect(screen.getByRole('heading', { name: 'Storyboard scene 1 first' })).toBeTruthy();
+    });
   });
 
   it('asks for a scene when there is none', async () => {
