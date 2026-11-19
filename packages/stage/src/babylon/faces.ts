@@ -193,8 +193,14 @@ export function faceTargets(
       for (const mesh of meshes) {
         // A mesh of several parts becomes one Babylon.js mesh for each.
         if (mesh.name !== node && !mesh.name.startsWith(`${node}_primitive`)) continue;
-        const target = mesh.morphTargetManager?.getTarget(index);
-        if (target) targets.push({ target, weight });
+        const manager = mesh.morphTargetManager;
+        const target = manager?.getTarget(index);
+        if (!manager || !target) continue;
+        // Every shape counts, even at none, so the surface is built once. Otherwise Babylon.js
+        // builds it anew for each number of shapes in use, and a face whose number was new
+        // showed none in its first frame (Juanita's happy straight after neutral).
+        manager.optimizeInfluencers = false;
+        targets.push({ target, weight });
       }
     if (targets.length) out.set(expression, targets);
   }
