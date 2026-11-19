@@ -183,6 +183,34 @@ describe('RoughCut', () => {
     expect(screen.getByText(/Scene 2's backdrop isn't all here/)).toBeTruthy();
   });
 
+  it("names the joints a model hasn't got, and says nothing empty (S3's #542)", () => {
+    setup({
+      timeline: timeline({
+        missing: [
+          {
+            scene: S1,
+            missing: [
+              { kind: 'joint', object: 'owl' as never, joint: 'tailFan' as never },
+              { kind: 'joint', object: 'owl' as never, joint: 'crest' as never },
+              { kind: 'joint', object: 'pip' as never, joint: 'wing' as never },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(
+      screen.getByText(
+        "In scene 1, owl has no joints called tailFan and crest, so those parts of its pose aren't shown.",
+      ),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "In scene 1, pip has no joint called wing, so that part of its pose isn't shown.",
+      ),
+    ).toBeTruthy();
+    expect(screen.queryByText(/which this device can't find/)).toBeNull();
+  });
+
   it('says "they" for more than one missing model', () => {
     setup({
       timeline: timeline({

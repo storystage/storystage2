@@ -37,5 +37,7 @@
   "length.flag.one": "This frame lasts {count} second; you planned {planned}",
   "length.flag.other": "This frame lasts {count} seconds; you planned {planned}",
   "missing.note": "{name} can't be found on this device, so it shows as an outline",
+  "missingJoints.note.one": "{name} has no joint called {joints}, so that part of its pose isn't shown",
+  "missingJoints.note.other": "{name} has no joints called {joints}, so those parts of its pose aren't shown",
   "scriptWords.step": "Use the script’s words for line {number}"
 }

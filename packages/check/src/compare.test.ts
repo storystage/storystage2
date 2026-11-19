@@ -239,6 +239,22 @@ describe('compareFrame', () => {
     ).toEqual(["owl can't be found on this device, so it shows as an outline"]);
   });
 
+  it("notes the joints a model hasn't got, each object once (S3's #542)", () => {
+    const run = matching({
+      missing: [
+        { kind: 'joint', object: 'owl' as never, joint: 'tailFan' as never },
+        { kind: 'joint', object: 'owl' as never, joint: 'crest' as never },
+        { kind: 'joint', object: 'pip' as never, joint: 'tailFan' as never },
+      ],
+    });
+    const notes = compareFrame(run).filter((i) => i.outcome === 'note');
+    expect(notes.map((i) => i.words)).toEqual([
+      "owl has no joints called tailFan and crest, so those parts of its pose aren't shown",
+      "pip has no joint called tailFan, so that part of its pose isn't shown",
+    ]);
+    expect(notes.map((i) => i.id)).toEqual(['missingJoints:owl', 'missingJoints:pip']);
+  });
+
   it('gives each item a stable id, unique in the frame', () => {
     const ids = compareFrame(matching()).map((i) => i.id);
     expect(new Set(ids).size).toBe(ids.length);
