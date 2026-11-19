@@ -14,6 +14,7 @@ import {
   type Target,
   type Vec3,
 } from '@storystage/story-api';
+import type { Gait, GaitName } from './gaits.ts';
 import type { Box } from './hull.ts';
 import type { Body, Hand } from './humanoid/body.ts';
 import type { HumanLibrary } from './humanoid/library.ts';
@@ -87,6 +88,8 @@ export interface World {
   body(object: ObjectId): Body | null;
   scale(state: ReadonlyMap<ObjectId, { scale: Vec3 }>, object: ObjectId): Vec3;
   ownClip(object: ObjectId, clip: string): number | null;
+  /** A model's own clip for walking, running or standing, if it isn't a humanoid. */
+  gait(object: ObjectId, gait: GaitName): Gait | null;
   pose(state: unknown, object: ObjectId): Pose;
   targetPose(state: unknown, target: Target): Pose;
   /** The box round a target in the scene's axes. */
@@ -114,6 +117,11 @@ export type Action =
       runSpeed: number;
       gait: 'walk' | 'run';
       body: boolean;
+      /**
+       * An animal's own clips, as it isn't a humanoid; null if it has none. A clip with a speed
+       * keeps pace with the ground covered; one without plays at its own pace.
+       */
+      own: { walk: Gait; run: Gait | null } | null;
     }
   | {
       kind: 'posture';
@@ -268,6 +276,17 @@ function walkWay(world: World, state: unknown, from: Vec3, to: Vec3): Vec3[] {
 }
 
 function speeds(world: World, object: ObjectId, body: Body | null, height: number) {
+  if (!body) {
+    // An animal walks as fast as its own clip carries it, if that can be told.
+    const walk = world.gait(object, 'walk');
+    const run = world.gait(object, 'run');
+    if (!walk?.speed) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
+    const walkSpeed = walk.speed * height;
+    return {
+      walkSpeed,
+      runSpeed: run?.speed ? run.speed * height : walkSpeed * (PLAIN_RUN / PLAIN_WALK),
+    };
+  }
   const walk = world.library?.get('walk')?.speed;
   const run = world.library?.get('run')?.speed;
   if (!body || !walk || !run) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
@@ -298,6 +317,7 @@ function walkAction(
   const endYaw = face ? Math.atan2(face.x - end.x, face.z - end.z) / (2 * Math.PI) : null;
   const body = world.body(object);
   const height = world.scale(state as ReadonlyMap<ObjectId, { scale: Vec3 }>, object).y;
+  const ownWalk = body ? null : world.gait(object, 'walk');
   return {
     kind: 'walk',
     points,
@@ -309,6 +329,7 @@ function walkAction(
     enter,
     gait,
     body: body !== null,
+    own: ownWalk ? { walk: ownWalk, run: world.gait(object, 'run') } : null,
     ...speeds(world, object, body, height),
   };
 }
@@ -612,7 +633,7 @@ export function applyAction(
       const from = a.enter ? a.points[a.points.length - 1]! : a.points[0]!;
       s.position = add(s.position, sub(at, from));
       s.rotation = mul(yawTurn(shortest(yaw - a.startYaw)), s.rotation);
-      if (a.body && going && duration > 0) {
+      if ((a.body || a.own) && going && duration > 0) {
         // How fast it's going now, from how the command eases.
         const e = 1e-3;
         const slope =
@@ -624,6 +645,10 @@ export function applyAction(
             ? Math.min(1, Math.max(0, (speed - a.walkSpeed) / (a.runSpeed - a.walkSpeed)))
             : 0;
         const moving = Math.min(1, speed / (0.3 * a.walkSpeed));
+        if (a.own) {
+          ownGaitLayers(body.layers, a.own, { d, elapsed, run, moving }, a);
+          return;
+        }
         body.layers.push({
           clip: 'walk',
           time: d / a.walkSpeed,
@@ -785,6 +810,28 @@ const REST_CLIP: Record<Rest, string> = {
 };
 
 /** A humanoid's pose at a moment, from what its body is doing. */
+/**
+ * An animal's own walk, and run, at a moment of a walk: a clip with a speed keeps pace with the
+ * ground covered (`d` metres), one without plays at its own pace. Without a run of its own it
+ * runs with its walk, which then keeps pace with the faster ground.
+ */
+function ownGaitLayers(
+  layers: Layer[],
+  own: { walk: Gait; run: Gait | null },
+  at: { d: number; elapsed: number; run: number; moving: number },
+  speeds: { walkSpeed: number; runSpeed: number },
+): void {
+  const time = (gait: Gait, speed: number) => (gait.speed ? at.d / speed : at.elapsed);
+  const layer = (gait: Gait, time: number, weight: number) =>
+    layers.push({ clip: gait.clip, time, weight, whole: true, own: true });
+  if (!own.run) {
+    layer(own.walk, time(own.walk, speeds.walkSpeed), at.moving);
+    return;
+  }
+  layer(own.walk, time(own.walk, speeds.walkSpeed), at.moving * (1 - at.run));
+  if (at.run > 0) layer(own.run, time(own.run, speeds.runSpeed), at.moving * at.run);
+}
+
 export function bodyPose(
   world: World,
   state: unknown,
@@ -798,6 +845,12 @@ export function bodyPose(
     .map((l) => ({ name: l.clip, time: l.time, weight: l.weight }));
   const shape = world.body(object);
   const library = world.library;
+  if (!shape) {
+    // An animal stands with its own idle, under whatever else it's playing.
+    const idle = world.gait(object, 'idle');
+    const busy = own.reduce((sum, l) => sum + l.weight, 0);
+    if (idle && busy < 1) own.unshift({ name: idle.clip, time: t / SECOND, weight: 1 - busy });
+  }
   if (!shape || !library)
     return { human: null, own, face: b.face, fading: b.fading, blink: b.blink };
   const rest = library.get(REST_CLIP[b.rest])!;
