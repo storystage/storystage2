@@ -53,6 +53,11 @@ const CAST: Readonly<Record<string, FilmCreditable>> = {
     credit: 'Mug by Kay Lousberg, KayKit (CC0)',
   }),
   grass: item({ id: id('bd/grass'), section: 'backdrops', credit: 'Grass by Poly Haven (CC0)' }),
+  seed: item({
+    id: id('vc/Biped/seed-san'),
+    credit: 'Seed-san by VirtualCast, Inc. (VRM Public License 1.0)',
+    licence: 'VRM-PL-1.0',
+  }),
   alice: item({
     id: id('Quadruped/Cat/AbyssinianCat'),
     credit: 'Abyssinian cat, from Alice 3 (permission)',
@@ -116,6 +121,14 @@ describe('filmCredits', () => {
     expect(blocks[0]!.lines[0]).toEqual({
       text: 'Knight by Kay Lousberg, KayKit (CC BY 4.0)',
       licence: { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
+    });
+  });
+
+  it("gives the VRM licence's name and address, as Seed-san's credit asks (S4's #549)", () => {
+    const blocks = filmCredits(using(['vc/Biped/seed-san']), find);
+    expect(blocks[0]!.lines[0]).toEqual({
+      text: 'Seed-san by VirtualCast, Inc. (VRM Public License 1.0)',
+      licence: { name: 'VRM Public License 1.0', url: 'https://vrm.dev/licenses/1.0/' },
     });
   });
 

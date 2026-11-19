@@ -178,7 +178,7 @@ It's written as "OWL: Here is the key." in capitals, as a script writes names.
 The credits roll after the last scene, upwards at a steady pace, about 3 seconds a screenful, with lines in this order:
 
 1. **Story and code:** the names the learner chose, from the production's manifest (`manifest.credits.names`, spec 03, S4's #231). Left out if there are none. The title card's byline is written from them too.
-2. **Cast, Props, Set and Backdrops:** each model the production uses, its credit line from Backstage, grouped by S4's `creditsBySection`. A packed model (decision 0049) is marked "Imported". Shipped models from one source are grouped, as "Cat, Owl and Robot from the StoryStage Cast": the lines whose words after "by" or "from" are the same. A CC BY model's line gives its licence's name and deed.
+2. **Cast, Props, Set and Backdrops:** each model the production uses, its credit line from Backstage, grouped by S4's `creditsBySection`. A packed model (decision 0049) is marked "Imported". Shipped models from one source are grouped, as "Cat, Owl and Robot from the StoryStage Cast": the lines whose words after "by" or "from" are the same. A CC BY model's line gives its licence's name and deed, and a VRM model's (Seed-san) the VRM Public License 1.0's name and address. A CC0 line gives none.
 3. **Sound:** each recording's label, if there are any.
 4. **Notices** a licence requires, such as Carnegie Mellon University's acknowledgement for models made from Alice's, each once. Each model's record will say which notice it needs (spec 17, section 3a, rule 5); until it does, the caller passes `notices`.
 5. **Made with StoryStage 2.**
