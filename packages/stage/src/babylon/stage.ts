@@ -390,6 +390,7 @@ export class BabylonStage implements EditableStage {
       }
     } finally {
       unseen.dispose();
+      for (const view of views) view.warmFaces(null);
       if (scene === this.scene) this.show();
     }
   }
