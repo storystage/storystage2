@@ -6,7 +6,8 @@ import sharp from 'sharp';
 import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { ITEM_BUDGETS, validateManifest } from '@storystage/backstage';
-import { buildSources, turnModel } from './build.ts';
+import { meshFromDocument } from '@storystage/sketches';
+import { buildSources, standOnGround, turnModel } from './build.ts';
 import { sharpEncoder } from './sharp-encoder.ts';
 import type { Fetcher } from './fetch.ts';
 
@@ -176,6 +177,72 @@ describe('turnModel', () => {
     scene.addChild(top);
     turnModel(doc, { x: -34 });
     expect(top.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([0, 1, 0]);
+  });
+});
+
+describe('standOnGround', () => {
+  const lowest = (doc: Document) => {
+    const p = meshFromDocument(doc).positions;
+    let lo = Infinity;
+    for (let i = 1; i < p.length; i += 3) lo = Math.min(lo, p[i]!);
+    return lo;
+  };
+
+  it('stands a skinned model on its rest pose as drawn, not on its mesh node', () => {
+    // As the African penguin: the skinned mesh's node sits far from where its joints put it
+    // (glTF ignores a skinned mesh's own transform), and the maker's origin is mid-body.
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const acc = (type: 'VEC3' | 'VEC4' | 'MAT4', array: Float32Array | Uint16Array) =>
+      doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
+    const joint = doc.createNode('body').setTranslation([0, -0.3, 0]);
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const skin = doc
+      .createSkin()
+      .addJoint(joint)
+      .setInverseBindMatrices(acc('MAT4', new Float32Array(identity)));
+    const prim = doc
+      .createPrimitive()
+      .setAttribute('POSITION', acc('VEC3', new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0])))
+      .setAttribute('JOINTS_0', acc('VEC4', new Uint16Array(12)))
+      .setAttribute(
+        'WEIGHTS_0',
+        acc('VEC4', new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])),
+      );
+    const body = doc
+      .createNode('mesh')
+      .setTranslation([0, 5, 0])
+      .setMesh(doc.createMesh().addPrimitive(prim))
+      .setSkin(skin);
+    doc.getRoot().setDefaultScene(doc.createScene().addChild(joint).addChild(body));
+    expect(lowest(doc)).toBeCloseTo(-0.3, 6);
+    standOnGround(doc);
+    expect(lowest(doc)).toBeCloseTo(0, 6);
+    expect(
+      doc
+        .getRoot()
+        .getDefaultScene()!
+        .listChildren()
+        .map((n) => n.getName()),
+    ).toEqual(['storystage-ground']);
+  });
+
+  it('leaves a model already on the ground as it is', () => {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const prim = doc.createPrimitive().setAttribute(
+      'POSITION',
+      doc
+        .createAccessor()
+        .setType('VEC3')
+        .setArray(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]))
+        .setBuffer(buffer),
+    );
+    const node = doc.createNode('table').setMesh(doc.createMesh().addPrimitive(prim));
+    doc.getRoot().setDefaultScene(doc.createScene().addChild(node));
+    standOnGround(doc);
+    expect(lowest(doc)).toBeCloseTo(0, 6);
+    expect(doc.getRoot().getDefaultScene()!.listChildren()).toEqual([node]);
   });
 });
 

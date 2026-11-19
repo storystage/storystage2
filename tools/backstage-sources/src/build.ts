@@ -166,6 +166,8 @@ export async function buildSources(
       const reduced = await reduceModel(doc, budget, { encodeTexture });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
+      // A character or animal stands on its feet; props and sets are put down by their box.
+      if (item.section === 'cast') standOnGround(doc);
       fetchedSize = reduced.before;
       bytes = await io.writeBinary(doc);
     } else {
@@ -322,6 +324,20 @@ export function scaleToHeight(doc: Document, metres: number): void {
   const k = metres / now;
   if (!Number.isFinite(k) || Math.abs(k - 1) < 1e-6) return;
   wrapScene(doc, () => doc.createNode('storystage-size').setScale([k, k, k]));
+}
+
+/**
+ * Stands a model on the ground: moves it, under one new root node, so the lowest point of its rest
+ * pose as a renderer draws it (a skinned mesh by its joints) is at y = 0. The stage stands an
+ * object by its origin (S3, 19 Nov 2026), and some makers put theirs mid-body: the African
+ * penguin's was 0.48 m above its feet, so it stood sunk to its head.
+ */
+export function standOnGround(doc: Document): void {
+  const positions = meshFromDocument(doc).positions;
+  let lo = Infinity;
+  for (let i = 1; i < positions.length; i += 3) lo = Math.min(lo, positions[i]!);
+  if (!Number.isFinite(lo) || Math.abs(lo) < 1e-4) return;
+  wrapScene(doc, () => doc.createNode('storystage-ground').setTranslation([0, -lo, 0]));
 }
 
 /** Height in metres at scale 1: the model's extent along Y. */
