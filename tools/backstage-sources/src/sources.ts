@@ -14,6 +14,7 @@ import {
 } from '@storystage/backstage';
 import { groundLook } from '@storystage/stage';
 import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
+import { clipsProblem, type Clips } from './clips.ts';
 import type { Exclude } from './exclude.ts';
 import { kitbashProblems, type Kitbash } from './kitbash.ts';
 
@@ -79,6 +80,13 @@ export interface SourceItem {
    * must be one of the item's class, and each at most once. Not for VRM files.
    */
   readonly bones?: Readonly<Record<string, string>>;
+  /**
+   * Which of the model's own animations are its standard clips (`idle`, `walk`, `run`, `jump`,
+   * `fly`, `swim`), each by name or as `{ clip, start, end }` in seconds for a stretch of one long
+   * track (spec 17, section 3). The build renames them, makes them play in place, and drops every
+   * other animation. Without it the model keeps its animations as they are. Not for VRM files.
+   */
+  readonly clips?: Clips;
   /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
   readonly exclude?: Exclude;
   /**
@@ -203,6 +211,10 @@ export function validateSources(json: unknown): Result {
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
+    if (item.clips !== undefined) {
+      const problem = clipsProblem(item.clips);
+      if (problem) e(problem);
+    }
     if (item.bones !== undefined) {
       const problem = bonesProblem(item.bones, item.class as StoryClass);
       if (problem) e(problem);

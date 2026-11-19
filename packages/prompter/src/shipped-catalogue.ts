@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '47230e5842b0fe930e228a02c4d3055c36e09983';
+export const SHIPPED_CATALOGUE_COMMIT = 'baf514bef413c57551baa52b3fb820871c10f0d2';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -13,11 +13,34 @@ Joint sets
   J1: hips, spine, chest, head, leftUpperArm, leftLowerArm, leftHand, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J2: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbMetacarpal, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbMetacarpal, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
   J3: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
-  J4: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftMiddleProximal, leftRingProximal, leftLittleProximal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightMiddleProximal, rightRingProximal, rightLittleProximal, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
-  J5: hips, spine, chest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, rightShoulder, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot
-  J6: spineBase, spineMiddle, head, leftWingShoulder, leftWingTip, rightWingShoulder, rightWingTip
-  J7: spineBase, spineMiddle, spineUpper, neck, head, leftEar, rightEar, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftAnkle, backRightHip, backRightKnee, backRightHock, backRightAnkle
-  J8: spineBase, spineMiddle, spineUpper, neck, head, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontLeftToe, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, frontRightToe, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftToe, backRightHip, backRightKnee, backRightHock, backRightToe
+  J4: hips, spine, chest, upperChest, neck, head, leftEye, rightEye, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J5: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J6: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J7: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J8: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J9: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, rightShoulder, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J10: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J11: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J12: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes, tongue2, tongue3
+  J13: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot
+  J14: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftIndexIntermediate, leftMiddleProximal, leftMiddleIntermediate, leftRingProximal, leftRingIntermediate, leftLittleProximal, leftLittleIntermediate, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightIndexIntermediate, rightMiddleProximal, rightMiddleIntermediate, rightRingProximal, rightRingIntermediate, rightLittleProximal, rightLittleIntermediate, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J15: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftMiddleProximal, leftMiddleIntermediate, leftRingProximal, leftRingIntermediate, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightMiddleProximal, rightMiddleIntermediate, rightRingProximal, rightRingIntermediate, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J16: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes, tail2, tail3
+  J17: hips, spine, chest, upperChest, neck, head, leftEye, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J18: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftIndexIntermediate, leftMiddleProximal, leftMiddleIntermediate, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightIndexIntermediate, rightMiddleProximal, rightMiddleIntermediate, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J19: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftIndexIntermediate, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightIndexIntermediate, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J20: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J21: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J22: hips, spine, chest, upperChest, neck, head, rightEye, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J23: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes, tail2, tail3, tail4, tail5, tail6
+  J24: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot
+  J25: hips, spine, chest, upperChest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftIndexProximal, leftMiddleProximal, leftRingProximal, leftLittleProximal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightIndexProximal, rightMiddleProximal, rightRingProximal, rightLittleProximal, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J26: hips, spine, chest, upperChest, neck, head, leftEye, rightEye, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J27: hips, spine, chest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, rightShoulder, rightUpperArm, rightLowerArm, rightHand, leftUpperLeg, leftLowerLeg, leftFoot, rightUpperLeg, rightLowerLeg, rightFoot
+  J28: hips, spine, chest, neck, head, leftShoulder, leftUpperArm, leftLowerArm, leftHand, leftThumbMetacarpal, leftThumbProximal, leftThumbDistal, leftIndexProximal, leftIndexIntermediate, leftIndexDistal, leftMiddleProximal, leftMiddleIntermediate, leftMiddleDistal, leftRingProximal, leftRingIntermediate, leftRingDistal, leftLittleProximal, leftLittleIntermediate, leftLittleDistal, rightShoulder, rightUpperArm, rightLowerArm, rightHand, rightThumbMetacarpal, rightThumbProximal, rightThumbDistal, rightIndexProximal, rightIndexIntermediate, rightIndexDistal, rightMiddleProximal, rightMiddleIntermediate, rightMiddleDistal, rightRingProximal, rightRingIntermediate, rightRingDistal, rightLittleProximal, rightLittleIntermediate, rightLittleDistal, leftUpperLeg, leftLowerLeg, leftFoot, leftToes, rightUpperLeg, rightLowerLeg, rightFoot, rightToes
+  J29: spineBase, spineMiddle, head, leftWingShoulder, leftWingTip, rightWingShoulder, rightWingTip
+  J30: spineBase, spineMiddle, spineUpper, neck, head, leftEar, rightEar, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftAnkle, backRightHip, backRightKnee, backRightHock, backRightAnkle
+  J31: spineBase, spineMiddle, spineUpper, neck, head, frontLeftClavicle, frontLeftShoulder, frontLeftKnee, frontLeftAnkle, frontLeftToe, frontRightClavicle, frontRightShoulder, frontRightKnee, frontRightAnkle, frontRightToe, pelvis, tail, tail2, tail3, tail4, backLeftHip, backLeftKnee, backLeftHock, backLeftToe, backRightHip, backRightKnee, backRightHock, backRightToe
 
 Cast
   Biped
@@ -67,18 +90,103 @@ Cast
     makehuman/Biped/p35: Eli, a boy of 8 with short dark hair and a navy kippah, in a green shirt and khaki trousers [everyday, children] 1.14 m, joints J2
     makehuman/Biped/p36: Poppy, a girl of 7 with a brown ponytail and purple hearing aids, in a coral jacket and jeans [everyday, children] 1.03 m, joints J2
     makehuman/Biped/p37: George, an older man of 80 with short white hair and hearing aids, in a brown suit and striped tie [everyday, older people] 1.74 m, joints J2
+    osa/Biped/agnes: Agnes, a skeleton in a pink jumper with a yellow sun on it [fantasy, spooky] 1.73 m, joints J3
+    osa/Biped/ajo-majo: Ajo Majo, a pink axolotl in a purple hoodie [fantasy, animals] 0.88 m, joints J4
+    osa/Biped/alien-teen: Alien Teen, an alien teenager with one big eye, in an orange and black top and shorts [fantasy, space] 1.34 m, joints J3
+    osa/Biped/anna: Anna, a young woman with short pink hair, in a black top and red trousers [fantasy, everyday] 1.59 m, joints J3
+    osa/Biped/astro-nacho: Astro Nacho, an astronaut in a yellow and black spacesuit and a round helmet [fantasy, space] 1.77 m, joints J3
     osa/Biped/astronaut: Astronaut, an astronaut in a yellow spacesuit and a round orange helmet with an aerial [everyday, space] 1.36 m, joints J3
+    osa/Biped/bad-bot: Bad Bot, a thin black robot with a white face and long legs [fantasy, robots] 2.09 m, joints J5
+    osa/Biped/bao-samurai: Bao Samurai, a steamed bun samurai with horns, in brown armour [fantasy, food] 1.63 m, joints J6
+    osa/Biped/bat-pot: Bat Pot, a bat sitting in a black cooking pot [fantasy, animals] 1.13 m, joints J7
+    osa/Biped/beach-king: Beach King, a king in a gold crown, a teal top and pink swim shorts [fantasy, beach] 1.78 m, joints J3
+    osa/Biped/bean-king: Bean King, a big red bean with a crown, on a green stalk body [fantasy, food] 1.28 m, joints J3
+    osa/Biped/blob: Blob, a young man in a purple cap, a white T-shirt and jeans [fantasy, everyday] 1.69 m, joints J5
+    osa/Biped/blue-pixie: Blue Pixie, a blue pixie with big ears and fins like wings [fantasy, fairy tale] 1.79 m, joints J8
+    osa/Biped/bot-bunny: Bot Bunny, a robot with rabbit ears, in a red jacket [fantasy, robots] 1.7 m, joints J3
+    osa/Biped/buffedwolf: Buffedwolf, a big grey wolf-man with long arms [fantasy, spooky] 2.26 m, joints J5
+    osa/Biped/cat-eye: Cat Eye, a cat-eared creature with one big eye, in a pink jumper [fantasy, animals] 1.21 m, joints J9
+    osa/Biped/cat-moth: Cat Moth, a fluffy cream moth with big wings and a cat-like face [fantasy, animals] 1.48 m, joints J7
+    osa/Biped/cherry-bros: Cherry Bros, two red cherries joined at the stalk, with thin legs [fantasy, food] 2.06 m, joints J3
+    osa/Biped/chester: Chester, a grey rabbit wizard in a blue pointed hat and cape [fantasy, fairy tale] 1.02 m, joints J4
+    osa/Biped/cool-bee: Cool Bee, a round fluffy bee with yellow and black stripes [fantasy, animals] 0.5 m, joints J9
+    osa/Biped/cool-bomb: Cool Bomb, a round blue bomb with a fuse and a big grin [fantasy, toys] 1.47 m, joints J10
+    osa/Biped/cool-croissant: Cool Croissant, a croissant with arms and legs and a cross face [fantasy, food] 1.05 m, joints J11
+    osa/Biped/cool-cyclops: Cool Cyclops, a big blue one-eyed monster in a grey skirt [fantasy, myth] 2.05 m, joints J3
+    osa/Biped/cool-heart: Cool Heart, a red heart with big eyes, arms and legs [fantasy, toys] 1.01 m, joints J3
+    osa/Biped/cool-pawn: Cool Pawn, a black chess pawn on thin legs [fantasy, toys] 1.44 m, joints J3
+    osa/Biped/cool-pineapple: Cool Pineapple, a pineapple in sunglasses, a red flowery shirt and green trousers [fantasy, food] 1.52 m, joints J3
+    osa/Biped/cool-pyramid: Cool Pyramid, a golden pyramid with one eye and sunglasses, on thin legs [fantasy, history] 1.2 m, joints J3
+    osa/Biped/cool-radish: Cool Radish, a white radish with leaves on top, in blue striped dungarees [fantasy, food] 2.08 m, joints J8
+    osa/Biped/cool-snake: Cool Snake, a red and white striped snake in a brown cowboy hat [fantasy, animals] 1.81 m, joints J12
+    osa/Biped/cool-spaguetti: Cool Spaguetti, a plate of spaghetti with a meatball face and noodle legs [fantasy, food] 1.81 m, joints J13
+    osa/Biped/cool-sushi: Cool Sushi, a roll of sushi rice with a cross face and orange trainers [fantasy, food] 1.33 m, joints J5
+    osa/Biped/cool-tiger: Cool Tiger, a striped tiger in black trousers [fantasy, animals] 1.78 m, joints J14
+    osa/Biped/cool-tiki: Cool Tiki, a tiki mask with a green crest, on a black body [fantasy, myth] 1.34 m, joints J15
+    osa/Biped/cool-toaster: Cool Toaster, a grey toaster with a slice of toast in it, on thin legs [fantasy, kitchen] 1.7 m, joints J10
+    osa/Biped/cool-udon: Cool Udon, a bowl of udon noodles with chopsticks, on thin legs [fantasy, food] 1.57 m, joints J3
+    osa/Biped/cool-waffle: Cool Waffle, a round waffle with a smiling face, on thin legs [fantasy, food] 1.31 m, joints J3
+    osa/Biped/cosmic-bot: Cosmic Bot, a tall purple robot with pointed ears [fantasy, robots] 1.98 m, joints J3
+    osa/Biped/crowley: Crowley, a figure in a yellow hoodie and a black fox mask [fantasy, mystery] 1.84 m, joints J16
+    osa/Biped/cute-moth: Cute Moth, a pink fluffy moth with big eyes and purple wings [fantasy, animals] 0.89 m, joints J10
+    osa/Biped/cute-saurus: Cute Saurus, a little dinosaur in a green knitted jumper [fantasy, dinosaurs] 1.5 m, joints J15
+    osa/Biped/cyberpal: Cyberpal, a boy with spiky green hair and goggles, in grey and black clothes [fantasy, everyday] 1.74 m, joints J3
     osa/Biped/david: David, a garden gnome with a red pointed hat and a white beard, in a blue shirt [everyday] 1.58 m, joints J3
     osa/Biped/dino-kid: Dino kid, a child in a green dinosaur costume [everyday, dinosaurs] 1.24 m, joints J3
+    osa/Biped/dogo-burger: Dogo Burger, a burger with a dog's face and paws [fantasy, food] 1.18 m, joints J10
+    osa/Biped/dream-fighter: Dream Fighter, a fighter in a green cap and top and baggy pink trousers [fantasy, adventure] 1.74 m, joints J3
     osa/Biped/erika: Erika, a woman with long lilac hair and sunglasses, in a green top and grey trousers [everyday] 1.66 m, joints J3
+    osa/Biped/eugenia: Eugenia, an older woman with grey hair in a bun, in a teal cardigan and a yellow skirt [fantasy, older people] 1.42 m, joints J3
+    osa/Biped/evil-book: Evil Book, a grumpy old book with legs and blue ribbons for arms [fantasy, library] 1.36 m, joints J5
+    osa/Biped/fire-eye: Fire Eye, a tall figure with one eye and a flame for a head, in a blue wrap [fantasy, myth] 3.34 m, joints J3
+    osa/Biped/frog-enjoyer: Frog Enjoyer, a child in a green frog hat, a pink top and red shorts [fantasy, children] 1.63 m, joints J17
+    osa/Biped/ghost-pumpking: Ghost Pumpking, a ghost in a white sheet with a pumpkin for a head [fantasy, spooky] 1.74 m, joints J3
+    osa/Biped/goat-ghost: Goat Ghost, a ghost with goat horns, in a brown cloak [fantasy, spooky] 1.3 m, joints J18
+    osa/Biped/good-knight: Good Knight, a knight in a dark helmet and a green tunic [fantasy, history] 1.89 m, joints J3
+    osa/Biped/jenny: Jenny, a young woman with long teal hair, in a grey top and dark trousers [fantasy, everyday] 1.66 m, joints J3
+    osa/Biped/joker-dude: Joker Dude, a jester in a red and green hat with bells and a white collar [fantasy, fairy tale] 1.56 m, joints J5
+    osa/Biped/juanita: Juanita, a girl with pink hair in buns, in a green jacket and black shorts [fantasy, children] 0.96 m, joints J19
+    osa/Biped/kiba: Kiba, a white llama standing up, in a green waistcoat [fantasy, animals] 1.82 m, joints J7
     osa/Biped/kyle: Kyle, a man with a red quiff, in a navy T-shirt and blue trousers [everyday] 1.67 m, joints J3
+    osa/Biped/lady-fawn: Lady Fawn, a deer woman with antlers, in a green dress [fantasy, fairy tale] 1.81 m, joints J3
+    osa/Biped/lady-koi: Lady Koi, a koi fish woman with orange and white fins for hair [fantasy, sea] 1.64 m, joints J20
+    osa/Biped/leaf-boy: Leaf Boy, a boy with green hair and headphones, in a teal shirt and shorts [fantasy, children] 1.12 m, joints J21
+    osa/Biped/lil-ram: Lil Ram, a little ram with curly horns, in red dungarees [fantasy, animals] 1.14 m, joints J6
+    osa/Biped/lil-shark: Lil Shark, a grinning shark in a yellow rubber ring [fantasy, sea] 0.78 m, joints J22
+    osa/Biped/lil-teddy: Lil Teddy, a teddy bear in a flowery bucket hat, with a coin necklace [fantasy, toys] 1.08 m, joints J9
+    osa/Biped/lord-piggington: Lord Piggington, a pig in a green coat and a white cravat [fantasy, animals] 1.88 m, joints J6
+    osa/Biped/math-book: Math Book, a blue maths book with arms and legs [fantasy, school] 0.96 m, joints J5
+    osa/Biped/mega-angel: Mega Angel, a white angel with big blue wings [fantasy, myth] 1.34 m, joints J5
+    osa/Biped/megan-the-fox: Megan The Fox, a pink fox in a purple hoodie and boots [fantasy, animals] 1.59 m, joints J23
+    osa/Biped/mr: Mr, a white robot with a cartoon face and a square code on its chest [fantasy, robots] 1.64 m, joints J5
+    osa/Biped/mr-bush: Mr Bush, a leafy green bush with legs [fantasy, garden] 1.81 m, joints J3
+    osa/Biped/mr-squirrel: Mr Squirrel, a round brown squirrel in a small top hat [fantasy, animals] 0.68 m, joints J6
+    osa/Biped/mushroom-fairy: Mushroom Fairy, a fairy with a mushroom for a hat and leafy arms [fantasy, fairy tale] 2.04 m, joints J24
+    osa/Biped/nut-bot: Nut Bot, a white and purple robot with cat ears [fantasy, robots] 1.58 m, joints J5
     osa/Biped/olivia: Olivia, a woman in a gold hood and a black and gold costume [everyday] 1.67 m, joints J3
-    osa/Biped/polybot: Polybot, a green robot with a boxy head [everyday, robots] 1.06 m, joints J4
+    osa/Biped/petal-dude: Petal Dude, a tall figure with a flower for a head, in orange, pink and purple [fantasy, garden] 2.04 m, joints J3
+    osa/Biped/pirate-bot: Pirate Bot, a grey robot pirate in a pirate hat [fantasy, robots] 1.79 m, joints J6
+    osa/Biped/pitcher-dude: Pitcher Dude, a tall green pitcher plant with a red top [fantasy, garden] 3 m, joints J5
+    osa/Biped/polybot: Polybot, a green robot with a boxy head [everyday, robots] 1.06 m, joints J25
+    osa/Biped/psichonaut: Psichonaut, a grey alien with a planet for a head, in purple shorts [fantasy, space] 1.89 m, joints J3
+    osa/Biped/ranchu: Ranchu, a woman in a goldfish costume with orange fins [fantasy, sea] 2.05 m, joints J3
     osa/Biped/robert: Robert, a man with a pink beard, in a dark green T-shirt and turquoise trousers [everyday] 1.61 m, joints J3
     osa/Biped/rose: Rose, a pirate in a black three-cornered hat, a striped top, red shorts and tall boots [everyday] 1.66 m, joints J3
+    osa/Biped/snail-kid: Snail Kid, a child with a snail shell on their back and antennae, in a grey top and blue shorts [fantasy, children] 1.55 m, joints J26
+    osa/Biped/snake-bot: Snake Bot, a white and grey robot with a snake's head [fantasy, robots] 1.44 m, joints J5
+    osa/Biped/sport-mecha: Sport Mecha, an orange robot with long arms [fantasy, robots] 1.78 m, joints J3
+    osa/Biped/sport-tv: Sport TV, a figure with a TV for a head, in a teal and purple hoodie [fantasy, sport] 2.02 m, joints J3
+    osa/Biped/stingcake: Stingcake, a frog in sunglasses, a dark suit and a blue tie [fantasy, animals] 1.28 m, joints J9
+    osa/Biped/strawberry-princess: Strawberry Princess, a strawberry with a crown and big eyes, on leafy legs [fantasy, food] 1.37 m, joints J3
     osa/Biped/teddy: Teddy, a brown teddy bear [everyday, toys] 1.65 m, joints J3
-    sketchfab/Biped/grandmother: Grandmother, an old village grandmother with grey hair, in a long orange dress [storybook, fairy tale, people] 1.55 m, joints J5
-    sketchfab/Biped/red-riding-hood: Little Red Riding Hood, Little Red Riding Hood, a small girl in a long red hooded cloak [storybook, fairy tale] 1.2 m, joints J5
+    osa/Biped/toxic-guy: Toxic Guy, a figure with a glass jar for a head, in a brown jacket [fantasy, science] 2.04 m, joints J5
+    osa/Biped/two-tails: Two-Tails, a cat in a green and red patterned coat [fantasy, animals] 1.31 m, joints J9
+    osa/Biped/urban-tv: Urban TV, a figure with an old TV for a head, in an orange jacket and jeans [fantasy, town] 1.85 m, joints J5
+    osa/Biped/vladi: Vladi, a little vampire in a purple cloak [fantasy, spooky] 1.06 m, joints J5
+    osa/Biped/weird-cat: Weird Cat, a cat with big round blue goggles and a brown waistcoat [fantasy, animals] 1.22 m, joints J6
+    osa/Biped/yeti-dude: Yeti Dude, a white furry yeti with a long beard [fantasy, myth] 1.63 m, joints J5
+    sketchfab/Biped/grandmother: Grandmother, an old village grandmother with grey hair, in a long orange dress [storybook, fairy tale, people] 1.55 m, joints J27
+    sketchfab/Biped/red-riding-hood: Little Red Riding Hood, Little Red Riding Hood, a small girl in a long red hooded cloak [storybook, fairy tale] 1.2 m, joints J27
     storybook/Biped/anansi: Anansi, Anansi the Akan trickster: a man in orange and purple, with a striped headwrap and eight striped spider legs [storybook, folk tale, West African] 2.24 m, joints J1
     storybook/Biped/beowulf: Beowulf, Beowulf the hero, bearded, in a bear hood and furs [storybook, legend, myth, history] 2.4 m, joints J1
     storybook/Biped/branwen: Branwen, Branwen of the Mabinogion, a young woman with long dark hair, in a long blue dress and cloak, with a gold circlet [storybook, legend, myth, Welsh] 2.19 m, joints J1
@@ -91,16 +199,17 @@ Cast
     storybook/Biped/robin-hood: Robin Hood, Robin Hood, the outlaw of Sherwood Forest, in a green hood and cloak [storybook, legend, history] 2.25 m, joints J1
     storybook/Biped/selkie: Selkie, a selkie, a seal-woman of Scottish and Irish tales, in a silver-grey hooded sealskin cloak [storybook, folk tale, myth, sea] 2.25 m, joints J1
     storybook/Biped/sherlock-holmes: Sherlock Holmes, Sherlock Holmes the detective, with black hair, in a tweed deerstalker and a brown cape coat, holding a magnifying glass [storybook, mystery, Victorian] 2.2 m, joints J1
+    vrmc/Biped/seed-san: Seed-san, a young woman with short dark hair, in a white and blue jumpsuit, with a robot arm on her back [everyday, space] 1.58 m, joints J28
   Flyer
-    styloo/Flyer/butterfly: Butterfly, an orange and black butterfly with white spots, its wings open [animals, minibeasts, garden] 0.6 m, joints J6
+    styloo/Flyer/butterfly: Butterfly, an orange and black butterfly with white spots, its wings open [animals, minibeasts, garden] 0.6 m, joints J29
     styloo/Flyer/chicken: Chicken, a brown hen with a red comb [animals, farm] 0.45 m, no joints
     styloo/Flyer/ladybird: Ladybird, a red ladybird with a black head and six legs [animals, minibeasts, garden] 0.06 m, no joints
   Quadruped
-    blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J7
-    styloo/Quadruped/cat: Cat, a cream cat with light brown legs, ears and face, and blue eyes [animals, pets] 0.3 m, joints J8
-    styloo/Quadruped/cow: Cow, a black and white cow with a pink nose [animals, farm] 1.6 m, joints J8
-    styloo/Quadruped/dog: Dog, a grey dog with a black and white head and floppy ears [animals, pets] 0.65 m, joints J8
-    styloo/Quadruped/giraffe: Giraffe, a tall giraffe with orange-brown patches and a long neck [animals, savanna] 4.99 m, joints J8
+    blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J30
+    styloo/Quadruped/cat: Cat, a cream cat with light brown legs, ears and face, and blue eyes [animals, pets] 0.3 m, joints J31
+    styloo/Quadruped/cow: Cow, a black and white cow with a pink nose [animals, farm] 1.6 m, joints J31
+    styloo/Quadruped/dog: Dog, a grey dog with a black and white head and floppy ears [animals, pets] 0.65 m, joints J31
+    styloo/Quadruped/giraffe: Giraffe, a tall giraffe with orange-brown patches and a long neck [animals, savanna] 4.99 m, joints J31
 
 Props
   Prop

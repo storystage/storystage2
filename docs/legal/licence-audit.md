@@ -74,7 +74,7 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets 47230e5 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets baf514b (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
@@ -82,7 +82,7 @@ Generated from `backstage.json` at storystage/backstage-assets 47230e5 (the comm
 | Blender Studio | CC-BY-4.0 | 1 | Autumn (CC) Blender Foundation \| studio.blender.org; reduced for StoryStage, changed for StoryStage |
 | KayKit | CC0-1.0 | 10 | Barbarian by Kay Lousberg, KayKit (CC0) |
 | MakeHuman people | CC0-1.0 | 37 | Alfie, made with MakeHuman (CC0) |
-| Open Source Avatars | CC0-1.0 | 10 | Astronaut by Polygonal Mind, 100Avatars (CC0) |
+| Open Source Avatars | CC0-1.0 | 95 | Agnes by Polygonal Mind, 100Avatars (CC0) |
 | Poly Pizza | CC-BY-3.0 | 51 | Apple by jeremy, CC BY 3.0, via Poly Pizza, changed for StoryStage |
 | Poly Pizza | CC0-1.0 | 18 | Alarm clock by CreativeTrio (CC0), via Poly Pizza |
 | Scottish Maritime Museum (on Sketchfab) | CC0-1.0 | 8 | Locomotive Headlamp, Scottish Maritime Museum (CC0) |
@@ -90,7 +90,8 @@ Generated from `backstage.json` at storystage/backstage-assets 47230e5 (the comm
 | Smithsonian Open Access | CC0-1.0 | 7 | Abraham Lincoln's Patent Model, Smithsonian National Museum of American History (CC0) |
 | Storybook cast, KayKit models and characters made from their parts | CC0-1.0 | 12 | Anansi, made from Barbarian by Kay Lousberg, KayKit (CC0) |
 | styloo | CC0-1.0 | 7 | Butterfly by styloo, Animals Asset Pack (CC0) |
-| **All** | | **194** | |
+| vrmc | VRM-PL-1.0 | 1 | Seed-san by VirtualCast, Inc. (VRM Public License 1.0) |
+| **All** | | **280** | |
 
 <!-- /shipped -->
 

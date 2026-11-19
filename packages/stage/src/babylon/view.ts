@@ -82,6 +82,8 @@ export interface Motion {
   readonly fading?: { readonly expression: string; readonly amount: number } | null;
   readonly blink?: number;
   readonly clips?: readonly ClipPose[];
+  /** An animal's walk in code: each joint's turn in the model's own axes, on top of its clips. */
+  readonly turns?: ReadonlyMap<JointName, Quat>;
   readonly reach?: readonly ReachPose[];
   readonly look?: readonly LookPose[];
 }
@@ -160,6 +162,8 @@ export class ObjectView {
   private readonly jointNodes: ReadonlyMap<JointName, TransformNode>;
   /** The way each joint faces, in its own axes: the way the model faces (+Z), at rest. */
   private readonly facings: ReadonlyMap<JointName, Vec3>;
+  /** How each joint is turned in the model at rest, to turn it in the model's own axes. */
+  private readonly restTurns: ReadonlyMap<JointName, Quat>;
   private readonly clipsByName: ReadonlyMap<string, Clip>;
   /** The rest of every node a clip moves, to blend with and to go back to. */
   private readonly rests: ReadonlyMap<TransformNode, NodeRest>;
@@ -198,11 +202,14 @@ export class ObjectView {
     });
     this.jointNodes = joints ?? new Map();
     // The model is still where it was made, so a joint's turn in the scene is its turn in it.
-    this.facings = new Map(
+    this.restTurns = new Map(
       this.bones.map(({ joint, node }) => {
         refresh(node);
-        return [joint, rotate(conjugate(worldTurn(node)), v(0, 0, 1))] as const;
+        return [joint, worldTurn(node)] as const;
       }),
+    );
+    this.facings = new Map(
+      [...this.restTurns].map(([joint, turn]) => [joint, rotate(conjugate(turn), v(0, 0, 1))]),
     );
     const rests = new Map<TransformNode, NodeRest>();
     const clips = new Map<string, Clip>();
@@ -280,6 +287,7 @@ export class ObjectView {
     const moving = !!(
       motion.human ||
       motion.clips?.length ||
+      motion.turns?.size ||
       motion.reach?.length ||
       motion.look?.length
     );
@@ -310,7 +318,13 @@ export class ObjectView {
     // The model's own clips over that, by their weights.
     for (const [node, turn] of this.blend(motion.clips ?? [])) animated.set(node, turn);
     for (const { joint, node, rest } of this.bones) {
-      const base = animated.get(node) ?? rest;
+      let base = animated.get(node) ?? rest;
+      // A turn in the model's axes, as one in the joint's own: R⁻¹ q R, with R its turn at rest.
+      const coded = motion.turns?.get(joint);
+      if (coded) {
+        const r = this.restTurns.get(joint)!;
+        base = mul(base, mul(conjugate(r), mul(coded, r)));
+      }
       const turn = state.joints.get(joint);
       setRotation(node, turn ? mul(base, turn) : base);
     }

@@ -231,7 +231,7 @@ describe('faces', () => {
     expect(t.shown(ann).face).toEqual({ expression: 'sad', amount: 1 });
   });
 
-  it('tip the head back a little for a surprise, and only then (owner, 19 Nov)', () => {
+  it('tip the head back a little for a surprise, and only then (S3, as S4 suggested)', () => {
     const t = timeline();
     // The way the face looks: from the head towards a point a metre ahead of it, as posed.
     const upward = () => {
