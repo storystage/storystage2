@@ -364,6 +364,35 @@ export class BabylonStage implements EditableStage {
     this.notice(false);
     // A newer load may drop this scene before it's ready, and then it never will be.
     await readyOrGone(scene);
+    await this.warmFaces(scene);
+  }
+
+  /**
+   * Babylon.js gets a model's face shapes right only from the second drawing of them, so the
+   * first frame with a face showed none (seen on Seed-san). Draws every face shape a little, and
+   * then none, unseen, as a scene loads.
+   */
+  private async warmFaces(scene: Scene): Promise<void> {
+    const views = [...this.views.values()].filter((v) => v.hasFaces);
+    if (views.length === 0 || scene.isDisposed || !this.camera) return;
+    const unseen = new RenderTargetTexture('warm faces', { width: 16, height: 16 }, scene, {
+      generateMipMaps: false,
+    });
+    try {
+      unseen.renderList = scene.meshes.slice();
+      unseen.activeCamera = this.camera;
+      for (const warm of [true, false]) {
+        for (const view of views) view.warmFaces(warm);
+        unseen.render();
+        await readyOrGone(scene);
+        if (scene.isDisposed || scene !== this.scene) return;
+        unseen.render();
+      }
+    } finally {
+      unseen.dispose();
+      for (const view of views) view.warmFaces(null);
+      if (scene === this.scene) this.show();
+    }
   }
 
   /**

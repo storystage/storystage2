@@ -29,8 +29,13 @@ const timeline = (gaits: Gaits) => {
 describe("an animal's own gaits", () => {
   it('are looked for under the standard names, a flyer flying and a swimmer swimming', () => {
     expect(gaitClipNames('walk', 'Quadruped')).toEqual(['walk']);
-    expect(gaitClipNames('walk', 'Flyer')).toEqual(['fly', 'walk']);
-    expect(gaitClipNames('walk', 'Swimmer')).toEqual(['swim', 'walk']);
+    // A penguin walks with its own walk (S4, 19 Nov); a butterfly with its fly.
+    expect(gaitClipNames('walk', 'Flyer')).toEqual(['walk', 'fly']);
+    expect(gaitClipNames('walk', 'Swimmer')).toEqual(['walk', 'swim']);
+    // On any move, a flyer flies and a swimmer swims (owner, 19 Nov); nothing else.
+    expect(gaitClipNames('move', 'Flyer')).toEqual(['fly']);
+    expect(gaitClipNames('move', 'Swimmer')).toEqual(['swim']);
+    expect(gaitClipNames('move', 'Quadruped')).toEqual([]);
     // Styloo's makers spelt it so, until S4's build renames it.
     expect(gaitClipNames('idle', 'Quadruped')).toEqual(['idle', 'iddle']);
   });
@@ -81,5 +86,54 @@ describe("an animal's own gaits", () => {
     t.schedule([{ ...cmd(0, 8, walk), style: 'beginAndEndAbruptly' }]);
     t.seek(micros(3));
     expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 3, weight: 1 }]);
+  });
+});
+
+describe('a flyer or swimmer on any move (owner, 19 Nov)', () => {
+  const bee = (gaits: Gaits) => timeline(gaits);
+  const fly = { clip: 'fly', speed: null } as const;
+
+  it('plays its own fly while it moves, coming in and going', () => {
+    const t = bee({ move: fly, idle: { clip: 'idle', speed: null } });
+    t.schedule([
+      { ...cmd(0, 2, { object: dog, kind: 'moveTo', target: spot }), style: 'beginAndEndAbruptly' },
+    ]);
+    t.seek(micros(1));
+    // At its own pace, a second in, with the idle gone under it.
+    expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 1, weight: 1 }]);
+    t.seek(micros(0.1));
+    expect(t.shown(dog).own).toEqual([
+      { name: 'idle', time: 0.1, weight: 0.5 },
+      { name: 'fly', time: 0.1, weight: 0.5 },
+    ]);
+    t.seek(micros(2.5));
+    expect(t.shown(dog).own).toEqual([{ name: 'idle', time: 2.5, weight: 1 }]);
+  });
+
+  it('flies once for two moves at once, by the clock of the first', () => {
+    const t = bee({ move: fly });
+    const up = { object: dog, kind: 'translate', by: v(0, 1, 0), space: 'scene' } as const;
+    t.schedule([
+      { ...cmd(0, 2, { object: dog, kind: 'moveTo', target: spot }), style: 'beginAndEndAbruptly' },
+      { ...cmd(0.5, 2, up), style: 'beginAndEndAbruptly' },
+    ]);
+    t.seek(micros(1));
+    expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 1, weight: 1 }]);
+    // The first has ended; the second flies on, by its own clock.
+    t.seek(micros(2.3));
+    expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 1.8, weight: 1 }]);
+  });
+
+  it('does nothing for a model with no fly, or a move that goes nowhere', () => {
+    const t = bee({ walk: { clip: 'walk', speed: 0.5 } });
+    t.schedule([
+      { ...cmd(0, 2, { object: dog, kind: 'moveTo', target: spot }), style: 'beginAndEndAbruptly' },
+    ]);
+    t.seek(micros(1));
+    expect(t.shown(dog).own).toEqual([]);
+    const still = bee({ move: fly });
+    still.schedule([cmd(0, 2, { object: dog, kind: 'moveTo', target: dog })]);
+    still.seek(micros(1));
+    expect(still.shown(dog).own).toEqual([]);
   });
 });

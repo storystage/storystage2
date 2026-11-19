@@ -5,6 +5,7 @@
  * surprised: VRM 0.x has no preset for it, so a model without one is surprised with its open
  * mouth, its "O" viseme (the owner's choice, 19 Nov 2026, by S4).
  */
+import type { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import type { MorphTarget } from '@babylonjs/core/Morph/morphTarget.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 
@@ -36,6 +37,7 @@ const SURPRISED_OPEN = 1;
 
 interface Json {
   readonly nodes?: readonly { readonly name?: string; readonly mesh?: number }[];
+  readonly materials?: readonly { readonly name?: string }[];
   readonly extensions?: {
     readonly VRM?: {
       readonly blendShapeMaster?: {
@@ -56,6 +58,12 @@ interface Json {
                 index: number;
                 weight: number;
               }[];
+              readonly textureTransformBinds?: readonly {
+                material: number;
+                scale?: readonly [number, number];
+                offset?: readonly [number, number];
+              }[];
+              readonly isBinary?: boolean;
             }
           >
         >;
@@ -109,6 +117,63 @@ export function facesOf(gltf: unknown): Map<string, FaceBind[]> {
       open.map((b) => ({ ...b, weight: b.weight * SURPRISED_OPEN })),
     );
   return out;
+}
+
+/**
+ * A VRM 1.0 expression's shift of a surface's picture (`textureTransformBinds`): Seed-san's robot
+ * shows each face on its screen so (the owner's choice, 19 Nov). At full strength the picture is
+ * scaled by `scale` and moved by `offset`, in glTF's texture coordinates.
+ */
+export interface FaceShift {
+  /** The glTF material's name, which the Babylon.js loader gives its material. */
+  readonly material: string;
+  readonly scale: readonly [number, number];
+  readonly offset: readonly [number, number];
+}
+
+/** Each VRM 1.0 expression's picture shifts, by the Story API's names. */
+export function faceShiftsOf(gltf: unknown): Map<string, FaceShift[]> {
+  const json = gltf as Json;
+  const out = new Map<string, FaceShift[]>();
+  for (const [expression, preset] of Object.entries(
+    json.extensions?.VRMC_vrm?.expressions?.preset ?? {},
+  )) {
+    if (!VRM1.has(expression)) continue;
+    const shifts = (preset.textureTransformBinds ?? []).flatMap(({ material, scale, offset }) => {
+      const name = json.materials?.[material]?.name;
+      return name === undefined
+        ? []
+        : [
+            {
+              material: name,
+              scale: scale ?? ([1, 1] as const),
+              offset: offset ?? ([0, 0] as const),
+            },
+          ];
+    });
+    if (shifts.length) out.set(expression, shifts);
+  }
+  return out;
+}
+
+/**
+ * The expressions a VRM 1.0 model says are all or nothing (`isBinary`): over half way there,
+ * they show in full; under, not at all.
+ */
+export function binaryFacesOf(gltf: unknown): Set<string> {
+  const json = gltf as Json;
+  return new Set(
+    Object.entries(json.extensions?.VRMC_vrm?.expressions?.preset ?? {})
+      .filter(([expression, preset]) => VRM1.has(expression) && preset.isBinary)
+      .map(([expression]) => expression),
+  );
+}
+
+/** A picture shift on a placed copy of the model: the picture it moves, its own copy. */
+export interface FaceTexture {
+  readonly texture: Texture;
+  readonly scale: readonly [number, number];
+  readonly offset: readonly [number, number];
 }
 
 export interface FaceTarget {

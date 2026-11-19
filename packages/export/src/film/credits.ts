@@ -20,7 +20,7 @@ export type FilmCreditable = Pick<
 
 export interface FilmCreditLine {
   readonly text: string;
-  /** A CC BY licence's short name and deed, which the licence asks for. */
+  /** The licence's short name and address, for a licence that asks for credit (CC BY, VRM). */
   readonly licence?: { readonly name: string; readonly url: string };
   /** A model the class imported, carried in the production's file (decision 0049). */
   readonly imported?: true;
@@ -64,6 +64,12 @@ export function usedModels(production: Production): BackstageId[] {
   return [...seen];
 }
 
+/**
+ * The licences whose credit names them, so the film gives their address too: CC BY's deeds and
+ * the VRM Public License (Seed-san, S4's #549). CC0 asks for nothing, so its lines stay short.
+ */
+const asksForCredit = (licence: string) => licence.startsWith('CC-BY') || licence === 'VRM-PL-1.0';
+
 /** "Owl from the StoryStage Cast (CC0)": the model's name, and where it's from. */
 const SOURCE = /^(.+?) ((?:by|from) .+)$/u;
 
@@ -81,7 +87,7 @@ function grouped(
   const out: { text: string[]; rest: string | null; line: FilmCreditLine }[] = [];
   for (const line of lines) {
     const item = items.get(line.id)!;
-    const licence = item.licence.startsWith('CC-BY') && line.licence ? line.licence : undefined;
+    const licence = asksForCredit(item.licence) && line.licence ? line.licence : undefined;
     const match = !item.packed ? SOURCE.exec(line.text) : null;
     const same = match && out.find((o) => o.rest === match[2]);
     if (same && match) {

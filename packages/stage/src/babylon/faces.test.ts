@@ -1,10 +1,14 @@
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder.js';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { MorphTarget } from '@babylonjs/core/Morph/morphTarget.js';
 import { MorphTargetManager } from '@babylonjs/core/Morph/morphTargetManager.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import { describe, expect, it } from 'vitest';
-import { faceTargets, facesOf } from './faces.ts';
+import type { ObjectState } from '../timeline.ts';
+import { binaryFacesOf, faceShiftsOf, faceTargets, facesOf } from './faces.ts';
 import { headlessEngine } from './headless.ts';
+import { ObjectView } from './view.ts';
 
 const vrm0 = {
   nodes: [{ name: 'Armature' }, { name: 'Face', mesh: 0 }],
@@ -110,5 +114,68 @@ describe('faces', () => {
     const targets = faceTargets(facesOf(vrm0), [face, other]);
     expect(targets.get('happy')![0]!.target).toBe(face.morphTargetManager.getTarget(1));
     expect(targets.get('blink')![0]!.weight).toBe(0.5);
+  });
+
+  it("read a VRM 1.0 avatar's picture shifts and its all-or-nothing faces (Seed-san's screen)", () => {
+    const seed = {
+      materials: [{ name: 'skin' }, { name: 'robo_face' }],
+      extensions: {
+        VRMC_vrm: {
+          expressions: {
+            preset: {
+              happy: {
+                isBinary: true,
+                textureTransformBinds: [{ material: 1, offset: [0.25, 0], scale: [1, 1] }],
+              },
+              sad: { textureTransformBinds: [{ material: 1, offset: [0.75, 0] }] },
+              aa: { isBinary: true, textureTransformBinds: [{ material: 1, offset: [0, 0.5] }] },
+            },
+          },
+        },
+      },
+    };
+    expect(Object.fromEntries(faceShiftsOf(seed))).toEqual({
+      happy: [{ material: 'robo_face', scale: [1, 1], offset: [0.25, 0] }],
+      sad: [{ material: 'robo_face', scale: [1, 1], offset: [0.75, 0] }],
+    });
+    expect([...binaryFacesOf(seed)]).toEqual(['happy']);
+    expect(faceShiftsOf(vrm0).size).toBe(0);
+  });
+
+  it('shift the picture as the face shows, all or nothing when the model says so', () => {
+    const scene = new Scene(headlessEngine());
+    const picture = new Texture(null, scene);
+    picture.uOffset = 1;
+    const view = new ObjectView({
+      root: new TransformNode('root', scene),
+      meshes: [],
+      box: { min: { x: 0, y: 0, z: 0 }, max: { x: 1, y: 1, z: 1 } },
+      paintable: [],
+      faceTextures: new Map([
+        ['happy', [{ texture: picture, scale: [1, 1], offset: [0.25, 0] }]],
+        ['sad', [{ texture: picture, scale: [0.5, 1], offset: [0, 0.5] }]],
+      ]),
+      binaryFaces: new Set(['happy']),
+    });
+    const state = {
+      joints: new Map(),
+      opacity: 1,
+      paint: null,
+      paintBlend: null,
+    } as unknown as ObjectState;
+    const where = {
+      position: { x: 0, y: 0, z: 0 },
+      rotation: { x: 0, y: 0, z: 0, w: 1 },
+      scale: { x: 1, y: 1, z: 1 },
+    };
+    const showing = (expression: string, amount: number) => {
+      view.show(state, where, { face: { expression, amount } });
+      return [picture.uOffset, picture.vOffset, picture.uScale];
+    };
+    // From where it rests, a whole turn across.
+    expect(showing('happy', 1)).toEqual([1.25, 0, 1]);
+    expect(showing('happy', 0.4)).toEqual([1, 0, 1]);
+    // Not all or nothing: part way, part shifted.
+    expect(showing('sad', 0.5)).toEqual([1, 0.25, 0.75]);
   });
 });
