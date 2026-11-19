@@ -42,6 +42,7 @@ import {
   type TextureEncoder,
 } from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
+import { alignGlb } from './glb-align.ts';
 import {
   meshFromDocument,
   meshFromModel,
@@ -137,9 +138,13 @@ export async function buildSources(
     const fetchedModel: Fetched = made ?? (await fetchModel(item, fetcher, dir));
     // A character made from parts (`kitbash.ts`): its other parts come from the same commit, and
     // each is recorded with what was fetched.
-    const got: Fetched = item.kitbash ? await kitbash(item, fetchedModel, fetcher) : fetchedModel;
+    const assembled: Fetched = item.kitbash
+      ? await kitbash(item, fetchedModel, fetcher)
+      : fetchedModel;
+    // A binary glTF's JSON chunk padded to 4 bytes, as the format requires (some VRMs leave it).
+    const got = { ...assembled, bytes: alignGlb(assembled.bytes) } as Fetched;
     const { ext, fetched } = got;
-    // VRM files are kept byte for byte; excludes apply to glTF models only.
+    // VRM files are kept byte for byte, but for that padding; excludes apply to glTF models only.
     const trimmed =
       ext === 'glb'
         ? await applyExcludes(got.bytes, exclude)
