@@ -113,6 +113,32 @@ describe('models', () => {
     expect(seconds / 1e6).toBeCloseTo(2 / (0.25 / 0.65), 2);
   });
 
+  it("reckon a foot below the knee for a leg mapped no lower (S4's savanna animals)", async () => {
+    // A knee 0.5 m up that swings a twelfth of a turn: the ground below it sweeps
+    // 0.5 sin 30° = 0.25 m, as the toe did above. The knee itself only turns where it is.
+    const animal = backstageId('test/Quadruped/kneed');
+    const file = tinySkeletonUrl(
+      [{ name: 'spineBase' }, { name: 'frontLeftKnee', parent: 'spineBase', at: [0, 0.5, 0] }],
+      { clips: [{ name: 'walk', bone: 'frontLeftKnee', axis: [1, 0, 0], turns: 1 / 12 }] },
+    );
+    const knee = jointName('frontLeftKnee');
+    const stage = new BabylonStage(headlessEngine(), {
+      models: {
+        find: (id) =>
+          id === animal ? { url: file, joints: [jointName('spineBase'), knee] } : null,
+      },
+    });
+    const spot = objectId('spot');
+    await stage.load({
+      ...SETUP,
+      objects: [{ ...place(ann, 0, animal), class: 'Quadruped' as const }],
+      markers: [{ id: spot, transform: { ...IDENTITY, position: { x: 2, y: 0, z: 0 } } }],
+    });
+    const walk = { object: ann, kind: 'walk', to: spot, gait: 'walk' } as const;
+    const seconds = stage.answer({ kind: 'naturalDuration', action: walk, at: 0 }).value as number;
+    expect(seconds / 1e6).toBeCloseTo(2 / (0.25 / 0.65), 2);
+  });
+
   it('say which posed joints the model has not got, after its model, and never for a stand-in (spec 03, 2.2)', async () => {
     const wing = jointName('leftWing');
     const turn = { x: 0, y: 0, z: 0, w: 1 };

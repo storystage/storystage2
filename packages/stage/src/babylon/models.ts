@@ -223,9 +223,25 @@ function gaitsOf(
   clips: ReadonlyMap<string, number>,
   joints: ReadonlyMap<JointName, TransformNode>,
 ): Gaits | undefined {
-  const named = (ends: RegExp) => [...joints].filter(([j]) => ends.test(j)).map(([, n]) => n);
+  const named = (ends: RegExp) =>
+    [...joints].filter(([j]) => ends.test(j)).map(([, node]) => ({ node }));
   const toes = named(/Toes?$/);
-  const feet = toes.length > 0 ? toes : named(/(Ankle|Foot)$/);
+  const lower = toes.length > 0 ? toes : named(/(Ankle|Foot)$/);
+  // Legs mapped only down to the knee (S4's savanna animals): each foot is where the ground is
+  // straight below its knee at rest, carried by the knee as it turns.
+  const feet =
+    lower.length > 0
+      ? lower
+      : named(/Knee$/).map(({ node }) => {
+          // At rest, the root at the origin: its joints' places were worked out just before.
+          node.computeWorldMatrix(true);
+          const at = node.getAbsolutePosition();
+          const ground = new Vector3(at.x, view.box.min.y, at.z);
+          return {
+            node,
+            reach: Vector3.TransformCoordinates(ground, node.getWorldMatrix().clone().invert()),
+          };
+        });
   const gaits: Gaits = {};
   for (const gait of ['walk', 'run', 'idle', 'move'] as const) {
     const clip = gaitClipNames(gait, cls).find((name) => clips.has(name));

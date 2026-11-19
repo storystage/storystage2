@@ -277,11 +277,16 @@ export class ObjectView {
   }
 
   /**
-   * How far each of `feet` sweeps front to back over one cycle of a clip, in the model's own
+   * How far each of `feet` (a node, or a point `reach` in a node's own axes) sweeps front to back
+   * over one cycle of a clip, in the model's own
    * metres (its root's axes, before its place and size): for how fast the clip carries it
    * (`strideSpeed`). Call it while the model is at rest, before it's shown; it's left at rest.
    */
-  sweeps(name: string, feet: readonly TransformNode[], samples = 24): number[] {
+  sweeps(
+    name: string,
+    feet: readonly { readonly node: TransformNode; readonly reach?: Vector3 }[],
+    samples = 24,
+  ): number[] {
     const clip = this.clipsByName.get(name);
     if (!clip || feet.length === 0) return [];
     const ranges = feet.map(() => ({ least: Infinity, most: -Infinity }));
@@ -292,9 +297,13 @@ export class ObjectView {
       for (const track of clip.tracks) setTo(track.node, track.property, track.evaluate(frame));
       refresh(this.root);
       this.root.getWorldMatrix().invertToRef(back);
-      feet.forEach((foot, k) => {
-        refresh(foot);
-        const z = Vector3.TransformCoordinates(foot.getAbsolutePosition(), back).z;
+      feet.forEach(({ node, reach }, k) => {
+        refresh(node);
+        // A foot reckoned from its knee is a point the knee carries: `reach` in its own axes.
+        const at = reach
+          ? Vector3.TransformCoordinates(reach, node.getWorldMatrix())
+          : node.getAbsolutePosition();
+        const z = Vector3.TransformCoordinates(at, back).z;
         ranges[k]!.least = Math.min(ranges[k]!.least, z);
         ranges[k]!.most = Math.max(ranges[k]!.most, z);
       });

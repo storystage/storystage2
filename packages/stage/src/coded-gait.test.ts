@@ -193,6 +193,32 @@ describe('a walk in code on the timeline', () => {
     expect(t.shown(kitty).turns).toBeNull();
   });
 
+  it('walks in code but runs with its own run, for an animal with a run and no walk', () => {
+    const t = new Timeline();
+    t.load(scene, () => ({ ...cat(), gaits: { run: { clip: 'gallop', speed: null } } }));
+    const walk = { object: kitty, kind: 'walk', to: spot, gait: 'walk' } as const;
+    t.schedule([{ ...cmd(0, 4, walk), style: 'beginAndEndAbruptly' }]);
+    t.seek(micros(2));
+    expect(t.shown(kitty).turns!.size).toBeGreaterThan(0);
+    expect(t.shown(kitty).own).toEqual([]);
+    const fast = new Timeline();
+    fast.load(scene, () => ({ ...cat(), gaits: { run: { clip: 'gallop', speed: null } } }));
+    const run = { object: kitty, kind: 'walk', to: spot, gait: 'run' } as const;
+    // Run at its legs' trotting pace: 2 m at sqrt(0.8 g × 0.2 m).
+    const seconds = 2 / Math.sqrt(0.8 * 9.81 * 0.2);
+    expect(fast.answer({ kind: 'naturalDuration', action: run, at: 0 }, () => false).value).toBe(
+      micros(seconds),
+    );
+    fast.schedule([{ ...cmd(0, seconds, run), style: 'beginAndEndAbruptly' }]);
+    fast.seek(micros(seconds / 2));
+    // At its own pace, by the clock.
+    const [gallop, ...rest] = fast.shown(kitty).own;
+    expect(rest).toEqual([]);
+    expect(gallop!.name).toBe('gallop');
+    expect(gallop!.weight).toBe(1);
+    expect(gallop!.time).toBeCloseTo(seconds / 2, 5);
+  });
+
   it('is not for an animal with a walk clip of its own', () => {
     const t = new Timeline();
     t.load(scene, () => ({ ...cat(), gaits: { walk: { clip: 'walk', speed: 0.5 } } }));
