@@ -205,7 +205,7 @@ export function validateSources(json: unknown): Result {
     )
       e('a public-domain item must name its record, as a path under docs/legal/ ending .md.');
     if (item.licence === 'VRM-PL-1.0' && !fetchesVrm(item.fetch))
-      e('the VRM Public License is for a VRM file, kept as it is.');
+      e('the VRM Public License is for a VRM file.');
     if (item.licence !== 'public-domain' && item.publicDomain !== undefined)
       e('publicDomain is only for a public-domain item.');
     if (!isText(item.credit)) e('needs a credit line.');
@@ -247,7 +247,7 @@ export function validateSources(json: unknown): Result {
         e('height must be metres, more than 0 and at most 1,000.');
       const f = item.fetch as Record<string, unknown> | undefined;
       const vrm = f && (f.ext === 'vrm' || (typeof f.path === 'string' && f.path.endsWith('.vrm')));
-      if (vrm) e('height and turn are for glTF models; a VRM file is kept as it is.');
+      if (vrm) e('height and turn are for glTF models; a VRM file keeps its own size and facing.');
     }
     const f = item.fetch;
     if (!isObject(f))

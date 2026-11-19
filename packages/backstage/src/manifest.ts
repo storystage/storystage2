@@ -36,7 +36,7 @@ export type Section = (typeof SECTIONS)[number];
  * `public-domain` is a work with no copyright, such as a US government work (NASA's models), its
  * record in `docs/legal/` saying why and any guidelines that come with it; `VRM-PL-1.0` is the VRM
  * Public License 1.0 (vrm.dev), whose terms each VRM file's own licence settings fill in, for a
- * VRM file kept as it is (Seed-san). These three are for shipped models only
+ * VRM file (Seed-san), whose credit says it was changed if the build shrank its pictures. These three are for shipped models only
  * (`SHIPPED_ONLY_LICENCES`): a learner's import picks from the short list.
  */
 export const LICENCES = [
@@ -210,7 +210,7 @@ export function validateManifest(json: unknown): ValidationResult {
       item.licence === 'VRM-PL-1.0' &&
       !(isObject(item.files) && String(item.files.model).endsWith('.vrm'))
     )
-      e('the VRM Public License is for a VRM file kept as it is (.vrm).');
+      e('the VRM Public License is for a VRM file (.vrm).');
     if (
       (SHIPPED_ONLY_LICENCES as readonly unknown[]).includes(item.licence) &&
       item.origin === 'imported'
