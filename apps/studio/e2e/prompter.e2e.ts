@@ -54,7 +54,11 @@ const REPLIES: PrompterEvent[][] = [
   say('Built. The penguin now waddles forward.'),
 ];
 
-async function openStage(page: Page, key?: 'absent' | 'present') {
+async function openStage(
+  page: Page,
+  key?: 'absent' | 'present',
+  replies: PrompterEvent[][] = REPLIES,
+) {
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.addInitScript(
     ({ replies, key }: { replies: string; key: string | null }) => {
@@ -64,7 +68,7 @@ async function openStage(page: Page, key?: 'absent' | 'present') {
         ...(key ? { key } : {}),
       };
     },
-    { replies: JSON.stringify(REPLIES), key: key ?? null },
+    { replies: JSON.stringify(replies), key: key ?? null },
   );
   await page.goto(STUDIO);
   await page.getByRole('tab', { name: /Production stage/ }).click();
@@ -193,6 +197,36 @@ test('an adult sets the Prompter up from the panel, and removes the key in Setti
   await expect(card.getByText(/a Claude key is in its secure store/)).toBeVisible();
   await card.getByRole('button', { name: 'Remove key' }).click();
   await expect(card.getByText(/Not set up on this device/)).toBeVisible();
+});
+
+test('a flag on the frame card is asked about in Explain mode, opening the panel (11.6)', async ({
+  page,
+}) => {
+  await openStage(page, undefined, [say('The fox walks off before the frame ends.')]);
+  const prompter = panel(page);
+  await prompter.getByRole('button', { name: 'Hide the Prompter' }).click();
+  // A planted difference: the penguin moved well out of the wide shot.
+  const objects = page.getByRole('region', { name: 'Objects in this scene' });
+  await objects.getByRole('option', { name: /penguin/i }).click();
+  const x = objects.getByRole('textbox', { name: 'x (m)' });
+  await x.fill('40');
+  await x.press('Tab');
+  const card = page.getByRole('region', { name: /^Automatic check: frame 1\.1/ });
+  await card.getByRole('button', { name: 'Check this frame' }).click();
+  await expect(card.getByRole('listitem').first()).toBeVisible({ timeout: 30_000 });
+  const asks = card.getByRole('button', { name: /^Ask the Prompter: / });
+  await expect(asks.first()).toBeVisible();
+  const words = (await asks.first().getAttribute('aria-label'))!.replace('Ask the Prompter: ', '');
+  await asks.first().click();
+  await expect(prompter.getByRole('heading', { name: 'The Prompter' })).toBeVisible();
+  await expect(
+    prompter.getByText(`Why does the check say “${words}” for frame 1.1?`),
+  ).toBeVisible();
+  await expect(prompter.getByText('The fox walks off before the frame ends.')).toBeVisible();
+  await expect(prompter.getByRole('radio', { name: /Explain/ })).toBeChecked();
+  expect(
+    (await new AxeBuilder({ page }).include('.pr-check').analyze()).violations.map((v) => v.id),
+  ).toEqual([]);
 });
 
 test('the panel folds to its rail, giving the code its room', async ({ page }) => {

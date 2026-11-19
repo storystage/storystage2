@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { indexProgram, type NodeId } from '@storystage/ast';
-import { ProductionSession, exampleProduction, frameId, sceneId } from '@storystage/production';
+import {
+  ProductionSession,
+  exampleProduction,
+  frameId,
+  sceneId,
+  type FrameId,
+} from '@storystage/production';
 import { checkProgram } from '@storystage/story-api/program-check';
 import type { PrompterLevel } from './levels.ts';
 import { BUILD_REQUEST, PrompterPanel, createPrompterPanel } from './panel.ts';
@@ -71,6 +77,7 @@ interface Options {
   readonly inBuild?: boolean;
   /** Replaces a whole request's reply with one transport event. */
   readonly fail?: PrompterEvent;
+  readonly checkResult?: (frame: FrameId) => Json | null;
 }
 
 function setUp(replies: PrompterEvent[][], options: Options = {}) {
@@ -110,6 +117,7 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
     level: () => level,
     scene: () => sceneId('s2'),
     ...(options.inBuild === undefined ? {} : { inBuild: options.inBuild }),
+    ...(options.checkResult ? { checkResult: options.checkResult } : {}),
   });
   return { panel, production, transport, setLevel: (l: PrompterLevel) => (level = l) };
 }
@@ -331,6 +339,28 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
     await panel.codeFrame(frameId('f2'));
     expect(panel.state.entries[0]).toEqual({ kind: 'asked', text: 'Code frame f2.' });
     expect(JSON.stringify(transport.sent[0]!.body.messages)).toContain('Code frame f2.');
+  });
+});
+
+describe('PrompterPanel: asking about a frame (11.6)', () => {
+  const checked = (frame: FrameId) => ({
+    frame,
+    items: [{ id: 'c1', words: 'Owl is off screen' }],
+  });
+
+  it("sends the frame's check result with a question about it", async () => {
+    const { panel, transport } = setUp([say('Owl walks past the edge.')], { checkResult: checked });
+    await panel.refresh();
+    await panel.ask('Why is Owl off screen?', { frame: frameId('f2') });
+    expect(panel.state.entries[0]).toEqual({ kind: 'asked', text: 'Why is Owl off screen?' });
+    expect(JSON.stringify(transport.sent[0]!.body.messages)).toContain('Owl is off screen');
+  });
+
+  it('sends none with a question about nothing in particular', async () => {
+    const { panel, transport } = setUp([say('Hello.')], { checkResult: checked });
+    await panel.refresh();
+    await panel.ask('Hello');
+    expect(JSON.stringify(transport.sent[0]!.body.messages)).not.toContain('Owl is off screen');
   });
 });
 

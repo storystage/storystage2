@@ -235,9 +235,12 @@ export class PrompterPanel<S extends string = string> {
     return this.#state.phase === 'working' || this.#state.phase === 'building';
   }
 
-  /** Ask, in the current mode. */
-  ask(text: string): Promise<void> {
-    return this.#run(text, {});
+  /**
+   * Ask, in the current mode. `about.frame` sends that frame's check result with the request
+   * (the studio's `checkResult`), as the frame card's Ask the Prompter does for a flag (11.6).
+   */
+  ask(text: string, about: { readonly frame?: FrameId } = {}): Promise<void> {
+    return this.#run(text, about.frame === undefined ? {} : { frame: about.frame });
   }
 
   /** Code this frame: a plan for frame `frame`. */
