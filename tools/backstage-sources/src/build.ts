@@ -42,6 +42,7 @@ import {
   type TextureEncoder,
 } from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
+import { standardClips } from './clips.ts';
 import {
   meshFromDocument,
   meshFromModel,
@@ -150,6 +151,7 @@ export async function buildSources(
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       if (item.bones) renameBones(doc, item.bones);
+      if (item.clips) standardClips(doc, item.clips);
       const reduced = await reduceModel(doc, budget, { encodeTexture });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
