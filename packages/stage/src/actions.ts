@@ -37,6 +37,13 @@ const ASPECT = 16 / 9;
 /** Speeds for a model with no humanoid body, in metres a second. */
 const PLAIN_WALK = 1.2;
 const PLAIN_RUN = 3;
+/**
+ * No animal's natural walk is slower than Styloo's dog's, nor its run than that much faster (the
+ * owner's choice, 19 Nov): a toy-like model's tiny legs, kept planted, crept at 3 cm a second.
+ * Below it, its legs step faster, its feet still planted.
+ */
+const ANIMAL_WALK_FLOOR = 0.25;
+const ANIMAL_RUN_FLOOR = ANIMAL_WALK_FLOOR * (PLAIN_RUN / PLAIN_WALK);
 /** How far into a turn a walker goes before it faces its new way, in metres. */
 const TURNING = 0.4;
 /** How long a clip takes to come in and go out, in seconds. */
@@ -136,6 +143,8 @@ export type Action =
        * keeps pace with the ground covered; one without plays at its own pace.
        */
       own: { walk: Gait; run: Gait | null } | null;
+      /** Its height scale: a clip's own speed at scale 1 times this is the pace it keeps. */
+      height: number;
       /**
        * An animal's walk in code, with no clip of its own, and how far a cycle of its steps goes
        * in the scene (null for wings alone, which beat by the clock).
@@ -308,17 +317,18 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
     // With no walk of its own, one in code goes as fast as its legs are long.
     const coded = walk ? null : world.coded(object);
     const codedWalk = coded ? codedSpeed(coded, 'walk') : null;
+    const floored = (walkSpeed: number, runSpeed: number) => ({
+      walkSpeed: Math.max(ANIMAL_WALK_FLOOR, walkSpeed),
+      runSpeed: Math.max(ANIMAL_RUN_FLOOR, runSpeed),
+    });
     if (coded && codedWalk)
-      return {
-        walkSpeed: codedWalk * height,
-        runSpeed: (run?.speed ?? codedSpeed(coded, 'run')!) * height,
-      };
+      return floored(codedWalk * height, (run?.speed ?? codedSpeed(coded, 'run')!) * height);
     if (!walk?.speed) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
     const walkSpeed = walk.speed * height;
-    return {
+    return floored(
       walkSpeed,
-      runSpeed: run?.speed ? run.speed * height : walkSpeed * (PLAIN_RUN / PLAIN_WALK),
-    };
+      run?.speed ? run.speed * height : walkSpeed * (PLAIN_RUN / PLAIN_WALK),
+    );
   }
   const walk = world.library?.get('walk')?.speed;
   const run = world.library?.get('run')?.speed;
@@ -376,6 +386,7 @@ function walkAction(
           ownRun: world.gait(object, 'run'),
         }
       : null,
+    height,
     ...speeds(world, object, body, height),
   };
 }
@@ -692,11 +703,11 @@ export function applyAction(
             : 0;
         const moving = Math.min(1, speed / (0.3 * a.walkSpeed));
         if (a.own) {
-          ownGaitLayers(body.layers, a.own, { d, elapsed, run, moving }, a);
+          ownGaitLayers(body.layers, a.own, { d, elapsed, run, moving }, a.height);
           return;
         }
         if (a.coded) {
-          codedLayers(body.layers, a.coded, { d, elapsed, run, moving }, a.runSpeed);
+          codedLayers(body.layers, a.coded, { d, elapsed, run, moving }, a.height);
           return;
         }
         body.layers.push({
@@ -870,17 +881,18 @@ function ownGaitLayers(
   layers: Layer[],
   own: { walk: Gait; run: Gait | null },
   at: { d: number; elapsed: number; run: number; moving: number },
-  speeds: { walkSpeed: number; runSpeed: number },
+  height: number,
 ): void {
-  const time = (gait: Gait, speed: number) => (gait.speed ? at.d / speed : at.elapsed);
+  // By the clip's own pace, so the feet stay planted however fast the animal goes.
+  const time = (gait: Gait) => (gait.speed ? at.d / (gait.speed * height) : at.elapsed);
   const layer = (gait: Gait, time: number, weight: number) =>
     layers.push({ clip: gait.clip, time, weight, whole: true, own: true });
   if (!own.run) {
-    layer(own.walk, time(own.walk, speeds.walkSpeed), at.moving);
+    layer(own.walk, time(own.walk), at.moving);
     return;
   }
-  layer(own.walk, time(own.walk, speeds.walkSpeed), at.moving * (1 - at.run));
-  if (at.run > 0) layer(own.run, time(own.run, speeds.runSpeed), at.moving * at.run);
+  layer(own.walk, time(own.walk), at.moving * (1 - at.run));
+  if (at.run > 0) layer(own.run, time(own.run), at.moving * at.run);
 }
 
 /**
@@ -896,7 +908,7 @@ function codedLayers(
     ownRun: Gait | null;
   },
   at: { d: number; elapsed: number; run: number; moving: number },
-  runSpeed: number,
+  height: number,
 ): void {
   const cycles = (stride: number | null) => (stride ? at.d / stride : at.elapsed * coded.gait.beat);
   const layer = (moving: 'walk' | 'run', time: number, weight: number) =>
@@ -909,7 +921,7 @@ function codedLayers(
   if (own)
     layers.push({
       clip: own.clip,
-      time: own.speed ? at.d / runSpeed : at.elapsed,
+      time: own.speed ? at.d / (own.speed * height) : at.elapsed,
       weight: at.moving * at.run,
       whole: true,
       own: true,

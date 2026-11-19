@@ -67,6 +67,26 @@ describe("an animal's own gaits", () => {
     expect(t.shown(dog).own).toEqual([{ name: 'iddle', time: 9, weight: 1 }]);
   });
 
+  it('walk no slower than a quarter of a metre a second, legs stepping faster (owner, 19 Nov)', () => {
+    // A toy cat's tiny legs carry it 3 cm a second; it walks at the floor, 4 m in 16 s.
+    const t = timeline({ walk: { clip: 'walk', speed: 0.03 }, run: { clip: 'run', speed: 0.18 } });
+    const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;
+    expect(t.answer({ kind: 'naturalDuration', action: walk, at: 0 }, () => false).value).toBe(
+      micros(16),
+    );
+    // Its run no slower than two and a half times that: 0.625 m a second.
+    const run = { ...walk, gait: 'run' } as const;
+    expect(t.answer({ kind: 'naturalDuration', action: run, at: 0 }, () => false).value).toBe(
+      micros(6.4),
+    );
+    t.schedule([{ ...cmd(0, 16, walk), style: 'beginAndEndAbruptly' }]);
+    t.seek(micros(8));
+    // 2 m on, its clip keeps its own pace with the ground: 2 / 0.03 s in, feet planted.
+    const [own] = t.shown(dog).own;
+    expect(own!.name).toBe('walk');
+    expect(own!.time).toBeCloseTo(2 / 0.03, 6);
+  });
+
   it('run with their walk, faster, if they have no run', () => {
     const t = timeline({ walk: { clip: 'walk', speed: 0.5 } });
     const run = { object: dog, kind: 'walk', to: spot, gait: 'run' } as const;
