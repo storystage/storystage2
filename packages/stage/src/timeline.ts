@@ -40,6 +40,7 @@ import type { Navigation, NavigationArea, NavigationMaker } from './navigation.t
 import {
   applyAction,
   bodyPose,
+  freshBody,
   isAction,
   naturalLength,
   resolveAction,
@@ -644,8 +645,30 @@ export class Timeline {
       const r = this.resolve(i);
       const p = c.duration === 0 ? 1 : ease(c.style, (t - c.start) / c.duration);
       apply(state.get(c.object)!, r, p, t, c, state);
+      this.flying(state.get(c.object)!, r, t, c);
     }
     return state;
+  }
+
+  /**
+   * A flyer with its own `fly`, or a swimmer with its own `swim`, plays it on any move, at its
+   * own pace, coming in and going over a fifth of a second (the owner's choice, 19 Nov).
+   */
+  private flying(s: ObjectState, r: Resolved, t: Micros, c: StageCommand): void {
+    if (r.kind !== 'translate' && r.kind !== 'shift') return;
+    const end = c.start + c.duration;
+    if (t >= end || length(r.delta) < 1e-6) return;
+    const move = this.shapes.get(c.object)?.gaits?.move;
+    if (!move) return;
+    const elapsed = (t - c.start) / 1_000_000;
+    const weight = Math.min(1, elapsed / FLY_EASE, (end - t) / 1_000_000 / FLY_EASE);
+    (s.body ??= freshBody()).layers.push({
+      clip: move.clip,
+      time: elapsed,
+      weight,
+      whole: true,
+      own: true,
+    });
   }
 
   /** Where a target is in the scene. A joint rests where the model has it, carried by its object. */
@@ -1320,6 +1343,9 @@ function boarding(
   const { position, rotation } = relativeTo(onto, from);
   return { kind: 'vehicle', vehicle, shift: position, turn: rotation };
 }
+
+/** How long a flyer's `fly` takes to come in and go as a move starts and ends, in seconds. */
+const FLY_EASE = 0.2;
 
 /** A blend that has finished is just the new paint. */
 const blendOf = (from: string | null, p: number): Blend | null =>

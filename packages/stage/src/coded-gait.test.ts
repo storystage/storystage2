@@ -114,6 +114,34 @@ describe('a walk in code', () => {
     expect(swing.lift).toBeCloseTo(1, 9);
   });
 
+  it('walks a bird on two legs, one foot then the other, its wings still', () => {
+    const places = new Map<JointName, Vec3>();
+    for (const [side, x] of [
+      ['left', 0.02],
+      ['right', -0.02],
+    ] as const) {
+      places.set(j(`${side}Hip`), v(x, 0.05, 0));
+      places.set(j(`${side}Knee`), v(x, 0.03, 0.01));
+      places.set(j(`${side}Ankle`), v(x, 0.01, -0.005));
+      places.set(j(`${side}WingShoulder`), v(x * 1.5, 0.07, 0));
+    }
+    const chick = codedGait([...places.keys()], places, {
+      min: v(-0.04, 0, -0.04),
+      max: v(0.04, 0.1, 0.04),
+    })!;
+    expect(chick.legs.map((l) => l.upper)).toEqual([j('leftHip'), j('rightHip')]);
+    expect(chick.legs.every((l) => l.lower === l.knee.replace('Knee', 'Ankle'))).toBe(true);
+    for (const moving of ['walk', 'run'] as const) {
+      const at = (cycles: number) => codedTurns(chick, [{ moving, cycles, weight: 1 }]);
+      // Each foot furthest forward as it comes down: the left at 0, the right half a cycle on.
+      expect(sideways(at(0).get(j('leftHip')))).toBeLessThan(sideways(at(0).get(j('rightHip'))));
+      expect(sideways(at(0.5).get(j('rightHip')))).toBeLessThan(
+        sideways(at(0.5).get(j('leftHip'))),
+      );
+      expect(at(0.25).has(j('leftWingShoulder'))).toBe(false);
+    }
+  });
+
   it('beats its wings, for a flyer with wings and no fly clip', () => {
     const places = new Map([
       [j('leftWingShoulder'), v(0.01, 0.05, 0)],

@@ -216,11 +216,13 @@ function gaitsOf(
   const toes = named(/Toes?$/);
   const feet = toes.length > 0 ? toes : named(/(Ankle|Foot)$/);
   const gaits: Gaits = {};
-  for (const gait of ['walk', 'run', 'idle'] as const) {
+  for (const gait of ['walk', 'run', 'idle', 'move'] as const) {
     const clip = gaitClipNames(gait, cls).find((name) => clips.has(name));
     if (!clip) continue;
     const speed =
-      gait === 'idle' ? null : strideSpeed(view.sweeps(clip, feet), clips.get(clip)!, gait);
+      gait === 'walk' || gait === 'run'
+        ? strideSpeed(view.sweeps(clip, feet), clips.get(clip)!, gait)
+        : null;
     gaits[gait] = { clip, speed };
   }
   return Object.keys(gaits).length > 0 ? gaits : undefined;

@@ -3,13 +3,16 @@
  * 18 Nov): an animal, or any model that isn't a humanoid, walks, runs and stands with its own
  * clips, as a humanoid does with the shared ones (WP4.6). Pure, so the timeline can use it.
  *
- * - `walk` is the model's `walk`; a flyer's is its `fly`, a swimmer's its `swim`, if it has one.
+ * - `walk` is the model's `walk`; a flyer without one walks with its `fly`, a swimmer with its
+ *   `swim` (a penguin walks with its own walk, as S4 asked, 19 Nov).
  * - `run` is its `run`; without one, it runs with its walk, faster.
  * - `idle` plays while it stands. Styloo's makers spelt it `iddle`, until S4's build renames it.
+ * - `move` is a flyer's `fly` or a swimmer's `swim`, which plays whenever it moves, at its own
+ *   pace (the owner's choice, 19 Nov): a bee moved forward beats its wings.
  */
 import type { StoryClass } from '@storystage/story-api';
 
-export type GaitName = 'walk' | 'run' | 'idle';
+export type GaitName = 'walk' | 'run' | 'idle' | 'move';
 
 export interface Gait {
   /** The model's own clip. */
@@ -29,11 +32,13 @@ export type Gaits = Partial<Record<GaitName, Gait>>;
 export function gaitClipNames(gait: GaitName, cls: StoryClass): readonly string[] {
   switch (gait) {
     case 'walk':
-      return cls === 'Flyer' ? ['fly', 'walk'] : cls === 'Swimmer' ? ['swim', 'walk'] : ['walk'];
+      return cls === 'Flyer' ? ['walk', 'fly'] : cls === 'Swimmer' ? ['walk', 'swim'] : ['walk'];
     case 'run':
       return ['run'];
     case 'idle':
       return ['idle', 'iddle'];
+    case 'move':
+      return cls === 'Flyer' ? ['fly'] : cls === 'Swimmer' ? ['swim'] : [];
   }
 }
 
