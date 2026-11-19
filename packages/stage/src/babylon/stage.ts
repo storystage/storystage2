@@ -1250,6 +1250,7 @@ function showScene(s: Showing): void {
     const shown = s.timeline.shown(id);
     view.show(state.get(id)!, s.timeline.transform(id), {
       ...(shown.human ? { human: shown.human } : {}),
+      ...(shown.turns ? { turns: shown.turns } : {}),
       clips: shown.own,
       face: shown.face,
       fading: shown.fading,

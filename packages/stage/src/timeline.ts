@@ -69,6 +69,7 @@ import {
   unit,
   v,
 } from './math.ts';
+import { codedGait, type CodedGait } from './coded-gait.ts';
 import type { Gaits } from './gaits.ts';
 import { paintColour } from './paint.ts';
 
@@ -269,6 +270,8 @@ export class Timeline {
   private makeNavigation: NavigationMaker | null = null;
   private walkable = new Map<string, Navigation | null>();
   private bodies = new Map<ObjectId, Body | null>();
+  /** Each animal's walk in code, if it has legs or wings and no walk clip (`coded-gait.ts`). */
+  private codedGaits = new Map<ObjectId, CodedGait | null>();
   private readonly world: World = this.makeWorld();
 
   /**
@@ -299,6 +302,7 @@ export class Timeline {
       scale: (state, object) => (state as SceneState).get(object)?.scale ?? v(1, 1, 1),
       ownClip: (object, clip) => this.shapes.get(object)?.clips?.get(clip) ?? null,
       gait: (object, gait) => this.shapes.get(object)?.gaits?.[gait] ?? null,
+      coded: (object) => this.codedGaits.get(object) ?? null,
       pose: (state, object) => scenePose(state as SceneState, object),
       targetPose: (state, target) => this.targetPose(state as SceneState, target),
       box: (state, target) => this.subject(state as SceneState, [target]),
@@ -334,6 +338,12 @@ export class Timeline {
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
     this.bodies = new Map(
       [...this.shapes].map(([id, shape]) => [id, Body.of(shape.jointPlaces)] as const),
+    );
+    this.codedGaits = new Map(
+      [...this.shapes].map(([id, shape]) => {
+        const own = this.bodies.get(id) || shape.gaits?.walk;
+        return [id, own ? null : codedGait(shape.joints, shape.jointPlaces, shape.box)] as const;
+      }),
     );
     this.walkable.clear();
     this.baseSky = skyOf(setup.backdrop);
