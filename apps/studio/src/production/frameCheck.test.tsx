@@ -1,7 +1,20 @@
 import { nodeId, type NodeId, type Statement } from '@storystage/ast';
 import { basisFor } from '@storystage/check';
 import type { EditorHost } from '@storystage/editor-contract';
-import { exampleProduction, type Frame, type Production } from '@storystage/production';
+import {
+  ProductionSession,
+  exampleProduction,
+  type Frame,
+  type Production,
+} from '@storystage/production';
+import {
+  createPrompterPanel,
+  scriptedTransport,
+  type PrompterPanel,
+  type TransportStatus,
+} from '@storystage/prompter';
+import { testReply } from '@storystage/prompter/testing';
+import { checkProgram } from '@storystage/story-api/program-check';
 import { inMemoryPorts, serve, type Timers } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
 import type { ModelSource } from '@storystage/stage/babylon';
@@ -16,7 +29,8 @@ import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import type { BackstageItem } from '@storystage/backstage';
 import type { Place } from '../storyboard/place.ts';
-import { useStudio, type Studio } from '../studio.ts';
+import { frameCheckFor } from '../prompter/usePrompter.ts';
+import { useStudio, type Studio, type StudioSource } from '../studio.ts';
 import { NONE_REHEARSED, type Rehearsed } from './frameProgress.ts';
 import { ProductionStage } from './ProductionStage.tsx';
 
@@ -53,6 +67,7 @@ function stage(
   production: Production,
   editorHost: EditorHost = host,
   catalogue: readonly BackstageItem[] = [],
+  prompter?: PrompterPanel<StudioSource>,
 ) {
   const withCatalogue: ModelSourceHandle = { ...models, catalogue };
   const onReveal = vi.fn<(node: NodeId) => void>();
@@ -90,6 +105,7 @@ function stage(
           studio={studio}
           onReveal={onReveal}
           onAnnounce={onAnnounce}
+          {...(prompter ? { prompter } : {})}
         />
       </ThemeRoot>
     );
@@ -195,6 +211,68 @@ describe('the frame’s automatic check (spec 08 section 9)', () => {
     expect(within(card()).queryByRole('button', { name: /^Go to the block/ })).toBeNull();
     expect(within(card()).queryByRole('button', { name: /^Go to the sketch/ })).toBeNull();
     expect(within(card()).getByRole('button', { name: `Keep it: ${flag.words}` })).toBeTruthy();
+  });
+});
+
+describe('Ask the Prompter about a flag (11.6; spec 08 section 9.5)', () => {
+  const checked = () =>
+    withCheck({ basis: basisFor(example, first), items: [passed, flag], kept: [] });
+
+  /** S7's panel over the film, answering from a script, with the studio's check data. */
+  async function prompterFor(p: Production, status: TransportStatus = { available: true }) {
+    const scripted = scriptedTransport(() =>
+      testReply([{ type: 'text', text: 'Fox walks off before the frame ends.' }]),
+    );
+    const session = new ProductionSession<StudioSource>(p, { check: (q) => checkProgram(q) });
+    const panel = createPrompterPanel({
+      production: session,
+      transport: { status: async () => status, send: (r, sig) => scripted.send(r, sig) },
+      source: 'prompter',
+      level: () => 'full',
+      scene: () => first.scene,
+      backstageClass: () => null,
+      checkResult: (frame) => frameCheckFor(session.production(), frame),
+    });
+    await panel.refresh();
+    return { panel, sent: scripted.sent };
+  }
+
+  it('asks in Explain mode, opening the folded panel, with the frame’s check', async () => {
+    const user = userEvent.setup();
+    const p = checked();
+    const { panel, sent } = await prompterFor(p);
+    panel.setMode('showMeHow');
+    stage(p, host, [], panel);
+    const prompter = () => screen.getByRole('complementary', { name: 'The Prompter' });
+    await user.click(within(prompter()).getByRole('button', { name: 'Hide the Prompter' }));
+    // Only a flag can be asked about.
+    expect(within(card()).getAllByRole('button', { name: /^Ask the Prompter/ })).toHaveLength(1);
+
+    await user.click(
+      within(card()).getByRole('button', { name: `Ask the Prompter: ${flag.words}` }),
+    );
+    expect(panel.state.mode).toBe('explain');
+    const question = `Why does the check say “${flag.words}” for frame 1.1?`;
+    expect(await within(prompter()).findByText(question)).toBeTruthy();
+    expect(
+      await within(prompter()).findByText('Fox walks off before the frame ends.'),
+    ).toBeTruthy();
+    // The check goes as a data block, inside the request's text.
+    const body = JSON.stringify(sent[0]!.body.messages).replaceAll('\\"', '"');
+    expect(body).toContain(flag.id);
+    expect(body).toContain('"number":"1.1"');
+  });
+
+  it('isn’t offered while the Prompter can’t be asked', async () => {
+    const { panel } = await prompterFor(checked(), { available: false, reason: 'no_key' });
+    stage(checked(), host, [], panel);
+    expect(within(card()).getByText(flag.words)).toBeTruthy();
+    expect(within(card()).queryByRole('button', { name: /^Ask the Prompter/ })).toBeNull();
+  });
+
+  it('isn’t offered without a Prompter', () => {
+    stage(checked());
+    expect(within(card()).queryByRole('button', { name: /^Ask the Prompter/ })).toBeNull();
   });
 });
 

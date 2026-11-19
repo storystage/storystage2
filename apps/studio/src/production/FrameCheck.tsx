@@ -31,6 +31,11 @@ export interface FrameCheckProps {
   onGoToStoryboard(): void;
   /** Applies a program edit as one undo step: "Use the script's words" on a speak line. */
   onEdit(edit: EditOperation): void;
+  /**
+   * Asks the Prompter about a flag (11.6; spec 08 section 9.5). Left out when there's no
+   * Prompter to ask: the browser version, the Prompter off or not set up, or a request running.
+   */
+  onAsk?: (item: CheckItem) => void;
 }
 
 export function FrameCheck({
@@ -42,6 +47,7 @@ export function FrameCheck({
   onGoToBlock,
   onGoToStoryboard,
   onEdit,
+  onAsk,
 }: FrameCheckProps) {
   const state = checkState(frame, p);
   const kept = new Set(frame.check?.kept ?? []);
@@ -144,6 +150,16 @@ export function FrameCheck({
                             onPress={() => onEdit(useScript)}
                           >
                             {words.t('production.check.scriptWords')}
+                          </Button>
+                        )}
+                        {item.outcome === 'flag' && onAsk && (
+                          <Button
+                            variant="quiet"
+                            icon="headset_mic"
+                            aria-label={words.t('production.check.askFor', { words: item.words })}
+                            onPress={() => onAsk(item)}
+                          >
+                            {words.t('production.check.ask')}
                           </Button>
                         )}
                         {item.outcome === 'flag' && !readOnly && (
