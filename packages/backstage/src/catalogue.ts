@@ -16,7 +16,7 @@ import {
 } from './manifest.ts';
 
 /** The catalogue's share of the system prompt (spec 04, section 2.1). */
-export const CATALOGUE_TOKEN_BUDGET = 12_000;
+export const CATALOGUE_TOKEN_BUDGET = 24_000;
 
 /** Three characters a token: a cautious guess that overcounts (spec 04, section 2.1). */
 export const catalogueTokens = (text: string) => Math.ceil(text.length / 3);

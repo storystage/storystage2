@@ -42,6 +42,7 @@ export const LICENCE_LINKS: Readonly<Partial<Record<Licence, { name: string; url
   'CC-BY-4.0': { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
   'CC-BY-SA-4.0': { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
   'CC-BY-NC-4.0': { name: 'CC BY-NC 4.0', url: 'https://creativecommons.org/licenses/by-nc/4.0/' },
+  'VRM-PL-1.0': { name: 'VRM Public License 1.0', url: 'https://vrm.dev/licenses/1.0/' },
 };
 
 /**
@@ -72,7 +73,14 @@ export function creditsBySection(items: readonly Creditable[]): CreditSection[] 
 export const CHANGED = ', changed for StoryStage';
 
 /** The CC BY licences, which ask that changes be indicated (CC BY 4.0, section 3(a)(1)(B)). */
-const SAYS_CHANGED: readonly Licence[] = ['CC-BY-3.0', 'CC-BY-4.0', 'CC-BY-SA-4.0', 'CC-BY-NC-4.0'];
+const SAYS_CHANGED: readonly Licence[] = [
+  'CC-BY-3.0',
+  'CC-BY-4.0',
+  'CC-BY-SA-4.0',
+  'CC-BY-NC-4.0',
+  // The VRM Public License asks that changes be indicated too (section 4, when credit is required).
+  'VRM-PL-1.0',
+];
 
 /**
  * The credit line to write into the manifest. The build changes every glTF model it ships

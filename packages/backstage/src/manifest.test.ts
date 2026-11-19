@@ -77,6 +77,22 @@ describe('validateManifest', () => {
     ).toBe(true);
   });
 
+  it('takes the VRM Public License for a shipped VRM file only', () => {
+    const seed = {
+      ...cat,
+      licence: 'VRM-PL-1.0',
+      vrm: '1',
+      files: { model: 'models/vrmc/seed-san.vrm', thumbnail: 'thumbs/vrmc/seed-san.webp' },
+    };
+    expect(validateManifest(manifest(seed)).ok).toBe(true);
+    const glb = validateManifest(manifest({ ...seed, files: cat.files }));
+    expect(glb.ok).toBe(false);
+    if (!glb.ok) expect(glb.errors.join('\n')).toMatch(/VRM file/);
+    const imported = validateManifest(manifest({ ...seed, origin: 'imported' }));
+    expect(imported.ok).toBe(false);
+    if (!imported.ok) expect(imported.errors.join('\n')).toMatch(/short list/);
+  });
+
   it('needs a record for a "public-domain" licence, and keeps it for shipped models', () => {
     expect(validateManifest(manifest({ ...cat, licence: 'public-domain' })).ok).toBe(false);
     const nasa = {
@@ -118,6 +134,7 @@ describe('validateManifest', () => {
       'CC-BY-4.0',
       'permission',
       'public-domain',
+      'VRM-PL-1.0',
     ]);
   });
 
@@ -157,7 +174,7 @@ describe('validateManifest', () => {
   });
 
   it('refuses the wrong version and junk', () => {
-    expect(MANIFEST_VERSION).toBe('2.2.0');
+    expect(MANIFEST_VERSION).toBe('2.3.0');
     expect(validateManifest({ manifestVersion: '1.0.0', items: [] }).ok).toBe(false);
     expect(validateManifest({ manifestVersion: '0.1', items: [] }).ok).toBe(false);
     expect(validateManifest(null).ok).toBe(false);

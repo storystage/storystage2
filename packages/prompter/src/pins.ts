@@ -20,7 +20,8 @@ import {
 
 /** Section 2.1: a unit test fails above these. */
 export const STORY_API_TOKEN_LIMIT = 45_000;
-export const BACKSTAGE_TOKEN_BUDGET = 12_000;
+// 24,000 since the owner's choice of 19 Nov 2026 (spec 04, section 2.1), for 100Avatars' round 3.
+export const BACKSTAGE_TOKEN_BUDGET = 24_000;
 
 /** JSON with keys sorted and no spaces, as the gate writes it before hashing. */
 export function canonicalJson(value: Json): string {

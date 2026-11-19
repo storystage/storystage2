@@ -19,7 +19,13 @@ import type { Exclude } from './exclude.ts';
 import { kitbashProblems, type Kitbash } from './kitbash.ts';
 
 /** Licences the audit allows in the shipped catalogue (audit, section 2, rule 1). */
-export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0', 'public-domain'] as const;
+export const SHIPPABLE_LICENCES = [
+  'CC0-1.0',
+  'CC-BY-3.0',
+  'CC-BY-4.0',
+  'public-domain',
+  'VRM-PL-1.0',
+] as const;
 export type ShippableLicence = (typeof SHIPPABLE_LICENCES)[number];
 
 export type FetchSpec =
@@ -198,6 +204,8 @@ export function validateSources(json: unknown): Result {
       !/^docs\/legal\/[\w./-]+\.md$/.test(String(item.publicDomain ?? ''))
     )
       e('a public-domain item must name its record, as a path under docs/legal/ ending .md.');
+    if (item.licence === 'VRM-PL-1.0' && !fetchesVrm(item.fetch))
+      e('the VRM Public License is for a VRM file.');
     if (item.licence !== 'public-domain' && item.publicDomain !== undefined)
       e('publicDomain is only for a public-domain item.');
     if (!isText(item.credit)) e('needs a credit line.');
@@ -239,7 +247,7 @@ export function validateSources(json: unknown): Result {
         e('height must be metres, more than 0 and at most 1,000.');
       const f = item.fetch as Record<string, unknown> | undefined;
       const vrm = f && (f.ext === 'vrm' || (typeof f.path === 'string' && f.path.endsWith('.vrm')));
-      if (vrm) e('height and turn are for glTF models; a VRM file is kept as it is.');
+      if (vrm) e('height and turn are for glTF models; a VRM file keeps its own size and facing.');
     }
     const f = item.fetch;
     if (!isObject(f))
@@ -345,4 +353,11 @@ export function bonesProblem(bones: unknown, cls: StoryClass): string | null {
     used.add(joint);
   }
   return null;
+}
+
+/** Whether an item fetches a VRM file (by its `ext`, or its path or address). */
+function fetchesVrm(fetch: unknown): boolean {
+  const f = (fetch ?? {}) as { ext?: unknown; path?: unknown; url?: unknown };
+  if (f.ext !== undefined) return f.ext === 'vrm';
+  return /\.vrm$/i.test(String(f.path ?? f.url ?? ''));
 }

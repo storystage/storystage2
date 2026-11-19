@@ -43,6 +43,7 @@ import {
 } from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
 import { standardClips } from './clips.ts';
+import { alignGlb } from './glb-align.ts';
 import {
   meshFromDocument,
   meshFromModel,
@@ -56,7 +57,8 @@ import { groundTile, hexToRgb, rgbToHex, skyDome } from './backdrops.ts';
 import { fetchModel, fetchPicture, httpFetch, type Fetcher, type Fetched } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
 import { applyKitbash } from './kitbash.ts';
-import { sharpDecoder, sharpEncoder, thumbnailWebp } from './sharp-encoder.ts';
+import { sharpDecoder, sharpEncoder, sharpShrinker, thumbnailWebp } from './sharp-encoder.ts';
+import { shrinkVrmTextures, type PictureShrinker } from './vrm-textures.ts';
 import { excludesFor, stageLook, validateSources, type SourceItem } from './sources.ts';
 
 export interface Provenance {
@@ -104,11 +106,14 @@ export async function buildSources(
     readonly today?: string;
     readonly only?: string;
     readonly encodeTexture?: TextureEncoder;
+    /** Fits a VRM's pictures to the budget, in their own format (sharp by default). */
+    readonly shrinkPicture?: PictureShrinker;
     readonly decodeImage?: ImageDecoder;
   } = {},
 ): Promise<BuildReport> {
   const fetcher = options.fetcher ?? httpFetch;
   const encodeTexture = options.encodeTexture ?? sharpEncoder;
+  const shrinkPicture = options.shrinkPicture ?? sharpShrinker;
   const decodeImage = options.decodeImage ?? sharpDecoder;
   const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const today = options.today ?? new Date().toISOString().slice(0, 10);
@@ -138,9 +143,13 @@ export async function buildSources(
     const fetchedModel: Fetched = made ?? (await fetchModel(item, fetcher, dir));
     // A character made from parts (`kitbash.ts`): its other parts come from the same commit, and
     // each is recorded with what was fetched.
-    const got: Fetched = item.kitbash ? await kitbash(item, fetchedModel, fetcher) : fetchedModel;
+    const assembled: Fetched = item.kitbash
+      ? await kitbash(item, fetchedModel, fetcher)
+      : fetchedModel;
+    // A binary glTF's JSON chunk padded to 4 bytes, as the format requires (some VRMs leave it).
+    const got = { ...assembled, bytes: alignGlb(assembled.bytes) } as Fetched;
     const { ext, fetched } = got;
-    // VRM files are kept byte for byte; excludes apply to glTF models only.
+    // VRM files are kept byte for byte, but for that padding; excludes apply to glTF models only.
     const trimmed =
       ext === 'glb'
         ? await applyExcludes(got.bytes, exclude)
@@ -148,6 +157,8 @@ export async function buildSources(
     const budget = budgetFor(item);
     let bytes = trimmed.bytes;
     let fetchedSize: Budget;
+    // A VRM whose pictures were shrunk to the budget is changed, so a licence asking it says so.
+    let vrmShrunk = false;
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       if (item.bones) renameBones(doc, item.bones);
@@ -160,6 +171,10 @@ export async function buildSources(
     } else {
       const { doc } = await readModel(bytes);
       fetchedSize = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
+      // Kept as it is but for its pictures, shrunk to the budget (owner, 19 Nov 2026).
+      const shrunk = await shrinkVrmTextures(bytes, budget.textureMaxPx, shrinkPicture);
+      bytes = shrunk.bytes;
+      vrmShrunk = shrunk.shrunk > 0;
     }
     const model = `models/${item.id}.${ext}`;
     await mkdir(dirname(join(dir, model)), { recursive: true });
@@ -206,7 +221,7 @@ export async function buildSources(
       licence: item.licence,
       ...(item.publicDomain ? { publicDomain: item.publicDomain } : {}),
       // A changed CC BY model says so (owner, 8 Nov 2026); VRM files are kept as they are.
-      credit: creditFor(item, ext === 'glb'),
+      credit: creditFor(item, ext === 'glb' || vrmShrunk),
       source: { url: item.page, retrieved },
       origin: 'shipped',
       sketches: [],

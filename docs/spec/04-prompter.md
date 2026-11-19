@@ -140,7 +140,7 @@ The native layer pins `system`, `tools` and the mode messages (section 1.8; spec
 |---|---|---|---|
 | Instructions (section 2.5, 13.8) | `system` | Yes | |
 | Story API catalog, from WP4 metadata | `system` | Yes | 40,000 tokens; a unit test fails above 45,000 |
-| Backstage catalogue: **shipped models only**, grouped by Cast, Props, Set, Backdrops | `system` | Yes | 12,000 tokens |
+| Backstage catalogue: **shipped models only**, grouped by Cast, Props, Set, Backdrops | `system` | Yes | 24,000 tokens (12,000 until the owner's choice of 19 Nov 2026, for 100Avatars' round 3; the same text every request, so it caches) |
 | Imported models in this class | User turn, as data | No | Part of the production |
 | The scene, as data | User turn, as data | No | Part of the production |
 | The program as text with node ids | User turn, as data | No | 20,000 tokens |

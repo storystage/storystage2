@@ -93,6 +93,25 @@ describe('validateSources', () => {
     expect(r.errors.join('\n')).toMatch(/credit/);
   });
 
+  it('takes the VRM Public License only for a VRM file', () => {
+    const seed = {
+      id: 'vrmc/Biped/seed-san',
+      licence: 'VRM-PL-1.0',
+      credit: 'Seed-san by VirtualCast, Inc.',
+    };
+    const vrm = {
+      github: 'vrm-c/vrm-specification',
+      commit: COMMIT,
+      path: 'samples/Seed-san/vrm/Seed-san.vrm',
+    };
+    expect(validateSources({ source: 'vrmc', items: [item({ ...seed, fetch: vrm })] }).ok).toBe(
+      true,
+    );
+    const r = validateSources({ source: 'vrmc', items: [item(seed)] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join('\n')).toMatch(/VRM file/);
+  });
+
   it('takes a public-domain item only with its record in docs/legal/', () => {
     const nasa = { licence: 'public-domain', credit: 'Saturn V by NASA (public domain)' };
     expect(
@@ -449,7 +468,7 @@ describe('buildSources', () => {
     );
     expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
-    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 12,000 tokens/);
+    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 24,000 tokens/);
   });
 
   it('builds one list on its own with only, leaving the others alone', async () => {
