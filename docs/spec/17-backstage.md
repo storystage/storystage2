@@ -21,7 +21,7 @@
 | `section`, `class` | Its one home section (section 2) and its Story API class |
 | `displayName`, `themes` | The name learners see, and words to browse by |
 | `description` | Optional. What it looks like in plain words, one line of at most 120 characters, for the Prompter's catalogue, search and screen readers (rule 5) |
-| `files.model` | Binary glTF (`.glb`), or VRM (`.vrm`, kept byte for byte) |
+| `files.model` | Binary glTF (`.glb`), or VRM (`.vrm`, kept as fetched but for its pictures, section 4) |
 | `files.thumbnail` | A colour picture of its front (WebP), or its front sketch until one is made |
 | `vrm` | For a VRM file, its version: `"0"` or `"1"` |
 | `joints` | Its mapped joints in map order (section 2a), or `prop-only` |
@@ -153,7 +153,7 @@ Each source reaches Backstage through a pipeline that reads its files, maps skel
     - The output is for testing until the audit clears a model; it is not committed to a public repository.
 - **CC0 sources** (3.7, `tools/backstage-sources`):
     - Each source has a list in the assets repository (`sources/*.json`). Every item gives its name, class, section, licence, credit line and own page, and is pinned: a GitHub commit, a SHA-256, or an Arweave address, which names fixed content. Only the licences the audit allows to ship are accepted.
-    - The build fetches each item. It packs a `.gltf` into a `.glb`, keeps `.glb` and `.vrm` files byte for byte (a VRM's expressions and look-at serve later blocks), and maps the skeleton (a VRM by its own bone table).
+    - The build fetches each item. It packs a `.gltf` into a `.glb`, keeps `.glb` and `.vrm` files as they come (a VRM's expressions and look-at serve later blocks), but pads a binary file's JSON chunk to 4 bytes where its maker left it unpadded, as the format requires (61 of 100Avatars' round 3 do), and maps the skeleton (a VRM by its own bone table).
     - **Real sizes:** an item may give its real `height` in metres. The build scales a glTF model to it under one new root node, since models from galleries such as Poly Pizza come at every scale their makers used (a kite of 6 km, an aeroplane of 30 cm). The manifest's `defaultSize.height` is then that height. VRM files are kept as they are.
     - **Facing:** an item may give a `turn` in whole degrees (`x` first, to stand it up, then `y`), so a glTF model faces +Z and stands up as every Backstage model does (section 1). It's applied before the height is measured. Galleries' models face every way their makers chose. A turn is usually a quarter turn, but a model that leans in its own data takes whatever stands it up: Poly Pizza's crutches take `x: -34`.
     - **Bones:** an item may give `bones`, the model's own bone names each with the joint it is (`{ "Body.002": "head", "wingsupper.l": "leftWingShoulder" }`), for an animal whose maker named its bones in a way the joint map can't read (section 2a). The build renames them before reducing the model, so the joint map, the stage and the sketches read our own ids. Every joint must be one of the item's class and given once, and every bone must be found exactly once in the model. For glTF models only (18 Nov 2026, for Styloo's butterfly).
@@ -233,7 +233,7 @@ Every model is reduced to a budget, and every scene is checked against one, so a
     - only if the gentle steps stall above the budget, as scans do whose pictures are cut into many small pieces (museum scans, 11 Nov 2026), a last step: meshoptimizer's attribute-aware simplifier in its Permissive mode, which may collapse edges across a picture's seams while weighing the texture coordinates, so the picture still lands where it should. Each primitive takes its share of the budget, and it too keeps a subset of the original corners. The build's renders show the result, so a model it spoils (a thin, strutted one such as the Wright Flyer) can be left out or kept over budget for review.
 3. **Textures are shrunk to the budget and made WebP** (owner, 7 Nov 2026), and the file then requires `EXT_texture_webp`. Babylon.js and every target browser read it.
 4. **The encoder is passed in.** The build tools use sharp, as a devDependency only, because sharp bundles libvips under the LGPL (CLAUDE.md, rule 8). A pnpm override keeps sharp out of the app's dependencies (`pnpm-workspace.yaml`). The import worker will use the browser's own canvas (WP3i). Without an encoder, textures are left as they are and the model is reported as not fitting.
-5. **VRM files are measured, not reduced,** because they are kept byte for byte (section 1). The build report flags any over budget.
+5. **VRM files are measured, not reduced,** because their skeleton, expressions and settings are kept as they are (section 1), **but their pictures are shrunk** to the section's texture budget, each in its own format (PNG or JPEG), since 100Avatars' round 3 comes at 2,048 px (owner, 19 Nov 2026; `shrinkVrmTextures`). A VRM whose pictures were shrunk is changed, so a licence that asks for it (CC BY, the VRM Public License) says so in its credit. The build report flags any still over budget, such as Seed-san's triangles.
 6. **A scene over budget gets a plain-words warning** for the learner (`checkScene`): "This scene may be slow on a school Chromebook: it has a lot of detail. Try fewer models, or simpler ones." Nothing is refused.
 
 ## 4a. The Prompter's catalogue

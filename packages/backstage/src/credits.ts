@@ -73,7 +73,14 @@ export function creditsBySection(items: readonly Creditable[]): CreditSection[] 
 export const CHANGED = ', changed for StoryStage';
 
 /** The CC BY licences, which ask that changes be indicated (CC BY 4.0, section 3(a)(1)(B)). */
-const SAYS_CHANGED: readonly Licence[] = ['CC-BY-3.0', 'CC-BY-4.0', 'CC-BY-SA-4.0', 'CC-BY-NC-4.0'];
+const SAYS_CHANGED: readonly Licence[] = [
+  'CC-BY-3.0',
+  'CC-BY-4.0',
+  'CC-BY-SA-4.0',
+  'CC-BY-NC-4.0',
+  // The VRM Public License asks that changes be indicated too (section 4, when credit is required).
+  'VRM-PL-1.0',
+];
 
 /**
  * The credit line to write into the manifest. The build changes every glTF model it ships

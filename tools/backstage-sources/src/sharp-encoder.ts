@@ -7,6 +7,7 @@
 import sharp from 'sharp';
 import type { TextureEncoder } from '@storystage/backstage/optimize';
 import type { ImageDecoder, Picture } from '@storystage/sketches';
+import type { PictureShrinker } from './vrm-textures.ts';
 
 /** Always WebP, so it gives the bytes alone. */
 export const sharpEncoder = (async (
@@ -38,3 +39,18 @@ export const thumbnailWebp = async (p: Picture): Promise<Uint8Array> =>
       .webp({ quality: 85, alphaQuality: 90 })
       .toBuffer(),
   );
+
+/**
+ * A VRM's picture made to fit `maxPx`, in its own format (PNG, or JPEG), since VRM readers may not
+ * take WebP; null when it already fits.
+ */
+export const sharpShrinker: PictureShrinker = async (bytes, mimeType, maxPx) => {
+  const { width = 0, height = 0 } = await sharp(bytes).metadata();
+  if (width <= maxPx && height <= maxPx) return null;
+  const resized = sharp(bytes).resize({ width: maxPx, height: maxPx, fit: 'inside' });
+  return new Uint8Array(
+    mimeType === 'image/jpeg'
+      ? await resized.jpeg({ quality: 90 }).toBuffer()
+      : await resized.png({ compressionLevel: 9 }).toBuffer(),
+  );
+};
