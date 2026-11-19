@@ -10,6 +10,7 @@
 import type { AssetContainer } from '@babylonjs/core/assetContainer.js';
 import { LoadAssetContainerAsync } from '@babylonjs/core/Loading/sceneLoader.js';
 import type { Material } from '@babylonjs/core/Materials/material.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
@@ -35,7 +36,14 @@ import { Body } from '../humanoid/body.ts';
 import type { Box } from '../hull.ts';
 import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
-import { faceTargets, facesOf } from './faces.ts';
+import {
+  binaryFacesOf,
+  faceShiftsOf,
+  faceTargets,
+  facesOf,
+  type FaceShift,
+  type FaceTexture,
+} from './faces.ts';
 import { ObjectView } from './view.ts';
 
 registerBuiltInLoaders();
@@ -152,7 +160,8 @@ export class ModelLibrary {
     }
     for (const node of copy.rootNodes) node.parent = facing;
     const meshes = root.getChildMeshes().filter((m) => m.getTotalVertices() > 0);
-    const paintable = plainSurfaces(object, meshes, this.scene);
+    const surfaces = plainSurfaces(object, meshes, this.scene);
+    const paintable = [...surfaces.values()];
     const box = boxOf(root);
     const joints = jointNodes(root, cls, file.joints);
     // The root is still at the origin, unturned, so a joint's place in the scene is its rest.
@@ -171,6 +180,8 @@ export class ModelLibrary {
       joints,
       animations: copy.animationGroups,
       faces: faceTargets(facesOf(json), root.getChildMeshes()),
+      faceTextures: faceTextures(faceShiftsOf(json), surfaces),
+      binaryFaces: binaryFacesOf(json),
     });
     // Its own clips, which the play animation block can name, and how long each is.
     const clips = new Map(
@@ -249,7 +260,7 @@ function plainSurfaces(
   object: ObjectId,
   meshes: readonly AbstractMesh[],
   scene: Scene,
-): StandardMaterial[] {
+): Map<string, StandardMaterial> {
   const made = new Map<Material, StandardMaterial>();
   for (const mesh of meshes) {
     const source = mesh.material as PBRMaterial | null;
@@ -266,7 +277,40 @@ function plainSurfaces(
     }
     mesh.material = plain;
   }
-  return [...made.values()];
+  // By the glTF material's name, which the loader gave the source.
+  return new Map([...made].map(([source, plain]) => [source.name, plain]));
+}
+
+/**
+ * The pictures each expression shifts, on this copy's surfaces. A shifted surface gets its own
+ * copy of its picture, so another surface showing the same one stays as it is.
+ */
+function faceTextures(
+  shifts: ReadonlyMap<string, readonly FaceShift[]>,
+  surfaces: ReadonlyMap<string, StandardMaterial>,
+): Map<string, FaceTexture[]> {
+  const own = new Map<StandardMaterial, Texture>();
+  const out = new Map<string, FaceTexture[]>();
+  for (const [expression, list] of shifts) {
+    const textures = list.flatMap(({ material, scale, offset }) => {
+      const surface = surfaces.get(material);
+      const picture = surface?.diffuseTexture;
+      if (!surface || !(picture instanceof Texture)) return [];
+      let texture = own.get(surface);
+      if (!texture) {
+        texture = picture.clone();
+        // A whole turn across a picture that repeats shows the same picture, but sets the surface
+        // up to shift it from the start. Otherwise Babylon.js does that only when it's first
+        // shifted, after drawing that frame, so the first frame with a face showed none.
+        if (texture.wrapU === Texture.WRAP_ADDRESSMODE) texture.uOffset += 1;
+        surface.diffuseTexture = texture;
+        own.set(surface, texture);
+      }
+      return [{ texture, scale, offset }];
+    });
+    if (textures.length) out.set(expression, textures);
+  }
+  return out;
 }
 
 /** The box round a model that's at the scene's origin, with no turn. */

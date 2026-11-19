@@ -2,7 +2,9 @@ import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup.j
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import type { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
+import type { MorphTargetManager } from '@babylonjs/core/Morph/morphTargetManager.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import type { JointName, Quat, Transform, Vec3 } from '@storystage/story-api';
 import type { Box } from '../hull.ts';
@@ -11,7 +13,7 @@ import { localAfter, lookTurn, reachTurns } from '../ik.ts';
 import { conjugate, mul, rotate, v } from '../math.ts';
 import { paintColour } from '../paint.ts';
 import type { Blend, ObjectState } from '../timeline.ts';
-import type { FaceTarget } from './faces.ts';
+import type { FaceTarget, FaceTexture } from './faces.ts';
 import { HumanoidRig } from './humanoid-rig.ts';
 import { color3 } from './materials.ts';
 
@@ -40,6 +42,10 @@ export interface ViewParts {
   readonly animations?: readonly AnimationGroup[];
   /** A VRM's expressions, and the morph targets that make each (`faces.ts`). */
   readonly faces?: ReadonlyMap<string, readonly FaceTarget[]>;
+  /** A VRM's expressions that shift a picture, as Seed-san's robot screen does (`faces.ts`). */
+  readonly faceTextures?: ReadonlyMap<string, readonly FaceTexture[]>;
+  /** A VRM's expressions that are all or nothing. */
+  readonly binaryFaces?: ReadonlySet<string>;
 }
 
 /** One of a model's clips, `time` seconds in, counting for `weight` of the pose. */
@@ -171,6 +177,15 @@ export class ObjectView {
   private readonly rig: HumanoidRig | null;
   private humanPosed = false;
   private readonly faces: ReadonlyMap<string, readonly FaceTarget[]>;
+  /** The shape sets its faces are in. */
+  private readonly faceManagers: ReadonlySet<MorphTargetManager>;
+  private readonly faceTextures: ReadonlyMap<string, readonly FaceTexture[]>;
+  private readonly binaryFaces: ReadonlySet<string>;
+  /** Each shifted picture's own scale and offset, which shifts add to. */
+  private readonly textureRests: ReadonlyMap<
+    Texture,
+    { u: number; v: number; uScale: number; vScale: number }
+  >;
   /** The face last shown, so an unchanged one costs nothing. */
   private faceShown = '';
   /** The model's own clips moved its nodes last time. */
@@ -189,6 +204,8 @@ export class ObjectView {
     label,
     animations = [],
     faces = new Map(),
+    faceTextures = new Map(),
+    binaryFaces = new Set(),
   }: ViewParts) {
     this.root = root;
     this.meshes = meshes;
@@ -237,6 +254,21 @@ export class ObjectView {
     this.clipsByName = clips;
     this.rig = joints?.has('hips' as JointName) ? new HumanoidRig(root, joints) : null;
     this.faces = faces;
+    this.faceManagers = new Set(
+      faces.size === 0
+        ? []
+        : meshes.flatMap((m) => (m.morphTargetManager ? [m.morphTargetManager] : [])),
+    );
+    this.faceTextures = faceTextures;
+    this.binaryFaces = binaryFaces;
+    this.textureRests = new Map(
+      [...faceTextures.values()]
+        .flat()
+        .map(({ texture: t }) => [
+          t,
+          { u: t.uOffset, v: t.vOffset, uScale: t.uScale, vScale: t.vScale },
+        ]),
+    );
   }
 
   /** The names of the model's clips. */
@@ -429,19 +461,50 @@ export class ObjectView {
   }
 
   /** Sets the morph targets of the expression shown and the blink; the rest go back to none. */
+  /** Whether it has faces to show. */
+  get hasFaces(): boolean {
+    return this.faces.size > 0 || this.faceTextures.size > 0;
+  }
+
+  /**
+   * Shows every face shape a very little (`true`), or none, for the stage to draw unseen as a
+   * scene loads (`BabylonStage.warmFaces`). The next `show` puts its own face back.
+   */
+  warmFaces(warm: boolean): void {
+    for (const list of this.faces.values())
+      for (const { target } of list) target.influence = warm ? 1e-3 : 0;
+    for (const manager of this.faceManagers) void manager.numInfluencers;
+    this.faceShown = '';
+  }
+
   private showFace(face: Motion['face'], fading: Motion['fading'], blink: number): void {
-    if (this.faces.size === 0) return;
+    if (this.faces.size === 0 && this.faceTextures.size === 0) return;
     const key = `${face?.expression ?? ''}|${face?.amount ?? 0}|${fading?.expression ?? ''}|${fading?.amount ?? 0}|${blink}`;
     if (key === this.faceShown) return;
     this.faceShown = key;
     for (const list of this.faces.values()) for (const { target } of list) target.influence = 0;
-    const set = (expression: string, amount: number) => {
+    const shifts = new Map([...this.textureRests].map(([t, r]) => [t, { ...r }]));
+    const set = (expression: string, shown: number) => {
+      const amount = this.binaryFaces.has(expression) ? (shown > 0.5 ? 1 : 0) : shown;
       for (const { target, weight } of this.faces.get(expression) ?? [])
         target.influence = Math.min(1, target.influence + weight * amount);
+      for (const { texture, scale, offset } of this.faceTextures.get(expression) ?? []) {
+        const s = shifts.get(texture)!;
+        s.u += offset[0] * amount;
+        s.v += offset[1] * amount;
+        s.uScale *= 1 + (scale[0] - 1) * amount;
+        s.vScale *= 1 + (scale[1] - 1) * amount;
+      }
     };
     if (fading) set(fading.expression, fading.amount);
     if (face) set(face.expression, face.amount);
     if (blink > 0) set('blink', blink);
+    for (const [texture, s] of shifts) {
+      texture.uOffset = s.u;
+      texture.vOffset = s.v;
+      texture.uScale = s.uScale;
+      texture.vScale = s.vScale;
+    }
   }
 
   private fade(opacity: number): void {
