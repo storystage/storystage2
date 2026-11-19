@@ -123,7 +123,7 @@ describe('catalogueTokens', () => {
 
   // The real check is the build's, on the real manifest (tools/backstage-sources); this one
   // keeps each line short enough for about 200 described people.
-  it('fits 200 described people in the budget of 12,000 tokens', () => {
+  it('fits 200 described people in 12,000 tokens, half the budget', () => {
     const many = Array.from({ length: 200 }, (_, i) =>
       item({
         id: `makehuman/Biped/p${String(i).padStart(3, '0')}`,
@@ -133,7 +133,9 @@ describe('catalogueTokens', () => {
         joints: HANDS,
       }),
     );
-    expect(catalogueTokens(catalogueText(manifest(...many)))).toBeLessThan(CATALOGUE_TOKEN_BUDGET);
+    expect(catalogueTokens(catalogueText(manifest(...many)))).toBeLessThan(
+      CATALOGUE_TOKEN_BUDGET / 2,
+    );
   });
 });
 

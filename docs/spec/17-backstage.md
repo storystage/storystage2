@@ -258,7 +258,7 @@ Props
 2. **Each line gives what Claude needs to choose and use a model:** its id exactly as `add_model` takes it, its name and description, its themes, its height at scale 1, and its joints. Licences, credits, files and budgets are left out.
 3. **Joint sets are listed once** and each model names its set, because models of one class differ (a KayKit character has 18 joints, a MakeHuman person 52). Claude uses only the joints in a model's set; a model with none can move and turn, but not walk or gesture.
 4. **The same manifest always gives the same text,** whatever order it lists its items in, sorted in code-point order rather than the machine's locale. The native layer pins the system prompt's hash for a release (spec 04, section 1.8), so the catalogue a release ships is fixed with it.
-5. **It fits 12,000 tokens,** counted at three characters a token (spec 04, section 2.1). The build (`tools/backstage-sources`) stops before writing anything if it doesn't, writes the text to `prompter-catalogue.txt` for the reviewer, and puts its size in the build report. The 50 models shipped on 8 Nov 2026 take about 3,100.
+5. **It fits 24,000 tokens** (12,000 until the owner's choice of 19 Nov 2026), counted at three characters a token (spec 04, section 2.1). The build (`tools/backstage-sources`) stops before writing anything if it doesn't, writes the text to `prompter-catalogue.txt` for the reviewer, and puts its size in the build report. The 50 models shipped on 8 Nov 2026 take about 3,100.
 
 ## 4b. Loading
 

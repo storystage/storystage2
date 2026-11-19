@@ -468,7 +468,7 @@ describe('buildSources', () => {
     );
     expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
-    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 12,000 tokens/);
+    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 24,000 tokens/);
   });
 
   it('builds one list on its own with only, leaving the others alone', async () => {
