@@ -662,13 +662,16 @@ export class Timeline {
     if (!move) return;
     const elapsed = (t - c.start) / 1_000_000;
     const weight = Math.min(1, elapsed / FLY_EASE, (end - t) / 1_000_000 / FLY_EASE);
-    (s.body ??= freshBody()).layers.push({
-      clip: move.clip,
-      time: elapsed,
-      weight,
-      whole: true,
-      own: true,
-    });
+    const layers = (s.body ??= freshBody()).layers;
+    // Two moves at once (a do together) fly once, by the clock of the one that started first,
+    // as strongly as the stronger (S4's review).
+    const flying = layers.findIndex((l) => l.own && l.clip === move.clip);
+    if (flying >= 0) {
+      const first = layers[flying]!;
+      layers[flying] = { ...first, weight: Math.max(first.weight, weight) };
+      return;
+    }
+    layers.push({ clip: move.clip, time: elapsed, weight, whole: true, own: true });
   }
 
   /** Where a target is in the scene. A joint rests where the model has it, carried by its object. */

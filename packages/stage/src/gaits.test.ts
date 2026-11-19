@@ -110,6 +110,20 @@ describe('a flyer or swimmer on any move (owner, 19 Nov)', () => {
     expect(t.shown(dog).own).toEqual([{ name: 'idle', time: 2.5, weight: 1 }]);
   });
 
+  it('flies once for two moves at once, by the clock of the first', () => {
+    const t = bee({ move: fly });
+    const up = { object: dog, kind: 'translate', by: v(0, 1, 0), space: 'scene' } as const;
+    t.schedule([
+      { ...cmd(0, 2, { object: dog, kind: 'moveTo', target: spot }), style: 'beginAndEndAbruptly' },
+      { ...cmd(0.5, 2, up), style: 'beginAndEndAbruptly' },
+    ]);
+    t.seek(micros(1));
+    expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 1, weight: 1 }]);
+    // The first has ended; the second flies on, by its own clock.
+    t.seek(micros(2.3));
+    expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 1.8, weight: 1 }]);
+  });
+
   it('does nothing for a model with no fly, or a move that goes nowhere', () => {
     const t = bee({ walk: { clip: 'walk', speed: 0.5 } });
     t.schedule([
