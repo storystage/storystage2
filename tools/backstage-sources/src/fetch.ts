@@ -14,11 +14,49 @@ import type { SourceItem } from './sources.ts';
 
 export type Fetcher = (url: string) => Promise<Uint8Array>;
 
-export const httpFetch: Fetcher = async (url) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Could not fetch ${url}: ${res.status} ${res.statusText}`);
+/** A fetch that failed in a way worth trying again: the network, or the server's own error. */
+class Passing extends Error {}
+
+const once: Fetcher = async (url) => {
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new Passing(`Could not reach ${url}: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    const message = `Could not fetch ${url}: ${res.status} ${res.statusText}`;
+    throw res.status >= 500 || res.status === 429 ? new Passing(message) : new Error(message);
+  }
   return new Uint8Array(await res.arrayBuffer());
 };
+
+/**
+ * Tries a fetch again after a dropped connection or a server error, waiting longer each time
+ * (1, 2, then 4 seconds), up to `tries` in all. A missing file (404) or a refusal fails at once.
+ * The CI build lost three runs on 19 Nov 2026 to Arweave hosts dropping a connection.
+ */
+export function withRetries(
+  fetcher: Fetcher,
+  tries = 4,
+  wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms)),
+): Fetcher {
+  return async (url) => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await fetcher(url);
+      } catch (e) {
+        if (!(e instanceof Passing) || attempt >= tries) throw e;
+        await wait(1000 * 2 ** (attempt - 1));
+      }
+    }
+  };
+}
+
+export const httpFetch: Fetcher = withRetries(once);
+
+/** For tests: a failure worth trying again. */
+export const passingFailure = (message: string): Error => new Passing(message);
 
 export interface Fetched {
   readonly bytes: Uint8Array;

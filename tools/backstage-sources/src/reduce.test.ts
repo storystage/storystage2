@@ -201,8 +201,10 @@ describe('standOnGround', () => {
     // body is all to one side of it (here across, 0 to 1 m).
     const doc = new Document();
     const buffer = doc.createBuffer();
-    const acc = (type: 'VEC3' | 'VEC4' | 'MAT4', array: Float32Array | Uint16Array) =>
-      doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
+    const acc = (
+      type: 'VEC3' | 'VEC4' | 'MAT4',
+      array: Float32Array<ArrayBuffer> | Uint16Array<ArrayBuffer>,
+    ) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
     const joint = doc.createNode('body').setTranslation([0, -0.3, 0]);
     const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
     const skin = doc
