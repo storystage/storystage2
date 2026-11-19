@@ -5,7 +5,7 @@
  */
 import type { JointName, Quat, Vec3 } from '@storystage/story-api';
 import { localAfter, lookTurn, reachTurns } from '../ik.ts';
-import { add, conjugate, IDENTITY_Q, mul, rotate, sub, v } from '../math.ts';
+import { add, axisTurns, conjugate, IDENTITY_Q, mul, rotate, sub, v } from '../math.ts';
 import { HUMAN_BONES, modelTurns, slerp, type HumanPose } from './pose.ts';
 import { restCorrections, tPosePlaces } from './rest.ts';
 
@@ -149,6 +149,21 @@ export class Body {
     next.set(neck, localAfter(half, turns.get(neck)!, turns.get(PARENT.get(neck)!)!));
     next.set(head, mul(conjugate(neckNow), headNow));
     return this.lookWithEyes({ turns: next, hips: pose.hips }, target, weight);
+  }
+
+  /**
+   * The head tipped back `turns` (a surprise), about the model's own left-right axis, the rest
+   * of the body as it was. A camera with no turn looks along +Z, so tipping back turns about -X.
+   */
+  tipBack(pose: HumanPose, turns: number): HumanPose {
+    if (turns === 0) return pose;
+    const head = J('head');
+    const model = modelTurns(pose);
+    const headNow = mul(axisTurns(v(1, 0, 0), -turns), model.get(head)!);
+    const parent = model.get(PARENT.get(head)!) ?? IDENTITY_Q;
+    const next = new Map(pose.turns);
+    next.set(head, mul(conjugate(parent), headNow));
+    return { turns: next, hips: pose.hips };
   }
 
   /** Each eye the model has turned towards `target`, `weight` of the way, within its limit. */
