@@ -277,7 +277,8 @@ function plainSurfaces(
     }
     mesh.material = plain;
   }
-  // By the glTF material's name, which the loader gave the source.
+  // By the glTF material's name, which the loader gave the source. Two materials of one name
+  // would share an entry; Seed-san's, the only model with picture shifts, are all different.
   return new Map([...made].map(([source, plain]) => [source.name, plain]));
 }
 

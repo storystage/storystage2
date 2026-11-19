@@ -467,10 +467,14 @@ export class ObjectView {
   }
 
   /**
-   * Shows every face shape a very little (`true`), or none, for the stage to draw unseen as a
-   * scene loads (`BabylonStage.warmFaces`). The next `show` puts its own face back.
+   * Shows every face shape a very little (`true`), or none (`false`), for the stage to draw
+   * unseen as a scene loads (`BabylonStage.warmFaces`); then (`null`) as it was. An unseen drawing
+   * leaves out a model that's switched off, as one hidden until it enters is, so it's switched on
+   * meanwhile (S4's review). The next `show` puts its own face back.
    */
-  warmFaces(warm: boolean): void {
+  warmFaces(warm: boolean | null): void {
+    this.root.setEnabled(warm !== null || this.opacity > 0);
+    if (warm === null) return;
     for (const list of this.faces.values())
       for (const { target } of list) target.influence = warm ? 1e-3 : 0;
     for (const manager of this.faceManagers) void manager.numInfluencers;
