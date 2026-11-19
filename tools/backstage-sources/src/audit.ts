@@ -23,6 +23,9 @@ export const SOURCE_NAMES: Readonly<Record<string, string>> = {
   smithsonian: 'Smithsonian Open Access',
   storybook: 'Storybook cast, KayKit models and characters made from their parts',
   storystage: "Backdrops' grounds, from ambientCG and Poly Haven textures",
+  styloo: 'Styloo, Animals Asset Pack',
+  vrmc: 'VRM Consortium (Seed-san)',
+  vuena: 'Vuena, Free Low-Poly Animals',
 };
 
 const sourceOf = (item: Item) => item.id.split('/')[0]!;

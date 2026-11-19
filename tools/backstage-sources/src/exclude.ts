@@ -2,9 +2,11 @@
  * Removes parts of a model a source list excludes (`exclude` in `sources/*.json`): nodes by name
  * (for example the weapons a game character carries, all modelled in its hands) and animation
  * clips by name (for example attacks), then everything only they used, so the file shrinks.
+ * A node goes with everything under it (one of several animals sharing a file goes with its
+ * armature, its bones and its skin), and so do the animation channels that moved them.
  * Patterns match whole names, with `*` for any run of characters. VRM files are never rewritten.
  */
-import { WebIO, type Document, type Property } from '@gltf-transform/core';
+import { WebIO, type Document, type Node, type Property } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 
 export interface Exclude {
@@ -36,11 +38,23 @@ export async function applyExcludes(bytes: Uint8Array, exclude: Exclude): Promis
   for (const node of root.listNodes()) {
     if (node.isDisposed() || !nodeRes.some((re) => re.test(node.getName()))) continue;
     removed.nodes.push(node.getName());
-    for (const child of node.listChildren()) node.removeChild(child).dispose();
-    node.dispose();
+    // The whole subtree goes: an armature takes its bones, and their bones, with it.
+    const tree: Node[] = [];
+    node.traverse((n) => tree.push(n));
+    for (const n of tree.reverse()) n.dispose();
   }
   for (const anim of root.listAnimations()) {
-    if (!animRes.some((re) => re.test(anim.getName()))) continue;
+    // A channel whose node went with an excluded part moves nothing, so it goes too; a clip
+    // that only moved excluded parts goes with them.
+    const orphaned = anim.listChannels().filter((c) => !c.getTargetNode());
+    for (const c of orphaned) {
+      const sampler = c.getSampler();
+      c.dispose();
+      if (sampler && !sampler.listParents().some((p) => p.propertyType === 'AnimationChannel'))
+        sampler.dispose();
+    }
+    const emptied = orphaned.length > 0 && anim.listChannels().length === 0;
+    if (!emptied && !animRes.some((re) => re.test(anim.getName()))) continue;
     removed.animations.push(anim.getName());
     for (const s of anim.listSamplers()) s.dispose();
     for (const c of anim.listChannels()) c.dispose();

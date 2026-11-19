@@ -166,6 +166,8 @@ export async function buildSources(
       const reduced = await reduceModel(doc, budget, { encodeTexture });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
+      // A character or animal stands on its feet; props and sets are put down by their box.
+      if (item.section === 'cast') standOnGround(doc);
       fetchedSize = reduced.before;
       bytes = await io.writeBinary(doc);
     } else {
@@ -322,6 +324,38 @@ export function scaleToHeight(doc: Document, metres: number): void {
   const k = metres / now;
   if (!Number.isFinite(k) || Math.abs(k - 1) < 1e-6) return;
   wrapScene(doc, () => doc.createNode('storystage-size').setScale([k, k, k]));
+}
+
+/**
+ * Stands a model on the ground: moves it, under one new root node, so the lowest point of its rest
+ * pose as a renderer draws it (a skinned mesh by its joints) is at y = 0. The stage stands an
+ * object by its origin (S3, 19 Nov 2026), and some makers put theirs mid-body: the African
+ * penguin's was 0.48 m above its feet, so it stood sunk to its head.
+ *
+ * Across and front to back, it's centred only where its origin is near or outside its edge
+ * (outside the middle 80% of its width or length), so a turn doesn't swing it round a point
+ * outside it (the same penguin's body was all behind its beak). A model whose origin is within,
+ * if off-centre because of a long tail or trunk, keeps it.
+ */
+export function standOnGround(doc: Document): void {
+  const positions = meshFromDocument(doc).positions;
+  const lo = [Infinity, Infinity, Infinity];
+  const hi = [-Infinity, -Infinity, -Infinity];
+  for (let i = 0; i < positions.length; i += 3)
+    for (let a = 0; a < 3; a++) {
+      lo[a] = Math.min(lo[a]!, positions[i + a]!);
+      hi[a] = Math.max(hi[a]!, positions[i + a]!);
+    }
+  if (!Number.isFinite(lo[1]!)) return;
+  const shift = [0, -lo[1]!, 0];
+  for (const a of [0, 2]) {
+    const margin = 0.1 * (hi[a]! - lo[a]!);
+    if (lo[a]! + margin > 0 || hi[a]! - margin < 0) shift[a] = -(lo[a]! + hi[a]!) / 2;
+  }
+  if (shift.every((s) => Math.abs(s) < 1e-4)) return;
+  wrapScene(doc, () =>
+    doc.createNode('storystage-ground').setTranslation(shift as [number, number, number]),
+  );
 }
 
 /** Height in metres at scale 1: the model's extent along Y. */

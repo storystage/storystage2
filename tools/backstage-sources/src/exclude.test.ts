@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { WebIO } from '@gltf-transform/core';
+import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
 import { documentFromMesh, figure, box } from '@storystage/sketches/testing';
 import { applyExcludes, globToRegExp } from './exclude.ts';
@@ -115,6 +115,79 @@ describe('applyExcludes', () => {
         .map((a) => a.getName()),
     ).toEqual(['Idle']);
     expect(result.bytes.length).toBeLessThan(before.length);
+  });
+
+  // Mamzi's four savanna animals share one file, each with its own armature, skeleton and skin,
+  // and every clip moves all four. Keeping one excludes the others' armatures.
+  it('removes an excluded armature with its bones, skin and the channels that moved them', async () => {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const times = () =>
+      doc
+        .createAccessor()
+        .setType('SCALAR')
+        .setArray(new Float32Array([0, 1]))
+        .setBuffer(buffer);
+    const moves = () =>
+      doc
+        .createAccessor()
+        .setType('VEC3')
+        .setArray(new Float32Array([0, 0, 0, 0, 1, 0]))
+        .setBuffer(buffer);
+    const animal = (name: string) => {
+      const armature = doc.createNode(name);
+      const hip = doc.createNode('Bone');
+      const leg = doc.createNode('Bone.001');
+      hip.addChild(leg);
+      armature.addChild(hip);
+      const prim = doc.createPrimitive().setAttribute(
+        'POSITION',
+        doc
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]))
+          .setBuffer(buffer),
+      );
+      const skin = doc.createSkin(name).addJoint(hip).addJoint(leg);
+      armature.addChild(
+        doc
+          .createNode(`${name} body`)
+          .setMesh(doc.createMesh(name).addPrimitive(prim))
+          .setSkin(skin),
+      );
+      doc.createScene().addChild(armature);
+      return leg;
+    };
+    const elephant = animal('Armature.001');
+    const giraffe = animal('Armature');
+    const run = doc.createAnimation('01Run');
+    const giraffeOnly = doc.createAnimation('Giraffe wave');
+    for (const [anim, leg] of [
+      [run, elephant],
+      [run, giraffe],
+      [giraffeOnly, giraffe],
+    ] as const) {
+      const sampler = doc.createAnimationSampler().setInput(times()).setOutput(moves());
+      anim
+        .addSampler(sampler)
+        .addChannel(
+          doc
+            .createAnimationChannel()
+            .setTargetNode(leg)
+            .setTargetPath('translation')
+            .setSampler(sampler),
+        );
+    }
+    const io = new WebIO();
+    const result = await applyExcludes(await io.writeBinary(doc), { nodes: ['Armature'] });
+    expect(result.removed).toEqual({ nodes: ['Armature'], animations: ['Giraffe wave'] });
+    const after = (await io.readBinary(result.bytes)).getRoot();
+    expect(after.listNodes().filter((n) => n.getName() === 'Bone')).toHaveLength(1);
+    expect(after.listSkins().map((s) => s.getName())).toEqual(['Armature.001']);
+    expect(after.listMeshes().map((m) => m.getName())).toEqual(['Armature.001']);
+    expect(after.listAnimations().map((a) => [a.getName(), a.listChannels().length])).toEqual([
+      ['01Run', 1],
+    ]);
   });
 
   it('leaves a model alone when nothing matches', async () => {
