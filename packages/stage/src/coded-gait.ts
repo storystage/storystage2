@@ -5,12 +5,13 @@
  *
  * - **Four legs:** a walk puts its feet down one at a time, back left, front left, back right,
  *   front right; a run trots, a front leg with the back leg across from it.
+ * - **Two legs** (a bird, such as S4's chick): one foot, then the other, walking and running.
  * - **Feet planted:** a leg's turn follows the ground covered, not the clock, so a foot on the
  *   ground stays where it is while the body goes over it (the owner's choice for animals, 19 Nov).
  *   It's down about two thirds of a walk and under half a run (`ON_THE_GROUND`).
  * - **Its own pace:** how fast an animal walks comes from how long its legs are, as it does in
  *   life, so a giraffe strides and a cat pads (a Froude number: speed² = F × g × leg length).
- * - **Wings** beat while it moves, faster for smaller wings.
+ * - **Wings** beat while it moves, faster for smaller wings, if it has no legs to walk on.
  */
 import type { JointName, Quat, Vec3 } from '@storystage/story-api';
 import { ON_THE_GROUND } from './gaits.ts';
@@ -26,8 +27,8 @@ const FROUDE: Record<Moving, number> = { walk: 0.1, run: 0.8 };
 const STRIDE: Record<Moving, number> = { walk: 1.2, run: 2.4 };
 /** Where in the cycle each foot comes down: a walk one at a time, a trot two across. */
 const PHASE: Record<Moving, Record<string, number>> = {
-  walk: { backLeft: 0, frontLeft: 0.25, backRight: 0.5, frontRight: 0.75 },
-  run: { frontLeft: 0, backRight: 0, frontRight: 0.5, backLeft: 0.5 },
+  walk: { backLeft: 0, frontLeft: 0.25, backRight: 0.5, frontRight: 0.75, left: 0, right: 0.5 },
+  run: { frontLeft: 0, backRight: 0, frontRight: 0.5, backLeft: 0.5, left: 0, right: 0.5 },
 };
 /** How far a knee bends to lift its foot, at the top of a step, in turns. */
 const LIFT = 0.06;
@@ -41,10 +42,10 @@ export interface CodedLeg {
   /** Where it should come down in the cycle: `walk`'s and `run`'s. */
   readonly phase: Record<Moving, number>;
   readonly front: boolean;
-  /** The shoulder or hip. */
+  /** The shoulder or hip. A bird's leg is like a four-legged animal's back leg. */
   readonly upper: JointName;
   readonly knee: JointName;
-  /** Below the knee: a front leg's ankle, a back leg's hock. */
+  /** Below the knee: a front leg's ankle, a back leg's hock, a bird's ankle. */
   readonly lower: JointName | null;
   /** From its shoulder or hip to the ground, in metres at scale 1. */
   readonly length: number;
@@ -62,7 +63,8 @@ export interface CodedGait {
 
 /**
  * The walk in code for a model with these joints resting at these places, or null if it has
- * neither four legs nor wings. A stand-in's joints all rest at one place, so it has neither.
+ * neither four legs, two legs nor wings. A stand-in's joints all rest at one place, so it has
+ * none of them.
  */
 export function codedGait(
   joints: readonly JointName[],
@@ -71,26 +73,33 @@ export function codedGait(
 ): CodedGait | null {
   const has = new Set(joints);
   const at = (j: string) => (has.has(j as JointName) ? (places.get(j as JointName) ?? null) : null);
-  const legs: CodedLeg[] = [];
-  for (const end of ['front', 'back'] as const)
-    for (const side of ['Left', 'Right'] as const) {
-      const name = `${end}${side}`;
-      const upper = `${name}${end === 'front' ? 'Shoulder' : 'Hip'}`;
-      const knee = `${name}Knee`;
-      const lower = `${name}${end === 'front' ? 'Ankle' : 'Hock'}`;
-      const top = at(upper);
-      const bend = at(knee);
-      if (!top || !bend || !(top.y - bend.y > 1e-3)) continue;
-      legs.push({
+  const leg = (name: string, front: boolean, upper: string, lower: string): CodedLeg[] => {
+    const top = at(upper);
+    const bend = at(`${name}Knee`);
+    if (!top || !bend || !(top.y - bend.y > 1e-3) || !(top.y - box.min.y > 1e-2)) return [];
+    return [
+      {
         phase: { walk: PHASE.walk[name]!, run: PHASE.run[name]! },
-        front: end === 'front',
+        front,
         upper: upper as JointName,
-        knee: knee as JointName,
+        knee: `${name}Knee` as JointName,
         lower: at(lower) ? (lower as JointName) : null,
         length: top.y - box.min.y,
-      });
-    }
-  const fourLegs = legs.length === 4 && legs.every((l) => l.length > 1e-2);
+      },
+    ];
+  };
+  const four = (['front', 'back'] as const).flatMap((end) =>
+    (['Left', 'Right'] as const).flatMap((side) => {
+      const name = `${end}${side}`;
+      return end === 'front'
+        ? leg(name, true, `${name}Shoulder`, `${name}Ankle`)
+        : leg(name, false, `${name}Hip`, `${name}Hock`);
+    }),
+  );
+  const two = (['left', 'right'] as const).flatMap((name) =>
+    leg(name, false, `${name}Hip`, `${name}Ankle`),
+  );
+  const legs = four.length === 4 ? four : two.length === 2 ? two : [];
   const middle = (box.min.x + box.max.x) / 2;
   const wings = (['left', 'right'] as const).flatMap((side) => {
     const joint = `${side}WingShoulder`;
@@ -100,12 +109,12 @@ export function codedGait(
     if (!place || Math.abs(across - middle) < 1e-3) return [];
     return [{ joint: joint as JointName, side: Math.sign(across - middle) }];
   });
-  if (!fourLegs && wings.length === 0) return null;
-  const legLength = fourLegs ? legs.reduce((sum, l) => sum + l.length, 0) / legs.length : 0;
+  if (legs.length === 0 && wings.length === 0) return null;
+  const legLength = legs.length ? legs.reduce((sum, l) => sum + l.length, 0) / legs.length : 0;
   // Smaller wings beat faster: about 4 a second for a butterfly's 10 cm, 2 for half a metre.
   const span = Math.max(1e-2, box.max.x - box.min.x);
   const beat = Math.min(8, Math.max(1, 1.3 / Math.sqrt(span)));
-  return { legs: fourLegs ? legs : [], wings, legLength, beat };
+  return { legs, wings, legLength, beat };
 }
 
 /** How fast it walks or runs, in metres a second at scale 1; null without legs. */
@@ -168,8 +177,10 @@ export function codedTurns(
       add(sideways, leg.knee, leg.front ? -bend : bend);
       if (leg.lower) add(sideways, leg.lower, leg.front ? 1.5 * bend : -bend);
     }
-    for (const { joint, side } of gait.wings)
-      add(forward, joint, side * WING_BEAT * Math.sin(2 * Math.PI * cycles) * weight);
+    // A bird with legs walks on them, its wings still.
+    if (gait.legs.length === 0)
+      for (const { joint, side } of gait.wings)
+        add(forward, joint, side * WING_BEAT * Math.sin(2 * Math.PI * cycles) * weight);
   }
   const turns = new Map<JointName, Quat>();
   for (const joint of new Set([...sideways.keys(), ...forward.keys()]))
