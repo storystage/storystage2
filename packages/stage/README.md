@@ -97,6 +97,15 @@ The contract's `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`,
 - **Clips.** `play animation` plays the model's own clip of that name, or for a biped, a shared clip. Anything else is refused.
 - **Not yet:** visemes for speaking (waiting on S1's speak line design, WP14.3); turning the eyes as well as the head; and a walk round other characters, which aren't in the way.
 
+
+### Animals (agreed with S4, 18 Nov)
+
+An animal, or any model that isn't a humanoid, walks, runs and stands with its own clips (`gaits.ts`), as a humanoid does with the shared ones. Spec 17's standard clip names: `walk`, `run`, `idle`, and a flyer's `fly` and a swimmer's `swim` for walking; `jump` is kept for later. S4's build gives a shipped model's clips those names, playing in place; until then the stage reads Styloo's `iddle` as `idle`.
+
+- **Keeping pace:** as a model loads, the stage measures how far its toes (or ankles, or feet) sweep front to back over each walk and run, and works out how fast the clip carries it (a foot is down about two thirds of a walk, under half a run). Walking, the clip keeps pace with the ground covered, so the feet don't slide, and a walk's natural length comes from that speed. Without a run of its own, it runs with its walk, faster.
+- **Without feet** (a flyer's, a swimmer's, or a model without mapped joints): the clip plays at its own pace, and it moves at a plain walk or run.
+- **Standing:** its `idle` plays under whatever else it's doing.
+- **Not yet:** a gait written in code for an animal with no clips of its own (Styloo's cat), which glides for now.
 ## What characters cost
 
 `stageHarness.characterCost(count)` in the stage harness measures it, as `eventCost` does for events.

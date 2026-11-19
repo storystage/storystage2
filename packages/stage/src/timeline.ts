@@ -69,6 +69,7 @@ import {
   unit,
   v,
 } from './math.ts';
+import type { Gaits } from './gaits.ts';
 import { paintColour } from './paint.ts';
 
 /** What the stage knows of an object's model, for sizes and joints as targets. */
@@ -81,6 +82,8 @@ export interface Shape {
   readonly jointPlaces: ReadonlyMap<JointName, Vec3>;
   /** The model's own clips, by name, and how long each is in seconds. */
   readonly clips?: ReadonlyMap<string, number>;
+  /** Its own clips for walking, running and standing, if it isn't a humanoid (`gaits.ts`). */
+  readonly gaits?: Gaits;
 }
 
 /** A stand-in's block: half a metre square and a metre tall, standing on its origin. */
@@ -295,6 +298,7 @@ export class Timeline {
       body: (object) => this.bodies.get(object) ?? null,
       scale: (state, object) => (state as SceneState).get(object)?.scale ?? v(1, 1, 1),
       ownClip: (object, clip) => this.shapes.get(object)?.clips?.get(clip) ?? null,
+      gait: (object, gait) => this.shapes.get(object)?.gaits?.[gait] ?? null,
       pose: (state, object) => scenePose(state as SceneState, object),
       targetPose: (state, target) => this.targetPose(state as SceneState, target),
       box: (state, target) => this.subject(state as SceneState, [target]),

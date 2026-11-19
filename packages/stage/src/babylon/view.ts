@@ -1,6 +1,6 @@
 import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
-import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
@@ -116,6 +116,13 @@ interface Clip {
 const quat = (q: Quaternion): Quat => ({ x: q.x, y: q.y, z: q.z, w: q.w });
 const vec = (p: Vector3): Vec3 => ({ x: p.x, y: p.y, z: p.z });
 
+/** Sets one of a node's properties to a clip's value. */
+function setTo(node: TransformNode, property: Property, value: unknown): void {
+  if (property === 'rotationQuaternion')
+    (node.rotationQuaternion ??= Quaternion.Identity()).copyFrom(value as Quaternion);
+  else node[property].copyFrom(value as Vector3);
+}
+
 /** Brings a node's place in the scene up to date, its parents' first. */
 function refresh(node: TransformNode): void {
   const chain: { computeWorldMatrix(force?: boolean): unknown }[] = [];
@@ -228,6 +235,37 @@ export class ObjectView {
   /** The names of the model's clips. */
   clips(): string[] {
     return [...this.clipsByName.keys()];
+  }
+
+  /**
+   * How far each of `feet` sweeps front to back over one cycle of a clip, in the model's own
+   * metres (its root's axes, before its place and size): for how fast the clip carries it
+   * (`strideSpeed`). Call it while the model is at rest, before it's shown; it's left at rest.
+   */
+  sweeps(name: string, feet: readonly TransformNode[], samples = 24): number[] {
+    const clip = this.clipsByName.get(name);
+    if (!clip || feet.length === 0) return [];
+    const ranges = feet.map(() => ({ least: Infinity, most: -Infinity }));
+    const back = new Matrix();
+    // The ends included: a clip that doesn't loop reaches its furthest at its last frame.
+    for (let i = 0; i <= samples; i++) {
+      const frame = clip.from + ((clip.to - clip.from) * i) / samples;
+      for (const track of clip.tracks) setTo(track.node, track.property, track.evaluate(frame));
+      refresh(this.root);
+      this.root.getWorldMatrix().invertToRef(back);
+      feet.forEach((foot, k) => {
+        refresh(foot);
+        const z = Vector3.TransformCoordinates(foot.getAbsolutePosition(), back).z;
+        ranges[k]!.least = Math.min(ranges[k]!.least, z);
+        ranges[k]!.most = Math.max(ranges[k]!.most, z);
+      });
+    }
+    for (const [node, rest] of this.rests) {
+      node.position.copyFrom(rest.position);
+      (node.rotationQuaternion ??= Quaternion.Identity()).copyFrom(rest.rotation);
+      node.scaling.copyFrom(rest.scaling);
+    }
+    return ranges.map((r) => r.most - r.least);
   }
 
   show(state: ObjectState, where: Transform, motion: Motion = NO_MOTION): void {

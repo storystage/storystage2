@@ -17,7 +17,7 @@ import { SETUP, cmd } from '../testing/conformance.ts';
 import { headlessEngine } from './headless.ts';
 import { modelsFromManifest, type ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
-import { tinyModelUrl } from './tiny-model.ts';
+import { tinyModelUrl, tinySkeletonUrl } from './tiny-model.ts';
 
 const head = jointName('head');
 const robot = backstageId('test/Biped/robot');
@@ -81,6 +81,36 @@ describe('models', () => {
     const found = new BabylonStage(headlessEngine(), { models: source });
     await found.load(setup);
     expect(found.missing()).toEqual([]);
+  });
+
+  it("walk an animal with its own clip, as fast as its toe sweeps (S4's clip names, 18 Nov)", async () => {
+    // A leg 0.5 m long that swings a twelfth of a turn over its 1 s walk: its toe sweeps
+    // 0.5 sin 30° = 0.25 m, so the walk goes 0.25 / 0.65 m a second.
+    const animal = backstageId('test/Quadruped/animal');
+    const toe = jointName('frontLeftToe');
+    const file = tinySkeletonUrl(
+      [{ name: 'spineBase' }, { name: 'frontLeftToe', parent: 'spineBase', at: [0, -0.5, 0] }],
+      {
+        clips: [
+          { name: 'walk', bone: 'spineBase', axis: [1, 0, 0], turns: 1 / 12 },
+          { name: 'iddle', bone: 'spineBase', axis: [0, 1, 0], turns: 0.01 },
+        ],
+      },
+    );
+    const stage = new BabylonStage(headlessEngine(), {
+      models: {
+        find: (id) => (id === animal ? { url: file, joints: [jointName('spineBase'), toe] } : null),
+      },
+    });
+    const spot = objectId('spot');
+    await stage.load({
+      ...SETUP,
+      objects: [{ ...place(ann, 0, animal), class: 'Quadruped' as const }],
+      markers: [{ id: spot, transform: { ...IDENTITY, position: { x: 2, y: 0, z: 0 } } }],
+    });
+    const walk = { object: ann, kind: 'walk', to: spot, gait: 'walk' } as const;
+    const seconds = stage.answer({ kind: 'naturalDuration', action: walk, at: 0 }).value as number;
+    expect(seconds / 1e6).toBeCloseTo(2 / (0.25 / 0.65), 2);
   });
 
   it('say which posed joints the model has not got, after its model, and never for a stand-in (spec 03, 2.2)', async () => {

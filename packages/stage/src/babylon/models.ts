@@ -30,6 +30,8 @@ import {
   type ObjectId,
   type StoryClass,
 } from '@storystage/story-api';
+import { gaitClipNames, strideSpeed, type Gaits } from '../gaits.ts';
+import { Body } from '../humanoid/body.ts';
 import type { Box } from '../hull.ts';
 import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
@@ -161,27 +163,32 @@ export class ModelLibrary {
         return [joint, { x, y, z }] as const;
       }),
     );
-    return {
-      view: new ObjectView({
-        root,
-        meshes,
-        box,
-        paintable,
-        joints,
-        animations: copy.animationGroups,
-        faces: faceTargets(facesOf(json), root.getChildMeshes()),
+    const view = new ObjectView({
+      root,
+      meshes,
+      box,
+      paintable,
+      joints,
+      animations: copy.animationGroups,
+      faces: faceTargets(facesOf(json), root.getChildMeshes()),
+    });
+    // Its own clips, which the play animation block can name, and how long each is.
+    const clips = new Map(
+      copy.animationGroups.map((g) => {
+        const fps = g.targetedAnimations[0]?.animation.framePerSecond ?? 60;
+        return [g.name, (g.to - g.from) / fps] as const;
       }),
+    );
+    // A humanoid walks with the shared clips (WP4.6); anything else with its own, if it has them.
+    const gaits = Body.of(jointPlaces) ? undefined : gaitsOf(view, cls, clips, joints);
+    return {
+      view,
       shape: {
         joints: file.joints === 'prop-only' ? [] : file.joints,
         box,
         jointPlaces,
-        // Its own clips, which the play animation block can name, and how long each is.
-        clips: new Map(
-          copy.animationGroups.map((g) => {
-            const fps = g.targetedAnimations[0]?.animation.framePerSecond ?? 60;
-            return [g.name, (g.to - g.from) / fps] as const;
-          }),
-        ),
+        clips,
+        ...(gaits ? { gaits } : {}),
       },
     };
   }
@@ -193,6 +200,30 @@ export class ModelLibrary {
         () => {},
       );
   }
+}
+
+/**
+ * A model's own clips for walking, running and standing (`gaits.ts`), and how fast each carries
+ * it, measured from its feet: its toes, or else its ankles or feet. None if it has no such clip.
+ */
+function gaitsOf(
+  view: ObjectView,
+  cls: StoryClass,
+  clips: ReadonlyMap<string, number>,
+  joints: ReadonlyMap<JointName, TransformNode>,
+): Gaits | undefined {
+  const named = (ends: RegExp) => [...joints].filter(([j]) => ends.test(j)).map(([, n]) => n);
+  const toes = named(/Toes?$/);
+  const feet = toes.length > 0 ? toes : named(/(Ankle|Foot)$/);
+  const gaits: Gaits = {};
+  for (const gait of ['walk', 'run', 'idle'] as const) {
+    const clip = gaitClipNames(gait, cls).find((name) => clips.has(name));
+    if (!clip) continue;
+    const speed =
+      gait === 'idle' ? null : strideSpeed(view.sweeps(clip, feet), clips.get(clip)!, gait);
+    gaits[gait] = { clip, speed };
+  }
+  return Object.keys(gaits).length > 0 ? gaits : undefined;
 }
 
 /** What the stage reads from a model's glTF itself: a VRM's own extension. */
