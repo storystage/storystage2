@@ -33,6 +33,8 @@ const PLAIN_RUN = 3;
 const TURNING = 0.4;
 /** How long a clip takes to come in and go out, in seconds. */
 const FADE = 0.2;
+/** How far back a surprised head tips, in turns: about 9 degrees. */
+const SURPRISE_LIFT = 0.025;
 /** How far a head turns to look, in turns. */
 const LOOK_LIMIT = 0.2;
 
@@ -891,5 +893,10 @@ export function bodyPose(
       : world.targetPose(state, b.look.target).position;
     pose = shape.look(pose, model(point), b.look.weight, LOOK_LIMIT);
   }
+  // Surprised, the head tips back a little, as the face comes and goes (owner, 19 Nov, by S4).
+  const surprise =
+    (b.face?.expression === 'surprised' ? b.face.amount : 0) +
+    (b.fading?.expression === 'surprised' ? b.fading.amount : 0);
+  if (surprise > 0) pose = shape.tipBack(pose, SURPRISE_LIFT * Math.min(1, surprise));
   return { human: pose, own, face: b.face, fading: b.fading, blink: b.blink };
 }

@@ -48,6 +48,54 @@ describe('faces', () => {
     expect(faces.get('sad')).toEqual([{ node: 'node1', index: 3, weight: 0.8 }]);
   });
 
+  it('make surprised from the open mouth for a model without its own (owner, 19 Nov)', () => {
+    const withO = {
+      ...vrm0,
+      extensions: {
+        VRM: {
+          blendShapeMaster: {
+            blendShapeGroups: [
+              ...vrm0.extensions.VRM.blendShapeMaster.blendShapeGroups,
+              { presetName: 'o', binds: [{ mesh: 0, index: 4, weight: 100 }] },
+            ],
+          },
+        },
+      },
+    };
+    expect(facesOf(withO).get('surprised')).toEqual([{ node: 'Face', index: 4, weight: 1 }]);
+    const withOh = {
+      ...vrm1,
+      extensions: {
+        VRMC_vrm: {
+          expressions: {
+            preset: {
+              ...vrm1.extensions.VRMC_vrm.expressions.preset,
+              oh: { morphTargetBinds: [{ node: 0, index: 2, weight: 1 }] },
+            },
+          },
+        },
+      },
+    };
+    expect(facesOf(withOh).get('surprised')).toEqual([{ node: 'Body', index: 2, weight: 1 }]);
+    // Its own surprise stays its own.
+    const own = {
+      ...withOh,
+      extensions: {
+        VRMC_vrm: {
+          expressions: {
+            preset: {
+              ...withOh.extensions.VRMC_vrm.expressions.preset,
+              surprised: { morphTargetBinds: [{ node: 0, index: 5, weight: 1 }] },
+            },
+          },
+        },
+      },
+    };
+    expect(facesOf(own).get('surprised')).toEqual([{ node: 'Body', index: 5, weight: 1 }]);
+    // No open mouth, no surprise: the first test's avatar has only "a".
+    expect(facesOf(vrm0).has('surprised')).toBe(false);
+  });
+
   it('find nothing in a model that is not a VRM', () => {
     expect(facesOf({ nodes: [] }).size).toBe(0);
   });

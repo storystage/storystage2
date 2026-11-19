@@ -1,7 +1,9 @@
 /**
  * WP4.6: a VRM model's faces, for `show expression`. A VRM says which of its morph targets make
  * each expression: VRM 0.x in `blendShapeMaster`, VRM 1.0 in `expressions.preset`. A model
- * without an expression shows no change for it (owner's decision of 8 Nov 2026).
+ * without an expression shows no change for it (owner's decision of 8 Nov 2026), except
+ * surprised: VRM 0.x has no preset for it, so a model without one is surprised with its open
+ * mouth, its "O" viseme (the owner's choice, 19 Nov 2026, by S4).
  */
 import type { MorphTarget } from '@babylonjs/core/Morph/morphTarget.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
@@ -24,6 +26,13 @@ const VRM0: Readonly<Record<string, string>> = {
   blink: 'blink',
 };
 const VRM1 = new Set(['happy', 'sad', 'angry', 'relaxed', 'surprised', 'blink']);
+/** The open-mouth viseme: VRM 0.x's `o`, VRM 1.0's `oh`. */
+const OPEN_MOUTH = new Set(['o', 'O', 'oh']);
+/**
+ * How far open the mouth is for a surprise made from it: all the way, since a small, low-poly
+ * mouth (100Avatars') barely shows less.
+ */
+const SURPRISED_OPEN = 1;
 
 interface Json {
   readonly nodes?: readonly { readonly name?: string; readonly mesh?: number }[];
@@ -67,8 +76,15 @@ export function facesOf(gltf: unknown): Map<string, FaceBind[]> {
     list.push(bind);
     out.set(expression, list);
   };
+  const open: FaceBind[] = [];
   for (const group of json.extensions?.VRM?.blendShapeMaster?.blendShapeGroups ?? []) {
-    const expression = VRM0[group.presetName ?? ''];
+    const preset = group.presetName ?? '';
+    if (OPEN_MOUTH.has(preset))
+      for (const { mesh, index, weight } of group.binds ?? [])
+        (json.nodes ?? []).forEach((n, i) => {
+          if (n.mesh === mesh) open.push({ node: nodeName(json, i), index, weight: weight / 100 });
+        });
+    const expression = VRM0[preset];
     if (!expression) continue;
     for (const { mesh, index, weight } of group.binds ?? [])
       (json.nodes ?? []).forEach((n, i) => {
@@ -79,10 +95,19 @@ export function facesOf(gltf: unknown): Map<string, FaceBind[]> {
   for (const [expression, preset] of Object.entries(
     json.extensions?.VRMC_vrm?.expressions?.preset ?? {},
   )) {
+    if (OPEN_MOUTH.has(expression))
+      for (const { node, index, weight } of preset.morphTargetBinds ?? [])
+        open.push({ node: nodeName(json, node), index, weight });
     if (!VRM1.has(expression)) continue;
     for (const { node, index, weight } of preset.morphTargetBinds ?? [])
       add(expression, { node: nodeName(json, node), index, weight });
   }
+  // Surprised, for a model without its own, from its open mouth.
+  if (!out.has('surprised') && open.length > 0)
+    out.set(
+      'surprised',
+      open.map((b) => ({ ...b, weight: b.weight * SURPRISED_OPEN })),
+    );
   return out;
 }
 

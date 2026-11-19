@@ -231,6 +231,23 @@ describe('faces', () => {
     expect(t.shown(ann).face).toEqual({ expression: 'sad', amount: 1 });
   });
 
+  it('tip the head back a little for a surprise, and only then (owner, 19 Nov)', () => {
+    const t = timeline();
+    // The way the face looks: from the head towards a point a metre ahead of it, as posed.
+    const upward = () => {
+      const pose = t.shown(ann).human!;
+      return modelTurns(pose).get(jointName('head'))!;
+    };
+    const before = rotate(upward(), v(0, 0, 1)).y;
+    t.schedule([face('surprised', 0), face('happy', 2)]);
+    t.seek(micros(1));
+    const surprised = rotate(upward(), v(0, 0, 1)).y;
+    // About 9 degrees up.
+    expect(surprised - before).toBeCloseTo(Math.sin(0.025 * 2 * Math.PI), 2);
+    t.seek(micros(3));
+    expect(rotate(upward(), v(0, 0, 1)).y).toBeCloseTo(before, 6);
+  });
+
   it('go back to plain with neutral, over its duration (S6, #220)', () => {
     const t = timeline();
     t.schedule([face('happy', 0), face('neutral', 2)]);
