@@ -4,10 +4,17 @@
  * level. A new film is a new session and history, so it gets a new panel.
  */
 import type { HostInterface, PupilId } from '@storystage/host';
-import { isFramePlan, withFramePlan, type Production, type SceneId } from '@storystage/production';
+import {
+  isFramePlan,
+  withFramePlan,
+  type FrameId,
+  type Production,
+  type SceneId,
+} from '@storystage/production';
 import {
   createPrompterPanel,
   offTransport,
+  type Json,
   type PrompterLevel,
   type KeptPlan,
   type PrompterPanel,
@@ -16,6 +23,8 @@ import type { BackstageId } from '@storystage/story-api';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { placeFromStoryboard, storyboardPlan } from '@storystage/staging';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import { sceneNumber } from '../storyboard/edits.ts';
+import { sceneFrames } from '../storyboard/frames.ts';
 import type { Studio, StudioSource } from '../studio.ts';
 
 export type PrompterHost = Pick<HostInterface, 'prompter' | 'policy' | 'version' | 'prompterUsage'>;
@@ -52,6 +61,31 @@ export async function levelNow(
 export function keepFramePlan(p: Production, { frame, shown, agreed }: KeptPlan): Production {
   const plan = { agreedAt: new Date().toISOString(), shown, agreed };
   return isFramePlan(plan) ? withFramePlan(p, frame, plan) : p;
+}
+
+/**
+ * A frame's automatic check for the Prompter (spec 04 section 3.2, `check_frame`; 11.6): the
+ * result saved on the frame, with the frame's id and the number the learner sees ("2.3"), so a
+ * question about "frame 2.3" can be matched to it. `null` before the frame is checked. The words
+ * come from the file: the session sends them as data, never as instructions.
+ */
+export function frameCheckFor(p: Production, id: FrameId): Json | null {
+  const frame = p.frames.find((f) => f.id === id);
+  if (!frame?.check) return null;
+  const index = sceneFrames(p, frame.scene).findIndex((f) => f.id === id);
+  return {
+    frame: id,
+    number: `${sceneNumber(p, frame.scene)}.${index + 1}`,
+    items: frame.check.items.map((i) => ({
+      id: i.id,
+      kind: i.kind,
+      outcome: i.outcome,
+      words: i.words,
+      ...(i.node === undefined ? {} : { node: i.node }),
+      ...(i.line === undefined ? {} : { line: i.line }),
+    })),
+    kept: [...frame.check.kept],
+  };
 }
 
 export interface PrompterOptions {
@@ -109,6 +143,7 @@ export function usePrompter({
         return placed.ok ? placed : { ok: false, refusal: placed.refusal, name: placed.name };
       },
       keepPlan: keepFramePlan,
+      checkResult: (frame) => frameCheckFor(session.production(), frame),
     });
     setPanel(made);
     return () => {

@@ -1,6 +1,6 @@
 import type { NodeId } from '@storystage/ast';
 import type { EditorHost, EditorId } from '@storystage/editor-contract';
-import type { FrameId, Production, SceneId } from '@storystage/production';
+import type { CheckItem, FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
 import { Button, Icon, NeutralNote, messages as uiMessages } from '@storystage/ui';
 import {
@@ -65,7 +65,7 @@ import { useCheckRun } from '../check/useCheckRun.ts';
 import type { Studio, StudioSource } from '../studio.ts';
 import { sceneNumber as numberOfScene } from '../storyboard/edits.ts';
 import type { Place } from '../storyboard/place.ts';
-import type { PrompterPanel } from '@storystage/prompter';
+import type { PanelPhase, PrompterPanel } from '@storystage/prompter';
 import { PrompterAside } from '../prompter/PrompterAside.tsx';
 import type { StepWorld } from '../prompter/StepEditor.tsx';
 import type { ApiClass } from '@storystage/story-api';
@@ -132,6 +132,7 @@ function FrameCheckArea({
   onReveal,
   onShowFrame,
   host,
+  onAsk,
 }: {
   studio: Studio;
   models: ModelSourceHandle;
@@ -142,6 +143,8 @@ function FrameCheckArea({
   onShowFrame: () => void;
   /** The code editors' host: "Use the script's words" is a program edit, one undo step. */
   host: EditorHost;
+  /** Asks the Prompter about a flag, with the frame's number; left out when it can't be asked. */
+  onAsk?: ((item: CheckItem, frame: FrameId, number: string) => void) | undefined;
 }) {
   const check = useCheckRun({
     studio,
@@ -153,11 +156,13 @@ function FrameCheckArea({
   const frame = p.frames.find((f) => f.id === frameId);
   if (!frame) return null;
   const index = sceneFrames(p, frame.scene).findIndex((f) => f.id === frame.id);
+  const number = `${numberOfScene(p, frame.scene)}.${index + 1}`;
   return (
     <FrameCheck
       production={p}
       frame={frame}
-      number={`${numberOfScene(p, frame.scene)}.${index + 1}`}
+      number={number}
+      {...(onAsk ? { onAsk: (item: CheckItem) => onAsk(item, frame.id, number) } : {})}
       check={check}
       readOnly={studio.readOnly !== null}
       onGoToBlock={onReveal}
@@ -168,6 +173,9 @@ function FrameCheckArea({
 }
 
 const NO_MARKS: Highlights = { rehearse: [], error: [] };
+
+/** The panel's phases in which it waits for a question. */
+const ASKABLE: readonly PanelPhase[] = ['ready', 'planned', 'built', 'problem'];
 
 /**
  * The scenes whose "Set up this scene from your storyboard?" the learner has answered, for each
@@ -364,6 +372,29 @@ export function ProductionStage({
         : null;
   const checks = scene ? storyboardChecks(p, scene) : [];
   const open = scene !== null && checks.every((c) => c.done);
+  // The Prompter panel, open or folded to its rail: asking from the frame card opens it.
+  const [prompterOpen, setPrompterOpen] = useState(true);
+  const prompterState = useSyncExternalStore(
+    (l) => prompter?.subscribe(l) ?? (() => {}),
+    () => prompter?.state ?? null,
+  );
+  // A flag can be asked about while the Prompter is waiting for a question (11.6).
+  const askAbout =
+    prompter &&
+    !taskCard &&
+    prompterState &&
+    prompterState.modes.includes('explain') &&
+    ASKABLE.includes(prompterState.phase)
+      ? (item: CheckItem, frameId: FrameId, number: string) => {
+          studio?.seal();
+          setPrompterOpen(true);
+          prompter.setMode('explain');
+          void prompter.ask(
+            words.t('production.check.askText', { frame: number, words: item.words }),
+            { frame: frameId },
+          );
+        }
+      : undefined;
   const [rehearsal, setRehearsal] = useState<RehearsalState | null>(null);
   // What the last add from Backstage said, when it couldn't.
   const [stageNote, setStageNote] = useState<string | null>(null);
@@ -681,6 +712,7 @@ export function ProductionStage({
                     startWorker={startWorker}
                     onReveal={(node) => onReveal?.(node)}
                     host={host}
+                    onAsk={askAbout}
                     onShowFrame={() => {
                       const chosen = p.frames.find((f) => f.id === frame);
                       if (chosen) onPlaceChange?.({ scene: chosen.scene, frame: chosen.id });
@@ -773,6 +805,8 @@ export function ProductionStage({
             panel={prompter}
             {...(onSetUp ? { onSetUp } : {})}
             frame={current ? { id: current.id, number: frameNumber } : null}
+            open={prompterOpen}
+            onOpenChange={setPrompterOpen}
             onAnnounce={onAnnounce}
             canChange={!studio || studio.readOnly === null}
             {...(studio ? { seal: studio.seal } : {})}

@@ -35,6 +35,9 @@ export interface PrompterAsideProps {
   world?: StepWorld;
   /** Opens the set-up wizard: Set up… shows while there's no key (WP13.6). */
   onSetUp?: () => void;
+  /** Whether the panel is open or folded to its rail, when the stage holds it. Default: its own. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export function usePanelState(panel: PrompterPanel<StudioSource>): PanelState {
@@ -138,10 +141,14 @@ export function PrompterAside({
   seal = () => {},
   world,
   onSetUp,
+  open: heldOpen,
+  onOpenChange,
 }: PrompterAsideProps) {
   const state = usePanelState(panel);
   useAnnouncements(state, onAnnounce);
-  const [open, setOpen] = useState(true);
+  const [ownOpen, setOwnOpen] = useState(true);
+  const open = heldOpen ?? ownOpen;
+  const setOpen = onOpenChange ?? setOwnOpen;
   // The plan step being changed, by its place in the plan.
   const [editing, setEditing] = useState<number | null>(null);
   // Whether the step being changed was just added: Cancel then takes it out again.

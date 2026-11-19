@@ -44,6 +44,7 @@ import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
 import { resolveBackdropKnown } from '../backdrops.ts';
+import { inOrder } from '../missing.ts';
 
 export { hashState };
 
@@ -127,7 +128,7 @@ export class FakeStage implements EditableStage {
         typeof o.model === 'string' ? undefined : o.model.size,
       ),
     );
-    this.lost = lost;
+    this.lost = inOrder(setup, lost, (id) => this.timeline.joints(id));
     const humanoids = await humanoidsFor(setup);
     // A newer load has its own timeline by now; this one leaves it alone.
     if (ticket !== this.loads) return;
