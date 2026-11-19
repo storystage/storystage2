@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { CHANGED, LICENCE_LINKS, creditFor, creditsBySection, type Creditable } from './credits.ts';
+import {
+  CHANGED,
+  LICENCE_LINKS,
+  LICENCES_NAMED_IN_CREDIT,
+  creditFor,
+  creditsBySection,
+  type Creditable,
+} from './credits.ts';
 import { LICENCES } from './manifest.ts';
 
 const item = (over: Record<string, unknown> & { id: string }): Creditable =>
@@ -66,6 +73,17 @@ describe('LICENCE_LINKS', () => {
   it('names and links every Creative Commons licence on the list', () => {
     for (const licence of LICENCES.filter((l) => l.startsWith('CC')))
       expect(LICENCE_LINKS[licence]?.url).toMatch(/^https:\/\/creativecommons\.org\//);
+  });
+});
+
+describe('LICENCES_NAMED_IN_CREDIT', () => {
+  it('is every licence that asks for credit, each with a link, and not CC0 or public domain', () => {
+    expect([...LICENCES_NAMED_IN_CREDIT].sort()).toEqual(
+      LICENCES.filter((l) => l.startsWith('CC-BY') || l === 'VRM-PL-1.0').sort(),
+    );
+    for (const licence of LICENCES_NAMED_IN_CREDIT) expect(LICENCE_LINKS[licence]).toBeDefined();
+    expect(LICENCES_NAMED_IN_CREDIT).not.toContain('CC0-1.0');
+    expect(LICENCES_NAMED_IN_CREDIT).not.toContain('public-domain');
   });
 });
 
