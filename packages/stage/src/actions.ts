@@ -140,7 +140,13 @@ export type Action =
        * An animal's walk in code, with no clip of its own, and how far a cycle of its steps goes
        * in the scene (null for wings alone, which beat by the clock).
        */
-      coded: { gait: CodedGait; walkStride: number | null; runStride: number | null } | null;
+      coded: {
+        gait: CodedGait;
+        walkStride: number | null;
+        runStride: number | null;
+        /** Its own run, if it has one but no walk (S4's elephant): it runs with that. */
+        ownRun: Gait | null;
+      } | null;
     }
   | {
       kind: 'posture';
@@ -303,7 +309,10 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
     const coded = walk ? null : world.coded(object);
     const codedWalk = coded ? codedSpeed(coded, 'walk') : null;
     if (coded && codedWalk)
-      return { walkSpeed: codedWalk * height, runSpeed: codedSpeed(coded, 'run')! * height };
+      return {
+        walkSpeed: codedWalk * height,
+        runSpeed: (run?.speed ?? codedSpeed(coded, 'run')!) * height,
+      };
     if (!walk?.speed) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
     const walkSpeed = walk.speed * height;
     return {
@@ -359,7 +368,14 @@ function walkAction(
     gait,
     body: body !== null,
     own: ownWalk ? { walk: ownWalk, run: world.gait(object, 'run') } : null,
-    coded: coded ? { gait: coded, walkStride: stride('walk'), runStride: stride('run') } : null,
+    coded: coded
+      ? {
+          gait: coded,
+          walkStride: stride('walk'),
+          runStride: stride('run'),
+          ownRun: world.gait(object, 'run'),
+        }
+      : null,
     ...speeds(world, object, body, height),
   };
 }
@@ -680,7 +696,7 @@ export function applyAction(
           return;
         }
         if (a.coded) {
-          codedLayers(body.layers, a.coded, { d, elapsed, run, moving });
+          codedLayers(body.layers, a.coded, { d, elapsed, run, moving }, a.runSpeed);
           return;
         }
         body.layers.push({
@@ -873,14 +889,32 @@ function ownGaitLayers(
  */
 function codedLayers(
   layers: Layer[],
-  coded: { gait: CodedGait; walkStride: number | null; runStride: number | null },
+  coded: {
+    gait: CodedGait;
+    walkStride: number | null;
+    runStride: number | null;
+    ownRun: Gait | null;
+  },
   at: { d: number; elapsed: number; run: number; moving: number },
+  runSpeed: number,
 ): void {
   const cycles = (stride: number | null) => (stride ? at.d / stride : at.elapsed * coded.gait.beat);
   const layer = (moving: 'walk' | 'run', time: number, weight: number) =>
     layers.push({ clip: moving, time, weight, whole: true, own: false, coded: true });
   layer('walk', cycles(coded.walkStride), at.moving * (1 - at.run));
-  if (at.run > 0) layer('run', cycles(coded.runStride), at.moving * at.run);
+  if (at.run <= 0) return;
+  // An animal with a run of its own and no walk runs with its run, at its own pace unless the
+  // stage could measure it (S4's elephant).
+  const own = coded.ownRun;
+  if (own)
+    layers.push({
+      clip: own.clip,
+      time: own.speed ? at.d / runSpeed : at.elapsed,
+      weight: at.moving * at.run,
+      whole: true,
+      own: true,
+    });
+  else layer('run', cycles(coded.runStride), at.moving * at.run);
 }
 
 /** A humanoid's pose at a moment, from what its body is doing. */
