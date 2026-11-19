@@ -114,6 +114,9 @@ describe('faces', () => {
     const targets = faceTargets(facesOf(vrm0), [face, other]);
     expect(targets.get('happy')![0]!.target).toBe(face.morphTargetManager.getTarget(1));
     expect(targets.get('blink')![0]!.weight).toBe(0.5);
+    // A slot for each shape the faces use, happy's and blink's, so its surface is built once.
+    expect(face.morphTargetManager.numMaxInfluencers).toBe(2);
+    expect(other.morphTargetManager).toBeNull();
   });
 
   it("read a VRM 1.0 avatar's picture shifts and its all-or-nothing faces (Seed-san's screen)", () => {

@@ -7,6 +7,7 @@
  */
 import type { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import type { MorphTarget } from '@babylonjs/core/Morph/morphTarget.js';
+import type { MorphTargetManager } from '@babylonjs/core/Morph/morphTargetManager.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 
 /** One morph target of an expression, by the glTF node that has its mesh. */
@@ -187,16 +188,26 @@ export function faceTargets(
   meshes: readonly AbstractMesh[],
 ): Map<string, FaceTarget[]> {
   const out = new Map<string, FaceTarget[]>();
+  const slots = new Map<MorphTargetManager, Set<MorphTarget>>();
   for (const [expression, list] of binds) {
     const targets: FaceTarget[] = [];
     for (const { node, index, weight } of list)
       for (const mesh of meshes) {
         // A mesh of several parts becomes one Babylon.js mesh for each.
         if (mesh.name !== node && !mesh.name.startsWith(`${node}_primitive`)) continue;
-        const target = mesh.morphTargetManager?.getTarget(index);
-        if (target) targets.push({ target, weight });
+        const manager = mesh.morphTargetManager;
+        const target = manager?.getTarget(index);
+        if (!manager || !target) continue;
+        targets.push({ target, weight });
+        slots.set(manager, (slots.get(manager) ?? new Set()).add(target));
       }
     if (targets.length) out.set(expression, targets);
   }
+  // As many slots as all the faces' shapes, so the surface is built once (Babylon.js otherwise
+  // builds it anew for each number of shapes in use, and a face whose number was new showed none
+  // in its first frame: Juanita's happy straight after neutral). Unused slots cost almost
+  // nothing, where counting every shape at none cost a weak GPU 40 to 75% more a frame.
+  for (const [manager, used] of slots)
+    manager.numMaxInfluencers = Math.max(manager.numMaxInfluencers, used.size);
   return out;
 }
