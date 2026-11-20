@@ -7,7 +7,7 @@ import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { ITEM_BUDGETS, validateManifest } from '@storystage/backstage';
 import { meshFromDocument } from '@storystage/sketches';
-import { buildSources, standOnGround, turnModel } from './build.ts';
+import { buildSources, standOnGround, stripExtras, turnModel } from './build.ts';
 import { sharpEncoder } from './sharp-encoder.ts';
 import type { Fetcher } from './fetch.ts';
 
@@ -177,6 +177,38 @@ describe('turnModel', () => {
     scene.addChild(top);
     turnModel(doc, { x: -34 });
     expect(top.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([0, 1, 0]);
+  });
+});
+
+describe('stripExtras', () => {
+  it("clears a maker's extras on the file, its asset record and every part", async () => {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const advert = { workflow: 'Generate it with an AI tool', url: 'https://example.com' };
+    (doc.getRoot().getAsset() as { extras?: unknown }).extras = advert;
+    doc.getRoot().setExtras(advert);
+    const prim = doc
+      .createPrimitive()
+      .setExtras(advert)
+      .setAttribute(
+        'POSITION',
+        doc
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]))
+          .setBuffer(buffer),
+      );
+    const node = doc
+      .createNode('animal')
+      .setExtras(advert)
+      .setMesh(doc.createMesh('animal').setExtras(advert).addPrimitive(prim));
+    doc.getRoot().setDefaultScene(doc.createScene().setExtras(advert).addChild(node));
+    doc.createMaterial('skin').setExtras(advert);
+    stripExtras(doc);
+    const io = new WebIO();
+    const { json } = await io.binaryToJSON(await io.writeBinary(doc));
+    expect(JSON.stringify(json)).not.toContain('AI tool');
+    expect(JSON.stringify(json)).not.toContain('example.com');
   });
 });
 
