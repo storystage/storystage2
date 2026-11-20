@@ -52,6 +52,14 @@ const ANIMAL_RUN_FLOOR = ANIMAL_WALK_FLOOR * (PLAIN_RUN / PLAIN_WALK);
  * at 9 cm a second, and the tiniest animals stay below the floor.
  */
 const MAX_SPEED_UP = 3;
+/**
+ * A hopper's hops (the owner's choice, 20 Nov; S4's frog, whose one clip is a throat swell): how
+ * far each goes and how high it rises, in its heights, walking and running. It's in the air for
+ * `HOP_AIR` of each, tipping its nose up `HOP_TIP` radians as it leaves and down as it lands.
+ */
+const HOP = { walk: { length: 1.5, rise: 0.4 }, run: { length: 3, rise: 0.7 } };
+const HOP_AIR = 0.7;
+const HOP_TIP = 0.3;
 /** How far into a turn a walker goes before it faces its new way, in metres. */
 const TURNING = 0.4;
 /** How long a clip takes to come in and go out, in seconds. */
@@ -119,6 +127,8 @@ export interface World {
   gait(object: ObjectId, gait: GaitName): Gait | null;
   /** An animal's walk in code, if it has legs or wings but no walk clip of its own. */
   coded(object: ObjectId): CodedGait | null;
+  /** Whether it hops when it walks (its Backstage entry's `gait: 'hop'`). */
+  hops(object: ObjectId): boolean;
   pose(state: unknown, object: ObjectId): Pose;
   targetPose(state: unknown, target: Target): Pose;
   /** The box round a target in the scene's axes. */
@@ -151,6 +161,8 @@ export type Action =
        * keeps pace with the ground covered; one without plays at its own pace.
        */
       own: { walk: Gait; run: Gait | null } | null;
+      /** A hopper's height in metres, as it hops when it walks; null if it doesn't. */
+      hop: number | null;
       /** Its height scale: a clip's own speed at scale 1 times this is the pace it keeps. */
       height: number;
       /**
@@ -336,10 +348,11 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
       const runSpeed = (run?.speed ?? codedSpeed(coded, 'run')!) * height;
       return floored(codedWalk * height, runSpeed, runSpeed);
     }
-    if (!walk) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
-    if (!walk.speed) {
-      // Its stride can't be measured (Gobkit's, prop only): a pace for legs half its height (the
-      // owner's choice, 20 Nov), not a person's. Its clip plays at its own pace, so no cap.
+    if (!walk && !world.hops(object)) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
+    if (!walk?.speed) {
+      // Its stride can't be measured (Gobkit's, prop only), or it hops: a pace for legs half its
+      // height (the owner's choice, 20 Nov), not a person's. Its clip plays at its own pace, so no
+      // cap.
       const box = world.ownBox(object);
       const legs = box ? (box.max.y - box.min.y) * LEG_SHARE : 0;
       if (!(legs > 0)) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
@@ -405,6 +418,7 @@ function walkAction(
     gait,
     body: body !== null,
     own: ownWalk ? { walk: ownWalk, run: world.gait(object, 'run') } : null,
+    hop: hopSize(world, object, body, height),
     coded: coded
       ? {
           gait: coded,
@@ -665,6 +679,50 @@ function faded(elapsed: number, duration: number): number {
   return Math.min(1, elapsed / FADE, (duration - elapsed) / FADE);
 }
 
+/** A hopper's height in metres, if it hops when it walks: no humanoid does. */
+function hopSize(world: World, object: ObjectId, body: Body | null, height: number) {
+  if (body || !world.hops(object)) return null;
+  const box = world.ownBox(object);
+  const size = box ? (box.max.y - box.min.y) * height : 0;
+  return size > 0 ? size : null;
+}
+
+/**
+ * A hopper `d` metres along its walk, `run` of the way to running: up in an arc for `HOP_AIR` of
+ * each hop, its nose tipping up as it leaves and down as it lands, then down for the rest.
+ * `moving` eases the hops in and out with the walk. Walking and running hops each count from the
+ * distance gone, and blend, as the walk in code's steps do, so easing into a run doesn't jump
+ * (S4's review of #572). A whole number of each fits the walk's `total`, so it lands as it ends.
+ */
+function hopAt(
+  s: Mutable,
+  size: number,
+  d: number,
+  total: number,
+  run: number,
+  moving: number,
+): void {
+  let up = 0;
+  let tip = 0;
+  for (const [hop, weight] of [
+    [HOP.walk, 1 - run],
+    [HOP.run, run],
+  ] as const) {
+    if (weight <= 0) continue;
+    const length = total / Math.max(1, Math.round(total / (hop.length * size)));
+    const c = d / length;
+    const u = (c - Math.floor(c)) / HOP_AIR;
+    if (u >= 1) continue;
+    up += hop.rise * size * 4 * u * (1 - u) * weight;
+    tip += (1 - 2 * u) * weight;
+  }
+  if (up === 0 && tip === 0) return;
+  s.position = add(s.position, v(0, up * moving, 0));
+  // About its own across axis: a negative turn about x lifts its nose (+Z) (`math.ts`).
+  const turn = -HOP_TIP * moving * tip;
+  s.rotation = mul(s.rotation, { x: Math.sin(turn / 2), y: 0, z: 0, w: Math.cos(turn / 2) });
+}
+
 /** Where along a walk's way a distance is, and which way the walker faces there. */
 function along(a: Extract<Action, { kind: 'walk' }>, d: number): { at: Vec3; yaw: number } {
   const { points, along: at, yaws } = a;
@@ -717,7 +775,7 @@ export function applyAction(
       const from = a.enter ? a.points[a.points.length - 1]! : a.points[0]!;
       s.position = add(s.position, sub(at, from));
       s.rotation = mul(yawTurn(shortest(yaw - a.startYaw)), s.rotation);
-      if ((a.body || a.own || a.coded) && going && duration > 0) {
+      if ((a.body || a.own || a.coded || a.hop) && going && duration > 0) {
         // How fast it's going now, from how the command eases.
         const e = 1e-3;
         const slope =
@@ -729,6 +787,10 @@ export function applyAction(
             ? Math.min(1, Math.max(0, (speed - a.walkSpeed) / (a.runSpeed - a.walkSpeed)))
             : 0;
         const moving = Math.min(1, speed / (0.3 * a.walkSpeed));
+        if (a.hop) {
+          hopAt(s, a.hop, d, a.total, run, moving);
+          return;
+        }
         if (a.own) {
           ownGaitLayers(body.layers, a.own, { d, elapsed, run, moving }, a.height);
           return;

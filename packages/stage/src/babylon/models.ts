@@ -53,6 +53,8 @@ export interface ModelFile {
   readonly url: string;
   /** Its joints, from its Backstage entry. */
   readonly joints: BackstageItem['joints'];
+  /** How it moves, if not as the stage would choose: `hop`s, as S4's frog does (manifest 2.4.0). */
+  readonly gait?: 'hop';
 }
 
 /** Where the stage finds a model. The app gives it Backstage (`modelsFromManifest`). */
@@ -66,7 +68,14 @@ export function modelsFromManifest(manifest: BackstageManifest, folder: string):
   return {
     find(id) {
       const item = items.get(id);
-      return item ? { url: `${folder}/${item.files.model}`, joints: item.joints } : null;
+      if (!item) return null;
+      // Manifest 2.4.0's `gait` (S4), read so until its type reaches this package.
+      const { gait } = item as { gait?: 'hop' };
+      return {
+        url: `${folder}/${item.files.model}`,
+        joints: item.joints,
+        ...(gait === 'hop' ? { gait } : {}),
+      };
     },
   };
 }
@@ -200,6 +209,7 @@ export class ModelLibrary {
         jointPlaces,
         clips,
         ...(gaits ? { gaits } : {}),
+        ...(file.gait === 'hop' ? { hop: true } : {}),
       },
     };
   }

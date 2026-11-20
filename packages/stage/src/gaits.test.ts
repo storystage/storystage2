@@ -106,6 +106,65 @@ describe("an animal's own gaits", () => {
     expect(t.shown(dog).own.map((l) => [l.name, l.time])).toEqual([['walk', 4]]);
   });
 
+  it('hop when their Backstage entry says so, at a pace from their height (owner, 20 Nov)', () => {
+    // A 60 cm hopper with no walk clip (S4's frog, `gait: 'hop'`).
+    const t = new Timeline();
+    t.load(scene, () => ({ ...animal({}), hop: true }));
+    const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;
+    // Its pace is for legs half its height, as an animal's whose stride can't be measured.
+    const pace = Math.sqrt(0.1 * 9.81 * 0.3);
+    const seconds =
+      Number(t.answer({ kind: 'naturalDuration', action: walk, at: 0 }, () => false).value) / 1e6;
+    expect(seconds).toBeCloseTo(4 / pace, 5);
+    t.schedule([{ ...cmd(0, 4 / pace, walk), style: 'beginAndEndAbruptly' }]);
+    // Each hop goes about 1.5 heights (0.9 m), four fitting the 4 m: 1 m each. It's in the air
+    // for 0.7 of each, rising 0.4 heights (0.24 m).
+    const at = (metres: number) => {
+      t.seek(micros(metres / pace));
+      return t.transform(dog);
+    };
+    // Half way through its time in the air: at the top, level.
+    const top = at(1 + 0.35);
+    expect(top.position.x).toBeCloseTo(1.35, 3);
+    expect(top.position.y).toBeCloseTo(0.24, 3);
+    expect(top.rotation.x).toBeCloseTo(0, 3);
+    // Leaving the ground, its nose tipping up (a negative turn about its own x axis).
+    const leaving = at(1 + 0.01);
+    expect(leaving.position.y).toBeGreaterThan(0);
+    expect(leaving.position.y).toBeLessThan(0.05);
+    expect(leaving.rotation.x).toBeLessThan(-0.1);
+    // Landed, between hops: on the ground, level.
+    const down = at(1 + 0.85);
+    expect(down.position.y).toBe(0);
+    expect(down.rotation.x).toBe(0);
+    // Nothing else hops.
+    const plain = timeline({});
+    plain.schedule([{ ...cmd(0, 4 / pace, walk), style: 'beginAndEndAbruptly' }]);
+    plain.seek(micros(1.35 / pace));
+    expect(plain.transform(dog).position.y).toBe(0);
+  });
+
+  it('hop smoothly as they ease into a run, walking and running hops blending (S4)', () => {
+    const t = new Timeline();
+    t.load({ ...scene, markers: [{ id: spot, transform: at(8) }] }, () => ({
+      ...animal({}),
+      hop: true,
+    }));
+    const run = { object: dog, kind: 'walk', to: spot, gait: 'run' } as const;
+    t.schedule([{ ...cmd(0, 8, run), style: 'beginGentlyAndEndAbruptly' }]);
+    // Every 5 ms as it speeds up, it rises or falls no more than its fastest hop could; and as
+    // the walk ends at full speed, it has landed.
+    let last = 0;
+    let most = 0;
+    for (let ms = 0; ms <= 8000; ms += 5) {
+      t.seek(micros(ms / 1000));
+      const { y } = t.transform(dog).position;
+      most = Math.max(most, Math.abs(y - last));
+      last = y;
+    }
+    expect(most).toBeLessThan(0.03);
+  });
+
   it('fly at their own pace when the stage can’t tell how fast a clip goes', () => {
     const t = timeline({ walk: { clip: 'fly', speed: null } });
     const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;

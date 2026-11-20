@@ -169,6 +169,19 @@ describe('models', () => {
     const found = modelsFromManifest(manifest, 'backstage');
     expect(found.find(robot)).toEqual({ url: 'backstage/robot.glb', joints: 'prop-only' });
     expect(found.find(backstageId('nope'))).toBeNull();
+    // Manifest 2.4.0's `gait` goes on to the stage: S4's frog hops.
+    const frog = backstageId('frog');
+    const hopping = modelsFromManifest(
+      {
+        items: [{ id: frog, files: { model: 'frog.glb' }, joints: 'prop-only', gait: 'hop' }],
+      } as unknown as BackstageManifest,
+      'backstage',
+    );
+    expect(hopping.find(frog)).toEqual({
+      url: 'backstage/frog.glb',
+      joints: 'prop-only',
+      gait: 'hop',
+    });
   });
 
   it('share the geometry but not the skeleton or surfaces', async () => {
