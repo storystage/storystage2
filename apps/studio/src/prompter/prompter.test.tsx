@@ -16,6 +16,7 @@ import { ThemeRoot } from '@storystage/ui';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { nodeId, type Statement } from '@storystage/ast';
 import type { StudioSource } from '../studio.ts';
 import { PrompterAside, oneMove } from './PrompterAside.tsx';
 import type { StepWorld } from './StepEditor.tsx';
@@ -485,6 +486,83 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(
       within(aside()).getByText('Build these steps yourself in the Code editor.'),
     ).toBeTruthy();
+  });
+
+  it('ticks off at Plan only the steps the learner builds, and says so once all are (6.6)', async () => {
+    // Frame f2 links the fox's line, so the fox's step is done as the plan is shown.
+    const fox = step({
+      words: 'The fox says line 3.',
+      actor: 'fox',
+      action: 'say',
+      details: [],
+      line: 'l3',
+    });
+    const { production, onAnnounce } = setUp(
+      [proposes([fox, step()], 'f2'), say("Here's the plan.")],
+      { level: 'planOnly' },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    expect(
+      await within(plan).findByRole('row', { name: 'Step 1, done: The fox says line 3.' }),
+    ).toBeTruthy();
+    expect(within(plan).getByRole('row', { name: /^Step 2: The penguin/ })).toBeTruthy();
+    expect(within(aside()).getByText('1 of 2 built')).toBeTruthy();
+    expect(production.production().frames.find((f) => f.id === 'f2')?.plan?.done).toEqual([1]);
+    expect(said(onAnnounce)).not.toContain('All the steps are built.');
+
+    // The learner adds the penguin's move to scene 2's method.
+    const move = {
+      id: nodeId('lmove1'),
+      kind: 'call',
+      target: {
+        id: nodeId('ltarg1'),
+        kind: 'fieldRef',
+        target: { id: nodeId('lthis1'), kind: 'this' },
+        field: nodeId('scene2p'),
+      },
+      callee: { kind: 'story', name: 'move' },
+      args: {
+        direction: {
+          id: nodeId('ldir01'),
+          kind: 'enum',
+          type: 'MoveDirection',
+          value: 'forward',
+        },
+        amount: { id: nodeId('lamt01'), kind: 'number', value: 1 },
+      },
+      details: {},
+    } as unknown as Statement;
+    act(() => {
+      production.apply(
+        [
+          {
+            kind: 'insert',
+            label: 'Add move',
+            parent: nodeId('scene2m'),
+            slot: 'body',
+            index: 1,
+            node: move,
+          },
+        ],
+        'Add move',
+        'blocks',
+      );
+    });
+    expect(
+      await within(plan).findByRole('row', { name: /^Step 2, done: The penguin/ }),
+    ).toBeTruthy();
+    expect(within(aside()).getByText('2 of 2 built')).toBeTruthy();
+    expect(production.production().frames.find((f) => f.id === 'f2')?.plan?.done).toEqual([1, 2]);
+    expect(said(onAnnounce).split('All the steps are built.')).toHaveLength(2);
+    // Undo takes the block back, not the keep, and the tick goes with it.
+    act(() => {
+      production.undo();
+    });
+    expect(await within(plan).findByRole('row', { name: /^Step 2: The penguin/ })).toBeTruthy();
+    expect(production.production().frames.find((f) => f.id === 'f2')?.plan?.done).toEqual([1]);
   });
 
   it('marks a step that cannot be built, and waits for it to be changed or deleted', async () => {
