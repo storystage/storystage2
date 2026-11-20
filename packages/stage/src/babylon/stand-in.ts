@@ -7,7 +7,8 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder.js';
-import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
+import { RawTexture } from '@babylonjs/core/Materials/Textures/rawTexture.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { Box } from '../hull.ts';
@@ -18,16 +19,53 @@ import { ObjectView } from './view.ts';
 const PALE = { r: 0.82, g: 0.84, b: 0.88 };
 const DARK = { r: 0.32, g: 0.36, b: 0.44 };
 
+const LABEL = { width: 512, height: 96 };
+
+/**
+ * The label's words, drawn on a 2D canvas and handed to the GPU as pixels. Handing over the canvas
+ * itself, as a DynamicTexture does, has WebGPU copy it (`copyExternalImageToTexture`), which
+ * WebGPU in software (SwiftShader, as in CI) sometimes refuses, failing the scene's load.
+ */
+function labelTexture(text: string, name: string, scene: Scene): RawTexture | null {
+  const canvas = document.createElement('canvas');
+  canvas.width = LABEL.width;
+  canvas.height = LABEL.height;
+  const g = canvas.getContext('2d', { willReadFrequently: true });
+  if (!g) return null;
+  g.fillStyle = '#ffffffd9';
+  g.fillRect(0, 0, LABEL.width, LABEL.height);
+  g.font = 'bold 56px sans-serif';
+  g.fillStyle = '#1f2733';
+  g.fillText(text, (LABEL.width - g.measureText(text).width) / 2, 68);
+  const { data } = g.getImageData(0, 0, LABEL.width, LABEL.height);
+  const pixels = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  const texture = RawTexture.CreateRGBATexture(
+    pixels,
+    LABEL.width,
+    LABEL.height,
+    scene,
+    false,
+    true,
+  );
+  texture.name = `${name} label`;
+  texture.hasAlpha = true;
+  texture.wrapU = Texture.CLAMP_ADDRESSMODE;
+  texture.wrapV = Texture.CLAMP_ADDRESSMODE;
+  return texture;
+}
+
 /** The label needs a 2D canvas, which a headless stage doesn't have. */
 function addLabel(text: string, name: string, scene: Scene): AbstractMesh | null {
   if (typeof document === 'undefined') return null;
-  const size = { width: 512, height: 96 };
-  const label = CreatePlane(`${name} label`, { width: 1, height: 96 / 512 }, scene);
+  const texture = labelTexture(text, name, scene);
+  if (!texture) return null;
+  const label = CreatePlane(
+    `${name} label`,
+    { width: 1, height: LABEL.height / LABEL.width },
+    scene,
+  );
   label.isPickable = false;
   label.billboardMode = AbstractMesh.BILLBOARDMODE_Y;
-  const texture = new DynamicTexture(`${name} label`, size, scene, false);
-  texture.hasAlpha = true;
-  texture.drawText(text, null, 68, 'bold 56px sans-serif', '#1f2733', '#ffffffd9', true);
   const material = plainMaterial(`${name} label`, PALE, scene);
   material.diffuseTexture = texture;
   material.useAlphaFromDiffuseTexture = true;
