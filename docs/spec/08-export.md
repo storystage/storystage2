@@ -258,7 +258,7 @@ Plain words, as screen 07's checklist draws them, with the character's name from
 
 Each item says which block (`node`) and which sketch (`sketch`) or line (`line`) it's about, so the frame card can link to them.
 
-As built (19 Nov), asking the Prompter about a flag: each flag on the frame card also has **Ask the Prompter** while the Prompter is waiting for a question (not in the browser version, not while it's off, not set up or busy, and not in a study task). It opens the panel if it's folded, switches it to Explain, and asks "Why does the check say “…” for frame 2.3?" with the frame named (`PrompterPanel.ask(text, { frame })`), so the request carries the frame's saved check (spec 04, `check_frame`). Without the Prompter, the checklist works as before.
+As built (19 Nov), asking the Prompter about a flag: each flag on the frame card also has **Ask the Prompter** while the Prompter is waiting for a question (not in the browser version, not while it's off, not set up or busy, and not in a study task). It opens the panel if it's folded, switches it to Explain, and asks "Why does the check flag this on frame 2.3?" with the frame and the flag named (`PrompterPanel.ask(text, { frame, item })`), so the request carries the frame's saved check with the flag marked `asked` (spec 04, `check_frame`). The flag's words are in the button's name but never in the question (20 Nov, after S7's review): they're saved in the film, so a shared film could make them say anything, and a question is taken as the learner's own words. Without the Prompter, the checklist works as before.
 
 ### 9.6 The result, saved in the film
 
