@@ -2,6 +2,19 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.7.0
+
+In Plan only, a frame's plan keeps the steps code ticked off as the learner built them (S7's ask, WP13.9; spec 04 section 6.6; spec 03 section 6). Optional, so an older file opens, is migrated, and keeps its original.
+
+- On a frame's plan: `done`, the ticked steps by number from 1, ascending, each once, none past `agreed`, and may be empty. It follows the code, so undoing a block takes its tick back. Present, even empty, it marks a plan the learner built; a plan the Prompter built has none. A plan whose `done` breaks these rules is dropped whole when the file opens, as any misshapen plan is.
+- `ProductionSession.keepPlans` keeps plans on their frames outside the history, as `annotate` keeps check results (the owner's choice of 20 Nov): no undo step, and undo and redo leave them. A learner's own step that changes a frame's plan takes over from it.
+
+## 1.6.0
+
+A frame keeps the plan the learner agreed with the Prompter (S5's ask; spec 04 section 6.7; spec 03 section 6). Optional, so an older file opens, is migrated, and keeps its original.
+
+- On a frame: `plan`, `{ agreedAt, shown, agreed }` (`FramePlan`), each step a `PlanStep`, within `PLAN_LIMITS`. Written with `withFramePlan` in the same undo step as the build; one that doesn't fit is dropped whole when the file opens, never the file.
+
 ## 1.5.0
 
 A set-up object can start posed (S3's #424, for S5's Pose panel; 07-ux section 7.2; spec 03 section 2.2). Optional, so an older file opens, is migrated, and keeps its original.

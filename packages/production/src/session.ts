@@ -17,7 +17,8 @@
  * One thing goes around the history: a frame's automatic check (`annotate`, spec 08 section 9.6).
  * Running a check isn't the learner's change, so it's no undo step, and its latest result stays
  * through undo and redo; its `basis` says whether it still fits what's there. Keeping a flag is
- * the learner's choice, an ordinary step.
+ * the learner's choice, an ordinary step. So does a plan kept in Plan only (`keepPlans`, format
+ * 1.7.0), whose ticks code works out as the learner builds.
  */
 import {
   EditRefused,
@@ -38,6 +39,7 @@ import {
   type Frame,
   type FrameCheck,
   type FrameId,
+  type FramePlan,
   type Production,
   type Scene,
 } from './types.ts';
@@ -85,6 +87,8 @@ export class ProductionSession<Source extends string = string> {
   private readonly options: ProductionSessionOptions;
   /** Each frame's latest check result (`annotate`), laid over whatever undo or redo puts back. */
   private checks = new Map<FrameId, CheckResult | null>();
+  /** Each frame's plan kept in Plan only (`keepPlans`), laid over the same way. */
+  private plans = new Map<FrameId, FramePlan | null>();
 
   constructor(production: Production, options: ProductionSessionOptions = {}) {
     this.current = production;
@@ -187,6 +191,25 @@ export class ProductionSession<Source extends string = string> {
     return { ok: true };
   }
 
+  /**
+   * Saves plans on their frames outside the history, as `annotate` saves check results (format
+   * 1.7.0, spec 04 section 6.6; the owner's choice of 20 Nov 2026): in Plan only, code ticks the
+   * learner's steps off as what they build matches them, and keeping that is no step of the
+   * learner's, so an Undo takes back the block they added, not an unseen keep. Undo and redo
+   * leave a kept plan where it is; `null` removes a frame's plan. A frame that isn't there is
+   * skipped, and gets its plan if undo brings it back. A learner's own step that changes a
+   * frame's plan (agreeing a new one) drops the plan kept for it here, so that step's plan shows
+   * and undo can take it back.
+   */
+  keepPlans(plans: ReadonlyMap<FrameId, FramePlan | null>): SessionResult {
+    if (this.options.readOnly !== undefined) return { ok: false, reason: this.options.readOnly };
+    if (plans.size === 0) return { ok: true };
+    for (const [frame, plan] of plans) this.plans.set(frame, plan);
+    const { program, ...rest } = this.current;
+    this.set({ ...this.withChecks(rest), program }, [], 'Plan', 'check');
+    return { ok: true };
+  }
+
   /** Opens a step that later changes join: a whole Prompter request is one undo step. */
   begin(label: string, source: Source): void {
     if (this.open) throw new Error('A group is already open.');
@@ -260,6 +283,7 @@ export class ProductionSession<Source extends string = string> {
     this.done = [];
     this.undone = [];
     this.checks = new Map();
+    this.plans = new Map();
     this.set(production, [], 'Open', 'load');
   }
 
@@ -271,6 +295,13 @@ export class ProductionSession<Source extends string = string> {
     before: ProductionRest,
     after: ProductionRest,
   ): void {
+    // A step of the learner's that changes a frame's plan takes it over from `keepPlans`.
+    if (this.plans.size > 0 && after.frames !== before.frames) {
+      const was = new Map(before.frames.map((f) => [f.id, f.plan]));
+      for (const frame of after.frames)
+        if (this.plans.has(frame.id) && frame.plan !== was.get(frame.id))
+          this.plans.delete(frame.id);
+    }
     if (this.open) {
       this.open.edits.push(...edits);
       this.open.inverses = [...inverses, ...this.open.inverses];
@@ -291,22 +322,32 @@ export class ProductionSession<Source extends string = string> {
     this.set({ ...this.withChecks(step.before), program }, step.inverses, label, 'undo');
   }
 
-  /** `rest` with each frame's latest check result laid over it, and its own `kept`. */
+  /**
+   * `rest` with each frame's latest check result laid over it, and its own `kept`; and each plan
+   * kept in Plan only (`keepPlans`).
+   */
   private withChecks(rest: ProductionRest): ProductionRest {
-    if (this.checks.size === 0) return rest;
+    if (this.checks.size === 0 && this.plans.size === 0) return rest;
     let changed = false;
     const frames = rest.frames.map((frame): Frame => {
-      if (!this.checks.has(frame.id)) return frame;
-      const result = this.checks.get(frame.id)!;
-      const { check, ...without } = frame;
-      if (result === null) {
-        if (check === undefined) return frame;
-        changed = true;
-        return without;
+      let out = frame;
+      if (this.checks.has(frame.id)) {
+        const result = this.checks.get(frame.id)!;
+        const { check, ...without } = out;
+        if (result === null) {
+          if (check !== undefined) out = without;
+        } else if (check?.basis !== result.basis || check.items !== result.items)
+          out = { ...out, check: { ...result, kept: check?.kept ?? [] } };
       }
-      if (check?.basis === result.basis && check.items === result.items) return frame;
-      changed = true;
-      return { ...frame, check: { ...result, kept: check?.kept ?? [] } };
+      if (this.plans.has(frame.id)) {
+        const plan = this.plans.get(frame.id)!;
+        const { plan: was, ...without } = out;
+        if (plan === null) {
+          if (was !== undefined) out = without;
+        } else if (was !== plan) out = { ...out, plan };
+      }
+      if (out !== frame) changed = true;
+      return out;
     });
     return changed ? { ...rest, frames } : rest;
   }
