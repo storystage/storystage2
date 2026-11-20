@@ -356,6 +356,23 @@ describe('PrompterPanel: asking about a frame (11.6)', () => {
     expect(JSON.stringify(transport.sent[0]!.body.messages)).toContain('Owl is off screen');
   });
 
+  it("says which item the question is about, so the question needn't quote its words", async () => {
+    const { panel, transport } = setUp([say('Owl walks past the edge.')], { checkResult: checked });
+    await panel.refresh();
+    await panel.ask('Why does the check flag this on frame 2.1?', {
+      frame: frameId('f2'),
+      item: 'c1',
+    });
+    const sent = JSON.stringify(transport.sent[0]!.body.messages);
+    expect(sent).toContain('<check_result>');
+    expect(sent).toContain('\\"asked\\":\\"c1\\"');
+    // The flag's words go only as data, never as the learner's request.
+    expect(panel.state.entries[0]).toEqual({
+      kind: 'asked',
+      text: 'Why does the check flag this on frame 2.1?',
+    });
+  });
+
   it('sends none with a question about nothing in particular', async () => {
     const { panel, transport } = setUp([say('Hello.')], { checkResult: checked });
     await panel.refresh();

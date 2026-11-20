@@ -375,7 +375,7 @@ Result `ids.method`, `ids.position`, and `ids.parent_block` when the place is in
 
 Changes nothing. Returns the latest result of the automatic check for a frame (11.6), so the Prompter can explain it in the learner's words. It doesn't run the check. Field: `frame`.
 
-The result is the studio's (`checkResult`), or else the check saved on the frame (`Frame.check`, spec 08, section 9.6): each item's `id`, `kind`, `outcome`, `words`, `node` and `line`, and the flags the learner `kept`. As built (19 Nov), the studio's `checkResult` is the saved check with the frame's `frame` id and the `number` the learner sees ("2.3"), and a question asked from a flag on the frame card names its frame (`ask(text, { frame })`), so the result goes with the request. It goes as a `<check_result>` data block, since the words come from the file.
+The result is the studio's (`checkResult`), or else the check saved on the frame (`Frame.check`, spec 08, section 9.6): each item's `id`, `kind`, `outcome`, `words`, `node` and `line`, and the flags the learner `kept`. As built (19 Nov), the studio's `checkResult` is the saved check with the frame's `frame` id and the `number` the learner sees ("2.3"), and a question asked from a flag on the frame card names its frame and the item (`ask(text, { frame, item })`), so the result goes with the request, with `asked` set to the item's id. The question names the frame, not the flag's words: those come from the file (`Frame.check` is saved in the film, and a shared one can say anything), so they belong in the data block, never in `<learner_request>`, whose words the Prompter takes as the learner's own (rule 7, and section 6.5). It goes as a `<check_result>` data block, since the words come from the file.
 
 #### `script_check`
 

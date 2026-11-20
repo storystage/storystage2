@@ -94,7 +94,22 @@ export interface PanelSetup<S extends string = string> {
 
 export const BUILD_REQUEST = 'Build these steps.';
 
-type RequestExtra = { readonly frame?: FrameId; readonly agreedPlan?: Json };
+type RequestExtra = {
+  readonly frame?: FrameId;
+  /** The check item asked about, by its id in the frame's check result. */
+  readonly item?: string;
+  readonly agreedPlan?: Json;
+};
+
+/** What a question is about: a frame, and one item of its check (11.6). */
+export interface AskAbout {
+  readonly frame?: FrameId;
+  /**
+   * A check item's id. The check result then says `asked`, so the question needn't quote the
+   * item's words: they come from the file, and belong in the data, not in the learner's request.
+   */
+  readonly item?: string;
+}
 const BUILDS: readonly PrompterMode[] = ['showMeHow', 'buildIt'];
 const BLOCKED: Partial<Record<TransportErrorCode, PanelPhase>> = {
   prompter_off: 'off',
@@ -239,8 +254,12 @@ export class PrompterPanel<S extends string = string> {
    * Ask, in the current mode. `about.frame` sends that frame's check result with the request
    * (the studio's `checkResult`), as the frame card's Ask the Prompter does for a flag (11.6).
    */
-  ask(text: string, about: { readonly frame?: FrameId } = {}): Promise<void> {
-    return this.#run(text, about.frame === undefined ? {} : { frame: about.frame });
+  ask(text: string, about: AskAbout = {}): Promise<void> {
+    if (about.frame === undefined) return this.#run(text, {});
+    return this.#run(text, {
+      frame: about.frame,
+      ...(about.item === undefined ? {} : { item: about.item }),
+    });
   }
 
   /** Code this frame: a plan for frame `frame`. */
@@ -373,7 +392,12 @@ export class PrompterPanel<S extends string = string> {
 
     const production = this.#setup.production.production();
     const place = { scene: this.#setup.scene(), open: this.#setup.openMethod?.() ?? null };
-    const checkResult = extra.frame ? this.#setup.checkResult?.(extra.frame) : undefined;
+    const found = extra.frame ? this.#setup.checkResult?.(extra.frame) : undefined;
+    // Which item the question is about goes with the result, as data.
+    const checkResult =
+      found && extra.item !== undefined && typeof found === 'object' && !Array.isArray(found)
+        ? { ...found, asked: extra.item }
+        : found;
     const nodesNow = () => new Set(indexProgram(this.#setup.production.program()).keys());
     let known = nodesNow();
     const onEvent = (event: SessionEvent) => {
