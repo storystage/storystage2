@@ -33,6 +33,7 @@ import {
   type SessionResult,
 } from '@storystage/ast';
 import type { ObjectId, SceneSetup } from '@storystage/story-api';
+import { isFramePlan } from './plan.ts';
 import type { SceneStep } from './scenes.ts';
 import {
   sceneMethodCheck,
@@ -200,13 +201,23 @@ export class ProductionSession<Source extends string = string> {
    * skipped, and gets its plan if undo brings it back. A learner's own step that changes a
    * frame's plan (agreeing a new one) drops the plan kept for it here, so that step's plan shows
    * and undo can take it back.
+   *
+   * A plan the format wouldn't keep (`isFramePlan`) refuses the whole call, as `withFramePlan`
+   * does, and keeps none of them (S7's review): saved, it would be dropped when the file next
+   * opened, and the teacher would lose it with nobody told.
    */
   keepPlans(plans: ReadonlyMap<FrameId, FramePlan | null>): SessionResult {
     if (this.options.readOnly !== undefined) return { ok: false, reason: this.options.readOnly };
     if (plans.size === 0) return { ok: true };
+    const unfit = [...plans].filter(([, plan]) => plan !== null && !isFramePlan(plan));
+    if (unfit.length > 0)
+      return {
+        ok: false,
+        reason: `Not a plan the format keeps, for frame ${unfit.map(([f]) => f).join(', ')}.`,
+      };
     for (const [frame, plan] of plans) this.plans.set(frame, plan);
     const { program, ...rest } = this.current;
-    this.set({ ...this.withChecks(rest), program }, [], 'Plan', 'check');
+    this.set({ ...this.withChecks(rest), program }, [], 'Keep the plan', 'check');
     return { ok: true };
   }
 

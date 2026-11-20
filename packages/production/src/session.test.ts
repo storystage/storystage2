@@ -439,4 +439,23 @@ describe('ProductionSession.keepPlans: Plan only’s plan, outside undo', () => 
     const r = new ProductionSession<Source>(exampleProduction(), { readOnly: 'Read-only.' });
     expect(r.keepPlans(new Map([[f1, plan([1])]]))).toEqual({ ok: false, reason: 'Read-only.' });
   });
+
+  // S7's review: saved, it would be dropped when the file next opened, with nobody told.
+  it('refuses the whole call, keeping none, if any plan is one the format wouldn’t keep', () => {
+    const s = session();
+    const seen: string[] = [];
+    s.subscribe((c) => seen.push(c.label));
+    const f2 = s.production().frames[1]!.id;
+    const result = s.keepPlans(
+      new Map([
+        [f1, plan([1])],
+        [f2, plan([3])],
+      ]),
+    );
+    expect(result).toEqual({ ok: false, reason: `Not a plan the format keeps, for frame ${f2}.` });
+    expect(planOf(s)).toBeUndefined();
+    expect(seen).toEqual([]);
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    expect(seen).toEqual(['Keep the plan']);
+  });
 });
