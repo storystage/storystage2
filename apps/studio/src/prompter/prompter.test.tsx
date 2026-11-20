@@ -508,7 +508,7 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(
       await within(plan).findByRole('row', { name: 'Step 1, done: The fox says line 3.' }),
     ).toBeTruthy();
-    expect(within(plan).getByRole('row', { name: /^The penguin/ })).toBeTruthy();
+    expect(within(plan).getByRole('row', { name: /^Step 2: The penguin/ })).toBeTruthy();
     expect(within(aside()).getByText('1 of 2 built')).toBeTruthy();
     expect(production.production().frames.find((f) => f.id === 'f2')?.plan?.done).toEqual([1]);
     expect(said(onAnnounce)).not.toContain('All the steps are built.');
@@ -561,7 +561,7 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     act(() => {
       production.undo();
     });
-    expect(await within(plan).findByRole('row', { name: /^The penguin/ })).toBeTruthy();
+    expect(await within(plan).findByRole('row', { name: /^Step 2: The penguin/ })).toBeTruthy();
     expect(production.production().frames.find((f) => f.id === 'f2')?.plan?.done).toEqual([1]);
   });
 

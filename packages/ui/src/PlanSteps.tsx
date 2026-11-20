@@ -40,7 +40,8 @@ export interface PlanStepsProps {
  * the learner can reorder and change before anything is built. Reorder by dragging the handle, or
  * from the keyboard: focus the handle, press Enter, move with the arrow keys and press Enter again.
  * A step that can't be built says why under its words. In Plan only, a step the learner has built
- * shows a tick in place of its number, and its name begins "Step 2, done:".
+ * shows a tick in place of its number, and its name begins "Step 2, done:" where another's begins
+ * "Step 2:".
  */
 export function PlanSteps({
   steps,
@@ -82,7 +83,8 @@ export function PlanSteps({
         return (
           <GridListItem
             id={step.id}
-            textValue={step.done ? messages.t('plan.done', { n, text: words }) : words}
+            // Every row's name starts with its number, which is drawn but hidden from screen readers.
+            textValue={messages.t(step.done ? 'plan.done' : 'plan.step', { n, text: words })}
             className="ss-plan-step"
             data-problem={step.problem ? true : undefined}
             data-done={step.done ? true : undefined}

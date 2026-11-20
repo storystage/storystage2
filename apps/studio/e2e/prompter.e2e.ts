@@ -152,7 +152,9 @@ test('at Plan only, a step already built is ticked, and the panel counts what is
   await expect(
     plan.getByRole('row', { name: 'Step 1, done: The penguin says line 2.' }),
   ).toBeVisible();
-  await expect(plan.getByRole('row', { name: 'The penguin waddles forward.' })).toBeVisible();
+  await expect(
+    plan.getByRole('row', { name: 'Step 2: The penguin waddles forward.' }),
+  ).toBeVisible();
   await expect(prompter.getByText('1 of 2 built')).toBeVisible();
   const { violations } = await new AxeBuilder({ page })
     .include('.pm')
