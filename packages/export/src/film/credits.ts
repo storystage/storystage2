@@ -4,6 +4,7 @@
  * requires, and "Made with StoryStage 2". Only the headings change with the interface's language.
  */
 import {
+  LICENCES_NAMED_IN_CREDIT,
   creditsBySection,
   type BackstageItem,
   type CreditLine,
@@ -65,10 +66,12 @@ export function usedModels(production: Production): BackstageId[] {
 }
 
 /**
- * The licences whose credit names them, so the film gives their address too: CC BY's deeds and
- * the VRM Public License (Seed-san, S4's #549). CC0 asks for nothing, so its lines stay short.
+ * The licences whose credit names them, so the film gives their address too: Backstage's list
+ * (S4's #560), CC BY's deeds and the VRM Public License. CC0 asks for nothing, so its lines stay
+ * short.
  */
-const asksForCredit = (licence: string) => licence.startsWith('CC-BY') || licence === 'VRM-PL-1.0';
+const asksForCredit = (licence: BackstageItem['licence']) =>
+  LICENCES_NAMED_IN_CREDIT.includes(licence);
 
 /** "Owl from the StoryStage Cast (CC0)": the model's name, and where it's from. */
 const SOURCE = /^(.+?) ((?:by|from) .+)$/u;

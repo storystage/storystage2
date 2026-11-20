@@ -53,6 +53,11 @@ const CAST: Readonly<Record<string, FilmCreditable>> = {
     credit: 'Mug by Kay Lousberg, KayKit (CC0)',
   }),
   grass: item({ id: id('bd/grass'), section: 'backdrops', credit: 'Grass by Poly Haven (CC0)' }),
+  deer: item({
+    id: id('sketchfab/Quadruped/deer'),
+    credit: 'Low poly deer by Tin3D, CC BY 4.0, via Sketchfab, changed for StoryStage',
+    licence: 'CC-BY-4.0',
+  }),
   seed: item({
     id: id('vc/Biped/seed-san'),
     credit: 'Seed-san by VirtualCast, Inc. (VRM Public License 1.0)',
@@ -122,6 +127,17 @@ describe('filmCredits', () => {
       text: 'Knight by Kay Lousberg, KayKit (CC BY 4.0)',
       licence: { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
     });
+  });
+
+  it("links each licence Backstage names in credit, and CC0's never (S4's #560)", () => {
+    const blocks = filmCredits(using(['sketchfab/Quadruped/deer', 'sc/Flyer/owl']), find);
+    expect(blocks[0]!.lines).toEqual([
+      {
+        text: 'Low poly deer by Tin3D, CC BY 4.0, via Sketchfab, changed for StoryStage',
+        licence: { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
+      },
+      { text: 'Owl from the StoryStage Cast (CC0)' },
+    ]);
   });
 
   it("gives the VRM licence's name and address, as Seed-san's credit asks (S4's #549)", () => {
