@@ -5,7 +5,13 @@
  * undo step.
  */
 import { indexProgram, type NodeId } from '@storystage/ast';
-import type { FrameId, ProductionSession, SceneId } from '@storystage/production';
+import {
+  isFramePlan,
+  type FrameId,
+  type FramePlan,
+  type ProductionSession,
+  type SceneId,
+} from '@storystage/production';
 import { productionData, storyboardData } from './context.ts';
 import { modesAt, type PrompterLevel } from './levels.ts';
 import { outcomeMessage, type OutcomeAction } from './outcomes.ts';
@@ -54,6 +60,11 @@ export interface PanelPlan {
   readonly steps: readonly PlanStep[];
   /** Problems with the learner's version, by step from 1. Build waits until there are none. */
   readonly problems: readonly PlanProblem[];
+  /**
+   * Plan only (section 6.6): one flag a step of `steps`, set when what the learner built matches
+   * it. All false at the other levels, where the Prompter builds.
+   */
+  readonly done: readonly boolean[];
 }
 
 export interface PanelState {
@@ -90,6 +101,8 @@ export interface PanelSetup<S extends string = string> {
   readonly checkResult?: (frame: FrameId) => Json | null;
   /** False in the browser version, where there is no panel at all. Default true. */
   readonly inBuild?: boolean;
+  /** The clock, for when a Plan only plan's first step was ticked. Default: now. */
+  readonly now?: () => Date;
 }
 
 export const BUILD_REQUEST = 'Build these steps.';
@@ -128,9 +141,16 @@ export class PrompterPanel<S extends string = string> {
   #last: { readonly text: string; readonly extra: RequestExtra } | null = null;
   /** Whether the last request may be sent again: it changed nothing. */
   #retryable = false;
+  /** The program's blocks when the plan on show was shown, for Plan only's ticks (6.6). */
+  #before: ReadonlySet<NodeId> | null = null;
+  /** What was last kept with the plan's frame in Plan only, and when its first step was ticked. */
+  #kept: { readonly agreedAt: string; readonly key: string } | null = null;
+  readonly #unsubscribe: () => void;
 
   constructor(setup: PanelSetup<S>) {
     this.#setup = setup;
+    // Plan only's ticks follow the program, whatever changes it: the learner, Undo, or Redo.
+    this.#unsubscribe = setup.production.subscribe(() => this.#progress());
     const modes = modesAt(setup.level());
     this.#state = {
       phase: setup.inBuild === false ? 'absent' : 'ready',
@@ -147,6 +167,11 @@ export class PrompterPanel<S extends string = string> {
 
   get state(): PanelState {
     return this.#state;
+  }
+
+  /** Stops following the production, when the studio is done with this panel. */
+  dispose(): void {
+    this.#unsubscribe();
   }
 
   subscribe(listener: (state: PanelState) => void): () => void {
@@ -312,8 +337,50 @@ export class PrompterPanel<S extends string = string> {
     if (!plan || this.#busy) return;
     const steps = change([...plan.steps]);
     this.#set({
-      plan: { ...plan, steps, problems: this.#setup.runner.checkSteps(steps, plan.frame) },
+      plan: {
+        ...plan,
+        steps,
+        problems: this.#setup.runner.checkSteps(steps, plan.frame),
+        done: this.#ticks(steps, plan.frame),
+      },
     });
+    this.#keep();
+  }
+
+  // ---- Plan only's ticks (section 6.6) ------------------------------------------------------
+
+  #ticks(steps: readonly PlanStep[], frame: string | null): boolean[] {
+    if (this.#setup.level() !== 'planOnly' || this.#before === null) return steps.map(() => false);
+    return this.#setup.runner.progress(steps, frame, this.#before);
+  }
+
+  /** Works the ticks out again after the production changed. */
+  #progress(): void {
+    const plan = this.#state.plan;
+    if (!plan || this.#busy) return;
+    const done = this.#ticks(plan.steps, plan.frame);
+    if (done.length === plan.done.length && done.every((d, i) => d === plan.done[i])) return;
+    this.#set({ plan: { ...plan, done } });
+    this.#keep();
+  }
+
+  /**
+   * Keeps a Plan only plan with its frame, outside undo (`keepPlans`), from its first tick, and
+   * again whenever its steps or ticks change. A plan with no frame, or one the format wouldn't
+   * keep, isn't kept.
+   */
+  #keep(): void {
+    const plan = this.#state.plan;
+    if (!plan?.frame || this.#setup.level() !== 'planOnly') return;
+    const done = plan.done.flatMap((d, i) => (d ? [i + 1] : []));
+    if (this.#kept === null && done.length === 0) return;
+    const key = JSON.stringify([plan.shown, plan.steps, done]);
+    if (this.#kept?.key === key) return;
+    const agreedAt = this.#kept?.agreedAt ?? (this.#setup.now?.() ?? new Date()).toISOString();
+    const kept: FramePlan = { agreedAt, shown: plan.shown, agreed: plan.steps, done };
+    if (!isFramePlan(kept)) return;
+    const result = this.#setup.production.keepPlans(new Map([[plan.frame as FrameId, kept]]));
+    if (result.ok) this.#kept = { agreedAt, key };
   }
 
   moveStep(from: number, to: number): void {
@@ -448,6 +515,11 @@ export class PrompterPanel<S extends string = string> {
       this.#built = this.#setup.production.history().filter((h) => h.done).length;
     const shown = this.#setup.runner.latestPlan();
     const newPlan = shown !== undefined && shown !== shownBefore;
+    if (newPlan) {
+      // What's there now is from before the plan, so it ticks nothing (6.6).
+      this.#before = new Set(indexProgram(this.#setup.production.program()).keys());
+      this.#kept = null;
+    }
     const plan: PanelPlan | null = newPlan
       ? {
           plan: shown.plan,
@@ -455,6 +527,7 @@ export class PrompterPanel<S extends string = string> {
           shown: shown.steps,
           steps: shown.steps,
           problems: [],
+          done: shown.steps.map(() => false),
         }
       : building && outcome.changes > 0
         ? null
@@ -483,6 +556,8 @@ export class PrompterPanel<S extends string = string> {
             ? 'planned'
             : 'ready';
     this.#set({ phase, plan, message: outcome.status === 'stopped' ? null : message });
+    // A plan just shown may already have a step done, such as a set-up the scene has.
+    if (newPlan) this.#progress();
   }
 }
 
