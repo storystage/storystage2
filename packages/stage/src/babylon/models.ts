@@ -53,6 +53,8 @@ export interface ModelFile {
   readonly url: string;
   /** Its joints, from its Backstage entry. */
   readonly joints: BackstageItem['joints'];
+  /** How it moves, if not as the stage would choose: `hop`s, as S4's frog does (manifest 2.4.0). */
+  readonly gait?: 'hop';
 }
 
 /** Where the stage finds a model. The app gives it Backstage (`modelsFromManifest`). */
@@ -200,6 +202,7 @@ export class ModelLibrary {
         jointPlaces,
         clips,
         ...(gaits ? { gaits } : {}),
+        ...(file.gait === 'hop' ? { hop: true } : {}),
       },
     };
   }

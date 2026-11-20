@@ -106,6 +106,43 @@ describe("an animal's own gaits", () => {
     expect(t.shown(dog).own.map((l) => [l.name, l.time])).toEqual([['walk', 4]]);
   });
 
+  it('hop when their Backstage entry says so, at a pace from their height (owner, 20 Nov)', () => {
+    // A 60 cm hopper with no walk clip (S4's frog, `gait: 'hop'`).
+    const t = new Timeline();
+    t.load(scene, () => ({ ...animal({}), hop: true }));
+    const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;
+    // Its pace is for legs half its height, as an animal's whose stride can't be measured.
+    const pace = Math.sqrt(0.1 * 9.81 * 0.3);
+    const seconds =
+      Number(t.answer({ kind: 'naturalDuration', action: walk, at: 0 }, () => false).value) / 1e6;
+    expect(seconds).toBeCloseTo(4 / pace, 5);
+    t.schedule([{ ...cmd(0, 4 / pace, walk), style: 'beginAndEndAbruptly' }]);
+    // Each hop goes 1.5 heights (0.9 m), in the air for 0.7 of it, rising 0.4 heights (0.24 m).
+    const at = (metres: number) => {
+      t.seek(micros(metres / pace));
+      return t.transform(dog);
+    };
+    // Half way through its time in the air: at the top, level.
+    const top = at(0.9 + 0.9 * 0.35);
+    expect(top.position.x).toBeCloseTo(1.215, 3);
+    expect(top.position.y).toBeCloseTo(0.24, 3);
+    expect(top.rotation.x).toBeCloseTo(0, 3);
+    // Leaving the ground, its nose tipping up (a negative turn about its own x axis).
+    const leaving = at(0.9 + 0.01);
+    expect(leaving.position.y).toBeGreaterThan(0);
+    expect(leaving.position.y).toBeLessThan(0.05);
+    expect(leaving.rotation.x).toBeLessThan(-0.1);
+    // Landed, between hops: on the ground, level.
+    const down = at(0.9 + 0.9 * 0.85);
+    expect(down.position.y).toBe(0);
+    expect(down.rotation.x).toBe(0);
+    // Nothing else hops.
+    const plain = timeline({});
+    plain.schedule([{ ...cmd(0, 4 / pace, walk), style: 'beginAndEndAbruptly' }]);
+    plain.seek(micros(1.215 / pace));
+    expect(plain.transform(dog).position.y).toBe(0);
+  });
+
   it('fly at their own pace when the stage can’t tell how fast a clip goes', () => {
     const t = timeline({ walk: { clip: 'fly', speed: null } });
     const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;

@@ -86,6 +86,8 @@ export interface Shape {
   readonly clips?: ReadonlyMap<string, number>;
   /** Its own clips for walking, running and standing, if it isn't a humanoid (`gaits.ts`). */
   readonly gaits?: Gaits;
+  /** It hops when it walks (its Backstage entry's `gait: 'hop'`), as S4's frog does. */
+  readonly hop?: boolean;
 }
 
 /** A stand-in's block: half a metre square and a metre tall, standing on its origin. */
@@ -304,6 +306,7 @@ export class Timeline {
       ownClip: (object, clip) => this.shapes.get(object)?.clips?.get(clip) ?? null,
       gait: (object, gait) => this.shapes.get(object)?.gaits?.[gait] ?? null,
       coded: (object) => this.codedGaits.get(object) ?? null,
+      hops: (object) => this.shapes.get(object)?.hop === true,
       pose: (state, object) => scenePose(state as SceneState, object),
       targetPose: (state, target) => this.targetPose(state as SceneState, target),
       box: (state, target) => this.subject(state as SceneState, [target]),

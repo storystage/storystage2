@@ -567,7 +567,7 @@ async function scenePictures(
   setup: SceneSetup,
   commands: readonly StageCommand[],
   seconds: readonly number[],
-  files: Readonly<Record<string, { url: string; joints: readonly string[] }>>,
+  files: Readonly<Record<string, { url: string; joints: readonly string[]; gait?: 'hop' }>>,
   quality: 'low' | 'standard' = 'standard',
 ) {
   const canvas = document.createElement('canvas');
@@ -578,7 +578,13 @@ async function scenePictures(
     models: {
       find: (id) => {
         const file = files[id];
-        return file ? { url: file.url, joints: file.joints.map(jointName) } : null;
+        return file
+          ? {
+              url: file.url,
+              joints: file.joints.map(jointName),
+              ...(file.gait ? { gait: file.gait } : {}),
+            }
+          : null;
       },
     },
     offscreen: true,
