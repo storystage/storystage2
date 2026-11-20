@@ -297,7 +297,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   /**
    * Plan only's ticks (section 6.6): which steps what the learner built matches, by the rule a
    * build is held to. `before` is the program's blocks when the plan was shown: only blocks added
-   * since, or linked to the plan's frame, are the learner's work for it.
+   * since, or linked to the plan's frame, are the learner's work for it. A frame's plan is worked
+   * out in the frame's scene; a plan with no frame, in the scene on show.
    */
   progress(
     steps: readonly PlanStep[],
@@ -306,8 +307,10 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   ): boolean[] {
     const program = this.#setup.session.program();
     const production = this.#setup.session.production();
-    const type = this.#sceneType(program);
-    const scene = production.scenes.find((s) => s.id === this.#setup.scene());
+    // A frame's plan is for the frame's scene, whichever scene is on show (S5's review).
+    const sceneId = production.frames.find((f) => f.id === frame)?.scene ?? this.#setup.scene();
+    const type = this.#sceneType(program, sceneId);
+    const scene = production.scenes.find((s) => s.id === sceneId);
     if (!type || !scene) return steps.map(() => false);
     const objects = this.#sceneObjects(type, program);
     const fields = new Map(type.fields.map((f) => [f.name, f] as const));
@@ -368,8 +371,11 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
 
   // ---- Reading ----------------------------------------------------------------------------------
 
-  #sceneType(program: Program = this.#setup.session.program()): TypeDecl | null {
-    const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
+  #sceneType(
+    program: Program = this.#setup.session.program(),
+    id: SceneId = this.#setup.scene(),
+  ): TypeDecl | null {
+    const scene = this.#setup.session.production().scenes.find((s) => s.id === id);
     if (!scene) return null;
     const where = indexProgram(program).get(scene.method);
     const type = where?.parent ? indexProgram(program).get(where.parent)?.node : undefined;
@@ -430,7 +436,9 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   #world(frame: string | null): PlanWorld {
     const production = this.#setup.session.production();
     const program = this.#setup.session.program();
-    const type = this.#sceneType(program);
+    const onFrame = production.frames.find((f) => f.id === frame);
+    // A frame's plan is checked in the frame's scene, whichever scene is on show.
+    const type = this.#sceneType(program, onFrame?.scene ?? this.#setup.scene());
     const objects = new Map<string, ApiClass>([['this', 'Scene']]);
     if (type) {
       const scene = this.#sceneObjects(type, program);
@@ -439,7 +447,6 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         if (cls) objects.set(field.name, cls);
       }
     }
-    const onFrame = production.frames.find((f) => f.id === frame);
     return {
       objects,
       lines: new Map(production.script.map((l) => [String(l.id), l.text])),

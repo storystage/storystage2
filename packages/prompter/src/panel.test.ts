@@ -94,10 +94,11 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
     check: (p) => checkProgram(p),
   });
   let level: PrompterLevel = options.level ?? 'full';
+  let scene = 's2';
   const runner = new PrompterRunner({
     session: production,
     source: 'prompter',
-    scene: () => sceneId('s2'),
+    scene: () => sceneId(scene),
     backstageClass: () => null,
   });
   let id = 0;
@@ -115,11 +116,17 @@ function setUp(replies: PrompterEvent[][], options: Options = {}) {
     production,
     source: 'prompter',
     level: () => level,
-    scene: () => sceneId('s2'),
+    scene: () => sceneId(scene),
     ...(options.inBuild === undefined ? {} : { inBuild: options.inBuild }),
     ...(options.checkResult ? { checkResult: options.checkResult } : {}),
   });
-  return { panel, production, transport, setLevel: (l: PrompterLevel) => (level = l) };
+  return {
+    panel,
+    production,
+    transport,
+    setLevel: (l: PrompterLevel) => (level = l),
+    setScene: (s: string) => (scene = s),
+  };
 }
 
 /** Asks for a one-step plan in Show me how. */
@@ -408,6 +415,28 @@ describe('PrompterPanel: Plan only ticks steps off (spec 04, section 6.6)', () =
     expect(kept(production)).toMatchObject({ done: [], agreedAt: first!.agreedAt });
     production.redo();
     expect(kept(production)).toMatchObject({ done: [1] });
+  });
+
+  it("keeps a frame's ticks while another scene is on show", async () => {
+    const t = await planOnly();
+    learnerMoves(t.production, 1);
+    expect(t.panel.state.plan?.done).toEqual([true]);
+    // The learner opens scene 1, and changes something there.
+    t.setScene('s1');
+    t.production.change('Rename the film', 'learner', ({ program: _p, ...rest }) => ({
+      ...rest,
+      title: 'Pip and Fox',
+    }));
+    expect(t.panel.state.plan?.done).toEqual([true]);
+    expect(kept(t.production)).toMatchObject({ done: [1] });
+  });
+
+  it("checks a frame's plan in the frame's scene while another is on show", async () => {
+    const t = await planOnly();
+    // A scene on show with nothing in it: the fox is still in frame f2's scene.
+    t.setScene('s9');
+    t.panel.changeStep(0, { actor: 'fox' });
+    expect(t.panel.state.plan?.problems).toEqual([]);
   });
 
   it("ticks a block linked to the frame, but not one that doesn't match", async () => {
