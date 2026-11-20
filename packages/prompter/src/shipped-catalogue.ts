@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '5ca7d7db77613f5b8e79dd8d88199d3ade4d84da';
+export const SHIPPED_CATALOGUE_COMMIT = 'ee391d37b71efb5a1a49cdd01a90ac4c5a17f386';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
