@@ -75,6 +75,18 @@ describe('backstageFrom', () => {
     });
   });
 
+  // Manifest 2.4.0 (owner, 20 Nov 2026; S3's ask): the stage hops the frog.
+  it('passes on a gait, so the stage knows the frog hops', () => {
+    const frog = item('sketchfab/Quadruped/frog', {
+      class: 'Quadruped',
+      joints: 'prop-only',
+      gait: 'hop',
+    });
+    const b = backstageFrom(manifest(frog), 'https://app.storystage.org/backstage/');
+    expect(b.find('sketchfab/Quadruped/frog' as never)?.gait).toBe('hop');
+    expect('gait' in backstage.find('kaykit/Biped/knight' as never)!).toBe(false);
+  });
+
   it('gives thumbnails, items, credits and the Prompter catalogue from the same manifest', () => {
     expect(backstage.thumbnail('kaykit/Prop/mug' as never)).toBe(
       'https://app.storystage.org/backstage/thumbnails/kaykit/Prop/mug.webp',
