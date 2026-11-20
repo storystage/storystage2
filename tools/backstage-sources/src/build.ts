@@ -161,6 +161,7 @@ export async function buildSources(
     let vrmShrunk = false;
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
+      stripExtras(doc);
       if (item.bones) renameBones(doc, item.bones);
       if (item.clips) standardClips(doc, item.clips);
       const reduced = await reduceModel(doc, budget, { encodeTexture });
@@ -489,6 +490,32 @@ function report(
     `**Prompter catalogue:** about ${tokens.toLocaleString('en-GB')} of ${CATALOGUE_TOKEN_BUDGET.toLocaleString('en-GB')} tokens. \`prompter-catalogue.txt\` is exactly what Claude reads; check its descriptions with the sketches.`,
     '',
   ].join('\n');
+}
+
+/**
+ * Clears every `extras` a maker left in a model, on the file, its asset record and each part.
+ * Nothing in StoryStage reads them, and a maker may put anything there: Gobkit's carry its
+ * marketing, including a line promoting AI tools, which the owner chose to strip (20 Nov 2026).
+ * Credit is the source list's, so nothing is lost.
+ */
+export function stripExtras(doc: Document): void {
+  const root = doc.getRoot();
+  delete (root.getAsset() as { extras?: unknown }).extras;
+  root.setExtras({});
+  const parts = [
+    root.listScenes(),
+    root.listNodes(),
+    root.listMeshes(),
+    root.listMeshes().flatMap((m) => m.listPrimitives()),
+    root.listMaterials(),
+    root.listTextures(),
+    root.listAnimations(),
+    root.listSkins(),
+    root.listAccessors(),
+    root.listCameras(),
+    root.listBuffers(),
+  ];
+  for (const list of parts) for (const part of list) part.setExtras({});
 }
 
 /** Renames a model's own bones to our joint ids (a source-list item's `bones`); a name not found throws. */

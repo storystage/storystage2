@@ -35,6 +35,7 @@ Verdicts:
 | **[Styloo: Animals Asset Pack](https://styloo.itch.io/animals)** | CC0 1.0: the page's asset licence is "Creative Commons Zero v1.0 Universal", and the author confirms it in the comments. Sold at a $3 minimum; the owner bought it on 18 Nov 2026 | Seven rigged animals: dog, cat, cow, giraffe, chicken, butterfly, ladybird | "<Animal> by styloo, Animals Asset Pack (CC0)" | **Ship** (owner, 18 Nov 2026) | The originals are kept, public and credited, in backstage-assets' `originals/styloo/` (the owner's choice), with the pack's page and each file's SHA-256 |
 | **[Seed-san](https://github.com/vrm-c/vrm-specification/tree/master/samples/Seed-san)** (VRM Consortium's VRM 1.0 sample, by VirtualCast, Inc.) | [VRM Public License 1.0](https://vrm.dev/licenses/1.0/). Its own settings, read from the file on 19 Nov 2026: redistribution allowed, modification and redistribution allowed, commercial use by corporations, avatar use by everyone, credit required | A humanoid with all five expressions (happy, angry, sad, relaxed, surprised), for the stage's `show expression` (S3's ask) | "Seed-san by VirtualCast, Inc. (VRM Public License 1.0)" | **Ship** (owner, 19 Nov 2026) | Shipped as its VRM file; the build changes nothing in it while its pictures fit the budget (they do), and if it ever shrinks them the credit says ", changed for StoryStage", as the licence asks. Never suggest VirtualCast endorses StoryStage. 45,058 triangles, over the cast budget of 20,000: the owner sees it in the review before it ships |
 | **[Vuena: Free Low-Poly Animals](https://github.com/Vuena/free-low-poly-animals-cc0)** (by Popyca) | CC0 1.0: the repository's `LICENSE` and the dedication that came in the itch.io zip | Three rigged toy-style animals: cat, fox, owl | "<Animal> by Popyca (Vuena), Free Low-Poly Animals (CC0)" | **Ship** (owner, 18 Nov 2026, after a close look) | Fetched from the repository, pinned to a3944e5. Its maker says he built them with his own Blender scripts, written with an AI assistant, and that the meshes aren't generated. His paid 70-animal pack forbids redistribution, so only these three free ones qualify |
+| **[Gobkit: free animal packs](https://gobkit.com/freebies)** (Gobkit / Alsomind Tech Co., Ltd.) | CC0 1.0: each pack's own `LICENSE.txt` | 30 chunky low-poly animals from three packs, prop only with their own idle and walk clips | "<Animal> by Gobkit, <pack> (CC0)" | **Ship** (owner, 20 Nov 2026, after a close look) | The originals are kept in backstage-assets' `originals/gobkit/` with each file's SHA-256. Gobkit sells AI generation; its files carry its marketing in their glTF `extras`, Vol. 5's calling the models hand-authored while promoting AI tools. The build strips every model's `extras` (`stripExtras`), so none of it ships. Never suggest Gobkit endorses StoryStage |
 | **Mixamo** | Adobe's terms forbid redistributing the raw files, and need an Adobe account | Nothing | — | **Don't ship** | Learners may import their own Mixamo files (3.11). The skeleton mapper reads Mixamo names (spec 17, section 2a) |
 | **General Sketchfab** | Varies per model, including non-commercial | Nothing in the shipped catalogue, except the storybook characters the owner chose per item (14 Nov 2026) | "<Model> by <author>, CC BY <version>, via Sketchfab; rigged and reduced for StoryStage, changed for StoryStage" | **Don't ship**, except **per item** as chosen by the owner | Only CC0 or CC BY 3.0 or 4.0, on the item's own page. Two ship: Little Red Riding Hood (leafar112) and her Grandmother (Imagine), both CC BY 4.0 and rigged by us. Red Riding Hood's page asks that she not be used for AI, so she is never fed to generative AI services. **24 rigged animals** ship too (the owner's choices of 18 and 19 Nov 2026, from two reviewed builds), all CC BY 4.0 on their own pages, from 21 files: kept, public and credited, in backstage-assets' `originals/sketchfab-animals/` with each page, maker and SHA-256 (the horse with its brown coat put in as its texture). The sheep's credit also names the model it animates. The fantasy butterfly (no cut-out for its wings) and the spider were left out. Otherwise, as for Mixamo: learner imports only, with the licence recorded (3.12) |
 
@@ -75,12 +76,13 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets 48d9968 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets 5ca7d7d (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
 | Backdrops' grounds, from ambientCG and Poly Haven textures | CC0-1.0 | 31 | Bricks 105 from ambientCG.com (CC0) |
 | Blender Studio | CC-BY-4.0 | 1 | Autumn (CC) Blender Foundation \| studio.blender.org; reduced for StoryStage, changed for StoryStage |
+| Gobkit's free animal packs | CC0-1.0 | 30 | Bat by Gobkit, Free Animal Pack (CC0) |
 | KayKit | CC0-1.0 | 10 | Barbarian by Kay Lousberg, KayKit (CC0) |
 | MakeHuman people | CC0-1.0 | 37 | Alfie, made with MakeHuman (CC0) |
 | Open Source Avatars | CC0-1.0 | 95 | Agnes by Polygonal Mind, 100Avatars (CC0) |
@@ -93,7 +95,7 @@ Generated from `backstage.json` at storystage/backstage-assets 48d9968 (the comm
 | Styloo, Animals Asset Pack | CC0-1.0 | 7 | Butterfly by styloo, Animals Asset Pack (CC0) |
 | VRM Consortium (Seed-san) | VRM-PL-1.0 | 1 | Seed-san by VirtualCast, Inc. (VRM Public License 1.0) |
 | Vuena, Free Low-Poly Animals | CC0-1.0 | 3 | Owl by Popyca (Vuena), Free Low-Poly Animals (CC0) |
-| **All** | | **307** | |
+| **All** | | **337** | |
 
 <!-- /shipped -->
 

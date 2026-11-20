@@ -14,6 +14,7 @@ type Item = BackstageManifest['items'][number];
 /** Each source's name in the audit, by the first part of a Backstage id. */
 export const SOURCE_NAMES: Readonly<Record<string, string>> = {
   'blender-studio': 'Blender Studio',
+  gobkit: "Gobkit's free animal packs",
   kaykit: 'KayKit',
   makehuman: 'MakeHuman people',
   osa: 'Open Source Avatars',
