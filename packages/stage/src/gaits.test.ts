@@ -67,24 +67,30 @@ describe("an animal's own gaits", () => {
     expect(t.shown(dog).own).toEqual([{ name: 'iddle', time: 9, weight: 1 }]);
   });
 
-  it('walk no slower than a quarter of a metre a second, legs stepping faster (owner, 19 Nov)', () => {
-    // A toy cat's tiny legs carry it 3 cm a second; it walks at the floor, 4 m in 16 s.
-    const t = timeline({ walk: { clip: 'walk', speed: 0.03 }, run: { clip: 'run', speed: 0.18 } });
+  it('walk no slower than a quarter of a metre a second, legs stepping up to three times faster (owner, 19-20 Nov)', () => {
+    // A small dog's legs carry it 10 cm a second; it walks at the floor, 4 m in 16 s.
+    const small = timeline({
+      walk: { clip: 'walk', speed: 0.1 },
+      run: { clip: 'run', speed: 0.3 },
+    });
     const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;
-    expect(t.answer({ kind: 'naturalDuration', action: walk, at: 0 }, () => false).value).toBe(
-      micros(16),
-    );
-    // Its run no slower than two and a half times that: 0.625 m a second.
     const run = { ...walk, gait: 'run' } as const;
-    expect(t.answer({ kind: 'naturalDuration', action: run, at: 0 }, () => false).value).toBe(
-      micros(6.4),
-    );
-    t.schedule([{ ...cmd(0, 16, walk), style: 'beginAndEndAbruptly' }]);
-    t.seek(micros(8));
+    const seconds = (t: ReturnType<typeof timeline>, action: typeof walk | typeof run) =>
+      Number(t.answer({ kind: 'naturalDuration', action, at: 0 }, () => false).value) / 1e6;
+    expect(seconds(small, walk)).toBeCloseTo(16, 5);
+    // Its run no slower than two and a half times that: 0.625 m a second.
+    expect(seconds(small, run)).toBeCloseTo(6.4, 5);
+    // A toy cat's tiny legs carry it 3 cm a second. Its clip plays no faster than three times
+    // its own pace (owner, 20 Nov), so it walks 9 cm a second; its run, 18 cm, at 54 cm.
+    const t = timeline({ walk: { clip: 'walk', speed: 0.03 }, run: { clip: 'run', speed: 0.18 } });
+    expect(seconds(t, walk)).toBeCloseTo(4 / 0.09, 5);
+    expect(seconds(t, run)).toBeCloseTo(4 / 0.54, 5);
+    t.schedule([{ ...cmd(0, 4 / 0.09, walk), style: 'beginAndEndAbruptly' }]);
+    t.seek(micros(2 / 0.09));
     // 2 m on, its clip keeps its own pace with the ground: 2 / 0.03 s in, feet planted.
     const [own] = t.shown(dog).own;
     expect(own!.name).toBe('walk');
-    expect(own!.time).toBeCloseTo(2 / 0.03, 6);
+    expect(own!.time).toBeCloseTo(2 / 0.03, 3);
   });
 
   it('run with their walk, faster, if they have no run', () => {
