@@ -34,6 +34,21 @@ describe('moveSteps', () => {
 });
 
 describe('PlanSteps', () => {
+  it('names each step by its number, and a done one “done”, with a tick in place of its number', () => {
+    const steps = PLAN.map((p, i) => (i === 1 ? { ...p, done: true } : p));
+    const { container } = render(<PlanSteps steps={steps} onReorder={() => {}} />);
+    const grid = screen.getByRole('grid', { name: 'Plan before change' });
+    expect(
+      within(grid).getByRole('row', { name: 'Step 2, done: Turn the owl to face the cat.' }),
+    ).toBeTruthy();
+    expect(
+      within(grid).getByRole('row', { name: 'Step 1: Fly the owl down to stand by the tree.' }),
+    ).toBeTruthy();
+    const numbers = [...container.querySelectorAll('.ss-plan-number')];
+    expect(numbers.map((n) => n.textContent)).toEqual(['1', '', '3', '4']);
+    expect(numbers[1]!.hasAttribute('data-done')).toBe(true);
+  });
+
   it('is a named grid of the steps, in order', () => {
     render(<PlanSteps steps={PLAN} onReorder={() => {}} onEdit={() => {}} />);
     const grid = screen.getByRole('grid', { name: 'Plan before change' });

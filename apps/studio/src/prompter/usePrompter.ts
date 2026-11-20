@@ -130,6 +130,7 @@ export function usePrompter({
         return modelsNow.current.catalogue.filter((i) => i.section === 'backdrops');
       },
     };
+    const staged = new WeakMap<Production, Map<SceneId, boolean>>();
     const made = createPrompterPanel({
       // The studio's own history, whose sources name the Prompter's changes 'prompter'.
       production: session,
@@ -142,6 +143,19 @@ export function usePrompter({
         const placed = placeFromStoryboard(p, at, storyboardPlan(p, at, backstage), label);
         return placed.ok ? placed : { ok: false, refusal: placed.refusal, name: placed.name };
       },
+      // Plan only ticks a `stage` step once the storyboard has nothing left to place (spec 04,
+      // 6.6). Asked on every change, so worked out once for each production and scene.
+      staged: (p, at) => {
+        let scenes = staged.get(p);
+        if (!scenes) staged.set(p, (scenes = new Map()));
+        let done = scenes.get(at);
+        if (done === undefined) {
+          done =
+            p.frames.some((f) => f.scene === at) && storyboardPlan(p, at, backstage).length === 0;
+          scenes.set(at, done);
+        }
+        return done;
+      },
       keepPlan: keepFramePlan,
       checkResult: (frame) => frameCheckFor(session.production(), frame),
     });
@@ -149,6 +163,7 @@ export function usePrompter({
     return () => {
       // A request still running stops with the film it was for.
       made.stop();
+      made.dispose();
       setPanel(null);
     };
   }, [host, session]);

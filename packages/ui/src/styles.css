@@ -589,6 +589,14 @@
   color: var(--ss-on-strong);
   background: var(--ss-strong);
 }
+/* Plan only: a step the learner has built (04-prompter section 6.6). */
+.ss-plan-number[data-done] {
+  color: var(--ss-ok);
+  background: none;
+}
+.ss-plan-number[data-done] .ss-icon {
+  fill: var(--ss-ok);
+}
 .ss-plan-words {
   display: flex;
   flex: 1;
