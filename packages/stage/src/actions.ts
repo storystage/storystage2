@@ -689,18 +689,37 @@ function hopSize(world: World, object: ObjectId, body: Body | null, height: numb
 /**
  * A hopper `d` metres along its walk, `run` of the way to running: up in an arc for `HOP_AIR` of
  * each hop, its nose tipping up as it leaves and down as it lands, then down for the rest.
- * `moving` eases the hops in and out with the walk.
+ * `moving` eases the hops in and out with the walk. Walking and running hops each count from the
+ * distance gone, and blend, as the walk in code's steps do, so easing into a run doesn't jump
+ * (S4's review of #572). A whole number of each fits the walk's `total`, so it lands as it ends.
  */
-function hopAt(s: Mutable, size: number, d: number, run: number, moving: number): void {
-  const length = size * (HOP.walk.length + (HOP.run.length - HOP.walk.length) * run);
-  const rise = size * (HOP.walk.rise + (HOP.run.rise - HOP.walk.rise) * run) * moving;
-  const c = d / length;
-  const u = (c - Math.floor(c)) / HOP_AIR;
-  if (u >= 1) return;
-  s.position = add(s.position, v(0, rise * 4 * u * (1 - u), 0));
+function hopAt(
+  s: Mutable,
+  size: number,
+  d: number,
+  total: number,
+  run: number,
+  moving: number,
+): void {
+  let up = 0;
+  let tip = 0;
+  for (const [hop, weight] of [
+    [HOP.walk, 1 - run],
+    [HOP.run, run],
+  ] as const) {
+    if (weight <= 0) continue;
+    const length = total / Math.max(1, Math.round(total / (hop.length * size)));
+    const c = d / length;
+    const u = (c - Math.floor(c)) / HOP_AIR;
+    if (u >= 1) continue;
+    up += hop.rise * size * 4 * u * (1 - u) * weight;
+    tip += (1 - 2 * u) * weight;
+  }
+  if (up === 0 && tip === 0) return;
+  s.position = add(s.position, v(0, up * moving, 0));
   // About its own across axis: a negative turn about x lifts its nose (+Z) (`math.ts`).
-  const tip = -HOP_TIP * moving * (1 - 2 * u);
-  s.rotation = mul(s.rotation, { x: Math.sin(tip / 2), y: 0, z: 0, w: Math.cos(tip / 2) });
+  const turn = -HOP_TIP * moving * tip;
+  s.rotation = mul(s.rotation, { x: Math.sin(turn / 2), y: 0, z: 0, w: Math.cos(turn / 2) });
 }
 
 /** Where along a walk's way a distance is, and which way the walker faces there. */
@@ -768,7 +787,7 @@ export function applyAction(
             : 0;
         const moving = Math.min(1, speed / (0.3 * a.walkSpeed));
         if (a.hop) {
-          hopAt(s, a.hop, d, run, moving);
+          hopAt(s, a.hop, d, a.total, run, moving);
           return;
         }
         if (a.own) {

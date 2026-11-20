@@ -68,7 +68,14 @@ export function modelsFromManifest(manifest: BackstageManifest, folder: string):
   return {
     find(id) {
       const item = items.get(id);
-      return item ? { url: `${folder}/${item.files.model}`, joints: item.joints } : null;
+      if (!item) return null;
+      // Manifest 2.4.0's `gait` (S4), read so until its type reaches this package.
+      const { gait } = item as { gait?: 'hop' };
+      return {
+        url: `${folder}/${item.files.model}`,
+        joints: item.joints,
+        ...(gait === 'hop' ? { gait } : {}),
+      };
     },
   };
 }
