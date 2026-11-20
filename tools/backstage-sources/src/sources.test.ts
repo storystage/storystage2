@@ -178,6 +178,24 @@ describe('validateSources', () => {
     }
   });
 
+  // The owner's choice of 20 Nov 2026: the chicken's wings and the ladybird's head.
+  it('takes joints to add, only for a class with joints', () => {
+    const ladybird = {
+      id: 'styloo/Flyer/ladybird',
+      class: 'Flyer',
+      addJoints: [{ name: 'head', parent: 'Bone', at: [0, 0.07, 0] }],
+    };
+    expect(validateSources({ source: 's', items: [item(ladybird)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [{ addJoints: [{ name: 'head', parent: 'Bone' }] }, /three numbers/],
+      [{ id: 's/Prop/box', class: 'Prop', section: 'props' }, /only for a class with joints/],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...ladybird, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({
@@ -603,6 +621,52 @@ describe('a hopper with a walk of its own', () => {
     );
     await expect(buildSources(dir, { fetcher, today: '2026-11-20' })).rejects.toThrow(
       /its file has one/,
+    );
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+// Styloo's ladybird (owner, 20 Nov 2026): its parts hang on its bones, with no skin in use.
+describe('a model whose parts hang on its bones', () => {
+  it('is mapped from the bones its source list names, though it has no skin', async () => {
+    const doc = documentFromMesh(box([-0.5, 0, -0.5], [0.5, 0.5, 0.5]));
+    const root = doc.getRoot();
+    const body = root.listNodes().find((n) => n.getMesh())!;
+    body.setName('body');
+    const mesh = body.getMesh()!;
+    for (const [name, x] of [
+      ['wing.L', 0.3],
+      ['wing.R', -0.3],
+    ] as const)
+      body.addChild(doc.createNode(name).setTranslation([x, 0.5, 0]).setMesh(mesh));
+    body.addChild(doc.createNode('front').setTranslation([0, 0.3, 0.5]));
+    files.set(`${RAW}chars/Beetle.glb`, await new WebIO().writeBinary(doc));
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-beetle-'));
+    await mkdir(join(dir, 'sources'));
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({
+            id: 'kaykit/Flyer/beetle',
+            class: 'Flyer',
+            bones: {
+              body: 'spineBase',
+              front: 'head',
+              'wing.L': 'leftWingShoulder',
+              'wing.R': 'rightWingShoulder',
+            },
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Beetle.glb' },
+          }),
+        ],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-11-20' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const beetle = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Flyer/beetle');
+    expect(beetle.joints).toEqual(
+      expect.arrayContaining(['spineBase', 'head', 'leftWingShoulder', 'rightWingShoulder']),
     );
     await rm(dir, { recursive: true, force: true });
   });

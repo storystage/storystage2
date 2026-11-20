@@ -38,10 +38,10 @@ describe('withRetries', () => {
     expect(waits).toEqual([1000, 2000, 4000]);
   });
 
-  it('fails at once on a missing file or a refusal', async () => {
+  it('fails at once on a refusal', async () => {
     waits.length = 0;
-    const f = flaky([new Error('Could not fetch https://x/a.glb: 404 Not Found')]);
-    await expect(withRetries(f.fetcher, 4, wait)('https://x/a.glb')).rejects.toThrow('404');
+    const f = flaky([new Error('Could not fetch https://x/a.glb: 403 Forbidden')]);
+    await expect(withRetries(f.fetcher, 4, wait)('https://x/a.glb')).rejects.toThrow('403');
     expect(f.calls()).toBe(1);
     expect(waits).toEqual([]);
   });
