@@ -38,16 +38,16 @@ const ASPECT = 16 / 9;
 const PLAIN_WALK = 1.2;
 const PLAIN_RUN = 3;
 /**
- * No animal's natural walk is slower than Styloo's dog's, nor its run than that much faster (the
- * owner's choice, 19 Nov): a toy-like model's tiny legs, kept planted, crept at 3 cm a second.
- * Below it, its legs step faster, its feet still planted.
+ * A slower animal's natural walk is raised toward Styloo's dog's, and its run toward that much
+ * faster (the owner's choice, 19 Nov): a toy-like model's tiny legs, kept planted, crept at 3 cm a
+ * second. Raised, its legs step faster, its feet still planted.
  */
 const ANIMAL_WALK_FLOOR = 0.25;
 const ANIMAL_RUN_FLOOR = ANIMAL_WALK_FLOOR * (PLAIN_RUN / PLAIN_WALK);
 /**
- * But the floor speeds a clip up to at most three times its own pace (the owner's choice, 20 Nov):
- * Stripe the cat's walk at eight times flickered in a 30 fps film, her tail flipping each frame.
- * So she walks at 9 cm a second, feet still planted.
+ * But only until its clip plays three times its own pace (the owner's choice, 20 Nov): Stripe the
+ * cat's walk at eight times flickered in a 30 fps film, her tail flipping each frame. So she walks
+ * at 9 cm a second, and the tiniest animals stay below the floor.
  */
 const MAX_SPEED_UP = 3;
 /** How far into a turn a walker goes before it faces its new way, in metres. */
