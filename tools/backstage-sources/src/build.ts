@@ -166,8 +166,9 @@ export async function buildSources(
       const reduced = await reduceModel(doc, budget, { encodeTexture });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
-      // A character or animal stands on its feet; props and sets are put down by their box.
-      if (item.section === 'cast') standOnGround(doc);
+      // Everything stands on the ground, the stage placing it by its origin; a backdrop's ground
+      // and sky are made to sit where they do (the owner's choice for props and sets, 20 Nov).
+      if (item.section !== 'backdrops') standOnGround(doc);
       fetchedSize = reduced.before;
       bytes = await io.writeBinary(doc);
     } else {
@@ -330,12 +331,14 @@ export function scaleToHeight(doc: Document, metres: number): void {
  * Stands a model on the ground: moves it, under one new root node, so the lowest point of its rest
  * pose as a renderer draws it (a skinned mesh by its joints) is at y = 0. The stage stands an
  * object by its origin (S3, 19 Nov 2026), and some makers put theirs mid-body: the African
- * penguin's was 0.48 m above its feet, so it stood sunk to its head.
+ * penguin's was 0.48 m above its feet, so it stood sunk to its head. Props and sets too (the
+ * owner's choice, 20 Nov): Poly Pizza's house stood sunk by 2.66 m, its bench to its seat.
  *
  * Across and front to back, it's centred only where its origin is near or outside its edge
  * (outside the middle 80% of its width or length), so a turn doesn't swing it round a point
- * outside it (the same penguin's body was all behind its beak). A model whose origin is within,
- * if off-centre because of a long tail or trunk, keeps it.
+ * outside it (the same penguin's body was all behind its beak; the Scottish Maritime Museum's snow
+ * goggles were 11.7 m from theirs; Poly Pizza's furniture has its origin at a corner). A model
+ * whose origin is within, if off-centre because of a long tail or trunk, keeps it.
  */
 export function standOnGround(doc: Document): void {
   const positions = meshFromDocument(doc).positions;
