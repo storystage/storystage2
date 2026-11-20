@@ -777,7 +777,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 13.6 Set-up wizard (from StoryStage 1 spec 02): what is sent, cost, the adult-account rule, Console steps, paste and check key, options. A usage meter. Remove key. (C)
 - [ ] 13.7 Fake Claude server and recordings, with the evaluation set re-expressed for StoryStage 2. Add new categories: storyboard, "doesn't write the story", and prompt injection (a script line or a shared production that tells the Prompter to break its rules). Run the set on each model used by the mode routing (24.3). (C)
 - [x] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
-- [ ] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
+- [x] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
     - **What the learner sees:** before anything changes, the Prompter shows a short numbered plan in plain words, made from the frame's sketch, its script lines and its shot type. For example, for frame 2.3: "1. The owl walks to the tree. 2. The owl turns to face the cat. 3. The owl says 'Here is the key.' 4. The cat jumps. 5. Hold for 1 second."
     - **What the learner can do with it:** reorder steps by drag or keyboard, delete a step, change a value (who, where, how long, which line) with the same dropdowns the blocks use, add a step from a short menu, or ask "why this step?". Nothing in the program changes until the learner presses **Build these steps**.
     - **Building:** each step becomes blocks in turn, highlighted as it lands, with the step's words kept as a comment above its blocks; the whole build is one undo step. If a step can't be built (for example, an object not in the cast), the plan says so in plain words before building, not after.
@@ -785,6 +785,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - **Kept with the frame:** the agreed plan is saved with the frame in the storyboard data (not in the program), with a record of the learner's edits, so a teacher can see what the learner changed. Pseudonymous in the study log (7.13).
     - **Plan steps** use a small typed schema (actor, action from the Story API, target, details, linked script line or sketch), so a plan can always be checked against the Story API before it is shown; plans are written by the lower-cost model where 24.3 routing allows.
     - **Tests:** an evaluation category "the build matches the agreed plan", and edits to the plan must be reflected exactly in the built blocks.
+    - **Built (20 Nov 2026):** the plan, its edits and its checks (#469, #516, #518, #523); the build held to the agreed step (spec 04, section 6.4); Plan only ticking steps off as the learner builds them (#565, S5's #574); the plan kept with its frame (S4's #517 and #568, outside undo in Plan only, the owner's choice of 20 Nov). Plans stay on the main model, since 24.3 moves only Explain, the story coach and the script check. The evaluation category is in the harness (#503); the owner's live run scores it for WP13's done-when.
 
     (C)
 
