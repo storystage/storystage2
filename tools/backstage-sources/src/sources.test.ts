@@ -154,6 +154,30 @@ describe('validateSources', () => {
     expect(prop.ok).toBe(false);
   });
 
+  // Manifest 2.4.0 (owner, 20 Nov 2026; agreed with S3).
+  it('takes a gait for an animal in the cast with no walk clip of its own', () => {
+    const frog = {
+      id: 'sketchfab/Quadruped/frog',
+      class: 'Quadruped',
+      gait: 'hop',
+      clips: { idle: 'Take 001' },
+    };
+    expect(validateSources({ source: 's', items: [item(frog)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [{ gait: 'waddle' }, /gait must be one of hop/],
+      [{ clips: { idle: 'Take 001', walk: 'Take 001' } }, /no walk clip of its own/],
+      [{ id: 'kaykit/Biped/knight', class: 'Biped' }, /a gait is for an animal in the cast/],
+      [
+        { id: 'k/Prop/frog', class: 'Prop', section: 'props' },
+        /a gait is for an animal in the cast/,
+      ],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...frog, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({
@@ -524,5 +548,62 @@ describe('renameBones', () => {
         .map((n) => n.getName()),
     ).toEqual(['head', 'leftWingShoulder']);
     expect(() => renameBones(doc, { tail: 'tail' })).toThrow(/0 nodes called "tail"/);
+  });
+});
+
+// Manifest 2.4.0; S3's review of #573: a hopper whose own file keeps a clip called walk.
+describe('a hopper with a walk of its own', () => {
+  it('is refused by the build once its clips are made', async () => {
+    const doc = documentFromMesh(figure());
+    const root = doc.getRoot();
+    const buffer = root.listBuffers()[0]!;
+    const node = root.listNodes()[0]!;
+    const sampler = doc
+      .createAnimationSampler()
+      .setInput(
+        doc
+          .createAccessor()
+          .setType('SCALAR')
+          .setArray(new Float32Array([0, 1]))
+          .setBuffer(buffer),
+      )
+      .setOutput(
+        doc
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 0, 0, 0, 0.1, 0]))
+          .setBuffer(buffer),
+      );
+    doc
+      .createAnimation('walk')
+      .addSampler(sampler)
+      .addChannel(
+        doc
+          .createAnimationChannel()
+          .setTargetNode(node)
+          .setTargetPath('translation')
+          .setSampler(sampler),
+      );
+    files.set(`${RAW}chars/Hopper.glb`, await new WebIO().writeBinary(doc));
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-hopper-'));
+    await mkdir(join(dir, 'sources'));
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({
+            id: 'kaykit/Quadruped/hopper',
+            class: 'Quadruped',
+            gait: 'hop',
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Hopper.glb' },
+          }),
+        ],
+      }),
+    );
+    await expect(buildSources(dir, { fetcher, today: '2026-11-20' })).rejects.toThrow(
+      /its file has one/,
+    );
+    await rm(dir, { recursive: true, force: true });
   });
 });

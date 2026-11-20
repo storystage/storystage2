@@ -351,7 +351,8 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
     if (!walk && !world.hops(object)) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
     if (!walk?.speed) {
       // Its stride can't be measured (Gobkit's, prop only), or it hops: a pace for legs half its
-      // height (the owner's choice, 20 Nov), not a person's. Its clip plays at its own pace.
+      // height (the owner's choice, 20 Nov), not a person's. Its clip plays at its own pace, so no
+      // cap.
       const box = world.ownBox(object);
       const legs = box ? (box.max.y - box.min.y) * LEG_SHARE : 0;
       if (!(legs > 0)) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };

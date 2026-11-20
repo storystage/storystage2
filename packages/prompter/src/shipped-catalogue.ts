@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '48d996880321626637fd6fca17635e16e669e346';
+export const SHIPPED_CATALOGUE_COMMIT = 'ee391d37b71efb5a1a49cdd01a90ac4c5a17f386';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -223,6 +223,14 @@ Cast
     storybook/Biped/sherlock-holmes: Sherlock Holmes, Sherlock Holmes the detective, with black hair, in a tweed deerstalker and a brown cape coat, holding a magnifying glass [storybook, mystery, Victorian] 2.2 m, joints J1
     vrmc/Biped/seed-san: Seed-san, a young woman with short dark hair, in a white and blue jumpsuit, with a robot arm on her back [everyday, space] 1.58 m, joints J28
   Flyer
+    gobkit/Flyer/bat: Bat, a round yellow bat with big pointed ears and purple wings [animals, night, spooky] 0.15 m, no joints
+    gobkit/Flyer/bee: Bee, a round orange bee with black stripes and see-through wings [animals, minibeasts, garden] 0.08 m, no joints
+    gobkit/Flyer/blue-bird: Blue bird, a round pale blue bird with a dark mask [animals, garden, woodland] 0.25 m, no joints
+    gobkit/Flyer/chick: Chick, a round yellow chick with an orange beak and feet [animals, farm] 0.12 m, no joints
+    gobkit/Flyer/duck: Duck, a round green duck with an orange beak and feet [animals, farm, pond] 0.35 m, no joints
+    gobkit/Flyer/owl: Owl, a round orange-brown owl with ear tufts [animals, woodland, night] 0.4 m, no joints
+    gobkit/Flyer/quail: Quail, a round blue-grey quail with a black face and a head plume [animals, farm] 0.2 m, no joints
+    gobkit/Flyer/seagull: Seagull, a round white seagull with grey wings and a yellow beak [animals, seaside] 0.35 m, no joints
     sketchfab/Flyer/african-penguin: African penguin, a black and white penguin with a black stripe across its chest [animals, sea] 0.6 m, joints J29
     sketchfab/Flyer/bee: Bee, a smiling round bee with yellow and black stripes [animals, minibeasts, garden] 0.08 m, no joints
     sketchfab/Flyer/chick: Chick, a fluffy golden-brown chick with orange feet [animals, farm] 0.15 m, joints J30
@@ -233,6 +241,21 @@ Cast
     vuena/Flyer/owl: Owl, a chunky toy-style brown owl with big round eyes [animals, woodland] 0.4 m, joints J33
   Quadruped
     blender-studio/Quadruped/autumn: Autumn, a small black dog with big ears and a red scarf [animals, pets, storybook] 0.41 m, joints J34
+    gobkit/Quadruped/boar: Boar, a chunky brown boar with white tusks [animals, woodland] 0.9 m, no joints
+    gobkit/Quadruped/corgi: Corgi, a chunky orange and cream corgi with big ears [animals, pets] 0.35 m, no joints
+    gobkit/Quadruped/dingo: Dingo, a chunky ginger dingo with a white chest [animals, outback] 0.6 m, no joints
+    gobkit/Quadruped/goat: Goat, a chunky cream goat with orange horns [animals, farm, mountains] 0.8 m, no joints
+    gobkit/Quadruped/hippo: Hippo, a chunky brown hippo with little tusks [animals, savanna, river] 1.5 m, no joints
+    gobkit/Quadruped/koala: Koala, a chunky grey koala with round ears and a black nose [animals, outback] 0.5 m, no joints
+    gobkit/Quadruped/marmot: Marmot, a chunky brown marmot with a dark back [animals, mountains] 0.35 m, no joints
+    gobkit/Quadruped/mole: Mole, a round dark grey mole with a pink nose and big claws [animals, garden] 0.15 m, no joints
+    gobkit/Quadruped/platypus: Platypus, a round brown platypus with a flat bill [animals, river] 0.2 m, no joints
+    gobkit/Quadruped/rat: Rat, a round blue-grey rat with pink ears and whiskers [animals, town] 0.15 m, no joints
+    gobkit/Quadruped/red-panda: Red panda, a chunky red panda with a white face and dark legs [animals, woodland] 0.4 m, no joints
+    gobkit/Quadruped/rhino: Rhino, a chunky blue-grey rhino with a white horn [animals, savanna] 1.7 m, no joints
+    gobkit/Quadruped/scorpion: Scorpion, a round orange-brown scorpion with a curled tail [animals, minibeasts, desert] 0.08 m, no joints
+    gobkit/Quadruped/sea-otter: Sea otter, a chunky brown sea otter with a pale face [animals, sea] 0.4 m, no joints
+    gobkit/Quadruped/tasmanian-devil: Tasmanian devil, a chunky black Tasmanian devil with pink ears and sharp teeth [animals, outback] 0.4 m, no joints
     sketchfab/Quadruped/buffalo: Buffalo, a blocky dark grey buffalo with big white curved horns [animals, savanna] 1.5 m, joints J35
     sketchfab/Quadruped/deer: Deer, a brown deer grazing, with a white tail [animals, woodland] 1.3 m, joints J36
     sketchfab/Quadruped/elephant: Elephant, a blocky grey elephant with big square ears, tusks and a trunk [animals, savanna] 3 m, joints J37
@@ -254,6 +277,13 @@ Cast
     vuena/Quadruped/cat: Cat, a chunky toy-style ginger cat with a white chest and big green eyes [animals, pets] 0.35 m, joints J48
     vuena/Quadruped/fox: Fox, a chunky toy-style orange fox with a white face and dark paws [animals, woodland] 0.45 m, joints J48
   Swimmer
+    gobkit/Swimmer/anglerfish: Anglerfish, a round pink anglerfish with a glowing lure on its head [animals, sea] 0.3 m, no joints
+    gobkit/Swimmer/jellyfish: Jellyfish, a round blue jellyfish with short tentacles [animals, sea] 0.3 m, no joints
+    gobkit/Swimmer/narwhal: Narwhal, a round grey narwhal with a long tusk [animals, sea, polar] 0.7 m, no joints
+    gobkit/Swimmer/pufferfish: Pufferfish, a round dark grey and pink pufferfish with little spikes [animals, sea] 0.3 m, no joints
+    gobkit/Swimmer/seal: Seal, a round lilac-grey seal with whiskers [animals, sea, polar] 0.6 m, no joints
+    gobkit/Swimmer/shark: Shark, a round blue shark with a big fin [animals, sea] 0.8 m, no joints
+    gobkit/Swimmer/whale: Whale, a round blue whale with a pale belly [animals, sea] 1.2 m, no joints
     sketchfab/Swimmer/dolphin: Dolphin, a dark grey dolphin with an orange stripe and a white belly [animals, sea] 0.35 m, joints J49
     sketchfab/Swimmer/fish: Fish, a small silver fish [animals, sea, pond] 0.1 m, joints J50
     sketchfab/Swimmer/humpback-whale: Humpback whale, a dark humpback whale with very long flippers and a striped pale throat [animals, sea] 1.2 m, joints J51

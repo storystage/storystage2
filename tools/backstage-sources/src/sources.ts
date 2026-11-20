@@ -6,10 +6,12 @@
  * means a build fetches exactly what was reviewed.
  */
 import {
+  GAITS,
   SECTIONS,
   descriptionProblem,
   jointsOf,
   skeletonOf,
+  type Gait,
   type Section,
 } from '@storystage/backstage';
 import { groundLook } from '@storystage/stage';
@@ -87,6 +89,12 @@ export interface SourceItem {
    * other animation. Without it the model keeps its animations as they are. Not for VRM files.
    */
   readonly clips?: Clips;
+  /**
+   * How it moves when it walks, in place of the stage's own choice (manifest 2.4.0): `hop` for the
+   * frog.
+   * Copied to the manifest. Not with a `walk` clip, so the two can't disagree.
+   */
+  readonly gait?: Gait;
   /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
   readonly exclude?: Exclude;
   /**
@@ -214,6 +222,18 @@ export function validateSources(json: unknown): Result {
     if (item.clips !== undefined) {
       const problem = clipsProblem(item.clips);
       if (problem) e(problem);
+    }
+    if (item.gait !== undefined) {
+      if (!(GAITS as readonly unknown[]).includes(item.gait))
+        e(`gait must be one of ${GAITS.join(', ')}.`);
+      if (
+        item.section !== 'cast' ||
+        item.class === 'Biped' ||
+        !skeletonOf(item.class as StoryClass)
+      )
+        e('a gait is for an animal in the cast, whose class has joints and is not Biped.');
+      if (isObject(item.clips) && 'walk' in item.clips)
+        e('a gait is for an animal with no walk clip of its own; it has one.');
     }
     if (item.bones !== undefined) {
       const problem = bonesProblem(item.bones, item.class as StoryClass);

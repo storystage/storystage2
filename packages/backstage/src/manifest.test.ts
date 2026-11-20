@@ -30,6 +30,23 @@ describe('validateManifest', () => {
     expect(validateManifest(manifest(cat))).toMatchObject({ ok: true });
   });
 
+  // 2.4.0 (owner, 20 Nov 2026; agreed with S3): the frog hops, in the stage's code.
+  it('takes a gait only for a shipped animal in the cast whose class has joints, not a Biped', () => {
+    const frog = { ...cat, id: 'sketchfab/Quadruped/frog', joints: 'prop-only', gait: 'hop' };
+    expect(validateManifest(manifest(frog))).toMatchObject({ ok: true });
+    for (const [over, why] of [
+      [{ gait: 'waddle' }, /gait must be one of hop/],
+      [{ section: 'props' }, /a gait is for an animal in the cast/],
+      [{ class: 'Biped' }, /a gait is for an animal in the cast/],
+      [{ class: 'Prop' }, /a gait is for an animal in the cast/],
+      [{ origin: 'imported' }, /imported model cannot have a gait/],
+    ] as const) {
+      const r = validateManifest(manifest({ ...frog, ...over }));
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
   it('needs a section, a licence and a credit for every item', () => {
     const r = validateManifest(
       manifest({ ...cat, section: 'scenery', licence: 'MIT', credit: ' ' }),
@@ -174,7 +191,7 @@ describe('validateManifest', () => {
   });
 
   it('refuses the wrong version and junk', () => {
-    expect(MANIFEST_VERSION).toBe('2.3.0');
+    expect(MANIFEST_VERSION).toBe('2.4.0');
     expect(validateManifest({ manifestVersion: '1.0.0', items: [] }).ok).toBe(false);
     expect(validateManifest({ manifestVersion: '0.1', items: [] }).ok).toBe(false);
     expect(validateManifest(null).ok).toBe(false);
