@@ -42,6 +42,7 @@ import {
   type TextureEncoder,
 } from '@storystage/backstage/optimize';
 import { makeSketches, type MakeReport } from '@storystage/make-sketches';
+import { addJoints } from './add-joints.ts';
 import { standardClips } from './clips.ts';
 import { alignGlb } from './glb-align.ts';
 import {
@@ -162,6 +163,7 @@ export async function buildSources(
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       stripExtras(doc);
+      if (item.addJoints) addJoints(doc, item.addJoints);
       if (item.bones) renameBones(doc, item.bones);
       if (item.clips) standardClips(doc, item.clips);
       // A hopper never walks with a clip of its own (manifest 2.4.0; S3's review of #573).

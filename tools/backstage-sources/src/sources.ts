@@ -16,6 +16,7 @@ import {
 } from '@storystage/backstage';
 import { groundLook } from '@storystage/stage';
 import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
+import { addJointsProblem, type AddedJoint } from './add-joints.ts';
 import { clipsProblem, type Clips } from './clips.ts';
 import type { Exclude } from './exclude.ts';
 import { kitbashProblems, type Kitbash } from './kitbash.ts';
@@ -89,6 +90,12 @@ export interface SourceItem {
    * other animation. Without it the model keeps its animations as they are. Not for VRM files.
    */
   readonly clips?: Clips;
+  /**
+   * Joints the model lacks, each hung on one of its own bones at a place in its frame, moving
+   * nothing (`add-joints.ts`): the chicken's wings, the ladybird's head. Added before `bones`
+   * renames, which can then name them.
+   */
+  readonly addJoints?: readonly AddedJoint[];
   /**
    * How it moves when it walks, in place of the stage's own choice (manifest 2.4.0): `hop` for the
    * frog.
@@ -234,6 +241,12 @@ export function validateSources(json: unknown): Result {
         e('a gait is for an animal in the cast, whose class has joints and is not Biped.');
       if (isObject(item.clips) && 'walk' in item.clips)
         e('a gait is for an animal with no walk clip of its own; it has one.');
+    }
+    if (item.addJoints !== undefined) {
+      const problem = addJointsProblem(item.addJoints);
+      if (problem) e(problem);
+      if (!skeletonOf(item.class as StoryClass))
+        e(`addJoints is only for a class with joints, not ${String(item.class)}.`);
     }
     if (item.bones !== undefined) {
       const problem = bonesProblem(item.bones, item.class as StoryClass);

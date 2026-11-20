@@ -178,6 +178,24 @@ describe('validateSources', () => {
     }
   });
 
+  // The owner's choice of 20 Nov 2026: the chicken's wings and the ladybird's head.
+  it('takes joints to add, only for a class with joints', () => {
+    const ladybird = {
+      id: 'styloo/Flyer/ladybird',
+      class: 'Flyer',
+      addJoints: [{ name: 'head', parent: 'Bone', at: [0, 0.07, 0] }],
+    };
+    expect(validateSources({ source: 's', items: [item(ladybird)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [{ addJoints: [{ name: 'head', parent: 'Bone' }] }, /three numbers/],
+      [{ id: 's/Prop/box', class: 'Prop', section: 'props' }, /only for a class with joints/],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...ladybird, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({
