@@ -200,11 +200,16 @@ export class ProductionSession<Source extends string = string> {
    * leave a kept plan where it is; `null` removes a frame's plan. A frame that isn't there is
    * skipped, and gets its plan if undo brings it back. A learner's own step that changes a
    * frame's plan (agreeing a new one) drops the plan kept for it here, so that step's plan shows
-   * and undo can take it back.
+   * and undo can take it back. That's judged by object, so a step should keep a frame's `plan`
+   * object as it is unless it means to change the plan: a copy, even an equal one, takes over.
    *
    * A plan the format wouldn't keep (`isFramePlan`) refuses the whole call, as `withFramePlan`
    * does, and keeps none of them (S7's review): saved, it would be dropped when the file next
    * opened, and the teacher would lose it with nobody told.
+   *
+   * Keeping a plan equal to the one its frame has changes nothing and tells no listener (S5's
+   * review), so a panel that works the ticks out on every change can keep on every change
+   * without looping.
    */
   keepPlans(plans: ReadonlyMap<FrameId, FramePlan | null>): SessionResult {
     if (this.options.readOnly !== undefined) return { ok: false, reason: this.options.readOnly };
@@ -215,9 +220,17 @@ export class ProductionSession<Source extends string = string> {
         ok: false,
         reason: `Not a plan the format keeps, for frame ${unfit.map(([f]) => f).join(', ')}.`,
       };
-    for (const [frame, plan] of plans) this.plans.set(frame, plan);
+    const now = new Map(this.current.frames.map((f) => [f.id, f.plan]));
+    for (const [frame, plan] of plans) {
+      // The same plan, written afresh, keeps the frame's own object, so nothing changes.
+      const was = now.get(frame);
+      const same =
+        plan !== null && was !== undefined && JSON.stringify(was) === JSON.stringify(plan);
+      this.plans.set(frame, same ? was : plan);
+    }
     const { program, ...rest } = this.current;
-    this.set({ ...this.withChecks(rest), program }, [], 'Keep the plan', 'check');
+    const next = this.withChecks(rest);
+    if (next !== rest) this.set({ ...next, program }, [], 'Keep the plan', 'check');
     return { ok: true };
   }
 

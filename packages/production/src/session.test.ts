@@ -458,4 +458,18 @@ describe('ProductionSession.keepPlans: Plan only’s plan, outside undo', () => 
     s.keepPlans(new Map([[f1, plan([1])]]));
     expect(seen).toEqual(['Keep the plan']);
   });
+
+  // S5's review: a panel that works the ticks out on every change mustn't loop.
+  it('tells no listener when the plan kept is the one its frame has, written afresh', () => {
+    const s = session();
+    const seen: string[] = [];
+    s.subscribe((c) => seen.push(c.label));
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    const kept = planOf(s);
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    expect(seen).toEqual(['Keep the plan']);
+    expect(planOf(s)).toBe(kept);
+    s.keepPlans(new Map([[f1, plan([1, 2])]]));
+    expect(seen).toEqual(['Keep the plan', 'Keep the plan']);
+  });
 });
