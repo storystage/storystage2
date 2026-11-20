@@ -19,6 +19,8 @@ import {
   codedSpeed,
   codedStride,
   codedTurns,
+  LEG_SHARE,
+  legPace,
   type CodedGait,
   type CodedLayer,
 } from './coded-gait.ts';
@@ -334,7 +336,21 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
       const runSpeed = (run?.speed ?? codedSpeed(coded, 'run')!) * height;
       return floored(codedWalk * height, runSpeed, runSpeed);
     }
-    if (!walk?.speed) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
+    if (!walk) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
+    if (!walk.speed) {
+      // Its stride can't be measured (Gobkit's, prop only): a pace for legs half its height (the
+      // owner's choice, 20 Nov), not a person's. Its clip plays at its own pace, so no cap.
+      const box = world.ownBox(object);
+      const legs = box ? (box.max.y - box.min.y) * LEG_SHARE : 0;
+      if (!(legs > 0)) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
+      return {
+        walkSpeed: Math.max(ANIMAL_WALK_FLOOR, legPace(legs, 'walk') * height),
+        runSpeed: Math.max(
+          ANIMAL_RUN_FLOOR,
+          run?.speed ? run.speed * height : legPace(legs, 'run') * height,
+        ),
+      };
+    }
     const walkSpeed = walk.speed * height;
     // Without a run of its own, it runs with its walk's clip, faster.
     return run?.speed

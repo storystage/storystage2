@@ -109,6 +109,14 @@ describe("an animal's own gaits", () => {
   it('fly at their own pace when the stage can’t tell how fast a clip goes', () => {
     const t = timeline({ walk: { clip: 'fly', speed: null } });
     const walk = { object: dog, kind: 'walk', to: spot, gait: 'walk' } as const;
+    // At a pace for legs half its 60 cm height (owner, 20 Nov), not a person's 1.2 m/s:
+    // √(0.1 g × 0.3 m) walking, √(0.8 g × 0.3 m) running.
+    const seconds = (gait: 'walk' | 'run') =>
+      Number(
+        t.answer({ kind: 'naturalDuration', action: { ...walk, gait }, at: 0 }, () => false).value,
+      ) / 1e6;
+    expect(seconds('walk')).toBeCloseTo(4 / Math.sqrt(0.1 * 9.81 * 0.3), 5);
+    expect(seconds('run')).toBeCloseTo(4 / Math.sqrt(0.8 * 9.81 * 0.3), 5);
     t.schedule([{ ...cmd(0, 8, walk), style: 'beginAndEndAbruptly' }]);
     t.seek(micros(3));
     expect(t.shown(dog).own).toEqual([{ name: 'fly', time: 3, weight: 1 }]);

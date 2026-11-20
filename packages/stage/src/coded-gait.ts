@@ -120,8 +120,19 @@ export function codedGait(
 /** How fast it walks or runs, in metres a second at scale 1; null without legs. */
 export function codedSpeed(gait: CodedGait, moving: Moving): number | null {
   if (gait.legLength === 0) return null;
-  return Math.sqrt(FROUDE[moving] * GRAVITY * gait.legLength);
+  return legPace(gait.legLength, moving);
 }
+
+/** A natural pace for legs this long, in metres a second: an unhurried walk, or a trot. */
+export function legPace(legLength: number, moving: Moving): number {
+  return Math.sqrt(FROUDE[moving] * GRAVITY * legLength);
+}
+
+/**
+ * How long an animal's legs are taken to be when they can't be found, as a share of its height:
+ * Gobkit's, whose one bone a leg isn't fitted to the mesh (S4, 20 Nov).
+ */
+export const LEG_SHARE = 0.5;
 
 /** How far one whole cycle of steps goes, in metres at scale 1; null without legs. */
 export function codedStride(gait: CodedGait, moving: Moving): number | null {
