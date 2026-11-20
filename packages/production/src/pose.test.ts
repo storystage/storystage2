@@ -186,7 +186,7 @@ describe('posing joints (format 1.5.0, spec 03 section 2.2)', () => {
     const opened = open(old);
     expect(opened.status).toBe('migrated');
     expect(opened.original).toBe(old);
-    expect(opened.production.manifest.formatVersion).toBe('1.6.0');
+    expect(opened.production.manifest.formatVersion).toBe('1.7.0');
     expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
   });
 });

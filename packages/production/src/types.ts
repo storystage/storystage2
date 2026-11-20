@@ -22,7 +22,7 @@ import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.6.0';
+export const FORMAT_VERSION = '1.7.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -210,14 +210,24 @@ export interface PlanStep {
   readonly why: string;
 }
 
-/** A frame's agreed plan (format 1.6.0). */
+/** A frame's agreed plan (format 1.6.0; `done`, 1.7.0). */
 export interface FramePlan {
-  /** When the learner pressed Build these steps: an ISO 8601 time, in UTC. */
+  /**
+   * When the learner pressed Build these steps, or in Plan only when code first ticked a step
+   * off: an ISO 8601 time, in UTC.
+   */
   readonly agreedAt: string;
   /** The steps as the Prompter proposed them. */
   readonly shown: readonly PlanStep[];
   /** The steps as the learner agreed and built them. */
   readonly agreed: readonly PlanStep[];
+  /**
+   * Plan only (format 1.7.0, spec 04 section 6.6): the steps code has ticked off because what the
+   * learner built matches them, by number from 1, ascending, each once, none past `agreed`. It
+   * follows the code, so an undone block takes its tick back, and may be empty. Present, even
+   * empty, it marks a plan the learner built themselves; a plan the Prompter built has none.
+   */
+  readonly done?: readonly number[];
 }
 
 /** What a check compares (spec 08 section 9.4). */
