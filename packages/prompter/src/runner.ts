@@ -66,6 +66,7 @@ import {
   type PlanStep,
   type PlanWorld,
 } from './plans.ts';
+import { stepsDone } from './progress.ts';
 import { scriptFacts } from './script-check.ts';
 import { stepWords } from './step-words.ts';
 import type { ToolRunner, RequestContext } from './session.ts';
@@ -97,6 +98,11 @@ export interface RunnerSetup<S extends string = string> {
    * `stage_scene` answers `not_allowed_here`.
    */
   readonly stageFromStoryboard?: (p: Production, scene: SceneId, label: string) => StageResult;
+  /**
+   * Whether a scene is set up from its storyboard card, with nothing left to add, for Plan only's
+   * ticks on a `stage` step (section 6.6). Without it, a `stage` step is never ticked.
+   */
+  readonly staged?: (p: Production, scene: SceneId) => boolean;
   /**
    * Where new node ids come from. `Math.random` by default; the evaluation harness gives a fixed
    * sequence, so a kept run replays with the same ids (`docs/eval/README.md`).
@@ -286,6 +292,44 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
    */
   checkSteps(steps: readonly PlanStep[], frame: string | null): PlanProblem[] {
     return checkPlan(steps, this.#world(frame));
+  }
+
+  /**
+   * Plan only's ticks (section 6.6): which steps what the learner built matches, by the rule a
+   * build is held to. `before` is the program's blocks when the plan was shown: only blocks added
+   * since, or linked to the plan's frame, are the learner's work for it.
+   */
+  progress(
+    steps: readonly PlanStep[],
+    frame: string | null,
+    before: ReadonlySet<NodeId>,
+  ): boolean[] {
+    const program = this.#setup.session.program();
+    const production = this.#setup.session.production();
+    const type = this.#sceneType(program);
+    const scene = production.scenes.find((s) => s.id === this.#setup.scene());
+    if (!type || !scene) return steps.map(() => false);
+    const objects = this.#sceneObjects(type, program);
+    const fields = new Map(type.fields.map((f) => [f.name, f] as const));
+    const links = new Set<NodeId>(production.frames.find((f) => f.id === frame)?.links ?? []);
+    let staged: boolean;
+    try {
+      staged = this.#setup.staged?.(production, scene.id) ?? false;
+    } catch {
+      staged = false;
+    }
+    return stepsDone(steps, {
+      type,
+      classOf: (name) => {
+        if (name === 'this') return 'Scene';
+        const field = fields.get(name);
+        return field ? objects.classOf(field) : null;
+      },
+      objects: scene.setup.objects,
+      lines: new Map(production.script.map((l) => [String(l.id), l.text])),
+      counts: (id, around) => !before.has(id) || links.has(id) || around.some((a) => links.has(a)),
+      staged,
+    });
   }
 
   /** A step's words from what it does, for a step the learner changed or added (section 6.1). */

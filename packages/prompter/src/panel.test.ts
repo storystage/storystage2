@@ -342,6 +342,144 @@ describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () =
   });
 });
 
+describe('PrompterPanel: Plan only ticks steps off (spec 04, section 6.6)', () => {
+  /** The learner adds a block to scene 2's method, as the editor would: penguin move forward. */
+  let n = 0;
+  const learnerMoves = (production: ProductionSession<string>, amount: number, at = 1) => {
+    // Node ids are 6 to 12 lowercase letters and digits.
+    const id = (k: string) => `learn${k}${++n}` as NodeId;
+    return production.apply(
+      [
+        {
+          kind: 'insert',
+          label: 'Move penguin',
+          parent: 'scene2m' as NodeId,
+          slot: 'body',
+          index: at,
+          node: {
+            id: id('m'),
+            kind: 'call',
+            target: {
+              id: id('e'),
+              kind: 'fieldRef',
+              target: { id: id('e'), kind: 'this' },
+              field: 'scene2p' as NodeId,
+            },
+            callee: { kind: 'story', name: 'move' },
+            args: {
+              direction: { id: id('e'), kind: 'enum', type: 'MoveDirection', value: 'forward' },
+              amount: { id: id('e'), kind: 'number', value: amount },
+            },
+            details: {},
+          },
+        },
+      ],
+      'Move penguin',
+      'learner',
+    );
+  };
+  const framePlan = (steps: PlanStep[]) =>
+    testReply([use('t1', 'propose_plan', { frame: 'f2', steps })]);
+  async function planOnly(steps: PlanStep[] = [step()], frame = true) {
+    const t = setUp([frame ? framePlan(steps) : proposes(steps), say("Here's the plan.")], {
+      level: 'planOnly',
+    });
+    await t.panel.refresh();
+    t.panel.setMode('showMeHow');
+    await t.panel.ask('Make the penguin walk to the fox.');
+    return t;
+  }
+  const kept = (production: ProductionSession<string>) =>
+    production.production().frames.find((f) => f.id === 'f2')?.plan;
+
+  it('ticks a step off when the learner builds it, and keeps the plan outside undo', async () => {
+    const { panel, production } = await planOnly();
+    expect(panel.state.plan?.done).toEqual([false]);
+    expect(kept(production)).toBeUndefined();
+    expect(learnerMoves(production, 1)).toMatchObject({ ok: true });
+    expect(panel.state.plan?.done).toEqual([true]);
+    const first = kept(production);
+    expect(first).toMatchObject({ done: [1], agreed: [step()], shown: [step()] });
+    // Keeping made no step of its own: Undo takes back the learner's block.
+    expect(production.history().filter((h) => h.done)).toHaveLength(1);
+    production.undo();
+    expect(panel.state.plan?.done).toEqual([false]);
+    // The plan stays with its frame, its ticks following the code, from the first tick's time.
+    expect(kept(production)).toMatchObject({ done: [], agreedAt: first!.agreedAt });
+    production.redo();
+    expect(kept(production)).toMatchObject({ done: [1] });
+  });
+
+  it("ticks a block linked to the frame, but not one that doesn't match", async () => {
+    const says = step({
+      words: 'The fox says its line.',
+      actor: 'fox',
+      action: 'say',
+      line: 'l3',
+      details: [],
+    });
+    const { panel, production } = await planOnly([step(), says]);
+    // Scene 2 already has the fox's line, linked to frame f2: it's this frame's, so it ticks.
+    expect(panel.state.plan?.done).toEqual([false, true]);
+    learnerMoves(production, 2);
+    expect(panel.state.plan?.done).toEqual([false, true]);
+    learnerMoves(production, 1);
+    expect(panel.state.plan?.done).toEqual([true, true]);
+  });
+
+  it('ticks nothing for a block from before the plan, unless it is linked to the frame', async () => {
+    const before = step({
+      words: 'The fox says its line.',
+      actor: 'fox',
+      action: 'say',
+      line: 'l3',
+      details: [],
+    });
+    // A plan with no frame: the fox's line is from before it, and linked to no frame of its own.
+    const { panel } = await planOnly([before], false);
+    expect(panel.state.plan?.done).toEqual([false]);
+  });
+
+  it('needs one block for each step that is the same', async () => {
+    const { panel, production } = await planOnly([step(), step()]);
+    learnerMoves(production, 1);
+    expect(panel.state.plan?.done).toEqual([true, false]);
+    learnerMoves(production, 1, 2);
+    expect(panel.state.plan?.done).toEqual([true, true]);
+  });
+
+  it('ticks again as the learner edits the plan, and keeps the plan as it now stands', async () => {
+    const { panel, production } = await planOnly();
+    learnerMoves(production, 3);
+    expect(panel.state.plan?.done).toEqual([false]);
+    panel.changeStep(0, {
+      details: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: '3' },
+      ],
+    });
+    expect(panel.state.plan?.done).toEqual([true]);
+    expect(kept(production)?.agreed[0]?.details).toContainEqual({ name: 'amount', value: '3' });
+  });
+
+  it('ticks a plan with no frame, but keeps it nowhere', async () => {
+    const { panel, production } = await planOnly([step()], false);
+    learnerMoves(production, 1);
+    expect(panel.state.plan?.done).toEqual([true]);
+    expect(production.production().frames.some((f) => f.plan !== undefined)).toBe(false);
+  });
+
+  it('ticks nothing at a level where the Prompter builds', async () => {
+    const t = setUp([framePlan([step()]), say("Here's the plan.")]);
+    await t.panel.refresh();
+    t.panel.setMode('showMeHow');
+    await t.panel.ask('Make the penguin walk to the fox.');
+    learnerMoves(t.production, 1);
+    expect(t.panel.state.plan?.done).toEqual([false]);
+    expect(kept(t.production)).toBeUndefined();
+  });
+});
+
 describe('PrompterPanel: asking about a frame (11.6)', () => {
   const checked = (frame: FrameId) => ({
     frame,
