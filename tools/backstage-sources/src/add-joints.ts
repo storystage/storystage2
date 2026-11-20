@@ -65,6 +65,10 @@ export function addJoints(doc: Document, joints: readonly AddedJoint[]): void {
     );
     const joint = doc.createNode(name).setTranslation(local as [number, number, number]);
     bone.addChild(joint);
+    // Its inverse bind matrix is the inverse of where it is as fetched, which is right while the
+    // skinned mesh's bind frame is the scene's. No vertex is weighted to it, so it never shows,
+    // and the stage reads joint places from the nodes; weighting vertices to an added joint would
+    // need the mesh's own bind frame here (S3's review of #576).
     const inverse = invertAffine(joint.getWorldMatrix());
     for (const skin of skins) {
       const ibm = skin.getInverseBindMatrices();

@@ -33,10 +33,11 @@ const once: Fetcher = async (url) => {
 
 /**
  * Tries a fetch again after a dropped connection or a server error, waiting longer each time
- * (1, 2, then 4 seconds), up to `tries` in all. A refusal (401, 403) fails at once. A missing
- * file (404) is tried again too, since a gateway can give one for a moment: the CI build lost
- * three runs on 19 Nov 2026 to Arweave hosts dropping a connection, and one on 20 Nov to a 404
- * for a file that answered seconds later. Every fetch is still checked against its pin.
+ * (1, 2, then 4 seconds), up to `tries` in all. Only a refusal (401, 403) fails at once; every
+ * other failing status is tried again, a missing file (404) included, since a gateway can give
+ * one for a moment, so a file truly gone (404, 410, 451) takes about 7 seconds to fail. The CI
+ * build lost three runs on 19 Nov 2026 to Arweave hosts dropping a connection, and one on 20 Nov
+ * to a 404 for a file that answered seconds later. Every fetch is still checked against its pin.
  */
 export function withRetries(
   fetcher: Fetcher,
