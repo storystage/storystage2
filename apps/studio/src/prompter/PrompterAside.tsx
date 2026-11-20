@@ -164,6 +164,13 @@ export function PrompterAside({
   }, [state.entries, state.plan]);
 
   const { phase, plan, mode } = state;
+  // Plan only: said once, as the last step is ticked, not as a conversation entry (spec 04, 6.6).
+  const allBuilt = plan !== null && plan.done.length > 0 && plan.done.every(Boolean);
+  const wasAllBuilt = useRef(allBuilt);
+  useEffect(() => {
+    if (allBuilt && !wasAllBuilt.current) onAnnounce(words.t('prompter.allBuilt'));
+    wasAllBuilt.current = allBuilt;
+  }, [allBuilt, onAnnounce]);
   const busy = phase === 'working' || phase === 'building';
   const modes = canChange ? state.modes : state.modes.filter((m) => !BUILDS.includes(m));
   const ask = (e?: FormEvent) => {
@@ -256,8 +263,10 @@ export function PrompterAside({
         text: s.words,
         ...(problem ? { problem } : {}),
         ...(s.why ? { why: s.why } : {}),
+        ...(plan.done[i] === true ? { done: true } : {}),
       };
     }) ?? [];
+  const built = plan?.done.filter(Boolean).length ?? 0;
   const showPlan = plan !== null && (phase === 'planned' || phase === 'working');
 
   return (
@@ -305,10 +314,18 @@ export function PrompterAside({
               <h3 className="pm-plan-title" id={`${titleId}-plan`}>
                 {messages.t('plan.label')}
               </h3>
-              <span className="pm-pill">
-                <Icon name="hourglass_empty" size={16} />
-                {messages.t('prompter.nothingBuilt')}
-              </span>
+              {built === 0 ? (
+                <span className="pm-pill">
+                  <Icon name="hourglass_empty" size={16} />
+                  {messages.t('prompter.nothingBuilt')}
+                </span>
+              ) : (
+                // Plan only: the steps the learner has built (spec 04 section 6.6).
+                <span className="pm-pill" data-done>
+                  <Icon name="check_circle" size={16} filled />
+                  {words.t('prompter.stepsBuilt', { n: built, total: steps.length })}
+                </span>
+              )}
             </div>
             <PlanSteps
               steps={steps}

@@ -58,17 +58,18 @@ async function openStage(
   page: Page,
   key?: 'absent' | 'present',
   replies: PrompterEvent[][] = REPLIES,
+  level = 'full',
 ) {
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.addInitScript(
-    ({ replies, key }: { replies: string; key: string | null }) => {
+    ({ replies, key, level }: { replies: string; key: string | null; level: string }) => {
       (window as { __storystagePrompter?: unknown }).__storystagePrompter = {
-        level: 'full',
+        level,
         replies: JSON.parse(replies),
         ...(key ? { key } : {}),
       };
     },
-    { replies: JSON.stringify(replies), key: key ?? null },
+    { replies: JSON.stringify(replies), key: key ?? null, level },
   );
   await page.goto(STUDIO);
   await page.getByRole('tab', { name: /Production stage/ }).click();
@@ -120,6 +121,45 @@ test('a plan is shown with nothing built, then built as one step, marked, and un
   await expect.poll(() => blocks.count()).toBe(before);
   await expect(marked(page)).toHaveCount(0);
   await expect(prompter.getByRole('button', { name: 'Undo this request' })).toHaveCount(0);
+});
+
+test('at Plan only, a step already built is ticked, and the panel counts what is built (6.6)', async ({
+  page,
+}) => {
+  // Frame 1.1 links the penguin's line, so a step for it is done as the plan is shown.
+  const line: PlanStep = {
+    ...walks,
+    words: 'The penguin says line 2.',
+    action: 'say',
+    details: [],
+    line: 'l2',
+  };
+  await openStage(
+    page,
+    undefined,
+    [
+      testReply([toolUse('t1', 'propose_plan', { steps: [line, walks], frame: 'f1' })]),
+      say('Here is a plan. Build the steps in the Code editor.'),
+    ],
+    'planOnly',
+  );
+  const prompter = panel(page);
+  await prompter.getByRole('radio', { name: 'Show me how' }).check();
+  const field = prompter.getByRole('textbox', { name: 'Ask the Prompter' });
+  await field.fill('Make the penguin walk to the fox.');
+  await field.press('Enter');
+  const plan = prompter.getByRole('grid', { name: 'Plan before change' });
+  await expect(
+    plan.getByRole('row', { name: 'Step 1, done: The penguin says line 2.' }),
+  ).toBeVisible();
+  await expect(plan.getByRole('row', { name: 'The penguin waddles forward.' })).toBeVisible();
+  await expect(prompter.getByText('1 of 2 built')).toBeVisible();
+  const { violations } = await new AxeBuilder({ page })
+    .include('.pm')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  await prompter.screenshot({ path: test.info().outputPath('plan-only-ticks.png') });
 });
 
 test('a step is changed with the blocks’ own choices, and its words follow', async ({ page }) => {

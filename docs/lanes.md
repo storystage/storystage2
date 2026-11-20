@@ -242,6 +242,9 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S5 Studio interface
 - Merged:
+  - 20 Nov (this): **Plan only's ticks in the panel** (WP13.9; spec 04 section 6.6; on S7's #565 and S4's format 1.7.0, #568): a step the learner has built shows a green tick in place of its number, named "Step 2, done: …" (`PlanStep.done` in `@storystage/ui`'s `PlanSteps`); the pill counts them ("1 of 2 built"); "All the steps are built." is said once as the last step ticks; `staged` (a `stage` step ticks once the storyboard has nothing left to place, worked out once for each production and scene); and `panel.dispose()` when the film closes. The owner chose (20 Nov) to keep the plan outside undo, so Undo takes back the learner's block and its tick, not an unseen keep.
+  - 20 Nov (#569, S7 reviewed): **Ask the Prompter about a flag sends the flag as data** (after S7's #564): the question names only the frame ("Why does the check flag this on frame 2.3?") and passes the flag's id, so the check result marks it `asked`. A flag's words are saved in the film, so a shared film could make them say anything; the button's name keeps them, since it's never sent.
+  - 20 Nov (#562, S7's review of #530): **Settings › The Prompter offers no Set up… while the school has it switched off**; Remove key still works.
   - 19 Nov (#550, for S4's #549): **Backstage's thumbnails load as they scroll into view** (`loading="lazy" decoding="async"`), since manifest 2.3.0 takes the Cast from 78 to 164 characters. The panel already scrolls, and search covers names, descriptions and themes across all four sections. S5 reviewed #549 for the studio: nothing in it shows a shipped model's licence or reads the catalogue's token budget.
   - 19 Nov (#543): **A school may let an imported Alice world be coded without a storyboard** (WP10.8; 07-ux 7): with `storyboard.allowImportedWithoutStoryboard` in the host's policy, a production whose `manifest.origin` is `alice` opens its Code editor and Rehearse whatever its storyboard has, with no checklist. A production made in StoryStage keeps the rule, and the switch is off in the browser version.
   - 19 Nov (#545): **Ask the Prompter about a flag** (WP11.6; spec 08 section 9.5): a flag on the frame card has **Ask the Prompter**, which opens the panel in Explain mode and asks why the check says what it says for that frame, sending the frame's check (`frameCheckFor`) with the question; `PrompterPanel.ask(text, { frame })` carries it (S7's panel). Shown only when the Prompter is ready. **S2:** this was the last part of 11.6, which the owner chose to tick once the Prompter could explain a flag.
@@ -344,7 +347,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 25 Oct (#58): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, `docs/spec/07-ux.md` §1 (screen sizes), and decisions 0032 (light theme) and 0033 (narrow windows). 12.1 stays unticked until the owner approves it.
 - Blocked on:
   - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6).
-- Next: WP13c: the studio's part of what's left of 13.9: Plan only ticking steps off as the frame strip checks them (11.6), with S7. WP7c's 7.8 screen-reader pass waits for a person, on S6's script (#521).
+- Next: WP7c's 7.8 screen-reader pass waits for a person, on S6's script (#521).
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:

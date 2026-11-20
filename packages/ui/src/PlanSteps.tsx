@@ -18,6 +18,8 @@ export interface PlanStep {
   problem?: string;
   /** Why the step is there, in one sentence: Why this step? reads it (04-prompter §6.1). */
   why?: string;
+  /** Plan only: what the learner built matches the step, so it's ticked (04-prompter §6.6). */
+  done?: boolean;
 }
 
 export interface PlanStepsProps {
@@ -37,7 +39,8 @@ export interface PlanStepsProps {
  * The Prompter's plan (Direction A plan step, 07-ux §2.4): numbered steps, each 52 px or taller, that
  * the learner can reorder and change before anything is built. Reorder by dragging the handle, or
  * from the keyboard: focus the handle, press Enter, move with the arrow keys and press Enter again.
- * A step that can't be built says why under its words.
+ * A step that can't be built says why under its words. In Plan only, a step the learner has built
+ * shows a tick in place of its number, and its name begins "Step 2, done:".
  */
 export function PlanSteps({
   steps,
@@ -75,12 +78,14 @@ export function PlanSteps({
       {(step) => {
         const n = steps.findIndex((s) => s.id === step.id) + 1;
         const whyShown = step.why !== undefined && step.why !== '' && asked.has(step.id);
+        const words = step.problem ? `${step.text} ${step.problem}` : step.text;
         return (
           <GridListItem
             id={step.id}
-            textValue={step.problem ? `${step.text} ${step.problem}` : step.text}
+            textValue={step.done ? messages.t('plan.done', { n, text: words }) : words}
             className="ss-plan-step"
             data-problem={step.problem ? true : undefined}
+            data-done={step.done ? true : undefined}
           >
             <AriaButton
               slot="drag"
@@ -89,8 +94,8 @@ export function PlanSteps({
             >
               <Icon name="drag_indicator" size={22} />
             </AriaButton>
-            <span className="ss-plan-number" aria-hidden="true">
-              {n}
+            <span className="ss-plan-number" aria-hidden="true" data-done={step.done || undefined}>
+              {step.done ? <Icon name="check_circle" size={28} filled /> : n}
             </span>
             <span className="ss-plan-words">
               <span className="ss-plan-text">{step.text}</span>
