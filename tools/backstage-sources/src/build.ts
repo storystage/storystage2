@@ -216,6 +216,7 @@ export async function buildSources(
       displayName: item.displayName,
       themes: item.themes,
       ...(item.description ? { description: item.description } : {}),
+      ...(item.gait ? { gait: item.gait } : {}),
       files: { model, thumbnail },
       ...(vrm ? { vrm } : {}),
       joints:

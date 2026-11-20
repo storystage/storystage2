@@ -154,6 +154,30 @@ describe('validateSources', () => {
     expect(prop.ok).toBe(false);
   });
 
+  // Manifest 2.4.0 (owner, 20 Nov 2026; agreed with S3).
+  it('takes a gait for an animal in the cast with no walk clip of its own', () => {
+    const frog = {
+      id: 'sketchfab/Quadruped/frog',
+      class: 'Quadruped',
+      gait: 'hop',
+      clips: { idle: 'Take 001' },
+    };
+    expect(validateSources({ source: 's', items: [item(frog)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [{ gait: 'waddle' }, /gait must be one of hop/],
+      [{ clips: { idle: 'Take 001', walk: 'Take 001' } }, /no walk clip of its own/],
+      [{ id: 'kaykit/Biped/knight', class: 'Biped' }, /a gait is for an animal in the cast/],
+      [
+        { id: 'k/Prop/frog', class: 'Prop', section: 'props' },
+        /a gait is for an animal in the cast/,
+      ],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...frog, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({
