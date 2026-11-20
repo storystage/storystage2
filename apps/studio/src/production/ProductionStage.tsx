@@ -397,10 +397,12 @@ export function ProductionStage({
           studio?.seal();
           setPrompterOpen(true);
           prompter.setMode('explain');
-          void prompter.ask(
-            words.t('production.check.askText', { frame: number, words: item.words }),
-            { frame: frameId },
-          );
+          // The flag goes as data (`asked` in the check result), never in the question: its words
+          // are saved in the film, so a shared film could make them say anything (spec 04, 11.6).
+          void prompter.ask(words.t('production.check.askText', { frame: number }), {
+            frame: frameId,
+            item: item.id,
+          });
         }
       : undefined;
   const [rehearsal, setRehearsal] = useState<RehearsalState | null>(null);

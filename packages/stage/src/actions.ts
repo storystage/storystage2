@@ -38,12 +38,18 @@ const ASPECT = 16 / 9;
 const PLAIN_WALK = 1.2;
 const PLAIN_RUN = 3;
 /**
- * No animal's natural walk is slower than Styloo's dog's, nor its run than that much faster (the
- * owner's choice, 19 Nov): a toy-like model's tiny legs, kept planted, crept at 3 cm a second.
- * Below it, its legs step faster, its feet still planted.
+ * A slower animal's natural walk is raised toward Styloo's dog's, and its run toward that much
+ * faster (the owner's choice, 19 Nov): a toy-like model's tiny legs, kept planted, crept at 3 cm a
+ * second. Raised, its legs step faster, its feet still planted.
  */
 const ANIMAL_WALK_FLOOR = 0.25;
 const ANIMAL_RUN_FLOOR = ANIMAL_WALK_FLOOR * (PLAIN_RUN / PLAIN_WALK);
+/**
+ * But only until its clip plays three times its own pace (the owner's choice, 20 Nov): Stripe the
+ * cat's walk at eight times flickered in a 30 fps film, her tail flipping each frame. So she walks
+ * at 9 cm a second, and the tiniest animals stay below the floor.
+ */
+const MAX_SPEED_UP = 3;
 /** How far into a turn a walker goes before it faces its new way, in metres. */
 const TURNING = 0.4;
 /** How long a clip takes to come in and go out, in seconds. */
@@ -317,18 +323,23 @@ function speeds(world: World, object: ObjectId, body: Body | null, height: numbe
     // With no walk of its own, one in code goes as fast as its legs are long.
     const coded = walk ? null : world.coded(object);
     const codedWalk = coded ? codedSpeed(coded, 'walk') : null;
-    const floored = (walkSpeed: number, runSpeed: number) => ({
-      walkSpeed: Math.max(ANIMAL_WALK_FLOOR, walkSpeed),
-      runSpeed: Math.max(ANIMAL_RUN_FLOOR, runSpeed),
+    // Up to the floor, but the clip that plays no faster than MAX_SPEED_UP times its own pace.
+    const raised = (natural: number, clip: number, floor: number) =>
+      Math.max(natural, Math.min(floor, MAX_SPEED_UP * clip));
+    const floored = (walkSpeed: number, runSpeed: number, runClip: number) => ({
+      walkSpeed: raised(walkSpeed, walkSpeed, ANIMAL_WALK_FLOOR),
+      runSpeed: raised(runSpeed, runClip, ANIMAL_RUN_FLOOR),
     });
-    if (coded && codedWalk)
-      return floored(codedWalk * height, (run?.speed ?? codedSpeed(coded, 'run')!) * height);
+    if (coded && codedWalk) {
+      const runSpeed = (run?.speed ?? codedSpeed(coded, 'run')!) * height;
+      return floored(codedWalk * height, runSpeed, runSpeed);
+    }
     if (!walk?.speed) return { walkSpeed: PLAIN_WALK, runSpeed: PLAIN_RUN };
     const walkSpeed = walk.speed * height;
-    return floored(
-      walkSpeed,
-      run?.speed ? run.speed * height : walkSpeed * (PLAIN_RUN / PLAIN_WALK),
-    );
+    // Without a run of its own, it runs with its walk's clip, faster.
+    return run?.speed
+      ? floored(walkSpeed, run.speed * height, run.speed * height)
+      : floored(walkSpeed, walkSpeed * (PLAIN_RUN / PLAIN_WALK), walkSpeed);
   }
   const walk = world.library?.get('walk')?.speed;
   const run = world.library?.get('run')?.speed;

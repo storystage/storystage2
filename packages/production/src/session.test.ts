@@ -4,7 +4,14 @@ import { objectId } from '@storystage/story-api';
 import { exampleProduction } from './example.ts';
 import { addScene, deleteScene, duplicateScene, moveScene, renameScene } from './scenes.ts';
 import { ProductionSession, type CheckResult, type ProductionChange } from './session.ts';
-import { checkReferences, frameId, sceneId, type Production } from './types.ts';
+import {
+  checkReferences,
+  frameId,
+  sceneId,
+  type FramePlan,
+  type PlanStep,
+  type Production,
+} from './types.ts';
 
 type Source = 'code' | 'stage' | 'storyboard' | 'prompter';
 
@@ -353,5 +360,116 @@ describe('ProductionSession.annotate (spec 08 section 9.6)', () => {
     const s = new ProductionSession<Source>(exampleProduction(), { readOnly: 'Read-only.' });
     expect(s.annotate(new Map([[f1, result('b1')]]))).toEqual({ ok: false, reason: 'Read-only.' });
     expect(checkOf(s)).toBeUndefined();
+  });
+});
+
+// Format 1.7.0, spec 04 section 6.6; the owner's choice of 20 Nov 2026 (S5, S7).
+describe('ProductionSession.keepPlans: Plan only’s plan, outside undo', () => {
+  const f1 = frameId('f1');
+  const step: PlanStep = {
+    words: 'The penguin waves',
+    kind: 'do',
+    actor: 'penguin',
+    action: 'wave',
+    target: '',
+    details: [],
+    line: '',
+    sketch: '',
+    together: false,
+    repeat: 1,
+    why: 'To say hello.',
+  };
+  const plan = (done: number[]): FramePlan => ({
+    agreedAt: '2026-11-20T10:00:00.000Z',
+    shown: [step, step],
+    agreed: [step, step],
+    done,
+  });
+  const planOf = (s: ProductionSession<Source>) =>
+    s.production().frames.find((f) => f.id === f1)!.plan;
+
+  it('keeps a plan with no undo step, so Undo takes back the learner’s block, not the keep', () => {
+    const s = session();
+    s.change('Move penguin', 'stage', movePenguin);
+    expect(s.keepPlans(new Map([[f1, plan([1])]]))).toEqual({ ok: true });
+    expect(s.history().map((h) => h.label)).toEqual(['Move penguin']);
+    s.undo();
+    expect(penguinX(s.production())).not.toBe(9);
+    expect(planOf(s)?.done).toEqual([1]);
+    s.redo();
+    expect(planOf(s)?.done).toEqual([1]);
+  });
+
+  it('follows the code: a later keep with fewer ticks replaces it, even none', () => {
+    const s = session();
+    s.keepPlans(new Map([[f1, plan([1, 2])]]));
+    s.keepPlans(new Map([[f1, plan([])]]));
+    expect(planOf(s)?.done).toEqual([]);
+    s.keepPlans(new Map([[f1, null]]));
+    expect(planOf(s)).toBeUndefined();
+  });
+
+  it('gives way to a learner’s own step that changes the plan, which undo can take back', () => {
+    const s = session();
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    // A plan the Prompter built, in another mode: no ticks.
+    const built: FramePlan = {
+      agreedAt: '2026-11-20T11:00:00.000Z',
+      shown: [step],
+      agreed: [step],
+    };
+    s.change('Build these steps', 'prompter', (p) => ({
+      ...p,
+      frames: p.frames.map((f) => (f.id === f1 ? { ...f, plan: built } : f)),
+    }));
+    expect(planOf(s)).toEqual(built);
+    s.undo();
+    expect(planOf(s)?.done).toEqual([1]);
+    s.redo();
+    expect(planOf(s)).toEqual(built);
+  });
+
+  it('skips frames that are gone, forgets its plans on load, and is refused read-only', () => {
+    const s = session();
+    s.keepPlans(new Map([[frameId('nowhere'), plan([1])]]));
+    expect(s.production().frames.some((f) => f.id === 'nowhere')).toBe(false);
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    s.load(exampleProduction());
+    expect(planOf(s)).toBeUndefined();
+    const r = new ProductionSession<Source>(exampleProduction(), { readOnly: 'Read-only.' });
+    expect(r.keepPlans(new Map([[f1, plan([1])]]))).toEqual({ ok: false, reason: 'Read-only.' });
+  });
+
+  // S7's review: saved, it would be dropped when the file next opened, with nobody told.
+  it('refuses the whole call, keeping none, if any plan is one the format wouldn’t keep', () => {
+    const s = session();
+    const seen: string[] = [];
+    s.subscribe((c) => seen.push(c.label));
+    const f2 = s.production().frames[1]!.id;
+    const result = s.keepPlans(
+      new Map([
+        [f1, plan([1])],
+        [f2, plan([3])],
+      ]),
+    );
+    expect(result).toEqual({ ok: false, reason: `Not a plan the format keeps, for frame ${f2}.` });
+    expect(planOf(s)).toBeUndefined();
+    expect(seen).toEqual([]);
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    expect(seen).toEqual(['Keep the plan']);
+  });
+
+  // S5's review: a panel that works the ticks out on every change mustn't loop.
+  it('tells no listener when the plan kept is the one its frame has, written afresh', () => {
+    const s = session();
+    const seen: string[] = [];
+    s.subscribe((c) => seen.push(c.label));
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    const kept = planOf(s);
+    s.keepPlans(new Map([[f1, plan([1])]]));
+    expect(seen).toEqual(['Keep the plan']);
+    expect(planOf(s)).toBe(kept);
+    s.keepPlans(new Map([[f1, plan([1, 2])]]));
+    expect(seen).toEqual(['Keep the plan', 'Keep the plan']);
   });
 });

@@ -252,7 +252,7 @@ describe('Ask the Prompter about a flag (11.6; spec 08 section 9.5)', () => {
       within(card()).getByRole('button', { name: `Ask the Prompter: ${flag.words}` }),
     );
     expect(panel.state.mode).toBe('explain');
-    const question = `Why does the check say “${flag.words}” for frame 1.1?`;
+    const question = 'Why does the check flag this on frame 1.1?';
     expect(await within(prompter()).findByText(question)).toBeTruthy();
     expect(
       await within(prompter()).findByText('Fox walks off before the frame ends.'),
@@ -261,6 +261,11 @@ describe('Ask the Prompter about a flag (11.6; spec 08 section 9.5)', () => {
     const body = JSON.stringify(sent[0]!.body.messages).replaceAll('\\"', '"');
     expect(body).toContain(flag.id);
     expect(body).toContain('"number":"1.1"');
+    expect(body).toContain(`"asked":"${flag.id}"`);
+    // The flag's words are saved in the film, so they go only as data, never as the learner's own.
+    const request = /<learner_request>([\s\S]*?)<\/learner_request>/.exec(body)?.[1];
+    expect(request).toContain(question);
+    expect(request).not.toContain(flag.words);
   });
 
   it('isn’t offered while the Prompter can’t be asked', async () => {
