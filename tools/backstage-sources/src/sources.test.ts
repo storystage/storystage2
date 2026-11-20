@@ -550,3 +550,60 @@ describe('renameBones', () => {
     expect(() => renameBones(doc, { tail: 'tail' })).toThrow(/0 nodes called "tail"/);
   });
 });
+
+// Manifest 2.4.0; S3's review of #573: a hopper whose own file keeps a clip called walk.
+describe('a hopper with a walk of its own', () => {
+  it('is refused by the build once its clips are made', async () => {
+    const doc = documentFromMesh(figure());
+    const root = doc.getRoot();
+    const buffer = root.listBuffers()[0]!;
+    const node = root.listNodes()[0]!;
+    const sampler = doc
+      .createAnimationSampler()
+      .setInput(
+        doc
+          .createAccessor()
+          .setType('SCALAR')
+          .setArray(new Float32Array([0, 1]))
+          .setBuffer(buffer),
+      )
+      .setOutput(
+        doc
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 0, 0, 0, 0.1, 0]))
+          .setBuffer(buffer),
+      );
+    doc
+      .createAnimation('walk')
+      .addSampler(sampler)
+      .addChannel(
+        doc
+          .createAnimationChannel()
+          .setTargetNode(node)
+          .setTargetPath('translation')
+          .setSampler(sampler),
+      );
+    files.set(`${RAW}chars/Hopper.glb`, await new WebIO().writeBinary(doc));
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-hopper-'));
+    await mkdir(join(dir, 'sources'));
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({
+            id: 'kaykit/Quadruped/hopper',
+            class: 'Quadruped',
+            gait: 'hop',
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Hopper.glb' },
+          }),
+        ],
+      }),
+    );
+    await expect(buildSources(dir, { fetcher, today: '2026-11-20' })).rejects.toThrow(
+      /its file has one/,
+    );
+    await rm(dir, { recursive: true, force: true });
+  });
+});

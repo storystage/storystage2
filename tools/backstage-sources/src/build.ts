@@ -164,6 +164,15 @@ export async function buildSources(
       stripExtras(doc);
       if (item.bones) renameBones(doc, item.bones);
       if (item.clips) standardClips(doc, item.clips);
+      // A hopper never walks with a clip of its own (manifest 2.4.0; S3's review of #573).
+      if (
+        item.gait &&
+        doc
+          .getRoot()
+          .listAnimations()
+          .some((a) => a.getName() === 'walk')
+      )
+        throw new Error(`${item.id}: a gait is for an animal with no walk clip; its file has one.`);
       const reduced = await reduceModel(doc, budget, { encodeTexture });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);

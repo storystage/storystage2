@@ -79,8 +79,8 @@ export const SHIPPED_ONLY_LICENCES: readonly Licence[] = [
 export const FACINGS = ['front', 'threeQuarter', 'side', 'back'] as const;
 
 /**
- * How an animal moves when no clip of its own and no mapped legs say (2.4.0; the owner's choice of
- * 20 Nov 2026, agreed with S3): `hop`, which the stage does in code, moving the whole model in
+ * How an animal moves when it walks, in place of the stage's own choice (2.4.0; the owner's choice
+ * of 20 Nov 2026, agreed with S3): `hop`, which the stage does in code, moving the whole model in
  * arcs, so a prop-only model can hop. A list, so later gaits can join it.
  */
 export const GAITS = ['hop'] as const;
@@ -118,7 +118,7 @@ export interface BackstageItem {
   /** Height in metres at scale 1. */
   readonly defaultSize: { readonly height: number };
   /**
-   * How it moves when the stage can't tell from its clips or legs (2.4.0): `hop` for the frog.
+   * How it moves when it walks, in place of the stage's own choice (2.4.0): `hop` for the frog.
    * Only for a shipped animal in the cast, whose class has joints and isn't Biped.
    */
   readonly gait?: Gait;

@@ -90,7 +90,8 @@ export interface SourceItem {
    */
   readonly clips?: Clips;
   /**
-   * How the stage moves it when it has no walk of its own (manifest 2.4.0): `hop` for the frog.
+   * How it moves when it walks, in place of the stage's own choice (manifest 2.4.0): `hop` for the
+   * frog.
    * Copied to the manifest. Not with a `walk` clip, so the two can't disagree.
    */
   readonly gait?: Gait;
