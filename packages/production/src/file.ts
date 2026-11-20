@@ -166,6 +166,9 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.6.0 lets a frame keep its agreed plan (spec 04 section 6.7, `Frame.plan`): nothing else
   // changes.
   '1.5.0': { to: '1.6.0', manifest: (m) => m },
+  // 1.7.0 lets a frame's plan keep the steps Plan only ticked off (spec 04 section 6.6,
+  // `FramePlan.done`): nothing else changes.
+  '1.6.0': { to: '1.7.0', manifest: (m) => m },
 };
 
 /**

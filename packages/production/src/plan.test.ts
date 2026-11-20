@@ -90,6 +90,19 @@ describe('a frame’s agreed plan (format 1.6.0, spec 04 section 6.7)', () => {
     for (const v of bad) expect(isFramePlan(v), JSON.stringify(v)?.slice(0, 80)).toBe(false);
   });
 
+  // Format 1.7.0, spec 04 section 6.6: in Plan only, the steps code ticked off as built.
+  it('keeps Plan only’s ticks: step numbers from 1, ascending, each once, none past the plan', () => {
+    for (const done of [[], [1], [2], [1, 2]])
+      expect(isFramePlan({ ...plan, done }), JSON.stringify(done)).toBe(true);
+    for (const done of [[0], [3], [2, 1], [1, 1], [1.5], ['1'], {}, null])
+      expect(isFramePlan({ ...plan, done }), JSON.stringify(done)).toBe(false);
+    const ticked = withFramePlan(p, frame, { ...plan, done: [1] });
+    const opened = openProduction(saveProduction(ticked));
+    expect(opened.status).toBe('ok');
+    if (opened.status === 'broken') return;
+    expect(opened.production.frames.find((f) => f.id === frame)!.plan!.done).toEqual([1]);
+  });
+
   it('is dropped whole when a file’s plan doesn’t fit, never the file', () => {
     const misshapen: Production = {
       ...p,

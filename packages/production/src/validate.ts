@@ -324,12 +324,31 @@ export const PLAN_LIMITS = {
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 
 /**
- * A frame's `plan` (format 1.6.0): its problems, or none. A plan with any problem is dropped as a
- * whole when the file opens: half a plan would mislead the teacher reading it.
+ * A frame's `plan` (format 1.6.0; `done`, 1.7.0): its problems, or none. A plan with any problem
+ * is dropped as a whole when the file opens: half a plan would mislead the teacher reading it.
  */
 export function checkFramePlan(v: unknown, where: string, options: ShapeOptions = {}): string[] {
   const s = new Shape(where, options);
-  if (!s.object(v, 'plan', ['agreedAt', 'shown', 'agreed'])) return s.problems;
+  if (!s.object(v, 'plan', ['agreedAt', 'shown', 'agreed'], ['done'])) return s.problems;
+  // Plan only's ticks (spec 04 section 6.6): step numbers from 1, ascending, each once, none past
+  // the agreed steps, so a kept plan has one spelling. Empty when none is ticked now.
+  if (v.done !== undefined) {
+    const steps = Array.isArray(v.agreed) ? v.agreed.length : 0;
+    if (
+      !Array.isArray(v.done) ||
+      !v.done.every(
+        (n, i, all) =>
+          Number.isInteger(n) &&
+          (n as number) >= 1 &&
+          (n as number) <= steps &&
+          (i === 0 || (n as number) > (all[i - 1] as number)),
+      )
+    )
+      s.fail(
+        'plan.done',
+        'should list step numbers from 1, ascending, each once, none past the agreed steps',
+      );
+  }
   if (
     s.string(v.agreedAt, 'plan.agreedAt', 40) &&
     (!ISO_UTC.test(v.agreedAt) || Number.isNaN(Date.parse(v.agreedAt)))
