@@ -593,7 +593,8 @@ In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes
 - **Which blocks count:** the frame's linked blocks, and the blocks added since the plan was shown. A block that was there before is another frame's, so it ticks nothing. Each block ticks one step, in plan order, so two steps that are the same need two blocks.
 - **When:** the panel works the ticks out again when the program or the plan changes, and when the studio calls `panel.checkProgress()`, after the frame strip's check runs. It doesn't need the check's result to do it.
 - **Kept with the frame** (6.7, the owner's choice of 20 Nov): when the first step of a plan for a frame is ticked, the plan is kept with the frame, as its own undo step labelled "Keep the plan". It's kept again, the same way, each time more steps are ticked than were last kept. Undoing "Keep the plan" doesn't make it come straight back: it's kept again only once more steps are ticked than before.
-  - What's kept is `{ agreedAt, shown, agreed, done }`. `agreedAt` is when the first step was ticked; `agreed` is the plan as it stands; `done` lists the ticked steps by number. `done` is new in the format (section 11, S4).
+  - What's kept is `{ agreedAt, shown, agreed, done }`. `agreedAt` is when the first step was ticked; `agreed` is the plan as it stands; `done` lists the ticked steps by number, from 1, in ascending order, each once. `done` is new in format 1.7.0 (section 11, S4), and the format refuses an empty list: a plan with no step ticked isn't kept.
+  - Only a Plan only plan has `done`. A build's plan has none, since it says what code built, not what the learner's own building matched.
   - A plan with no frame is never kept, as in 6.7.
 - **For the learner:** each ticked step shows a tick, and its words for a screen reader say "Done". When every step is ticked, the panel says so once, in the polite live region: "All the steps are built."
 
@@ -695,7 +696,7 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production`: done, `Frame.plan` in format 1.6.0 (#517). The Prompter uses production's `PlanStep` and keeps steps within `PLAN_LIMITS` | S4 | Section 6.7 |
-| `FramePlan.done`, the step numbers ticked off in Plan only, from 1, each once, none past the plan's length: kept as the plan is, so a teacher sees how far the learner got | S4 | Section 6.6 |
+| `FramePlan.done` in format 1.7.0, agreed with S4 (20 Nov): the step numbers ticked off in Plan only, from 1, ascending, each once, none past `agreed.length`, at most `PLAN_LIMITS.steps`, and never empty. Only a Plan only plan has it, so a teacher can tell what the learner built from what code built | S4 | Section 6.6 |
 | Plan only in the panel: a tick on each `done` step, "Done" in its accessible name, and `panel.checkProgress()` after the frame strip's check | S5 | Section 6.6 |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
