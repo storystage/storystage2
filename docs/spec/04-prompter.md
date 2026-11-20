@@ -582,6 +582,21 @@ Text in `say`, `think` and the speak line block comes from one of two places, an
 
 In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes and revises plans, but **Build these steps** isn't offered and change tools answer `not_allowed_here`. The learner builds the blocks and ticks steps off as the frame strip checks them (11.6).
 
+**Ticking steps off.** The learner doesn't tick a step: code does, when what the learner built matches it, by the same rule a build is held to (6.4). The panel's plan has `done`, one flag a step, beside `steps`. The learner can still reorder, change, add and delete steps, and each edit works the ticks out again.
+
+- **What a step matches:**
+  - `do`: a block, by the object it acts on, which block it is, every setting and detail the step gives with the same value, and its line. A step's target and line fill the block's object and words, as in 6.3. If the step repeats, the block must be inside a count of that many. If it runs together, the block must be inside a do together.
+  - `add`: an object of that name, from that Backstage item, in the scene.
+  - `change`: that object starts with the property set to that value.
+  - `when`: a listener for that event.
+  - `stage`: the scene is set up from its storyboard card, with nothing left to add (`RunnerSetup.staged`).
+- **Which blocks count:** the frame's linked blocks, and the blocks added since the plan was shown. A block that was there before is another frame's, so it ticks nothing. Each block ticks one step, in plan order, so two steps that are the same need two blocks.
+- **When:** the panel works the ticks out again when the program or the plan changes, and when the studio calls `panel.checkProgress()`, after the frame strip's check runs. It doesn't need the check's result to do it.
+- **Kept with the frame** (6.7, the owner's choice of 20 Nov): when the first step of a plan for a frame is ticked, the plan is kept with the frame, as its own undo step labelled "Keep the plan". It's kept again, the same way, each time more steps are ticked than were last kept. Undoing "Keep the plan" doesn't make it come straight back: it's kept again only once more steps are ticked than before.
+  - What's kept is `{ agreedAt, shown, agreed, done }`. `agreedAt` is when the first step was ticked; `agreed` is the plan as it stands; `done` lists the ticked steps by number. `done` is new in the format (section 11, S4).
+  - A plan with no frame is never kept, as in 6.7.
+- **For the learner:** each ticked step shows a tick, and its words for a screen reader say "Done". When every step is ticked, the panel says so once, in the polite live region: "All the steps are built."
+
 ### 6.7 Kept with the frame
 
 The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it: `Frame.plan`, as the plan was shown and as it was agreed (format 1.6.0; `03-production-format.md` section 6). `PlanStep` is the format's type, which the Prompter uses. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
@@ -680,6 +695,8 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production`: done, `Frame.plan` in format 1.6.0 (#517). The Prompter uses production's `PlanStep` and keeps steps within `PLAN_LIMITS` | S4 | Section 6.7 |
+| `FramePlan.done`, the step numbers ticked off in Plan only, from 1, each once, none past the plan's length: kept as the plan is, so a teacher sees how far the learner got | S4 | Section 6.6 |
+| Plan only in the panel: a tick on each `done` step, "Done" in its accessible name, and `panel.checkProgress()` after the frame strip's check | S5 | Section 6.6 |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
