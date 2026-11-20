@@ -34,6 +34,8 @@ export interface BackstageModel {
   readonly joints: BackstageItem['joints'];
   /** For a VRM file, its version: a 0.x avatar faces -Z and must be turned (spec 17, rule 3). */
   readonly vrm?: '0' | '1';
+  /** How it moves when it walks, in place of the stage's own choice (manifest 2.4.0): the frog hops. */
+  readonly gait?: BackstageItem['gait'];
 }
 
 export interface Backstage {
@@ -117,6 +119,7 @@ export function backstageFrom(manifest: BackstageManifest, folder: string): Back
         url: address(folder, i.files.model),
         joints: i.joints,
         ...(i.vrm ? { vrm: i.vrm } : {}),
+        ...(i.gait ? { gait: i.gait } : {}),
       };
     },
     thumbnail(id) {
