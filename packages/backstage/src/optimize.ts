@@ -198,12 +198,20 @@ function permissive(doc: Document, target: number): void {
 export async function reduceModel(
   doc: Document,
   budget: Budget,
-  options: { readonly encodeTexture?: TextureEncoder } = {},
+  options: {
+    readonly encodeTexture?: TextureEncoder;
+    /**
+     * Keep nodes with nothing on them: a joint a model's parts hang from, or one added to it
+     * (Styloo's ladybird's head, 20 Nov 2026), which tidying would otherwise remove.
+     */
+    readonly keepLeaves?: boolean;
+  } = {},
 ): Promise<ReduceReport> {
   const before = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
+  const tidy = () => prune({ keepLeaves: options.keepLeaves ?? false });
   plainMaterials(doc);
-  await doc.transform(prune(), dedup());
-  if (dropDuplicateInstances(doc) > 0) await doc.transform(prune());
+  await doc.transform(tidy(), dedup());
+  if (dropDuplicateInstances(doc) > 0) await doc.transform(tidy());
   await doc.transform(weld());
 
   let simplified = false;
@@ -219,7 +227,7 @@ export async function reduceModel(
     // gentle steps never collapse an edge along a picture's seam (museum scans, 11 Nov 2026).
     // Aimed a little under, since each primitive's share is rounded.
     if (countTriangles(doc) > budget.triangles) permissive(doc, budget.triangles * 0.98);
-    await doc.transform(prune());
+    await doc.transform(tidy());
   }
 
   if (options.encodeTexture) {

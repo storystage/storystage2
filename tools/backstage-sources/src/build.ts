@@ -175,7 +175,11 @@ export async function buildSources(
           .some((a) => a.getName() === 'walk')
       )
         throw new Error(`${item.id}: a gait is for an animal with no walk clip; its file has one.`);
-      const reduced = await reduceModel(doc, budget, { encodeTexture });
+      // A model whose bones its source list maps keeps every node, so no named joint is lost.
+      const reduced = await reduceModel(doc, budget, {
+        encodeTexture,
+        keepLeaves: item.bones !== undefined,
+      });
       if (item.turn !== undefined) turnModel(doc, item.turn);
       if (item.height !== undefined) scaleToHeight(doc, item.height);
       // Everything stands on the ground, the stage placing it by its origin; a backdrop's ground
@@ -198,7 +202,20 @@ export async function buildSources(
     const { doc, vrm } = await readModel(bytes);
     const mesh = await meshFromModel(bytes);
     const skeleton = skeletonOf(item.class);
-    const boneNames = (mesh.joints ?? []).map((i) => mesh.nodes![i]!.name);
+    const skinned = (mesh.joints ?? []).map((i) => mesh.nodes![i]!.name);
+    // The joints its source list names, too, wherever they are: a model whose parts hang on its
+    // bones, with no skin (Styloo's ladybird, whose wing cases are separate meshes), has no skin
+    // joints once its unused skin is pruned, but the stage moves its parts by those nodes.
+    const present = new Set(
+      doc
+        .getRoot()
+        .listNodes()
+        .map((n) => n.getName()),
+    );
+    const named = Object.values(item.bones ?? {}).filter(
+      (n) => present.has(n) && !skinned.includes(n),
+    );
+    const boneNames = [...skinned, ...named];
     const mapping = skeleton && boneNames.length ? mapSkeleton(boneNames, skeleton) : null;
     const triangles = countTriangles(doc);
     const textureMaxPx = largestTexture(doc);

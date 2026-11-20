@@ -625,3 +625,49 @@ describe('a hopper with a walk of its own', () => {
     await rm(dir, { recursive: true, force: true });
   });
 });
+
+// Styloo's ladybird (owner, 20 Nov 2026): its parts hang on its bones, with no skin in use.
+describe('a model whose parts hang on its bones', () => {
+  it('is mapped from the bones its source list names, though it has no skin', async () => {
+    const doc = documentFromMesh(box([-0.5, 0, -0.5], [0.5, 0.5, 0.5]));
+    const root = doc.getRoot();
+    const body = root.listNodes().find((n) => n.getMesh())!;
+    body.setName('body');
+    const mesh = body.getMesh()!;
+    for (const [name, x] of [
+      ['wing.L', 0.3],
+      ['wing.R', -0.3],
+    ] as const)
+      body.addChild(doc.createNode(name).setTranslation([x, 0.5, 0]).setMesh(mesh));
+    body.addChild(doc.createNode('front').setTranslation([0, 0.3, 0.5]));
+    files.set(`${RAW}chars/Beetle.glb`, await new WebIO().writeBinary(doc));
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-beetle-'));
+    await mkdir(join(dir, 'sources'));
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({
+            id: 'kaykit/Flyer/beetle',
+            class: 'Flyer',
+            bones: {
+              body: 'spineBase',
+              front: 'head',
+              'wing.L': 'leftWingShoulder',
+              'wing.R': 'rightWingShoulder',
+            },
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Beetle.glb' },
+          }),
+        ],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-11-20' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const beetle = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Flyer/beetle');
+    expect(beetle.joints).toEqual(
+      expect.arrayContaining(['spineBase', 'head', 'leftWingShoulder', 'rightWingShoulder']),
+    );
+    await rm(dir, { recursive: true, force: true });
+  });
+});
