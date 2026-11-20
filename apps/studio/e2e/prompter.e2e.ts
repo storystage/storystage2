@@ -217,11 +217,11 @@ test('a flag on the frame card is asked about in Explain mode, opening the panel
   const asks = card.getByRole('button', { name: /^Ask the Prompter: / });
   await expect(asks.first()).toBeVisible();
   const words = (await asks.first().getAttribute('aria-label'))!.replace('Ask the Prompter: ', '');
+  // The button names the flag's words; the question leaves them to the check result.
+  expect(words).not.toBe('');
   await asks.first().click();
   await expect(prompter.getByRole('heading', { name: 'The Prompter' })).toBeVisible();
-  await expect(
-    prompter.getByText(`Why does the check say “${words}” for frame 1.1?`),
-  ).toBeVisible();
+  await expect(prompter.getByText('Why does the check flag this on frame 1.1?')).toBeVisible();
   await expect(prompter.getByText('The fox walks off before the frame ends.')).toBeVisible();
   await expect(prompter.getByRole('radio', { name: /Explain/ })).toBeChecked();
   expect(

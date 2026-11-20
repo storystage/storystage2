@@ -653,7 +653,7 @@
   "production.check.scriptWordsFor": "Use the script’s words: {words}",
   "production.check.ask": "Ask the Prompter",
   "production.check.askFor": "Ask the Prompter: {words}",
-  "production.check.askText": "Why does the check say “{words}” for frame {frame}?",
+  "production.check.askText": "Why does the check flag this on frame {frame}?",
   "production.voices.unavailable": "Speak lines are silent on this device for now. Their captions still show.",
   "production.voices.silent.one": "One speak line is silent for now. Its caption still shows.",
   "production.voices.silent.other": "{count} speak lines are silent for now. Their captions still show.",
