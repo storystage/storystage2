@@ -591,12 +591,15 @@ In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes
   - `when`: a listener for that event.
   - `stage`: the scene is set up from its storyboard card, with nothing left to add (`RunnerSetup.staged`).
 - **Which blocks count:** the frame's linked blocks, and the blocks added since the plan was shown. A block that was there before is another frame's, so it ticks nothing. Each block ticks one step, in plan order, so two steps that are the same need two blocks.
-- **When:** the panel works the ticks out again when the program or the plan changes, and when the studio calls `panel.checkProgress()`, after the frame strip's check runs. It doesn't need the check's result to do it.
-- **Kept with the frame** (6.7, the owner's choice of 20 Nov): when the first step of a plan for a frame is ticked, the plan is kept with the frame, as its own undo step labelled "Keep the plan". It's kept again, the same way, each time more steps are ticked than were last kept. Undoing "Keep the plan" doesn't make it come straight back: it's kept again only once more steps are ticked than before.
-  - What's kept is `{ agreedAt, shown, agreed, done }`. `agreedAt` is when the first step was ticked; `agreed` is the plan as it stands; `done` lists the ticked steps by number, from 1, in ascending order, each once. `done` is new in format 1.7.0 (section 11, S4), and the format refuses an empty list: a plan with no step ticked isn't kept.
+- **When:** the panel works the ticks out again whenever the production changes (it listens to the session) or the plan does. The studio calls nothing. The frame strip's check doesn't tick steps: the two read the same blocks, but neither waits on the other.
+- **Kept with the frame, outside undo** (6.7; the owner's choices of 20 Nov): from the first tick, the plan is kept with its frame and kept again whenever its ticks change, through the session's `keepPlans` (S4, format 1.7.0). That is outside the history, as a check's results are (`annotate`), so Undo takes back the learner's block, not an unseen keep, and the ticks follow the code.
+  - What's kept is `{ agreedAt, shown, agreed, done }`. `agreedAt` is when the first step was ticked, and stays so. `agreed` is the plan as it stands. `done` lists the ticked steps by number, from 1, ascending, each once.
+  - `done` follows the code: undoing a block takes its tick back, and redoing brings it back. It may be empty, once the learner has undone every ticked step: the plan stays with its frame, since its steps are still the learner's plan.
   - Only a Plan only plan has `done`. A build's plan has none, since it says what code built, not what the learner's own building matched.
-  - A plan with no frame is never kept, as in 6.7.
-- **For the learner:** each ticked step shows a tick, and its words for a screen reader say "Done". When every step is ticked, the panel says so once, in the polite live region: "All the steps are built."
+  - A plan with no frame is never kept, as in 6.7. Nor is one the format wouldn't keep (`isFramePlan`).
+  - A step of the learner's own that changes the frame's plan, such as agreeing a new plan in another mode, takes over from the kept one, and Undo can take that back.
+- **After the film is reopened,** or in a new conversation, a kept plan stays with its frame as it was last kept, for the teacher, but doesn't come back into the panel, and ticks no more. Ticking needs the blocks that were there when the plan was shown, which last only while the panel has the plan.
+- **For the learner:** each ticked step shows a tick, and its accessible name says it's done ("Step 2, done: …"). When the last step is ticked, the studio says once, in its polite live region, "All the steps are built.", read from the panel's state, not as an entry in the conversation.
 
 ### 6.7 Kept with the frame
 
@@ -696,8 +699,8 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production`: done, `Frame.plan` in format 1.6.0 (#517). The Prompter uses production's `PlanStep` and keeps steps within `PLAN_LIMITS` | S4 | Section 6.7 |
-| `FramePlan.done` in format 1.7.0, agreed with S4 (20 Nov): the step numbers ticked off in Plan only, from 1, ascending, each once, none past `agreed.length`, at most `PLAN_LIMITS.steps`, and never empty. Only a Plan only plan has it, so a teacher can tell what the learner built from what code built | S4 | Section 6.6 |
-| Plan only in the panel: a tick on each `done` step, "Done" in its accessible name, and `panel.checkProgress()` after the frame strip's check | S5 | Section 6.6 |
+| `FramePlan.done` in format 1.7.0, and `ProductionSession.keepPlans` to keep a frame's plan outside undo, agreed with S4 (20 Nov, #568): the step numbers ticked off in Plan only, from 1, ascending, each once, none past `agreed.length`. It may be empty. Only a Plan only plan has it, so a teacher can tell what the learner built from what code built | S4 | Section 6.6 |
+| Plan only in the panel: a tick on each `done` step, "done" in its accessible name, and "All the steps are built." once, read from the panel's state | S5 | Section 6.6 |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
