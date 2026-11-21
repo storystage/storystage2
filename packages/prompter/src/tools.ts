@@ -126,7 +126,9 @@ const PLAN_STEP = object({
   action: text(
     'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id.',
   ),
-  target: text('The object or marker it acts on, or "" for none.'),
+  target: text(
+    'Another object or marker the block acts on, such as the one to turn to face or move toward; "" for none. Never the actor itself.',
+  ),
   details: list(
     nameValue,
     'For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words.',

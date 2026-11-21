@@ -608,6 +608,11 @@ Code, not trust, keeps the build to the plan. During a build the executor holds 
 
 When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 
+**After the first pilot (21 Nov 2026),** three things the owner's run showed:
+- **A step's target that is its own actor means none** (`targetOf`). Claude wrote "the penguin moves" with target "penguin", and the rule wanted "penguin" among the block's values, so no build of such a step could land. The plan check, the build rule, Plan only's ticks and a step's words all read it as none, and the `target` field's description now says "never the actor itself".
+- **A step that runs together starts its group with the step before it.** `together` on step 2 means "at the same time as step 1", so the `doTogether` is built for step 1. The rule allows it for a step whose next step is together, as well as for one that is.
+- **`not_in_plan` says what differs:** the block and actor, the object it acts on, the setting and value, the line, or the holding block. Before, it said only that the call didn't match, and Claude retried blind, then stopped.
+
 ### 6.5 What characters say
 
 Text in `say`, `think` and the speak line block comes from one of two places, and code checks it: a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.

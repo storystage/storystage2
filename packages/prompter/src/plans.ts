@@ -60,6 +60,13 @@ export const SETTABLE_PROPERTIES = [
   'vehicle',
 ] as const;
 
+/**
+ * The object a step acts on, or `""` for none. A step whose target is its own actor ("the
+ * penguin moves", target "penguin") acts on nothing else: the actor is the block's own object,
+ * so it's read as none (the owner's first pilot, 21 Nov 2026, had Claude write every step so).
+ */
+export const targetOf = (step: PlanStep): string => (step.target === step.actor ? '' : step.target);
+
 /** The problem with one step, given the objects the steps before it leave in the scene. */
 function stepProblem(
   step: PlanStep,
@@ -73,7 +80,8 @@ function stepProblem(
   if (step.line !== '' && !world.lines.has(step.line)) return "That line isn't in your script.";
   if (step.sketch !== '' && !world.sketches.has(step.sketch))
     return "That sketch isn't on this frame.";
-  if (step.target !== '' && !has(step.target)) return `There's no ${step.target} in this scene.`;
+  const target = targetOf(step);
+  if (target !== '' && !has(target)) return `There's no ${target} in this scene.`;
 
   switch (step.kind) {
     case 'do': {
@@ -93,7 +101,7 @@ function stepProblem(
       const filled = (p: ParamDef) =>
         step.details.some((d) => d.name === p.name) ||
         (p.name === 'text' && step.line !== '') ||
-        (classOfType(p.type) !== null && step.target !== '');
+        (classOfType(p.type) !== null && target !== '');
       const needed =
         step.details.find((d) => d.value.trim() === '')?.name ??
         entry.params.find((p) => !filled(p))?.name;
@@ -133,34 +141,51 @@ type Input = Readonly<Record<string, unknown>>;
 const pairs = (value: unknown): NameValue[] => (Array.isArray(value) ? (value as NameValue[]) : []);
 const text = (value: unknown) => (typeof value === 'string' ? value : '');
 
-/** The step's details, each given with the same value somewhere in the call. */
-function detailsMatch(step: PlanStep, given: readonly NameValue[]): boolean {
-  return step.details.every((d) => given.some((g) => g.name === d.name && g.value === d.value));
-}
-
 /**
  * Why a change call doesn't match the agreed step it names, or `null` if it does. Supporting
  * calls are allowed for the step they serve: the `doTogether` for a step that runs together,
- * the `count` for one that repeats, a `doInOrder` to hold either, and a new procedure.
- * These messages go to Claude, not the learner.
+ * or for the step the next one runs together with, the `count` for one that repeats, a
+ * `doInOrder` to hold either, and a new procedure. `next` is the step after this one.
+ * These messages go to Claude, not the learner: each says what differs, so it can build again.
  */
-export function mismatch(tool: string, input: Input, step: PlanStep): string | null {
-  const wrong = `Step "${step.words}" doesn't do that. Build exactly the agreed step.`;
+export function mismatch(
+  tool: string,
+  input: Input,
+  step: PlanStep,
+  next?: PlanStep,
+): string | null {
+  const build = 'Build exactly the agreed step.';
+  const wrong = `Step "${step.words}" doesn't do that. ${build}`;
+  const differs = (what: string) => `Step "${step.words}" ${what}. ${build}`;
   switch (tool) {
     case 'insert_statement': {
-      if (step.kind !== 'do') return wrong;
-      if (text(input.target) !== step.actor || text(input.procedure) !== step.action) return wrong;
+      if (step.kind !== 'do') return differs(`is a ${step.kind} step, not a block`);
+      if (text(input.target) !== step.actor || text(input.procedure) !== step.action)
+        return differs(`is the ${step.actor}'s ${step.action} block, with target ${step.actor}`);
       const given = [...pairs(input.arguments), ...pairs(input.details)];
-      if (step.target !== '' && !given.some((g) => g.value === step.target)) return wrong;
-      if (!detailsMatch(step, given)) return wrong;
-      return text(input.line) === step.line ? null : wrong;
+      const target = targetOf(step);
+      if (target !== '' && !given.some((g) => g.value === target))
+        return differs(`acts on the ${target}: give ${target} as the block's object`);
+      const missing = step.details.find(
+        (d) => !given.some((g) => g.name === d.name && g.value === d.value),
+      );
+      if (missing) return differs(`sets ${missing.name} to ${missing.value}`);
+      if (text(input.line) !== step.line)
+        return differs(step.line === '' ? 'says no script line' : `says script line ${step.line}`);
+      return null;
     }
     case 'insert_control': {
       const kind = text(input.kind);
-      if (kind === 'doTogether' && step.together) return null;
+      const grouped = step.together || next?.together === true;
+      if (kind === 'doTogether' && grouped) return null;
       if (kind === 'count' && step.repeat > 1 && input.count === step.repeat) return null;
-      if (kind === 'doInOrder' && (step.together || step.repeat > 1)) return null;
-      return wrong;
+      if (kind === 'doInOrder' && (grouped || step.repeat > 1)) return null;
+      if (kind === 'count' && step.repeat > 1) return differs(`repeats ${step.repeat} times`);
+      return differs(
+        grouped || step.repeat > 1
+          ? `needs a ${step.repeat > 1 ? 'count' : 'doTogether'} block`
+          : 'runs on its own, after the step before it',
+      );
     }
     case 'declare_procedure':
       return null;
