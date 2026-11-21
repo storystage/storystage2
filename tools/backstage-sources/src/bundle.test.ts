@@ -5,8 +5,15 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { MANIFEST_VERSION, catalogueText } from '@storystage/backstage';
-import { checkBundle, servedPath, validateLock, type BackstageLock } from './bundle.ts';
+import { MANIFEST_VERSION, catalogueJson, catalogueText } from '@storystage/backstage';
+import {
+  BUNDLED,
+  checkBundle,
+  fetchedFor,
+  servedPath,
+  validateLock,
+  type BackstageLock,
+} from './bundle.ts';
 
 const sha = (s: string) => createHash('sha256').update(s).digest('hex');
 
@@ -102,6 +109,49 @@ describe('checkBundle', () => {
   it('passes a folder that matches its lock', async () => {
     const lock = await bundle();
     expect(await checkBundle(dir, lock)).toEqual([]);
+  });
+
+  // Spec 17, section 4b: from the first build that writes it, the lock pins the JSON too.
+  describe("the Prompter's JSON (prompter-catalogue.json)", () => {
+    const withJson = async (body = catalogueJson(manifest as never)) => {
+      const lock = await bundle();
+      await writeFile(join(dir, 'prompter-catalogue.json'), body);
+      return { ...lock, catalogueJsonSha256: sha(body) };
+    };
+
+    it('passes when it matches its hash and the manifest', async () => {
+      const lock = await withJson();
+      expect(await checkBundle(dir, lock)).toEqual([]);
+    });
+
+    it('is fetched only when the lock pins it', async () => {
+      const lock = await bundle();
+      expect(fetchedFor(lock)).toEqual(BUNDLED);
+      expect(fetchedFor({ ...lock, catalogueJsonSha256: 'd'.repeat(64) })).toEqual([
+        ...BUNDLED,
+        'prompter-catalogue.json',
+      ]);
+    });
+
+    it('refuses it missing, changed or stale', async () => {
+      const lock = await withJson();
+      expect(await checkBundle(dir, { ...lock, catalogueJsonSha256: 'e'.repeat(64) })).toEqual([
+        "prompter-catalogue.json doesn't match the SHA-256 in backstage.lock.json.",
+      ]);
+      const stale = await withJson('{}\n');
+      expect(await checkBundle(dir, stale)).toEqual([
+        "prompter-catalogue.json isn't what this code makes of backstage.json. Rebuild the assets with this code, then update the lock.",
+      ]);
+      await rm(join(dir, 'prompter-catalogue.json'));
+      expect(await checkBundle(dir, stale)).toEqual(['prompter-catalogue.json is missing.']);
+    });
+
+    it('refuses a lock whose JSON hash is not a SHA-256', async () => {
+      const lock = await bundle();
+      expect(validateLock({ ...lock, catalogueJsonSha256: 'nope' })).toEqual([
+        'catalogueJsonSha256 must be a SHA-256.',
+      ]);
+    });
   });
 
   it('refuses files that differ from the pinned hashes', async () => {
