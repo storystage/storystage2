@@ -1,10 +1,11 @@
 import { expect, type Locator, type Page } from '@playwright/test';
+import { DEV_STUDIO } from './devStudio.ts';
 
 // The steps the study's browser tests share (`study.e2e.ts` and the M7 gate), on the studio's
 // development server, where a test can switch study mode on (`src/prompter/devPrompter.ts`).
 // Each is done as a learner or a teacher would, by keyboard where the study asks for it.
 
-export const STUDIO = 'http://localhost:4182/';
+export const STUDIO = `${DEV_STUDIO}/`;
 
 /**
  * A class of `names` in the browser's own storage, and the name page open. `study` puts study
