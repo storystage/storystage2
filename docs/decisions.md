@@ -83,6 +83,10 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Bundled voices | Speak line uses an open-source speech engine bundled with StoryStage, on every platform including the browser, with voices for adults and children, men and women, and animals; engine chosen by a spike after a licence and size check (0068). The spike chose Kokoro-82M, British English by default with an American English switch in Settings (spike 14.3, 10 Nov 2026) | 8 Nov 2026 |
 | Collect on iPad and Android | On iPad and Android, which can't pick a folder, Collect saves one zip file with a folder per pupil inside, and Hand back opens one; desktop and Chromebooks keep folders ([0070](decisions/0070-collect-as-a-zip-on-ipad-and-android.md)) | 9 Nov 2026 |
 | Export to Pixera | A guided Build in Pixera step in the Windows desktop app: it checks Pixera's screens and frame rate through the API, builds the timeline (media, layers, clips, cues) and saves; a one-page operator guide for the steps done in Pixera (screens, projectors, calibration). The browser and Chromebook versions point to the Windows version ([0072](decisions/0072-export-to-pixera-from-the-windows-app.md)) | 21 Nov 2026 |
+| Drag posing | In the scene view's Pose panel, a learner drags a hand or foot and the arm or leg follows, by inverse kinematics, as one undo step; joints still only turn (0051) ([0073](decisions/0073-drag-posing-by-inverse-kinematics.md)) | 21 Nov 2026 |
+| Parameters and a character's own moves | Parameters on a learner's procedures and functions, and procedures and functions on a character's class that every scene can use, in this version; class properties and `.a3c` export in the next; Alice's `isLetter`, `isDigit` and shape radii stay out ([0074](decisions/0074-parameters-and-character-moves.md)) | 21 Nov 2026 |
+| Copy and paste of blocks | In both code editors, now, so they match before the editor study ([0075](decisions/0075-copy-and-paste-blocks.md)) | 21 Nov 2026 |
+| Sound | This version: a Backstage shelf of openly licensed effects and music; your own sound files, trimmed once on import; Speech, Music and Sound FX tracks, each with its own volume, with music lowered under speech in the export; speech and effects placed by their blocks, music on a scene's Sound view timeline (start, trim, fade, loop, volume), carrying on over a cut until another clip starts, crossfading at the cut ([0076](decisions/0076-sound-library-imports-and-tracks.md)) | 21 Nov 2026 |
 
 ## Still to decide (owner)
 
@@ -104,5 +108,4 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Choose the pilot window around the Easter holidays | M7 | WP19 |
 | Who runs StoryStage after the pilot (maintainer, funding, support) | Before the pilot | Design doc section 10 |
 | Find a venue partner with real projectors to try Export to Pixera's operator guide (screens, projectors, calibration). Build in Pixera is tested on the owner's PC (RTX 2060, Pixera Creator 26.1; spike 23.2, 21 Nov) | M11 | WP23 |
-| Whether StoryStage 2.1 adds a soundtrack (import or create music and sound effects) | Before planning release 1.1 | Workplan 6b |
 | Which code editor continues, from the study | M12 | WP19.8 |

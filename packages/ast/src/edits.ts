@@ -4,7 +4,15 @@
  * reason in plain words.
  */
 import type { NodeId } from './ids.ts';
-import type { AstNode, Declaration, Expression, Program, Statement, TypeDecl } from './nodes.ts';
+import type {
+  AstNode,
+  Declaration,
+  Expression,
+  Program,
+  Statement,
+  TypeDecl,
+  TypeRef,
+} from './nodes.ts';
 import { isStatement } from './nodes.ts';
 import { addsTooDeep, rulesStillHold } from './cheap.ts';
 import { validateSchemaPart } from './schema.ts';
@@ -75,9 +83,20 @@ export interface SetComment extends Labelled {
   readonly node: NodeId;
   readonly text: string;
 }
+/**
+ * A field of another type: a character's objects becoming the learner's class for it, so it can
+ * be taught moves (decision 0074). Whether every use of the field still fits is the Story API's
+ * check, which every session runs after each edit (`ValidateOptions.check`); here the type only
+ * has to be one the program has.
+ */
+export interface Retype extends Labelled {
+  readonly kind: 'retype';
+  readonly node: NodeId;
+  readonly type: TypeRef;
+}
 
 export type EditOperation =
-  Insert | Remove | Move | SetArgument | Declare | Rename | SetEnabled | SetComment;
+  Insert | Remove | Move | SetArgument | Declare | Rename | SetEnabled | SetComment | Retype;
 
 // ---- Refusals --------------------------------------------------------------------------------
 
@@ -428,6 +447,15 @@ function setEnabled(program: Program, index: Index, edit: SetEnabled) {
   };
 }
 
+function retype(program: Program, index: Index, edit: Retype) {
+  const { node } = found(index, edit.node);
+  if (node.kind !== 'field') throw new EditRefused('not_here');
+  return {
+    program: update(program, index, edit.node, (n) => ({ ...n, type: edit.type }) as AstNode),
+    inverse: { ...edit, type: node.type } as EditOperation,
+  };
+}
+
 function setComment(program: Program, index: Index, edit: SetComment) {
   const { node } = found(index, edit.node);
   if (node.kind !== 'comment') throw new EditRefused('not_here');
@@ -455,6 +483,8 @@ function perform(program: Program, index: Index, edit: EditOperation) {
       return setEnabled(program, index, edit);
     case 'setComment':
       return setComment(program, index, edit);
+    case 'retype':
+      return retype(program, index, edit);
     default:
       throw new EditRefused('would_break');
   }
@@ -495,6 +525,8 @@ function newParts(edit: EditOperation, index: Index): [unknown, string, string?]
       return [[edit.name, 'name']];
     case 'setComment':
       return [[edit.text, 'textValue']];
+    case 'retype':
+      return [[edit.type, 'typeRef']];
     default:
       return [];
   }
@@ -661,5 +693,7 @@ export function defaultLabel(program: Program, edit: EditOperation): string {
       return `Switch ${edit.enabled ? 'on' : 'off'} ${target(edit.node)}`;
     case 'setComment':
       return 'Change comment';
+    case 'retype':
+      return `Change ${target(edit.node)}'s type`;
   }
 }

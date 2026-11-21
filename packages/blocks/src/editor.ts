@@ -9,15 +9,22 @@
 import * as Blockly from 'blockly/core';
 import * as BlocklyEnglish from 'blockly/msg/en';
 import {
+  copyNode,
   idMinter,
+  indexProgram,
+  isStatement,
   type Expression,
   type ListenerDecl,
   type MethodDecl,
   type NodeId,
   type Program,
+  type Statement,
 } from '@storystage/ast';
 import { STORY_WORDS } from '@storystage/story-api';
 import {
+  canDrop,
+  describer,
+  fill,
   namesAt,
   newAssign,
   newLocal,
@@ -69,8 +76,14 @@ const BLOCKLY_MENU = [
   'blockHelp',
 ];
 
-/** Each workspace's menu actions: Blockly's menus and keys are shared by every workspace. */
-const menuActions = new WeakMap<Blockly.Workspace, (block: NodeId, action: MenuAction) => void>();
+/** What our keys do: the block menu's actions, and copy and paste (spec 14, 3d). */
+type KeyAction = MenuAction | { readonly kind: 'copy' } | { readonly kind: 'paste' };
+
+/** Each workspace's key actions: Blockly's menus and keys are shared by every workspace. */
+const menuActions = new WeakMap<
+  Blockly.Workspace,
+  (block: NodeId | null, action: KeyAction) => void
+>();
 
 /** The block a key acts on: the one with focus, or the one a value stands in. */
 function blockFor(scope: { focusedNode?: unknown }): Blockly.BlockSvg | null {
@@ -81,8 +94,9 @@ function blockFor(scope: { focusedNode?: unknown }): Blockly.BlockSvg | null {
 
 /**
  * Our keys, as in Tiles (`14-editors.md` section 3d): Ctrl+/ switches a statement off or on,
- * Ctrl+D duplicates it (Cmd on a Mac or iPad), and Alt+↑ and Alt+↓ move it one place in its list.
- * Blockly's D makes a loose copy, so it goes.
+ * Ctrl+D duplicates it (Cmd on a Mac or iPad), Ctrl+C and Ctrl+V copy and paste it, and Alt+↑ and
+ * Alt+↓ move it one place in its list. Blockly's own D, C, V and X make or take loose blocks
+ * outside the program and its one history, so they go.
  */
 function registerKeys() {
   const keys = Blockly.ShortcutRegistry.registry;
@@ -91,11 +105,14 @@ function registerKeys() {
     keys.createSerializedKey(code, [KeyCodes.CTRL]),
     keys.createSerializedKey(code, [KeyCodes.META]),
   ];
-  if (keys.getRegistry()['duplicate']) keys.unregister('duplicate');
+  for (const blockly of ['duplicate', 'copy', 'paste', 'cut'])
+    if (keys.getRegistry()[blockly]) keys.unregister(blockly);
   const alt = (code: number) => [keys.createSerializedKey(code, [KeyCodes.ALT])];
   const ours = [
     ['ss_switch', both(KeyCodes.SLASH), { kind: 'switch' }],
     ['ss_duplicate', both(KeyCodes.D), { kind: 'duplicate' }],
+    ['ss_copy', both(KeyCodes.C), { kind: 'copy' }],
+    ['ss_paste', both(KeyCodes.V), { kind: 'paste' }],
     ['ss_move_up', alt(KeyCodes.UP), { kind: 'moveUp' }],
     ['ss_move_down', alt(KeyCodes.DOWN), { kind: 'moveDown' }],
   ] as const;
@@ -107,9 +124,11 @@ function registerKeys() {
       callback: (ws, e, _shortcut, scope) => {
         const block = blockFor(scope);
         const run = menuActions.get(ws);
-        if (!block || !run || block.workspace !== ws) return false;
+        if (!run || (block && block.workspace !== ws)) return false;
+        // Paste needs no block: with none, it goes at the end of the method.
+        if (!block && action.kind !== 'paste') return false;
         e.preventDefault();
-        run(block.id as NodeId, action);
+        run((block?.id as NodeId | undefined) ?? null, action);
         return true;
       },
       keyCodes: [...keyCodes],
@@ -245,6 +264,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   let ws: Blockly.WorkspaceSvg | null = null;
   let host: EditorHost | null = null;
   let owner: NodeId | null = null;
+  /** The statement last copied, kept by this editor as Tiles keeps its own. */
+  let clipboard: Statement | null = null;
   let loading = false;
   let settling: ReturnType<typeof setTimeout> | null = null;
   let stopListening: (() => void) | null = null;
@@ -504,6 +525,51 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
   }
 
   /**
+   * Copy and paste, as Tiles has them (spec 14, 3d): copy keeps the statement a block is in;
+   * paste puts a copy of it, with new ids and `copiedFrom`, after the statement the chosen block
+   * is in, at the top of the method from its own block, or at its end with nothing chosen. Each
+   * paste is one step in the studio's history. A value or the method's own block copies nothing.
+   */
+  function clip(kind: 'copy' | 'paste', node: NodeId | null): boolean {
+    if (!host || owner === null) return false;
+    const program = host.program();
+    const index = indexProgram(program);
+    // The statement the block is in: a value's own statement, or none for the method's block.
+    let at = node === null ? undefined : index.get(node);
+    while (at && !isStatement(at.node) && at.parent !== null) at = index.get(at.parent);
+    const statement = at && isStatement(at.node) ? at : null;
+    if (kind === 'copy') {
+      if (!statement) return false;
+      clipboard = statement.node as Statement;
+      host.announce(fill(WORDS['editor.copied']!, { what: describer(program)(clipboard) }));
+      return true;
+    }
+    if (!clipboard) {
+      host.announce(WORDS['editor.nothingCopied']!);
+      return false;
+    }
+    const method = ownerIn(program, owner);
+    if (!method) return false;
+    const place =
+      statement && statement.parent !== null && typeof statement.key === 'number'
+        ? { parent: statement.parent, slot: statement.slot, index: statement.key + 1 }
+        : node === owner
+          ? { parent: owner, slot: 'body', index: 0 }
+          : { parent: owner, slot: 'body', index: method.body.length };
+    const copy = copyNode(clipboard, idMinter(program));
+    const drop = canDrop(program, { kind: 'statement', ...place } as never, copy);
+    if (!drop.ok) {
+      host.announce(drop.reason);
+      return false;
+    }
+    const applied = host.apply(drop.edits, drop.label, 'blocks');
+    host.announce(applied.ok ? drop.label : applied.reason);
+    rebuild();
+    if (applied.ok) focusOn(copy.id);
+    return applied.ok;
+  }
+
+  /**
    * Focus on a block once Blockly's menu has closed: closing, it puts focus back where the menu
    * opened, on a block the redraw has replaced.
    */
@@ -590,7 +656,10 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         if (Blockly.ContextMenuRegistry.registry.getItem(id))
           Blockly.ContextMenuRegistry.registry.unregister(id);
       registerKeys();
-      menuActions.set(ws, (node, action) => void act(node, action));
+      menuActions.set(ws, (node, action) => {
+        if (action.kind === 'copy' || action.kind === 'paste') clip(action.kind, node);
+        else if (node !== null) void act(node, action);
+      });
       ws.addChangeListener(onChange);
       stopListening = host.subscribe((change) => {
         // The editor's own steps are drawn already (a palette drop redraws itself when done).
@@ -671,8 +740,10 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           Blockly.getFocusManager().focusNode(block);
           return menu.callback(ws, new KeyboardEvent('keydown'), menu, { focusedNode: block });
         }
+        case 'copy':
+        case 'paste':
+          return clip(command, id);
         default:
-          // Copy and paste come next.
           return false;
       }
     },

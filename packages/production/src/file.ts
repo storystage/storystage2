@@ -43,6 +43,7 @@ import {
 } from './validate.ts';
 import { keptJoints } from './pose.ts';
 import { keptVoices, voiceNames } from './voices.ts';
+import { soundTypeOf } from './sound.ts';
 
 /** Files a production carries besides its JSON and script, by their path inside the file. */
 export interface ProductionFiles {
@@ -53,6 +54,11 @@ export interface ProductionFiles {
    * are untrusted: each is checked as an import before it reaches the stage (spec 03, 1.3).
    */
   readonly models: ReadonlyMap<string, Uint8Array>;
+  /**
+   * Imported sounds (format 1.9.0), by `sounds/<file>`, as picked. Optional, so a host with no
+   * sound yet passes none; a film whose manifest names a sound must have it.
+   */
+  readonly sounds?: ReadonlyMap<string, Uint8Array>;
 }
 
 const NO_FILES: ProductionFiles = { audio: new Map(), models: new Map() };
@@ -104,10 +110,15 @@ function packedPaths(manifest: ProductionManifest): string[] {
 export function saveProduction(p: Production, files: ProductionFiles = NO_FILES): Uint8Array {
   const problems = checkReferences(p);
   const audio = p.manifest.audio.map((a) => `${ZIP_LAYOUT.audio}${a.file}`);
-  for (const path of [...audio, ...packedPaths(p.manifest)]) {
-    const have = path.startsWith(ZIP_LAYOUT.audio) ? files.audio : files.models;
-    if (!have.has(path)) problems.push(`${path} is named in the manifest, but not given.`);
-  }
+  const sounds = (p.manifest.sounds ?? []).map((c) => `${ZIP_LAYOUT.sounds}${c.file}`);
+  const given = (path: string) =>
+    path.startsWith(ZIP_LAYOUT.audio)
+      ? files.audio
+      : path.startsWith(ZIP_LAYOUT.sounds)
+        ? (files.sounds ?? new Map<string, Uint8Array>())
+        : files.models;
+  for (const path of [...audio, ...sounds, ...packedPaths(p.manifest)])
+    if (!given(path).has(path)) problems.push(`${path} is named in the manifest, but not given.`);
   if (problems.length > 0) throw new SaveRefused(problems);
 
   const json = (name: string, value: unknown): ArchiveEntry => ({
@@ -122,6 +133,7 @@ export function saveProduction(p: Production, files: ProductionFiles = NO_FILES)
     { name: ZIP_LAYOUT.script, bytes: text(writeFountain(p)) },
     ...p.frames.map((f) => json(ZIP_LAYOUT.frame(f.id), f)).sort(byName),
     ...audio.map((name) => ({ name, bytes: files.audio.get(name)! })).sort(byName),
+    ...sounds.map((name) => ({ name, bytes: files.sounds!.get(name)! })).sort(byName),
     ...[...new Set(packedPaths(p.manifest))]
       .map((name) => ({ name, bytes: files.models.get(name)! }))
       .sort(byName),
@@ -191,6 +203,9 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.8.0 lets a plan repeat several steps (spec 04 section 6.8): `repeat` steps, and `holds` on
   // every step, which a plan kept before gains as 0.
   '1.7.0': { to: '1.8.0', manifest: (m) => m, frame: planStepsHoldNothing },
+  // 1.9.0 lets a film keep imported sounds, its tracks' volumes and each scene's music (decision
+  // 0076, `sounds/`, `manifest.sounds`, `manifest.mix`, `Scene.music`): nothing else changes.
+  '1.8.0': { to: '1.9.0', manifest: (m) => m },
 };
 
 /**
@@ -283,7 +298,7 @@ const broken = (message: string, problems: readonly string[]): OpenedProduction 
 
 /** The entries the format names (spec 03, section 1). Anything else is ignored, never unpacked. */
 const FORMAT_ENTRY =
-  /^(manifest\.json|program\.json|storyboard\.json|script\.fountain|scenes\/[^/]+\.json|frames\/[^/]+\.json|audio\/[^/]+|models\/[^/]+\/.+)$/;
+  /^(manifest\.json|program\.json|storyboard\.json|script\.fountain|scenes\/[^/]+\.json|frames\/[^/]+\.json|audio\/[^/]+|sounds\/[^/]+|models\/[^/]+\/.+)$/;
 
 const SCENE_FILE = /^scenes\/([^/]+)\.json$/;
 const FRAME_FILE = /^frames\/([^/]+)\.json$/;
@@ -474,6 +489,16 @@ export function openProduction(
     if (!got) return broken(DAMAGED, [`${path} is named in the manifest, but missing.`]);
     audio.set(path, got);
   }
+  // An imported sound must be what its manifest says: its size, and its type by its first bytes.
+  const sounds = new Map<string, Uint8Array>();
+  for (const c of manifest.sounds ?? []) {
+    const path = `${ZIP_LAYOUT.sounds}${c.file}`;
+    const got = entries.get(path);
+    if (!got) return broken(DAMAGED, [`${path} is named in the manifest, but missing.`]);
+    if (got.length !== c.bytes || `${c.id}.${soundTypeOf(got) ?? '?'}` !== c.file)
+      return broken(DAMAGED, [`${path} isn't the sound the manifest says.`]);
+    sounds.set(path, got);
+  }
   const models = new Map<string, Uint8Array>();
   for (const path of packedPaths(manifest)) {
     const got = entries.get(path);
@@ -490,7 +515,7 @@ export function openProduction(
   return {
     status,
     production,
-    files: { audio, models },
+    files: { audio, models, sounds },
     message: status === 'readOnly' ? NEWER : null,
     original: status === 'migrated' ? bytes : null,
     dropped,

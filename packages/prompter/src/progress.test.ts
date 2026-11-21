@@ -140,3 +140,22 @@ describe('stepsDone (spec 04, section 6.6)', () => {
     ).toEqual([true, false, true, true, false, false, true]);
   });
 });
+
+describe('ticking a repeat of several steps (spec 04, section 6.8)', () => {
+  const loop = step({
+    words: 'Repeat 3 times:',
+    kind: 'repeat',
+    actor: '',
+    action: '',
+    details: [],
+    repeat: 3,
+    holds: 2,
+  });
+
+  it('ticks the repeat for a count with its times, and its steps only inside one', () => {
+    const steps = [loop, step({}), step({})];
+    expect(stepsDone(steps, world([count(3, [move(1), move(1)])]))).toEqual([true, true, true]);
+    expect(stepsDone(steps, world([move(1), move(1), count(3, [])]))).toEqual([true, false, false]);
+    expect(stepsDone(steps, world([count(2, [move(1), move(1)])]))).toEqual([false, false, false]);
+  });
+});

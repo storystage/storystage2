@@ -3,12 +3,13 @@ import { expect, test, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
 import type { PlanStep, PrompterEvent } from '@storystage/prompter';
 import { testReply, type TestBlock } from '@storystage/prompter/testing';
+import { DEV_STUDIO } from './devStudio.ts';
 
 // The Prompter panel in a browser (07-ux section 2.4; spec 04 sections 4.5 and 6; WP13c), on the
 // studio's development server, where a test can give the Prompter scripted replies
 // (`src/prompter/devPrompter.ts`): a release build has no way to reach them.
 
-const STUDIO = 'http://localhost:4182/?example';
+const STUDIO = `${DEV_STUDIO}/?example`;
 const example = exampleProduction();
 const main = example.program.types
   .flatMap((t) => t.methods)
@@ -31,18 +32,11 @@ const walks: PlanStep = {
   holds: 0,
   why: 'So she can reach the fox.',
 };
-/** Claude's plan steps carry no `holds` until the tool schema has it (spec 04 section 6.8). */
-const asSent = (input: unknown): unknown => {
-  const i = input as { steps?: unknown } | null;
-  if (!Array.isArray(i?.steps)) return input;
-  const steps = (i.steps as Record<string, unknown>[]).map(({ holds: _holds, ...rest }) => rest);
-  return { ...i, steps };
-};
 const toolUse = (id: string, name: string, input: unknown): TestBlock => ({
   type: 'tool_use',
   id,
   name,
-  input: asSent(input),
+  input,
 });
 const say = (text: string) => testReply([{ type: 'text', text }]);
 const REPLIES: PrompterEvent[][] = [

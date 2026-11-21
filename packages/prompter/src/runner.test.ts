@@ -980,3 +980,62 @@ describe('explain (spec 04, section 3.1)', () => {
     expect(EXPLAINED).toMatch(/End your turn now/);
   });
 });
+
+describe('building a repeat of several steps (spec 04, section 6.8)', () => {
+  const loop = step({
+    words: 'Repeat 3 times:',
+    kind: 'repeat',
+    actor: '',
+    action: '',
+    details: [],
+    repeat: 3,
+    holds: 2,
+  });
+  const up = (extra: JsonObject = {}) => move('1', { plan_step: 2, ...extra });
+  const down = (extra: JsonObject = {}) => move('1', { plan_step: 3, ...extra });
+  const count = () => ({
+    method: 'myFirstMethod',
+    position: 'end',
+    kind: 'count',
+    count: 3,
+    narration: 'A repeat 3 times block appears.',
+    plan_step: 1,
+  });
+
+  it("builds the repeat's count, then its steps inside it, each with its words above", () => {
+    const { runner, run, now } = setUp();
+    runner.begin('go', agreed([loop, step({}), step({})]));
+    const made = run('insert_control', count());
+    expect(made).toMatchObject({ ok: true });
+    const block = (made.ok && made.ids.block) || '';
+    expect(run('insert_statement', up({ parent_block: block }))).toMatchObject({ ok: true });
+    expect(run('insert_statement', down({ parent_block: block }))).toMatchObject({ ok: true });
+    runner.end();
+    const body = methodBody(now());
+    const last = body.at(-1)!;
+    expect(body.at(-2)).toMatchObject({ kind: 'comment', text: 'Repeat 3 times:' });
+    expect(last.kind).toBe('count');
+    expect('body' in last && last.body.map((s) => s.kind)).toEqual([
+      'comment',
+      'call',
+      'comment',
+      'call',
+    ]);
+  });
+
+  it('refuses a held step outside its count, or before the count is built, and says why', () => {
+    const { runner, run } = setUp();
+    runner.begin('go', agreed([loop, step({}), step({})]));
+    expect(run('insert_statement', up())).toMatchObject({
+      error: 'not_in_plan',
+      message: expect.stringMatching(/inside step 1's repeat: build step 1's count block first/),
+    });
+    const made = run('insert_control', count());
+    const block = (made.ok && made.ids.block) || '';
+    expect(run('insert_statement', up())).toMatchObject({
+      error: 'not_in_plan',
+      message: expect.stringContaining(`give its count block, ${block}, as parent_block`),
+    });
+    runner.end();
+  });
+});

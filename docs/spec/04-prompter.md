@@ -650,7 +650,7 @@ The agreed plan is saved with the frame in the storyboard data, not in the progr
 - **Where:** `Frame.plan` (S4, format 1.6.0): when it was agreed, the plan as the Prompter last proposed or revised it (`shown`), and as the learner built it (`agreed`). What the learner changed is read by comparing the two, step by step.
 - **When:** in the build's own undo step, so Undo takes the plan back with what it built. The runner's `keepPlan(p, { frame, shown, agreed })` is called once, as the build's group opens, and the studio's version writes `{ agreedAt, shown, agreed }` with `withFramePlan` when `isFramePlan` accepts it. A build that changes nothing makes no step, so it keeps nothing. Keeping never stops a build: if `keepPlan` returns `p` unchanged, or throws, nothing is kept and nothing is recorded for it.
 
-### 6.8 Repeating several steps (proposed, 21 Nov 2026)
+### 6.8 Repeating several steps
 
 The owner's choice of 21 Nov 2026, before the full evaluation run: a plan can repeat several steps as one loop. A step's own `repeat` repeats only that step, so "hop up, then down, three times" couldn't be one loop. The pilot's loop-01 planned six steps, and loop-02 (walk a square) and loop-05 (two turns together, four times) can't be planned at all. In blocks, that's a `count` block holding several blocks, and it's basic coding the Prompter should show.
 
@@ -729,6 +729,11 @@ A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `
 **Tools and pins:** `propose_plan` and `revise_plan`'s step gains `holds` as a required field, since an optional one costs grammar. The kind enum comes from `PLAN_STEP_KINDS`. The plan tools are strict, so the owner's grammar probe (`tools/fake-claude/src/eval/probe-grammar.ts`) runs again before a live run.
 
 **Evaluation:** `build_matches_plan` wants comments for `do` and `repeat` steps. loop-01, loop-02 and loop-05 can then be planned as one loop each.
+
+**As built (21 Nov 2026; S4's format 1.8.0 in #608):**
+- **The rules:** `packages/prompter/src/repeats.ts` holds them on the steps alone: `heldBy`, `stepsInsideMax`, `canRepeat`, and the moves and deletes with their words (`PLAN_EDIT_WORDS`). The panel's edits use them and return `PlanEdit`. `PanelPlan` carries `heldBy`, `stepsInsideMax` and `canRepeat`.
+- **The runner:** it keeps each repeat's count block by step number, and refuses a held step's block outside it, or before it exists.
+- **The tool's input check** lets `actor` and `action` be empty, for a repeat step. The plan check then says "Say who does this step." or "Say what this step does." for any other step that leaves them empty.
 
 ## 7. Errors
 

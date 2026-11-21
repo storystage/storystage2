@@ -69,6 +69,7 @@ import {
   type PlanWorld,
 } from './plans.ts';
 import { stepsDone } from './progress.ts';
+import { heldBy } from './repeats.ts';
 import { scriptFacts } from './script-check.ts';
 import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
 import { stepWords } from './step-words.ts';
@@ -260,6 +261,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   #agreed: Plan | null = null;
   #open = false;
   #commented = new Set<number>();
+  /** The count block each built `repeat` step made, by step number (section 6.8). */
+  #repeatBlocks = new Map<number, NodeId>();
   #plans = new Map<string, Plan>();
   #latest: string | null = null;
   /** The frame `code_frame` started in this request: blocks built after it link to it (10.8). */
@@ -280,6 +283,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     for (const step of theirs)
       this.#learnerWords.push(step.words, ...step.details.map((d) => d.value));
     this.#commented = new Set();
+    this.#repeatBlocks = new Map();
     this.#coding = null;
   }
 
@@ -482,8 +486,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   }
 
   #plan(name: 'propose_plan' | 'revise_plan', input: Input): Result {
-    // Claude's plans don't send `holds` until the tool schema has it (spec 04 section 6.8): 0.
-    const steps = (input.steps as PlanStep[]).map((s) => ({ ...s, holds: s.holds ?? 0 }));
+    const steps = input.steps as PlanStep[];
     let frame = text(input.frame) || null;
     let id = `p${this.#plans.size + 1}`;
     if (name === 'revise_plan') {
@@ -703,6 +706,9 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   ): Result {
     const where = this.#slot(input, scene);
     if ('ok' in where) return where;
+    // A step inside a repeat is built inside that repeat's count block (section 6.8).
+    const outside = this.#outsideRepeat(number, where.parent);
+    if (outside) return outside;
     const position = text(input.position);
     const at = position === 'end' ? where.length : Number(position);
     if (at > where.length)
@@ -737,10 +743,32 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const refused = this.#apply(edits);
     if (refused) return refused;
     this.#commented.add(number);
+    if (step.kind === 'repeat' && node.kind === 'count') this.#repeatBlocks.set(number, node.id);
     const ids: Record<string, string> = { block: node.id };
     if (node.kind === 'if')
       Object.assign(ids, { then: `${node.id}:then`, else: `${node.id}:else` });
     return ok(label, ids);
+  }
+
+  /** Why a held step's blocks can't go at `parent`, or null if they can (section 6.8). */
+  #outsideRepeat(number: number, parent: NodeId): Result | null {
+    const steps = this.#agreed?.steps ?? [];
+    const holder = heldBy(steps)[number - 1];
+    if (holder === null || holder === undefined) return null;
+    const words = steps[number - 1]!.words;
+    const block = this.#repeatBlocks.get(holder + 1);
+    if (!block)
+      return fail(
+        'not_in_plan',
+        `Step "${words}" is inside step ${holder + 1}'s repeat: build step ${holder + 1}'s count block first.`,
+      );
+    const index = indexProgram(this.#setup.session.program());
+    return this.#inside(index, parent, block)
+      ? null
+      : fail(
+          'not_in_plan',
+          `Step "${words}" is inside step ${holder + 1}'s repeat: give its count block, ${block}, as parent_block.`,
+        );
   }
 
   #values(

@@ -57,6 +57,7 @@ import { NOWHERE, currentPlace, type Place } from './storyboard/place.ts';
 import { Storyboard } from './storyboard/Storyboard.tsx';
 import { SketchSourceProvider, type SketchSource } from './storyboard/sketchSource.tsx';
 import { useStudio } from './studio.ts';
+import { acceptFor } from './fileInputs.ts';
 
 /** Where the lesson is (`07-ux.md` section 9.1): before the studio, or in it. */
 type Phase =
@@ -525,7 +526,7 @@ export function App({
       <input
         ref={aliceInput}
         type="file"
-        accept=".a3p"
+        accept={acceptFor('.a3p')}
         hidden
         aria-label={words.t('alice.file')}
         onChange={(e) => {

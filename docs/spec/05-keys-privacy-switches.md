@@ -506,6 +506,27 @@ Names in headers are encoded with `encodeURIComponent`. The native side checks e
 - Hand back **never trusts the zip**. The whole zip is `unreadable` if any entry's name breaks spec 15 section 3.2 (`..`, absolute, a backslash or control character, a device name, a part ending in a dot or space, over 255 characters, or two names the same ignoring case), if an entry is a link, or if it has more than 2,000 entries. A film declared over `FILE_LIMIT` is `too_big`, and nothing is read. Anything but `<pupil>/<production>.storystage` one level down is left out.
 - Sizes are counted while reading (spec 15 section 3.1): no film over `FILE_LIMIT`, no entry over 1 MiB that unpacks to more than 200 times its packed size, and no more than 8 GiB from one zip. Stored and deflated entries are read, as Windows and macOS make when a teacher compresses a folder; nothing else.
 
+**Files opened with a file input.** Some files are opened by the page itself, with a hidden `<input type="file">`, on every host, the apps included:
+
+| What | Accepts | Who reads it |
+|---|---|---|
+| An Alice world (WP9) | `.a3p` | `packages/a3p-import` |
+| A class's model pack (decision 0066) | `.storystage-models` | `packages/backstage-import` |
+| A script (WP10) | `.fountain`, `.txt` | The Storyboard's Fountain reader |
+| A sound to import (decision 0076, WP11.7) | `.mp3`, `.wav`, `.m4a` | S4's sound import |
+
+The owner chose a file input for sound (21 Nov) over new native commands, because it gives the same guarantees:
+
+- **No path.** The webview gets the file's name, size and bytes, never where it is. Desktop webviews show the system's dialog. iPad's shows Files. Android's (wry) sends the system's file chooser.
+- **The size first.** Each caller refuses a file over its limit from `File.size`, before reading it: `FILE_LIMIT` for a world or a model pack, the Fountain limit for a script, and 25 MB for a sound.
+- **Untrusted contents.** What's read is checked by its reader, never by its name. A sound's real type comes from its first bytes (ID3 or an MPEG frame, RIFF/WAVE, an M4A `ftyp`), and it must decode, as S4's import does.
+- **Nothing native.** No command or plugin permission is added, so the leak scan and the webview's capabilities are unchanged.
+
+**Android needs a type it knows.** wry (0.57) turns `accept` into the chooser's types. An extension goes through Android's own list, and one Android doesn't know is dropped. If none is left, nothing is offered: when `accept`'s first entry is an extension, wry sets the chooser's type to the first that survived, and with none it reads past the end of an empty list (`RustWebChromeClient.showFilePicker`), so the chooser fails. So every `accept` lists a MIME type as well as its extensions:
+
+- **Sound:** `.mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a`.
+- **`.a3p`, `.storystage-models` and `.fountain`:** Android doesn't know these extensions, so they also need `application/octet-stream` (or `*/*` on Android only). The reader checks the contents anyway. Until then, on Android, Open Alice world and Open model pack likely fail, and a `.fountain` script can't be chosen (only `.txt`). This comes from reading wry's code; nothing has been tried on a device.
+
 ### 6.6 The class Backstage
 
 Decision 0066, spec 17 section 5. Imported models live beside the pupil folders, in the same store, through `ClassFolders.backstage()` (`ClassBackstage` in `files.ts`). The host keeps records and bytes and never reads a model: `packages/backstage-import` checks every file before it's added (spec 17).
@@ -599,5 +620,6 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | iPad's Files dialogs (6.5) | `tauri-plugin-files-export` and the iPad picker compile, with no Apple account | `ios (rust)` job |
 | iPad's Files dialogs by hand (6.5) | On an iPad: Save a copy, Open, Collect and Hand back, and saving an exported film, each to Files and to OneDrive or Google Drive, and closing each | Device (owner, once the Apple team is set) |
 | The browser's own pickers and inputs (6.5) | By hand in Chrome on a Chromebook, and in Safari on an iPad | Device (owner) |
+| The file inputs in the apps (6.5) | By hand in the Android and iPad apps: opening an Alice world, a model pack, a script and a sound, and closing each | Device (owner) |
 | The native store stays in its folder (6.4) | Paths, symbolic links, the size limit, no temporary file left behind, and moves never onto something; then on the real Windows app, a 3 MB film in and out whole as raw bytes and a path out of the folder refused | Rust unit on Windows and macOS; the leak scan's run of the real app |
 | The model reaches the worker whole (5.4) | Load the bundled model in the leak scan's app and compare its SHA-256 | Leak scan job |

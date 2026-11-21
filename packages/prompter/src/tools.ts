@@ -119,13 +119,12 @@ const POSITION = text(
 const PLAN_STEP = object({
   words: text('The step in plain words for a child, under 20 words: "The owl walks to the tree."'),
   kind: oneOf(
-    // `repeat` (format 1.8.0) joins with `holds` in spec 04 section 6.8's tools, and the probe.
-    PLAN_STEP_KINDS.filter((k) => k !== 'repeat'),
-    'do: a Story API block. add: add a model. change: how something starts. when: an event. stage: set the scene from the storyboard.',
+    [...PLAN_STEP_KINDS],
+    'do: a Story API block. add: add a model. change: how something starts. when: an event. stage: set the scene from the storyboard. repeat: run the steps right after it several times, as a count block holds blocks.',
   ),
-  actor: text('The object that acts, by its name in the scene; "scene" for stage.'),
+  actor: text('The object that acts, by its name in the scene; "scene" for stage; "" for repeat.'),
   action: text(
-    'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id.',
+    'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id. For repeat, "".',
   ),
   target: text(
     'Another object or marker the block acts on, such as the one to turn to face or move toward; "" for none. Never the actor itself.',
@@ -137,7 +136,12 @@ const PLAN_STEP = object({
   line: text('The script line id this step says or follows, or "" for none.'),
   sketch: text('The placed sketch id this step comes from, or "" for none.'),
   together: yesNo('True if it runs at the same time as the step before it.'),
-  repeat: whole('How many times it runs; 1 for once.'),
+  repeat: whole(
+    'How many times it runs; 1 for once. For a repeat step, how many times the steps it holds run, from 2.',
+  ),
+  holds: whole(
+    'For a repeat step, how many of the steps right after it are inside the loop, from 1; 0 for every other step.',
+  ),
   why: text('One sentence under 25 words saying why this step is there, for "Why this step?"'),
 });
 const STEPS = list(PLAN_STEP, 'The plan, 1 to 12 steps, in order.');
@@ -363,6 +367,10 @@ const RULES: Readonly<Record<string, (value: unknown) => string | null>> = {
       ? `should be a whole number from 1 to ${PLAN_LIMITS.repeat}`
       : null,
   count: wholeFrom1,
+  holds: (v) =>
+    typeof v === 'number' && (!Number.isInteger(v) || v < 0 || v >= PLAN_LIMITS.steps)
+      ? `should be a whole number from 0 to ${PLAN_LIMITS.steps - 1}`
+      : null,
   details: nameValues,
   actor: planText(),
   action: planText(),
@@ -382,8 +390,8 @@ const RULES: Readonly<Record<string, (value: unknown) => string | null>> = {
     Array.isArray(v) && (v.length < 1 || v.length > 12) ? 'should have 1 to 12 steps' : null,
 };
 
-/** Strings that may be empty: "" means none. */
-const MAY_BE_EMPTY = ['target', 'line', 'sketch', 'value', 'section'];
+/** Strings that may be empty: "" means none. A repeat step (6.8) has no actor or action. */
+const MAY_BE_EMPTY = ['target', 'line', 'sketch', 'value', 'section', 'actor', 'action'];
 
 const TYPE_WORDS = {
   object: 'an object',
