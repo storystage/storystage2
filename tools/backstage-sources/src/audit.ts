@@ -20,6 +20,7 @@ export const SOURCE_NAMES: Readonly<Record<string, string>> = {
   makehuman: 'MakeHuman people',
   nasa: "NASA's own models (public domain)",
   osa: 'Open Source Avatars',
+  'poly-google': "Poly by Google's models, via Poly Pizza",
   polyhaven: 'Poly Haven models',
   polypizza: 'Poly Pizza',
   scottishmaritime: 'Scottish Maritime Museum (on Sketchfab)',
