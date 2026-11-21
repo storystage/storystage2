@@ -14,6 +14,7 @@ import type { HighlightKind } from '@storystage/editor-contract';
 import {
   describer,
   detailsToAdd,
+  methodTitleIn,
   type Describer,
   type StatementPlace,
   type ValuePlace,
@@ -759,7 +760,7 @@ export function TilesView(props: ViewProps) {
   const found = useMemo(() => {
     for (const type of program.types) {
       const m = type.methods.find((x) => x.id === method);
-      if (m) return { body: m.body, title: t('method', { type: type.name, method: m.name }) };
+      if (m) return { body: m.body, title: methodTitleIn(type, m) };
       const l = type.listeners.find((x) => x.id === method);
       if (l) return { body: l.body, title: describe(l), listener: l };
     }

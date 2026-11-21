@@ -108,7 +108,7 @@ describe('moving by keyboard: pick up, move, put down (spec 14, 3d)', () => {
     await user.keyboard('{ArrowDown}');
     expect(last(host)).toBe('Drops at 1 of 3 in do together');
     await user.keyboard('{ArrowUp}');
-    expect(last(host)).toBe('Drops at 1 of 6 in Scene1.myFirstMethod');
+    expect(last(host)).toBe('Drops at 1 of 6 in When the scene starts');
     await user.keyboard('{ArrowDown}');
     await user.keyboard(' ');
     expect(last(host)).toBe('Move cat say Hello into do together');

@@ -5,7 +5,13 @@
  */
 import type { AstNode, Expression, NodeId, TypeRef } from '@storystage/ast';
 import { DETAILS, findEntry } from '@storystage/story-api';
-import { arrowFor, word, type Describer, type ValuePlace } from '@storystage/story-api/editing';
+import {
+  arrowFor,
+  listenerWords,
+  word,
+  type Describer,
+  type ValuePlace,
+} from '@storystage/story-api/editing';
 import { t } from './words.ts';
 
 export type Part =
@@ -246,7 +252,7 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
     case 'comment':
       return [{ kind: 'text', text: node.text }];
     case 'listener':
-      return phraseParts(word(`event.${node.event}`), (name) =>
+      return phraseParts(listenerWords(node.event), (name) =>
         value(node.args[name], at('args', name), word(`param.${name}`)),
       );
     case 'return':

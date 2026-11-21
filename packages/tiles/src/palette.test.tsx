@@ -286,9 +286,16 @@ describe('events and method tabs (spec 14, 3a)', () => {
   it('switches between methods', async () => {
     const { user } = setup();
     await user.click(screen.getByRole('button', { name: 'add event' }));
-    await user.click(await screen.findByRole('menuitem', { name: 'when the scene starts' }));
-    expect(screen.getByRole('tree', { name: 'when the scene starts' })).toBeTruthy();
-    await user.click(screen.getByRole('tab', { name: 'Scene1.myFirstMethod' }));
-    expect(screen.getByRole('tree', { name: 'Scene1.myFirstMethod' })).toBeTruthy();
+    await user.click(await screen.findByRole('menuitem', { name: 'when the screen is clicked' }));
+    expect(screen.getByRole('tree', { name: 'when the screen is clicked' })).toBeTruthy();
+    await user.click(screen.getByRole('tab', { name: 'When the scene starts' }));
+    expect(screen.getByRole('tree', { name: 'When the scene starts' })).toBeTruthy();
+  });
+
+  it('doesn’t offer “when the scene starts”: the scene’s script method is that (spec 14, 2)', async () => {
+    const { user } = setup();
+    await user.click(screen.getByRole('button', { name: 'add event' }));
+    await screen.findByRole('menuitem', { name: 'when the screen is clicked' });
+    expect(screen.queryByRole('menuitem', { name: /scene starts/ })).toBeNull();
   });
 });

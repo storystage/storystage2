@@ -36,7 +36,7 @@ async function open(page: Page) {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: SLOWDOWN });
   }
   await page.goto(PAGE);
-  await expect(page.getByRole('tree', { name: 'Scene1.myFirstMethod' })).toBeVisible();
+  await expect(page.getByRole('tree', { name: 'When the scene starts' })).toBeVisible();
   expect(await page.locator('[data-statement]').count()).toBe(500);
   await page.evaluate(() => {
     const w = window as unknown as { timings: Timing[]; since: number };

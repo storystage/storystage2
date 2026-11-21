@@ -14,6 +14,14 @@ const all = strings as Readonly<Record<string, string>>;
 /** The words for a key in the strings file. */
 export const word = (key: string): string => all[key] ?? key;
 
+/**
+ * A listener's words, with `{name}` for each value it's given: the event's own, except where a
+ * listener reads differently from the event in general. A scene's own `sceneStart` listener is
+ * "also when the scene starts", as its script method is "When the scene starts" (spec 14, 2).
+ */
+export const listenerWords = (event: string): string =>
+  all[`listener.${event}`] ?? word(`event.${event}`);
+
 /** `{name}` in a phrase filled from `values`; a missing value is "???". */
 export const fill = (phrase: string, values: Readonly<Record<string, string>>): string =>
   phrase.replace(/\{(\w+)\}/g, (_, name: string) => values[name] ?? word('words.empty'));
@@ -182,7 +190,7 @@ function describe(program: Program, options: WordsOptions): Describer {
           ? fill(word('control.return'), { value: v(s.value) })
           : word('control.returnNothing');
       case 'listener':
-        return fill(word(`event.${s.event}`), given(s.args, self));
+        return fill(listenerWords(s.event), given(s.args, self));
       case 'type':
       case 'field':
       case 'method':

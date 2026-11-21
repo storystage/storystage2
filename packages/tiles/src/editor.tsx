@@ -35,6 +35,7 @@ import {
   type PaletteItem,
   type PaletteTab,
   type Place,
+  methodTitleIn,
   type StatementPlace,
   type ValuePlace,
   readyFor,
@@ -460,8 +461,8 @@ export class TileEditor implements CodeEditor {
     const type = owner ? indexOf(program).get(owner)?.node : undefined;
     const where = !parent
       ? ''
-      : parent.kind === 'method' && type && 'name' in type
-        ? t('method', { type: type.name, method: parent.name })
+      : parent.kind === 'method' && type?.kind === 'type'
+        ? methodTitleIn(type, parent)
         : parent.kind === 'method' || parent.kind === 'listener'
           ? describe(parent)
           : describe.short(parent);
