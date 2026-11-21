@@ -1,6 +1,6 @@
 # Spike 23.2: the Pixera build script
 
-- **Status:** proposed by S3, 21 Nov 2026; the owner decides.
+- **Status:** decided: **go** (owner, 21 Nov 2026). Proposed by S3 on 21 Nov 2026.
 - **Evidence:** `docs/spikes/REPORT.md`, section 23.2; code in `spikes/23.2-pixera/`.
 
 ## Proposal
@@ -15,4 +15,6 @@ For S3's exports (23.6, 23.7), from the findings:
 
 ## Owner decision
 
-Pending.
+Go, as proposed. The same day the owner settled how the export reaches Pixera: a guided Build in Pixera step in the Windows desktop app, with the operator guide, and no script in the package ([0072](0072-export-to-pixera-from-the-windows-app.md)).
+
+Recorded by S3 from the owner's answer in the S3 session, 21 Nov 2026.

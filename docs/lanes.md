@@ -134,7 +134,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Owner: a run of `stage/device.html` (about five minutes, checklist row 3a) on the Chromebook, which is here, and later on the reference iPad (#6, not yet chosen). Its results give WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), the cost of view and occlusion events (decision 0051), and of a crossfade's two scenes. Spike 1.2's go is S1's.
 - Open:
   - 21 Nov (PR open): **decision 0072, Export to Pixera from the Windows app** (owner, 21 Nov, after spike 23.2): 23.7 becomes a guided Build in Pixera step in the Windows desktop app, which checks Pixera's screens and frame rate through its API, builds the timeline and saves, with a one-page operator guide for the steps done in Pixera. The browser and Chromebook versions point to the Windows version; no script ships in the package. `docs/WORKPLAN.md` (23.7, its done-when, M11 and the risk), `docs/decisions.md` and `docs/design.md` updated.
-- Next: the owner's go or no-go on spike 23.2. **WP23b** (the projection stage) waits for the release candidate and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
+- Next: spike 23.2 has its go (owner, 21 Nov), so WP23a is finished. **WP23b** (the projection stage) waits for the release candidate and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
 - In review:
