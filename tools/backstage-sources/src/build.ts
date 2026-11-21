@@ -61,7 +61,16 @@ import { groundTile, hexToRgb, rgbToHex, skyDome } from './backdrops.ts';
 import { fetchModel, fetchPicture, httpFetch, type Fetcher, type Fetched } from './fetch.ts';
 import { applyExcludes, type Exclude } from './exclude.ts';
 import { applyKitbash } from './kitbash.ts';
-import { sharpDecoder, sharpEncoder, sharpShrinker, thumbnailWebp } from './sharp-encoder.ts';
+import {
+  sharpDecoder,
+  sharpEncoder,
+  sharpPainter,
+  sharpShrinker,
+  thumbnailWebp,
+} from './sharp-encoder.ts';
+import { undraco } from './draco.ts';
+import { coverTextures } from './cover.ts';
+import { makeGlobe } from './globe.ts';
 import { shrinkVrmTextures, type PictureShrinker } from './vrm-textures.ts';
 import { excludesFor, stageLook, validateSources, type SourceItem } from './sources.ts';
 
@@ -146,14 +155,21 @@ export async function buildSources(
   for (const { item, source, exclude } of items) {
     // A backdrop is made here from its picture (spec 17 section 2); anything else is fetched.
     const made = item.backdrop ? await makeBackdrop(item, fetcher, io) : null;
-    const fetchedModel: Fetched = made ?? (await fetchModel(item, fetcher, dir));
+    const fetchedModel: Fetched =
+      made ??
+      (item.globe ? await globeModel(item, fetcher, io) : await fetchModel(item, fetcher, dir));
     // A character made from parts (`kitbash.ts`): its other parts come from the same commit, and
     // each is recorded with what was fetched.
     const assembled: Fetched = item.kitbash
       ? await kitbash(item, fetchedModel, fetcher)
       : fetchedModel;
-    // A binary glTF's JSON chunk padded to 4 bytes, as the format requires (some VRMs leave it).
-    const got = { ...assembled, bytes: alignGlb(assembled.bytes) } as Fetched;
+    // A binary glTF's JSON chunk padded to 4 bytes, as the format requires (some VRMs leave it),
+    // and a glTF's Draco meshes decoded (NASA's models), as nothing after this reads Draco.
+    const aligned = alignGlb(assembled.bytes);
+    const got = {
+      ...assembled,
+      bytes: assembled.ext === 'glb' ? await undraco(aligned) : aligned,
+    } as Fetched;
     const { ext, fetched } = got;
     // VRM files are kept byte for byte, but for that padding; excludes apply to glTF models only.
     const trimmed =
@@ -168,6 +184,8 @@ export async function buildSources(
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       stripExtras(doc);
+      // NASA's insignia painted out of the shipped copy (`cover.ts`).
+      if (item.cover) await coverTextures(doc, item.cover, sharpPainter);
       if (item.addJoints) addJoints(doc, item.addJoints);
       if (item.bones) renameBones(doc, item.bones);
       if (item.clips) standardClips(doc, item.clips);
@@ -423,6 +441,37 @@ function span(positions: Float32Array): number {
 function height(positions: Float32Array): number {
   const h = span(positions);
   return h > 0 ? Math.max(0.01, Math.round(h * 100) / 100) : 1;
+}
+
+const MIME: Readonly<Record<string, string>> = {
+  jpg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+};
+const mimeOf = (path: string) => MIME[path.slice(path.lastIndexOf('.') + 1)] ?? 'image/jpeg';
+
+/** A globe item's model (`globe.ts`), made from its picture and its ring's, both recorded. */
+async function globeModel(item: SourceItem, fetcher: Fetcher, io: WebIO): Promise<Fetched> {
+  const picture = await fetchPicture(item, fetcher);
+  const f = item.fetch as { github: string; commit: string; path: string };
+  const globe = item.globe!;
+  let ring: { bytes: Uint8Array; mimeType: string } | undefined;
+  const fetched = [...picture.fetched];
+  if (globe.ring) {
+    const url =
+      `https://raw.githubusercontent.com/${f.github}/${f.commit}/` +
+      globe.ring.path.split('/').map(encodeURIComponent).join('/');
+    const bytes = await fetcher(url);
+    fetched.push({ url, sha256: createHash('sha256').update(bytes).digest('hex') });
+    ring = { bytes, mimeType: mimeOf(globe.ring.path) };
+  }
+  const doc = makeGlobe(
+    item.displayName,
+    { bytes: picture.bytes, mimeType: mimeOf(f.path) },
+    globe,
+    ring,
+  );
+  return { bytes: await io.writeBinary(doc), ext: 'glb', fetched };
 }
 
 /** A backdrop item's model, made from its picture, with its thumbnail and colours. */
