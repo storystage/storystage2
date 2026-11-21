@@ -34,7 +34,7 @@ One small dialog from the platform's own controls, in the native layer. It has a
 | Windows | A small window of Win32 controls, with a password edit control |
 | macOS | `NSAlert` with an `NSSecureTextField` |
 | Android and Chromebook | `AlertDialog` with a password `EditText`, in the `secure-key` plugin |
-| iPad | Not yet: `UIAlertController` with a secure text field. It waits for the Apple developer account (WP15.5), because it can't be built or run before that. Until then the iPad has no way to add a key, so its Prompter stays off |
+| iPad | `UIAlertController` with a secure text field, in the `secure-key` plugin's Swift side (the owner's choice, 21 Nov): no dictation, autocorrect or suggestions, and no content type, so iPadOS doesn't offer to save it as a password. The key then goes to the Keychain from Rust. It compiles in CI with no Apple account; trying it waits for the Apple team |
 
 When the adult presses Add, the native layer trims the text and checks the key against `GET /v1/models`, which uses no tokens. It stores the key only if that succeeds. Then it clears the text.
 
@@ -569,7 +569,8 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | `PolicyInForce` agrees on both sides (3.8) | One fixture, read by Rust and by TypeScript | Rust unit and Vitest |
 | Managed configuration reaches the same checks (3.5) | Pairs of strings go through the file's rules | Rust unit |
 | The schema is in the Android app (3.2) | `aapt2` finds it in the built APK | Android job |
-| The iPad code compiles (3.2) | `cargo check` for iPad, with no Apple account | `ios (rust)` job |
+| The iPad code compiles (3.2) | `cargo check` for iPad, with no Apple account, which builds the plugins' Swift too | `ios (rust)` job |
+| The iPad's key dialog (1.2) | By hand on an iPad: Add with a real key, with a wrong one, and Cancel | Device (owner, once the Apple team is set) |
 | A real push reaches the app (3.2) | A setting pushed through managed Google Play, and through the iPad's device management | Device (owner). Android's push needs a device policy controller, which CI doesn't have |
 | Which build to move to (4.3) | One unit test per row, with pins, rollout boundaries and rollbacks | Rust unit |
 | When a device checks (4.1) | Once a day, and after a version change | Rust unit |

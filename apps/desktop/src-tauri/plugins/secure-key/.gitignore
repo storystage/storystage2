@@ -1,2 +1,4 @@
 /permissions/
 /android/build/
+/ios/.tauri/
+/ios/.build/
