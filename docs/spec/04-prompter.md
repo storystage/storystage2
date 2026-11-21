@@ -690,7 +690,21 @@ Steps that are `together` inside the loop are built as a `doTogether` inside the
 
 **Plan only (6.6):** a `repeat` step is ticked when the learner's own blocks include a count with its times. A held step is ticked when its block matches, by the 6.4 rule, inside a count with its `repeat` step's times.
 
-**Kept with the frame (6.7):** `PlanStep` gains `holds`, and `PLAN_STEP_KINDS` gains `repeat`, in production format 1.8.0 (S4). `isFramePlan` checks both, and a plan kept before 1.8.0 reads with `holds` 0.
+**Kept with the frame (6.7):** `PlanStep` gains `holds`, a required field, and `PLAN_STEP_KINDS` gains `repeat`, in production format 1.8.0 (S4). A plan kept before 1.8.0 gains `holds` 0 on every step when the file opens, by a format migration.
+
+The format checks only what keeps a plan readable:
+- `holds` is a whole number from 0 to `PLAN_LIMITS.steps` − 1;
+- `holds` is above 0 only on a `repeat` step;
+- a `repeat` step holds at least one step, all within its own list;
+- a `repeat` step's `repeat` is at least 2.
+
+The rules marked "for now" above stay in the plan check (6.3), so lifting one later needs no new format:
+- held steps are `do` steps with `repeat` 1;
+- no `repeat` sits inside another's range;
+- the first held step isn't `together`;
+- a `repeat` step's other fields are empty.
+
+A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `done` numbers it like any other.
 
 **The panel (S5 draws it; `PrompterPanel`, S7, makes each edit, so every edit keeps a plan the check accepts):**
 - **Showing it:** held steps are indented under their `repeat` step, with a thin line down their left in the count block's loop colour, so the end of the loop shows at a glance.
@@ -701,7 +715,7 @@ Steps that are `together` inside the loop are built as a `doTogether` inside the
 - **Change step on a `repeat` step** offers:
   - **How many times**, with the number field the count block uses (2 to 1,000);
   - **Steps inside**, a number from 1 up to the run of `do` steps right after it, listed under the field ("Steps 2 and 3"), so a child sees which ones.
-- **Add a step › Repeat…** adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (12 at most).
+- **Add a step › Repeat…** adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (the 50 a frame keeps; a plan from `propose_plan` has at most 12).
 - **Reordering:**
   - Dragging a `repeat` step moves its held steps with it.
   - A `do` step moved to between a `repeat` step and its last held step goes inside (`holds` + 1). One moved to just after the last held step stays outside, and Steps inside takes it in.
@@ -816,5 +830,5 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
 | `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; `jointsFor(catalogue, items)`; the index's budget in the build, without the joint sets' lists | S4 (contract PR, 21 Nov) | Section 2.7 |
 | Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
-| Production format 1.8.0: `PLAN_STEP_KINDS` gains `repeat`, `PlanStep` gains `holds` (0 by default), `isFramePlan` checks them (section 6.8, proposed) | S4 (contract PR) | Section 6.8 |
+| Production format 1.8.0: `PLAN_STEP_KINDS` gains `repeat`; `PlanStep` gains a required `holds`, added as 0 by a migration from 1.7.0; `checkFramePlan` checks what keeps a plan readable (section 6.8, proposed) | S4 (contract PR) | Section 6.8 |
 | The plan panel: held steps indented under their repeat, Change step's How many times and How many steps for a repeat, and Repeat… in Add a step's menu (section 6.8, proposed) | S5 | Section 6.8 |
