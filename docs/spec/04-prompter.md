@@ -216,15 +216,15 @@ The owner's choice of 21 Nov 2026: the Prompter sends only the catalogue lines a
 
 **The catalogue** is `prompter-catalogue.json`, built in `storystage/backstage-assets` and pinned in `backstage.lock.json` by `catalogueJsonSha256`: `{ header, joints, items }`. Each item has `id`, `section`, `class`, `name`, `joints` (a joint set's name, or `"none"`), `line` (the full line, `id: Name, description [themes] height m, joints`), `short` (`id: Name (J2)`, or `id: Name (no joints)`) and `words` (for search). Only shipped models are in it. A class's imported models are never in it, and never searched: they travel whole in `<production_data>` (section 2.6).
 
-**In `system`, the index:** `renderIndex(catalogue)` gives the header (the rules for adding a model), the joint sets, and every item's `short` line under section and class headings. The Prompter always knows what exists and which models can walk or gesture. It is pinned and cached like the rest of `system`, within 12,000 tokens. The full `.txt` is still built, for people to read, but isn't sent.
+**In `system`, the index:** `renderIndex(catalogue)` gives the header (the rules for adding a model) and every item's `short` line under section and class headings. A short line names its joint set (`J7`) but not the set's joints: those go with the model's full line (below), because the 55 sets' lists alone came to 7,614 tokens of the 398-model build (S4's measure, 21 Nov). The header says so. The Prompter always knows what exists and which models can walk or gesture. It is pinned and cached like the rest of `system`, within 12,000 tokens. The full `.txt` is still built, for people to read, but isn't sent.
 
-**In the user turn, `<backstage_data>`:** `{"models": [line, …]}`, the full lines for the models this request needs, in this order, each once:
+**In the user turn, `<backstage_data>`:** `{"models": [line, …], "joints": {"J7": [joint, …], …}}`, the full lines for the models this request needs, in this order, each once, and the joints of each set those lines name (`jointsFor` in `@storystage/backstage`):
 
 1. The models the production already uses: every scene's set-up objects and backdrop, then every frame's sketches that are Backstage models. The current scene's come first.
 2. The best matches (`searchCatalogue`, up to 20) for the words of the learner's request.
 3. The best matches for the current frame's caption and script lines, then the current scene's (up to 20 each).
 
-Lines stop before the next one would pass 6,000 tokens. A turn sends only lines not already sent in this conversation, because the history keeps them (section 1.5), and leaves the block out when there are none. A new conversation starts afresh. The block goes with requests in `explain`, `showMeHow` and `buildIt`. The story coach and the script check don't place models, so they get none, and `find_models` is there if one is needed.
+Lines stop before the next one, with any set it adds, would pass 6,000 tokens; the joint lists count towards it. A turn sends only lines, and sets, not already sent in this conversation, because the history keeps them (section 1.5), and leaves the block out when there are none. A new conversation starts afresh. The block goes with requests in `explain`, `showMeHow` and `buildIt`. The story coach and the script check don't place models, so they get none, and `find_models` is there if one is needed.
 
 The learner's words only choose which of Backstage's lines go. None of their text goes into the block.
 
@@ -365,7 +365,7 @@ Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` 
 
 #### `find_models`
 
-Changes nothing. Returns the full Backstage lines (section 2.7) of the shipped models that best match, by `searchCatalogue` in `@storystage/backstage`: `{"ok": true, "models": [line, …], "summary": "…"}`, up to 20, best first. Nothing matching is `ok` with no models, and a summary that says so and that the index lists every model. Imported models aren't searched; they're in `<production_data>`. New in StoryStage 2 (section 2.7, the owner's choice of 21 Nov 2026).
+Changes nothing. Returns the full Backstage lines (section 2.7) of the shipped models that best match, by `searchCatalogue` in `@storystage/backstage`: `{"ok": true, "models": [line, …], "joints": {"J7": [joint, …]}, "summary": "…"}`, up to 20, best first, with the joints of every set those lines name. Nothing matching is `ok` with no models, and a summary that says so and that the index lists every model. Imported models aren't searched; they're in `<production_data>`. New in StoryStage 2 (section 2.7, the owner's choice of 21 Nov 2026).
 
 | Field | Type | Notes |
 |---|---|---|
@@ -737,5 +737,5 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
-| `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; the index's budget in the build | S4 (contract PR, 21 Nov) | Section 2.7 |
+| `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; `jointsFor(catalogue, items)`; the index's budget in the build, without the joint sets' lists | S4 (contract PR, 21 Nov) | Section 2.7 |
 | Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
