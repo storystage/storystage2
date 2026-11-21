@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
-import { validateManifest } from '@storystage/backstage';
+import { catalogueJson, validateManifest } from '@storystage/backstage';
 import {
   box,
   documentFromMesh,
@@ -497,7 +497,7 @@ describe('buildSources', () => {
     expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);
   });
 
-  it("writes each description, and the Prompter's catalogue with its size", async () => {
+  it("writes each description, and the Prompter's catalogue, text and JSON, with their sizes", async () => {
     const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
     const knight = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Biped/knight');
     expect(knight.description).toBe('a knight in silver armour with a blue tunic');
@@ -509,8 +509,12 @@ describe('buildSources', () => {
       'kaykit/Biped/knight: Knight, a knight in silver armour with a blue tunic [fantasy]',
     );
     expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
+    const json = await readFile(join(dir, 'prompter-catalogue.json'), 'utf8');
+    expect(json).toBe(catalogueJson(manifest));
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
-    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 24,000 tokens/);
+    expect(md).toMatch(
+      /\*\*Prompter catalogue:\*\* the index in its system prompt is about [\d,]+ of 12,000 tokens; every full line, which requests carry a few at a time, about [\d,]+\./,
+    );
   });
 
   it('builds one list on its own with only, leaving the others alone', async () => {

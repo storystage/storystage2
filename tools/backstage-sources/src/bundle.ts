@@ -2,7 +2,8 @@
  * The shipped Backstage a release bundles (decision 0062; spec 17, section 4b).
  *
  * `backstage.lock.json`, at the repository's root, pins the commit of `storystage/backstage-assets`
- * a release ships, with the SHA-256 of its `backstage.json` and `prompter-catalogue.txt`.
+ * a release ships, with the SHA-256 of its `backstage.json` and `prompter-catalogue.txt`, and of
+ * `prompter-catalogue.json` from the first build that writes it (spec 17, section 4b).
  * `pnpm backstage:fetch` (`bundle-cli.ts`) fetches exactly those files into `.backstage/`, and
  * `checkBundle` checks a fetched folder before anything bundles it.
  */
@@ -12,6 +13,7 @@ import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   MANIFEST_VERSION,
+  catalogueJson,
   catalogueText,
   validateManifest,
   type BackstageManifest,
@@ -25,6 +27,8 @@ export interface BackstageLock {
   readonly manifestVersion: string;
   readonly manifestSha256: string;
   readonly catalogueSha256: string;
+  /** `prompter-catalogue.json`'s, which the Prompter reads; absent for a build from before it. */
+  readonly catalogueJsonSha256?: string;
 }
 
 /** What a release bundles from the assets repository: nothing else is needed at run time. */
@@ -35,6 +39,10 @@ export const BUNDLED = [
   'thumbnails',
   'sketches',
 ] as const;
+
+/** What a fetch takes for this lock: `BUNDLED`, and the Prompter's JSON when the lock pins it. */
+export const fetchedFor = (lock: BackstageLock): readonly string[] =>
+  lock.catalogueJsonSha256 === undefined ? BUNDLED : [...BUNDLED, 'prompter-catalogue.json'];
 
 const sha256 = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
 
@@ -50,6 +58,11 @@ export function validateLock(json: unknown): string[] {
   for (const k of ['manifestSha256', 'catalogueSha256'] as const)
     if (typeof l[k] !== 'string' || !/^[0-9a-f]{64}$/.test(l[k]))
       errors.push(`${k} must be a SHA-256.`);
+  if (
+    l.catalogueJsonSha256 !== undefined &&
+    (typeof l.catalogueJsonSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(l.catalogueJsonSha256))
+  )
+    errors.push('catalogueJsonSha256 must be a SHA-256.');
   return errors;
 }
 
@@ -69,11 +82,11 @@ export function servedPath(path: string): boolean {
 }
 
 /**
- * Checks a fetched Backstage folder against the lock: the two pinned files match their hashes,
+ * Checks a fetched Backstage folder against the lock: the pinned files match their hashes,
  * the manifest is valid and of this code's version, every file it names is there under a name the
  * apps can serve (`servedPath`), and the
- * Prompter catalogue is exactly what this code makes of the manifest. Returns the problems, or
- * none.
+ * Prompter catalogue, text and JSON, is exactly what this code makes of the manifest. Returns the
+ * problems, or none.
  */
 export async function checkBundle(dir: string, lock: BackstageLock): Promise<string[]> {
   const problems = validateLock(lock).map((e) => `backstage.lock.json: ${e}`);
@@ -114,5 +127,17 @@ export async function checkBundle(dir: string, lock: BackstageLock): Promise<str
     problems.push(
       "prompter-catalogue.txt isn't what this code makes of backstage.json. Rebuild the assets with this code, then update the lock.",
     );
+  if (lock.catalogueJsonSha256 !== undefined) {
+    const jsonBytes = await read('prompter-catalogue.json');
+    if (!jsonBytes) problems.push('prompter-catalogue.json is missing.');
+    else {
+      if (sha256(jsonBytes) !== lock.catalogueJsonSha256)
+        problems.push("prompter-catalogue.json doesn't match the SHA-256 in backstage.lock.json.");
+      if (new TextDecoder().decode(jsonBytes) !== catalogueJson(manifest))
+        problems.push(
+          "prompter-catalogue.json isn't what this code makes of backstage.json. Rebuild the assets with this code, then update the lock.",
+        );
+    }
+  }
   return problems;
 }

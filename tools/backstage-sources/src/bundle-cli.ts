@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { BUNDLED, checkBundle, validateLock, type BackstageLock } from './bundle.ts';
+import { checkBundle, fetchedFor, validateLock, type BackstageLock } from './bundle.ts';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const args = process.argv.slice(2);
@@ -32,7 +32,8 @@ if (!checkOnly) {
   const tmp = `${dest}.fetching`;
   rmSync(tmp, { recursive: true, force: true });
   mkdirSync(dest, { recursive: true });
-  for (const name of BUNDLED) rmSync(resolve(dest, name), { recursive: true, force: true });
+  for (const name of [...fetchedFor(lock), 'prompter-catalogue.json'])
+    rmSync(resolve(dest, name), { recursive: true, force: true });
   console.log(`Fetching ${lock.repository} at ${lock.commit.slice(0, 12)} into ${dest}…`);
   git('init', '--quiet', tmp);
   git(
@@ -55,7 +56,7 @@ if (!checkOnly) {
     '--quiet',
     'FETCH_HEAD',
     '--',
-    ...BUNDLED,
+    ...fetchedFor(lock),
   );
   rmSync(tmp, { recursive: true, force: true });
 }

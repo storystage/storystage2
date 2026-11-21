@@ -22,11 +22,14 @@ import { dirname, join } from 'node:path';
 import { WebIO, type Document } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import {
-  CATALOGUE_TOKEN_BUDGET,
+  CATALOGUE_INDEX_TOKEN_BUDGET,
   MANIFEST_VERSION,
   budgetFor,
+  catalogueData,
+  catalogueJson,
   catalogueText,
   catalogueTokens,
+  renderIndex,
   creditFor,
   mapSkeleton,
   skeletonOf,
@@ -96,8 +99,10 @@ export interface BuildReport {
   readonly items: number;
   readonly sketches: MakeReport;
   readonly provenance: Readonly<Record<string, Provenance>>;
-  /** The Prompter catalogue's estimated size (`prompter-catalogue.txt`). */
+  /** The estimated size of the index the Prompter's system prompt holds (`renderIndex`). */
   readonly catalogueTokens: number;
+  /** The estimated size of every full line (`prompter-catalogue.txt`), for the report. */
+  readonly fullCatalogueTokens: number;
 }
 
 export async function buildSources(
@@ -284,16 +289,19 @@ export async function buildSources(
   const checked = validateManifest(manifest);
   if (!checked.ok)
     throw new Error(`The built manifest is not valid:\n${checked.errors.join('\n')}`);
-  // The Prompter's catalogue (spec 17, section 4a), written out so the reviewer reads exactly
-  // what Claude will. The build stops before writing anything if it is over its budget.
+  // The Prompter's catalogue (spec 17, section 4a): the JSON the Prompter reads, and every full
+  // line for the reviewer. The build stops before writing anything if the index the system
+  // prompt holds is over its budget.
   const catalogue = catalogueText(manifest);
-  const tokens = catalogueTokens(catalogue);
-  if (tokens > CATALOGUE_TOKEN_BUDGET)
+  const tokens = catalogueTokens(renderIndex(catalogueData(manifest)));
+  const fullTokens = catalogueTokens(catalogue);
+  if (tokens > CATALOGUE_INDEX_TOKEN_BUDGET)
     throw new Error(
-      `The Prompter's catalogue would be about ${tokens} tokens, over its budget of ${CATALOGUE_TOKEN_BUDGET} (spec 04, section 2.1). Shorten descriptions or themes, or raise it with the owner.`,
+      `The Prompter's catalogue index would be about ${tokens} tokens, over its budget of ${CATALOGUE_INDEX_TOKEN_BUDGET} (spec 04, section 2.7). Shorten display names, or raise it with the owner.`,
     );
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
   await writeFile(join(dir, 'prompter-catalogue.txt'), catalogue);
+  await writeFile(join(dir, 'prompter-catalogue.json'), catalogueJson(manifest));
   const ordered = Object.fromEntries(
     Object.entries(provenance).sort(([a], [b]) => a.localeCompare(b, 'en')),
   );
@@ -302,9 +310,15 @@ export async function buildSources(
   const sketches = await makeSketches(dir);
   await writeFile(
     join(dir, 'sources-report.md'),
-    report(sketches.manifest.items, ordered, built, tokens),
+    report(sketches.manifest.items, ordered, built, tokens, fullTokens),
   );
-  return { items: built.size, sketches, provenance: ordered, catalogueTokens: tokens };
+  return {
+    items: built.size,
+    sketches,
+    provenance: ordered,
+    catalogueTokens: tokens,
+    fullCatalogueTokens: fullTokens,
+  };
 }
 
 const removedText = (p: Provenance) =>
@@ -497,6 +511,7 @@ function report(
   provenance: Readonly<Record<string, Provenance>>,
   built: ReadonlyMap<string, BackstageItem>,
   tokens: number,
+  fullTokens: number,
 ): string {
   const rows = items
     .filter((i) => built.has(i.id))
@@ -516,7 +531,7 @@ function report(
     "Triangles and textures show fetched → shipped where the build reduced them to the section's budget (`ITEM_BUDGETS`, provisional until the reference devices have run). VRM files are kept byte for byte, so they aren't reduced. VRM 0.x avatars face -Z and must be turned by the stage's loader.",
     ...backdropRows(built, provenance),
     '',
-    `**Prompter catalogue:** about ${tokens.toLocaleString('en-GB')} of ${CATALOGUE_TOKEN_BUDGET.toLocaleString('en-GB')} tokens. \`prompter-catalogue.txt\` is exactly what Claude reads; check its descriptions with the sketches.`,
+    `**Prompter catalogue:** the index in its system prompt is about ${tokens.toLocaleString('en-GB')} of ${CATALOGUE_INDEX_TOKEN_BUDGET.toLocaleString('en-GB')} tokens; every full line, which requests carry a few at a time, about ${fullTokens.toLocaleString('en-GB')}. \`prompter-catalogue.txt\` holds every full line exactly as Claude reads it; check its descriptions with the sketches.`,
     '',
   ].join('\n');
 }
