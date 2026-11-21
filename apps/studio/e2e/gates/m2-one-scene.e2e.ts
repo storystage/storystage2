@@ -29,6 +29,8 @@ async function productionStage(page: Page) {
   await page.goto('/?example');
   await page.getByRole('tab', { name: /Production stage/ }).click();
   await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  // The code sits below the scene view; a drag by the mouse can't start or end outside the window.
+  await page.locator('.pr-workspace').scrollIntoViewIfNeeded();
 }
 
 /**
@@ -56,10 +58,13 @@ async function smallBackstage(page: Page) {
     origin: 'shipped',
     sketches: [],
   });
-  await page.route('**/backstage/**', (route) =>
-    route.request().url().endsWith('/backstage/backstage.json')
-      ? route.fulfill({ json: { manifestVersion: '2.4.0', items: [item('Owl'), item('Hare')] } })
-      : route.fulfill({ status: 404 }),
+  // Only the Backstage folder the browser version reads, not a dev server's `packages/backstage`.
+  await page.route(
+    (url) => url.pathname.startsWith('/backstage/'),
+    (route) =>
+      route.request().url().endsWith('/backstage/backstage.json')
+        ? route.fulfill({ json: { manifestVersion: '2.4.0', items: [item('Owl'), item('Hare')] } })
+        : route.fulfill({ status: 404 }),
   );
 }
 
