@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readArchive, writeArchive } from './archive.ts';
 import { exampleProduction } from './example.ts';
 import { openProduction, saveProduction } from './file.ts';
+import { ProductionSession } from './session.ts';
 import {
   importSound,
   mixOf,
@@ -267,5 +268,23 @@ describe('sound in a film (format 1.9.0)', () => {
       }),
     );
     expect(openProduction(old)).toMatchObject({ status: 'migrated', original: old });
+  });
+});
+
+describe('sound changes in the production’s history (agreed with S5)', () => {
+  it('makes each change one undo step through ProductionSession.change, a drag between begin and commit', () => {
+    const s = new ProductionSession<'learner'>(p);
+    s.change('Add sound Birdsong', 'learner', (now) => withSound(now, clip));
+    s.begin('Move Birdsong to 4 s', 'learner');
+    for (const start of [1, 2, 4])
+      s.change('Move Birdsong', 'learner', (now) => withSceneMusic(now, scene, [cue({ start })]));
+    s.commit();
+    expect(s.production().scenes[0]!.music).toEqual([cue({ start: 4 })]);
+    expect(s.undoLabel()).toBe('Move Birdsong to 4 s');
+    s.undo();
+    expect(s.production().scenes[0]!.music).toBeUndefined();
+    expect(s.undoLabel()).toBe('Add sound Birdsong');
+    s.undo();
+    expect(s.production().manifest.sounds).toBeUndefined();
   });
 });

@@ -68,7 +68,7 @@ export function soundTypeOf(bytes: Uint8Array): SoundType | null {
 
 /** What `importSound` says, in plain words for the learner. */
 export const SOUND_REFUSALS = {
-  tooBig: 'That sound file is over 25 MB. Choose a shorter one, or trim it first.',
+  tooBig: 'That sound file is over 25 MB. Choose a smaller one.',
   notSound: "That file isn't an MP3, WAV or M4A sound.",
   wontPlay: "That sound file won't play on this device.",
   tooLong: 'That sound is over 10 minutes long. Choose a shorter one.',
