@@ -53,6 +53,11 @@ describe('palette', () => {
     );
   });
 
+  it('doesn’t offer the scene’s script as a block: it runs when the scene starts (14, 3a)', () => {
+    const yours = words(palette(program, self(), ID.scene, 'actions'), 'yours');
+    expect(yours.filter((w) => /myFirstMethod|scene starts/.test(w))).toEqual([]);
+  });
+
   it('puts the learner’s own procedures first', () => {
     const groups = palette(program, field(ID.rex), ID.scene, 'actions');
     expect(groups[0]).toMatchObject({ key: 'yours', words: 'your own' });

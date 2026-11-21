@@ -10,7 +10,7 @@ describe('TextView', () => {
 
   it('is a region named for its method, one row per line', () => {
     render(<TextView program={sampleProgram()} style="python" method={ids.main} />);
-    const region = screen.getByRole('region', { name: 'Text of myFirstMethod' });
+    const region = screen.getByRole('region', { name: 'Text of When the scene starts' });
     expect(region.tabIndex).toBe(0);
     expect(rows(region).map((r) => r.textContent)).toContain('    self.cat.say(text="Hello")');
     expect(rows(region)[0]!.dataset.node).toBe(ids.main);
@@ -27,9 +27,9 @@ describe('TextView', () => {
       <TextView program={sampleProgram()} style="python" method={ids.main} />,
     );
     const region = screen.getByRole('region');
-    expect(rows(region)[1]!.textContent).toBe('    self.cat.say(text="Hello")');
+    expect(rows(region)[4]!.textContent).toBe('    self.cat.say(text="Hello")');
     rerender(<TextView program={sampleProgram()} style="java" method={ids.main} />);
-    expect(rows(region)[1]!.textContent).toBe('    this.cat.say("Hello");');
+    expect(rows(region)[5]!.textContent).toBe('    this.cat.say("Hello");');
   });
 
   it('marks the running block’s lines, an error with its words, and the Prompter’s', () => {
@@ -48,13 +48,13 @@ describe('TextView', () => {
     const lines = rows(screen.getByRole('region'));
     const marked = (kind: string) =>
       lines.flatMap((r, i) => (r.classList.contains(`tv-hl-${kind}`) ? [i] : []));
-    expect(marked('rehearse')).toEqual([6, 7, 8]);
-    expect(marked('prompter')).toEqual([6, 7, 8]);
-    expect(marked('error')).toEqual([1]);
-    expect(lines[1]!.querySelector('.tv-message')!.textContent).toBe(
+    expect(marked('rehearse')).toEqual([10, 11, 12]);
+    expect(marked('prompter')).toEqual([10, 11, 12]);
+    expect(marked('error')).toEqual([5]);
+    expect(lines[5]!.querySelector('.tv-message')!.textContent).toBe(
       'There’s no scene called Beach',
     );
-    expect(lines[7]!.querySelector('.tv-message')).toBeNull();
+    expect(lines[11]!.querySelector('.tv-message')).toBeNull();
   });
 
   it('keeps the running line in view as it moves', () => {
@@ -79,7 +79,7 @@ describe('TextView', () => {
         highlight={{ rehearse: [{ node: ids.callHop }] }}
       />,
     );
-    expect(seen).toEqual(['1', '21']);
+    expect(seen).toEqual(['5', '25']);
   });
 
   it('notes the Python-like words Python hasn’t got, keeping the line’s text', () => {
@@ -87,13 +87,14 @@ describe('TextView', () => {
     const region = screen.getByRole('region');
     const notes = [...region.querySelectorAll<HTMLElement>('.tv-not-python')];
     expect(notes.map((n) => n.textContent)).toEqual([
+      'when', // what runs the scene's script method
       'do_together',
       'each_together',
       'do_in_order',
       'when',
     ]);
-    expect(notes[0]!.title).toMatch(/^Not in Python/);
-    expect(notes[0]!.closest('.tv-line')!.textContent).toBe('        do_together:');
+    expect(notes[1]!.title).toMatch(/^Not in Python/);
+    expect(notes[1]!.closest('.tv-line')!.textContent).toBe('        do_together:');
     // Not in the Java-like wording, nor on a word that only starts the same.
     render(<TextView program={sampleProgram()} style="java" label="Java" />);
     const java = screen.getByRole('region', { name: 'Java' });

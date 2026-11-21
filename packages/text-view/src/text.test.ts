@@ -138,10 +138,41 @@ describe('javaText (Alice’s Java formatter, WP7.6)', () => {
 });
 
 describe('textOf', () => {
-  it('gives the Python-like text as programText writes it', () => {
+  it('gives the Python-like text as programText writes it, with what runs the scene', () => {
     const p = sampleProgram();
-    const { text, spans } = programText(p);
-    expect(textOf(p, { style: 'python' })).toMatchObject({ text, spans });
+    const { text } = programText(p);
+    const shown = textOf(p, { style: 'python' });
+    const start = '    when sceneStart():\n        self.myFirstMethod()\n\n';
+    expect(shown.text).toBe(
+      text.replace('    def myFirstMethod', () => `${start}    def myFirstMethod`),
+    );
+    // Every node keeps its own text (the class holds the listener too), and the method's starts
+    // with the listener above it.
+    const written = new Map(programText(p).spans.map((s) => [s.node, text.slice(s.start, s.end)]));
+    for (const s of shown.spans) {
+      const own = shown.text.slice(s.start, s.end);
+      if (s.node === ids.main) expect(own).toBe(start.trimStart() + '    ' + written.get(s.node));
+      else if (s.node !== ids.scene) expect(own).toBe(written.get(s.node));
+    }
+  });
+
+  it('shows the listener that runs a scene’s script method, as Alice does (spec 14, 3a)', () => {
+    const one = textOf(sampleProgram(), { style: 'java', method: ids.main });
+    expect(
+      one.text.startsWith(
+        'this.onSceneStart(() -> {\n    this.myFirstMethod();\n});\n\npublic void myFirstMethod() {\n',
+      ),
+    ).toBe(true);
+    // Only a scene's: a method of another name, or in a type that isn't a scene, has none.
+    expect(textOf(sampleProgram(), { style: 'java', method: ids.hop }).text).not.toContain(
+      'onSceneStart',
+    );
+    const p = sampleProgram();
+    const notScene = {
+      ...p,
+      types: p.types.map((t) => ({ ...t, extends: { kind: 'story' as const, name: 'Prop' } })),
+    };
+    expect(textOf(notScene, { style: 'python' }).text).not.toContain('sceneStart');
   });
 
   for (const style of ['python', 'java'] as const) {
@@ -152,8 +183,8 @@ describe('textOf', () => {
       expect(
         one.text.startsWith(
           style === 'java'
-            ? 'public void myFirstMethod() {\n    this'
-            : 'def myFirstMethod(self):\n    self',
+            ? 'this.onSceneStart(() -> {\n    this.myFirstMethod();\n});\n\npublic void myFirstMethod() {\n    this'
+            : 'when sceneStart():\n    self.myFirstMethod()\n\ndef myFirstMethod(self):\n    self',
         ),
       ).toBe(true);
       expect(one.text.endsWith(style === 'java' ? '\n}\n' : 'self.hop(height=2)\n')).toBe(true);
@@ -170,6 +201,11 @@ describe('textOf', () => {
   it('gives each line its block: the one starting on it, or the one it closes', () => {
     const { lines } = textOf(sampleProgram(), { style: 'java', method: ids.main });
     expect(lines.map((l) => l.node)).toEqual([
+      // The listener that runs it, shown above it, is the method's.
+      ids.main,
+      ids.main,
+      ids.main,
+      null,
       ids.main,
       ids.say,
       ids.together,
@@ -186,7 +222,7 @@ describe('textOf', () => {
       ids.each,
       ids.each,
       ids.branch,
-      lines[16]!.node, // the say inside the if
+      lines[20]!.node, // the say inside the if
       ids.branch,
       ids.whileLoop,
       ids.whileLoop,
@@ -195,7 +231,7 @@ describe('textOf', () => {
       ids.sequence,
       ids.main,
     ]);
-    expect(lines[16]!.text.trim()).toBe('this.cat.say("Near");');
+    expect(lines[20]!.text.trim()).toBe('this.cat.say("Near");');
   });
 
   it('gives a blank line no block, and the class its own lines', () => {
@@ -217,10 +253,10 @@ describe('textOf', () => {
 describe('linesOf', () => {
   it('gives the lines a block runs over, and the line a value is on', () => {
     const text = textOf(sampleProgram(), { style: 'java', method: ids.main });
-    expect(linesOf(text, ids.count)).toEqual([6, 7, 8]);
-    expect(linesOf(text, ids.say)).toEqual([1]);
+    expect(linesOf(text, ids.count)).toEqual([10, 11, 12]);
+    expect(linesOf(text, ids.say)).toEqual([5]);
     const amount = text.spans.find((s) => text.text.slice(s.start, s.end) === '1.0')!;
-    expect(linesOf(text, amount.node)).toEqual([3]);
+    expect(linesOf(text, amount.node)).toEqual([7]);
     expect(linesOf(text, ids.hop)).toEqual([]);
   });
 });
