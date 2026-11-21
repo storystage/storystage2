@@ -791,6 +791,11 @@ describe('retype', () => {
     expect(refusal(toPet).code).toBe('would_break');
   });
 
+  it('is refused for a node that’s there but isn’t a type (S1’s review)', () => {
+    const toMethod = { ...toPet, type: { kind: 'user', type: ids.main } } as const;
+    expect(refusal(toMethod, withPet()).code).toBe('would_break');
+  });
+
   it('is refused for a type that isn’t one', () => {
     const bad = { ...toPet, type: { kind: 'nothing' } } as unknown as EditOperation;
     expect(refusal(bad, withPet()).code).toBe('would_break');
