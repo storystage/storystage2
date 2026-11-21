@@ -150,6 +150,31 @@ describe('a method as blocks and back (3i.8)', () => {
     );
   });
 
+  it('words a call to the scene’s script method “run “When the scene starts” again”', () => {
+    // An older Alice import can keep a scene-start listener that calls the script (spec 14, 3a).
+    const scene = program.types.find((t) => t.extends?.kind === 'story')!;
+    const script = scene.methods.find((m) => m.name === 'myFirstMethod')!;
+    const again: Statement = {
+      id: nodeId('again01'),
+      kind: 'call',
+      target: { id: nodeId('againt1'), kind: 'this' },
+      callee: { kind: 'user', method: script.id },
+      args: {},
+      details: {},
+    };
+    const owner = scene.listeners[0]!;
+    const calling = { ...owner, body: [again] };
+    const types = program.types.map((t) =>
+      t === scene ? { ...t, listeners: [calling, ...t.listeners.slice(1)] } : t,
+    );
+    const state = toBlocks({ ...program, types }, calling);
+    expect(state.blocks.blocks[0]!.inputs!.BODY!.block!.extraState?.label).toBe(
+      'run “When the scene starts” again',
+    );
+    // Words only: the call reads back as the program has it.
+    expect(fromBlocks(throughBlockly(state)).body).toEqual([again]);
+  });
+
   it('keeps a switched-off statement switched off', () => {
     const owner = owners(program).find((o) => o.body.some((s) => s.kind === 'call'))!;
     const off = owner.body.map((s): Statement =>

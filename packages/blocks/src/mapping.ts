@@ -21,7 +21,7 @@ import type {
   TypeRef,
 } from '@storystage/ast';
 import { DETAILS } from '@storystage/story-api';
-import { isSceneScript, methodTitle } from '@storystage/story-api/editing';
+import { isSceneScript, methodTitle, word } from '@storystage/story-api/editing';
 import {
   LISTENER,
   METHOD,
@@ -279,7 +279,10 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
         method: c.callee.method,
         params: (method?.params ?? []).map((p) => ({ id: p.id, name: p.name })),
         details: detailNames,
-        label: method?.name ?? '',
+        // A call to a scene's script method: "run “When the scene starts” again" (spec 14, 3a).
+        label: isSceneScript(program, c.callee.method)
+          ? word('method.sceneScriptAgain')
+          : (method?.name ?? ''),
       }),
       inputs,
     };
