@@ -6,7 +6,7 @@
 import type { Expression, ListenerDecl, NodeId, Statement, TypeDecl } from '@storystage/ast';
 import type { SceneObjectSetup } from '@storystage/story-api';
 import { classOfType, findEntry, type ApiClass } from '@storystage/story-api';
-import type { PlanStep } from './plans.ts';
+import { targetOf, type PlanStep } from './plans.ts';
 
 /** What the ticks are worked out against: the scene now, and what counts as the learner's. */
 export interface ProgressWorld {
@@ -138,7 +138,8 @@ function matches(step: PlanStep, call: Found, world: ProgressWorld): boolean {
     const v = call.values.get(d.name);
     if (v === undefined || !same(v, d.value)) return false;
   }
-  if (step.target !== '' && ![...call.values.values()].includes(step.target)) return false;
+  const target = targetOf(step);
+  if (target !== '' && ![...call.values.values()].includes(target)) return false;
   if (step.line !== '') {
     const words = world.lines.get(step.line);
     if (words === undefined || call.values.get('text') !== words) return false;
@@ -150,7 +151,7 @@ function matches(step: PlanStep, call: Found, world: ProgressWorld): boolean {
     for (const p of entry.params) {
       if (step.details.some((d) => d.name === p.name)) continue;
       if (p.name === 'text' && step.line !== '') continue;
-      if (classOfType(p.type) !== null && step.target !== '') continue;
+      if (classOfType(p.type) !== null && target !== '') continue;
       return false;
     }
   if (step.repeat > 1 && !call.counts.includes(step.repeat)) return false;
