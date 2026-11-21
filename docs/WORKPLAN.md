@@ -603,6 +603,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - bone IK and look-at controllers.
 
     Performance is checked on the reference devices. (C)
+- [ ] 5.9 **Drag posing (0073):** a hand and foot handle on `EditableStage`, and a drag that turns the arm's or leg's joints by inverse kinematics (`ik.ts`), so the hand or foot follows the pointer; joints still only turn (0051). S3; the Pose panel's side is 7.16 (S5). (C)
 
 **Done when:** the reference scenes in `tests/scenes/` render at 30 fps or better on both reference devices at "low", and the offscreen render is deterministic.
 
@@ -640,6 +641,10 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 7.3 Undo and redo across the scene view and the Code editor, with project history. Project history is the studio's one undo history, shared by the three tabs (owner, 16 Nov). (C)
 - [x] 7.4 Rehearse (live play of the current scene) with the controls from WP6.4. **Play and pause, restart, half, normal and double speed, Rehearse to here, Stop, and a switched-off block skipped (17 Nov); the run that reaches a frame marks it Rehearsed.** (C)
 - [x] 7.5 Keyboard paths for both views, and accessible names on every control. **Checked 17 Nov: axe finds nothing serious in eleven states of the Production stage at 1366 and 1180; the Blocks editor adds, answers, moves and deletes by keyboard alone, each said aloud, with focus kept.** (C)
+- [ ] 7.14 **Parameters and a character's own moves (0074):** parameters on a learner's procedures and functions, and procedures and functions on a character's class that every scene can use, in both code editors (S5 and S6, as agreed). The runtime calls a class's procedures and functions with their arguments (S2, with 6.1). Class properties and `.a3c` export are for the next version. (C)
+- [ ] 7.15 **Copy and paste of blocks (0075)** in both code editors, before the editor study (19.5). S5. (C)
+- [ ] 7.16 **The Pose panel's drag (0073):** the hand and foot handles of 5.9 in the scene view's Pose panel; one drag is one undo step. S5. (C)
+- [ ] 7.17 **The Sound view (0076):** a scene's music on a timeline: where it starts, its trim, fades, loop and volume, on the Music track; a clip can carry on over a scene cut until another starts. S5. (C)
 
 **Done when:** milestone M2's gate passes, with a manual test script for M2 in `docs/test/`.
 
@@ -731,6 +736,14 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - **With the Prompter on:** the learner can ask the Prompter to explain a flag or suggest a fix (Show me how, with a plan, 13.9); without it, the checklist still works.
     - **Before export:** the whole-production check runs before Export for distribution and lists any flags; the learner can export anyway.
     - **For the teacher:** frame status (Planned, Staged, Coded, Rehearsed) gains "Checked", and the checklist is part of the evidence for marking.
+
+    (C)
+- [ ] 11.7 **Sound (0076):**
+    - **the Backstage sound shelf:** openly licensed effects and music, with their licences and credits (S4, with 3.12);
+    - **your own sound files:** picked through the native picker (S8) and imported into the film, trimmed once on import (S4); in the DPIA and the licences (D, 17.3);
+    - **three tracks,** Speech, Music and Sound FX, each with its own volume;
+    - **playing:** `playAudio` in Rehearse and on the stage, and music in Rehearse (S3); the runtime's `playAudio` timing (S2);
+    - **the export's mix:** the three tracks, music lowered under speech, and music crossfading at a scene cut (S2; spec 08 section 4).
 
     (C)
 
@@ -1087,7 +1100,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | Multi-projector projection | Several projectors with blending, run from StoryStage rather than Pixera | WP23 | Release 2, if schools ask for it |
 | **AR trails** | Productions pinned to places: a history trail round the school grounds, a museum or heritage-site trail, a literacy trail for an open evening. Visitors find a printed marker (poster, plaque or QR code) or reach a location, and the scene plays there in AR. A trail editor maps scenes to markers or places; trails download as offline packs | WP22 player and AR pack; museum scans (WP3.7); curriculum use cases (WP16) | Release 2 |
 | Headset viewing | Watch productions in Quest's browser or on Vision Pro through WebXR | WP22.5 | Release 2 |
-| **Soundtrack (to consider)** | Import, or create, music and sound effects for scenes: CC0 and Creative Commons sources (for example Freesound) with the licence capture and credits of 3.12; a simple loop maker, music from free tools such as Chrome Music Lab or BandLab, or AI-generated music; a sound track per scene in the Screening room with fades and music lowered under dialogue; sound-effect blocks tied to frames; music shown in captions. To settle: commercial music (school licences may cover class use but not films shared beyond the school), AI music licences and safeguarding, device audio performance | WP11, WP14, 3.12 | Decide for StoryStage 2.1 (release 1.1); plan with voice-over |
+| Making music | A simple loop maker, music from free tools such as Chrome Music Lab or BandLab, or AI-generated music; music shown in captions. To settle: commercial music (school licences may cover class use but not films shared beyond the school), AI music licences and safeguarding. The Backstage sound shelf, your own sound files and the three tracks are in this version (0076, 11.7) | 11.7 | Release 1.1 or later; plan with voice-over |
 | Voice-over and lip sync | Recorded voice per script line; Rhubarb Lip Sync | WP14.4 | Release 1.2 |
 | Concepts for older learners | Broadcast messages, records, maps, switch, breakpoints, easing curves | WP4.9 | Release 1.2 |
 | BML-style sync points | Actions timed to words | WP4, WP14 | Release 2 |
