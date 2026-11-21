@@ -644,7 +644,12 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 7.14 **Parameters and a character's own moves (0074):** parameters on a learner's procedures and functions, and procedures and functions on a character's class that every scene can use, in both code editors (S5 and S6, as agreed). The runtime calls a class's procedures and functions with their arguments (S2, with 6.1). Class properties and `.a3c` export are for the next version. (C)
 - [ ] 7.15 **Copy and paste of blocks (0075)** in both code editors, before the editor study (19.5). S5. (C)
 - [ ] 7.16 **The Pose panel's drag (0073):** the hand and foot handles of 5.9 in the scene view's Pose panel; one drag is one undo step. S5. (C)
-- [ ] 7.17 **The Sound view (0076):** a scene's music on a timeline: where it starts, its trim, fades, loop and volume, on the Music track; a clip can carry on over a scene cut until another starts. S5. (C)
+- [ ] 7.17 **Sound in the studio (0076):**
+    - **the Sound view:** a scene's music on a timeline: where it starts, its trim, fades, loop and volume, on the Music track; a clip can carry on over a scene cut until another starts (S5);
+    - **the trim dialog on import:** a waveform with start and end handles, set once (S5);
+    - **`playAudio`'s choice of sound:** in Blocks (S5), and in Tiles (S6).
+
+    (C)
 
 **Done when:** milestone M2's gate passes, with a manual test script for M2 in `docs/test/`.
 
@@ -740,7 +745,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     (C)
 - [ ] 11.7 **Sound (0076):**
     - **the Backstage sound shelf:** openly licensed effects and music, with their licences and credits (S4, with 3.12);
-    - **your own sound files:** picked through the native picker (S8) and imported into the film, trimmed once on import (S4); in the DPIA and the licences (D, 17.3);
+    - **your own sound files:** picked through the native picker (S8) and imported into the film (S4), trimmed once on import in the studio's trim dialog (S5, 7.17); in the DPIA and the licences (D, 17.3);
     - **three tracks,** Speech, Music and Sound FX, each with its own volume;
     - **playing:** `playAudio` in Rehearse and on the stage, and music in Rehearse (S3); the runtime's `playAudio` timing (S2);
     - **the export's mix:** the three tracks, music lowered under speech, and music crossfading at a scene cut (S2; spec 08 section 4).
