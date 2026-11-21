@@ -103,6 +103,6 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Buy code-signing certificates; open Apple and Google developer accounts | M6 | WP15.4, 15.5 |
 | Choose the pilot window around the Easter holidays | M7 | WP19 |
 | Who runs StoryStage after the pilot (maintainer, funding, support) | Before the pilot | Design doc section 10 |
-| Find a Windows PC with an NVIDIA card, or a venue partner, to test Export to Pixera | M11 | WP23 |
+| Find a venue partner with real projectors to try Export to Pixera's operator guide (screens, projectors, calibration). Build in Pixera is tested on the owner's PC (RTX 2060, Pixera Creator 26.1; spike 23.2, 21 Nov) | M11 | WP23 |
 | Whether StoryStage 2.1 adds a soundtrack (import or create music and sound effects) | Before planning release 1.1 | Workplan 6b |
 | Which code editor continues, from the study | M12 | WP19.8 |
