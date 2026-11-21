@@ -15,9 +15,11 @@ import {
   describer,
   detailsToAdd,
   methodTitleIn,
+  parameterWords,
   type Describer,
   type StatementPlace,
   type ValuePlace,
+  word,
 } from '@storystage/story-api/editing';
 import {
   Fragment,
@@ -760,7 +762,7 @@ export function TilesView(props: ViewProps) {
   const found = useMemo(() => {
     for (const type of program.types) {
       const m = type.methods.find((x) => x.id === method);
-      if (m) return { body: m.body, title: methodTitleIn(type, m) };
+      if (m) return { body: m.body, title: methodTitleIn(type, m), params: m.params };
       const l = type.listeners.find((x) => x.id === method);
       if (l) return { body: l.body, title: describe(l), listener: l };
     }
@@ -1007,6 +1009,17 @@ export function TilesView(props: ViewProps) {
     <div className="tl-code" ref={code}>
       <div className="tl-title" id={titleId}>
         {'listener' in found && found.listener ? header(found.listener) : found.title}
+        {found.params && found.params.length > 0 ? (
+          // A method's inputs (0074): "height: number", in the learner's word (7.14).
+          <span className="tl-inputs">
+            <span className="tl-visually-hidden">, {word('parameter.words')}: </span>
+            {found.params.map((p) => (
+              <span key={p.id} className="tl-input">
+                {parameterWords(program, p)}
+              </span>
+            ))}
+          </span>
+        ) : null}
       </div>
       <ul
         ref={tree}
