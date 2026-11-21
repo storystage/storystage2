@@ -692,12 +692,25 @@ Steps that are `together` inside the loop are built as a `doTogether` inside the
 
 **Kept with the frame (6.7):** `PlanStep` gains `holds`, and `PLAN_STEP_KINDS` gains `repeat`, in production format 1.8.0 (S4). `isFramePlan` checks both, and a plan kept before 1.8.0 reads with `holds` 0.
 
-**The panel (S5):**
-- Held steps are shown indented under their `repeat` step, and named in the same way ("Step 2, inside the repeat: …").
-- **Change step** on a `repeat` step offers How many times, with the number field the count block uses, and How many steps it repeats.
-- **Add a step**'s menu offers "Repeat…".
-- Deleting a `repeat` step keeps its steps, which are then no longer held.
-- Moving a step into or out of a repeat's range changes `holds`. The panel's logic (`PrompterPanel`, S7) does this, so every edit keeps a plan the check accepts.
+**The panel (S5 draws it; `PrompterPanel`, S7, makes each edit, so every edit keeps a plan the check accepts):**
+- **Showing it:** held steps are indented under their `repeat` step, with a thin line down their left in the count block's loop colour, so the end of the loop shows at a glance.
+- **Names, for screen readers:**
+  - A `repeat` step is "Step 1: Repeat 3 times, holding steps 2 and 3".
+  - A held step is "Step 2, inside the repeat: …".
+  - Done at Plan only (6.6, with #574's form), they become "Step 1, done: Repeat 3 times, holding steps 2 and 3" and "Step 2, inside the repeat, done: …".
+- **Change step on a `repeat` step** offers:
+  - **How many times**, with the number field the count block uses (2 to 1,000);
+  - **Steps inside**, a number from 1 up to the run of `do` steps right after it, listed under the field ("Steps 2 and 3"), so a child sees which ones.
+- **Add a step › Repeat…** adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (12 at most).
+- **Reordering:**
+  - Dragging a `repeat` step moves its held steps with it.
+  - A `do` step moved to between a `repeat` step and its last held step goes inside (`holds` + 1). One moved to just after the last held step stays outside, and Steps inside takes it in.
+  - A held step moved out of the range leaves it (`holds` − 1).
+  - A step that can't be held (a `when`, `stage`, `add` or `change` step, or another `repeat`) can't be moved inside. The move is refused, with the words "A repeat can only hold steps that are blocks."
+- **Deleting:**
+  - Deleting a `repeat` step keeps its steps, which are then no longer held.
+  - Deleting a held step leaves the repeat one fewer.
+  - If that leaves it none, the `repeat` step goes too, with the words "The repeat had no steps left, so it's gone too."
 
 **Tools and pins:** `propose_plan` and `revise_plan`'s step gains `holds` as a required field, since an optional one costs grammar. The kind enum comes from `PLAN_STEP_KINDS`. The plan tools are strict, so the owner's grammar probe (`tools/fake-claude/src/eval/probe-grammar.ts`) runs again before a live run.
 
