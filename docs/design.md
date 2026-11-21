@@ -310,7 +310,7 @@ One production can reach an audience four ways, and each teaches something diffe
 | **Projection mapping** | Stage a production on a real object, preview it with virtual projectors, project it in class, and export it for Pixera (or the free MapMap) | WP23 |
 | **Pathway to industry tools** | "Under the hood" names in the text view; export to Unreal, Unity and Godot; a pathway guide to UK games, screen and live-event careers | WP20 |
 
-**Limits worth knowing:** Google's Scene Viewer plays only a model's first animation and works best under about 10 MB; Pixera runs only on Windows with an NVIDIA graphics card, and its project file format isn't published, so Export to Pixera is a package plus a build script and a one-page operator guide.
+**Limits worth knowing:** Google's Scene Viewer plays only a model's first animation and works best under about 10 MB; Pixera runs only on Windows with an NVIDIA graphics card, and its project file format isn't published, so Export to Pixera is a guided step in the Windows app that builds the show through Pixera's API, with a one-page operator guide (0072).
 
 **Safeguards across all of them:** camera images never leave the device and never go to the Prompter; recording mixed-reality film is off unless a teacher allows it; AR packs default to first-name or anonymous credits; a flashing check runs before every export.
 
