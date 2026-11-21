@@ -17,6 +17,8 @@ import {
 import { groundLook } from '@storystage/stage';
 import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
 import { addJointsProblem, type AddedJoint } from './add-joints.ts';
+import { coverProblem, type Cover } from './cover.ts';
+import { globeProblem, type Globe } from './globe.ts';
 import { clipsProblem, type Clips } from './clips.ts';
 import type { Exclude } from './exclude.ts';
 import { kitbashProblems, type Kitbash } from './kitbash.ts';
@@ -96,6 +98,16 @@ export interface SourceItem {
    * renames, which can then name them.
    */
   readonly addJoints?: readonly AddedJoint[];
+  /**
+   * Marks to paint out of the model's pictures in the shipped copy (`cover.ts`): NASA's insignia
+   * (the owner's choice of 21 Nov 2026). For a glTF model only.
+   */
+  readonly cover?: readonly Cover[];
+  /**
+   * A sphere the build makes from the fetched picture (`globe.ts`): the Sun, the Moon and the
+   * planets (the owner's choice of 21 Nov 2026). Its fetch is the picture, from GitHub.
+   */
+  readonly globe?: Globe;
   /**
    * How it moves when it walks, in place of the stage's own choice (manifest 2.4.0): `hop` for the
    * frog.
@@ -242,6 +254,18 @@ export function validateSources(json: unknown): Result {
       if (isObject(item.clips) && 'walk' in item.clips)
         e('a gait is for an animal with no walk clip of its own; it has one.');
     }
+    if (item.cover !== undefined) {
+      const problem = coverProblem(item.cover);
+      if (problem) e(problem);
+    }
+    if (item.globe !== undefined) {
+      const problem = globeProblem(item.globe);
+      if (problem) e(problem);
+      if (backdrop) e('a globe is a model, not a backdrop.');
+      const gf = item.fetch as Record<string, unknown> | undefined;
+      if (!gf || !('github' in gf))
+        e("a globe's fetch is its picture from GitHub, so a ring comes from the same commit.");
+    }
     if (item.addJoints !== undefined) {
       const problem = addJointsProblem(item.addJoints);
       if (problem) e(problem);
@@ -295,9 +319,11 @@ export function validateSources(json: unknown): Result {
         e(
           'fetch.commit must be a full 40-character commit, so the build fetches what was reviewed.',
         );
-      if (backdrop) {
+      if (backdrop || item.globe !== undefined) {
         if (!isText(f.path) || !PICTURE.test(f.path))
-          e("a backdrop's fetch.path must be its picture: .jpg, .png or .webp.");
+          e(
+            `a ${backdrop ? 'backdrop' : 'globe'}'s fetch.path must be its picture: .jpg, .png or .webp.`,
+          );
       } else if (!isText(f.path) || !/\.(glb|gltf|vrm)$/.test(f.path))
         e('fetch.path must end .glb, .gltf or .vrm.');
     } else {
