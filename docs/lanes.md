@@ -46,7 +46,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S2 Language, runtime and Screening room
 - Merged:
-  - 21 Nov (this): **Decision 0074's S2 parts** (S6's #614, S1's #610): a `retype`'s depth is now checked from the field, as every other edit that adds is, since a list type can nest without end and a too-deep program would have been made and then refused when opened (spec 01 section 4.2); and a test pins that the runtime calls a class's method on a field of that class, with its arguments and the field's object as `this`, which it already did.
+  - 21 Nov (#620): **Decision 0074's S2 parts** (S6's #614, S1's #610): a `retype`'s depth is now checked from the field, as every other edit that adds is, since a list type can nest without end and a too-deep program would have been made and then refused when opened (spec 01 section 4.2); and a test pins that the runtime calls a class's method on a field of that class, with its arguments and the field's object as `this`, which it already did.
   - 19 Nov (#561): **Film credits read Backstage's list of licences named in credit** (S4's #560, `LICENCES_NAMED_IN_CREDIT`) instead of S2's own copy, so a licence S4 adds later is linked in films too.
   - 19 Nov (#553): **Film credits link the VRM licence** (S4's #549): Seed-san's line shows the VRM Public License 1.0's name and address, as CC BY's lines show their deeds; CC0's lines stay without one.
   - 19 Nov (#551): **Missing joints are noted** (S3's #542, spec 08 section 9): the automatic check notes each object whose model hasn't got a joint it poses, naming the joints, and the rough cut says the same for each scene; a scene whose only missing entries were joints no longer shows an empty note.
