@@ -7,6 +7,7 @@ import type { Expression, ListenerDecl, NodeId, Statement, TypeDecl } from '@sto
 import type { SceneObjectSetup } from '@storystage/story-api';
 import { classOfType, findEntry, type ApiClass } from '@storystage/story-api';
 import { targetOf, type PlanStep } from './plans.ts';
+import { heldBy } from './repeats.ts';
 
 /** What the ticks are worked out against: the scene now, and what counts as the learner's. */
 export interface ProgressWorld {
@@ -66,7 +67,14 @@ function same(a: string, b: string): boolean {
   return a.trim() !== '' && b.trim() !== '' && Number.isFinite(x) && x === y;
 }
 
-function calls(world: ProgressWorld): Found[] {
+/** A count block in the scene: its times, and whether it's the learner's work for this plan. */
+interface Loop {
+  readonly id: NodeId;
+  readonly times: number;
+  readonly mine: boolean;
+}
+
+function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
   const fields = new Map(world.type.fields.map((f) => [f.id, f.name] as const));
   const found: Found[] = [];
   const visit = (
@@ -100,6 +108,12 @@ function calls(world: ProgressWorld): Found[] {
         }
         case 'count': {
           const times = s.times.kind === 'wholeNumber' || s.times.kind === 'number';
+          if (times)
+            loops.push({
+              id: s.id,
+              times: (s.times as { value: number }).value,
+              mine: world.counts(s.id, around),
+            });
           visit(
             s.body,
             here,
@@ -131,8 +145,12 @@ function calls(world: ProgressWorld): Found[] {
   return found;
 }
 
-/** Whether a call does what a `do` step says, by the rule a build is held to (6.4, 6.3). */
-function matches(step: PlanStep, call: Found, world: ProgressWorld): boolean {
+/**
+ * Whether a call does what a `do` step says, by the rule a build is held to (6.4, 6.3). A step
+ * inside a repeat (6.8) must be inside a count with the repeat's times (`within`).
+ */
+function matches(step: PlanStep, call: Found, world: ProgressWorld, within?: number): boolean {
+  if (within !== undefined && !call.counts.includes(within)) return false;
   if (call.target !== step.actor || call.procedure !== step.action) return false;
   for (const d of step.details) {
     const v = call.values.get(d.name);
@@ -206,7 +224,9 @@ function listens(
  * order, so two steps that are the same need two blocks.
  */
 export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boolean[] {
-  const mine = calls(world).filter((c) => c.mine);
+  const loops: Loop[] = [];
+  const mine = calls(world, loops).filter((c) => c.mine);
+  const held = heldBy(steps);
   const used = new Set<NodeId>();
   const take = (ids: readonly NodeId[]): boolean => {
     const id = ids.find((i) => !used.has(i));
@@ -214,10 +234,12 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
     used.add(id);
     return true;
   };
-  return steps.map((step) => {
+  return steps.map((step, i) => {
+    const holder = held[i];
+    const within = holder === null || holder === undefined ? undefined : steps[holder]!.repeat;
     switch (step.kind) {
       case 'do':
-        return take(mine.filter((c) => matches(step, c, world)).map((c) => c.id));
+        return take(mine.filter((c) => matches(step, c, world, within)).map((c) => c.id));
       case 'add':
         return world.objects.some(
           (o) => o.id === step.actor && typeof o.model === 'string' && o.model === step.action,
@@ -229,8 +251,8 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
       case 'stage':
         return world.staged;
       case 'repeat':
-        // Ticked from spec 04 section 6.8 (S7); until then no plan has one.
-        return false;
+        // A count of the learner's with the repeat's times (6.8); each count ticks one repeat.
+        return take(loops.filter((l) => l.mine && l.times === step.repeat).map((l) => l.id));
     }
   });
 }

@@ -19,6 +19,7 @@ export * from './outcomes.ts';
 export * from './panel.ts';
 export * from './pins.ts';
 export * from './progress.ts';
+export * from './repeats.ts';
 export * from './plans.ts';
 export * from './request.ts';
 export * from './runner.ts';

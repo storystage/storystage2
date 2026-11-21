@@ -12,6 +12,7 @@ import type { PrompterLevel } from './levels.ts';
 import { BUILD_REQUEST, PrompterPanel, createPrompterPanel } from './panel.ts';
 import { releaseSystem, releaseTools } from './pins.ts';
 import type { PlanStep } from './plans.ts';
+import { PLAN_EDIT_WORDS } from './repeats.ts';
 import { PrompterRunner } from './runner.ts';
 import { PrompterSession } from './session.ts';
 import { buildSystem } from './system-prompt.ts';
@@ -49,18 +50,11 @@ const step = (s: Partial<PlanStep> = {}): PlanStep => ({
   ...s,
 });
 
-/** Claude's plan steps carry no `holds` until the tool schema has it (spec 04 section 6.8). */
-const asSent = (input: unknown): unknown => {
-  const i = input as { steps?: unknown } | null;
-  if (!Array.isArray(i?.steps)) return input;
-  const steps = (i.steps as Record<string, unknown>[]).map(({ holds: _holds, ...rest }) => rest);
-  return { ...i, steps };
-};
 const use = (id: string, name: string, input: unknown): TestBlock => ({
   type: 'tool_use',
   id,
   name,
-  input: asSent(input),
+  input,
 });
 const say = (text: string) => testReply([{ type: 'text', text }]);
 const proposes = (steps: PlanStep[]) => testReply([use('t1', 'propose_plan', { steps })]);
@@ -715,5 +709,34 @@ describe('createPrompterPanel', () => {
     expect(body.system).toEqual(releaseSystem());
     expect(body.tools).toEqual(releaseTools());
     expect(panel.state.entries.at(-1)).toEqual({ kind: 'reply', text: 'Hello.', done: true });
+  });
+});
+
+describe("the panel's repeats (spec 04, section 6.8)", () => {
+  it('adds Repeat… before the last step, holding it, and says where it went', async () => {
+    const t = await planned();
+    expect(t.panel.state.plan?.canRepeat).toBe(true);
+    expect(t.panel.addRepeat()).toEqual({ ok: true, index: 0 });
+    const plan = t.panel.state.plan!;
+    expect(plan.steps.map((s) => s.kind)).toEqual(['repeat', 'do']);
+    expect(plan.steps[0]!.words).toBe('Repeat 2 times:');
+    expect(plan.heldBy).toEqual([null, 0]);
+    expect(plan.stepsInsideMax).toEqual([1, null]);
+    expect(plan.canRepeat).toBe(false);
+    expect(plan.problems).toEqual([]);
+    expect(t.panel.addRepeat()).toEqual({ ok: false });
+  });
+
+  it("refuses a step it can't hold with words, keeps limits, and drops an empty repeat", async () => {
+    const t = await planned();
+    t.panel.addRepeat();
+    t.panel.addStep(step({ kind: 'when', action: 'clickOnObject', words: 'When clicked.' }), 0);
+    expect(t.panel.moveStep(0, 1)).toEqual({ ok: false, words: PLAN_EDIT_WORDS.cantHold });
+    expect(t.panel.changeStep(1, { holds: 2 })).toEqual({ ok: false });
+    expect(t.panel.changeStep(1, { repeat: 4 })).toEqual({ ok: true });
+    expect(t.panel.state.plan?.steps[1]?.words).toBe('Repeat 4 times:');
+    expect(t.panel.deleteStep(2)).toEqual({ ok: true, words: PLAN_EDIT_WORDS.repeatGone });
+    expect(t.panel.state.plan?.steps.map((s) => s.kind)).toEqual(['when']);
+    expect(t.panel.state.plan?.heldBy).toEqual([null]);
   });
 });

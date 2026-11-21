@@ -15,6 +15,7 @@ import {
   type ParamDef,
 } from '@storystage/story-api';
 import { word } from '@storystage/story-api/editing';
+import { PLAN_EDIT_WORDS, heldBy, holdable } from './repeats.ts';
 import { LISTENER_EVENTS } from './tools.ts';
 
 /**
@@ -77,6 +78,9 @@ function stepProblem(
   const missing = (name: string) =>
     `There's no ${name} in this scene yet. Add one first, or change who does this.`;
 
+  // Only a repeat step (6.8) has no actor or action; the tool lets them be empty for it.
+  if (step.kind !== 'repeat' && step.actor.trim() === '') return 'Say who does this step.';
+  if (step.kind !== 'repeat' && step.action.trim() === '') return 'Say what this step does.';
   if (step.line !== '' && !world.lines.has(step.line)) return "That line isn't in your script.";
   if (step.sketch !== '' && !world.sketches.has(step.sketch))
     return "That sketch isn't on this frame.";
@@ -124,18 +128,57 @@ function stepProblem(
     case 'stage':
       return world.scenes.has(step.action) ? null : `There's no scene ${step.action}.`;
     case 'repeat':
-      // Format 1.8.0 keeps repeat steps; the Prompter plans them with spec 04 section 6.8 (S7).
-      return "A plan can't repeat several steps yet. Give each step its own repeat.";
+      // Checked with the steps it holds (`repeatProblems`, section 6.8).
+      return null;
   }
 }
 
 /** Every step that can't be built, in order. Empty means the plan can be shown. */
 export function checkPlan(steps: readonly PlanStep[], world: PlanWorld): PlanProblem[] {
   const objects = new Map<string, ApiClass | null>(world.objects);
+  const repeats = repeatProblems(steps);
   return steps.flatMap((step, i) => {
-    const message = stepProblem(step, objects, world);
+    const message = repeats.get(i) ?? stepProblem(step, objects, world);
     return message === null ? [] : [{ step: i + 1, message }];
   });
+}
+
+/**
+ * The rules a plan's repeats keep (section 6.8), by step index. The format keeps any plan that
+ * can be read; these are the Prompter's, and some ("for now") may be lifted later.
+ */
+function repeatProblems(steps: readonly PlanStep[]): Map<number, string> {
+  const found = new Map<number, string>();
+  const held = heldBy(steps);
+  steps.forEach((s, i) => {
+    if (s.kind === 'repeat') {
+      if (s.repeat < 2) found.set(i, 'A repeat needs to run at least 2 times.');
+      else if (s.holds < 1) found.set(i, 'A repeat needs at least one step inside it.');
+      else if (i + s.holds >= steps.length)
+        found.set(i, 'This repeat holds more steps than come after it.');
+      else if (
+        s.actor !== '' ||
+        s.action !== '' ||
+        targetOf(s) !== '' ||
+        s.line !== '' ||
+        s.sketch !== '' ||
+        s.details.length > 0 ||
+        s.together
+      )
+        found.set(i, 'A repeat step only says how many times, and which steps are inside.');
+    } else if (s.holds > 0) found.set(i, 'Only a repeat step can hold other steps.');
+    const holder = held[i];
+    if (holder === null || holder === undefined || found.has(i)) return;
+    if (s.kind === 'repeat') found.set(i, "A repeat can't go inside another repeat yet.");
+    else if (!holdable(s)) found.set(i, PLAN_EDIT_WORDS.cantHold);
+    else if (s.repeat > 1) found.set(i, "A step inside a repeat can't repeat on its own as well.");
+    else if (s.together && i === holder + 1)
+      found.set(
+        i,
+        "The first step inside a repeat can't happen at the same time as the step before it.",
+      );
+  });
+  return found;
 }
 
 // ---- The build matches the plan (section 6.4) ------------------------------------------------
@@ -162,6 +205,10 @@ export function mismatch(
   const differs = (what: string) => `Step "${step.words}" ${what}. ${build}`;
   switch (tool) {
     case 'insert_statement': {
+      if (step.kind === 'repeat')
+        return differs(
+          `is a repeat: build it as a count block with count ${step.repeat}, then its steps inside it`,
+        );
       if (step.kind !== 'do') return differs(`is a ${step.kind} step, not a block`);
       if (text(input.target) !== step.actor || text(input.procedure) !== step.action)
         return differs(`is the ${step.actor}'s ${step.action} block, with target ${step.actor}`);

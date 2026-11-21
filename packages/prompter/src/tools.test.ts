@@ -195,6 +195,7 @@ const good: Readonly<Record<string, unknown>> = {
         sketch: 'k4',
         together: false,
         repeat: 1,
+        holds: 0,
         why: 'Your sketch has the owl by the tree.',
       },
     ],
@@ -290,6 +291,17 @@ describe('checkToolInput (spec 04, section 1.6)', () => {
     expect(refused('propose_plan', { steps: [{ ...step, words: 'w '.repeat(25) }] })).toMatch(
       /words/,
     );
+  });
+
+  it('takes a repeat step, with no actor or action, and keeps holds within a frame (6.8)', () => {
+    const [step] = (good.propose_plan as { steps: Record<string, unknown>[] }).steps;
+    const plan = (change: Record<string, unknown>) =>
+      refused('propose_plan', { steps: [{ ...step, ...change }] });
+    expect(
+      plan({ kind: 'repeat', actor: '', action: '', target: '', repeat: 3, holds: 1 }),
+    ).toBeNull();
+    expect(plan({ holds: 49 })).toBeNull();
+    expect(plan({ holds: 50 })).toMatch(/holds should be a whole number from 0 to 49/);
   });
 
   it("keeps a plan step within the format's limits, so its frame can keep it (6.7)", () => {
