@@ -44,9 +44,75 @@ export const arrowFor = (e: Expression): string | null =>
 export const splitWords = (id: string): string =>
   id.replace(/([a-z])([A-Z0-9])/g, '$1 $2').toLowerCase();
 
+/** The Story API types whose values are references written as text (Story API section 8). */
+export const REFERENCE_TYPES = ['Paint', 'Audio', 'SceneId', 'AnimationClip'] as const;
+export type ReferenceType = (typeof REFERENCE_TYPES)[number];
+
 export interface WordsOptions {
   /** The joint map's word for a joint ("left elbow"); without it, the id is split into words. */
   readonly jointWord?: (joint: string) => string;
+  /**
+   * The words for a reference written as text: a sound's label for `sn1` or a shelf sound's
+   * Backstage id (workplan 7.17), a scene's name for its id. Without it, or when it gives
+   * nothing, the text is shown as it is.
+   */
+  readonly referenceWord?: (type: ReferenceType, value: string) => string | undefined;
+}
+
+const isReference = (name: string): name is ReferenceType =>
+  (REFERENCE_TYPES as readonly string[]).includes(name);
+
+/**
+ * The reference type the value `id` is written for, from the place it's in: a block's argument,
+ * an input's, a variable's starting value, an item in a list of them. `null` if it isn't in such a place.
+ */
+export function referenceTypeAt(program: Program, id: NodeId): ReferenceType | null {
+  const index = indexOf(program);
+  const at = index.get(id);
+  const holder = at?.parent ? index.get(at.parent)?.node : undefined;
+  if (!at || !holder) return null;
+  const types = typesOf(program);
+  let wanted: TypeRef | null = null;
+  switch (holder.kind) {
+    case 'call':
+    case 'functionCall': {
+      if (at.slot !== 'args' || typeof at.key !== 'string') break;
+      if (holder.callee.kind === 'user') {
+        const method = types.methods.get(holder.callee.method)?.method;
+        wanted = method?.params.find((p) => p.id === at.key)?.type ?? null;
+        break;
+      }
+      let owner: NodeId | null = null;
+      for (let up = index.get(holder.id); up; up = up.parent ? index.get(up.parent) : undefined)
+        if (up.node.kind === 'type') {
+          owner = up.node.id;
+          break;
+        }
+      const self: TypeRef = owner
+        ? { kind: 'user', type: owner }
+        : { kind: 'story', name: 'Scene' };
+      const cls = types.classOf(types.typeOf(holder.target, self));
+      const param = (cls ? findEntry(cls, holder.callee.name) : undefined)?.params.find(
+        (p) => p.name === at.key,
+      );
+      wanted = param ? { kind: 'story', name: param.type } : null;
+      break;
+    }
+    case 'local':
+      wanted = at.slot === 'value' ? holder.type : null;
+      break;
+    case 'field':
+      wanted = at.slot === 'initial' ? holder.type : null;
+      break;
+    case 'parameter':
+      wanted = at.slot === 'default' ? holder.type : null;
+      break;
+    case 'arrayOf':
+      // One of a list's items, of the list's own item type: a list of sounds (S4's review).
+      wanted = at.slot === 'items' ? holder.of : null;
+      break;
+  }
+  return wanted?.kind === 'story' && isReference(wanted.name) ? wanted.name : null;
 }
 
 const numberWords = (value: number): string => String(Number(value.toFixed(6)));
@@ -70,12 +136,17 @@ export interface Describer {
  * same describer, so asking for one per row costs nothing (spec 14, 3h).
  */
 export function describer(program: Program, options: WordsOptions = {}): Describer {
-  // Any option at all bypasses the cache, so one added later is never ignored.
+  // Without options, one describer for each program; with them, one for each program and
+  // options object, so an editor's rows share one (3h). Options are never changed once made.
   const given = Object.values(options).some((v) => v !== undefined);
-  return given ? describe(program, options) : plain(program);
+  if (!given) return plain(program);
+  let made = withOptions.get(options);
+  if (!made) withOptions.set(options, (made = perProgram((p) => describe(p, options))));
+  return made(program);
 }
 
 const plain = perProgram((program) => describe(program, {}));
+const withOptions = new WeakMap<WordsOptions, (program: Program) => Describer>();
 
 function describe(program: Program, options: WordsOptions): Describer {
   const index = indexOf(program);
@@ -105,8 +176,11 @@ function describe(program: Program, options: WordsOptions): Describer {
         return numberWords(e.value);
       case 'boolean':
         return word(e.value ? 'words.true' : 'words.false');
-      case 'text':
-        return e.value;
+      case 'text': {
+        // A sound or a scene is written as its id, and shown by its name (7.17).
+        const type = options.referenceWord ? referenceTypeAt(program, e.id) : null;
+        return (type && options.referenceWord?.(type, e.value)) ?? e.value;
+      }
       case 'enum':
         return e.type === 'JointId' ? joint(e.value) : word(`value.${e.type}.${e.value}`);
       case 'none':

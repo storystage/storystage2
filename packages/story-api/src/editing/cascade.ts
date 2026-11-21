@@ -18,7 +18,7 @@ import { indexOf, typesOf } from './cache.ts';
 import { ENUMS } from '../catalog/types.ts';
 import type { NumberRange, ParamDef } from '../catalog/types.ts';
 import type { ValuePlace } from './drop.ts';
-import { arrowOf, describer, word, type WordsOptions } from './words.ts';
+import { arrowOf, describer, word, type ReferenceType, type WordsOptions } from './words.ts';
 
 export type Ask = 'number' | 'wholeNumber' | 'text';
 
@@ -39,7 +39,7 @@ export interface CascadeOptions extends WordsOptions {
   /** A jointed object's joints, from its model in the manifest (spec 02, section 5). */
   readonly jointsOf?: (field: NodeId) => readonly { readonly id: string; readonly words: string }[];
   /** Backstage surfaces, sounds, scenes and clips, written as text (spec 02, section 3a). */
-  readonly references?: (type: 'Paint' | 'Audio' | 'SceneId' | 'AnimationClip') => readonly {
+  readonly references?: (type: ReferenceType) => readonly {
     readonly value: string;
     readonly words: string;
   }[];
