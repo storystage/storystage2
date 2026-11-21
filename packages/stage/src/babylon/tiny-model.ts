@@ -70,19 +70,33 @@ export function tinyModelUrl(
   {
     step = [0, 0.2, 0],
     clips = [],
-  }: { step?: readonly number[]; clips?: readonly TinyClip[] } = {},
+    emissive,
+  }: {
+    step?: readonly number[];
+    clips?: readonly TinyClip[];
+    /** The surface's own light, glTF's `emissiveFactor`. */
+    emissive?: readonly [number, number, number];
+  } = {},
 ): string {
   const at = step as unknown as readonly [number, number, number];
   return tinySkeletonUrl(
     bones.map((name, i) => (i > 0 ? { name, parent: bones[i - 1]!, at } : { name })),
-    { clips },
+    { clips, ...(emissive ? { emissive } : {}) },
   );
 }
 
 /** The model with a skeleton of any shape, and any clips. */
 export function tinySkeletonUrl(
   skeleton: readonly TinyBone[],
-  { clips = [], extensions }: { clips?: readonly TinyClip[]; extensions?: object } = {},
+  {
+    clips = [],
+    extensions,
+    emissive,
+  }: {
+    clips?: readonly TinyClip[];
+    extensions?: object;
+    emissive?: readonly [number, number, number];
+  } = {},
 ): string {
   const bones = skeleton.map((b) => b.name);
   const parts: Uint8Array[] = [
@@ -131,7 +145,12 @@ export function tinySkeletonUrl(
         ],
       },
     ],
-    materials: [{ pbrMetallicRoughness: { baseColorFactor: [0.2, 0.4, 0.6, 1] } }],
+    materials: [
+      {
+        pbrMetallicRoughness: { baseColorFactor: [0.2, 0.4, 0.6, 1] },
+        ...(emissive ? { emissiveFactor: [...emissive] } : {}),
+      },
+    ],
     skins: [{ joints: bones.map((_, i) => i), inverseBindMatrices: 4 }],
     buffers: [{ byteLength: length }],
     bufferViews: views,

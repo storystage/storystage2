@@ -199,6 +199,30 @@ describe('models', () => {
     expect(surface.specularColor.r).toBe(0);
   });
 
+  it("keep their own light, as glTF adds it to the lit colour (S4's Sun, 21 Nov)", async () => {
+    const lamp = backstageId('test/Prop/lamp');
+    const lampUrl = tinyModelUrl(['hips'], { emissive: [1, 0.5, 0] });
+    const stage = new BabylonStage(headlessEngine(), {
+      models: { find: (id) => (id === lamp ? { url: lampUrl, joints: [] } : source.find(id)) },
+    });
+    await stage.load({ ...SETUP, objects: [place(ann, 0, lamp), place(bob, 2)] });
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    const surface = (id: ObjectId) =>
+      inside
+        .getTransformNodeByName(id)!
+        .getChildMeshes()
+        .find((m) => m.name === 'Body')!.material as StandardMaterial;
+    const lit = surface(ann);
+    expect(lit.useEmissiveAsIllumination).toBe(true);
+    // glTF's colour is linear; a plain surface takes it as it shows, in sRGB.
+    expect(lit.emissiveColor.r).toBeCloseTo(1, 5);
+    expect(lit.emissiveColor.g).toBeCloseTo(Math.pow(0.5, 1 / 2.2), 5);
+    expect(lit.emissiveColor.b).toBe(0);
+    // A surface with no light of its own is lit only by the scene.
+    expect(surface(bob).useEmissiveAsIllumination).toBe(false);
+    expect(surface(bob).emissiveColor.r).toBe(0);
+  });
+
   it('turn a joint on top of its pose, and only on that object', async () => {
     const { stage, node } = await loaded();
     const axis = { x: 0, y: 1, z: 0 };
