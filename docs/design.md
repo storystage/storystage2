@@ -385,7 +385,8 @@ The biggest risks are licences for the familiar models, performance on low-end s
 - [ ] Arrange a human security review of the key handling before the pilot
 - [ ] Choose the pilot window around the Easter holidays
 - [ ] Decide who runs StoryStage after the pilot: maintainer, funding and support (for example a university partner, an education charity, or a relationship with CMU's Alice team)
-- [ ] Find a Windows PC with an NVIDIA card, or a venue partner, to test Export to Pixera (WP23)
+- [x] Find a Windows PC with an NVIDIA card to test Export to Pixera (WP23): the owner's PC (RTX 2060, Pixera Creator 26.1; spike 23.2, 21 Nov 2026)
+- [ ] Find a venue partner with real projectors to try Export to Pixera's operator guide (WP23)
 - [ ] Buy code-signing certificates and open the Apple and Google developer accounts (WP15.4, 15.5)
 
 ## Appendix: background research, 17 October 2026
