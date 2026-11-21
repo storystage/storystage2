@@ -388,7 +388,7 @@
             },
             "parent_block": {
               "type": "string",
-              "description": "The id of a control block to add inside, from an earlier result. Leave it out to add to the method itself."
+              "description": "The id of a control block, or of a listener from add_event_listener, to add inside, from an earlier result. Leave it out to add to the method itself."
             },
             "position": {
               "type": "string",
@@ -479,7 +479,7 @@
             },
             "parent_block": {
               "type": "string",
-              "description": "The id of a control block to add inside, from an earlier result. Leave it out to add to the method itself."
+              "description": "The id of a control block, or of a listener from add_event_listener, to add inside, from an earlier result. Leave it out to add to the method itself."
             },
             "position": {
               "type": "string",

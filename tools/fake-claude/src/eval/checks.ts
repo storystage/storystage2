@@ -152,10 +152,13 @@ function spokenWords(run: RowRun): string[] {
     .map((c) => String(value(c.args.text) ?? ''));
 }
 
-/** The words of every comment the build left, in order: each agreed step's words go above it. */
+/**
+ * The words of every comment the build left, in order: each agreed step's words go above it. A
+ * step built in an event's handler leaves its comment there, so handlers count too.
+ */
 function newComments(run: RowRun): string[] {
   const before = nodeIds(run.before.program);
-  return methodStatements(run.after, run.scene)
+  return allStatements(run.after, run.scene)
     .filter((s) => s.kind === 'comment' && !before.has(s.id))
     .map((s) => (s as Extract<Statement, { kind: 'comment' }>).text);
 }

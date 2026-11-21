@@ -283,6 +283,40 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(scene.listeners.map((l) => l.event)).toEqual(['clickOnObject']);
     expect(scene.listeners[0]!.params.map((p) => p.name)).toEqual(['model', 'x', 'y']);
   });
+
+  it("puts a step's blocks in a listener it built, by the id it gave (the pilot's event-01)", () => {
+    const { runner, run, now } = setUp();
+    runner.begin(
+      'go',
+      agreed([
+        step({ kind: 'when', actor: 'penguin', action: 'clickOnObject', target: '' }),
+        step({ action: 'say', target: '', details: [{ name: 'text', value: 'ouch' }] }),
+      ]),
+    );
+    const listener = run('add_event_listener', {
+      event: 'clickOnObject',
+      objects: ['penguin'],
+      other_objects: [],
+      narration: 'A new block waits for a click on the penguin.',
+      plan_step: 1,
+    });
+    const block = (listener.ok && listener.ids.block) || '';
+    expect(
+      run('insert_statement', {
+        method: 'myFirstMethod',
+        parent_block: block,
+        position: 'end',
+        target: 'penguin',
+        procedure: 'say',
+        arguments: [{ name: 'text', value: 'ouch' }],
+        narration: 'The penguin will say ouch when clicked.',
+        plan_step: 2,
+      }),
+    ).toMatchObject({ ok: true });
+    runner.end();
+    const scene = now().types.find((t) => t.name === 'Scene2')!;
+    expect(scene.listeners[0]!.body.map((s) => s.kind)).toEqual(['comment', 'call']);
+  });
 });
 
 describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {

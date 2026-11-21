@@ -673,6 +673,9 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         return fail('unknown_block', `There is no block ${handle} in this scene.`);
       if (node.kind === 'if' && (part === 'then' || part === 'else'))
         return { parent: id, slot: part, length: node[part].length };
+      // A listener's handler, by the id add_event_listener gave (its description says so).
+      if (node.kind === 'listener' && part === undefined)
+        return { parent: id, slot: 'body', length: node.body.length };
       if (CONTAINERS.has(node.kind) && part === undefined && 'body' in node)
         return { parent: id, slot: 'body', length: (node.body as readonly Statement[]).length };
       return fail('unknown_block', `Blocks can't go inside ${handle}.`);

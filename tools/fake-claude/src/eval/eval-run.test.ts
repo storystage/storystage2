@@ -161,6 +161,47 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
     });
   });
 
+  it("builds a when step's blocks in its listener, as the pilot's event-01 asked", async () => {
+    const row = rowById('event-01');
+    const plan = [
+      step({ words: 'When the penguin is clicked.', kind: 'when', action: 'clickOnObject' }),
+      step({ words: 'The penguin says ouch.', details: [{ name: 'text', value: 'ouch' }] }),
+    ].map((s) => ({ ...s, actor: 'penguin', target: '' }));
+    const plain = { ...plan[1]!, action: 'say' };
+    const { scores } = await run(row, [
+      testReply([use('p1', 'propose_plan', { steps: [plan[0], plain] })]),
+      text("Here's my plan."),
+      testReply([
+        use('l1', 'add_event_listener', {
+          event: 'clickOnObject',
+          objects: ['penguin'],
+          other_objects: [],
+          narration: 'A new block waits for a click on the penguin.',
+          plan_step: 1,
+        }),
+      ]),
+      // The listener's id is the harness's next fixed id; the pilot's run had it as fflinm.
+      testReply([
+        use('s1', 'insert_statement', {
+          method: 'myFirstMethod',
+          parent_block: 'fflinm',
+          position: 'end',
+          target: 'penguin',
+          procedure: 'say',
+          arguments: [{ name: 'text', value: 'ouch' }],
+          narration: 'The penguin will say ouch when clicked.',
+          plan_step: 2,
+        }),
+      ]),
+      text('Done.'),
+    ]);
+    expect(byCheck(scores)).toEqual({
+      event_listener: true,
+      method_has_call: true,
+      no_errors: true,
+    });
+  });
+
   it('wants a comment for each block step only: an add step puts no block in the method', async () => {
     const row = rowById('plan-02');
     const plan = [

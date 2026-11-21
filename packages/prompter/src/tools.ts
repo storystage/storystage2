@@ -110,7 +110,7 @@ const CHANGE_FIELDS = {
 
 const METHOD = text('The method to add to, by its name in the program text.');
 const PARENT = text(
-  'The id of a control block to add inside, from an earlier result. Leave it out to add to the method itself.',
+  'The id of a control block, or of a listener from add_event_listener, to add inside, from an earlier result. Leave it out to add to the method itself.',
 );
 const POSITION = text(
   '"end", or a whole number as text for the place among the blocks there, from 0.',
