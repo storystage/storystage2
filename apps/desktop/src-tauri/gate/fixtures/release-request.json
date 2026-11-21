@@ -295,7 +295,7 @@
       {
         "name": "add_model",
         "description": "Add a model to the scene, as Backstage's Add does. Use only ids in the Backstage catalogue or the production's imported models. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -343,7 +343,7 @@
       {
         "name": "set_property",
         "description": "Change how an object starts in the scene. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -377,7 +377,7 @@
       {
         "name": "insert_statement",
         "description": "Add one Story API procedure block to a method. Words a character says must be a script line's exact words, given in line, or come from the learner's own request. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -468,7 +468,7 @@
       {
         "name": "insert_control",
         "description": "Add a control block that later blocks can go inside. The result gives its id, for parent_block. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -555,7 +555,7 @@
       {
         "name": "declare_procedure",
         "description": "Make a new procedure, a block of the learner's own. The result gives its name, for insert_statement. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -591,7 +591,7 @@
       {
         "name": "add_event_listener",
         "description": "Add a block that runs when something happens. The result gives its id: pass it as parent_block to put blocks in its handler. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -645,7 +645,7 @@
       {
         "name": "stage_scene",
         "description": "Place a scene's cast, props, set, backdrop and camera as its first storyboard frame shows them, as Set the stage from the storyboard does. Cast who appear only in later frames wait just off stage. It places only what the storyboard has and the stage doesn't; stand-ins stay stand-ins. Call it only while building an agreed plan, and only for the step it names in plan_step.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",
@@ -667,7 +667,7 @@
       {
         "name": "code_frame",
         "description": "Start building the agreed plan for a frame. The result says which method and block to build in; blocks built after it in this request are linked to the frame. Refused if the learner has not pressed Build these steps.",
-        "strict": true,
+        "strict": false,
         "eager_input_streaming": true,
         "input_schema": {
           "type": "object",

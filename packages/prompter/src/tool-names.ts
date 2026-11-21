@@ -29,4 +29,12 @@ export const CHANGE_TOOLS = [
 ] as const;
 
 export const TOOL_NAMES = [...READ_TOOLS, ...PLAN_TOOLS, ...CHANGE_TOOLS] as const;
+
+/**
+ * The tools sent with `strict: true` (spec 04, section 3). All fifteen strict compile to a grammar
+ * the API refuses as too large, and so do the eight change tools on their own; the read and plan
+ * tools together compile (the owner's probe of 21 Nov 2026, `tools/fake-claude/src/eval/
+ * probe-grammar.ts`). Every call is still checked against its schema before it runs.
+ */
+export const STRICT_TOOLS: readonly ToolName[] = [...READ_TOOLS, ...PLAN_TOOLS];
 export type ToolName = (typeof TOOL_NAMES)[number];

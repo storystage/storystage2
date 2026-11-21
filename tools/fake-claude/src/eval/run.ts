@@ -372,8 +372,8 @@ export function recordingOf(run: RowRun): Recording {
       return error.code === 'offline'
         ? { events: [], cutAfter: 0 }
         : {
-            status: status[error.code] ?? 500,
-            error: { type: 'api_error', message: error.code },
+            status: error.detail?.status ?? status[error.code] ?? 500,
+            error: { type: 'api_error', message: error.detail?.message ?? error.code },
           };
     return {
       events: events.flatMap((e) => (e.type === 'event' ? [e.event as JsonObject] : [])),
