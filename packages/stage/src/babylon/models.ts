@@ -288,11 +288,13 @@ export interface PlacedModel {
  * emissive picture to its emissive colour, where glTF multiplies them, so with a picture the
  * colour's brightest part becomes the picture's level.
  */
-function glow(plain: StandardMaterial, source: PBRMaterial): void {
+export function glow(plain: StandardMaterial, source: PBRMaterial): void {
   const { r, g, b } = source.emissiveColor;
   const picture = source.emissiveTexture;
   if (Math.max(r, g, b) === 0) return;
   if (picture) {
+    // The level is set on the glTF surface's own picture, which only the plain surface keeps:
+    // the glTF surface is dropped once swapped. Anything that kept it would scale its light twice.
     picture.level = Math.max(r, g, b);
     plain.emissiveTexture = picture;
   } else plain.emissiveColor = source.emissiveColor.toGammaSpace();
