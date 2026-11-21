@@ -7,7 +7,7 @@ import {
 } from '@storystage/ast';
 import { describe, expect, it } from 'vitest';
 import { isSceneScript, methodTitle } from './methods.ts';
-import { ID, mint, scene } from './testing.ts';
+import { ID, mint, scene, self } from './testing.ts';
 import { describer } from './words.ts';
 
 /** The fixture's scene with another method, a `sceneStart` listener, and a type that isn't a scene. */
@@ -73,6 +73,20 @@ describe('what the editors call a method (spec 14, 2)', () => {
   it('isn’t fooled by an id that isn’t a method', () => {
     expect(isSceneScript(program, ID.cat)).toBe(false);
     expect(isSceneScript(program, nodeId('nothere'))).toBe(false);
+  });
+
+  it('words a call to the script by what it does, not by myFirstMethod', () => {
+    const again = {
+      id: mint(),
+      kind: 'call' as const,
+      target: self(),
+      callee: { kind: 'user' as const, method: ID.main },
+      args: {},
+      details: {},
+    };
+    const describe_ = describer(program);
+    expect(describe_.inside(again, ID.scene)).toBe('run “When the scene starts” again');
+    expect(describe_.short(again)).toBe('run “When the scene starts” again');
   });
 
   it('says a scene’s own sceneStart listener is “also when the scene starts”', () => {

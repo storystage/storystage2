@@ -284,6 +284,7 @@
   "listener.sceneStart": "also when the scene starts",
   "method.sceneScript": "When the scene starts",
   "method.title": "{type}.{method}",
+  "method.sceneScriptAgain": "run “When the scene starts” again",
   "event.clickOnScreen": "when the screen is clicked",
   "event.clickOnObject": "when an object is clicked",
   "event.keyPress": "when a key is pressed",

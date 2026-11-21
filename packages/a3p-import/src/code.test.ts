@@ -293,6 +293,41 @@ describe('events (spec 19, section 6)', () => {
       ]),
     );
 
+  it('keep a scene-start listener that does more, without its call to the script', () => {
+    const script = method('myFirstMethod', []);
+    const start = listen('addSceneActivationListener', [
+      statement(invoke(self(), script)),
+      statement(invoke(on(cat), javaMethod('SModel', 'say'), [text('Ready')])),
+    ]);
+    const init = method('initializeEventListeners', [start], { level: 'MANAGED' });
+    const alice = world([camera, cat], [], [script, init]);
+    // The call names the very `myFirstMethod` the scene holds.
+    const sceneType = (alice.props['fields'] as AliceNode[])[0]!.props['valueType'] as AliceNode;
+    const held = (sceneType.props['methods'] as AliceNode[]).find(
+      (m) => m.props['name'] === 'myFirstMethod',
+    )!;
+    const lambda = (
+      (start.props['expression'] as AliceNode).props['requiredArguments'] as AliceNode[]
+    )[0]!.props['expression'] as AliceNode;
+    (lambda.props as Record<string, unknown>)['value'] = n('UserLambda', {
+      requiredParameters: [],
+      body: n('BlockStatement', {
+        statements: [
+          statement(invoke(self(), held)),
+          statement(invoke(on(cat), javaMethod('SModel', 'say'), [text('Ready')])),
+        ],
+      }),
+    });
+    const built = buildProgram(alice, importSetUp(alice));
+    const [listener] = built.program.types[0]!.listeners;
+    expect(listener!.event).toBe('sceneStart');
+    expect(listener!.body).toHaveLength(1);
+    expect(listener!.body[0]).toMatchObject({ callee: { name: 'say' } });
+    expect(built.gaps).toContainEqual(
+      expect.objectContaining({ kind: 'event', what: 'when the scene starts: myFirstMethod' }),
+    );
+  });
+
   it('become listeners; one that only starts the script goes, as StoryStage starts it anyway', () => {
     const event = param('event', javaType('org.lgna.story.event.MouseClickOnObjectEvent'));
     const clicked = invoke(

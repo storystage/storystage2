@@ -3,6 +3,7 @@
  * that each know their block, so Rehearse, errors and the Prompter can mark lines (WP2.5, WP7.6).
  */
 import { programText, type NodeId, type Program, type TextSpan } from '@storystage/ast';
+import { isSceneScriptIn, SCENE_SCRIPT_METHOD } from '@storystage/story-api/editing';
 import { javaText } from './java.ts';
 
 /** Alice's two formatters: Python-like (`self.cat.say(text="Hello")`) or Java-like. */
@@ -38,7 +39,8 @@ const EMPTY: Text = { text: '', spans: [], lines: [] };
 
 /** The program as text in `style`, or one method of it. Empty if `method` isn't in it. */
 export function textOf(program: Program, options: TextOptions): Text {
-  const whole = options.style === 'java' ? javaText(program) : programText(program);
+  const written = options.style === 'java' ? javaText(program) : programText(program);
+  const whole = withSceneStarts(program, written, options.style);
   if (options.method === undefined) return withLines(whole.text, whole.spans);
   const cut = cutOut(whole.text, whole.spans, options.method);
   return cut ? withLines(cut.text, cut.spans) : EMPTY;
@@ -78,6 +80,52 @@ function cutOut(
       .filter((s) => s.start >= own.start && s.end <= own.end)
       .map((s) => ({ node: s.node, start: move(s.start), end: move(s.end) })),
   };
+}
+
+/** The listener that runs a scene's script method, in each wording, as Alice's own code has it. */
+const SCENE_START: Readonly<Record<TextStyle, readonly string[]>> = {
+  python: ['when sceneStart():', `    self.${SCENE_SCRIPT_METHOD}()`],
+  java: ['this.onSceneStart(() -> {', `    this.${SCENE_SCRIPT_METHOD}();`, '});'],
+};
+
+/**
+ * Each scene's script method with the listener that runs it shown above it, as Alice's code has
+ * (`addSceneActivationListener`, calling `this.myFirstMethod()`). StoryStage makes that call
+ * itself, so the program has no such listener, and without it nothing in the text says what runs
+ * `myFirstMethod` (the owner, 21 Nov 2026; spec 14, 3a). It's words only: its lines belong to
+ * the method, so the method's own text, cut out alone, starts with them too.
+ */
+function withSceneStarts(
+  program: Program,
+  written: { readonly text: string; readonly spans: readonly TextSpan[] },
+  style: TextStyle,
+): { text: string; spans: readonly TextSpan[] } {
+  let { text } = written;
+  let spans = written.spans;
+  const scripts = new Set(
+    program.types.flatMap((type) =>
+      type.methods.filter((m) => isSceneScriptIn(type, m)).map((m) => m.id),
+    ),
+  );
+  // From the last, so each insertion leaves the places of those still to come as they were.
+  const starts = spans
+    .filter((s) => scripts.has(s.node))
+    .map((s) => s.node)
+    .reverse();
+  for (const node of starts) {
+    const own = spans.find((s) => s.node === node)!;
+    const from = text.lastIndexOf('\n', own.start - 1) + 1;
+    const indent = ' '.repeat(own.start - from);
+    const added = `${SCENE_START[style].map((line) => indent + line).join('\n')}\n\n`;
+    const shift = (pos: number) => (pos >= from ? pos + added.length : pos);
+    text = text.slice(0, from) + added + text.slice(from);
+    spans = spans.map((s) =>
+      s.node === node
+        ? { node, start: from + indent.length, end: shift(s.end) }
+        : { node: s.node, start: shift(s.start), end: s.end > from ? s.end + added.length : s.end },
+    );
+  }
+  return { text, spans };
 }
 
 function withLines(text: string, spans: readonly TextSpan[]): Text {
