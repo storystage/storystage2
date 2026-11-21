@@ -145,6 +145,10 @@ export interface Plan {
   readonly steps: readonly PlanStep[];
 }
 
+/** `explain`'s result: the learner has the answer, so the turn ends there (spec 04, section 3.1). */
+export const EXPLAINED =
+  "Shown to the learner as your reply. End your turn now: don't repeat it, and don't say what you told them.";
+
 const SPEAKING = new Set(['say', 'think', 'speakLine']);
 const CONTAINERS = new Set([
   'doInOrder',
@@ -351,7 +355,9 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   run(name: ToolName, input: JsonObject): Result {
     switch (name) {
       case 'explain':
-        return ok('Shown to the learner.');
+        // The panel shows any text after this as a second reply: the pilot's runs wrote one that
+        // repeated the answer about the learner ("I told the learner…"), so the result says not to.
+        return ok(EXPLAINED);
       case 'read_project':
         return ok(this.#projectData());
       case 'find_models':

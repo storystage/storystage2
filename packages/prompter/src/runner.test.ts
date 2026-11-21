@@ -13,7 +13,7 @@ import {
 } from '@storystage/production';
 import { checkProgram } from '@storystage/story-api/program-check';
 import type { PlanStep } from './plans.ts';
-import { PrompterRunner, type RunnerSetup } from './runner.ts';
+import { EXPLAINED, PrompterRunner, type RunnerSetup } from './runner.ts';
 import type { ToolName } from './tool-names.ts';
 import type { ToolOutcome } from './tools.ts';
 import type { Json, JsonObject } from './transport.ts';
@@ -965,5 +965,17 @@ describe('find_models (spec 04, sections 2.7 and 3.1)', () => {
     const models = found.ok ? (found.models ?? []) : [];
     expect(models.length).toBeGreaterThan(0);
     expect(models.every((l: string) => /^[a-z0-9-]+\/[A-Z]\w*\/\S+: /.test(l))).toBe(true);
+  });
+});
+
+describe('explain (spec 04, section 3.1)', () => {
+  it('tells Claude the answer is its reply, so it ends the turn without repeating it', () => {
+    const { run } = setUp();
+    expect(run('explain', { text: 'The move block moves the penguin.' })).toEqual({
+      ok: true,
+      ids: {},
+      summary: EXPLAINED,
+    });
+    expect(EXPLAINED).toMatch(/End your turn now/);
   });
 });
