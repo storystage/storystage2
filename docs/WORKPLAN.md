@@ -190,7 +190,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 25 of 61 items finished and 19 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 26 of 61 items finished and 18 more started:
 
 - **Release candidate:** week 11 (4 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 17 (15 Feb 2027). The plan says week 24.5 (9 Apr 2027).
@@ -272,7 +272,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | started 8 Nov; ends about 10 Dec |
 | WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 23 Nov |
 | WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | 0.1 (8 Nov) |
-| WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | started 8 Nov; ends about 23 Nov |
+| WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | 2 (8–21 Nov) |
 | WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
 | WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP4b | 3 | wk 10.5 (1 Jan 2027) | 3 | started 8 Nov; ends about 30 Nov |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | 1 (8–14 Nov) |
@@ -1031,13 +1031,13 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 4. **Real show**: a school media department, college, venue or events company with licensed Pixera runs and calibrates it; the learners make the content and plan the show.
 
 - [x] 23.1 **Spike: surface bake renderer.** For each frame, render the scene from the audience's sweet-spot camera, project that image onto the surface model, and unroll it into the surface's UV layout, giving one UV-space frame per surface. Prove it on a box and on a simple building front, and check the illusion from the sweet spot in a projector preview. (C)
-- [ ] 23.2 **Spike: Pixera build script.** A small script that talks to Pixera's API over TCP: add the exported media, create layers, create clips at the right times, create cues, save the project. Record which steps the API can't do. Test with Pixera Creator on a Windows PC with an NVIDIA graphics card. (C; U provides the PC or a partner)
+- [x] 23.2 **Spike: Pixera build script.** A small script that talks to Pixera's API over TCP: add the exported media, create layers, create clips at the right times, create cues, save the project. Record which steps the API can't do. Test with Pixera Creator on a Windows PC with an NVIDIA graphics card. (C; U provides the PC or a partner)
 - [ ] 23.3 **Projection stage: surfaces.** Surface templates (box, wall, three-sided set, simple building front, dome later), or a surface built from Backstage's Set models. Checks before export: triangles only, even vertices, one material per projectable surface, UVs in 0–1 and proportional, metres. Plain-words explanations when a check fails. (C)
 - [ ] 23.4 **Virtual projectors and preview:** projector position, aim, throw ratio and resolution, a small projector list, and a live preview of the projected production on the surface (Babylon.js projection textures on spotlights), including shadows where objects block the beam. A "sweet spot" marker for the audience. (C)
 - [ ] 23.5 **Classroom projection:** in the desktop app, full-screen output to a second display (the projector) with corner-pin and mesh warping, saved per room. No other software needed. (C)
 - [ ] 23.6 **Export for projection:**
     - the surface model as glTF and OBJ, checked against 23.3;
-    - media per surface: a PNG image sequence (all versions) or VP9 video (if 23.2 shows Pixera accepts the container); HAP in the desktop app only, through an FFmpeg sidecar, if a check passes and its licence is recorded;
+    - media per surface: a PNG image sequence (all versions) or VP9 video in WebM, at a constant frame rate equal to the show's and exactly its length (23.2: Pixera imports and plays it unattended; a PNG sequence needs the operator to answer Pixera's frame-rate question); HAP in the desktop app only, through an FFmpeg sidecar, if a check passes and its licence is recorded;
     - the soundtrack as WAV;
     - the scene-exchange file (`16-scene-exchange.md`), with the projection additions: surfaces, projectors and cues;
     - credits and a captions file.
