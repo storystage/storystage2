@@ -7,7 +7,7 @@ import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { ITEM_BUDGETS, validateManifest } from '@storystage/backstage';
 import { meshFromDocument } from '@storystage/sketches';
-import { buildSources, standOnGround, stripExtras, turnModel } from './build.ts';
+import { buildSources, scaleToHeight, standOnGround, stripExtras, turnModel } from './build.ts';
 import { sharpEncoder } from './sharp-encoder.ts';
 import type { Fetcher } from './fetch.ts';
 
@@ -209,6 +209,31 @@ describe('stripExtras', () => {
     const { json } = await io.binaryToJSON(await io.writeBinary(doc));
     expect(JSON.stringify(json)).not.toContain('AI tool');
     expect(JSON.stringify(json)).not.toContain('example.com');
+  });
+});
+
+describe('scaleToHeight', () => {
+  it('scales by the height as measured, not as rounded to the centimetre', () => {
+    // Poly Haven's rat: 3.4 cm tall, asked for 8 cm.
+    const doc = new Document();
+    const prim = doc.createPrimitive().setAttribute(
+      'POSITION',
+      doc
+        .createAccessor()
+        .setType('VEC3')
+        .setArray(new Float32Array([0, 0, 0, 0.15, 0, 0, 0, 0.034, 0]))
+        .setBuffer(doc.createBuffer()),
+    );
+    doc
+      .getRoot()
+      .setDefaultScene(
+        doc
+          .createScene()
+          .addChild(doc.createNode('rat').setMesh(doc.createMesh().addPrimitive(prim))),
+      );
+    scaleToHeight(doc, 0.08);
+    const p = meshFromDocument(doc).positions;
+    expect(Math.max(...p.filter((_, i) => i % 3 === 1))).toBeCloseTo(0.08, 6);
   });
 });
 
