@@ -25,6 +25,32 @@
   margin-bottom: 8px;
 }
 
+/* A method's inputs, after its name (0074). */
+.tl-inputs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 10px;
+  vertical-align: middle;
+}
+
+.tl-input {
+  font-weight: 400;
+  font-size: 15px;
+  padding: 2px 8px;
+  border: 1px solid var(--tl-ink-2);
+  border-radius: 6px;
+}
+
+.tl-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .tl-note {
   color: var(--tl-ink-2);
   margin: 0;
