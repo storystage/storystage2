@@ -161,6 +161,35 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
     });
   });
 
+  it('wants a comment for each block step only: an add step puts no block in the method', async () => {
+    const row = rowById('plan-02');
+    const plan = [
+      step({
+        details: [
+          { name: 'direction', value: 'forward' },
+          { name: 'amount', value: '2' },
+        ],
+      }),
+      step({ words: 'Add a cat.', kind: 'add', actor: 'cat', action: 'example/Quadruped/cat' }),
+    ];
+    const { scores } = await run(row, [
+      testReply([use('p1', 'propose_plan', { steps: plan })]),
+      text("Here's my plan."),
+      move('3'),
+      testReply([
+        use('a1', 'add_model', {
+          backstage_item: 'example/Quadruped/cat',
+          name: 'cat',
+          position: { x: 1, y: 0, z: 0 },
+          narration: 'A cat joins the scene.',
+          plan_step: 2,
+        }),
+      ]),
+      text('Done.'),
+    ]);
+    expect(byCheck(scores)).toMatchObject({ build_matches_plan: true, no_errors: true });
+  });
+
   it("fails a build that doesn't do what the learner changed", async () => {
     const row = rowById('plan-02');
     const plan = [
