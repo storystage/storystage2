@@ -142,7 +142,7 @@ docs/
 | **M8 Pathway** | WP20 | A production opens in Unreal and Unity; pathway guide published |
 | **M9 AR design mode** | WP21 | A scene placed and rehearsed on a real table on Android and iPad |
 | **M10 AR for audiences** | WP22 | A production plays in AR in the StoryStage apps; its AR pack opens on an Android phone and an iPad without StoryStage |
-| **M11 Projection mapping** | WP23 | A production is projected onto a model in a classroom from the desktop app, and its Export to Pixera package builds a working Pixera timeline |
+| **M11 Projection mapping** | WP23 | A production is projected onto a model in a classroom from the desktop app, and Export to Pixera from the Windows app builds a working Pixera timeline |
 | **M12 Pilot complete** | WP19.7–19.8 | The pilot has run, feedback is triaged, and the code editor is chosen |
 
 Milestones are **gates, not phases**. Work does not wait for the previous milestone: each WP starts as soon as its own dependencies are met (section 5a), so several milestones are in progress at once. WP16 (curriculum mapping) and WP17 (legal and privacy) run alongside everything from the start. M8 to M11 start after the release candidate (only their spikes run earlier) and ship in release 1.1.
@@ -1043,11 +1043,11 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
     - credits and a captions file.
 
     (C)
-- [ ] 23.7 **Export to Pixera:** the package from 23.6 plus the build script (23.2) and a one-page operator guide for the manual steps (create the timeline, import the surface into Screens, assign layers to surfaces, place projectors, calibrate). (C)
+- [ ] 23.7 **Export to Pixera** (0072): in the Windows desktop app, a guided Build in Pixera step that talks to Pixera's API (23.2): it checks that each surface has a screen of the same name and that the timeline runs at the show's frame rate, adds the package's media from 23.6 (VP9 at a constant frame rate where it can), builds the layers, clips and cues, waits while Pixera asks a PNG sequence's frame rate, saves the project and reports. A one-page operator guide for the steps done in Pixera: import each surface as a screen, place projectors, set the timeline's frame rate, answer the sequence question, map outputs and calibrate. The browser and Chromebook versions point to the Windows version. (C)
 - [ ] 23.8 **Flashing check:** before any export (projection, MP4 or AR), warn when content flashes more than three times a second (WCAG 2.3), and suggest how to fix it. (C)
 - [ ] 23.9 **Safety and the pathway guide:** projector safety (never look into the beam; risk assessment for outdoor shows); a pathway guide from StoryStage to Pixera and other industry tools (disguise, Resolume, MadMapper, TouchDesigner, Notch), with links to art and design, design and technology, drama and expressive arts, and careers in live events, theatre and museums. (C drafts; U reviews with a venue or college partner)
 
-**Done when:** a three-scene production is projected onto a model box in a classroom from the desktop app; its Export to Pixera package, with the build script and guide, produces a working timeline in Pixera Creator; and the flashing check catches a test clip that flashes at 5 Hz.
+**Done when:** a three-scene production is projected onto a model box in a classroom from the desktop app; Export to Pixera from the Windows app, with the guide, builds a working timeline in Pixera Creator; and the flashing check catches a test clip that flashes at 5 Hz.
 
 ### WP24: The teacher's journey and class set-up
 **Objective:** a teacher can set up a class, pupils can find their own work next lesson on a shared device, and the Prompter can be offered to a group without putting the school's key on every device by hand.
@@ -1161,7 +1161,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | Building two code editors takes longer than planned | Release slips, or the study has one editor | Separate lane from week 5 with 3 weeks of slack; fall back to option C for study schools only, finished in release 1.1 |
 | Learners stay with whichever editor is the default, so preference data is weak | Study can't decide | Alternate the default between classes; the study tasks measure performance, not just preference; a decision rule agreed in advance |
 | Two editors confuse learners or teachers | Poor first impressions | The teacher can lock one editor; clear names and looks; the teacher guide explains both |
-| Pixera's API can't create timelines or import surfaces, and its project format isn't published | Export to Pixera needs manual steps | A package with a build script plus a one-page operator guide; MapMap as a free alternative |
+| Pixera's API can't import surfaces, create projectors or calibrate, and its project format isn't published | Export to Pixera needs manual steps | A guided Build in Pixera step in the Windows app plus a one-page operator guide (0072); MapMap as a free alternative |
 | The Prompter costs too much for whole classes, or the key can't reach a class set | Prompter limited to small groups | Prompter routes A to C (24.3) with mode routing to a lower-cost model; whole classes use StoryStage without the Prompter |
 | School Wi-Fi isolates devices, so the classroom relay can't work | Option B fails in some schools | Spike in 24.3; fall back to option A |
 | A shared production or script line tries to make the Prompter break its rules | Story-coach rule undermined | Learner text as delimited data (13.2); prompt-injection evaluation category (13.7) |

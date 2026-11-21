@@ -82,6 +82,7 @@ What is settled, and what the owner still has to decide. Settled decisions chang
 | Where imported models live, and OBJ | A class Backstage on each device beside the pupil folders (a learner's import is theirs until the teacher promotes it); a model pack file between devices; productions still carry the models they use (0049); OBJ read in the app by a reader of our own (0066) | 8 Nov 2026 |
 | Bundled voices | Speak line uses an open-source speech engine bundled with StoryStage, on every platform including the browser, with voices for adults and children, men and women, and animals; engine chosen by a spike after a licence and size check (0068). The spike chose Kokoro-82M, British English by default with an American English switch in Settings (spike 14.3, 10 Nov 2026) | 8 Nov 2026 |
 | Collect on iPad and Android | On iPad and Android, which can't pick a folder, Collect saves one zip file with a folder per pupil inside, and Hand back opens one; desktop and Chromebooks keep folders ([0070](decisions/0070-collect-as-a-zip-on-ipad-and-android.md)) | 9 Nov 2026 |
+| Export to Pixera | A guided Build in Pixera step in the Windows desktop app: it checks Pixera's screens and frame rate through the API, builds the timeline (media, layers, clips, cues) and saves; a one-page operator guide for the steps done in Pixera (screens, projectors, calibration). The browser and Chromebook versions point to the Windows version ([0072](decisions/0072-export-to-pixera-from-the-windows-app.md)) | 21 Nov 2026 |
 
 ## Still to decide (owner)
 
