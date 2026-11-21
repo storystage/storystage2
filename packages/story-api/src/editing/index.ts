@@ -4,6 +4,7 @@
  */
 export * from './build.ts';
 export * from './cascade.ts';
+export * from './character.ts';
 export * from './drop.ts';
 export * from './labels.ts';
 export * from './menu.ts';

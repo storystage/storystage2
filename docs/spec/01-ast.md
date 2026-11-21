@@ -138,12 +138,15 @@ Edit operations are the only way to change a program. They are plain JSON, so th
 | `rename` | `node`, `name` | Renames a `type`, `field`, `method`, `parameter`, `local` or `loopItem` | `rename` |
 | `setEnabled` | `node`, `enabled` | Switches a statement off or on. Added to the workplan's six: it changes the saved program (`toggleEnabled`, WP7.6) | `setEnabled` |
 | `setComment` | `node`, `text` | Changes a comment's text. Added for the same reason | `setComment` |
+| `retype` | `node`, `type` | Gives a `field` another type: a character's objects becoming the learner's class for its model, so it can be taught moves (decision 0074, 21 Nov; S6, reviewed by S1 for S2). The type must be one the program has; whether every use still fits is the Story API's check, which every session runs after each edit | `retype` |
 
 `index` may equal the list's length, to add at the end. Moving declarations isn't offered: nothing depends on their order.
 
 **Removing something in use is refused.** `remove` on a field, method, parameter, type or a `local` that code still refers to breaks a reference, so validation refuses it, with the reason in plain words. Remove the uses first, in the same step. Alice refuses this the same way.
 
-**Adding a parameter to a method** already in use needs a `default`, or the calls to it would be invalid. Since every call then has a value, no edit has to touch every call.
+**Adding a parameter to a method** already in use needs a `default`, or the calls to it would be invalid. Since every call then has a value, no edit has to touch every call. The editors' inputs (decision 0074) have none, as Alice's don't: story-api's `addParameter` declares one with a default, gives every call its own value and then takes the default away, all in one step, so each edit on the way leaves a whole program.
+
+**A learner's class can't stop extending its Story API class**: no edit changes a type's `extends`. So a field `retype`d to it keeps every use the Story API's check let through.
 
 ### 4.2 Applying
 
