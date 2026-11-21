@@ -25,7 +25,7 @@ const SIZES = [
 
 async function open(page: Page) {
   await page.goto(PAGE);
-  await expect(page.getByRole('tree', { name: 'Scene1.myFirstMethod' })).toBeVisible();
+  await expect(page.getByRole('tree', { name: 'When the scene starts' })).toBeVisible();
 }
 
 const item = (page: Page, name: string) => page.getByRole('treeitem', { name, exact: true });
@@ -338,12 +338,12 @@ test('dragging a block from the palette puts it where it is let go, after its va
 test('adding an event opens it in a tab of its own', async ({ page }) => {
   await open(page);
   await page.getByRole('button', { name: 'add event' }).click();
-  await page.getByRole('menuitem', { name: 'when the scene starts' }).click();
-  await expect(page.getByRole('tab', { name: 'when the scene starts' })).toHaveAttribute(
+  await page.getByRole('menuitem', { name: 'when the screen is clicked' }).click();
+  await expect(page.getByRole('tab', { name: 'when the screen is clicked' })).toHaveAttribute(
     'aria-selected',
     'true',
   );
-  await expect(page.getByRole('tree', { name: 'when the scene starts' })).toBeVisible();
+  await expect(page.getByRole('tree', { name: 'when the screen is clicked' })).toBeVisible();
 });
 
 // The variable and set tiles (spec 14, 2.3).

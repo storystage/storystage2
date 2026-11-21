@@ -47,9 +47,9 @@ describe('the fixture', () => {
 });
 
 describe('drawing (spec 14, 3b, 3f)', () => {
-  it('opens the first method, named as a tree by its declaration', () => {
+  it('opens the first method, named as a tree: a scene’s script method is “When the scene starts”', () => {
     mountEditor();
-    expect(screen.getByRole('tree', { name: 'Scene1.myFirstMethod' })).toBeTruthy();
+    expect(screen.getByRole('tree', { name: 'When the scene starts' })).toBeTruthy();
   });
 
   it('names each statement by the words it shows, details too', () => {

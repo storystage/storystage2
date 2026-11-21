@@ -10,7 +10,7 @@
  */
 import type { NodeId, Program } from '@storystage/ast';
 import { EVENTS } from '@storystage/story-api';
-import { describer, fill, word } from '@storystage/story-api/editing';
+import { describer, fill, methodTitleIn, word } from '@storystage/story-api/editing';
 import { useTabPanel } from '@storystage/ui';
 import type { ReactNode } from 'react';
 import {
@@ -43,7 +43,7 @@ export function methodsOf(program: Program): readonly { id: NodeId; words: strin
   return program.types.flatMap((type) => [
     ...type.methods.map((m) => ({
       id: m.id,
-      words: t('method', { type: type.name, method: m.name }),
+      words: methodTitleIn(type, m),
     })),
     ...type.listeners.map((l) => ({ id: l.id, words: describe(l) })),
   ]);
@@ -51,6 +51,13 @@ export function methodsOf(program: Program): readonly { id: NodeId; words: strin
 
 /** An event's words with `???` where it needs a value: "every ??? seconds". */
 const eventWords = (name: string) => fill(word(`event.${name}`), {});
+
+/**
+ * The events a new handler can wait for. Every scene's script method already runs when the scene
+ * starts, so "when the scene starts" isn't offered (spec 14, 2), as the studio's New menu leaves it
+ * out too.
+ */
+const NEW_EVENTS = EVENTS.filter((e) => e.name !== 'sceneStart');
 
 export function MethodTabs({
   program,
@@ -92,7 +99,7 @@ export function MethodTabs({
             </Button>
             <Popover className="tl-popover" style={tileVariables()} placement="bottom end">
               <Menu aria-label={t('addEvent')} onAction={(key) => onAddEvent(String(key))}>
-                {EVENTS.map((e) => (
+                {NEW_EVENTS.map((e) => (
                   <MenuItem key={e.name} id={e.name} className="tl-menu-item">
                     {eventWords(e.name)}
                   </MenuItem>

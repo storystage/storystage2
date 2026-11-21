@@ -1,7 +1,6 @@
 {
   "tiles.name": "Tiles",
   "tiles.program": "Your code: {method}",
-  "tiles.method": "{type}.{method}",
   "tiles.empty": "drop statement here",
   "tiles.emptyIn": "drop statement here, in {where}",
   "tiles.offNote": "(switched off)",
