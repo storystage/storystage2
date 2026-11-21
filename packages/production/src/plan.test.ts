@@ -223,6 +223,6 @@ describe('a plan’s repeat steps (format 1.8.0, spec 04 section 6.8)', () => {
     expect(opened.status).toBe('ok');
     if (opened.status === 'broken') return;
     expect('plan' in opened.production.frames.find((f) => f.id === frame)!).toBe(false);
-    expect(opened.dropped[0]).toMatch(/plan\.shown\[0\]: .*holds.*\(the plan is dropped\)/);
+    expect(opened.dropped?.[0]).toMatch(/plan\.shown\[0\]: .*holds.*\(the plan is dropped\)/);
   });
 });
