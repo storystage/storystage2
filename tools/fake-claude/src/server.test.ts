@@ -34,6 +34,16 @@ const bodyOf = (messages: readonly JsonObject[], extra: JsonObject = {}): JsonOb
   ...extra,
 });
 
+/** An event without the API's own words, which these tests check apart (`detail`). */
+const codeOnly = (e: PrompterEvent): PrompterEvent => {
+  if (e.type !== 'error' || e.detail === undefined) return e;
+  return {
+    type: 'error',
+    code: e.code,
+    ...(e.retryAfterSeconds === undefined ? {} : { retryAfterSeconds: e.retryAfterSeconds }),
+  };
+};
+
 async function send(
   messages: readonly JsonObject[],
   extra: JsonObject = {},
@@ -47,7 +57,7 @@ async function send(
     betas: [BETA],
     body: bodyOf(messages, extra) as never,
   };
-  for await (const e of httpTransport(server.url).send(request, signal)) out.push(e);
+  for await (const e of httpTransport(server.url).send(request, signal)) out.push(codeOnly(e));
   return out;
 }
 
@@ -93,6 +103,16 @@ describe('errors reach the client as one code each', () => {
   ])('%s gives %s', async (id, code) => {
     server.use(recording(id));
     expect(await send([user('hi')])).toEqual([{ type: 'error', code }]);
+  });
+
+  it("keeps the API's own status and words with the code, for the evaluation's recordings", async () => {
+    server.use(recording('bad-key'));
+    const request = { id: 'r1', mode: 'explain', betas: [BETA], body: bodyOf([user('hi')]) };
+    const out: PrompterEvent[] = [];
+    for await (const e of httpTransport(server.url).send(request as never)) out.push(e);
+    expect(out).toEqual([
+      { type: 'error', code: 'key_revoked', detail: { status: 401, message: 'invalid x-api-key' } },
+    ]);
   });
 
   it('passes on how long to wait after a rate limit, then succeeds', async () => {
@@ -358,7 +378,7 @@ describe('requireKey', () => {
     keyed.use(recording('text'));
     const request = { id: 'r', mode: 'explain', body: bodyOf([user('hi')]) } as never;
     const out: PrompterEvent[] = [];
-    for await (const e of httpTransport(keyed.url).send(request)) out.push(e);
+    for await (const e of httpTransport(keyed.url).send(request)) out.push(codeOnly(e));
     expect(out).toEqual([{ type: 'error', code: 'key_revoked' }]);
     await keyed.close();
   });

@@ -59,11 +59,23 @@ export function httpTransport(
         });
         if (!response.ok || !response.body) {
           const retryAfter = Number(response.headers.get('retry-after'));
-          await response.body?.cancel();
+          // The API's error body says what was wrong; it holds no key, which goes only in a header.
+          const text = await response.text().catch(() => '');
+          let message = '';
+          try {
+            message = String(
+              (JSON.parse(text) as { error?: { message?: unknown } }).error?.message ?? '',
+            );
+          } catch {
+            message = '';
+          }
           yield {
             type: 'error',
             code: codeForStatus(response.status),
             ...(retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {}),
+            ...(message
+              ? { detail: { status: response.status, message: message.slice(0, 500) } }
+              : {}),
           };
           return;
         }

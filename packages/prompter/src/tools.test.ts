@@ -37,9 +37,17 @@ describe('the tool list (spec 04, section 3)', () => {
     expect(JSON.stringify(TOOLS)).toBe(JSON.stringify(TOOLS));
   });
 
-  it('makes every tool strict and streamed, with a description', () => {
+  it('makes the read and plan tools strict, every tool streamed, each with a description', () => {
+    expect(TOOLS.filter((t) => t.strict).map((t) => t.name)).toEqual([
+      'explain',
+      'read_project',
+      'find_models',
+      'check_frame',
+      'script_check',
+      'propose_plan',
+      'revise_plan',
+    ]);
     for (const tool of TOOLS) {
-      expect(tool.strict).toBe(true);
       expect(tool.eager_input_streaming).toBe(true);
       expect(tool.description.length).toBeGreaterThan(40);
     }

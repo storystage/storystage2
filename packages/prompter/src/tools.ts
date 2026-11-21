@@ -14,7 +14,7 @@
 import type { Statement } from '@storystage/ast';
 import { PLAN_LIMITS, PLAN_STEP_KINDS } from '@storystage/production';
 import { EVENTS } from '@storystage/story-api';
-import { TOOL_NAMES, type ToolName } from './tool-names.ts';
+import { STRICT_TOOLS, TOOL_NAMES, type ToolName } from './tool-names.ts';
 
 export interface JsonSchema {
   readonly type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean';
@@ -29,7 +29,8 @@ export interface JsonSchema {
 export interface ToolDefinition {
   readonly name: ToolName;
   readonly description: string;
-  readonly strict: true;
+  /** True for `STRICT_TOOLS`, the most the API compiles together (section 3). */
+  readonly strict: boolean;
   readonly eager_input_streaming: true;
   readonly input_schema: JsonSchema;
 }
@@ -146,7 +147,7 @@ const tool = (
 ): ToolDefinition => ({
   name,
   description,
-  strict: true,
+  strict: STRICT_TOOLS.includes(name),
   eager_input_streaming: true,
   input_schema: object(properties, optional),
 });

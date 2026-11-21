@@ -57,10 +57,11 @@ Each request names the production it starts from, in `productions/`. They're pla
 
 The owner's choices of 17 Nov 2026: the key from the environment, recordings kept and reviewed before commit, a model judge whose grades the owner confirms, and a pilot first.
 
+0. **After any change to a tool's schema, or to which tools are strict,** first run `node tools/fake-claude/src/eval/probe-grammar.ts` with the key set. The API compiles every strict tool into one grammar and refuses a request whose grammar is too large (a 400, which costs nothing), so a live run would fail every row. The probe sends this release's tools with a one-line message (about 7,000 input tokens if it compiles) and says whether they compile; `--groups` also tries each group, to find room. On 21 Nov 2026 all fifteen strict were refused, and so were the eight change tools on their own; the read and plan tools compile (spec 04, section 3).
 1. **The pilot.** `pnpm eval -- --live --pilot --judge` runs the first row of each category, 13 in all, with `ANTHROPIC_API_KEY` set in that terminal only. The key goes in one header to api.anthropic.com and nowhere else, and nothing writes or prints it. Requests are sent as the native layer sends them (API version `2023-06-01`, the pinned body and betas), with no retries; a row the API was too busy for is run once more after 30 seconds.
 2. **What it writes**, to `docs/eval/results/local/<date>-<who>-<model>/`, which git ignores:
    - `results.csv` and `usage.csv`;
-   - `recordings/<id>.json`, each row's replies, which hold no key;
+   - `recordings/<id>.json`, each row's replies, which hold no key. A request the API refused keeps its status and the API's own words, so a run says why it failed;
    - with `--judge`, `grades.proposed.csv`: the judge's pass or fail for each reply check, with a reason.
 3. **The judge** is `claude-opus-5-5` at low effort, with structured output and the server-side refusal fallback. It sees the row's request, the Prompter's reply, the changes and the plan, as data, and grades each reply check by its words in the table below.
 4. **Confirm the grades.** Read each reply and its proposed grade, change any you disagree with, and save the file as `grades.csv`.

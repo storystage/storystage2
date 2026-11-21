@@ -42,7 +42,7 @@ The body is a Messages API request. These settings hold for every mode unless th
 | `tool_choice` | Not sent (`auto`) | Opus 5.5 rejects forced tool choice |
 | Sampling (`temperature`, `top_p`, `top_k`) | Never sent | Rejected |
 | `tools` | The whole list in section 3, every request, in every mode | `tools` is part of the conversation's prefix (section 1.5); section 4 says how modes limit them |
-| Each tool | `strict: true`, `eager_input_streaming: true` | Schema-shaped inputs, streamed. Inputs are still validated before running, because streamed input can be cut off |
+| Each tool | `eager_input_streaming: true`; `strict: true` on the read and plan tools (`STRICT_TOOLS`) | Schema-shaped inputs where the API can compile them, streamed. Every input is still validated before running, because streamed input can be cut off and the change tools aren't strict |
 | `cache_control` | `{ "type": "ephemeral" }` at the top level | Automatic caching; the stable content comes first |
 
 **Thinking blocks.** Under the default display they arrive with empty text and a `signature`. They count towards `max_tokens`. The conversation keeps them exactly as they came, including the empty ones: never drop or rewrite a block because its text is empty. The panel never shows them. Read content by block `type`, never by position.
@@ -237,6 +237,8 @@ The learner's words only choose which of Backstage's lines go. None of their tex
 The definitions are in `packages/prompter/src/tools.ts`, and the tables below describe them. All inputs are JSON objects with `additionalProperties: false`, and every field listed is required unless marked optional. An optional field is left out of `required`, not made nullable: strict mode limits how many optional fields and union types a request's tools may have, so there are no unions at all, and at most 20 optional fields across every tool.
 
 Tool schemas are fixed for a release, so they use plain strings where StoryStage 1 used enums built from catalogs. The catalogs are in the system prompt; the client checks each value and answers `unknown_object` or `unknown_method`. The two enums that are fixed for a release come from their sources: control blocks from the AST's `STATEMENT_KINDS`, and events from the Story API's `EVENTS`.
+
+**Which tools are strict** (`STRICT_TOOLS`): the read and plan tools. The API compiles every strict tool's schema into one grammar, and refused all fifteen, and the eight change tools on their own, as too large; each change tool compiles alone, and so do the read and plan tools together (the owner's probe of 21 Nov 2026, `tools/fake-claude/src/eval/probe-grammar.ts`). The change tools are sent without `strict`, with the same schemas; nothing changes for them but where a malformed call is caught, which is the client's check before anything runs, as for every tool (section 1.6). Making them strict again needs fewer optional fields (each roughly doubles part of the grammar), so it waits for what the pilot shows of malformed calls.
 
 Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints. So:
 
