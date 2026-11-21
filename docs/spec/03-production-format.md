@@ -26,6 +26,7 @@ One file holds a whole production. Paths come from `ZIP_LAYOUT`.
 | `script.fountain` | The script, in Fountain (section 5) | `ScriptLine[]` |
 | `frames/<id>.json` | One storyboard frame and its links | `Frame` |
 | `audio/` | Lines and narration the learner chose to record | Files named in the manifest |
+| `sounds/` | Sound files the learner imported (section 1.7) | `SoundClip`, named in the manifest |
 | `models/<folder>/` | Each class-imported model the production uses (section 1.3) | `PackedModel`, named in the manifest |
 
 **The same production gives the same bytes.** JSON is written with sorted keys (`serializeProgram` for the program, the same rule for the rest), entries go in the order above and then by name, and each entry has a fixed date. So a save with no changes is identical, and the round-trip test (WP8) can compare bytes. `saveProduction` and `openProduction` (`file.ts`) do this. **Reopening gives the same production,** except that `scenes` and `frames` come back in order of their ids: their order in memory carries no meaning (the running order and each frame's `order` do), and saving doesn't depend on it.
@@ -59,7 +60,7 @@ A production gets shared between pupils and schools, so anything in it should be
 
 ### 1.2 Versions
 
-`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.8.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
+`manifest.json` has `formatVersion` (`FORMAT_VERSION`, 1.9.0), for the zip and its JSON files. `program.json` has its own `schemaVersion`. Each moves on its own, under the promise in `01-ast.md` section 7:
 
 - **Semantic versions.** A patch changes no meaning, a minor adds something an older reader can skip, a major changes something it can't.
 - **Migrating keeps the original.** The original file stays beside the migrated one, unchanged, in the pupil's folder, until the learner deletes it (decision 0065: `openProduction` hands it back as `original`, and the first save keeps it with `PupilFolder.keepOriginal`).
@@ -73,6 +74,7 @@ A reader takes the older-is-migrated, newer-is-read-only decision on `formatVers
 
 **What each version added** (newest first; the details are in the changelog):
 
+- **1.9.0** (21 Nov 2026, decision 0076, the owner's choices of 21 Nov, with S5 and S8): sound, imported clips in `sounds/` and `manifest.sounds`, the tracks' volumes `manifest.mix` (section 1.7), and each scene's music, `Scene.music` (section 2.3).
 - **1.8.0** (21 Nov 2026, S7's ask, for spec 04 section 6.8, the owner's choice of 21 Nov): repeat steps, the `repeat` kind and `PlanStep.holds` (section 6). The first version whose migration changes something: every step of a plan kept before gains `holds` 0, in each frame's file.
 - **1.7.0** (20 Nov 2026, S7's ask, for spec 04 section 6.6, Plan only): the steps code ticked off, `FramePlan.done` (section 6).
 - **1.6.0** (17 Nov 2026, S5's ask, for spec 04 section 6.7): a frame's agreed plan, `Frame.plan` (section 6).
@@ -126,6 +128,21 @@ Each character's speak-line voice (format 1.4.0; spec 06 section 4.3; agreed wit
 - **The type lives here**, and `@storystage/speech` imports it: speech depends on the host, which depends on the Prompter, which depends on this package. Speech makes the voices (`castVoices`, `voiceFor`, `switchAccent`).
 - **Only learners' choices, so dropped rather than refused.** When the file opens, a voice that doesn't fit `checkCastVoice` (a base voice we don't ship included) or whose name no scene's set-up object has is dropped, and the film opens. More than 200 voices (`VOICES_MAX`) is a malformed field, and none are kept. A character whose voice is dropped falls back to its class's preset. A name whose object has no speak line yet keeps its voice.
 - **A rename takes the voice with it,** in the same undo step (section 2.1). If an object of the old name is still in another scene, it keeps its voice too. If the new name already has a voice, that voice stays.
+
+### 1.7 Sound
+
+Sound in a film (format 1.9.0; decision 0076, the owner's choices of 21 Nov 2026; agreed with S5 for the Sound view and the trim dialog, and S8 for the file input). A film has three tracks, **Speech**, **Music** and **Sound FX**, each with its volume in `manifest.mix` (`SoundMix`, each from 0 to 1; `SOUND_MIX_DEFAULT`, 1, 0.7 and 0.9, when there's none). The export mixes them and lowers music under speech: that's the export's rule, with no setting. Speech and effects are placed by their blocks (speak lines, `playAudio`), so they stay with the action. Music is placed on a scene's timeline (section 2.3).
+
+**A sound** is a clip the learner imported (`SoundClip` in `manifest.sounds`, its file in `sounds/`) or a sound from Backstage's shelf, named by its Backstage id (`SoundRef`; a shelf id has slashes, a clip id never does). A shelf sound isn't packed, as a shipped model isn't, and one the shelf doesn't have plays as silence.
+
+**Importing a sound** (`importSound`, `sound.ts`) takes a file picked with a plain file input on every host (`SOUND_ACCEPT`; spec 05 section 6.5), never trusting it:
+- **MP3, WAV or M4A** (`SOUND_TYPES`), which every host decodes. The type comes from the file's first bytes (`soundTypeOf`: RIFF/WAVE, an ID3 tag or an MPEG Layer III frame, an MP4 `ftyp` with an audio brand), whatever its name says.
+- **The limits** (`SOUND_LIMITS`): 25 MB and 10 minutes a file, 150 MB of imported sound in a film. The size is checked before the file is read, and again as read. The device decodes it to measure its length; one it can't decode is refused.
+- **Kept as picked, never encoded again.** The export decodes and mixes, so no host needs an encoder, and nothing is lost. The clip is `sounds/<id>.<type>`, with an id such as `sn1`, the learner's `label` (from the file's name, up to 60 characters), the file's `length` in seconds and its `bytes`.
+- **Trimmed once, on import.** `trim: { start, end }` is the part the film uses, in seconds into the file, set in the trim dialog (07-ux, S5) and kept, so a trimmed clip can be used again. A long file trimmed short still carries the whole file (the owner's choice).
+- Refusals are in plain words (`SOUND_REFUSALS`). `withSound` adds the clip, and `withoutSound` removes it with the music cues that play it.
+
+**When the file opens,** each clip's file must be there, its size its `bytes`, and its type by its first bytes the one its name says; otherwise the file is damaged. Whether it decodes is the player's to find: one that doesn't plays as silence. `checkReferences` checks safe ids, one of each, the file named by its id and type, the trim within the file, and the limits.
 
 ## 2. Scenes
 
@@ -188,6 +205,16 @@ A pose with nothing left is dropped too, so a file never holds `joints: {}`. **N
 **Naming a joint the model lacks** (proposed by S4, 16 Nov 2026, for S3 and S2 to agree): only the stage knows the joints of the model it loaded, and the automatic check sees the film only through the stage. So the stage reports it with the rest of what it couldn't find: `missing()` gains `{ kind: 'joint', object, joint }`, one for each posed joint the loaded model lacks, after that object's model entry and never for an object shown as a stand-in (it has no joints to turn). The automatic check (`checkFilm`, S2's) adds a note for each, as it does for a missing model, for example "Owl has no joint called tailFan, so that part of its pose isn't shown." Nothing else changes: the scene still loads and plays, and the file keeps the pose, so it comes back on a copy whose model has the joint.
 
 **`setObject`** (section 2.1) carries a pose as `joints`, the whole pose, which replaces the set-up's, in one undo step ("Pose owl"), as it carries a transform. `{}` puts every joint back at rest, and the field goes. A pose that opening the file would drop any of is refused in plain words and changes nothing, so a saved pose always comes back.
+
+### 2.3 Music
+
+Music on a scene's Sound view timeline (format 1.9.0; section 1.7; 07-ux, S5) is in `Scene.music`, a list of `MusicCue`s in start order (`withSceneMusic`), at most 20 a scene:
+- `sound`, a `SoundRef`; `start`, seconds from the scene's start; `from` and `to`, the part it plays **in the trimmed clip's own time**: `from` 0 is the trim's start, and `0 ≤ from < to ≤ trim.end − trim.start`. A shelf sound's part is checked by the shelf.
+- `fadeIn` and `fadeOut` in seconds; `loop`, playing `from` to `to` again until the scene ends or another cue takes over; `volume` from 0 to 1, on top of the music track's.
+- **One cue at a time.** A later cue takes over from an earlier one with a crossfade of `MUSIC_CROSSFADE_SECONDS` (1 second in this version).
+- **Carrying on over a cut** (`carriesOn`, the owner's choice of 21 Nov 2026): the cue plays on into the next scenes until another cue starts, in whichever scene, and crossfades there. If no later cue starts, it plays to the film's end, or stops at its `to` if it doesn't loop.
+- **A cue that starts past the scene's end is kept,** never refused: only a Rehearse run knows a scene's length, and the scene may grow. The Sound view shows it greyed.
+- Duplicating a scene copies its music (section 2), and removing a sound removes the cues that play it.
 
 ## 3. Running order
 

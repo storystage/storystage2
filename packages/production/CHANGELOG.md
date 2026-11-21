@@ -2,6 +2,15 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.9.0
+
+Sound in a film (decision 0076, the owner's choices of 21 Nov 2026; spec 03 sections 1.7 and 2.3). Optional, so an older file opens, is migrated, and keeps its original.
+
+- `sounds/` and `manifest.sounds`: the learner's imported clips (`SoundClip`), MP3, WAV or M4A by their first bytes, kept as picked, with `length`, `bytes` and the `trim` set once on import. Within `SOUND_LIMITS`: 25 MB and 10 minutes a file, 150 MB a film. `importSound`, `withSound`, `withoutSound` and `soundTypeOf` are in `sound.ts`, with `SOUND_ACCEPT` for the file input.
+- `manifest.mix`: the Speech, Music and Sound FX tracks' volumes (`SoundMix`; `SOUND_MIX_DEFAULT`).
+- `Scene.music`: music cues on the scene's timeline (`MusicCue`: `sound`, `start`, `from`, `to` in the trimmed clip's time, fades, `loop`, `volume`, `carriesOn`). One cue at a time, crossfading as the next starts; carried music plays on into later scenes until another cue starts. `withSceneMusic` writes them, and duplicating a scene copies them.
+- `ProductionFiles.sounds` carries the files. A file whose sound isn't what its manifest says (size, or type by its first bytes) is damaged.
+
 ## 1.8.0
 
 A plan can repeat several steps as one loop (the owner's choice of 21 Nov 2026, before the full evaluation run; spec 04 section 6.8, agreed with S7; spec 03 section 6).

@@ -3,7 +3,7 @@ import { exampleProduction } from './example.ts';
 import { readArchive, writeArchive } from './archive.ts';
 import { openProduction, saveProduction } from './file.ts';
 import { isFramePlan, withFramePlan } from './plan.ts';
-import type { FramePlan, PlanStep, Production } from './types.ts';
+import { FORMAT_VERSION, type FramePlan, type PlanStep, type Production } from './types.ts';
 import { PLAN_LIMITS } from './validate.ts';
 
 const p = exampleProduction();
@@ -218,8 +218,10 @@ describe('a plan’s repeat steps (format 1.8.0, spec 04 section 6.8)', () => {
       ).toBe('migrated');
   });
 
-  it('drops a 1.8.0 plan whose steps have no holds, never the file', () => {
-    const opened = openProduction(asWritten(withFramePlan(p, frame, plan), '1.8.0', withoutHolds));
+  it('drops a 1.8.0 or later plan whose steps have no holds, never the file', () => {
+    const opened = openProduction(
+      asWritten(withFramePlan(p, frame, plan), FORMAT_VERSION, withoutHolds),
+    );
     expect(opened.status).toBe('ok');
     if (opened.status === 'broken') return;
     expect('plan' in opened.production.frames.find((f) => f.id === frame)!).toBe(false);

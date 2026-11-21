@@ -21,8 +21,9 @@ import {
 import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
+import { SOUND_LIMITS, SOUND_TYPES } from './sound.ts';
 
-export const FORMAT_VERSION = '1.8.0';
+export const FORMAT_VERSION = '1.9.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -52,8 +53,68 @@ export const ZIP_LAYOUT = {
   script: 'script.fountain',
   frame: (id: FrameId) => `frames/${id}.json`,
   audio: 'audio/',
+  sounds: 'sounds/',
   model: (folder: string, file: string) => `models/${folder}/${file}`,
 } as const;
+
+/**
+ * A sound file the learner imported (format 1.9.0, spec 03 section 1.7; decision 0076): kept in
+ * `sounds/` as it was picked, never encoded again, with the part of it the film uses.
+ */
+export interface SoundClip {
+  /** Its id, safe as a file name (`SAFE_ID`), such as `sn1`. */
+  readonly id: string;
+  /** `<id>.mp3`, `<id>.wav` or `<id>.m4a` in `sounds/`, by the type its first bytes show. */
+  readonly file: string;
+  /** The learner's name for it. */
+  readonly label: string;
+  /** The whole file's length in seconds, as the device decoded it on import. */
+  readonly length: number;
+  /** The file's size in bytes, for the production's limit. */
+  readonly bytes: number;
+  /** The part the film uses, in seconds into the file, set once on import. */
+  readonly trim: { readonly start: number; readonly end: number };
+}
+
+/**
+ * A sound the film plays: an imported clip's `id`, or a sound's Backstage id from the shelf
+ * (which has slashes in it, so the two never meet). A shelf sound isn't packed, as a shipped
+ * model isn't.
+ */
+export type SoundRef = string;
+
+/** The three tracks' volumes, each from 0 to 1 (format 1.9.0). The export lowers music under speech. */
+export interface SoundMix {
+  readonly speech: number;
+  readonly music: number;
+  readonly effects: number;
+}
+
+/**
+ * Music placed on a scene's Sound view timeline (format 1.9.0, spec 03 section 2.3). The music
+ * track plays one cue at a time: a later cue takes over from an earlier one with a crossfade
+ * (`MUSIC_CROSSFADE_SECONDS`), in its scene or, for one that carries on, in a later one.
+ */
+export interface MusicCue {
+  readonly sound: SoundRef;
+  /** Seconds from the scene's start. It may be past the scene's end: only a Rehearse run knows. */
+  readonly start: number;
+  /** The part it plays, in the trimmed clip's own time: 0 is the trim's start. */
+  readonly from: number;
+  readonly to: number;
+  /** Seconds. */
+  readonly fadeIn: number;
+  readonly fadeOut: number;
+  /** Plays `from` to `to` again until the scene ends or another cue takes over. */
+  readonly loop: boolean;
+  /** From 0 to 1, on top of the music track's. */
+  readonly volume: number;
+  /**
+   * Plays on into the next scenes, over the cuts, until another cue starts (the owner's choice
+   * of 21 Nov 2026), crossfading there.
+   */
+  readonly carriesOn: boolean;
+}
 
 /** A class-imported model carried in the file (decision 0049, spec section 1.3). */
 export interface PackedModel {
@@ -99,6 +160,10 @@ export interface ProductionManifest {
    * `voices.ts`). Optional. Format 1.4.0. A voice that doesn't fit is dropped when the file opens.
    */
   readonly voices?: Readonly<Record<string, CastVoice>>;
+  /** Sound files the learner imported, in `sounds/`. Optional. Format 1.9.0. */
+  readonly sounds?: readonly SoundClip[];
+  /** The tracks' volumes; `SOUND_MIX_DEFAULT` when there's none. Optional. Format 1.9.0. */
+  readonly mix?: SoundMix;
 }
 
 /** Arc templates (WP10.2): free, 3-part, 5-part, or a curriculum template by id (WP16). */
@@ -289,6 +354,8 @@ export interface Scene {
   readonly setup: SceneSetup;
   /** The scene's script method in `program.json`. */
   readonly method: NodeId;
+  /** Music on the scene's Sound view timeline, by start. Optional. Format 1.9.0. */
+  readonly music?: readonly MusicCue[];
 }
 
 /** A whole production in memory, as read from or written to a `.storystage` file. */
@@ -412,8 +479,56 @@ export function checkReferences(p: Production): string[] {
     if (a.file.includes('/') || a.file.includes('\\') || a.file.startsWith('.'))
       problems.push(`Audio file name ${a.file} must be a plain name inside audio/.`);
   checkModels(p.manifest.models, problems);
+  checkSounds(p, problems);
   return problems;
 }
+
+/**
+ * Imported sounds and scene music (format 1.9.0): safe ids, one of each, a file named by its id
+ * and type, a trim within the file, the limits, and every cue's sound and part within its clip.
+ * A shelf sound's id is only checked for its form: the shelf judges whether it has it, and one it
+ * lacks plays as silence, as a missing model shows as a stand-in.
+ */
+function checkSounds(p: Production, problems: string[]): void {
+  const clips = new Map<string, SoundClip>();
+  const sounds = p.manifest.sounds ?? [];
+  if (sounds.length > SOUND_LIMITS.clips)
+    problems.push(`The film has more than ${SOUND_LIMITS.clips} imported sounds.`);
+  let total = 0;
+  for (const clip of sounds) {
+    if (!SAFE_ID.test(clip.id)) problems.push(`Sound id ${clip.id} is not safe as a file name.`);
+    if (clips.has(clip.id)) problems.push(`Two sounds have the id ${clip.id}.`);
+    clips.set(clip.id, clip);
+    if (!Object.keys(SOUND_TYPES).some((type) => clip.file === `${clip.id}.${type}`))
+      problems.push(`Sound ${clip.id}'s file should be ${clip.id}.mp3, .wav or .m4a.`);
+    if (!(clip.length > 0 && clip.length <= SOUND_LIMITS.seconds))
+      problems.push(`Sound ${clip.id} should be up to ${SOUND_LIMITS.seconds} seconds long.`);
+    if (!(clip.trim.start >= 0 && clip.trim.start < clip.trim.end && clip.trim.end <= clip.length))
+      problems.push(`Sound ${clip.id}'s trim should be a part of the file.`);
+    if (!(Number.isInteger(clip.bytes) && clip.bytes > 0 && clip.bytes <= SOUND_LIMITS.fileBytes))
+      problems.push(`Sound ${clip.id} should be up to ${SOUND_LIMITS.fileBytes} bytes.`);
+    total += clip.bytes;
+  }
+  if (total > SOUND_LIMITS.totalBytes)
+    problems.push(`The film's imported sounds come to more than ${SOUND_LIMITS.totalBytes} bytes.`);
+  for (const scene of p.scenes) {
+    const music = scene.music ?? [];
+    if (music.length > SOUND_LIMITS.cues)
+      problems.push(`Scene ${scene.id} has more than ${SOUND_LIMITS.cues} music cues.`);
+    music.forEach((cue, i) => {
+      const at = `Scene ${scene.id}'s music cue ${i + 1}`;
+      const clip = clips.get(cue.sound);
+      if (!clip && !SHELF_SOUND.test(cue.sound))
+        problems.push(`${at} plays ${cue.sound}, which isn't an imported sound or a shelf id.`);
+      const span = clip ? clip.trim.end - clip.trim.start : Infinity;
+      if (!(cue.from >= 0 && cue.from < cue.to && cue.to <= span))
+        problems.push(`${at} should play a part of its sound, within its trim.`);
+    });
+  }
+}
+
+/** A sound's Backstage id: `source/Class/name`. */
+const SHELF_SOUND = /^[a-z0-9-]+\/[A-Za-z]+\/[a-z0-9-]+$/;
 
 /** Packed models: safe folders, one of each, imported only, files inside their folder. */
 function checkModels(models: readonly PackedModel[], problems: string[]): void {
