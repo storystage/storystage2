@@ -365,7 +365,9 @@ export function turnModel(doc: Document, turn: { readonly x?: number; readonly y
  * new root node with that scale, so nothing inside, skin or animation, needs to change.
  */
 export function scaleToHeight(doc: Document, metres: number): void {
-  const now = height(meshFromDocument(doc).positions);
+  // By the height as measured, not as rounded for the manifest: Poly Haven's rat, 3.4 cm tall
+  // and asked for 8, came out 9 when it was scaled by 8 / 3.
+  const now = span(meshFromDocument(doc).positions);
   const k = metres / now;
   if (!Number.isFinite(k) || Math.abs(k - 1) < 1e-6) return;
   wrapScene(doc, () => doc.createNode('storystage-size').setScale([k, k, k]));
@@ -406,14 +408,21 @@ export function standOnGround(doc: Document): void {
 }
 
 /** Height in metres at scale 1: the model's extent along Y. */
-function height(positions: Float32Array): number {
+/** From the lowest point to the highest, in metres; 0 for a flat or empty model. */
+function span(positions: Float32Array): number {
   let lo = Infinity;
   let hi = -Infinity;
   for (let i = 1; i < positions.length; i += 3) {
     lo = Math.min(lo, positions[i]!);
     hi = Math.max(hi, positions[i]!);
   }
-  return hi > lo ? Math.max(0.01, Math.round((hi - lo) * 100) / 100) : 1;
+  return hi > lo ? hi - lo : 0;
+}
+
+/** The manifest's height: the span to the centimetre, at least 1 cm, or 1 m for a flat model. */
+function height(positions: Float32Array): number {
+  const h = span(positions);
+  return h > 0 ? Math.max(0.01, Math.round(h * 100) / 100) : 1;
 }
 
 /** A backdrop item's model, made from its picture, with its thumbnail and colours. */
