@@ -131,6 +131,25 @@ describe('a method as blocks and back (3i.8)', () => {
     expect(header!.inputs!.BODY!.block!.id).toBe(owner.body[0]!.id);
   });
 
+  it('heads a scene’s script method “When the scene starts”, and any other by its name', () => {
+    // The owner's choice (21 Nov): the code keeps Alice's `myFirstMethod`; learners see when it runs.
+    const scene = program.types.find((t) => t.extends?.kind === 'story')!;
+    const script = scene.methods.find((m) => m.name === 'myFirstMethod')!;
+    const label = (o: MethodDecl) => toBlocks(program, o).blocks.blocks[0]!.extraState?.label;
+    expect(label(script)).toBe('When the scene starts');
+    const other = owners(program).find(
+      (o): o is MethodDecl => o.kind === 'method' && o.name !== 'myFirstMethod',
+    )!;
+    expect(label(other)).toBe(other.name);
+    // A method named so in a type that isn't a scene is just its name.
+    const types = program.types.map((t) =>
+      t === scene ? { ...t, extends: { kind: 'story' as const, name: 'Model' } } : t,
+    );
+    expect(toBlocks({ ...program, types }, script).blocks.blocks[0]!.extraState?.label).toBe(
+      'myFirstMethod',
+    );
+  });
+
   it('keeps a switched-off statement switched off', () => {
     const owner = owners(program).find((o) => o.body.some((s) => s.kind === 'call'))!;
     const off = owner.body.map((s): Statement =>

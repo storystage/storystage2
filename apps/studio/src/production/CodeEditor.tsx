@@ -8,7 +8,13 @@ import {
 import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import type { Production, SceneId } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
-import { PALETTE_TABS, describer, type PaletteTab } from '@storystage/story-api/editing';
+import {
+  PALETTE_TABS,
+  describer,
+  isSceneScript,
+  methodTitle,
+  type PaletteTab,
+} from '@storystage/story-api/editing';
 import { TEXT_STYLES, TextView, textViewWord } from '@storystage/text-view';
 import { Icon, Segmented, Toggle, useTabPanel, useThemeStyle } from '@storystage/ui';
 import { Suspense, lazy, useMemo, useState } from 'react';
@@ -83,10 +89,15 @@ export function methodHolding(
 
 /**
  * A tab's name: a method's own, or its listener's words with what it waits for ("when penguin is
- * clicked"), as Tiles words it (spec 14, 3a: this tab row serves both editors).
+ * clicked"), as Tiles words it (spec 14, 3a: this tab row serves both editors). The scene's script
+ * method is "When the scene starts" (the owner, 21 Nov), though its code keeps `myFirstMethod`.
  */
 const tabName = (p: Production, m: MethodDecl | ListenerDecl) =>
-  m.kind === 'method' ? m.name : describer(p.program)(m);
+  m.kind === 'listener'
+    ? describer(p.program)(m)
+    : isSceneScript(p.program, m.id)
+      ? methodTitle(p.program, m.id)
+      : m.name;
 
 const BlocksPanel = lazy(() => import('./BlocksPanel.tsx'));
 const TilesPanel = lazy(() => import('./TilesPanel.tsx'));

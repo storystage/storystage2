@@ -48,8 +48,14 @@ const undoButton = (page: Page) =>
 test('the scene’s method opens in the Blocks editor, one tab per method', async ({ page }) => {
   await openCode(page);
   const tabs = page.getByRole('tablist', { name: 'Methods in scene 1' }).getByRole('tab');
-  await expect(tabs.first()).toHaveText(main.name);
+  // The scene's script method reads "When the scene starts" (the owner, 21 Nov); its code keeps
+  // Alice's name, `myFirstMethod`.
+  await expect(tabs.first()).toHaveText('When the scene starts');
   await expect(tabs.first()).toHaveAttribute('aria-selected', 'true');
+  // The header block can't be moved, so it isn't one of Blockly's draggable ones.
+  const header = page.locator(`.blocklyWorkspace [data-id="${main.id}"]`).first();
+  await expect(header).toContainText('When the scene starts');
+  await expect(header).not.toContainText(main.name);
   for (const s of main.body) await expect(block(page, s.id)).toBeVisible();
 });
 
@@ -142,7 +148,10 @@ test('New adds a procedure in its own tab, offered in the palette, one undo step
   await expect(undoButton(page)).toHaveText('Undo: Add procedure walkToTheDoor');
   await undoButton(page).click();
   await expect(tab).toBeHidden();
-  await expect(page.getByRole('tab', { name: main.name })).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByRole('tab', { name: 'When the scene starts' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 });
 
 test('a block’s menu and keys switch it off, add a detail and duplicate, each one step', async ({

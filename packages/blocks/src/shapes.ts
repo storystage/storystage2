@@ -180,7 +180,8 @@ export const methodShape = (): Shape => ({
 /** A listener: the event's words, with a slot for each argument and detail, then its body. */
 export function listenerShape(event: string, details: readonly string[] = []): Shape {
   const def = findEvent(event);
-  const template = STORY[`event.${event}`] ?? event;
+  // A scene's own `sceneStart` listener reads "also when the scene starts" (spec 14, 2).
+  const template = STORY[`listener.${event}`] ?? STORY[`event.${event}`] ?? event;
   return {
     type: LISTENER,
     role: 'header',

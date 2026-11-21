@@ -12,6 +12,7 @@ import {
   storyStatementType,
   storyValueType,
   TARGET,
+  listenerShape,
 } from './shapes.ts';
 
 beforeAll(() => defineBlocks());
@@ -39,6 +40,13 @@ describe('a block for everything a program holds (3i.1)', () => {
     for (const kind of [...STATEMENT_KINDS, ...EXPRESSION_KINDS])
       expect(types).toContain(nodeType(kind));
     for (const name of Object.keys(ENUMS)) expect(types).toContain(`ss_enum_${name}`);
+  });
+
+  it('words a scene’s own “scene starts” listener “also”, beside its script method', () => {
+    // Spec 14, 2: the script method is "When the scene starts"; a listener for it is a second.
+    const words = (event: string) => listenerShape(event).parts[0];
+    expect(words('sceneStart')).toEqual({ kind: 'words', text: 'also when the scene starts' });
+    expect(words('clickOnObject')).toEqual({ kind: 'words', text: 'when an object is clicked' });
   });
 
   it('words a block from the Story API’s words, target first', () => {
