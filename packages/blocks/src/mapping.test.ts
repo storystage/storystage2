@@ -140,7 +140,12 @@ describe('a method as blocks and back (3i.8)', () => {
     const other = owners(program).find(
       (o): o is MethodDecl => o.kind === 'method' && o.name !== 'myFirstMethod',
     )!;
-    expect(label(other)).toBe(other.name);
+    // Its name first; any inputs follow it (7.14).
+    expect(label(other)).toEqual(
+      other.params.length === 0
+        ? other.name
+        : expect.stringMatching(new RegExp(`^${other.name} \\(`)),
+    );
     // A method named so in a type that isn't a scene is just its name.
     const types = program.types.map((t) =>
       t === scene ? { ...t, extends: { kind: 'story' as const, name: 'Model' } } : t,
@@ -173,6 +178,17 @@ describe('a method as blocks and back (3i.8)', () => {
     );
     // Words only: the call reads back as the program has it.
     expect(fromBlocks(throughBlockly(state)).body).toEqual([again]);
+  });
+
+  it('heads a method with inputs by its name and theirs, as words only (7.14)', () => {
+    const owner = owners(program).find(
+      (o): o is MethodDecl => o.kind === 'method' && o.params.length > 0,
+    );
+    expect(owner).toBeTruthy();
+    const label = toBlocks(program, owner!).blocks.blocks[0]!.extraState?.label;
+    expect(label).toMatch(new RegExp(`^${owner!.name} \\(.+: .+\\)$`));
+    // Only drawn: the inputs read back as the program has them.
+    expect(fromBlocks(throughBlockly(toBlocks(program, owner!))).body).toEqual(owner!.body);
   });
 
   it('keeps a switched-off statement switched off', () => {

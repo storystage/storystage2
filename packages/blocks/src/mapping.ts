@@ -21,7 +21,7 @@ import type {
   TypeRef,
 } from '@storystage/ast';
 import { DETAILS } from '@storystage/story-api';
-import { isSceneScript, methodTitle, word } from '@storystage/story-api/editing';
+import { isSceneScript, methodTitle, parameterWords, word } from '@storystage/story-api/editing';
 import {
   LISTENER,
   METHOD,
@@ -130,9 +130,14 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
           x: 16,
           y: 16,
           deletable: false,
-          // A scene's script method reads "When the scene starts" (spec 14, 2; owner, 21 Nov).
+          // A scene's script method reads "When the scene starts" (spec 14, 2; owner, 21 Nov);
+          // another its name and inputs, "waddle (steps: whole number)" (7.14).
           extraState: {
-            label: isSceneScript(program, owner.id) ? methodTitle(program, owner.id) : owner.name,
+            label: isSceneScript(program, owner.id)
+              ? methodTitle(program, owner.id)
+              : owner.params.length === 0
+                ? owner.name
+                : `${owner.name} (${owner.params.map((q) => parameterWords(program, q)).join(', ')})`,
           },
           inputs: chain(owner.body),
         }

@@ -164,6 +164,33 @@
   gap: 8px;
   align-items: flex-start;
 }
+/* New's inputs (7.14): each a name, what it holds, and Take out, then "Add an input (parameter)…". */
+.pr-new-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pr-new-inputs > legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.pr-new-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-new-input > .ss-button {
+  align-self: flex-start;
+}
 .pr-tab {
   display: inline-flex;
   align-items: center;

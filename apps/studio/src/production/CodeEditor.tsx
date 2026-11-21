@@ -13,6 +13,7 @@ import {
   describer,
   isSceneScript,
   methodTitle,
+  takesParameters,
   type PaletteTab,
 } from '@storystage/story-api/editing';
 import { TEXT_STYLES, TextView, textViewWord } from '@storystage/text-view';
@@ -34,6 +35,7 @@ import {
 import { words } from '../strings.ts';
 import type { Highlights } from './BlocksPanel.tsx';
 import { sceneNumber } from '../storyboard/edits.ts';
+import { InputsMenu } from './InputsMenu.tsx';
 import { NewMethod } from './NewMethod.tsx';
 import { useTextViewSetting } from './textViewSetting.ts';
 import { EditorSwitch, editorName } from './EditorSwitch.tsx';
@@ -247,6 +249,10 @@ export function CodeEditor({
                 </Tab>
               ))}
             </TabList>
+            {/* The open procedure's or function's inputs (7.14); none for a script or listener. */}
+            {m.kind === 'method' && takesParameters(p.program, m.id) && (
+              <InputsMenu host={host} program={p.program} method={m} />
+            )}
             {type && <NewMethod host={host} type={type.id} n={n} onAdded={setChosen} />}
           </div>
         </Tabs>

@@ -4,9 +4,11 @@ import { describe, expect, it } from 'vitest';
 import {
   NEW_EVENTS,
   eventWords,
+  inputProblems,
   nameProblem,
   newListener,
   newMethod,
+  newMethodWithInputs,
   suggestedName,
 } from './newMethodEdits.ts';
 
@@ -76,5 +78,44 @@ describe('New in the Code editor (7.2)', () => {
   it('adds nothing to a class that is not there', () => {
     expect(newMethod(p.program, 'gone' as NodeId, 'x', null, '')).toBeNull();
     expect(newListener(p.program, type, 'noSuchEvent', '')).toBeNull();
+  });
+});
+
+describe('New with inputs (7.14, decision 0074)', () => {
+  it('declares the method and its inputs as one step, and the program stays whole', () => {
+    const made = newMethodWithInputs(
+      p.program,
+      type,
+      'waddle',
+      null,
+      [
+        { name: 'steps', type: 'WholeNumber' },
+        { name: 'height', type: 'Number' },
+      ],
+      'Add procedure waddle with steps and height',
+    )!;
+    const after = applyAll(p.program, made.edits).program;
+    expect(validateProgram(after)).toEqual([]);
+    const method = after.types.find((t) => t.id === type)!.methods.find((m) => m.id === made.id)!;
+    expect(method.name).toBe('waddle');
+    expect(method.params.map((q) => [q.name, q.type])).toEqual([
+      ['steps', { kind: 'story', name: 'WholeNumber' }],
+      ['height', { kind: 'story', name: 'Number' }],
+    ]);
+    // A learner's input has no default; the ids are all new.
+    expect(method.params.every((q) => q.default === null)).toBe(true);
+    expect(new Set([method.id, ...method.params.map((q) => q.id)]).size).toBe(3);
+  });
+
+  it('says why an input’s name won’t do, and that two inputs can’t share one', () => {
+    expect(
+      inputProblems([
+        { name: 'steps', type: 'Number' },
+        { name: '', type: 'Number' },
+        { name: 'two words', type: 'Number' },
+        { name: 'steps', type: 'Text' },
+        { name: 'x'.repeat(61), type: 'Number' },
+      ]),
+    ).toEqual([null, 'empty', 'shape', 'taken', 'long']);
   });
 });
