@@ -816,6 +816,16 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
       handler[0]!.callee.kind === 'user' &&
       handler[0]!.callee.method === sceneMethodId;
     if (onlyStartsScript) continue;
+    // One that does more keeps the rest, but not the call: the script would run twice (spec 19, 6).
+    const startsScript = (s: Statement) =>
+      s.kind === 'call' && s.callee.kind === 'user' && s.callee.method === sceneMethodId;
+    const kept = event.name === 'sceneStart' ? handler.filter((s) => !startsScript(s)) : handler;
+    if (kept.length < handler.length)
+      gap({
+        kind: 'event',
+        what: 'when the scene starts: myFirstMethod',
+        why: 'StoryStage starts the scene’s script when the scene starts, so this call would run it twice. It’s left out, and the rest of this event’s blocks run alongside the script.',
+      });
     listeners.push({
       id: mint(),
       kind: 'listener',
@@ -823,7 +833,7 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
       args,
       details: {},
       params,
-      body: handler,
+      body: kept,
     });
   }
 

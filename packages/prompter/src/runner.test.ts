@@ -191,6 +191,21 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect('body' in last && last.body.map((s) => s.kind)).toEqual(['call']);
   });
 
+  it('builds the do together with the first of two steps that run together (the first pilot)', () => {
+    const { runner, run } = setUp();
+    runner.begin('go', agreed([step({}), step({ together: true })]));
+    expect(
+      run('insert_control', {
+        method: 'myFirstMethod',
+        position: 'end',
+        kind: 'doTogether',
+        narration: 'These happen at the same time.',
+        plan_step: 1,
+      }),
+    ).toMatchObject({ ok: true });
+    runner.end();
+  });
+
   it("gives an if's two halves as places to build", () => {
     const { runner, run } = setUp();
     runner.begin('go', agreed([step({ together: true })]));

@@ -8,7 +8,7 @@
 import { PLAN_LIMITS } from '@storystage/production';
 import { DETAILS, enumValues, findEntry, isEnumName, type TypeName } from '@storystage/story-api';
 import { fill, word } from '@storystage/story-api/editing';
-import type { NameValue, PlanStep, PlanWorld } from './plans.ts';
+import { targetOf, type NameValue, type PlanStep, type PlanWorld } from './plans.ts';
 
 /** A step's words are under 20 words (section 6.2), which also keeps a kept plan in the format's limits. */
 export const STEP_WORDS_MAX = 19;
@@ -28,7 +28,8 @@ function doWords(step: PlanStep, world: PlanWorld): string {
   const entry = cls ? findEntry(cls, step.action) : undefined;
   if (!entry || entry.kind !== 'procedure') return `${who(step.actor)} ${step.action}`;
   const given = new Map(step.details.map((d: NameValue) => [d.name, d.value] as const));
-  if (step.target && !given.has('target')) given.set('target', step.target);
+  const target = targetOf(step);
+  if (target && !given.has('target')) given.set('target', target);
   // A line's words are the line's, exactly (section 6.5).
   const line = step.line ? world.lines.get(step.line) : undefined;
   if (line !== undefined) given.set('text', line);

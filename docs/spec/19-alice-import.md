@@ -103,7 +103,7 @@ An Alice world is a `Program` type holding a `Scene` type, and a type for each g
 
 ## 6. Events
 
-`initializeEventListeners`'s `add…Listener` calls become listeners on the scene: `addSceneActivationListener` is `sceneStart`, and every other is matched through the Story API's events' `alice` lists. The lambda's body becomes the listener's body. Alice's starter worlds have exactly one, `sceneStart` calling `myFirstMethod`; since the script method already runs when the scene starts, that listener goes, unreported, when it does nothing else.
+`initializeEventListeners`'s `add…Listener` calls become listeners on the scene: `addSceneActivationListener` is `sceneStart`, and every other is matched through the Story API's events' `alice` lists. The lambda's body becomes the listener's body. Alice's starter worlds have exactly one, `sceneStart` calling `myFirstMethod`; since the script method already runs when the scene starts, that listener goes, unreported, when it does nothing else. One that does more stays without its call to `myFirstMethod`, which would run the script a second time, and the report says so; its other blocks run alongside the script.
 
 ## 7. The report
 

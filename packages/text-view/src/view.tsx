@@ -6,6 +6,7 @@
 import type { NodeId, Program } from '@storystage/ast';
 import type { HighlightKind, HighlightMark } from '@storystage/editor-contract';
 import { useEffect, useMemo, useRef, type ReactNode } from 'react';
+import { describer, isSceneScriptIn, methodTitleIn } from '@storystage/story-api/editing';
 import { linesOf, textOf, type TextStyle } from './text.ts';
 import { t } from './words.ts';
 import './text-view.css';
@@ -124,12 +125,13 @@ function withNotes(line: string): ReactNode {
   );
 }
 
+/** A method's name as the editors give it: a scene's script method is "When the scene starts". */
 function methodName(program: Program, method: NodeId): string {
   for (const type of program.types) {
     const found = type.methods.find((m) => m.id === method);
-    if (found) return found.name;
+    if (found) return isSceneScriptIn(type, found) ? methodTitleIn(type, found) : found.name;
     const listener = type.listeners.find((l) => l.id === method);
-    if (listener) return listener.event;
+    if (listener) return describer(program)(listener);
   }
   return '';
 }

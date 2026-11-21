@@ -7,6 +7,7 @@ import type { AstNode, Expression, NodeId, Program, Statement, TypeRef } from '@
 import { findEntry } from '../catalog/catalog.ts';
 import type { ProgramTypes } from '../catalog/program-types.ts';
 import { indexOf, perProgram, typesOf } from './cache.ts';
+import { isSceneScriptIn } from './scene-script.ts';
 import strings from '../strings/en-GB.json' with { type: 'json' };
 
 const all = strings as Readonly<Record<string, string>>;
@@ -149,8 +150,13 @@ function describe(program: Program, options: WordsOptions): Describer {
     const given = (args: typeof node.args) =>
       Object.fromEntries(Object.entries(args).map(([k, v]) => [k, value(v, self)]));
     if (node.callee.kind === 'user') {
-      const method = types.methods.get(node.callee.method)?.method;
+      const found = types.methods.get(node.callee.method);
+      const method = found?.method;
       if (!method) return target;
+      // The scene's own script: it has no name to learners but "When the scene starts" (3a).
+      // The target stays in front, as every call has it, in both editors.
+      if (isSceneScriptIn(found.owner, method))
+        return `${target} ${word('method.sceneScriptAgain')}`;
       const values = method.params.map((p) => {
         const v = node.args[p.id];
         return `${p.name} ${v ? value(v, self) : word('words.empty')}`;
@@ -220,8 +226,12 @@ function describe(program: Program, options: WordsOptions): Describer {
       return phrase.startsWith('control.') ? statement(node, self) : phrase.split('{')[0]!.trim();
     }
     const target = value(node.target, self);
-    if (node.callee.kind === 'user')
-      return `${target} ${types.methods.get(node.callee.method)?.method.name ?? ''}`.trim();
+    if (node.callee.kind === 'user') {
+      const found = types.methods.get(node.callee.method);
+      if (found && isSceneScriptIn(found.owner, found.method))
+        return `${target} ${word('method.sceneScriptAgain')}`;
+      return `${target} ${found?.method.name ?? ''}`.trim();
+    }
     const cls = types.classOf(types.typeOf(node.target, self));
     const entry = cls && findEntry(cls, node.callee.name);
     const phrase = entry ? word(`entry.${entry.on}.${entry.name}`) : node.callee.name;

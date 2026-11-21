@@ -5,17 +5,10 @@
  */
 import type { MethodDecl, NodeId, Program, TypeDecl } from '@storystage/ast';
 import { indexOf } from './cache.ts';
+import { isSceneScriptIn } from './scene-script.ts';
 import { fill, word } from './words.ts';
 
-/** Alice's name for a scene's first method, which runs when the scene starts (spec 03, 19). */
-export const SCENE_SCRIPT_METHOD = 'myFirstMethod';
-
-/** Whether a type is a scene: it extends the Story API's `Scene`. */
-const isScene = (type: TypeDecl) => type.extends?.kind === 'story' && type.extends.name === 'Scene';
-
-/** Whether `method` is in `type` as the scene's script method. */
-export const isSceneScriptIn = (type: TypeDecl, method: MethodDecl): boolean =>
-  method.name === SCENE_SCRIPT_METHOD && isScene(type);
+export { isSceneScriptIn, SCENE_SCRIPT_METHOD } from './scene-script.ts';
 
 /**
  * Whether `method` is a scene's script method: `myFirstMethod` in a type extending `Scene`. The

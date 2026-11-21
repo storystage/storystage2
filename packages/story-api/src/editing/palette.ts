@@ -6,6 +6,7 @@ import { copyNode, nodeId } from '@storystage/ast';
 import type { Callee, Expression, NodeId, Program } from '@storystage/ast';
 import { entriesOf } from '../catalog/catalog.ts';
 import { newCall } from './build.ts';
+import { isSceneScriptIn } from './scene-script.ts';
 import { describer, word, type WordsOptions } from './words.ts';
 
 export const PALETTE_TABS = ['actions', 'questions'] as const;
@@ -161,8 +162,14 @@ export function palette(
   };
 
   const groups: PaletteGroup[] = [];
+  // Not the scene's script: it runs when the scene starts, and a call to it from inside it would
+  // never end (spec 14, 3a).
   const own =
-    targetType?.kind === 'user' ? types.parentsOf(targetType.type).flatMap((t) => t.methods) : [];
+    targetType?.kind === 'user'
+      ? types
+          .parentsOf(targetType.type)
+          .flatMap((t) => t.methods.filter((m) => !isSceneScriptIn(t, m)))
+      : [];
   const yours = own
     .filter((m) => (m.returns === null) === (tab === 'actions'))
     .map((m) => item({ kind: 'user', method: m.id }, m.returns !== null));

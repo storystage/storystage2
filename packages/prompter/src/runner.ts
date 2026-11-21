@@ -593,7 +593,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const number = typeof input.plan_step === 'number' ? input.plan_step : 0;
     const step = steps[number - 1];
     if (!step) return fail('not_in_plan', `There is no step ${number} in the agreed plan.`);
-    const wrong = mismatch(name, input, step);
+    const wrong = mismatch(name, input, step, steps[number]);
     if (wrong) return fail('not_in_plan', wrong);
 
     const program = this.#setup.session.program();
