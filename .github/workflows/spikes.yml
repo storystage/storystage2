@@ -173,6 +173,20 @@ jobs:
           path: spikes/23.1-projection/test-results/
           retention-days: 30
 
+  spike-23-2:
+    name: spike 23.2 (Pixera client and test package)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: spikes/23.2-pixera
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      # The build itself needs Pixera on Windows, so it is run by hand (docs/spikes/REPORT.md, 23.2).
+      - name: The client against a stand-in Pixera, and the test package's media
+        run: pnpm exec vitest run
+
   spike-1-8:
     name: spike 1.8 (MP4 export, browsers)
     runs-on: ubuntu-latest
