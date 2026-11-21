@@ -227,16 +227,18 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     window.localStorage.removeItem('storystage.textView');
     const user = userEvent.setup();
     const p = exampleProduction();
-    const main = p.program.types
-      .flatMap((t) => t.methods)
-      .find((m) => m.id === p.scenes[0]!.method)!;
+    // The scene's script method is named for when it runs (the owner, 21 Nov).
+    const named = 'Text of When the scene starts';
     const { unmount } = render(<App start={p} />);
     await openStage(user);
-    expect(screen.queryByRole('region', { name: `Text of ${main.name}` })).toBeNull();
+    expect(screen.getByRole('tab', { name: 'When the scene starts', selected: true })).toBeTruthy();
+    expect(screen.queryByRole('tab', { name: 'myFirstMethod' })).toBeNull();
+    expect(screen.queryByRole('region', { name: named })).toBeNull();
     expect(screen.queryByRole('radiogroup', { name: 'Text wording' })).toBeNull();
     await user.click(screen.getByRole('switch', { name: 'Show as text' }));
-    const text = screen.getByRole('region', { name: `Text of ${main.name}` });
-    // Python-like first.
+    const text = screen.getByRole('region', { name: named });
+    // Python-like first. The code keeps Alice's name for the method.
+    expect(text.textContent).toContain('myFirstMethod');
     expect(text.textContent).toContain('penguin.say(');
     expect(text.textContent).not.toContain('this.penguin');
     await user.click(screen.getByRole('radio', { name: 'Java-like' }));
@@ -247,9 +249,7 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     await openStage(user);
     expect(screen.getByRole('switch', { name: 'Show as text' })).toHaveProperty('checked', true);
     expect(screen.getByRole('radio', { name: 'Java-like' })).toHaveProperty('checked', true);
-    expect(screen.getByRole('region', { name: `Text of ${main.name}` }).textContent).toContain(
-      'this.penguin.say(',
-    );
+    expect(screen.getByRole('region', { name: named }).textContent).toContain('this.penguin.say(');
     window.localStorage.removeItem('storystage.textView');
   });
 
