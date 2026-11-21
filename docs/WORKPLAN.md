@@ -745,7 +745,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     (C)
 - [ ] 11.7 **Sound (0076):**
     - **the Backstage sound shelf:** openly licensed effects and music, with their licences and credits (S4, with 3.12);
-    - **your own sound files:** picked through the native picker (S8) and imported into the film (S4), trimmed once on import in the studio's trim dialog (S5, 7.17); in the DPIA and the licences (D, 17.3);
+    - **your own sound files:** picked with a plain file input on every host, as model packs and Alice worlds are (S5, with the import button; spec 05 section 6.5, file inputs, sound included: S8's PR), and imported into the film (S4), trimmed once on import in the studio's trim dialog (S5, 7.17); in the DPIA and the licences (D, 17.3);
     - **three tracks,** Speech, Music and Sound FX, each with its own volume;
     - **playing:** `playAudio` in Rehearse and on the stage, and music in Rehearse (S3); the runtime's `playAudio` timing (S2);
     - **the export's mix:** the three tracks, music lowered under speech, and music crossfading at a scene cut (S2; spec 08 section 4).

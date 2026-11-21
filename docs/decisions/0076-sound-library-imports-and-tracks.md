@@ -17,7 +17,7 @@
 ## Who does what
 
 - **S4:** the Backstage sound shelf, and importing sound files into a film.
-- **S8:** the native picker for sound files.
+- **S5:** the file input that picks a sound to import, a plain one on every host, as for model packs and Alice worlds. **S8:** spec 05 section 6.5, file inputs, sound included.
 - **S5:** the Sound view timeline in the studio.
 - **S3:** `playAudio` playing in Rehearse and on the stage, and music in Rehearse.
 - **S2:** the runtime's `playAudio` timing, and the export's three-track mix with music lowered under speech and crossfades at cuts (spec 08 section 4 lists music as "not yet").
