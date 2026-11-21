@@ -12,6 +12,7 @@ import {
 import { FILE_LIMIT, type ClassFolders, type FilePicker } from '@storystage/host';
 import { Button } from '@storystage/ui';
 import { useRef, useState } from 'react';
+import { acceptFor } from '../fileInputs.ts';
 import { words } from '../strings.ts';
 
 type Said =
@@ -122,7 +123,7 @@ export function ModelPack({
         <input
           ref={input}
           type="file"
-          accept={MODEL_PACK_EXTENSION}
+          accept={acceptFor(MODEL_PACK_EXTENSION)}
           hidden
           aria-label={words.t('pack.file')}
           onChange={(e) => {
