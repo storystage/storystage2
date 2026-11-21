@@ -23,10 +23,10 @@ Verdicts:
 | **[MakeHuman community: Glasses 01](https://static.makehumancommunity.org/assets/assetpacks/glasses01.html)** | CC0, every asset in the pack (`glasses01_cc0.zip`) | Glasses worn by MakeHuman people (3.5) | None needed: the person's own credit, "<Name>, made with MakeHuman (CC0)", stands | **Ship** | Only the plain frames (`GLASSES` in `tools/makehuman-export/src/people.ts`); the costume and tinted ones aren't offered. The pipeline fetches the pack pinned by SHA-256 |
 | **Storybook cast** (3.6): not commissioned (the owner, 14 Nov 2026: no budget) | Made from KayKit's CC0 parts (`kitbash` recipes, 15 Nov), so CC0; or found per item (the Sketchfab row) | Public-domain characters: Robin Hood, Arthur, Merlin, Beowulf, Fionn, Maid Marian, Branwen, Medusa, the selkie, Holmes, Watson, Anansi | "<Character>, made from <model> by Kay Lousberg, KayKit (CC0)" | **Ship** | Designs from public-domain text only, each with its cultural and trade-mark check (17.8, #54) before it ships. A commission, if one comes later, would be licence `permission`, citing the contract in `docs/legal/` |
 | **[Kenney](https://kenney.nl/support)** | CC0. No attribution needed; the Kenney logo is reserved | Rigged characters, props, scenery in glTF (3.7) | "<Model> by Kenney (CC0)" | **Not used** (owner, 12 Nov 2026): kenney.nl refuses scripted downloads, and KayKit's characters cover Kenney's | If Kenney comes back: check the `License.txt` in each pack as it is downloaded. Don't use the Kenney logo. The Blocky and Mini character packs have no skeleton, so they are props or prop-only characters |
-| **[KayKit](https://kaylousberg.itch.io/kaykit-adventurers)** (Kay Lousberg) | CC0, free and paid tiers alike. The page asks that unmodified copies not be resold | Rigged, animated characters (free tier: 5 Adventurers) and the free animation pack | "<Model> by Kay Lousberg, KayKit (CC0)" | **Ship** | Ship only inside StoryStage, never as a separate asset download. Paid tiers only if the owner buys them |
+| **[KayKit](https://kaylousberg.itch.io/kaykit-adventurers)** (Kay Lousberg) | CC0, free and paid tiers alike. The page asks that unmodified copies not be resold | Rigged, animated characters (free tier: 5 Adventurers) and the free animation pack; the [Forest Nature Pack](https://kaylousberg.itch.io/kaykit-forest)'s free tier: 28 grasses, grey rocks and bare trees (the owner's choice of 21 Nov 2026, from a sheet of all 101; the rest left out) | "<Model> by Kay Lousberg, KayKit (CC0)"; "<Model> by Kay Lousberg, KayKit Forest Nature Pack (CC0)" | **Ship** | Ship only inside StoryStage, never as a separate asset download. Paid tiers only if the owner buys them. The Forest pack has no GitHub copy: its free zip came from itch.io in the owner's Chrome (21 Nov 2026), and the 28 are kept in backstage-assets' `originals/kaykit-forest/` with the pack's `License.txt` and each file's SHA-256 |
 | **[Open Source Avatars](https://github.com/toxsam/open-source-avatars)** registry: Polygonal Mind's 100Avatars series and the other CC0 collections | CC0: 100Avatars, Grifters Squaddies, ToxSam, Halloween Rising, Xmas Chibis, NeonGlitch86. CC-BY: VIPE Heroes | Rigged humanoids in VRM (3.7) | "<Avatar> by <maker>, <collection> (CC0)", for example "Robot by Polygonal Mind, 100Avatars (CC0)" | **Ship per item**: any CC0 collection (owner, 25 Oct 2026) | Record each avatar's own licence entry from the registry. Before an avatar ships, check it for respectful representation and age-appropriate content, and that its files carry no NFT, token or wallet link. Leave out VIPE Heroes (CC-BY) and any collection added later until it has been checked here |
 | **[Poly Pizza](https://poly.pizza)** | Per model. The catalogue mixes CC0, CC-BY and other CC licences (SA, ND, NC variants) | Low-poly props and scenery | CC0: "<Model> by <author> (CC0), via Poly Pizza". CC-BY: "<Model> by <author>, CC BY <version>, via Poly Pizza" | **Ship per item**: CC0, or CC-BY 3.0 or 4.0 | Never CC-BY-SA, ND or NC in the shipped catalogue. ND forbids the simplification every model gets (3.9); SA would bind learners' exports; NC blocks distribution. Items are picked offline. The API needs an account and isn't used by the app (any in-app search waits for the DPIA, 3.12) |
-| **[Poly Haven](https://polyhaven.com/license)** | CC0 for HDRIs, textures and models. Site logos, renders and text are not CC0; the API has separate terms | Skies, environment images, ground textures for Backdrops | "<Asset> by <author>, Poly Haven (CC0)" | **Ship** | Download the asset files themselves, never site images. Don't scrape; use the API only under its terms |
+| **[Poly Haven](https://polyhaven.com/license)** | CC0 for HDRIs, textures and models. Site logos, renders and text are not CC0; the API has separate terms | Skies, environment images, ground textures for Backdrops; 33 scanned models for plants and habitats: plants, pot plants and planters, trees, a stump and a log, rocks, a shell, a rat, and fruit and vegetables (the owner's choice of 21 Nov 2026, from a sheet of the picks as the build ships them) | "<Asset> by <author>, Poly Haven (CC0)" | **Ship** | Download the asset files themselves, never site images. Don't scrape; use the API only under its terms, which ask for a User-Agent naming the client (the tools send a generic one). The models' 1K glTFs are kept in backstage-assets' `originals/polyhaven/`, byte for byte, with each file's SHA-256 |
 | **[ambientCG](https://docs.ambientcg.com/license/)** | CC0 | Ground and material textures for Backdrops | "<Asset> from ambientCG.com (CC0)" | **Ship** | None |
 | **[Quaternius](https://quaternius.com/license.html)** (optional) | Quaternius Asset License: free for commercial use and needs no credit, but section 3(a) forbids redistributing the assets as an asset pack, stock file or template, or extracting and repackaging them. The version in force when the assets were obtained governs | Animated low-poly characters | "<Model> by Quaternius", with the terms of the permission | **Not yet**: the owner is asking Quaternius for permission (25 Oct 2026) | Backstage is a library learners pick models from and export in AR packs and pathway exports (WP20, WP22), which comes close to what 3(a) forbids. Ship only with Quaternius's written permission covering Backstage and learners' exports, recorded in `docs/legal/` with the licence `permission`. Draft request: `docs/legal/letters/quaternius.md` |
 | **Museum scans**: [Science Museum Group, Scottish Maritime Museum, University of Dundee](https://sketchfab.com/blogs/community/sketchfab-launches-public-domain-dedication-for-3d-cultural-heritage) on Sketchfab, and the Smithsonian's Open Access | CC0 per item, through Sketchfab's public-domain dedication for cultural organisations (2020) and Smithsonian Open Access. Other items from the same museums can carry other licences | Historical and scientific objects as props and sets (3.7) | "<Object>, <museum> (CC0)" | **Ship per item** | Only items whose own page shows CC0. Record the item URL and the date. Leave out items that note third-party rights. Usually needs simplifying (3.9) |
@@ -64,6 +64,7 @@ Since then:
 - **14 Nov:** the storybook cast without a commission, from KayKit's parts and two Sketchfab finds (section 1).
 - **15 Nov:** Blender Studio's Autumn ships; Spring doesn't.
 - **16 Nov:** headwear and hearing aids made in the MakeHuman pipeline. The owner's cultural reviews (17.8): Anansi stays, and the hijab, patka, turban and kippah ship.
+- **21 Nov:** plants and habitats: 33 Poly Haven models and 28 of KayKit's Forest Nature Pack ship (section 1).
 
 Still to do:
 
@@ -76,7 +77,7 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets 4a185f6 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets 3557bd9 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
@@ -84,8 +85,10 @@ Generated from `backstage.json` at storystage/backstage-assets 4a185f6 (the comm
 | Blender Studio | CC-BY-4.0 | 1 | Autumn (CC) Blender Foundation \| studio.blender.org; reduced for StoryStage, changed for StoryStage |
 | Gobkit's free animal packs | CC0-1.0 | 30 | Bat by Gobkit, Free Animal Pack (CC0) |
 | KayKit | CC0-1.0 | 10 | Barbarian by Kay Lousberg, KayKit (CC0) |
+| KayKit Forest Nature Pack | CC0-1.0 | 28 | Tree Bare 1 A by Kay Lousberg, KayKit Forest Nature Pack (CC0) |
 | MakeHuman people | CC0-1.0 | 37 | Alfie, made with MakeHuman (CC0) |
 | Open Source Avatars | CC0-1.0 | 95 | Agnes by Polygonal Mind, 100Avatars (CC0) |
+| Poly Haven models | CC0-1.0 | 33 | Anthurium Botany 01 by Rob Tuytel and Rico Cilliers, Poly Haven (CC0) |
 | Poly Pizza | CC-BY-3.0 | 51 | Apple by jeremy, CC BY 3.0, via Poly Pizza, changed for StoryStage |
 | Poly Pizza | CC0-1.0 | 18 | Alarm clock by CreativeTrio (CC0), via Poly Pizza |
 | Scottish Maritime Museum (on Sketchfab) | CC0-1.0 | 8 | Locomotive Headlamp, Scottish Maritime Museum (CC0) |
@@ -95,7 +98,7 @@ Generated from `backstage.json` at storystage/backstage-assets 4a185f6 (the comm
 | Styloo, Animals Asset Pack | CC0-1.0 | 7 | Butterfly by styloo, Animals Asset Pack (CC0) |
 | VRM Consortium (Seed-san) | VRM-PL-1.0 | 1 | Seed-san by VirtualCast, Inc. (VRM Public License 1.0) |
 | Vuena, Free Low-Poly Animals | CC0-1.0 | 3 | Owl by Popyca (Vuena), Free Low-Poly Animals (CC0) |
-| **All** | | **337** | |
+| **All** | | **398** | |
 
 <!-- /shipped -->
 

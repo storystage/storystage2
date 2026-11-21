@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '4a185f628dd2e66b5e52e6b018e0754162ba9c15';
+export const SHIPPED_CATALOGUE_COMMIT = '3557bd9d80a08a63878a16814136384887d631d1';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -295,7 +295,43 @@ Cast
 
 Props
   Prop
+    kaykit-forest/Prop/grass-2-a: Blade of grass, a cartoon blade of grass [nature, garden] 0.92 m, no joints
+    kaykit-forest/Prop/grass-2-b: Two blades of grass, two cartoon blades of grass [nature, garden] 0.92 m, no joints
+    kaykit-forest/Prop/grass-2-c: Tuft of grass, a thick cartoon tuft of grass [nature, garden] 0.94 m, no joints
+    kaykit-forest/Prop/grass-2-d: Spread tuft of grass, a spread cartoon tuft of grass [nature, garden] 0.94 m, no joints
+    kaykit-forest/Prop/rock-3-a: Grey rock A [nature] 0.86 m, no joints
+    kaykit-forest/Prop/rock-3-b: Grey rock B [nature] 1.03 m, no joints
+    kaykit-forest/Prop/rock-3-c: Grey rock C [nature] 0.97 m, no joints
+    kaykit-forest/Prop/rock-3-d: Grey rock D [nature] 0.97 m, no joints
+    kaykit-forest/Prop/rock-3-e: Grey rock E [nature] 1.29 m, no joints
+    kaykit-forest/Prop/rock-3-f: Grey rock F [nature] 1.18 m, no joints
+    kaykit-forest/Prop/rock-3-j: Grey rock J [nature] 1.9 m, no joints
     kaykit/Prop/mug: Mug, a big wooden mug with metal bands, full to the top with froth [fantasy, food] 0.55 m, no joints
+    polyhaven/Prop/anthurium: Anthurium, a leafy green rainforest plant with long pointed leaves [plants, jungle] 0.5 m, no joints
+    polyhaven/Prop/apple: Apple, a red apple [food, kitchen] 0.09 m, no joints
+    polyhaven/Prop/avocado: Avocado, a dark green avocado [food, kitchen] 0.14 m, no joints
+    polyhaven/Prop/bananas: Bunch of bananas, a bunch of four yellow bananas [food, kitchen] 0.18 m, no joints
+    polyhaven/Prop/calathea: Calathea, a rainforest plant with big round striped leaves [plants, jungle] 0.42 m, no joints
+    polyhaven/Prop/conch-shell: Spider conch shell, a seashell with long spiky fingers along one side [sea, beach] 0.05 m, no joints
+    polyhaven/Prop/dandelion: Dandelion, a yellow dandelion flower on a stalk above toothed leaves [plants, garden] 0.16 m, no joints
+    polyhaven/Prop/fallen-branch: Fallen branch, a dry twisted branch lying on the ground [woodland, nature] 0.34 m, no joints
+    polyhaven/Prop/fern: Fern, a low green fern with feathery fronds [plants, woodland] 0.43 m, no joints
+    polyhaven/Prop/flat-stone: Flat stone, a flat grey stone [beach, river] 0.03 m, no joints
+    polyhaven/Prop/gazania: Gazania flower, a low plant with orange daisy-like flowers and long leaves [plants, garden] 0.17 m, no joints
+    polyhaven/Prop/lemon: Lemon, a yellow lemon [food, kitchen] 0.1 m, no joints
+    polyhaven/Prop/nettle: Nettle, a stinging nettle with pairs of jagged leaves up its stem [plants, woodland] 0.22 m, no joints
+    polyhaven/Prop/onion: Onion, a round brown onion with dry papery outer layers [food, kitchen] 0.09 m, no joints
+    polyhaven/Prop/periwinkle: Periwinkle, a leafy plant with small pink flowers [plants, garden] 0.4 m, no joints
+    polyhaven/Prop/planter-box: Planter box, a long wooden planter box filled with soil [plants, garden] 0.42 m, no joints
+    polyhaven/Prop/pomegranate: Pomegranate, a round red pomegranate [food, kitchen] 0.11 m, no joints
+    polyhaven/Prop/potted-plant: Potted plant, a leafy green plant in a terracotta pot with pebbles [plants, home] 1.33 m, no joints
+    polyhaven/Prop/potted-plant-big-leaves: Potted plant with big leaves, a plant with big arrow-shaped leaves in a terracotta pot [plants, home] 0.84 m, no joints
+    polyhaven/Prop/potted-succulent: Potted succulent, a spiky green succulent in a small white pot with pebbles [plants, home] 0.27 m, no joints
+    polyhaven/Prop/quartz-stone: Quartz stone, a small pinkish stone with white quartz in it [nature] 0.07 m, no joints
+    polyhaven/Prop/raised-planter: Raised planter, a wooden planter box on legs, filled with soil [plants, garden] 0.86 m, no joints
+    polyhaven/Prop/rat: Rat, a dark brown rat with a long thin tail [animals, town] 0.03 m, no joints
+    polyhaven/Prop/red-rock: Red rock, a small dark red rock [nature] 0.14 m, no joints
+    polyhaven/Prop/sweet-potato: Sweet potato, a reddish sweet potato [food, kitchen] 0.1 m, no joints
     polypizza/Prop/alarm-clock: Alarm clock, a red alarm clock with two bells on top [home] 0.15 m, no joints
     polypizza/Prop/apple: Apple, a shiny red apple with a stalk and a leaf [food] 0.08 m, no joints
     polypizza/Prop/backpack: Backpack, a brown backpack with pockets [school] 0.45 m, no joints
@@ -354,6 +390,31 @@ Props
 
 Set
   Prop
+    kaykit-forest/Prop/bare-tree-1-a: Bare twisted tree, small, a leafless cartoon tree with a fat twisted trunk [woodland, spooky] 2.86 m, no joints
+    kaykit-forest/Prop/bare-tree-1-b: Bare twisted tree, medium, a leafless cartoon tree with a fat twisted trunk [woodland, spooky] 3.25 m, no joints
+    kaykit-forest/Prop/bare-tree-1-c: Bare twisted tree, large, a leafless cartoon tree with a fat twisted trunk [woodland, spooky] 5.26 m, no joints
+    kaykit-forest/Prop/bare-tree-2-a: Bare tall tree, small, a leafless cartoon tree with a tall thin trunk [woodland, spooky] 3.84 m, no joints
+    kaykit-forest/Prop/bare-tree-2-b: Bare tall tree, medium, a leafless cartoon tree with a tall thin trunk [woodland, spooky] 5.54 m, no joints
+    kaykit-forest/Prop/bare-tree-2-c: Bare tall tree, large, a leafless cartoon tree with a tall thin trunk [woodland, spooky] 7.61 m, no joints
+    kaykit-forest/Prop/rock-3-g: Grey rock G [nature] 2 m, no joints
+    kaykit-forest/Prop/rock-3-h: Grey rock H [nature] 2.06 m, no joints
+    kaykit-forest/Prop/rock-3-i: Grey rock I [nature] 2.11 m, no joints
+    kaykit-forest/Prop/rock-3-k: Grey rock K [nature] 2.22 m, no joints
+    kaykit-forest/Prop/rock-3-l: Grey rock L [nature] 2.27 m, no joints
+    kaykit-forest/Prop/rock-3-m: Grey rock M [nature] 3.6 m, no joints
+    kaykit-forest/Prop/rock-3-n: Grey rock N [nature] 3.53 m, no joints
+    kaykit-forest/Prop/rock-3-o: Grey rock O [nature] 3.47 m, no joints
+    kaykit-forest/Prop/rock-3-p: Grey rock P [nature] 3.68 m, no joints
+    kaykit-forest/Prop/rock-3-q: Grey rock Q [nature] 3.72 m, no joints
+    kaykit-forest/Prop/rock-3-r: Grey rock R [nature] 3.85 m, no joints
+    polyhaven/Prop/boulder: Boulder, a big rough brown boulder [nature] 1 m, no joints
+    polyhaven/Prop/fallen-log: Fallen log, a long fallen log with rough bark [woodland, nature] 0.29 m, no joints
+    polyhaven/Prop/money-tree: Money tree, a small tree with a braided trunk and green leaves [plants, home] 1.9 m, no joints
+    polyhaven/Prop/mossy-rock: Mossy rock, a big rounded rock with green moss on it [woodland, nature] 1.77 m, no joints
+    polyhaven/Prop/quiver-tree: Quiver tree, a tall desert tree with spiky leaves at its branch tips [desert, plants] 2.72 m, no joints
+    polyhaven/Prop/split-boulder: Split boulder, a big boulder split into several blocks [desert, nature] 0.88 m, no joints
+    polyhaven/Prop/tree-stump: Tree stump, a mossy old tree stump with spreading roots [woodland, nature] 0.57 m, no joints
+    polyhaven/Prop/young-quiver-tree: Young quiver tree, a young desert tree with a thick trunk and a spiky crown [desert, plants] 1.47 m, no joints
     polypizza/Prop/barn: Barn, a red barn with white doors [farm] 8 m, no joints
     polypizza/Prop/bench: Bench, a wooden bench with black legs [park] 0.85 m, no joints
     polypizza/Prop/castle: Castle, a grey stone castle with towers [fairy tale, history] 15 m, no joints
