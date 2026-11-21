@@ -196,6 +196,47 @@ describe('validateSources', () => {
     }
   });
 
+  // The owner's choices of 21 Nov 2026: the planets, and NASA's insignia painted out.
+  it('takes a globe made from a picture fetched from GitHub, never as a backdrop', () => {
+    const earth = {
+      id: 'solar-system/Prop/earth',
+      class: 'Prop',
+      section: 'props',
+      licence: 'CC-BY-4.0',
+      fetch: {
+        github: 'storystage/backstage-assets',
+        commit: COMMIT,
+        path: 'originals/solar-system/2k_earth_daymap.jpg',
+      },
+      globe: {},
+      height: 1,
+    };
+    expect(validateSources({ source: 's', items: [item(earth)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [
+        { fetch: { github: 'storystage/backstage-assets', commit: COMMIT, path: 'earth.glb' } },
+        /globe's fetch.path must be its picture/,
+      ],
+      [
+        { fetch: { url: 'https://example.org/earth.jpg', sha256: 'a'.repeat(64), ext: 'jpg' } },
+        /picture from GitHub/,
+      ],
+      [{ globe: { ring: { path: 'ring.png', inner: 3, outer: 2 } } }, /inner < outer/],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...earth, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
+  it("takes boxes to paint out of a model's pictures", () => {
+    const ok = (cover: unknown) => validateSources({ source: 's', items: [item({ cover })] }).ok;
+    expect(ok([{ texture: 'wingtop', at: [34, 135, 72, 72] }])).toBe(true);
+    expect(ok([{ texture: 'texturelogo', at: [0, 0, 700, 700], colour: '#d2d4e5' }])).toBe(true);
+    expect(ok([{ texture: 'wingtop', at: [34, 135, 72] }])).toBe(false);
+    expect(ok([])).toBe(false);
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({

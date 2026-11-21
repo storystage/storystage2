@@ -22,4 +22,6 @@ None of this is legal advice. If StoryStage is ever sold or promoted using these
 
 ## Models shipped under this record
 
-None yet. The source list in `storystage/backstage-assets` (`sources/nasa.json`) is the list, and the licence audit's section 4 is generated from it.
+From 21 Nov 2026 (the owner's choices: models that stand on the ground, not satellites, stations or telescopes), 16 models, each credited as its page says: the Apollo lunar module, the crawler-transporter, the Jupiter-C rocket, the Saturn V, the Space Shuttle (D), the Vehicle Assembly Building, the Extravehicular Mobility Unit and the Gemini, Mark III, Mercury and Z2 spacesuits, a helmet, Robonaut 2, the Viking lander, Ingenuity and Perseverance. The meatball is painted out of six of them in the build (`cover`; the Mark III's chest badge, the Shuttle's wing and sides, the Vehicle Assembly Building, the Z2's patch, and Ingenuity's and Perseverance's blades), with JPL's logo, and the owner saw each before and after. The Astronaut is left out: its page credits DigitalSpace Corporation (condition 4). Perseverance's page credits "NASA/Jet Propulsion Laboratory": JPL is NASA's laboratory, run by Caltech, and the owner decided on 21 Nov 2026 that condition 4 covers it, as NASA credits its JPL work as NASA's.
+
+The source list in `storystage/backstage-assets` (`sources/nasa.json`) is the list, and the licence audit's section 4 is generated from it.

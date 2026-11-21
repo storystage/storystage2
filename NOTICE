@@ -166,7 +166,7 @@ whatwg-url  17.3.0  MIT
 xml-name-validator  5.0.0  Apache-2.0
 xmlchars  2.2.0  MIT
 
-== Build and test tools, not shipped (197) ==
+== Build and test tools, not shipped (198) ==
 
 @axe-core/playwright  4.14.0  MPL-2.0
 @babel/code-frame  7.29.7  MIT
@@ -265,6 +265,7 @@ deep-is  0.1.4  MIT
 dequal  2.0.3  MIT
 detect-libc  2.1.2  Apache-2.0
 dom-accessibility-api  0.5.16  MIT
+draco3dgltf  1.5.9  Apache-2.0
 electron-to-chromium  1.5.461  ISC
 entities  7.0.1, 8.1.0  BSD-2-Clause
 es-module-lexer  2.3.2  MIT

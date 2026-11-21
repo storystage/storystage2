@@ -19,6 +19,7 @@
     "@storystage/story-api": "workspace:*"
   },
   "devDependencies": {
+    "draco3dgltf": "1.5.9",
     "sharp": "^0.35.5",
     "vitest": "^5.0.5"
   }
