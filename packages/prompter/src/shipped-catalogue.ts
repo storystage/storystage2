@@ -3,7 +3,7 @@
  * at the commit `backstage.lock.json` pins. Made by `pnpm prompter:pins --fetch`; don't edit it
  * by hand.
  */
-export const SHIPPED_CATALOGUE_COMMIT = '3557bd9d80a08a63878a16814136384887d631d1';
+export const SHIPPED_CATALOGUE_COMMIT = 'e7d2ab3322376944f8c850d6debbc0efe7c28f73';
 
 export const SHIPPED_CATALOGUE = `Every model shipped in Backstage, by section and class. Add one with its id exactly as written.
 Each line: id: name, what it looks like [themes] height at scale 1, and its joints.
@@ -329,7 +329,7 @@ Props
     polyhaven/Prop/potted-succulent: Potted succulent, a spiky green succulent in a small white pot with pebbles [plants, home] 0.27 m, no joints
     polyhaven/Prop/quartz-stone: Quartz stone, a small pinkish stone with white quartz in it [nature] 0.07 m, no joints
     polyhaven/Prop/raised-planter: Raised planter, a wooden planter box on legs, filled with soil [plants, garden] 0.86 m, no joints
-    polyhaven/Prop/rat: Rat, a dark brown rat with a long thin tail [animals, town] 0.03 m, no joints
+    polyhaven/Prop/rat: Rat, a dark brown rat with a long thin tail [animals, town] 0.09 m, no joints
     polyhaven/Prop/red-rock: Red rock, a small dark red rock [nature] 0.14 m, no joints
     polyhaven/Prop/sweet-potato: Sweet potato, a reddish sweet potato [food, kitchen] 0.1 m, no joints
     polypizza/Prop/alarm-clock: Alarm clock, a red alarm clock with two bells on top [home] 0.15 m, no joints
