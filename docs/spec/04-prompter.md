@@ -124,7 +124,7 @@ For S8. Each item is something this spec makes checkable.
 
 The native layer pins `system`, `tools` and the mode messages (section 1.8; spec 05, section 2.3). `packages/prompter/src/pins.ts` makes them:
 
-- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the Backstage index (section 2.7). The index is `renderIndex()` from `@storystage/backstage` over the shipped catalogue, which is kept in `src/shipped-catalogue.ts`: an exact copy of `prompter-catalogue.json` at the commit `backstage.lock.json` pins. A test fails if its SHA-256 differs from the lock's `catalogueJsonSha256`. Until section 2.7 is built, it is `prompter-catalogue.txt`, whole.
+- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the Backstage index (section 2.7). The index is `renderIndex()` from `@storystage/backstage` over the shipped catalogue, which is kept in `src/shipped-catalogue.ts`: an exact copy of `prompter-catalogue.json` at the commit `backstage.lock.json` pins. It is kept compact, a third smaller in the studio's bundle; printed as the build prints it (`JSON.stringify(c, null, 2)` and a newline), it is the pinned file byte for byte, and a test fails if that file's SHA-256 differs from the lock's `catalogueJsonSha256`. `pnpm prompter:pins --fetch` fetches it.
 - `tools` is `TOOLS`, and the mode messages are `pinnedSystemMessages()`.
 - **The studio sends `releaseSystem()` and `releaseTools()` as they are.** It never rebuilds a catalogue at run time, not even from the fetched `.backstage/`, so what it sends can't drift from what is pinned by a byte.
 - **A class's imported models never go in `system`** (section 2.1). They travel in `<production_data>` as `imported` (section 2.6), so a teacher importing a model (`backstage.import`) never changes the pin, and the gate never refuses that class's requests for it.
@@ -140,7 +140,7 @@ The native layer pins `system`, `tools` and the mode messages (section 1.8; spec
 |---|---|---|---|
 | Instructions (section 2.5, 13.8) | `system` | Yes | |
 | Story API catalog, from WP4 metadata | `system` | Yes | 40,000 tokens; a unit test fails above 45,000 |
-| The Backstage index: every **shipped** model, one short line each, by section and class (section 2.7) | `system` | Yes | 12,000 tokens (`CATALOGUE_INDEX_TOKEN_BUDGET`). It's the same text every request, so it caches. Until 2.7 is built, the whole catalogue is here, within 24,000 |
+| The Backstage index: every **shipped** model, one short line each, by section and class (section 2.7) | `system` | Yes | 12,000 tokens (`CATALOGUE_INDEX_TOKEN_BUDGET`). It's the same text every request, so it caches |
 | Full Backstage lines for the models this request needs (section 2.7) | User turn, `<backstage_data>` | No | 6,000 tokens a turn |
 | Imported models in this class | User turn, as data | No | Part of the production |
 | The scene, as data | User turn, as data | No | Part of the production |
@@ -229,6 +229,8 @@ Lines stop before the next one, with any set it adds, would pass 6,000 tokens; t
 The learner's words only choose which of Backstage's lines go. None of their text goes into the block.
 
 **When the Prompter wants a model whose full line wasn't sent,** it calls `find_models` (section 3.1). The index shows what to ask for.
+
+**As built (21 Nov 2026):** `packages/prompter/src/backstage-data.ts`. `backstageCandidates` chooses the models in the order above, `backstageBlock` keeps to the budget and to what the conversation has had (the session holds that, takes it back with a request that wasn't kept, and starts afresh on New conversation), and `findModels` answers the tool. The panel sends the block in the three placing modes. The studio and the evaluation harness use this release's catalogue, `SHIPPED_CATALOGUE`; tests may give the runner and the panel another (`catalogue`). The harness reads a shipped model's name, class and height from it, as Set the stage does.
 
 ## 3. Tools
 
@@ -369,7 +371,7 @@ Changes nothing. Returns the full Backstage lines (section 2.7) of the shipped m
 
 | Field | Type | Notes |
 |---|---|---|
-| `words` | string | What to look for, under 10 words: "oak tree", "rocket" |
+| `query` | string | What to look for, under 10 words: "oak tree", "rocket". (Not `words`, which plan steps hold to 20.) |
 | `section` | enum: `""`, `cast`, `props`, `set`, `backdrops` | `""` searches every section |
 
 ### 3.2 Storyboard tools

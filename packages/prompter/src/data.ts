@@ -29,6 +29,8 @@ export interface LearnerTurnParts {
   /** Sent only when changed since it was last sent (spec 04, section 2.4). */
   readonly production?: Json;
   readonly storyboard?: Json;
+  /** Backstage's own lines for this request, never a learner's text (section 2.7). */
+  readonly backstage?: Json;
   readonly checkResult?: Json;
   readonly agreedPlan?: Json;
 }
@@ -46,6 +48,7 @@ export function learnerTurn(parts: LearnerTurnParts): {
   const blocks: [DataTag, Json | undefined][] = [
     ['production_data', parts.production],
     ['storyboard_data', parts.storyboard],
+    ['backstage_data', parts.backstage],
     ['check_result', parts.checkResult],
     ['agreed_plan', parts.agreedPlan],
     ['learner_request', { text: parts.request }],

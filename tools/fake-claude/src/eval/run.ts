@@ -13,6 +13,7 @@ import {
   PrompterRunner,
   PrompterSession,
   releaseSystem,
+  SHIPPED_CATALOGUE,
   releaseTools,
   type JsonObject,
   type PanelEntry,
@@ -24,7 +25,7 @@ import {
   type ToolName,
   type ToolOutcome,
 } from '@storystage/prompter';
-import type { BackstageItem } from '@storystage/backstage';
+import type { BackstageItem, Catalogue } from '@storystage/backstage';
 import { placeFromStoryboard, storyboardPlan, type PlanBackstage } from '@storystage/staging';
 import type { BackstageId, StoryClass } from '@storystage/story-api';
 import { checkProgram } from '@storystage/story-api/program-check';
@@ -75,19 +76,15 @@ export interface RowRun {
   readonly streams: readonly (readonly PrompterEvent[])[];
 }
 
-/** The release's system prompt, which holds the shipped Backstage catalogue. */
-const SHIPPED = releaseSystem()
-  .map((b) => (typeof b === 'object' && b !== null && 'text' in b ? String(b.text) : ''))
-  .join('\n');
-
 /**
  * A shipped id (`kaykit/Biped/knight`) or a start's made-up one (`example/Flyer/owl`) has its
- * class in it. Anything else isn't a model this run has.
+ * class in it. Anything else isn't a model this run has. Shipped means in the release's
+ * catalogue, whose index the Prompter is given (spec 04, section 2.7).
  */
-export function classFromId(id: string, shipped: string = SHIPPED): string | null {
+export function classFromId(id: string, shipped: Catalogue = SHIPPED_CATALOGUE): string | null {
   const cls = /^[a-z0-9-]+\/([A-Z][A-Za-z]*)\/[^\s:]+$/.exec(id)?.[1] ?? null;
   if (!cls) return null;
-  return id.startsWith('example/') || shipped.includes(`    ${id}:`) ? cls : null;
+  return id.startsWith('example/') || shipped.items.some((i) => i.id === id) ? cls : null;
 }
 
 /**
@@ -96,19 +93,21 @@ export function classFromId(id: string, shipped: string = SHIPPED): string | nul
  * the Prompter is given (`id: Name, … 2.47 m`); a start's made-up one is a metre tall. There are no
  * backdrops: `board-01` scores the cast placed, not the backdrop.
  */
-export function evalBackstage(p: Production, shipped: string = SHIPPED): PlanBackstage {
+export function evalBackstage(
+  p: Production,
+  shipped: Catalogue = SHIPPED_CATALOGUE,
+): PlanBackstage {
   return {
     item(id) {
       const packed = p.manifest.models.find((m) => m.item.id === id)?.item;
       if (packed) return packed;
       const cls = classFromId(id, shipped);
       if (!cls) return undefined;
-      // A catalogue line: `    <id>: <Name>, <what it looks like> [<themes>] <height> m, joints <set>`.
-      // Read by slicing, not a regular expression: the text is long and the format is fixed.
-      const prefix = `    ${id}: `;
-      const line = shipped.split('\n').find((l) => l.startsWith(prefix));
-      const name = line ? line.slice(prefix.length).split(',')[0]!.trim() : id.split('/').at(-1);
-      const tail = line ? line.slice(line.lastIndexOf(']') + 1).trim() : '';
+      // A full line: `<id>: <Name>, <what it looks like> [<themes>] <height> m, joints <set>`.
+      // Its height is read by slicing, not a regular expression: the format is fixed.
+      const found = shipped.items.find((i) => i.id === id);
+      const name = found ? found.name : id.split('/').at(-1);
+      const tail = found ? found.line.slice(found.line.lastIndexOf(']') + 1).trim() : '';
       const height = Number(tail.split(' ')[0]) || 1;
       const item: BackstageItem = {
         id: id as BackstageId,
@@ -279,7 +278,7 @@ export async function runRow(
     session,
     source: 'prompter',
     scene: () => opened.scene,
-    backstageClass: (id) => classFromId(id, SHIPPED) as never,
+    backstageClass: (id) => classFromId(id) as never,
     checkResult: (frame) => opened.checks.get(frame) ?? null,
     // The same ids every run, so a kept run replays exactly.
     random: seeded(29),

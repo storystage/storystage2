@@ -3,6 +3,7 @@
  * `system`, `tools` and the mode messages, hashed exactly as the gate hashes them, and each
  * mode's model and token ceiling. `pnpm prompter:pins` writes them to the gate's `pins.json`.
  */
+import { renderIndex } from '@storystage/backstage';
 import { catalogText } from '@storystage/story-api';
 import { learnerTurn } from './data.ts';
 import { MODE_SETTINGS } from './models.ts';
@@ -18,10 +19,8 @@ import {
   type PrompterRequest,
 } from './transport.ts';
 
-/** Section 2.1: a unit test fails above these. */
+/** Section 2.1: a unit test fails above this. The Backstage index's is S4's `CATALOGUE_INDEX_TOKEN_BUDGET`. */
 export const STORY_API_TOKEN_LIMIT = 45_000;
-// 24,000 since the owner's choice of 19 Nov 2026 (spec 04, section 2.1), for 100Avatars' round 3.
-export const BACKSTAGE_TOKEN_BUDGET = 24_000;
 
 /** JSON with keys sorted and no spaces, as the gate writes it before hashing. */
 export function canonicalJson(value: Json): string {
@@ -36,9 +35,12 @@ export function canonicalJson(value: Json): string {
   return JSON.stringify(value);
 }
 
-/** The request's `system` for this release: the instructions and both catalogs. */
+/**
+ * The request's `system` for this release: the instructions, the Story API catalog and the
+ * Backstage index (section 2.7), which never changes with the request, so the gate can pin it.
+ */
 export function releaseSystem(): readonly Json[] {
-  return buildSystem({ storyApi: catalogText(), backstage: SHIPPED_CATALOGUE });
+  return buildSystem({ storyApi: catalogText(), backstage: renderIndex(SHIPPED_CATALOGUE) });
 }
 
 /** The request's `tools` for this release. */
