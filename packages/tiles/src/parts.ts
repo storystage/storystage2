@@ -7,6 +7,7 @@ import type { AstNode, Expression, NodeId, TypeRef } from '@storystage/ast';
 import { DETAILS, findEntry } from '@storystage/story-api';
 import {
   arrowFor,
+  isSceneScriptIn,
   listenerWords,
   word,
   type Describer,
@@ -203,12 +204,18 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
         return pill ? [{ kind: 'text', text: label } as Part, pill] : [];
       });
       if (node.callee.kind === 'user') {
-        const method = types.methods.get(node.callee.method)?.method;
+        const found = types.methods.get(node.callee.method);
+        const method = found?.method;
         const params = (method?.params ?? []).flatMap((p) => {
           const pill = value(node.args[p.id], at('args', p.id), p.name);
           return pill ? [{ kind: 'text', text: p.name } as Part, pill] : [];
         });
-        return [target, { kind: 'text', text: method?.name ?? '' }, ...params, ...details];
+        // The scene's script is "When the scene starts" to learners (spec 14, 3a).
+        const name =
+          found && isSceneScriptIn(found.owner, found.method)
+            ? word('method.sceneScriptAgain')
+            : (method?.name ?? '');
+        return [target, { kind: 'text', text: name }, ...params, ...details];
       }
       const cls = types.classOf(types.typeOf(node.target, self));
       const entry = cls && findEntry(cls, node.callee.name);

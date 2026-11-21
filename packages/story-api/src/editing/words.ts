@@ -154,7 +154,9 @@ function describe(program: Program, options: WordsOptions): Describer {
       const method = found?.method;
       if (!method) return target;
       // The scene's own script: it has no name to learners but "When the scene starts" (3a).
-      if (isSceneScriptIn(found.owner, method)) return word('method.sceneScriptAgain');
+      // The target stays in front, as every call has it, in both editors.
+      if (isSceneScriptIn(found.owner, method))
+        return `${target} ${word('method.sceneScriptAgain')}`;
       const values = method.params.map((p) => {
         const v = node.args[p.id];
         return `${p.name} ${v ? value(v, self) : word('words.empty')}`;
@@ -227,7 +229,7 @@ function describe(program: Program, options: WordsOptions): Describer {
     if (node.callee.kind === 'user') {
       const found = types.methods.get(node.callee.method);
       if (found && isSceneScriptIn(found.owner, found.method))
-        return word('method.sceneScriptAgain');
+        return `${target} ${word('method.sceneScriptAgain')}`;
       return `${target} ${found?.method.name ?? ''}`.trim();
     }
     const cls = types.classOf(types.typeOf(node.target, self));

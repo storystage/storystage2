@@ -44,3 +44,21 @@ describe('a speak line made from the script (spec 06, 4.1)', () => {
     expect(parts.some((p) => p.text === 'l7')).toBe(false);
   });
 });
+
+describe('a call to the scene’s script (spec 14, 3a)', () => {
+  it('reads “run “When the scene starts” again” after its target, as every call has one', () => {
+    const program = fixture();
+    const again: Statement = {
+      id: nodeId('againc'),
+      kind: 'call',
+      target: { id: nodeId('againt'), kind: 'this' },
+      callee: { kind: 'user', method: IDS.main },
+      args: {},
+      details: {},
+    };
+    const describe_ = describer(program);
+    const parts = partsOf(again, describe_);
+    expect(parts.map((p) => p.text)).toEqual(['the scene', 'run “When the scene starts” again']);
+    expect(describe_(again)).toBe('the scene run “When the scene starts” again');
+  });
+});

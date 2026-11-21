@@ -85,8 +85,8 @@ describe('what the editors call a method (spec 14, 2)', () => {
       details: {},
     };
     const describe_ = describer(program);
-    expect(describe_.inside(again, ID.scene)).toBe('run “When the scene starts” again');
-    expect(describe_.short(again)).toBe('run “When the scene starts” again');
+    expect(describe_.inside(again, ID.scene)).toBe('the scene run “When the scene starts” again');
+    expect(describe_.short(again)).toBe('the scene run “When the scene starts” again');
   });
 
   it('says a scene’s own sceneStart listener is “also when the scene starts”', () => {
