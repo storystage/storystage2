@@ -19,8 +19,9 @@ pub async fn ask(app: &tauri::AppHandle) -> Option<String> {
     answer.await.ok().flatten()
 }
 
-/// The dialog is in the app's Kotlin plugin, with the store.
-#[cfg(target_os = "android")]
+/// The dialog is in the `secure-key` plugin: Kotlin on Android, with the store, and Swift on
+/// iPad, where the key then goes to the Keychain.
+#[cfg(any(target_os = "android", target_os = "ios"))]
 pub async fn ask(app: &tauri::AppHandle) -> Option<String> {
     use tauri::Manager;
     use tauri_plugin_secure_key::SecureKey;
@@ -32,12 +33,6 @@ pub async fn ask(app: &tauri::AppHandle) -> Option<String> {
     asked.await.ok().flatten()
 }
 
-/// The iPad's dialog waits for the Apple developer account (WP15.5), because it can't be built
-/// or run before that. Closing the dialog is the safe answer: no key, so no Prompter.
-#[cfg(target_os = "ios")]
-pub async fn ask(_app: &tauri::AppHandle) -> Option<String> {
-    None
-}
 
 #[cfg(target_os = "macos")]
 mod macos {

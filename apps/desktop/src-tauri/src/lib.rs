@@ -60,8 +60,9 @@ pub fn run() {
         // The file dialog, from Rust only (spec 05 section 6.5, decision 0070).
         .plugin(tauri_plugin_dialog::init());
     // iPad's own Files dialogs, from Rust only (spec 05 section 6.5).
+    // The key's system dialog (spec 05 section 1.2); the key itself goes to the Keychain.
     #[cfg(target_os = "ios")]
-    let builder = builder.plugin(tauri_plugin_files_export::init());
+    let builder = builder.plugin(tauri_plugin_files_export::init()).plugin(tauri_plugin_secure_key::init());
     #[cfg(desktop)]
     let builder = builder
         .plugin(tauri_plugin_updater::Builder::new().build())

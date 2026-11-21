@@ -500,6 +500,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Owner: a real push of a setting, including `speech.dictation`, through managed Google Play and iPad device management.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7), and since #433 whisper.js's (whisper.cpp, MIT) too.
+- In review: **the iPad's key dialog** (the owner's choice, 21 Nov): `UIAlertController` with a secure text field, in the `secure-key` plugin's new Swift side, opened from Rust as on Android; the key goes to the Keychain from Rust, as on a Mac. Until now the iPad had no way to add a key. **Owner:** try it on an iPad once the Apple team is set.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 
