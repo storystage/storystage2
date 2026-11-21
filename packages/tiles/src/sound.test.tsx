@@ -43,7 +43,7 @@ function withPlay(sound?: string): Program {
 
 const SOUNDS = [
   { value: 'sn1', words: 'Splash' },
-  { value: 'sounds/kenney/door', words: 'Door' },
+  { value: 'kenney-audio/Sound/door-creak', words: 'Door' },
 ];
 const studio: TileEditorOptions = {
   references: (type) => (type === 'Audio' ? SOUNDS : []),

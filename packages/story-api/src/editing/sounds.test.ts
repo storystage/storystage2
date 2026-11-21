@@ -25,7 +25,10 @@ function withSound(): Program {
   ]);
 }
 
-const LABELS: Readonly<Record<string, string>> = { sn1: 'Splash', 'sounds/kenney/door': 'Door' };
+const LABELS: Readonly<Record<string, string>> = {
+  sn1: 'Splash',
+  'kenney-audio/Sound/door-creak': 'Door',
+};
 const words: WordsOptions = {
   referenceWord: (type, value) => (type === 'Audio' ? LABELS[value] : undefined),
 };
@@ -98,6 +101,29 @@ describe('a block’s sound (0076, 7.17)', () => {
     expect([...soundUses(program, 'sn1')].sort()).toEqual(
       [nodeId('hopsn1'), nodeId('tunesn'), SPLASH].sort(),
     );
+  });
+
+  it('finds it in a list of sounds too (S4’s review)', () => {
+    const list: Statement = {
+      id: mint(),
+      kind: 'local',
+      name: 'tunes',
+      type: { kind: 'array', of: { kind: 'story', name: 'Audio' } },
+      value: {
+        id: mint(),
+        kind: 'arrayOf',
+        of: { kind: 'story', name: 'Audio' },
+        items: [
+          { id: nodeId('listsn'), kind: 'text', value: 'sn1' },
+          { id: mint(), kind: 'text', value: 'kenney-audio/Sound/door-creak' },
+        ],
+      },
+    };
+    const program = applyEdits(withSound(), [
+      { kind: 'insert', parent: ID.main, slot: 'body', index: 0, node: list, label: '' },
+    ]);
+    expect([...soundUses(program, 'sn1')].sort()).toEqual([nodeId('listsn'), SPLASH].sort());
+    expect(describer(program, words)(program.types[0]!.methods[0]!.body[0]!)).toContain('Door');
   });
 
   it('offers the studio’s sounds in the cascade, written as their ids', () => {

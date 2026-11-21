@@ -64,7 +64,7 @@ const isReference = (name: string): name is ReferenceType =>
 
 /**
  * The reference type the value `id` is written for, from the place it's in: a block's argument,
- * an input's, a variable's starting value. `null` if it isn't in such a place.
+ * an input's, a variable's starting value, an item in a list of them. `null` if it isn't in such a place.
  */
 export function referenceTypeAt(program: Program, id: NodeId): ReferenceType | null {
   const index = indexOf(program);
@@ -106,6 +106,10 @@ export function referenceTypeAt(program: Program, id: NodeId): ReferenceType | n
       break;
     case 'parameter':
       wanted = at.slot === 'default' ? holder.type : null;
+      break;
+    case 'arrayOf':
+      // One of a list's items, of the list's own item type: a list of sounds (S4's review).
+      wanted = at.slot === 'items' ? holder.of : null;
       break;
   }
   return wanted?.kind === 'story' && isReference(wanted.name) ? wanted.name : null;

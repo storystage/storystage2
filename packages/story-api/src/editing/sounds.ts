@@ -8,8 +8,8 @@ import { walkProgram, type NodeId, type Program } from '@storystage/ast';
 import { referenceTypeAt } from './words.ts';
 
 /**
- * Every value naming `sound` where a sound goes: a block's argument, an input's, or a variable's
- * starting value of type `Audio`. Text that only happens to read "sn1" elsewhere isn't one.
+ * Every value naming `sound` where a sound goes: a block's argument, an input's, a variable's
+ * starting value of type `Audio`, or an item in a list of sounds. Text that only happens to read "sn1" elsewhere isn't one.
  */
 export function soundUses(program: Program, sound: string): readonly NodeId[] {
   const uses: NodeId[] = [];
