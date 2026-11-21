@@ -140,11 +140,30 @@ const NEWER =
 /**
  * One step up the format's versions: from the version it's keyed by, `to` the next. `manifest`
  * changes the manifest as read, before its shape is checked; `formatVersion` is set to `to` after.
+ * `frame`, where a step has one, changes each frame file as read, before its shape is checked.
  * Each version that adds only optional fields has a step that changes nothing else.
  */
 export interface FormatMigration {
   readonly to: string;
   readonly manifest: (m: Partial<ProductionManifest>) => Partial<ProductionManifest>;
+  readonly frame?: (f: Readonly<Record<string, unknown>>) => Record<string, unknown>;
+}
+
+const isRecord = (v: unknown): v is Readonly<Record<string, unknown>> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * 1.7.0 to 1.8.0: every step of a frame's plan gains `holds` 0, as no step held others before
+ * repeat steps (spec 04 section 6.8). A plan that isn't shaped as one is left for the shape check.
+ */
+function planStepsHoldNothing(f: Readonly<Record<string, unknown>>): Record<string, unknown> {
+  const plan = f['plan'];
+  if (!isRecord(plan)) return { ...f };
+  const steps = (list: unknown) =>
+    Array.isArray(list)
+      ? list.map((step) => (isRecord(step) && !('holds' in step) ? { ...step, holds: 0 } : step))
+      : list;
+  return { ...f, plan: { ...plan, shown: steps(plan['shown']), agreed: steps(plan['agreed']) } };
 }
 
 export type FormatMigrations = Readonly<Record<string, FormatMigration>>;
@@ -169,6 +188,9 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.7.0 lets a frame's plan keep the steps Plan only ticked off (spec 04 section 6.6,
   // `FramePlan.done`): nothing else changes.
   '1.6.0': { to: '1.7.0', manifest: (m) => m },
+  // 1.8.0 lets a plan repeat several steps (spec 04 section 6.8): `repeat` steps, and `holds` on
+  // every step, which a plan kept before gains as 0.
+  '1.7.0': { to: '1.8.0', manifest: (m) => m, frame: planStepsHoldNothing },
 };
 
 /**
@@ -322,6 +344,7 @@ export function openProduction(
   // An older file is brought up to date one step at a time (spec 03, section 1.2).
   let upgraded: Partial<ProductionManifest> = m;
   let formatMigrated = false;
+  const frameSteps: NonNullable<FormatMigration['frame']>[] = [];
   const migrations = options.migrations ?? FORMAT_MIGRATIONS;
   while (order < 0) {
     const from = upgraded.formatVersion!;
@@ -331,6 +354,7 @@ export function openProduction(
     if (compareVersions(step.to, from) <= 0)
       return broken(TOO_OLD, [`The migration from format ${from} doesn't go to a newer one.`]);
     upgraded = { ...step.manifest(upgraded), formatVersion: step.to };
+    if (step.frame) frameSteps.push(step.frame);
     formatMigrated = true;
     order = compareVersions(step.to, current);
   }
@@ -352,7 +376,12 @@ export function openProduction(
       problems.push(parsed.problem);
       continue;
     }
-    const v = parsed.value as { id?: unknown };
+    // A frame from an older file is brought up to date as the manifest was, step by step.
+    const value =
+      frame && isRecord(parsed.value)
+        ? frameSteps.reduce<Readonly<Record<string, unknown>>>((f, up) => up(f), parsed.value)
+        : parsed.value;
+    const v = value as { id?: unknown };
     const found = scene ? checkSceneShape(v, name, shape) : checkFrameShape(v, name, shape);
     const id = (scene ?? frame)![1]!;
     if (!SAFE_ID.test(id) || v?.id !== id) found.push(`${name}: its id doesn't match its name.`);

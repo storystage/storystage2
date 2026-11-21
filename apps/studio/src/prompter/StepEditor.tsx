@@ -122,6 +122,7 @@ export function newStep(world: StepWorld): PlanStep {
     sketch: '',
     together: false,
     repeat: 1,
+    holds: 0,
     why: '',
   };
 }

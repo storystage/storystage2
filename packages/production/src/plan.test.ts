@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { exampleProduction } from './example.ts';
+import { readArchive, writeArchive } from './archive.ts';
 import { openProduction, saveProduction } from './file.ts';
 import { isFramePlan, withFramePlan } from './plan.ts';
 import type { FramePlan, PlanStep, Production } from './types.ts';
@@ -19,6 +20,7 @@ const step = (over: Partial<PlanStep> = {}): PlanStep => ({
   sketch: '',
   together: false,
   repeat: 1,
+  holds: 0,
   why: 'So they meet in the middle of the stage.',
   ...over,
 });
@@ -119,5 +121,108 @@ describe('a frame’s agreed plan (format 1.6.0, spec 04 section 6.7)', () => {
         /frames\/.*\.json: plan\.agreed\[0\]\.repeat: .*\(the plan is dropped\)/,
       ),
     ]);
+  });
+});
+
+// Format 1.8.0, spec 04 section 6.8: a repeat step holds the `holds` steps right after it.
+describe('a plan’s repeat steps (format 1.8.0, spec 04 section 6.8)', () => {
+  const repeat = (times: number, holds: number) =>
+    step({
+      words: `Repeat ${times} times:`,
+      kind: 'repeat',
+      actor: '',
+      action: '',
+      target: '',
+      details: [],
+      repeat: times,
+      holds,
+    });
+  const hop = (up: boolean) =>
+    step({ words: up ? 'Hop up' : 'Hop down', action: 'move', target: '' });
+  const looped: FramePlan = {
+    agreedAt: plan.agreedAt,
+    shown: [repeat(3, 2), hop(true), hop(false), step()],
+    agreed: [repeat(3, 2), hop(true), hop(false), step()],
+  };
+
+  it('keeps a repeat step holding the steps after it, through a save and an open', () => {
+    expect(isFramePlan(looped)).toBe(true);
+    expect(isFramePlan({ ...looped, agreed: [step(), repeat(2, 1), hop(true)] })).toBe(true);
+    const opened = openProduction(saveProduction(withFramePlan(p, frame, looped)));
+    expect(opened.status).toBe('ok');
+    if (opened.status === 'broken') return;
+    expect(opened.dropped).toEqual([]);
+    expect(opened.production.frames.find((f) => f.id === frame)!.plan).toEqual(looped);
+  });
+
+  it('checks only what keeps the plan readable', () => {
+    const bad: unknown[] = [
+      { ...looped, agreed: [step({ holds: 1 }), step()] },
+      { ...looped, agreed: [repeat(3, 0), hop(true)] },
+      { ...looped, agreed: [repeat(3, 2), hop(true)] },
+      { ...looped, agreed: [hop(true), repeat(3, 1)] },
+      { ...looped, agreed: [repeat(1, 1), hop(true)] },
+      { ...looped, agreed: [repeat(3, 1.5), hop(true), hop(false)] },
+      { ...looped, agreed: [repeat(3, -1), hop(true)] },
+      { ...looped, agreed: [repeat(3, PLAN_LIMITS.steps), hop(true)] },
+      { ...looped, agreed: [{ ...hop(true), holds: undefined }] },
+    ];
+    for (const v of bad) expect(isFramePlan(v), JSON.stringify(v)?.slice(0, 120)).toBe(false);
+    // What a repeat may hold is the Prompter's plan check (6.3): rules that may change.
+    const when = step({ kind: 'when', action: 'whenClicked', target: '' });
+    expect(isFramePlan({ ...looped, agreed: [repeat(2, 1), when] })).toBe(true);
+    expect(isFramePlan({ ...looped, agreed: [repeat(2, 2), repeat(2, 1), hop(true)] })).toBe(true);
+  });
+
+  /** A saved file as an older version wrote it: its manifest's version and its frames, changed. */
+  const asWritten = (production: Production, version: string, frame: (f: unknown) => unknown) => {
+    const read = readArchive(saveProduction(production), { wanted: () => true });
+    if (!read.ok) throw new Error(read.problem.code);
+    const json = (b: Uint8Array) =>
+      JSON.parse(new TextDecoder().decode(b)) as Record<string, unknown>;
+    const bytes = (v: unknown) => new TextEncoder().encode(JSON.stringify(v));
+    return writeArchive(
+      read.names.map((name) => {
+        const b = read.entries.get(name)!;
+        if (name === 'manifest.json')
+          return { name, bytes: bytes({ ...json(b), formatVersion: version }) };
+        if (/^frames\/.*\.json$/.test(name)) return { name, bytes: bytes(frame(json(b))) };
+        return { name, bytes: b };
+      }),
+    );
+  };
+  const withoutHolds = (f: unknown) => {
+    const fr = f as { plan?: FramePlan };
+    if (!fr.plan) return fr;
+    const strip = (steps: readonly PlanStep[]) => steps.map(({ holds: _holds, ...rest }) => rest);
+    return {
+      ...fr,
+      plan: { ...fr.plan, shown: strip(fr.plan.shown), agreed: strip(fr.plan.agreed) },
+    };
+  };
+
+  it('gives every step of a plan kept before 1.8.0 holds 0 when the file opens', () => {
+    const old = asWritten(withFramePlan(p, frame, { ...plan, done: [1] }), '1.7.0', withoutHolds);
+    const opened = openProduction(old);
+    expect(opened.status).toBe('migrated');
+    if (opened.status === 'broken') return;
+    expect(opened.original).toBe(old);
+    expect(opened.dropped).toEqual([]);
+    expect(opened.production.frames.find((f) => f.id === frame)!.plan).toEqual({
+      ...plan,
+      done: [1],
+    });
+    for (const version of ['1.6.0', '1.0.0'])
+      expect(
+        openProduction(asWritten(withFramePlan(p, frame, plan), version, withoutHolds)).status,
+      ).toBe('migrated');
+  });
+
+  it('drops a 1.8.0 plan whose steps have no holds, never the file', () => {
+    const opened = openProduction(asWritten(withFramePlan(p, frame, plan), '1.8.0', withoutHolds));
+    expect(opened.status).toBe('ok');
+    if (opened.status === 'broken') return;
+    expect('plan' in opened.production.frames.find((f) => f.id === frame)!).toBe(false);
+    expect(opened.dropped[0]).toMatch(/plan\.shown\[0\]: .*holds.*\(the plan is dropped\)/);
   });
 });

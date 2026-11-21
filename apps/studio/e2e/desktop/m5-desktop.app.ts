@@ -206,6 +206,7 @@ const walks: PlanStep = {
   sketch: '',
   together: false,
   repeat: 1,
+  holds: 0,
   why: 'So she can reach the fox.',
 };
 const toolUse = (id: string, name: string, input: unknown): TestBlock => ({

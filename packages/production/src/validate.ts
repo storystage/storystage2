@@ -316,7 +316,7 @@ export const PLAN_LIMITS = {
   details: 20,
   detailName: 64,
   detailValue: 300,
-  /** A step's `repeat`. */
+  /** A step's `repeat`; on a `repeat` step (format 1.8.0), from 2. */
   repeat: 1000,
 } as const;
 
@@ -324,8 +324,14 @@ export const PLAN_LIMITS = {
 const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 
 /**
- * A frame's `plan` (format 1.6.0; `done`, 1.7.0): its problems, or none. A plan with any problem
- * is dropped as a whole when the file opens: half a plan would mislead the teacher reading it.
+ * A frame's `plan` (format 1.6.0; `done`, 1.7.0; `repeat` steps and `holds`, 1.8.0): its
+ * problems, or none. A plan with any problem is dropped as a whole when the file opens: half a
+ * plan would mislead the teacher reading it.
+ *
+ * For repeats (spec 04 section 6.8) the format checks only what keeps a plan readable: `holds`
+ * is 0 but on a `repeat` step, which holds at least one step within its own list and repeats at
+ * least twice. What a repeat may hold (only `do` steps, no repeat inside another) is the
+ * Prompter's plan check (section 6.3), as those rules may change without a new format.
  */
 export function checkFramePlan(v: unknown, where: string, options: ShapeOptions = {}): string[] {
   const s = new Shape(where, options);
@@ -360,18 +366,34 @@ export function checkFramePlan(v: unknown, where: string, options: ShapeOptions 
       s.fail(at, `should hold at most ${PLAN_LIMITS.steps} steps`);
       continue;
     }
+    const steps = Array.isArray(v[list]) ? v[list].length : 0;
+    let index = -1;
     s.array(v[list], at, (step, p) => {
+      index++;
       const keys = ['words', 'kind', 'actor', 'action', 'target', 'details', 'line', 'sketch'];
-      if (!s.object(step, p, [...keys, 'together', 'repeat', 'why'])) return;
+      if (!s.object(step, p, [...keys, 'together', 'repeat', 'holds', 'why'])) return;
       for (const k of ['words', 'actor', 'action', 'target', 'line', 'sketch', 'why'] as const)
         s.string(step[k], join(p, k), PLAN_LIMITS.text);
       s.oneOf(step.kind, join(p, 'kind'), PLAN_STEP_KINDS);
       s.boolean(step.together, join(p, 'together'));
-      if (
-        s.number(step.repeat, join(p, 'repeat'), 1, PLAN_LIMITS.repeat) &&
-        !Number.isInteger(step.repeat)
-      )
-        s.fail(join(p, 'repeat'), 'should be a whole number');
+      const whole = (n: unknown, path: string, min: number, max: number): n is number => {
+        if (!s.number(n, path, min, max)) return false;
+        if (Number.isInteger(n)) return true;
+        s.fail(path, 'should be a whole number');
+        return false;
+      };
+      const repeat = whole(step.repeat, join(p, 'repeat'), 1, PLAN_LIMITS.repeat);
+      const holds = whole(step.holds, join(p, 'holds'), 0, PLAN_LIMITS.steps - 1);
+      // A repeat step (format 1.8.0, spec 04 section 6.8) holds the next `holds` steps.
+      if (step.kind === 'repeat') {
+        if (repeat && (step.repeat as number) < 2)
+          s.fail(join(p, 'repeat'), 'should be at least 2 on a repeat step');
+        if (holds && (step.holds as number) < 1)
+          s.fail(join(p, 'holds'), 'should be at least 1 on a repeat step');
+        else if (holds && index + (step.holds as number) >= steps)
+          s.fail(join(p, 'holds'), 'should not run past the last step');
+      } else if (holds && step.holds !== 0)
+        s.fail(join(p, 'holds'), 'should be 0 but on a repeat step');
       const details = join(p, 'details');
       if (Array.isArray(step.details) && step.details.length > PLAN_LIMITS.details) {
         s.fail(details, `should hold at most ${PLAN_LIMITS.details}`);

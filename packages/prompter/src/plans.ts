@@ -123,6 +123,9 @@ function stepProblem(
         : `There's no ${step.action} event.`;
     case 'stage':
       return world.scenes.has(step.action) ? null : `There's no scene ${step.action}.`;
+    case 'repeat':
+      // Format 1.8.0 keeps repeat steps; the Prompter plans them with spec 04 section 6.8 (S7).
+      return "A plan can't repeat several steps yet. Give each step its own repeat.";
   }
 }
 

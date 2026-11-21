@@ -25,6 +25,7 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   sketch: '',
   together: false,
   repeat: 1,
+  holds: 0,
   why: '',
   ...s,
 });
