@@ -464,6 +464,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S8 Apps, security and class set-up
 - Merged:
+  - 21 Nov (#580): **the iPad's key dialog** (the owner's choice, 21 Nov): `UIAlertController` with a secure text field (no dictation, autocorrect or suggestions, and no content type, so iPadOS doesn't offer to save it as a password), in the `secure-key` plugin's new Swift side, opened from Rust as on Android. The key goes to the Keychain from Rust, as on a Mac. Until now the iPad had no way to add a key. It compiles for iPad in CI; nothing has run on an iPad yet.
+  - 21 Nov: **S8 reviewed** S5's #530 (the Prompter's set-up wizard: the native layer still refuses a key when the school's policy says no, whatever the card shows) and #543 (the school's switch for an imported Alice world's Code editor; a note that a learner who edits `manifest.origin` could skip the storyboard rule, not blocking).
   - 17 Nov (#502): **iPad part 3, the picker through iPad's own Files dialogs** (the owner's choice, 17 Nov): `tauri-plugin-files-export`, a Swift plugin with no commands, called from Rust. iPadOS has no "save as", so Save a copy, Collect's zip (0070) and an exported film's three files are written to a new folder in the app's cache, exported, and the folder removed; Open and Hand back read the copy iPadOS gives, then remove it. `picker_kind` is `native` on iPad. It compiles for iPad in CI; nothing has run on an iPad yet. **Owner:** try it on an iPad once the Apple team is set.
   - 17 Nov (#501): **the workplan**: 15.3, 24.4 and 24.5 ticked with their PRs; 15.2, 15.6, 15.7 and 24.1 say what's built and what they wait on.
   - 17 Nov (#492): **the chrono advisory** (S7 found it): `deny.toml` ignores RUSTSEC-2026-0543 (chrono unmaintained, no known vulnerability), with its reason. Tauri needs chrono anyway (tauri-utils through serde_with), so replacing our one use wouldn't clear it. Replace it once Tauri drops it.
@@ -500,12 +502,11 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Owner: the human security review before the pilot. Start with `SecureKeyPlugin.load` (#110), W10, U3 and M5.
   - Owner: trying the native file dialogs by hand on Windows and a Mac: each of the five (the fifth is an exported film's save), and closing each.
   - Owner: trying the browser's file pickers and their fallbacks by hand, in Chrome on a Chromebook and in Safari on an iPad (spec 05 §6.5).
-  - Owner: trying the key dialogs on Windows, a Mac and a Chromebook. None has been opened yet. The iPad's waits for the Apple account.
+  - Owner: trying the key dialogs on Windows, a Mac and a Chromebook. None has been opened yet. The iPad's (#580) waits for the Apple team: Add with a real key, with a wrong one, and Cancel.
   - Owner: generating the updater key (0047). Until then `Release` and `Channel` have never run, and the rollback drill (15.7) can't be done.
   - Owner: a real push of a setting, including `speech.dictation`, through managed Google Play and iPad device management.
   - Not yet run anywhere: the in-app download of the optional model, and Android reading the bundled one through the fs plugin. Both need a device.
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7), and since #433 whisper.js's (whisper.cpp, MIT) too.
-- In review: **the iPad's key dialog** (the owner's choice, 21 Nov): `UIAlertController` with a secure text field, in the `secure-key` plugin's new Swift side, opened from Rust as on Android; the key goes to the Keychain from Rust, as on a Mac. Until now the iPad had no way to add a key. **Owner:** try it on an iPad once the Apple team is set.
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 
