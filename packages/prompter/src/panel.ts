@@ -5,6 +5,7 @@
  * undo step.
  */
 import { indexProgram, type NodeId } from '@storystage/ast';
+import type { Catalogue } from '@storystage/backstage';
 import {
   isFramePlan,
   type FrameId,
@@ -12,6 +13,7 @@ import {
   type ProductionSession,
   type SceneId,
 } from '@storystage/production';
+import { backstageCandidates } from './backstage-data.ts';
 import { productionData, storyboardData } from './context.ts';
 import { modesAt, type PrompterLevel } from './levels.ts';
 import { outcomeMessage, type OutcomeAction } from './outcomes.ts';
@@ -19,6 +21,7 @@ import type { PlanProblem, PlanStep } from './plans.ts';
 import { releaseSystem, releaseTools } from './pins.ts';
 import { PrompterRunner, type Plan, type RunnerSetup } from './runner.ts';
 import { PrompterSession, type AskOutcome, type SessionEvent } from './session.ts';
+import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
 import type { Json, PrompterMode, PrompterTransport, TransportErrorCode } from './transport.ts';
 
 export type PanelPhase =
@@ -103,7 +106,12 @@ export interface PanelSetup<S extends string = string> {
   readonly inBuild?: boolean;
   /** The clock, for when a Plan only plan's first step was ticked. Default: now. */
   readonly now?: () => Date;
+  /** The catalogue `<backstage_data>` is chosen from: this release's (section 2.7). Tests may give another. */
+  readonly catalogue?: Catalogue;
 }
+
+/** The modes that place models, so their requests carry Backstage's lines (section 2.7). */
+const PLACING: readonly PrompterMode[] = ['explain', 'showMeHow', 'buildIt'];
 
 export const BUILD_REQUEST = 'Build these steps.';
 
@@ -465,6 +473,18 @@ export class PrompterPanel<S extends string = string> {
       found && extra.item !== undefined && typeof found === 'object' && !Array.isArray(found)
         ? { ...found, asked: extra.item }
         : found;
+    const catalogue = this.#setup.catalogue ?? SHIPPED_CATALOGUE;
+    const planFrame = (extra.agreedPlan as { frame?: unknown } | undefined)?.frame;
+    const backstage = PLACING.includes(this.#state.mode)
+      ? {
+          catalogue,
+          candidates: backstageCandidates(catalogue, production, {
+            scene: place.scene,
+            frame: extra.frame ?? (typeof planFrame === 'string' ? (planFrame as FrameId) : null),
+            request: text,
+          }),
+        }
+      : undefined;
     const nodesNow = () => new Set(indexProgram(this.#setup.production.program()).keys());
     let known = nodesNow();
     const onEvent = (event: SessionEvent) => {
@@ -496,6 +516,7 @@ export class PrompterPanel<S extends string = string> {
         level,
         production: productionData(production, place),
         storyboard: storyboardData(production, place),
+        ...(backstage === undefined ? {} : { backstage }),
         ...(checkResult === undefined || checkResult === null ? {} : { checkResult }),
         ...(building ? { agreedPlan: extra.agreedPlan } : {}),
         signal: this.#stop.signal,

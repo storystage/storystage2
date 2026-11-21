@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",
+    "@storystage/backstage": "workspace:*",
     "@storystage/production": "workspace:*",
     "@storystage/story-api": "workspace:*"
   }

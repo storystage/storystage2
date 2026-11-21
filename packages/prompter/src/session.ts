@@ -7,6 +7,8 @@
  * is what a request added after the last reply kept, when that request kept no reply (a refusal,
  * an error, Stop): nothing after the last kept reply is bound, so this edits nothing that matters.
  */
+import type { Catalogue, CatalogueItem } from '@storystage/backstage';
+import { backstageBlock, NOTHING_SENT, type BackstageSent } from './backstage-data.ts';
 import { learnerTurn, safeJson } from './data.ts';
 import { modesAt, toolAllowed, type PrompterLevel } from './levels.ts';
 import { buildRequest } from './request.ts';
@@ -60,6 +62,14 @@ export interface AskOptions {
   /** The whole production and storyboard, as data. Sent only when changed (section 2.4). */
   readonly production?: Json;
   readonly storyboard?: Json;
+  /**
+   * The models this request may need, most needed first (`backstageCandidates`). The turn carries
+   * those this conversation hasn't had yet, within budget, as `<backstage_data>` (section 2.7).
+   */
+  readonly backstage?: {
+    readonly catalogue: Catalogue;
+    readonly candidates: readonly CatalogueItem[];
+  };
   readonly checkResult?: Json;
   /** The plan the learner agreed, with their changes. Its presence lets changes run. */
   readonly agreedPlan?: Json;
@@ -104,6 +114,7 @@ interface Sent {
   readonly length: number;
   readonly production: string | null;
   readonly storyboard: string | null;
+  readonly backstage: BackstageSent;
   readonly mode: string | null;
 }
 
@@ -113,6 +124,7 @@ export class PrompterSession {
   /** What this conversation last sent, so unchanged data and modes aren't sent again. */
   #production: string | null = null;
   #storyboard: string | null = null;
+  #backstage: BackstageSent = NOTHING_SENT;
   #mode: string | null = null;
   #lastInputTokens = 0;
   #busy = false;
@@ -131,6 +143,7 @@ export class PrompterSession {
     this.#messages = [];
     this.#production = null;
     this.#storyboard = null;
+    this.#backstage = NOTHING_SENT;
     this.#mode = null;
     this.#lastInputTokens = 0;
   }
@@ -168,6 +181,7 @@ export class PrompterSession {
       length: this.#messages.length,
       production: this.#production,
       storyboard: this.#storyboard,
+      backstage: this.#backstage,
       mode: this.#mode,
     };
   }
@@ -176,6 +190,7 @@ export class PrompterSession {
     this.#messages = this.#messages.slice(0, sent.length);
     this.#production = sent.production;
     this.#storyboard = sent.storyboard;
+    this.#backstage = sent.backstage;
     this.#mode = sent.mode;
   }
 
@@ -186,11 +201,22 @@ export class PrompterSession {
     const storyboard = changed(options.storyboard, this.#storyboard);
     if (production !== undefined) this.#production = safeJson(production);
     if (storyboard !== undefined) this.#storyboard = safeJson(storyboard);
+    let backstage: Json | undefined;
+    if (options.backstage) {
+      const picked = backstageBlock(
+        options.backstage.catalogue,
+        options.backstage.candidates,
+        this.#backstage,
+      );
+      backstage = picked.block;
+      this.#backstage = picked.sent;
+    }
     this.#messages.push(
       learnerTurn({
         request,
         ...(production === undefined ? {} : { production }),
         ...(storyboard === undefined ? {} : { storyboard }),
+        ...(backstage === undefined ? {} : { backstage }),
         ...(options.checkResult === undefined ? {} : { checkResult: options.checkResult }),
         ...(options.agreedPlan === undefined ? {} : { agreedPlan: options.agreedPlan }),
       }) as unknown as Json,

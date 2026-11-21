@@ -172,6 +172,17 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
     'Get the latest production and storyboard data, after several changes. Changes nothing.',
     {},
   ),
+  find_models: tool(
+    'find_models',
+    "Get the full Backstage lines, with their joints, of the shipped models that best match some words: for a model in the Backstage index whose full line isn't in <backstage_data>. Imported models aren't searched; they're in <production_data>. Changes nothing.",
+    {
+      query: text('What to look for, under 10 words: "oak tree", "rocket", "girl with a hat".'),
+      section: oneOf(
+        ['', 'cast', 'props', 'set', 'backdrops'],
+        'The Backstage section to search, or "" for every section.',
+      ),
+    },
+  ),
   check_frame: tool(
     'check_frame',
     "Get the latest result of the automatic check for a frame: where what happened differs from the storyboard. It doesn't run the check. Use it to explain a flag in the learner's words. Changes nothing.",
@@ -362,12 +373,13 @@ const RULES: Readonly<Record<string, (value: unknown) => string | null>> = {
   text: upToWords(119),
   words: planText(upToWords(19)),
   why: planText(upToWords(24)),
+  query: planText(upToWords(9)),
   steps: (v) =>
     Array.isArray(v) && (v.length < 1 || v.length > 12) ? 'should have 1 to 12 steps' : null,
 };
 
 /** Strings that may be empty: "" means none. */
-const MAY_BE_EMPTY = ['target', 'line', 'sketch', 'value'];
+const MAY_BE_EMPTY = ['target', 'line', 'sketch', 'value', 'section'];
 
 const TYPE_WORDS = {
   object: 'an object',
@@ -464,6 +476,9 @@ export type ToolOutcome =
       readonly ok: true;
       readonly ids: Readonly<Record<string, string>>;
       readonly summary: string;
+      /** `find_models`: the full Backstage lines found, and their sets' joints (section 2.7). */
+      readonly models?: readonly string[];
+      readonly joints?: Readonly<Record<string, readonly string[]>>;
     }
   | { readonly ok: false; readonly error: ToolErrorCode; readonly message: string };
 
