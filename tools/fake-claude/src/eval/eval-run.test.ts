@@ -61,18 +61,11 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   why: 'So it happens.',
   ...s,
 });
-/** Claude's plan steps carry no `holds` until the tool schema has it (spec 04 section 6.8). */
-const asSent = (input: unknown): unknown => {
-  const i = input as { steps?: unknown } | null;
-  if (!Array.isArray(i?.steps)) return input;
-  const steps = (i.steps as Record<string, unknown>[]).map(({ holds: _holds, ...rest }) => rest);
-  return { ...i, steps };
-};
 const use = (id: string, name: string, input: unknown): TestBlock => ({
   type: 'tool_use',
   id,
   name,
-  input: asSent(input),
+  input,
 });
 const text = (words: string) => testReply([{ type: 'text', text: words }]);
 const move = (amount: string): PrompterEvent[] =>
@@ -167,6 +160,67 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
       build_matches_plan: true,
       no_errors: true,
     });
+  });
+
+  it('plans and builds loop-01 as one loop: a repeat holding up and down (section 6.8)', async () => {
+    const row = rowById('loop-01');
+    const hop = (direction: string) =>
+      step({
+        words: `The penguin moves ${direction}.`,
+        details: [
+          { name: 'direction', value: direction },
+          { name: 'amount', value: '0.3' },
+        ],
+      });
+    const plan = [
+      step({
+        words: 'Repeat 3 times:',
+        kind: 'repeat',
+        actor: '',
+        action: '',
+        target: '',
+        details: [],
+        repeat: 3,
+        holds: 2,
+      }),
+      hop('up'),
+      hop('down'),
+    ];
+    const inside = (n: number, direction: string) =>
+      testReply([
+        use(`s${n}`, 'insert_statement', {
+          method: 'myFirstMethod',
+          parent_block: 'fflinm',
+          position: 'end',
+          target: 'penguin',
+          procedure: 'move',
+          arguments: [
+            { name: 'direction', value: direction },
+            { name: 'amount', value: '0.3' },
+          ],
+          narration: `The penguin moves ${direction}.`,
+          plan_step: n,
+        }),
+      ]);
+    const { scores } = await run(row, [
+      testReply([use('p1', 'propose_plan', { steps: plan })]),
+      text("Here's my plan."),
+      // The count's id is the harness's first fixed id, as the listener's was in event-01.
+      testReply([
+        use('c1', 'insert_control', {
+          method: 'myFirstMethod',
+          position: 'end',
+          kind: 'count',
+          count: 3,
+          narration: 'A repeat 3 times block appears.',
+          plan_step: 1,
+        }),
+      ]),
+      inside(2, 'up'),
+      inside(3, 'down'),
+      text('Done.'),
+    ]);
+    expect(byCheck(scores)).toEqual({ control: true, method_has_call: true, no_errors: true });
   });
 
   it("builds a when step's blocks in its listener, as the pilot's event-01 asked", async () => {

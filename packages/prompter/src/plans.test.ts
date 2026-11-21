@@ -292,3 +292,79 @@ describe('mismatch (spec 04, section 6.4)', () => {
     ).not.toBeNull();
   });
 });
+
+describe('a plan that repeats several steps (spec 04, section 6.8)', () => {
+  const loop = (s: Partial<PlanStep> = {}): PlanStep =>
+    step({
+      words: 'Repeat 3 times:',
+      kind: 'repeat',
+      actor: '',
+      action: '',
+      target: '',
+      repeat: 3,
+      holds: 2,
+      why: 'You asked for three hops.',
+      ...s,
+    });
+  const messages = (steps: PlanStep[]) =>
+    checkPlan(steps, world).map((p) => `${p.step}: ${p.message}`);
+
+  it('passes a repeat holding the block steps after it', () => {
+    expect(messages([loop(), step({}), step({ target: 'cat' }), step({})])).toEqual([]);
+  });
+
+  it("refuses a repeat that can't run, or holds what it can't", () => {
+    expect(messages([loop({ repeat: 1 }), step({}), step({})])).toEqual([
+      '1: A repeat needs to run at least 2 times.',
+    ]);
+    expect(messages([loop({ holds: 0 }), step({})])).toEqual([
+      '1: A repeat needs at least one step inside it.',
+    ]);
+    expect(messages([loop({ holds: 3 }), step({}), step({})])).toEqual([
+      '1: This repeat holds more steps than come after it.',
+    ]);
+    expect(messages([loop({ actor: 'owl' }), step({}), step({})])).toEqual([
+      '1: A repeat step only says how many times, and which steps are inside.',
+    ]);
+    expect(messages([step({ holds: 1 }), step({})])).toEqual([
+      '1: Only a repeat step can hold other steps.',
+    ]);
+  });
+
+  it('holds only block steps, once each, and not at the same time as the repeat', () => {
+    expect(
+      messages([loop(), step({ kind: 'when', action: 'clickOnObject', target: '' }), step({})]),
+    ).toEqual(['2: A repeat can only hold steps that are blocks.']);
+    expect(messages([loop(), step({ repeat: 2 }), step({})])).toEqual([
+      "2: A step inside a repeat can't repeat on its own as well.",
+    ]);
+    expect(messages([loop(), step({ together: true }), step({})])).toEqual([
+      "2: The first step inside a repeat can't happen at the same time as the step before it.",
+    ]);
+    expect(messages([loop(), step({}), step({ together: true })])).toEqual([]);
+    expect(messages([loop(), loop({ holds: 1 }), step({})])).toEqual([
+      "2: A repeat can't go inside another repeat yet.",
+    ]);
+  });
+
+  it('builds a repeat as a count block with its times, and says so if asked for a block', () => {
+    expect(mismatch('insert_control', { kind: 'count', count: 3 }, loop())).toBeNull();
+    expect(mismatch('insert_control', { kind: 'count', count: 2 }, loop())).toMatch(
+      /repeats 3 times/,
+    );
+    expect(mismatch('insert_statement', { target: 'owl', procedure: 'moveTo' }, loop())).toMatch(
+      /is a repeat: build it as a count block with count 3/,
+    );
+  });
+});
+
+describe('a step with nobody or nothing to do', () => {
+  it('says so, now that the tool lets a repeat step leave them empty (6.8)', () => {
+    expect(checkPlan([step({ actor: '' })], world)).toEqual([
+      { step: 1, message: 'Say who does this step.' },
+    ]);
+    expect(checkPlan([step({ action: '' })], world)).toEqual([
+      { step: 1, message: 'Say what this step does.' },
+    ]);
+  });
+});

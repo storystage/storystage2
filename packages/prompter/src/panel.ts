@@ -20,6 +20,18 @@ import { outcomeMessage, type OutcomeAction } from './outcomes.ts';
 import type { PlanProblem, PlanStep } from './plans.ts';
 import { releaseSystem, releaseTools } from './pins.ts';
 import { PrompterRunner, type Plan, type RunnerSetup } from './runner.ts';
+import {
+  addRepeat as addRepeatStep,
+  canRepeat,
+  deleteStep as deleteSteps,
+  heldBy,
+  moveStep as moveSteps,
+  repeatFits,
+  stepsInsideMax,
+  type AddRepeat,
+  type PlanEdit,
+  type StepsEdit,
+} from './repeats.ts';
 import { PrompterSession, type AskOutcome, type SessionEvent } from './session.ts';
 import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
 import type { Json, PrompterMode, PrompterTransport, TransportErrorCode } from './transport.ts';
@@ -68,6 +80,15 @@ export interface PanelPlan {
    * it. All false at the other levels, where the Prompter builds.
    */
   readonly done: readonly boolean[];
+  /**
+   * Repeating several steps (section 6.8), one entry a step of `steps`: the index of the repeat
+   * step that holds it, or null.
+   */
+  readonly heldBy: readonly (number | null)[];
+  /** For a repeat step, the most its Steps inside can be; null for any other step. */
+  readonly stepsInsideMax: readonly (number | null)[];
+  /** Whether Add a step › Repeat… is offered. */
+  readonly canRepeat: boolean;
 }
 
 export interface PanelState {
@@ -109,6 +130,13 @@ export interface PanelSetup<S extends string = string> {
   /** The catalogue `<backstage_data>` is chosen from: this release's (section 2.7). Tests may give another. */
   readonly catalogue?: Catalogue;
 }
+
+/** A plan's repeats as the panel draws them (section 6.8). */
+const repeatState = (steps: readonly PlanStep[]) => ({
+  heldBy: heldBy(steps),
+  stepsInsideMax: stepsInsideMax(steps),
+  canRepeat: canRepeat(steps),
+});
 
 /** The modes that place models, so their requests carry Backstage's lines (section 2.7). */
 const PLACING: readonly PrompterMode[] = ['explain', 'showMeHow', 'buildIt'];
@@ -340,19 +368,24 @@ export class PrompterPanel<S extends string = string> {
 
   // ---- Editing the plan (section 6.1, step 5) -----------------------------------------------
 
-  #edit(change: (steps: PlanStep[]) => PlanStep[]): void {
+  /** An edit to the learner's plan: the new steps, or none when it's refused (6.8's words). */
+  #edit(change: (steps: PlanStep[]) => StepsEdit | PlanStep[]): PlanEdit {
     const plan = this.#state.plan;
-    if (!plan || this.#busy) return;
-    const steps = change([...plan.steps]);
+    if (!plan || this.#busy) return { ok: false };
+    const made = change([...plan.steps]);
+    const { steps, words } = Array.isArray(made) ? { steps: made, words: undefined } : made;
+    if (steps === null) return words ? { ok: false, words } : { ok: false };
     this.#set({
       plan: {
         ...plan,
+        ...repeatState(steps),
         steps,
         problems: this.#setup.runner.checkSteps(steps, plan.frame),
         done: this.#ticks(steps, plan.frame),
       },
     });
     this.#keep();
+    return words ? { ok: true, words } : { ok: true };
   }
 
   // ---- Plan only's ticks (section 6.6) ------------------------------------------------------
@@ -391,40 +424,60 @@ export class PrompterPanel<S extends string = string> {
     if (result.ok) this.#kept = { agreedAt, key };
   }
 
-  moveStep(from: number, to: number): void {
-    this.#edit((steps) => {
-      if (steps[from] === undefined || to < 0 || to >= steps.length) return steps;
-      const [step] = steps.splice(from, 1);
-      steps.splice(to, 0, step!);
-      return steps;
-    });
+  /**
+   * Moves a step to `to`, its place after the move. A repeat moves with the steps it holds; a
+   * step can't be moved inside a repeat unless it's a block (section 6.8).
+   */
+  moveStep(from: number, to: number): PlanEdit {
+    return this.#edit((steps) =>
+      to >= steps.length && steps[from]?.kind !== 'repeat'
+        ? { steps: null }
+        : moveSteps(steps, from, to),
+    );
   }
 
-  deleteStep(index: number): void {
-    this.#edit((steps) => steps.filter((_, i) => i !== index));
+  /** Deletes a step. A repeat that holds nothing then goes too, and the result says so. */
+  deleteStep(index: number): PlanEdit {
+    return this.#edit((steps) => deleteSteps(steps, index));
+  }
+
+  /** Repeat…: "Repeat 2 times:" before the last step, holding it (section 6.8). */
+  addRepeat(): AddRepeat {
+    const before = this.#state.plan?.steps.length ?? 0;
+    const edit = this.#edit((steps) => {
+      const made = addRepeatStep(steps);
+      if (!made.steps) return made;
+      const at = made.steps.length - 2;
+      made.steps[at] = this.#worded(made.steps[at]!, false);
+      return made;
+    });
+    return edit.ok ? { ...edit, index: before - 1 } : edit;
   }
 
   /**
    * Changes a step's values. Its words are written again from what it now does (`stepWords`),
    * unless the change gives words of its own, so the plan never describes a different step.
    */
-  changeStep(index: number, change: Partial<PlanStep>): void {
-    this.#edit((steps) =>
-      steps.map((s, i) => {
-        if (i !== index) return s;
-        const next = { ...s, ...change };
-        // A change that changes nothing, such as Save with nothing changed, keeps the words.
-        const same = (Object.keys(change) as (keyof PlanStep)[]).every(
-          (k) => JSON.stringify(next[k]) === JSON.stringify(s[k]),
-        );
-        return same ? s : this.#worded(next, 'words' in change);
-      }),
-    );
+  changeStep(index: number, change: Partial<PlanStep>): PlanEdit {
+    return this.#edit((steps) => {
+      const s = steps[index];
+      if (s === undefined) return { steps: null };
+      const next = { ...s, ...change };
+      // A repeat's How many times and Steps inside stay within their limits (section 6.8).
+      if (!repeatFits(steps, index, next)) return { steps: null };
+      // A change that changes nothing, such as Save with nothing changed, keeps the words.
+      const same = (Object.keys(change) as (keyof PlanStep)[]).every(
+        (k) => JSON.stringify(next[k]) === JSON.stringify(s[k]),
+      );
+      return steps.map((step, i) =>
+        i !== index ? step : same ? s : this.#worded(next, 'words' in change),
+      );
+    });
   }
 
   /** Adds a step. One with no words gets them from what it does. */
-  addStep(step: PlanStep, at = Infinity): void {
-    this.#edit((steps) => {
+  addStep(step: PlanStep, at = Infinity): PlanEdit {
+    return this.#edit((steps) => {
       steps.splice(Math.min(at, steps.length), 0, this.#worded(step, step.words.trim() !== ''));
       return steps;
     });
@@ -549,6 +602,7 @@ export class PrompterPanel<S extends string = string> {
           steps: shown.steps,
           problems: [],
           done: shown.steps.map(() => false),
+          ...repeatState(shown.steps),
         }
       : building && outcome.changes > 0
         ? null
