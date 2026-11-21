@@ -10,7 +10,7 @@ import {
 } from '@storystage/ast';
 import { sampleProgram } from '@storystage/ast/testing';
 import { demoProduction } from '@storystage/production';
-import { palette } from '@storystage/story-api/editing';
+import { isSceneScriptIn, palette, word } from '@storystage/story-api/editing';
 import { checkProgram } from '@storystage/story-api/program-check';
 import {
   asText,
@@ -786,12 +786,15 @@ for (const editor of ['Blocks', 'Tiles'] as const)
     const owners = [...sampleScene.methods, ...sampleScene.listeners];
     let switched = 0;
     for (const owner of owners) {
-      // A method's tab has its name; the event's is the one tab that isn't a method's.
+      // A method's tab has its name, the scene's script "When the scene starts" (the owner,
+      // 21 Nov); the event's is the one tab that isn't a method's.
       const tabs = page.getByRole('tablist', { name: /^Methods in scene/ }).getByRole('tab');
-      const names = sampleScene.methods.map((m) => m.name);
+      const tabText = (m: (typeof sampleScene.methods)[number]) =>
+        isSceneScriptIn(sampleScene, m) ? word('method.sceneScript') : m.name;
+      const names = sampleScene.methods.map(tabText);
       const tab =
         owner.kind === 'method'
-          ? tabs.filter({ hasText: new RegExp(`^${owner.name}$`) })
+          ? tabs.filter({ hasText: new RegExp(`^${tabText(owner)}$`) })
           : tabs.filter({ hasNotText: new RegExp(`^(${names.join('|')})$`) });
       await tab.click();
       await expect(tab).toHaveAttribute('aria-selected', 'true');
