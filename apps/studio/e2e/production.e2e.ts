@@ -190,6 +190,25 @@ test('a block’s menu and keys switch it off, add a detail and duplicate, each 
   await undoButton(page).click();
   await expect(says).toHaveCount(before);
 
+  // Ctrl+V before anything is copied says so; Ctrl+C then Ctrl+V pastes a copy just after it,
+  // with an id of its own, as one undo step (spec 14, 3d; the owner, 21 Nov), as in Tiles.
+  await block(page, id).click({ position: { x: 8, y: 8 } });
+  await expect.poll(() => focusedBlock(page)).toBe(id);
+  await page.keyboard.press('Control+v');
+  await expect(said).toHaveText('Copy a block first, then paste it.');
+  await expect(says).toHaveCount(before);
+  await page.keyboard.press('Control+c');
+  await expect(said).toHaveText(/^Copied /);
+  await page.keyboard.press('Control+v');
+  await expect(says).toHaveCount(before + 1);
+  await expect(says.nth(1)).not.toHaveAttribute('data-id', id);
+  await expect(undoButton(page)).toHaveText(/^Undo: Make /);
+  // Blockly's own Ctrl+X, which would take the block out of the program, does nothing here.
+  await page.keyboard.press('Control+x');
+  await expect(says).toHaveCount(before + 1);
+  await undoButton(page).click();
+  await expect(says).toHaveCount(before);
+
   // Add detail asks for the value through the cascade, then it's in the block.
   await block(page, id).click({ button: 'right', position: { x: 8, y: 8 } });
   await page.locator('.blocklyContextMenu').getByText('Add detail: how long').click();

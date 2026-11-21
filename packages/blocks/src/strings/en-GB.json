@@ -27,6 +27,8 @@
   "editor.name": "Blocks",
   "editor.nothingToSet": "There’s no variable here to set. Put in a variable above it first.",
   "editor.looseBlock": "Blocks go inside a method.",
+  "editor.copied": "Copied {what}",
+  "editor.nothingCopied": "Copy a block first, then paste it.",
   "editor.workspace": "{method}: blocks",
   "slot.times": "how many times",
   "slot.condition": "condition",
