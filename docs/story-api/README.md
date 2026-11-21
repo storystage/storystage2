@@ -1,7 +1,7 @@
 # The StoryStage Story API
 
 <!-- reference:version -->
-**Version 0.10.0, a draft for comment.** 99 blocks, 14 events, 19 details and 19 value types.
+**Version 0.11.0, a draft for comment.** 99 blocks, 14 events, 19 details and 19 value types.
 <!-- /reference:version -->
 
 The Story API is the vocabulary young people use to make 3D animated films in code: the characters and things in a scene, what they can do ("move forward 1", "say Hello", "walk to the tree"), what can be asked about them, and the events a film can react to. It keeps the vocabulary of [Alice 3](https://www.alice.org/), made at Carnegie Mellon University, and adds what film-making needs. StoryStage 2 implements it; anyone may implement it too.
@@ -287,9 +287,11 @@ A program is JSON, described by [`program.schema.json`](program.schema.json). It
 
 - a call to a block is `{kind: 'call', callee: {kind: 'story', name: 'move'}, args: {direction, amount}, details: {duration}}`, with arguments by parameter name;
 - a value from a value type is `{kind: 'enum', type: 'MoveDirection', value: 'forward'}`; a joint is `{kind: 'enum', type: 'JointId', value: 'leftLowerArm'}`;
-- `Paint` beyond a colour, `Audio`, `SceneId` and `AnimationClip` are text;
+- `Paint` beyond a colour, `Audio`, `SceneId`, `AnimationClip` and `LineId` are text;
 - a type is `{kind: 'story', name: 'Biped'}`, and 3D text is `TextModel`;
 - an event handler is a `listener` whose `event` is an event's name, `args` what it needs and `params` what it gives.
+
+**How a scene's code starts.** A scene is a class extending `Scene`. Its method `myFirstMethod`, the scene's script, runs when the scene starts, with no listener needed. This is Alice's rule: Alice's own code calls it from a scene activation listener, which an implementation makes itself. A `sceneStart` handler, if the scene has one, starts at the same moment and runs alongside the script. An editor may call the script "When the scene starts", as StoryStage's do, and a second `sceneStart` handler "also when the scene starts"; programs keep the name `myFirstMethod`, so a world imported from Alice and a program written by hand say the same.
 
 A program is valid for the Story API when every block exists on its target's class, every parameter is given, nothing extra is, and every value fits its type. An implementation should never refuse a program for a value whose type it can't know, such as an empty slot. The program format has its own version (`schemaVersion`), separate from this specification's.
 
