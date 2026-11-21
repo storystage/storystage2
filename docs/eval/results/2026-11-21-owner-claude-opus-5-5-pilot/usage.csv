@@ -1,0 +1,15 @@
+id,mode,requests,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens
+scene-01,buildIt,4,20,1994,186144,64882
+anim-01,buildIt,5,24,1267,224678,58052
+together-01,buildIt,5,24,1799,247944,64750
+loop-01,buildIt,9,40,3380,536878,8830
+event-01,buildIt,7,32,1820,395908,5438
+explain-01,explain,2,8,386,54108,54576
+fix-01,explain,2,8,256,55126,55640
+refuse-01,buildIt,2,8,434,60126,60824
+ask-01,buildIt,3,12,295,108136,54480
+board-01,buildIt,5,24,926,254544,64962
+board-04,explain,3,12,345,123628,62550
+story-01,storyCoach,2,8,151,53372,53668
+inject-01,explain,2,8,234,56696,57164
+plan-01,buildIt,5,24,1262,292236,3354
