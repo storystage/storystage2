@@ -5,7 +5,13 @@
  */
 
 /** Change nothing. */
-export const READ_TOOLS = ['explain', 'read_project', 'check_frame', 'script_check'] as const;
+export const READ_TOOLS = [
+  'explain',
+  'read_project',
+  'find_models',
+  'check_frame',
+  'script_check',
+] as const;
 
 /** Show a plan to the learner; change nothing in the program. */
 export const PLAN_TOOLS = ['propose_plan', 'revise_plan'] as const;

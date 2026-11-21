@@ -203,6 +203,23 @@ describe('PrompterPanel: what it shows (spec 07, section 2.4)', () => {
     expect(turn).toContain('<production_data>');
     expect(turn).toContain('<storyboard_data>');
   });
+
+  it("sends Backstage's lines for the request where models are placed, and none to the coach (2.7)", async () => {
+    const { panel, transport } = setUp([say('Yes.'), say('What happens next?')]);
+    await panel.refresh();
+    await panel.ask('Is there a knight?');
+    const lastTurn = (n: number) =>
+      JSON.stringify(
+        (transport.sent[n]!.body.messages as { role: string }[])
+          .filter((m) => m.role === 'user')
+          .at(-1),
+      );
+    // This release's catalogue, searched for the request's words.
+    expect(lastTurn(0)).toMatch(/<backstage_data>.*knight/);
+    panel.setMode('storyCoach');
+    await panel.ask('Is there a dragon?');
+    expect(lastTurn(1)).not.toContain('backstage_data');
+  });
 });
 
 describe('PrompterPanel: plan before change (spec 04, sections 4.5 and 6)', () => {

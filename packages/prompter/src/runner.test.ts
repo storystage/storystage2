@@ -871,3 +871,50 @@ describe('PrompterRunner: coding a frame (spec 04, section 3.2; 10.8)', () => {
     expect(summary).not.toContain('<never>');
   });
 });
+
+describe('find_models (spec 04, sections 2.7 and 3.1)', () => {
+  const owl = {
+    id: 'example/Flyer/owl',
+    section: 'cast',
+    class: 'Flyer',
+    name: 'Owl',
+    joints: 'J1',
+    line: 'example/Flyer/owl: Owl, a brown owl 0.4 m, joints J1',
+    short: 'example/Flyer/owl: Owl (J1)',
+    words: ['owl', 'brown', 'flyer'],
+  } as const;
+  const catalogue = { header: '', joints: { J1: ['hips', 'head'] }, items: [owl] };
+
+  it('gives the full lines and their joints, and changes nothing', () => {
+    const { run, now, original } = setUp('s2', undefined, { catalogue });
+    expect(run('find_models', { query: 'a brown owl', section: '' })).toEqual({
+      ok: true,
+      ids: {},
+      summary: '1 shipped model matches, best first.',
+      models: [owl.line],
+      joints: { J1: ['hips', 'head'] },
+    });
+    expect(now()).toBe(original);
+  });
+
+  it('says when nothing matches, or the section has none', () => {
+    const { run } = setUp('s2', undefined, { catalogue });
+    for (const input of [
+      { query: 'rocket', section: '' },
+      { query: 'owl', section: 'props' },
+    ])
+      expect(run('find_models', input)).toMatchObject({
+        ok: true,
+        models: [],
+        summary: 'No shipped model matches those words. The Backstage index lists every one.',
+      });
+  });
+
+  it("searches this release's catalogue when it is given none", () => {
+    const { run } = setUp();
+    const found = run('find_models', { query: 'knight', section: 'cast' });
+    const models = found.ok ? (found.models ?? []) : [];
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.every((l: string) => /^[a-z0-9-]+\/[A-Z]\w*\/\S+: /.test(l))).toBe(true);
+  });
+});

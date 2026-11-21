@@ -29,6 +29,7 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
+import type { Catalogue, Section } from '@storystage/backstage';
 import {
   addObject,
   objectName,
@@ -56,6 +57,7 @@ import {
   type Transform,
   type TypeName,
 } from '@storystage/story-api';
+import { findModels } from './backstage-data.ts';
 import { productionData, storyboardData } from './context.ts';
 import { dataBlock } from './data.ts';
 import {
@@ -68,6 +70,7 @@ import {
 } from './plans.ts';
 import { stepsDone } from './progress.ts';
 import { scriptFacts } from './script-check.ts';
+import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
 import { stepWords } from './step-words.ts';
 import type { ToolRunner, RequestContext } from './session.ts';
 import type { ToolName } from './tool-names.ts';
@@ -90,6 +93,11 @@ export interface RunnerSetup<S extends string = string> {
   readonly openMethod?: () => NodeId | null;
   /** A shipped Backstage model's class, or null if there is no such model. */
   readonly backstageClass: (id: string) => StoryClass | null;
+  /**
+   * The catalogue `find_models` searches: this release's, whose index is in the pinned `system`
+   * (section 2.7). Tests may give another.
+   */
+  readonly catalogue?: Catalogue;
   /** The automatic check's latest result for a frame (11.6), or null if it hasn't run. */
   readonly checkResult?: (frame: FrameId) => Json | null;
   /**
@@ -346,6 +354,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         return ok('Shown to the learner.');
       case 'read_project':
         return ok(this.#projectData());
+      case 'find_models':
+        return this.#findModels(text(input.query), text(input.section) as Section | '');
       case 'check_frame':
         return this.#checkFrame(text(input.frame));
       case 'script_check':
@@ -396,6 +406,15 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   }
 
   /** The production and the storyboard as a turn sends them (spec 04, section 2.6). */
+  /** `find_models` (section 3.1): shipped models only, since imported ones are in the data. */
+  #findModels(query: string, section: Section | ''): Result {
+    const found = findModels(this.#setup.catalogue ?? SHIPPED_CATALOGUE, query, section);
+    const summary = found.models.length
+      ? `${found.models.length} shipped ${found.models.length === 1 ? 'model matches' : 'models match'}, best first.`
+      : 'No shipped model matches those words. The Backstage index lists every one.';
+    return { ok: true, ids: {}, summary, models: found.models, joints: found.joints };
+  }
+
   #projectData(): string {
     const production = this.#setup.session.production();
     const place = { scene: this.#setup.scene(), open: this.#setup.openMethod?.() ?? null };

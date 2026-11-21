@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { CATALOGUE_INDEX_TOKEN_BUDGET, renderIndex } from '@storystage/backstage';
 import { catalogText } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { MODE_SETTINGS } from './models.ts';
 import {
-  BACKSTAGE_TOKEN_BUDGET,
   STORY_API_TOKEN_LIMIT,
   canonicalJson,
   makePins,
@@ -41,16 +41,30 @@ describe('canonicalJson (spec 04, section 1.9)', () => {
 });
 
 describe('the shipped Backstage catalogue', () => {
-  const lock = fromRoot('backstage.lock.json') as { commit: string; catalogueSha256: string };
+  const lock = fromRoot('backstage.lock.json') as {
+    commit: string;
+    catalogueJsonSha256?: string;
+  };
 
-  it('is exactly the one backstage.lock.json pins', () => {
+  it('is exactly the one backstage.lock.json pins (section 2.7)', () => {
     expect(SHIPPED_CATALOGUE_COMMIT, FIX).toBe(lock.commit);
-    expect(sha256(SHIPPED_CATALOGUE), FIX).toBe(lock.catalogueSha256);
+    // Kept compact; printed as the build prints it, it is the pinned file byte for byte.
+    const file = `${JSON.stringify(SHIPPED_CATALOGUE, null, 2)}\n`;
+    expect(sha256(file), FIX).toBe(lock.catalogueJsonSha256);
   });
 
-  it('keeps to its budget, as the Story API catalog does (section 2.1)', () => {
-    expect(estimateTokens(SHIPPED_CATALOGUE)).toBeLessThanOrEqual(BACKSTAGE_TOKEN_BUDGET);
+  it('keeps the index and the Story API catalog to their budgets (section 2.1)', () => {
+    expect(estimateTokens(renderIndex(SHIPPED_CATALOGUE))).toBeLessThanOrEqual(
+      CATALOGUE_INDEX_TOKEN_BUDGET,
+    );
     expect(estimateTokens(catalogText())).toBeLessThanOrEqual(STORY_API_TOKEN_LIMIT);
+  });
+
+  it('sends the index, never a full line, in system', () => {
+    const system = JSON.stringify(releaseSystem());
+    const [item] = SHIPPED_CATALOGUE.items.filter((i) => i.section === 'cast');
+    expect(system).toContain(JSON.stringify(item!.short).slice(1, -1));
+    expect(system).not.toContain(JSON.stringify(item!.line).slice(1, -1));
   });
 });
 

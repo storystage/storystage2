@@ -170,6 +170,7 @@ const good: Readonly<Record<string, unknown>> = {
   },
   explain: { text: 'The move block makes something move.' },
   read_project: {},
+  find_models: { query: 'oak tree', section: '' },
   check_frame: { frame: 'f2-2' },
   script_check: {},
   propose_plan: {
@@ -219,6 +220,17 @@ describe('checkToolInput (spec 04, section 1.6)', () => {
   });
   const without = (name: string, field: string) =>
     Object.fromEntries(Object.entries(good[name] as object).filter(([k]) => k !== field));
+
+  it("keeps find_models' words short, and its section to Backstage's", () => {
+    expect(refused('find_models', { query: 'oak tree', section: 'props' })).toBeNull();
+    expect(refused('find_models', { query: 'w '.repeat(10), section: '' })).toMatch(
+      /query should be under 10 words/,
+    );
+    expect(refused('find_models', { query: '', section: '' })).toMatch(/query is empty/);
+    expect(refused('find_models', { query: 'owl', section: 'imported' })).toMatch(
+      /section should be one of/,
+    );
+  });
 
   it('refuses a missing field, an extra field and a wrong type', () => {
     expect(refused('add_model', without('add_model', 'name'))).toMatch(/name is missing/);

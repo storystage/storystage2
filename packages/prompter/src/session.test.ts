@@ -232,6 +232,52 @@ describe('the conversation stays append-only (spec 04, section 1.5)', () => {
   });
 });
 
+describe("Backstage's lines (spec 04, section 2.7)", () => {
+  const owl = {
+    id: 'example/Flyer/owl',
+    section: 'cast',
+    class: 'Flyer',
+    name: 'Owl',
+    joints: 'J1',
+    line: 'example/Flyer/owl: Owl, a brown owl 0.4 m, joints J1',
+    short: 'example/Flyer/owl: Owl (J1)',
+    words: ['owl', 'brown', 'flyer'],
+  } as const;
+  const backstage = {
+    catalogue: { header: '', joints: { J1: ['hips', 'head'] }, items: [owl] },
+    candidates: [owl],
+  };
+  const replies = (n: number) =>
+    Array.from({ length: n }, () => testReply([{ type: 'text', text: 'ok' }]));
+
+  it('sends a line once a conversation, and again after New conversation', async () => {
+    const { session, transport } = setUp(replies(3));
+    const ask = () => session.ask('the owl', { mode: 'explain', level: 'full', backstage });
+    await ask();
+    await ask();
+    session.reset();
+    await ask();
+    const [r1, r2, r3] = transport.sent;
+    const first = JSON.stringify(messagesOf(r1!)[0]);
+    expect(first).toContain('<backstage_data>');
+    expect(first).toContain(JSON.stringify(owl.line).slice(1, -1));
+    // The second turn is the last user turn of the second request: no lines, as none are new.
+    const turns = messagesOf(r2!).filter((m) => m.role === 'user');
+    expect(JSON.stringify(turns.at(-1))).not.toContain('backstage_data');
+    expect(JSON.stringify(messagesOf(r3!)[0])).toContain('<backstage_data>');
+  });
+
+  it('sends it again after a request that was taken back', async () => {
+    const { session, transport } = setUp([
+      testReply([{ type: 'text', text: 'Here is part' }], { stopReason: 'refusal' }),
+      testReply([{ type: 'text', text: 'ok' }]),
+    ]);
+    await session.ask('the owl', { mode: 'explain', level: 'full', backstage });
+    await session.ask('the owl', { mode: 'explain', level: 'full', backstage });
+    expect(JSON.stringify(messagesOf(transport.sent[1]!))).toContain('backstage_data');
+  });
+});
+
 describe('the tool loop (spec 04, section 1.6)', () => {
   it('runs each tool in order, answers all of them in one message, and asks again', async () => {
     const { session, transport, calls, log } = setUp([
