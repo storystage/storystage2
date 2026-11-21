@@ -757,8 +757,9 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Schedule items** (`tools/plan/schedule.yaml`): WP13a after WP0; WP13b after WP13a, WP2, WP4a, WP15k; WP13c after WP13b, WP10a, WP7.
 <!-- /schedule:wp13 -->
 - [x] 13.1 Spec `docs/spec/04-prompter.md`, adapted from StoryStage 1 spec 01. It covers request shape, streaming, strict tools, caching, refusal fallback, error messages and the 25-tool-call limit, with differences listed. (C)
-- [ ] 13.2 **Transport:** the request body is built in TypeScript without the key. It goes to the native layer through a Tauri command, which **checks it against the policy enforcement point (15.2)**, adds the key and streams events back. Learner text (script, storyboard, captions) goes into the context as clearly delimited data, never as instructions. In the browser version, all Prompter features are switched off. (C)
-- [ ] 13.3 **Context:**
+- [x] 13.2 **Transport:** the request body is built in TypeScript without the key. It goes to the native layer through a Tauri command, which **checks it against the policy enforcement point (15.2)**, adds the key and streams events back. Learner text (script, storyboard, captions) goes into the context as clearly delimited data, never as instructions. In the browser version, all Prompter features are switched off. (C)
+    - **Built (20 Nov 2026):** the request without the key, with learner text in its own data tags (#133, #158); the Tauri transport (#465) to `prompter_send`, which reads the policy again, checks the request against the gate's pins and caps, and reads the key last (S8's 15.2; the pins #215; wired in #468). The browser version has no Prompter panel.
+- [x] 13.3 **Context:**
     - a Story API catalog generated from WP4 metadata;
     - a Backstage catalogue from `backstage.json`, grouped by section;
     - the project as text with node ids;
@@ -766,18 +767,23 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - the scene as data. No picture is ever sent (`CLAUDE.md` rule 3; the owner confirmed this on 31 Oct 2026).
 
     Token budgets as in StoryStage 1. (C)
-- [ ] 13.4 **Tools:**
+    - **Built (20 Nov 2026):** the Story API catalog and the shipped Backstage catalogue, by section, in `system` (#93, pinned by `pnpm prompter:pins`); the program as text with node ids, and the storyboard and script with each frame's sketches as `<production_data>` and `<storyboard_data>`, each within its token budget (#212). Nothing sent holds a picture.
+- [x] 13.4 **Tools:**
     - the StoryStage 1 tools over the new AST: `add_model`, `set_property`, `insert_statement`, `insert_control`, `declare_procedure`, `add_event_listener`, `explain`, `read_project`;
     - storyboard tools: `stage_scene` (place cast from frames, build backdrop and camera) and `code_frame`;
     - read-only `check_frame` (reads the result of the automatic check, 11.6, and explains it in the learner's words) and `script_check`;
     - `propose_plan` and `revise_plan` for plan before change (13.9).
 
     Every change goes through WP2 edit operations, and a whole request is one undo step. (C)
-- [ ] 13.5 **Modes:** Explain only, Show me how, Build it, and the **story coach**. The coach asks questions about logline, synopsis and scenes, and never writes the learner's story or script lines. (C)
-- [ ] 13.6 Set-up wizard (from StoryStage 1 spec 02): what is sent, cost, the adult-account rule, Console steps, paste and check key, options. A usage meter. Remove key. (C)
+    - **Built (20 Nov 2026):** every tool, on the production's undo session, with a whole request one undo step: the runner and the read-only tools, `check_frame` and `script_check` (#161); `add_model` and `set_property` (#239); `stage_scene` and the set-up tools on the production's shared steps (#464, S5's #505); `code_frame` (#477); `propose_plan` and `revise_plan` (#469, #516, #518, #523).
+- [x] 13.5 **Modes:** Explain only, Show me how, Build it, and the **story coach**. The coach asks questions about logline, synopsis and scenes, and never writes the learner's story or script lines. (C)
+    - **Built (20 Nov 2026):** the modes and the teacher's levels, with Plan only (#133, spec 04 sections 4.1 to 4.3); the story coach's arcs (#483); the panel's logic (#469) and S5's panel (#488). The evaluation set's `story` rows test that the coach writes no story or lines.
+- [x] 13.6 Set-up wizard (from StoryStage 1 spec 02): what is sent, cost, the adult-account rule, Console steps, paste and check key, options. A usage meter. Remove key. (C)
+    - **Built (20 Nov 2026):** the wizard's logic (#439) and S5's screens 10a to 10d (#530): who it's for, what is sent and its cost, the adult-account tick, the Console steps, Add key through the system dialog, and Remove key. The options are the teacher's level and daily cap in Settings › Class set-up, where S5's usage card shows today's count from S8's `PrompterUsage` (spec 04 section 4.4; the owner's choice of 18 Nov for where Set up… sits).
 - [ ] 13.7 Fake Claude server and recordings, with the evaluation set re-expressed for StoryStage 2. Add new categories: storyboard, "doesn't write the story", and prompt injection (a script line or a shared production that tells the Prompter to break its rules). Run the set on each model used by the mode routing (24.3). (C)
+    - **Built so far (20 Nov 2026):** the fake Claude server (#95, #158); the evaluation set, 85 rows in 13 categories, with `storyboard` (8), `story` (11), `injection` (10) and `plan` (9) (#95, #153); the harness, scorer and live run command (#503, #509). **Waits for the owner:** the live run that makes the recordings (the pilot first, the owner's choices of 17 Nov), and a run on each model the 24.3 routing uses before requests move to it.
 - [x] 13.8 System prompt for StoryStage 2, carrying over StoryStage 1's audience and safety rules. (C)
-- [ ] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
+- [x] 13.9 **Plan before change** (from Roblox Studio's Planning Mode; used by Show me how and Build it):
     - **What the learner sees:** before anything changes, the Prompter shows a short numbered plan in plain words, made from the frame's sketch, its script lines and its shot type. For example, for frame 2.3: "1. The owl walks to the tree. 2. The owl turns to face the cat. 3. The owl says 'Here is the key.' 4. The cat jumps. 5. Hold for 1 second."
     - **What the learner can do with it:** reorder steps by drag or keyboard, delete a step, change a value (who, where, how long, which line) with the same dropdowns the blocks use, add a step from a short menu, or ask "why this step?". Nothing in the program changes until the learner presses **Build these steps**.
     - **Building:** each step becomes blocks in turn, highlighted as it lands, with the step's words kept as a comment above its blocks; the whole build is one undo step. If a step can't be built (for example, an object not in the cast), the plan says so in plain words before building, not after.
@@ -785,6 +791,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - **Kept with the frame:** the agreed plan is saved with the frame in the storyboard data (not in the program), with a record of the learner's edits, so a teacher can see what the learner changed. Pseudonymous in the study log (7.13).
     - **Plan steps** use a small typed schema (actor, action from the Story API, target, details, linked script line or sketch), so a plan can always be checked against the Story API before it is shown; plans are written by the lower-cost model where 24.3 routing allows.
     - **Tests:** an evaluation category "the build matches the agreed plan", and edits to the plan must be reflected exactly in the built blocks.
+    - **Built (20 Nov 2026):** the plan, its edits and its checks (#469, #516, #518, #523); the build held to the agreed step (spec 04, section 6.4); Plan only ticking steps off as the learner builds them (#565, S5's #574); the plan kept with its frame (S4's #517 and #568, outside undo in Plan only, the owner's choice of 20 Nov). Plans stay on the main model, since 24.3 moves only Explain, the story coach and the script check. The evaluation category is in the harness (#503); the owner's live run scores it for WP13's done-when.
 
     (C)
 
