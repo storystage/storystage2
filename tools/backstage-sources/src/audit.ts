@@ -24,6 +24,7 @@ export const SOURCE_NAMES: Readonly<Record<string, string>> = {
   polypizza: 'Poly Pizza',
   scottishmaritime: 'Scottish Maritime Museum (on Sketchfab)',
   sketchfab: 'Sketchfab, per item',
+  'sketchfab-history': 'Sketchfab history models: museum scans and reconstructions',
   smithsonian: 'Smithsonian Open Access',
   'solar-system': "The Sun, the Moon and the planets, from Solar System Scope's textures",
   storybook: 'Storybook cast, KayKit models and characters made from their parts',
