@@ -6,6 +6,7 @@ import {
 } from '@storystage/production';
 import { Button, messages } from '@storystage/ui';
 import { useRef, useState } from 'react';
+import { acceptFor } from '../fileInputs.ts';
 import { words } from '../strings.ts';
 import { canAddScene } from './edits.ts';
 import { SCRIPT_FILE_TYPES, importScript, type ImportRefusal } from './scriptFile.ts';
@@ -102,7 +103,7 @@ export function ImportScript({
       <input
         ref={input}
         type="file"
-        accept={SCRIPT_FILE_TYPES}
+        accept={acceptFor(SCRIPT_FILE_TYPES)}
         hidden
         aria-label={words.t('storyboard.import.file')}
         onChange={(e) => {
