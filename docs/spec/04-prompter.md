@@ -124,7 +124,7 @@ For S8. Each item is something this spec makes checkable.
 
 The native layer pins `system`, `tools` and the mode messages (section 1.8; spec 05, section 2.3). `packages/prompter/src/pins.ts` makes them:
 
-- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the shipped Backstage catalogue. That catalogue is kept in `src/shipped-catalogue.ts`, an exact copy of `prompter-catalogue.txt` at the commit `backstage.lock.json` pins; a test fails if its SHA-256 differs from the lock's.
+- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the Backstage index (section 2.7). The index is `renderIndex()` from `@storystage/backstage` over the shipped catalogue, which is kept in `src/shipped-catalogue.ts`: an exact copy of `prompter-catalogue.json` at the commit `backstage.lock.json` pins. A test fails if its SHA-256 differs from the lock's `catalogueJsonSha256`. Until section 2.7 is built, it is `prompter-catalogue.txt`, whole.
 - `tools` is `TOOLS`, and the mode messages are `pinnedSystemMessages()`.
 - **The studio sends `releaseSystem()` and `releaseTools()` as they are.** It never rebuilds a catalogue at run time, not even from the fetched `.backstage/`, so what it sends can't drift from what is pinned by a byte.
 - **A class's imported models never go in `system`** (section 2.1). They travel in `<production_data>` as `imported` (section 2.6), so a teacher importing a model (`backstage.import`) never changes the pin, and the gate never refuses that class's requests for it.
@@ -140,7 +140,8 @@ The native layer pins `system`, `tools` and the mode messages (section 1.8; spec
 |---|---|---|---|
 | Instructions (section 2.5, 13.8) | `system` | Yes | |
 | Story API catalog, from WP4 metadata | `system` | Yes | 40,000 tokens; a unit test fails above 45,000 |
-| Backstage catalogue: **shipped models only**, grouped by Cast, Props, Set, Backdrops | `system` | Yes | 24,000 tokens (12,000 until the owner's choice of 19 Nov 2026, for 100Avatars' round 3; the same text every request, so it caches) |
+| The Backstage index: every **shipped** model, one short line each, by section and class (section 2.7) | `system` | Yes | 12,000 tokens (`CATALOGUE_INDEX_TOKEN_BUDGET`). It's the same text every request, so it caches. Until 2.7 is built, the whole catalogue is here, within 24,000 |
+| Full Backstage lines for the models this request needs (section 2.7) | User turn, `<backstage_data>` | No | 6,000 tokens a turn |
 | Imported models in this class | User turn, as data | No | Part of the production |
 | The scene, as data | User turn, as data | No | Part of the production |
 | The program as text with node ids | User turn, as data | No | 20,000 tokens |
@@ -172,7 +173,7 @@ Each piece goes in its own block, as JSON, inside a named tag:
 
 - One function writes every block. It JSON-encodes the value, then replaces each `<`, `>` and `&` with its `\u` escape, so no learner text can close a tag or open one.
 - The learner's request travels the same way. Its text is what the learner asked for; data blocks are never instructions, whatever they say. Transcribed speech (14.1) is a request like typed text, once the learner has seen and sent it.
-- Other tags: `<agreed_plan>` (section 6) and `<check_result>` (11.6).
+- Other tags: `<agreed_plan>` (section 6), `<check_result>` (11.6) and `<backstage_data>` (section 2.7). `<backstage_data>` holds only Backstage's own text, never a learner's, and goes through the same writer.
 - A turn carries the production and storyboard blocks only when they have changed since the last time they were sent, which keeps the history small and the cache useful. A new conversation always sends them.
 
 ### 2.5 The system prompt
@@ -188,7 +189,7 @@ Each piece goes in its own block, as JSON, inside a named tag:
 6. **Modes:** a mode message says what is allowed (section 4.2), and it wins over a request.
 7. **Audience and safety.**
 8. **Words:** rule 9's words, and narration.
-9. The Story API catalog and the Backstage catalogue.
+9. The Story API catalog and the Backstage index (section 2.7), with a line saying where the full lines are: in `<backstage_data>`, or from `find_models`.
 
 ### 2.6 The data blocks, exactly
 
@@ -208,6 +209,26 @@ Each piece goes in its own block, as JSON, inside a named tag:
 **Ids in the program text.** Each line that starts a type, field, method, listener or statement ends with `  # [id]`, the id of the innermost of those that starts on the line. Tools name blocks by these ids. Above 20,000 tokens, each method other than the open one and the current scene's keeps its first line and loses its body to one line: `... N lines not shown`. `read_project` with the method open shows it.
 
 `<storyboard_data>`: `logline`, `synopsis`, `arc` and `cards` as stored; `script`, each line with `id`, `scene`, `kind`, `character` for dialogue, `text` and `frame` if pinned; and `frames`, each with `id`, `scene`, `order`, `caption`, `shot`, `seconds`, `links` and `sketches`, each sketch with `id`, `item`, `facing`, `x`, `y`, and `pose`, `scale`, `flipped` and `layer` where they aren't the default (`null`, 1, `false`, 0). Above 8,000 tokens, scenes other than the current one lose their script lines and their frames' sketches, keeping cards and captions.
+
+### 2.7 The Backstage catalogue: an index, and the lines a request needs
+
+The owner's choice of 21 Nov 2026: the Prompter sends only the catalogue lines a request needs, not the whole list, so Backstage can grow (space, history, Poly by Google's models) without raising the budget. It is built before the owner's pilot run, which then runs once on this prompt. S4 makes the catalogue's form and its search (`@storystage/backstage`, S4's contract PR); S7 decides what is sent.
+
+**The catalogue** is `prompter-catalogue.json`, built in `storystage/backstage-assets` and pinned in `backstage.lock.json` by `catalogueJsonSha256`: `{ header, joints, items }`. Each item has `id`, `section`, `class`, `name`, `joints` (a joint set's name, or `"none"`), `line` (the full line, `id: Name, description [themes] height m, joints`), `short` (`id: Name (J2)`, or `id: Name (no joints)`) and `words` (for search). Only shipped models are in it. A class's imported models are never in it, and never searched: they travel whole in `<production_data>` (section 2.6).
+
+**In `system`, the index:** `renderIndex(catalogue)` gives the header (the rules for adding a model), the joint sets, and every item's `short` line under section and class headings. The Prompter always knows what exists and which models can walk or gesture. It is pinned and cached like the rest of `system`, within 12,000 tokens. The full `.txt` is still built, for people to read, but isn't sent.
+
+**In the user turn, `<backstage_data>`:** `{"models": [line, …]}`, the full lines for the models this request needs, in this order, each once:
+
+1. The models the production already uses: every scene's set-up objects and backdrop, then every frame's sketches that are Backstage models. The current scene's come first.
+2. The best matches (`searchCatalogue`, up to 20) for the words of the learner's request.
+3. The best matches for the current frame's caption and script lines, then the current scene's (up to 20 each).
+
+Lines stop before the next one would pass 6,000 tokens. A turn sends only lines not already sent in this conversation, because the history keeps them (section 1.5), and leaves the block out when there are none. A new conversation starts afresh. The block goes with requests in `explain`, `showMeHow` and `buildIt`. The story coach and the script check don't place models, so they get none, and `find_models` is there if one is needed.
+
+The learner's words only choose which of Backstage's lines go. None of their text goes into the block.
+
+**When the Prompter wants a model whose full line wasn't sent,** it calls `find_models` (section 3.1). The index shows what to ask for.
 
 ## 3. Tools
 
@@ -342,6 +363,15 @@ Changes nothing.
 
 Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` blocks, exactly as a turn sends them (section 2.6), when the Prompter needs them after several changes. Takes no fields.
 
+#### `find_models`
+
+Changes nothing. Returns the full Backstage lines (section 2.7) of the shipped models that best match, by `searchCatalogue` in `@storystage/backstage`: `{"ok": true, "models": [line, …], "summary": "…"}`, up to 20, best first. Nothing matching is `ok` with no models, and a summary that says so and that the index lists every model. Imported models aren't searched; they're in `<production_data>`. New in StoryStage 2 (section 2.7, the owner's choice of 21 Nov 2026).
+
+| Field | Type | Notes |
+|---|---|---|
+| `words` | string | What to look for, under 10 words: "oak tree", "rocket" |
+| `section` | enum: `""`, `cast`, `props`, `set`, `backdrops` | `""` searches every section |
+
 ### 3.2 Storyboard tools
 
 #### `stage_scene`
@@ -409,7 +439,7 @@ The tool list never changes (section 1.5). The client decides what runs: a call 
 
 | Tool | `explain` | `storyCoach` | `scriptCheck` | `showMeHow`, `buildIt` |
 |---|---|---|---|---|
-| `explain`, `read_project`, `check_frame` | Yes | Yes | Yes | Yes |
+| `explain`, `read_project`, `find_models`, `check_frame` | Yes | Yes | Yes | Yes |
 | `script_check` | Yes | Yes | Yes | Yes |
 | `propose_plan`, `revise_plan` | | | | Yes |
 | `code_frame` and everything that changes the production | | | | Yes, after an agreed plan, and never at the Plan only level |
@@ -648,7 +678,8 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | Fallback turns echo correctly (1.4) | Fake-server integration | `tools/fake-claude` |
 | The 25-call limit and the three-failure rule (1.6) | Fake-server integration | `tools/fake-claude` |
 | A whole request is one undo step (1.7) | Headless tests on the program | `packages/prompter` |
-| Catalogs stay in budget (2.1) | Unit | `packages/prompter` |
+| Catalogs stay in budget (2.1): the Story API catalog, the Backstage index and each turn's `<backstage_data>` | Unit | `packages/prompter` |
+| `<backstage_data>` holds the production's models first, then matches, never a line twice in a conversation, and no learner text; `find_models` searches shipped models only (2.7) | Unit | `packages/prompter` |
 | Learner text can't close a data tag (2.4) | Unit, including every tag name inside learner text | `packages/prompter` |
 | Modes and levels gate tools (3.4, 4.3) | Unit | `packages/prompter` |
 | System prompt and mode messages hold the rules, and use rule 9's words (2.5) | Unit | `packages/prompter` |
@@ -677,6 +708,7 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | `max_tokens` | 32000 | 32000 to build, 16000 otherwise | Thinking counts towards it; a lower cap on read-only modes |
 | Screenshot | Sent for placement | Dropped | Rule 3 |
 | Catalogs | Java reflection; gallery with Sims 2 classes | `story-api` metadata; Backstage shipped models | No Alice code; section 2.1 |
+| Backstage in `system` | | An index of every shipped model; full lines for the request in `<backstage_data>`, others by `find_models` | The catalogue outgrew its budget (section 2.7) |
 | Imported models | None | In the user turn, as data | Hash pinning and injection |
 | Learner text | In the user turn | Delimited JSON, with `<`, `>` and `&` escaped | 13.2, injection |
 | Tool enums | Built from catalogs | Plain strings, checked by the client | Schemas are pinned per release |
@@ -684,7 +716,7 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | Names | `do_together`, `mouse_click_on_object` and so on | The AST's and the Story API's own names (`doTogether`, `clickOnObject`) | One vocabulary across the program, the editors and the Prompter |
 | Changes | Applied as tools run | Only after an agreed plan, and checked against it | 13.9 |
 | Show me how | Add blocks one at a time | Plan first, then step by step | 13.9 |
-| New tools | | `stage_scene`, `code_frame`, `check_frame`, `script_check`, `propose_plan`, `revise_plan` | 13.4 |
+| New tools | | `stage_scene`, `code_frame`, `check_frame`, `script_check`, `propose_plan`, `revise_plan`, `find_models` | 13.4, section 2.7 |
 | New modes | | Story coach, Script check | 13.5, 24.3 |
 | Error codes | Seven | Twelve: adds `unknown_frame`, `unknown_line`, `no_agreed_plan`, `not_in_plan`, `not_in_script`; `would_break_world` is now `would_break_program` | |
 | 429 message | "Trying again in N seconds" | "Carry on and try again shortly" | 15.2's wording for a class |
@@ -705,3 +737,5 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
+| `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex`, `searchCatalogue` and `renderLines`; the index's budget in the build | S4 (contract PR, 21 Nov) | Section 2.7 |
+| Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
