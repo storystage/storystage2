@@ -20,6 +20,7 @@ import {
   type StatementPlace,
   type ValuePlace,
   word,
+  type WordsOptions,
 } from '@storystage/story-api/editing';
 import {
   Fragment,
@@ -125,6 +126,8 @@ export function valuePlaceAt(tree: HTMLElement, x: number, y: number): ValuePlac
 
 export interface ViewProps extends ViewHandlers {
   readonly program: Program;
+  /** The studio's words for joints and references: a sound's label for its id (7.17). */
+  readonly words?: WordsOptions;
   readonly method: NodeId | null;
   readonly focus: FocusKey | null;
   readonly highlights: Highlights;
@@ -729,7 +732,8 @@ interface Pending {
 /** The open method, or a note when none is open. */
 export function TilesView(props: ViewProps) {
   const { program, method, focus, highlights, moving } = props;
-  const describe = useMemo(() => describer(program), [program]);
+  const { words } = props;
+  const describe = useMemo(() => describer(program, words), [program, words]);
   const shared = useMemo(
     (): Shared => ({ program, describe, names: namesOf(program) }),
     [program, describe],

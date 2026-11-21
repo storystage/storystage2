@@ -210,7 +210,11 @@ export class TileEditor implements CodeEditor {
 
   private readonly options: TileEditorOptions;
 
-  /** `jointsOf` and `references` feed the cascade from the scene and Backstage (spec 14, 2.3). */
+  /**
+   * `jointsOf` and `references` feed the cascade from the scene and Backstage (spec 14, 2.3);
+   * `jointWord` and `referenceWord` word them, so a sound reads by its label, not its id (7.17).
+   * Keep the one options object: the words are worked out once for each program and it.
+   */
   constructor(options: TileEditorOptions = {}) {
     this.options = options;
   }
@@ -382,7 +386,7 @@ export class TileEditor implements CodeEditor {
       case 'copy':
         if (!statement) return false;
         this.clipboard = statement;
-        host.announce(t('copied', { what: describer(program)(statement) }));
+        host.announce(t('copied', { what: describer(program, this.options)(statement) }));
         return true;
       case 'paste': {
         if (!this.clipboard) {
@@ -430,7 +434,7 @@ export class TileEditor implements CodeEditor {
     const at = stops.find((p) => placeKey(p) === here) ?? null;
     this.moving = { node, at, stops };
     this.host!.announce(
-      t('moving', { what: describer(program)(indexOf(program).get(node)!.node) }),
+      t('moving', { what: describer(program, this.options)(indexOf(program).get(node)!.node) }),
     );
     this.render();
     return true;
@@ -454,7 +458,7 @@ export class TileEditor implements CodeEditor {
   private placeWords(at: StatementPlace): string {
     const program = this.host!.program();
     const parent = indexOf(program).get(at.parent)?.node;
-    const describe = describer(program);
+    const describe = describer(program, this.options);
     const holder = parent as unknown as Record<string, readonly Statement[]> | undefined;
     const total = (holder?.[at.slot]?.length ?? 0) + 1;
     const owner = describe.ownerOf(at.parent);
@@ -955,6 +959,7 @@ export class TileEditor implements CodeEditor {
               <ControlBar {...bar} />
               <TilesView
                 program={shown}
+                words={this.options}
                 method={this.method}
                 focus={this.focusKey}
                 highlights={this.highlights}

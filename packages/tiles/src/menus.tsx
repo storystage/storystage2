@@ -21,6 +21,7 @@ import {
   type NameInScope,
   type ValuePlace,
   VARIABLE_TYPES,
+  wantedAt,
 } from '@storystage/story-api/editing';
 import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import {
@@ -168,6 +169,12 @@ export function ValueMenu(props: ValueMenuProps) {
         onAction={(k) => pick(String(k))}
       >
         {items(choices, '')}
+        {choices.length === 0 ? (
+          // Nothing to choose: say why, rather than open an empty menu (7.17).
+          <MenuItem id="nothing" isDisabled className="tl-menu-item tl-menu-note">
+            {nothingWords(program, place)}
+          </MenuItem>
+        ) : null}
         {props.detail ? (
           <MenuItem id={REMOVE} className="tl-menu-item tl-menu-remove">
             {t('removeDetail', { detail: props.label })}
@@ -176,6 +183,12 @@ export function ValueMenu(props: ValueMenuProps) {
       </Menu>
     </Popover>
   );
+}
+
+/** Why a value menu has nothing in it: no sounds yet, for a sound. */
+function nothingWords(program: Program, place: ValuePlace): string {
+  const wanted = wantedAt(program, place);
+  return wanted?.kind === 'story' && wanted.name === 'Audio' ? t('noSounds') : t('noChoices');
 }
 
 export interface AskProps extends Anchored {

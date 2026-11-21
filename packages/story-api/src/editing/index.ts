@@ -11,5 +11,6 @@ export * from './menu.ts';
 export * from './methods.ts';
 export * from './names.ts';
 export * from './palette.ts';
+export * from './sounds.ts';
 export * from './parameters.ts';
 export * from './words.ts';

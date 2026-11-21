@@ -697,3 +697,10 @@
     0 0 0 2px var(--tl-program),
     0 0 0 5px var(--tl-rehearse);
 }
+
+/* A value menu with nothing in it says why (7.17). */
+.tl-menu-note {
+  color: var(--tl-ink-2);
+  white-space: normal;
+  max-width: 300px;
+}
