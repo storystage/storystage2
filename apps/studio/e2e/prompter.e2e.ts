@@ -3,12 +3,13 @@ import { expect, test, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
 import type { PlanStep, PrompterEvent } from '@storystage/prompter';
 import { testReply, type TestBlock } from '@storystage/prompter/testing';
+import { DEV_STUDIO } from './devStudio.ts';
 
 // The Prompter panel in a browser (07-ux section 2.4; spec 04 sections 4.5 and 6; WP13c), on the
 // studio's development server, where a test can give the Prompter scripted replies
 // (`src/prompter/devPrompter.ts`): a release build has no way to reach them.
 
-const STUDIO = 'http://localhost:4182/?example';
+const STUDIO = `${DEV_STUDIO}/?example`;
 const example = exampleProduction();
 const main = example.program.types
   .flatMap((t) => t.methods)
