@@ -41,7 +41,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Blocked on:
   - Owner: the reference iPad, not yet chosen (#6), for its M1 device runs of 1.2, 1.3, 1.4, 1.5 and 1.8 (steps: `docs/test/M1-device-checklist.md`), and for spike 1.9; then the export audio choice (does the Chromebook encode AAC?).
   - S4: the Alice converter (WP3b) for the Alice half of spike 1.2.
-- Next: spike 1.9 (AR) on the reference iPad, once it's chosen (0042). 23.2 (the Pixera build script) needs a Windows PC with an NVIDIA card and Pixera Creator (owner or partner). WP18b: the gate tests' fixmes as each lane's work lands (M2's drop where the pointer is, M4's cast from frames, M5's native host, M6's signed installs, M7's Prompter route and study logs). M8 to M11 after the release candidate. The Chromebook's M1 and performance runs as the owner sends results. Lip sync (14.4) is after the first release. Spike 1.3 has its go (owner, 8 Nov). Until then S1 keeps CI healthy and the schedule current.
+- Next: spike 1.9 (AR) on the reference iPad, once it's chosen (0042). WP18b: the gate tests' fixmes as each lane's work lands (M2's drop where the pointer is, M4's cast from frames, M5's Prompter levels, story coach and Spoken steps, M6's signed installs, M7's Prompter route and study logs). M8 to M11 after the release candidate. The Chromebook's M1 and performance runs as the owner sends results. Lip sync (14.4) is after the first release. Spike 1.3 has its go (owner, 8 Nov). Until then S1 keeps CI healthy and the schedule current.
 
 ## S2 Language, runtime and Screening room
 - Merged:
