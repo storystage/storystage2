@@ -737,5 +737,5 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
-| `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex`, `searchCatalogue` and `renderLines`; the index's budget in the build | S4 (contract PR, 21 Nov) | Section 2.7 |
+| `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; the index's budget in the build | S4 (contract PR, 21 Nov) | Section 2.7 |
 | Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
