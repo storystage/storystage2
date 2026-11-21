@@ -13,6 +13,7 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | **go for video**; audio after the Chromebook check, 21 Oct 2026 ([record](../decisions/spike-1.8-mp4.md)) |
 | **14.3 Voices** (decision 0068: the bundled speech engine) | **passed in CI** (Chromium, software); devices pending (#6) | Kokoro-82M with a GPL-free phonemiser: whisper's word error rate 0–5% across eight British voices; 1.9× slower than real time on 4 cores; 86 MB model. Piper and KittenTTS fail the licence check | **go for Kokoro**, with lines prepared in advance | **go**, with an American accent switch (British by default), 10 Nov 2026 ([record](../decisions/spike-14.3-voices.md)) |
 | **23.1 Projection bake** (WP23, may run before the release candidate) | **passed in CI** (Chromium, SwiftShader) | Box and building front: from the sweet spot, 99% of projector-lit pixels match the show (mean error 1.5–2.4 of 255); off to one side, 73–78%, as expected; hidden faces left unbaked; about 15 ms a frame | **go**, with the findings below | **go**, 8 Nov 2026 ([record](../decisions/spike-23.1-projection-bake.md)) |
+| **23.2 Pixera build script** (WP23, may run before the release candidate) | **run by hand** in Pixera Creator 26.1 on the owner's PC; the client's tests pass in CI | Media, timeline, layers to screens, clips at the media's length, Play, Pause and Stop cues at the right frames, saved as `.avp`; it plays, and the Pause cue stops at exactly 2 s. VP9 in WebM imports unattended; a PNG sequence needs someone to answer Pixera's frame-rate dialog; screens, projectors, the timeline's frame rate and calibration are manual | **go**, with VP9 at a constant frame rate for Pixera and the findings below | pending ([record](../decisions/spike-23.2-pixera-build.md)) |
 | **24.3 Classroom relay** (option B; decided at M1) | **probe built, passing in CI over loopback**; the school-network test needs the owner | Loopback only so far, on Linux, Windows and macOS: a right code finishes and a wrong one is turned away; 226–406 Mbit/s, round trips under 0.1 ms (`docs/spikes/24.3-classroom-relay.md`) | **A** for the pilot; run the probe at the 1.11 visits; **C** ruled out | |
 | 1.9 AR | not started; **iPad-first** (decision 0042), needs the reference iPad (#6) | | | |
 
@@ -248,6 +249,40 @@ The first transcription after loading took longer (13.4 s for the quantised mode
 7. **The packing wastes space on cubes:** the box uses under half of its texture. A better packer, or a cross-shaped layout for boxes, belongs in 23.3.
 
 **Not covered:** real projectors and real models (23.5); curved surfaces (only flat faces here); Babylon.js projection textures on spotlights for the preview, which 23.4 plans (this spike projects in its own shader); the Pixera build script (23.2, which needs a Windows PC with an NVIDIA graphics card and Pixera Creator).
+
+## 23.2 Projection mapping: the Pixera build script
+
+**Task:** a small script that talks to Pixera's API over TCP to add the exported media, create layers, create clips at the right times, create cues and save the project, recording which steps the API can't do (WP23.2). Also: does Pixera accept VP9 in WebM, and PNG sequences (for 23.6)? Code: `spikes/23.2-pixera/`. Its client and media tests run in `.github/workflows/spikes.yml`; the live run needs Pixera, so it was run by hand.
+
+**How it works.** `make-package.ts` writes a test package: two surfaces, Wall and Box, each a 4-second, 25 fps PNG sequence at 480×270 (a coloured frame with a white bar that sweeps across once a second and a block added each second, so a wrong frame rate shows), the Wall again as VP9 in WebM (recorded in Edge), a WAV soundtrack, and three cues (Start, Play at 0 s; Hold, Pause at 2 s; End, Stop at 4 s). `build.ts` connects to Pixera's API port and builds the show: it checks every command it uses with `getHasFunction`, makes `Media/StoryStage/<title>`, adds the media, makes a timeline with a layer per item (sent to the screen of the same name if there is one), a clip at frame 0 at the media's own length, a cue layer and the cues, and saves the project under a new name. Each step and every request and reply go into a report.
+
+**Results (21 Nov 2026; Pixera Creator 26.1 R 52, API revision 481, on the owner's Windows PC; checked in Pixera's preview through Windows desktop control):**
+
+| | Result |
+|---|---|
+| Connection | JSON-RPC 2.0 over TCP, each message ended by `0xPX` ("JSON/TCP(dl)"). The port must be added in Settings > API first: Pixera listened on 1400 but answered nothing until it was |
+| Commands | all 25 the script uses exist |
+| VP9 in WebM | **imports with no dialog and plays correctly** (the frame at 0.5 s, on a flat screen, matches Edge's). Pixera read Edge's recording as 60 fps and 3.91 s, so its clip was 234 frames, not 240 |
+| WAV | imports with no dialog; 4.000 s, a 240-frame clip |
+| PNG sequence | **imports only when someone answers a dialog in Pixera** ("Import as Image Sequence?", asking the frame rate, 60 by default). The API call waits until it's answered. Answered with 25, each became one 4-second resource at 25 fps that plays at the right speed (seen at 0.52 s and 3.33 s) |
+| Timeline | made and named; 60 fps, which the API can't change |
+| Layers | made and named; sent to screens by name (Generic Box, Decoframe) |
+| Clips | at frame 0, as long as their media in the timeline's frames |
+| Cues | at the right frames (00:00:00:00, 00:00:02:00, 00:00:04:00) with Play, Pause and Stop; playing the timeline, the Pause cue stopped it at exactly 2 s |
+| Save as | works, given a path ending `.avp` |
+
+**Findings for WP23 (S3, 23.6 and 23.7):**
+1. **The script works.** Everything the done-when asks for that the API has, it does, and the result plays.
+2. **Video is the media for an unattended build.** VP9 in WebM goes in and plays with no one at Pixera. 23.6 should write it at a **constant frame rate equal to the show's**, and exactly the show's length: Edge's MediaRecorder writes neither, so the clip came out 6 frames short. Pixera also failed to make its own preview thumbnail of that file ("could not extract image" in its log), although it played.
+3. **A PNG sequence needs the operator at Pixera,** to answer the frame-rate dialog once per surface; the script prints what to type and waits up to 10 minutes. "Remember my Choice" wasn't kept. A folder's "Watch Folder" setting has an "Auto Detect Image Sequence" option that might avoid the dialog; it wasn't tried. So PNG sequences stay possible (all versions can write them), with a step in the operator guide.
+4. **Pixera Creator crashed three times** in the session (dumps in `C:\ProgramData\AV Stumpfl\Pixera\dumps`). Two came after sequence dialogs were answered for calls that had already timed out and closed their connection; when the call was still waiting, and when the sequence was imported by hand, it didn't crash. The script now waits; it's a likely cause, not a proven one, and worth reporting to AV Stumpfl with the dumps if it recurs.
+5. **One call at a time, and only known commands.** Pixera answers a connection's calls in order, and never answers a command it doesn't have, so one wrong name stops that connection. The script checks every command with `getHasFunction` before using it.
+6. **Times are in the timeline's frames.** A new timeline is 60 fps and the API can't set it, so the script reads the rate and places clips and cues from it; the show's own frame rate only matters to the media. The operator can change the timeline's FPS in its properties.
+7. **`saveProjectAs` needs `.avp`.** Without it, Pixera wrote a file with no extension and took ".2" in "23.2" as one, naming the project "StoryStage spike 23". The script adds `.avp`.
+
+**Still by hand in Pixera (the operator guide, 23.7):** import each surface's model and make it a screen, named as in the package, before running the script, so the layers find their screens (the API can't create or import screens); create and place projectors (the API only sets existing ones); set the timeline's frame rate if wanted; answer the image-sequence dialog for PNG sequences; map projectors to outputs and calibrate.
+
+**Not covered:** real surfaces and projectors (23.5); HAP (the desktop app's FFmpeg sidecar, 23.6); Pixera's Watch Folder route for sequences; a multi-machine Pixera system (the API port was the local one).
 
 ## 14.3 Voices: the bundled speech engine
 

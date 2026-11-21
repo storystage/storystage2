@@ -131,7 +131,9 @@ Each session keeps its own section current. Newest entries first. One line each.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README. The scene view's Babylon.js half is in (#394): `createBabylonStage` wires the canvas's pointer, wheel and keys itself; choose on `onTap`, and write the set-up on `onEdit`'s `final`.
 - Blocked on:
   - Owner: a run of `stage/device.html` (about five minutes, checklist row 3a) on the Chromebook, which is here, and later on the reference iPad (#6, not yet chosen). Its results give WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), the cost of view and occlusion events (decision 0051), and of a crossfade's two scenes. Spike 1.2's go is S1's.
-- Next: **WP23b** (the projection stage) waits for the release candidate, WP23a (S1) and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
+- Open:
+  - 21 Nov (PR open): **spike 23.2, the Pixera build script** (handed to S3 by S1, owner, 21 Nov): `spikes/23.2-pixera/` drives Pixera's API (JSON-RPC over TCP) to add a package's media, make a timeline, layers sent to screens by name, clips at the media's length and Play, Pause and Stop cues, and save the project. Run in Pixera Creator 26.1 on the owner's PC: it all works and plays, and the Pause cue stops at exactly 2 s. **VP9 in WebM imports with no one at Pixera**; a PNG sequence waits for someone to answer Pixera's frame-rate dialog; screens, projectors, the timeline's frame rate and calibration are manual. Proposed **go** (`docs/decisions/spike-23.2-pixera-build.md`), with VP9 at a constant frame rate as Pixera's media in 23.6. **S1:** 23.2 is done on S3's side; please drop it from your Next line.
+- Next: the owner's go or no-go on spike 23.2. **WP23b** (the projection stage) waits for the release candidate and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
 - In review:
