@@ -1137,7 +1137,7 @@ The audience chooses the viewpoint, so camera shots don't apply in AR. Teaching 
 | M7 | Approve the DPIA and privacy notice; recruit pilot schools | Legal responsibility and relationships |
 | M2–M7 | Agree the editor study design and decision rule; arrange consent and, ideally, an academic partner for ethical review (WP19.5, 19.6) | Research ethics; relationships with schools |
 | M10 | Test AR packs on an Android phone and an iPad; decide the default credit setting for AR packs; agree hosting guidance for schools; approve the mixed-reality film safeguards | Devices; safeguarding judgement |
-| M11 | Find a Windows PC with an NVIDIA graphics card, and ideally a venue or college partner with licensed Pixera, to test Export to Pixera; try a classroom projection | Hardware and partners |
+| M11 | Ideally a venue or college partner with licensed Pixera and real projectors, to try Export to Pixera's operator guide (the owner's PC tests Build in Pixera: spike 23.2, 21 Nov 2026); try a classroom projection | Hardware and partners |
 | M0–M1 | Classroom ground truth (1.11); teacher interviews (16.7); decide how the Prompter reaches a group (24.3) and where pupils' work lives (24.2); record your review hours for the capacity probe (1.12) | Relationships with schools; product decisions |
 | Before the pilot | Decide who runs StoryStage after the pilot (maintainer, funding, support), for example a university partner, an education charity, or a relationship with CMU's Alice team | Long-term ownership |
 | Throughout | Review pull requests from up to about eight parallel lanes (section 5a); answer `needs-owner` questions within a day or two, because the critical path waits on them | Review capacity sets the pace |
