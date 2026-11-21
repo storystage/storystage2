@@ -22,7 +22,7 @@ import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
 
-export const FORMAT_VERSION = '1.7.0';
+export const FORMAT_VERSION = '1.8.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -179,13 +179,13 @@ export interface Frame {
   readonly plan?: FramePlan;
 }
 
-/** The kinds of plan step (spec 04 section 6.2). */
-export const PLAN_STEP_KINDS = ['do', 'add', 'change', 'when', 'stage'] as const;
+/** The kinds of plan step (spec 04 section 6.2; `repeat`, section 6.8 and format 1.8.0). */
+export const PLAN_STEP_KINDS = ['do', 'add', 'change', 'when', 'stage', 'repeat'] as const;
 export type PlanStepKind = (typeof PLAN_STEP_KINDS)[number];
 
 /**
- * One step of a plan (spec 04 section 6.2, S7's): its 11 plain fields. The Prompter's own type
- * is this one, or the same shape: the format keeps it, so it lives here.
+ * One step of a plan (spec 04 section 6.2, S7's): its 12 plain fields (`holds`, format 1.8.0).
+ * The Prompter's own type is this one, or the same shape: the format keeps it, so it lives here.
  */
 export interface PlanStep {
   /** The step in plain words. */
@@ -204,8 +204,13 @@ export interface PlanStep {
   readonly sketch: string;
   /** Runs at the same time as the step before it. */
   readonly together: boolean;
-  /** Times to run; 1 for once. */
+  /** Times to run; 1 for once. For a `repeat` step, how many times the steps it holds run, from 2. */
   readonly repeat: number;
+  /**
+   * For a `repeat` step (format 1.8.0, spec 04 section 6.8), how many of the steps right after it
+   * it repeats, from 1, as a count block holds the blocks under it; 0 on every other step.
+   */
+  readonly holds: number;
   /** One sentence. */
   readonly why: string;
 }

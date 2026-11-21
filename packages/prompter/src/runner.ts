@@ -482,7 +482,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   }
 
   #plan(name: 'propose_plan' | 'revise_plan', input: Input): Result {
-    const steps = input.steps as PlanStep[];
+    // Claude's plans don't send `holds` until the tool schema has it (spec 04 section 6.8): 0.
+    const steps = (input.steps as PlanStep[]).map((s) => ({ ...s, holds: s.holds ?? 0 }));
     let frame = text(input.frame) || null;
     let id = `p${this.#plans.size + 1}`;
     if (name === 'revise_plan') {

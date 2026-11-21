@@ -67,6 +67,9 @@ export function stepWords(step: PlanStep, world: PlanWorld): string {
     case 'stage':
       words = 'set up the scene from the storyboard';
       break;
+    case 'repeat':
+      // Spec 04 section 6.8: it heads the steps it holds.
+      return `Repeat ${step.repeat} times:`;
   }
   if (step.repeat > 1) words += `, ${step.repeat} times`;
   if (step.together) words += ', at the same time as the step before';

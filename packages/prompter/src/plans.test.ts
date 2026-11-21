@@ -12,6 +12,7 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   sketch: '',
   together: false,
   repeat: 1,
+  holds: 0,
   why: 'Your sketch has the owl by the tree.',
   ...s,
 });

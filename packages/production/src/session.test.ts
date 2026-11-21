@@ -377,6 +377,7 @@ describe('ProductionSession.keepPlans: Plan only’s plan, outside undo', () => 
     sketch: '',
     together: false,
     repeat: 1,
+    holds: 0,
     why: 'To say hello.',
   };
   const plan = (done: number[]): FramePlan => ({

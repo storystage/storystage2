@@ -119,7 +119,8 @@ const POSITION = text(
 const PLAN_STEP = object({
   words: text('The step in plain words for a child, under 20 words: "The owl walks to the tree."'),
   kind: oneOf(
-    [...PLAN_STEP_KINDS],
+    // `repeat` (format 1.8.0) joins with `holds` in spec 04 section 6.8's tools, and the probe.
+    PLAN_STEP_KINDS.filter((k) => k !== 'repeat'),
     'do: a Story API block. add: add a model. change: how something starts. when: an event. stage: set the scene from the storyboard.',
   ),
   actor: text('The object that acts, by its name in the scene; "scene" for stage.'),

@@ -2,6 +2,14 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.8.0
+
+A plan can repeat several steps as one loop (the owner's choice of 21 Nov 2026, before the full evaluation run; spec 04 section 6.8, agreed with S7; spec 03 section 6).
+
+- `PLAN_STEP_KINDS` gains `repeat`. A `repeat` step holds the `holds` steps right after it, as a count block holds the blocks under it; its `repeat` is how many times they run, from 2.
+- `PlanStep` gains `holds`, required: 0 on every step but a `repeat` step, which holds from 1 to the steps after it in its list. `checkFramePlan` and `isFramePlan` check that and no more. What a repeat may hold is the Prompter's plan check (section 6.3), so those rules can change without a new format.
+- **The migration changes frames:** `FormatMigration` gains an optional `frame` step, run on each frame file before its shape is checked. 1.7.0 to 1.8.0 gives every step of a kept plan `holds` 0, so a 1.7.0 file opens, is migrated, and keeps its original. A 1.8.0 plan whose steps lack `holds` is dropped whole when the file opens, as any misshapen plan is.
+
 ## 1.7.0
 
 In Plan only, a frame's plan keeps the steps code ticked off as the learner built them (S7's ask, WP13.9; spec 04 section 6.6; spec 03 section 6). Optional, so an older file opens, is migrated, and keeps its original.

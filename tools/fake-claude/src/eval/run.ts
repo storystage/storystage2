@@ -254,6 +254,7 @@ function editPlan(panel: PrompterPanel, row: EvalRow): void {
             sketch: '',
             together: false,
             repeat: 1,
+            holds: 0,
             why: 'The learner added this step.',
           },
           Number(edit.after),

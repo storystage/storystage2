@@ -228,6 +228,9 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
         return take(listens(step, world.type.listeners, world));
       case 'stage':
         return world.staged;
+      case 'repeat':
+        // Ticked from spec 04 section 6.8 (S7); until then no plan has one.
+        return false;
     }
   });
 }
