@@ -1,5 +1,8 @@
-import type { Scene } from '@babylonjs/core/scene.js';
-import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Color3 } from '@babylonjs/core/Maths/math.color.js';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
+import { Scene } from '@babylonjs/core/scene.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import {
   IDENTITY,
@@ -15,7 +18,7 @@ import type { BackstageManifest } from '@storystage/backstage';
 import { describe, expect, it } from 'vitest';
 import { SETUP, cmd } from '../testing/conformance.ts';
 import { headlessEngine } from './headless.ts';
-import { modelsFromManifest, type ModelSource } from './models.ts';
+import { glow, modelsFromManifest, type ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
 import { tinyModelUrl, tinySkeletonUrl } from './tiny-model.ts';
 
@@ -197,6 +200,45 @@ describe('models', () => {
     // glTF gives a linear colour (0.6); a plain surface takes it as it shows, in sRGB.
     expect(surface.diffuseColor.b).toBeCloseTo(SHOWN_BLUE, 5);
     expect(surface.specularColor.r).toBe(0);
+  });
+
+  it("keep their own light, as glTF adds it to the lit colour (S4's Sun, 21 Nov)", async () => {
+    const lamp = backstageId('test/Prop/lamp');
+    const lampUrl = tinyModelUrl(['hips'], { emissive: [1, 0.5, 0] });
+    const stage = new BabylonStage(headlessEngine(), {
+      models: { find: (id) => (id === lamp ? { url: lampUrl, joints: [] } : source.find(id)) },
+    });
+    await stage.load({ ...SETUP, objects: [place(ann, 0, lamp), place(bob, 2)] });
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    const surface = (id: ObjectId) =>
+      inside
+        .getTransformNodeByName(id)!
+        .getChildMeshes()
+        .find((m) => m.name === 'Body')!.material as StandardMaterial;
+    const lit = surface(ann);
+    expect(lit.useEmissiveAsIllumination).toBe(true);
+    // glTF's colour is linear; a plain surface takes it as it shows, in sRGB.
+    expect(lit.emissiveColor.r).toBeCloseTo(1, 5);
+    expect(lit.emissiveColor.g).toBeCloseTo(Math.pow(0.5, 1 / 2.2), 5);
+    expect(lit.emissiveColor.b).toBe(0);
+    // A surface with no light of its own is lit only by the scene.
+    expect(surface(bob).useEmissiveAsIllumination).toBe(false);
+    expect(surface(bob).emissiveColor.r).toBe(0);
+  });
+
+  it("keep a picture of their own light at the colour's level (S4's review, 21 Nov)", () => {
+    const scene = new Scene(headlessEngine());
+    const source = new PBRMaterial('lamp', scene);
+    const picture = new Texture(null, scene);
+    source.emissiveTexture = picture;
+    source.emissiveColor = new Color3(0.5, 0.5, 0.5);
+    const plain = new StandardMaterial('plain lamp', scene);
+    glow(plain, source);
+    expect(plain.emissiveTexture).toBe(picture);
+    expect(picture.level).toBe(0.5);
+    // The picture is the light; the colour adds none of its own.
+    expect(plain.emissiveColor.equals(Color3.Black())).toBe(true);
+    expect(plain.useEmissiveAsIllumination).toBe(true);
   });
 
   it('turn a joint on top of its pose, and only on that object', async () => {

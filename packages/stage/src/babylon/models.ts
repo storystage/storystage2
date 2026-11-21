@@ -281,6 +281,26 @@ export interface PlacedModel {
   readonly shape: Shape;
 }
 
+/**
+ * A glTF surface's own light (its emissive colour and picture), on its plain surface. glTF adds
+ * that light to the lit colour, and so does a plain surface that uses it as illumination: the
+ * Sun (S4's solar system) shows its picture however dark the scene. A plain surface adds its
+ * emissive picture to its emissive colour, where glTF multiplies them, so with a picture the
+ * colour's brightest part becomes the picture's level.
+ */
+export function glow(plain: StandardMaterial, source: PBRMaterial): void {
+  const { r, g, b } = source.emissiveColor;
+  const picture = source.emissiveTexture;
+  if (Math.max(r, g, b) === 0) return;
+  if (picture) {
+    // The level is set on the glTF surface's own picture, which only the plain surface keeps:
+    // the glTF surface is dropped once swapped. Anything that kept it would scale its light twice.
+    picture.level = Math.max(r, g, b);
+    plain.emissiveTexture = picture;
+  } else plain.emissiveColor = source.emissiveColor.toGammaSpace();
+  plain.useEmissiveAsIllumination = true;
+}
+
 /** Gives each mesh a plain surface in place of the glTF one, sharing its texture. */
 function plainSurfaces(
   object: ObjectId,
@@ -299,6 +319,7 @@ function plainSurfaces(
       plain.useAlphaFromDiffuseTexture = source.useAlphaFromAlbedoTexture;
       plain.backFaceCulling = source.backFaceCulling;
       plain.transparencyMode = source.transparencyMode;
+      glow(plain, source);
       made.set(source, plain);
     }
     mesh.material = plain;
