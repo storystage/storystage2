@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkPlan, mismatch, type PlanStep, type PlanWorld } from './plans.ts';
+import { checkPlan, mismatch, targetOf, type PlanStep, type PlanWorld } from './plans.ts';
 
 const step = (s: Partial<PlanStep>): PlanStep => ({
   words: 'The owl walks to the tree.',
@@ -208,6 +208,56 @@ describe('mismatch (spec 04, section 6.4)', () => {
     expect(mismatch('insert_control', { kind: 'count', count: 2 }, thrice)).not.toBeNull();
     expect(mismatch('insert_control', { kind: 'doTogether' }, walk)).not.toBeNull();
     expect(mismatch('insert_control', { kind: 'while' }, together)).not.toBeNull();
+  });
+
+  it("reads a step whose target is its own actor as acting on nothing else (the first pilot's plans)", () => {
+    const glide = step({
+      action: 'move',
+      target: 'owl',
+      details: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: '2' },
+      ],
+    });
+    const call = {
+      target: 'owl',
+      procedure: 'move',
+      arguments: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: '2' },
+      ],
+    };
+    expect(mismatch('insert_statement', call, glide)).toBeNull();
+    expect(targetOf(glide)).toBe('');
+    expect(targetOf(walk)).toBe('tree');
+  });
+
+  it('allows the do together for the step the next one runs together with', () => {
+    const first = step({ together: false });
+    const second = step({ actor: 'cat', together: true });
+    expect(mismatch('insert_control', { kind: 'doTogether' }, first, second)).toBeNull();
+    expect(mismatch('insert_control', { kind: 'doTogether' }, first, walk)).not.toBeNull();
+    expect(mismatch('insert_control', { kind: 'doTogether' }, first)).not.toBeNull();
+  });
+
+  it('says what differs, so Claude can build the step again', () => {
+    const edited = step({ action: 'move', target: '', details: [{ name: 'amount', value: '3' }] });
+    const move = { target: 'owl', procedure: 'move', arguments: [{ name: 'amount', value: '2' }] };
+    expect(mismatch('insert_statement', move, edited)).toMatch(/sets amount to 3/);
+    expect(mismatch('insert_statement', { ...move, procedure: 'turn' }, edited)).toMatch(
+      /is the owl's move block/,
+    );
+    expect(
+      mismatch('insert_statement', { target: 'owl', procedure: 'moveTo', arguments: [] }, walk),
+    ).toMatch(/acts on the tree: give tree as the block's object/);
+    expect(
+      mismatch(
+        'insert_statement',
+        { ...move, arguments: [{ name: 'amount', value: '3' }], line: 'l2' },
+        edited,
+      ),
+    ).toMatch(/says no script line/);
+    expect(mismatch('insert_control', { kind: 'doTogether' }, walk)).toMatch(/runs on its own/);
   });
 
   it('matches adds, changes, events and staging to their steps', () => {

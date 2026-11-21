@@ -151,4 +151,7 @@ describe('pinnedSystemMessages', () => {
   it('holds instructions only: no place for learner text', () => {
     for (const message of pinnedSystemMessages()) expect(message).not.toMatch(/[<>{}$]/);
   });
+  it('names the scene\'s script method as the editors do, "When the scene starts" (21 Nov 2026)', () => {
+    expect(INSTRUCTIONS).toContain('"When the scene starts"');
+  });
 });

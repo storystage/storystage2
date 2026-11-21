@@ -285,13 +285,15 @@ function codeCheck(check: EvalCheck, run: RowRun): Result {
     case 'build_matches_plan': {
       const plan = run.agreedPlan;
       if (!plan) return result(false, 'nothing was built');
-      // Each step's words go above its blocks (spec 04, section 6.1): they show what was built, in order.
+      // Each block step's words go above its blocks (spec 04, section 6.1): they show what was
+      // built, in order. An add, change, stage or when step puts no block in a method, so it has
+      // no comment (board-01's one stage step failed here in the owner's second pilot run).
       const comments = newComments(run);
-      const words = plan.map((s) => s.words);
+      const words = plan.filter((s) => s.kind === 'do').map((s) => s.words);
       const landed = run.entries.filter((e) => e.kind === 'change');
       const steps = landed.map((e) => (e.kind === 'change' ? (e.step ?? 0) : 0));
       const inOrder = steps.every((s, i) => i === 0 || s >= steps[i - 1]!);
-      const every = words.every((_, i) => steps.includes(i + 1));
+      const every = plan.every((_, i) => steps.includes(i + 1));
       const nothingElse = steps.every((s) => s >= 1 && s <= plan.length);
       const said = JSON.stringify(comments) === JSON.stringify(words);
       return result(
