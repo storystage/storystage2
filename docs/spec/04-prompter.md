@@ -581,7 +581,7 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | Field | Type | Notes |
 |---|---|---|
 | `words` | string | The step in plain words, under 20 words |
-| `kind` | enum `do`, `add`, `change`, `when`, `stage` | A Story API call; add a model; change how something starts; an event; set the scene from the storyboard |
+| `kind` | enum `do`, `add`, `change`, `when`, `stage`, `repeat` | A Story API call; add a model; change how something starts; an event; set the scene from the storyboard; repeat the steps after it (section 6.8, proposed) |
 | `actor` | string | Object name, or `scene` for `stage` |
 | `action` | string | For `do`: a Story API procedure. For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
 | `target` | string | Object or marker it acts on, or `""` for none |
@@ -589,12 +589,13 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | `line` | string | A script line id, or `""` for none |
 | `sketch` | string | A placed sketch id, or `""` for none |
 | `together` | boolean | Runs at the same time as the step before it |
-| `repeat` | integer | Times to run, 1 to 1,000; 1 for once |
+| `repeat` | integer | Times to run, 1 to 1,000; 1 for once. For a `repeat` step, how many times the steps it holds run, from 2 |
+| `holds` | integer | For a `repeat` step, how many of the steps right after it it repeats, from 1; 0 for every other step (section 6.8, proposed) |
 | `why` | string | One sentence, under 25 words |
 
 Every text field is at most 300 characters. These are the production format's `PLAN_LIMITS` (1.6.0), since a frame keeps its plan (6.7), and the input check refuses a step outside them with `bad_argument`, as it does a plan with more than 12 steps. The type is production's `PlanStep`, which the Prompter re-exports.
 
-Steps are flat, because strict mode allows no recursive schemas: a plan expresses "at the same time" and "repeat", not nesting. A request that needs more than that is a sign to suggest smaller steps.
+Steps are flat, because strict mode allows no recursive schemas: a plan expresses "at the same time" and "repeat", not nesting. A `repeat` step holds the steps after it by count, not by nesting (section 6.8). A request that needs more than that is a sign to suggest smaller steps.
 
 ### 6.3 Checking a plan
 
@@ -648,6 +649,86 @@ The agreed plan is saved with the frame in the storyboard data, not in the progr
 
 - **Where:** `Frame.plan` (S4, format 1.6.0): when it was agreed, the plan as the Prompter last proposed or revised it (`shown`), and as the learner built it (`agreed`). What the learner changed is read by comparing the two, step by step.
 - **When:** in the build's own undo step, so Undo takes the plan back with what it built. The runner's `keepPlan(p, { frame, shown, agreed })` is called once, as the build's group opens, and the studio's version writes `{ agreedAt, shown, agreed }` with `withFramePlan` when `isFramePlan` accepts it. A build that changes nothing makes no step, so it keeps nothing. Keeping never stops a build: if `keepPlan` returns `p` unchanged, or throws, nothing is kept and nothing is recorded for it.
+
+### 6.8 Repeating several steps (proposed, 21 Nov 2026)
+
+The owner's choice of 21 Nov 2026, before the full evaluation run: a plan can repeat several steps as one loop. A step's own `repeat` repeats only that step, so "hop up, then down, three times" couldn't be one loop. The pilot's loop-01 planned six steps, and loop-02 (walk a square) and loop-05 (two turns together, four times) can't be planned at all. In blocks, that's a `count` block holding several blocks, and it's basic coding the Prompter should show.
+
+**A `repeat` step** stands before the steps it repeats and holds the next `holds` of them, as a count block holds the blocks under it. The learner reads:
+
+> 1. Repeat 3 times:
+> 2. &nbsp;&nbsp;&nbsp;The penguin moves up 0.3 metres.
+> 3. &nbsp;&nbsp;&nbsp;The penguin moves down 0.3 metres.
+> 4. The penguin says "Again!"
+
+| Field | For a `repeat` step |
+|---|---|
+| `kind` | `repeat` |
+| `repeat` | How many times, 2 to 1,000 |
+| `holds` | How many of the steps right after it are inside, from 1 to the steps that follow |
+| `words` | Its words, which `stepWords` writes as "Repeat 3 times:" |
+| `why` | As for any step |
+| `actor`, `action`, `target`, `line`, `sketch` | `""` |
+| `details` | Empty |
+| `together` | `false` |
+
+Every other step has `holds` 0. The schema stays flat, so strict mode compiles it, and there's no recursion.
+
+**Checking (6.3):** these are refused, with a message for the step:
+- a `repeat` step whose `repeat` is below 2, or whose `holds` is 0 or runs past the plan's end;
+- a held step that isn't a `do` step, since only blocks go in a count;
+- a held step that is a `repeat` step, or has its own `repeat` above 1, since loops in loops wait for a later choice;
+- a first held step that is `together`, since nothing in the loop is before it;
+- `holds` above 0 on any step but a `repeat`.
+
+Steps that are `together` inside the loop are built as a `doTogether` inside the count, as anywhere else. A step's own `repeat` stays, for one block repeated ("The dog says Woof", 5 times). The system prompt says to use a `repeat` step when several steps repeat, and a step's own `repeat` when one does.
+
+**Building (6.4):**
+- The `repeat` step is built as `insert_control` with `kind: "count"`, `count` its `repeat`, and its number as `plan_step`. Its words go above the count as a comment, as for any step's first block.
+- Each held step's blocks go inside that count: `parent_block` is the count's id, or a `doTogether` inside it.
+- The runner holds this. A held step built outside its count answers `not_in_plan`, saying it's inside step N's repeat, and changes nothing.
+
+**Plan only (6.6):** a `repeat` step is ticked when the learner's own blocks include a count with its times. A held step is ticked when its block matches, by the 6.4 rule, inside a count with its `repeat` step's times.
+
+**Kept with the frame (6.7):** `PlanStep` gains `holds`, a required field, and `PLAN_STEP_KINDS` gains `repeat`, in production format 1.8.0 (S4). A plan kept before 1.8.0 gains `holds` 0 on every step when the file opens, by a format migration.
+
+The format checks only what keeps a plan readable:
+- `holds` is a whole number from 0 to `PLAN_LIMITS.steps` − 1;
+- `holds` is above 0 only on a `repeat` step;
+- a `repeat` step holds at least one step, all within its own list;
+- a `repeat` step's `repeat` is at least 2.
+
+The rules marked "for now" above stay in the plan check (6.3), so lifting one later needs no new format:
+- held steps are `do` steps with `repeat` 1;
+- no `repeat` sits inside another's range;
+- the first held step isn't `together`;
+- a `repeat` step's other fields are empty.
+
+A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `done` numbers it like any other.
+
+**The panel (S5 draws it; `PrompterPanel`, S7, makes each edit, so every edit keeps a plan the check accepts):**
+- **Showing it:** held steps are indented under their `repeat` step, with a thin line down their left in the count block's loop colour, so the end of the loop shows at a glance.
+- **Names, for screen readers:**
+  - A `repeat` step is "Step 1: Repeat 3 times, holding steps 2 and 3".
+  - A held step is "Step 2, inside the repeat: …".
+  - Done at Plan only (6.6, with #574's form), they become "Step 1, done: Repeat 3 times, holding steps 2 and 3" and "Step 2, inside the repeat, done: …".
+- **Change step on a `repeat` step** offers:
+  - **How many times**, with the number field the count block uses (2 to 1,000);
+  - **Steps inside**, a number from 1 up to the run of `do` steps right after it, listed under the field ("Steps 2 and 3"), so a child sees which ones.
+- **Add a step › Repeat…** adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (the 50 a frame keeps; a plan from `propose_plan` has at most 12).
+- **Reordering:**
+  - Dragging a `repeat` step moves its held steps with it.
+  - A `do` step moved to between a `repeat` step and its last held step goes inside (`holds` + 1). One moved to just after the last held step stays outside, and Steps inside takes it in.
+  - A held step moved out of the range leaves it (`holds` − 1).
+  - A step that can't be held (a `when`, `stage`, `add` or `change` step, or another `repeat`) can't be moved inside. The move is refused, with the words "A repeat can only hold steps that are blocks."
+- **Deleting:**
+  - Deleting a `repeat` step keeps its steps, which are then no longer held.
+  - Deleting a held step leaves the repeat one fewer.
+  - If that leaves it none, the `repeat` step goes too, with the words "The repeat had no steps left, so it's gone too."
+
+**Tools and pins:** `propose_plan` and `revise_plan`'s step gains `holds` as a required field, since an optional one costs grammar. The kind enum comes from `PLAN_STEP_KINDS`. The plan tools are strict, so the owner's grammar probe (`tools/fake-claude/src/eval/probe-grammar.ts`) runs again before a live run.
+
+**Evaluation:** `build_matches_plan` wants comments for `do` and `repeat` steps. loop-01, loop-02 and loop-05 can then be planned as one loop each.
 
 ## 7. Errors
 
@@ -749,3 +830,5 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
 | `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; `jointsFor(catalogue, items)`; the index's budget in the build, without the joint sets' lists | S4 (contract PR, 21 Nov) | Section 2.7 |
 | Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
+| Production format 1.8.0: `PLAN_STEP_KINDS` gains `repeat`; `PlanStep` gains a required `holds`, added as 0 by a migration from 1.7.0; `checkFramePlan` checks what keeps a plan readable (section 6.8, proposed) | S4 (contract PR) | Section 6.8 |
+| The plan panel: held steps indented under their repeat, Change step's How many times and How many steps for a repeat, and Repeat… in Add a step's menu (section 6.8, proposed) | S5 | Section 6.8 |
