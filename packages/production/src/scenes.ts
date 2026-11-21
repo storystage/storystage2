@@ -326,7 +326,16 @@ export function duplicateScene(
         ...p,
         manifest: { ...p.manifest, runningOrder },
         program: applied.program,
-        scenes: [...p.scenes, { id: newId, setup: scene.setup, method: copied.get(scene.method)! }],
+        scenes: [
+          ...p.scenes,
+          // Its music too (format 1.9.0): the cues name sounds the film shares.
+          {
+            id: newId,
+            setup: scene.setup,
+            method: copied.get(scene.method)!,
+            ...(scene.music ? { music: scene.music } : {}),
+          },
+        ],
         storyboard: {
           ...p.storyboard,
           cards: [...p.storyboard.cards, { ...card, id: newId, heading: options.heading }],

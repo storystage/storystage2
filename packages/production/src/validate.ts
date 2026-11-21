@@ -11,6 +11,7 @@
 import { validateManifest as validateBackstage, MANIFEST_VERSION } from '@storystage/backstage';
 import { SHOT_TYPES, STORY_CLASSES } from '@storystage/story-api';
 import { CHECK_KINDS, CHECK_OUTCOMES, PLAN_STEP_KINDS } from './types.ts';
+import { SOUND_LIMITS } from './sound.ts';
 
 export interface ShapeOptions {
   /** True for a newer file, opened read-only: fields this version doesn't know are allowed. */
@@ -170,7 +171,24 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
     'models',
   ];
   // `voices` is only allowed here: `keptVoices` keeps what fits when the file opens (format 1.4.0).
-  if (!s.object(v, '', keys, ['credits', 'voices'])) return s.problems;
+  if (!s.object(v, '', keys, ['credits', 'voices', 'sounds', 'mix'])) return s.problems;
+  // Imported sounds and the tracks' volumes (format 1.9.0); `checkReferences` checks the rest.
+  if (v.sounds !== undefined)
+    s.array(v.sounds, 'sounds', (c, p) => {
+      if (!s.object(c, p, ['id', 'file', 'label', 'length', 'bytes', 'trim'])) return;
+      s.string(c.id, join(p, 'id'));
+      s.string(c.file, join(p, 'file'));
+      s.string(c.label, join(p, 'label'), SOUND_LIMITS.label);
+      s.number(c.length, join(p, 'length'), 0);
+      s.number(c.bytes, join(p, 'bytes'), 0);
+      if (s.object(c.trim, join(p, 'trim'), ['start', 'end'])) {
+        s.number(c.trim.start, join(p, 'trim.start'), 0);
+        s.number(c.trim.end, join(p, 'trim.end'), 0);
+      }
+    });
+  if (v.mix !== undefined && s.object(v.mix, 'mix', ['speech', 'music', 'effects']))
+    for (const track of ['speech', 'music', 'effects'] as const)
+      s.number(v.mix[track], `mix.${track}`, 0, 1);
   if (v.credits !== undefined && s.object(v.credits, 'credits', ['names'])) {
     const names = v.credits.names;
     if (s.array(names, 'credits.names', (n, p) => s.string(n, p, TEXT_LIMITS.creditName)))
@@ -209,9 +227,21 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
 /** `scenes/<id>.json`: a `Scene`, with its `SceneSetup`. */
 export function checkSceneShape(v: unknown, where: string, options: ShapeOptions = {}): string[] {
   const s = new Shape(where, options);
-  if (!s.object(v, '', ['id', 'setup', 'method'])) return s.problems;
+  if (!s.object(v, '', ['id', 'setup', 'method'], ['music'])) return s.problems;
   s.string(v.id, 'id');
   s.string(v.method, 'method');
+  // Music on the scene's timeline (format 1.9.0); `checkReferences` checks each cue's sound.
+  if (v.music !== undefined)
+    s.array(v.music, 'music', (cue, p) => {
+      const keys = ['sound', 'start', 'from', 'to', 'fadeIn', 'fadeOut', 'loop', 'volume'];
+      if (!s.object(cue, p, [...keys, 'carriesOn'])) return;
+      s.string(cue.sound, join(p, 'sound'));
+      for (const k of ['start', 'from', 'to', 'fadeIn', 'fadeOut'] as const)
+        s.number(cue[k], join(p, k), 0, SOUND_LIMITS.seconds * 10);
+      s.number(cue.volume, join(p, 'volume'), 0, 1);
+      s.boolean(cue.loop, join(p, 'loop'));
+      s.boolean(cue.carriesOn, join(p, 'carriesOn'));
+    });
   const setup = v.setup;
   if (!s.object(setup, 'setup', ['backdrop', 'objects', 'camera', 'markers'])) return s.problems;
   const b = setup.backdrop;
