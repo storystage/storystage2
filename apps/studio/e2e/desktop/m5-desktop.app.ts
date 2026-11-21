@@ -209,11 +209,18 @@ const walks: PlanStep = {
   holds: 0,
   why: 'So she can reach the fox.',
 };
+/** Claude's plan steps carry no `holds` until the tool schema has it (spec 04 section 6.8). */
+const asSent = (input: unknown): unknown => {
+  const i = input as { steps?: unknown } | null;
+  if (!Array.isArray(i?.steps)) return input;
+  const steps = (i.steps as Record<string, unknown>[]).map(({ holds: _holds, ...rest }) => rest);
+  return { ...i, steps };
+};
 const toolUse = (id: string, name: string, input: unknown): TestBlock => ({
   type: 'tool_use',
   id,
   name,
-  input,
+  input: asSent(input),
 });
 const say = (text: string) => testReply([{ type: 'text', text }]);
 const REPLIES = [
