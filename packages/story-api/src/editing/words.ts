@@ -112,7 +112,11 @@ function describe(program: Program, options: WordsOptions): Describer {
       case 'none':
         return word('words.empty');
       case 'this':
-        return word(isScene(self) ? 'words.scene' : 'words.this');
+        if (isScene(self)) return word('words.scene');
+        // In a learner's class, the character it's for: "this penguin" (decision 0074).
+        return self.kind === 'user'
+          ? fill(word('words.thisOne'), { type: splitWords(nameOf(self.type)) })
+          : word('words.this');
       case 'fieldRef': {
         const field = types.fields.get(e.field)?.name ?? word('words.empty');
         return e.target.kind === 'this'

@@ -760,6 +760,56 @@ describe('setEnabled', () => {
   });
 });
 
+describe('retype', () => {
+  /** The sample with a learner's type `Pet`, extending what the cat is, for the cat to become. */
+  const withPet = (): Program => {
+    const start = sampleProgram();
+    const pet: TypeDecl = {
+      id: nodeId('pettyp'),
+      kind: 'type',
+      name: 'Pet',
+      extends: { kind: 'story', name: 'Quadruped' },
+      fields: [],
+      methods: [],
+      listeners: [],
+    };
+    return applyEdits(start, [{ kind: 'declare', label, parent: null, index: 1, node: pet }]);
+  };
+  const toPet = {
+    kind: 'retype',
+    label,
+    node: ids.cat,
+    type: { kind: 'user', type: nodeId('pettyp') },
+  } as const;
+
+  it('gives a field another type, and undoes to the same bytes', () => {
+    const program = roundTrip(toPet, withPet());
+    expect(scene(program).fields.find((f) => f.id === ids.cat)!.type).toEqual(toPet.type);
+  });
+
+  it('is refused for a type the program hasn’t got', () => {
+    expect(refusal(toPet).code).toBe('would_break');
+  });
+
+  it('is refused for a type that isn’t one', () => {
+    const bad = { ...toPet, type: { kind: 'nothing' } } as unknown as EditOperation;
+    expect(refusal(bad, withPet()).code).toBe('would_break');
+  });
+
+  it('changes only a field', () => {
+    expect(refusal({ ...toPet, node: ids.main }, withPet()).code).toBe('not_here');
+  });
+
+  it('leaves whether the uses fit to the check a session runs', () => {
+    const check = () => [{ code: 'outside' as const, message: 'no', node: ids.cat }];
+    expect(() => applyEdit(withPet(), toPet, { check })).toThrow(EditRefused);
+  });
+
+  it('is labelled by the field', () => {
+    expect(defaultLabel(withPet(), toPet)).toBe("Change cat's type");
+  });
+});
+
 describe('setComment', () => {
   it('changes a comment, with undo', () => {
     const p = roundTrip({ kind: 'setComment', label, node: ids.note, text: 'New words' });
