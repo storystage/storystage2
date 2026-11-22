@@ -400,6 +400,8 @@ items:
     weeks: 2
     basis: first plan
     after: [WP10b, WP11b]
+    started: 2026-11-10
+    finished: 2026-11-22
   - id: WP17b
     label: DPIA and privacy notice (17.3, 17.4)
     lane: Curriculum and legal

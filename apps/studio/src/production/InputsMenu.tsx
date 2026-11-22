@@ -5,8 +5,15 @@
  * step, from S6's `addParameter`, `renameParameter` and `removeParameter`. A scene's script and a
  * listener take no inputs, so there's no menu for them.
  */
-import type { EditOperation, MethodDecl, ParameterDecl, Program, TypeRef } from '@storystage/ast';
-import type { EditorHost } from '@storystage/editor-contract';
+import type {
+  EditOperation,
+  MethodDecl,
+  NodeId,
+  ParameterDecl,
+  Program,
+  TypeRef,
+} from '@storystage/ast';
+import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import {
   addParameter,
   fill,
@@ -46,20 +53,30 @@ export interface InputsMenuProps {
   program: Program;
   /** The open procedure or function. */
   method: MethodDecl;
+  /** The editor showing, which the edits come from. */
+  source?: EditorId;
+  /** Opens the Code editor at a block: where an input that can't be removed is used. */
+  onReveal?: (node: NodeId) => void;
 }
 
 type Open =
   | { readonly kind: 'add'; readonly name: string; readonly type: Gives }
   | { readonly kind: 'rename'; readonly input: ParameterDecl; readonly name: string }
-  | { readonly kind: 'used'; readonly words: string };
+  | { readonly kind: 'used'; readonly words: string; readonly at: NodeId | null };
 
-export function InputsMenu({ host, program, method }: InputsMenuProps) {
+export function InputsMenu({
+  host,
+  program,
+  method,
+  source = 'blocks',
+  onReveal,
+}: InputsMenuProps) {
   const themeStyle = useThemeStyle();
   const [open, setOpen] = useState<Open | null>(null);
   const [tried, setTried] = useState(false);
 
   const apply = (edits: readonly EditOperation[], label: string) => {
-    const result = host.apply(edits, label, 'blocks');
+    const result = host.apply(edits, label, source);
     host.announce(result.ok ? label : result.reason);
     return result.ok;
   };
@@ -79,7 +96,7 @@ export function InputsMenu({ host, program, method }: InputsMenuProps) {
     if ('usedBy' in removed) {
       const said = fill(storyWord('parameter.inUse'), { name: input.name, method: method.name });
       host.announce(said);
-      setOpen({ kind: 'used', words: said });
+      setOpen({ kind: 'used', words: said, at: removed.usedBy[0] ?? null });
       return;
     }
     apply(removed.edits, label);
@@ -184,7 +201,24 @@ export function InputsMenu({ host, program, method }: InputsMenuProps) {
           <div className="pr-new-form">
             <NeutralNote>{open.words}</NeutralNote>
             <div className="sb-dialog-actions">
-              <Button variant="primary" onPress={() => setOpen(null)}>
+              {/* Where it's used, as Remove's refusal in Objects in this scene shows it. */}
+              {open.at && onReveal && (
+                <Button
+                  variant="primary"
+                  icon="arrow_forward"
+                  onPress={() => {
+                    const at = open.at!;
+                    setOpen(null);
+                    onReveal(at);
+                  }}
+                >
+                  {words.t('production.check.block')}
+                </Button>
+              )}
+              <Button
+                variant={open.at && onReveal ? 'secondary' : 'primary'}
+                onPress={() => setOpen(null)}
+              >
                 {messages.t('dialog.close')}
               </Button>
             </div>

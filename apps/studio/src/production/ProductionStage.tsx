@@ -777,6 +777,8 @@ export function ProductionStage({
                 editorRef={editorRef}
                 {...(editorDefault ? { editorDefault } : {})}
                 held={heldEditor}
+                modelName={(id) => models?.item(id)?.displayName ?? null}
+                {...(onReveal ? { onReveal } : {})}
               />
             </>
           ) : (
