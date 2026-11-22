@@ -184,6 +184,45 @@ export function tinySkeletonUrl(
   return `data:model/gltf-binary;base64,${btoa(text)}`;
 }
 
+/** A prop of one mesh on two nodes a metre apart, as Anansi's and the Roman temple's parts are. */
+export function tinyTwinsUrl(): string {
+  const positions = new Uint8Array(new Float32Array(POSITIONS).buffer);
+  const indices = new Uint8Array(new Uint16Array(INDICES).buffer);
+  const start = pad4(positions.length);
+  const bin = new Uint8Array(pad4(start + indices.length));
+  bin.set(positions);
+  bin.set(indices, start);
+  const json = {
+    asset: { version: '2.0' },
+    scene: 0,
+    scenes: [{ nodes: [0, 1] }],
+    nodes: [
+      { name: 'Left', mesh: 0, translation: [-0.5, 0, 0] },
+      { name: 'Right', mesh: 0, translation: [0.5, 0, 0] },
+    ],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1, material: 0 }] }],
+    materials: [{ pbrMetallicRoughness: { baseColorFactor: [0.2, 0.4, 0.6, 1] } }],
+    buffers: [{ byteLength: bin.length }],
+    bufferViews: [
+      { buffer: 0, byteOffset: 0, byteLength: positions.length },
+      { buffer: 0, byteOffset: start, byteLength: indices.length },
+    ],
+    accessors: [
+      {
+        bufferView: 0,
+        componentType: 5126,
+        count: VERTICES,
+        type: 'VEC3',
+        min: [-0.5, 0, 0],
+        max: [0.5, 2, 0],
+      },
+      { bufferView: 1, componentType: 5123, count: INDICES.length, type: 'SCALAR' },
+    ],
+  };
+  const text = glb(json, bin).reduce((s, b) => s + String.fromCharCode(b), '');
+  return `data:model/gltf-binary;base64,${btoa(text)}`;
+}
+
 /** Where each bone of a small humanoid is, in a T-pose facing +Z (+X on its left), in metres. */
 const HUMAN: readonly (readonly [string, string | undefined, number, number, number])[] = [
   ['hips', undefined, 0, 1, 0],
@@ -227,17 +266,20 @@ const qrotate = (q: Q, [x, y, z]: readonly number[]): [number, number, number] =
  * A small humanoid with VRM's bone names, resting in a T-pose, or with `arms: 'A'` in an A-pose. `facing: 'back'` makes it face
  * -Z, and marks it as a VRM 0.x avatar, as they do. `twisted` gives every bone its own odd axes, as real rigs have,
  * without moving any of them: a pose should look the same either way. `eyes` gives it eye bones.
+ * `byTable` gives its nodes names that say nothing, and a VRM bone table that says which is which.
  */
 export function tinyHumanUrl({
   facing = 'front',
   twisted = false,
   arms = 'T',
   eyes = false,
+  byTable = false,
 }: {
   facing?: 'front' | 'back';
   twisted?: boolean;
   arms?: 'T' | 'A';
   eyes?: boolean;
+  byTable?: boolean;
 } = {}): string {
   const flip = facing === 'back' ? -1 : 1;
   // Resting in an A-pose, as MakeHuman's people do: each arm hangs 45 degrees from the shoulder.
@@ -269,6 +311,26 @@ export function tinyHumanUrl({
       return { name, ...(parent ? { parent } : {}), at: local, turn: own };
     },
   );
+  if (byTable) {
+    const own = (name: string) => `Object_${bones.findIndex((b) => b.name === name)}`;
+    const nodes = bones.map(({ name, parent, ...rest }) => ({
+      ...rest,
+      name: own(name),
+      ...(parent ? { parent: own(parent) } : {}),
+    }));
+    const table = bones.map(({ name }, node) => ({ bone: name, node }));
+    const extensions =
+      facing === 'back'
+        ? { VRM: { humanoid: { humanBones: table } } }
+        : {
+            VRMC_vrm: {
+              humanoid: {
+                humanBones: Object.fromEntries(table.map(({ bone, node }) => [bone, { node }])),
+              },
+            },
+          };
+    return tinySkeletonUrl(nodes, { extensions });
+  }
   // Facing -Z is what a VRM 0.x avatar does, so it says it is one.
   return tinySkeletonUrl(
     bones,

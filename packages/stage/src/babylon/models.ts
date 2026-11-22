@@ -3,11 +3,12 @@
  * clone of it. Its surfaces become plain ones, so they light as everything else does; the
  * textures are shared.
  *
- * A model's joints are found by its bone names, whatever naming it uses (`mapSkeleton`, WP3.3).
+ * A model's joints are found by its bone names, whatever naming it uses (`mapSkeleton`, WP3.3),
+ * and a VRM's by its own bone table first (`useBoneTable`).
  * Bone-driven skinning works because the glTF loader ties each bone to a node, which is what
  * the stage turns.
  */
-import type { AssetContainer } from '@babylonjs/core/assetContainer.js';
+import type { AssetContainer, InstantiatedEntries } from '@babylonjs/core/assetContainer.js';
 import { LoadAssetContainerAsync } from '@babylonjs/core/Loading/sceneLoader.js';
 import type { Material } from '@babylonjs/core/Materials/material.js';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
@@ -19,6 +20,7 @@ import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { registerBuiltInLoaders } from '@babylonjs/loaders/dynamic.js';
 import {
+  jointsOf,
   mapSkeleton,
   skeletonOf,
   type BackstageItem,
@@ -137,17 +139,25 @@ export class ModelLibrary {
     if (!file) throw noModel(id);
     try {
       let json: GltfJson = {};
+      let table: BoneTable = NO_TABLE;
       const options = {
         pluginExtension: '.glb',
         pluginOptions: {
           gltf: {
-            onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson),
+            // Called before the loader makes any node, so the nodes get the names set here.
+            onParsed: (data: { json: unknown }) => {
+              json = data.json as GltfJson;
+              table = useBoneTable(json);
+            },
             useSRGBBuffers: false,
+            // A mesh on several nodes is a mesh for each. An instance can't be given its own
+            // surface or opacity, so it could neither be lit, painted nor faded with its object.
+            createInstances: false,
           },
         },
       };
       const container = await LoadAssetContainerAsync(file.url, this.scene, options);
-      return { file, container, json };
+      return { file, container, json, table };
     } catch {
       throw noModel(id);
     }
@@ -155,11 +165,30 @@ export class ModelLibrary {
 
   /** An object's own copy of a model. Rejects with `unknown_model` if it can't be had. */
   async place(object: ObjectId, id: BackstageId, cls: StoryClass): Promise<PlacedModel> {
-    const { file, container, json } = await this.load(id);
+    const model = await this.load(id);
+    const { container } = model;
     const copy = container.instantiateModelsToScene((name) => name, false, {
       doNotInstantiate: true,
     });
     const root = new TransformNode(object, this.scene);
+    try {
+      return this.setUp(object, cls, model, copy, root);
+    } catch (e) {
+      // Nothing half placed stays in the scene, beside the stand-in it becomes.
+      copy.dispose();
+      root.dispose();
+      throw e;
+    }
+  }
+
+  /** Makes a fresh copy the object's: under its root, with its surfaces, joints and gaits. */
+  private setUp(
+    object: ObjectId,
+    cls: StoryClass,
+    { file, json, table }: LoadedModel,
+    copy: InstantiatedEntries,
+    root: TransformNode,
+  ): PlacedModel {
     root.rotationQuaternion = Quaternion.Identity();
     // VRM 0.x avatars face -Z (spec 17, section 3); everything on the stage faces +Z.
     const facing = json.extensions?.VRM ? new TransformNode(`${object} facing`, this.scene) : root;
@@ -172,7 +201,7 @@ export class ModelLibrary {
     const surfaces = plainSurfaces(object, meshes, this.scene);
     const paintable = [...surfaces.values()];
     const box = boxOf(root);
-    const joints = jointNodes(root, cls, file.joints);
+    const joints = jointNodes(root, cls, file.joints, table);
     // The root is still at the origin, unturned, so a joint's place in the scene is its rest.
     const jointPlaces = new Map(
       [...joints].map(([joint, node]) => {
@@ -267,13 +296,73 @@ function gaitsOf(
 
 /** What the stage reads from a model's glTF itself: a VRM's own extension. */
 interface GltfJson {
-  readonly extensions?: { readonly VRM?: unknown; readonly VRMC_vrm?: unknown };
+  readonly nodes?: { name?: string }[];
+  readonly extensions?: {
+    readonly VRM?: { readonly humanoid?: { readonly humanBones?: unknown } };
+    readonly VRMC_vrm?: { readonly humanoid?: { readonly humanBones?: unknown } };
+  };
+}
+
+/** A VRM's bone table, as `useBoneTable` left its nodes. Empty for any other model. */
+interface BoneTable {
+  /** The bones it names, by VRM 1.0's names, which their nodes now have. */
+  readonly bones: ReadonlySet<string>;
+  /** The name its maker gave each node that was renamed, by its name now. */
+  readonly madeAs: ReadonlyMap<string, string>;
+}
+
+const NO_TABLE: BoneTable = { bones: new Set(), madeAs: new Map() };
+
+/**
+ * VRM 0.x's thumb is named one bone along from VRM 1.0's, whose names are the joint map's (spec
+ * 17 section 2): its Proximal is the Metacarpal, and its Intermediate the Proximal.
+ */
+const VRM0_THUMBS: ReadonlyMap<string, string> = new Map([
+  ['leftThumbProximal', 'leftThumbMetacarpal'],
+  ['leftThumbIntermediate', 'leftThumbProximal'],
+  ['rightThumbProximal', 'rightThumbMetacarpal'],
+  ['rightThumbIntermediate', 'rightThumbProximal'],
+]);
+
+/**
+ * Names a VRM's nodes by its own bone table (`humanBones`), in VRM 1.0's names, whatever its
+ * maker called them. Another node that had a bone's name gives it up: Seed-san has a mesh called
+ * `head` beside its head bone, `head 1`.
+ */
+function useBoneTable({ nodes, extensions }: GltfJson): BoneTable {
+  if (!Array.isArray(nodes)) return NO_TABLE;
+  const vrm1 = extensions?.VRMC_vrm;
+  const table = (vrm1 ?? extensions?.VRM)?.humanoid?.humanBones;
+  if (typeof table !== 'object' || table === null) return NO_TABLE;
+  // VRM 0.x lists its bones; VRM 1.0 keys them by name. Imports come here too, so check each.
+  const entries: [unknown, unknown][] = Array.isArray(table)
+    ? table.map((b: { bone?: unknown; node?: unknown } | null) => [b?.bone, b?.node])
+    : Object.entries(table).map(([bone, b]: [string, { node?: unknown } | null]) => [
+        bone,
+        b?.node,
+      ]);
+  const boneAt = new Map<number, string>();
+  for (const [bone, node] of entries)
+    if (typeof bone === 'string' && typeof node === 'number' && nodes[node])
+      boneAt.set(node, vrm1 ? bone : (VRM0_THUMBS.get(bone) ?? bone));
+  const bones = new Set(boneAt.values());
+  const madeAs = new Map<string, string>();
+  nodes.forEach((node, i) => {
+    const made = node.name;
+    const bone = boneAt.get(i);
+    if (bone !== undefined) node.name = bone;
+    else if (made !== undefined && bones.has(made)) node.name = `${made} (node ${i})`;
+    else return;
+    if (made !== undefined) madeAs.set(node.name, made);
+  });
+  return { bones, madeAs };
 }
 
 interface LoadedModel {
   readonly file: ModelFile;
   readonly container: AssetContainer;
   readonly json: GltfJson;
+  readonly table: BoneTable;
 }
 
 export interface PlacedModel {
@@ -368,19 +457,38 @@ function boxOf(root: TransformNode): Box {
   return { min: { x: min.x, y: min.y, z: min.z }, max: { x: max.x, y: max.y, z: max.z } };
 }
 
+/**
+ * Each joint's node. A VRM's table says first. Then the names its maker gave fill in what the
+ * table leaves out (toes, or a finger's tip). Then the names the Backstage build saw, with the
+ * table's bones renamed, find the chains it listed (a tail, a tongue). No node is two joints.
+ */
 function jointNodes(
   root: TransformNode,
   cls: StoryClass,
   listed: BackstageItem['joints'],
+  { bones, madeAs }: BoneTable,
 ): ReadonlyMap<JointName, TransformNode> {
   const nodes = new Map<string, TransformNode>();
   for (const node of root.getDescendants(false))
     if (node instanceof TransformNode) nodes.set(node.name, node);
   const out = new Map<JointName, TransformNode>();
+  const used = new Set<TransformNode>();
+  const take = (joint: string, node: TransformNode | undefined) => {
+    if (!node || out.has(joint as JointName) || used.has(node)) return;
+    out.set(joint as JointName, node);
+    used.add(node);
+  };
   const skeleton = skeletonOf(cls);
-  if (skeleton)
-    for (const [joint, bone] of Object.entries(mapSkeleton([...nodes.keys()], skeleton).bones))
-      out.set(joint as JointName, nodes.get(bone)!);
+  if (skeleton) {
+    for (const { id } of jointsOf(skeleton)) if (bones.has(id)) take(id, nodes.get(id));
+    const made = new Map([...nodes].map(([name, node]) => [madeAs.get(name) ?? name, node]));
+    for (const [joint, bone] of Object.entries(mapSkeleton([...made.keys()], skeleton).bones))
+      take(joint, made.get(bone));
+    // Only what the manifest lists: renamed, Seed-san's hair mesh would pass for a hair joint.
+    if (madeAs.size > 0 && listed !== 'prop-only')
+      for (const [joint, bone] of Object.entries(mapSkeleton([...nodes.keys()], skeleton).bones))
+        if ((listed as readonly string[]).includes(joint)) take(joint, nodes.get(bone));
+  }
   // A prop's moving parts are its own joints, under their own names.
   if (listed !== 'prop-only')
     for (const joint of listed) {
