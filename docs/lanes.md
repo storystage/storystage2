@@ -145,7 +145,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
-  - 22 Nov (this PR, by S5 at the owner's choice; **S4:** for you to know): **packing keeps imported sounds**: `packModels` passes the film's other files through and changes only the models'. It dropped `files.sounds` (1.9.0), so every save of a film with an imported sound was refused.
+  - 22 Nov (#643, by S5 at the owner's choice; **S4:** for you to know): **packing keeps imported sounds**: `packModels` passes the film's other files through and changes only the models'. It dropped `files.sounds` (1.9.0), so every save of a film with an imported sound was refused.
   - 22 Nov (#628; S5's ask, decision 0074): **an object added after its learner's class is of the class**: `addObject`'s `NewObject` takes an optional `type`, the field's type in the code (S6's `fieldTypeFor`, `{ kind: 'user' }` once `Penguin extends Flyer` exists), which must come down from its `class` (`storyAncestor`, #618); the set-up keeps the Story API class. **S5:** ProductionStage's `use()` can pass it, with the model's objects' fields (S6's #624).
 - Merged:
   - 21 Nov (#618, approved by S6, merged by the owner): **a scene object's field of a learner's class is checked** (S6's ask, decision 0074, #614): `checkObjects` follows a `{ kind: 'user' }` field through the program's `TypeDecl.extends` to the Story API class it comes down from, and compares that with the object's class; a missing type or classes that go round are reported. A guard: nothing makes such a field wrong today.

@@ -17,7 +17,7 @@ import { useEffect, useId, useRef, useState, useSyncExternalStore, type FormEven
 import { useFieldSpeech } from '../speech/talkToType.tsx';
 import type { StudioSource } from '../studio.ts';
 import { words } from '../strings.ts';
-import { StepEditor, newStep, type StepWorld } from './StepEditor.tsx';
+import { StepEditor, newStep, type StepChoices, type StepWorld } from './StepEditor.tsx';
 
 const BUILDS: readonly PrompterMode[] = ['showMeHow', 'buildIt'];
 
@@ -31,13 +31,28 @@ export interface PrompterAsideProps {
   canChange?: boolean;
   /** Closes the studio's open step (typing in a field) before a request opens its own. */
   seal?: () => void;
-  /** The scene's objects and lines, for changing and adding plan steps. Without it, neither. */
+  /** The scene's script lines, for changing and adding plan steps. Without it, neither. */
   world?: StepWorld;
   /** Opens the set-up wizard: Set up… shows while there's no key (WP13.6). */
   onSetUp?: () => void;
   /** Whether the panel is open or folded to its rail, when the stage holds it. Default: its own. */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+}
+
+/**
+ * Who can do a step at a place in the plan, and each one's blocks, from the panel (spec 04
+ * section 6.9). Each actor's blocks are read once, as the editor asks for them again as it draws.
+ */
+export function choicesAt(panel: PrompterPanel<StudioSource>, at: number): StepChoices {
+  const read = new Map<string, ReturnType<PrompterPanel<StudioSource>['stepBlocks']>>();
+  return {
+    actors: panel.stepActors(at),
+    blocks: (actor) => {
+      if (!read.has(actor)) read.set(actor, panel.stepBlocks(actor, at));
+      return read.get(actor)!;
+    },
+  };
 }
 
 export function usePanelState(panel: PrompterPanel<StudioSource>): PanelState {
@@ -400,7 +415,7 @@ export function PrompterAside({
                 isDisabled={plan.steps.length >= PLAN_LIMITS.steps}
                 onPress={() => {
                   // A new step at the end, to change from there (spec 04 section 6.1, step 5).
-                  panel.addStep(newStep(world));
+                  panel.addStep(newStep(choicesAt(panel, plan.steps.length)));
                   setEditing(plan.steps.length);
                   setAdding(true);
                   onAnnounce(words.t('prompter.stepAdded', { n: plan.steps.length + 1 }));
@@ -433,6 +448,7 @@ export function PrompterAside({
                 step={plan.steps[editing]}
                 number={editing + 1}
                 world={world}
+                choices={choicesAt(panel, editing)}
                 insideMax={plan.stepsInsideMax[editing] ?? null}
                 held={
                   plan.heldBy[editing] == null
