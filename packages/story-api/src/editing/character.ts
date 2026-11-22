@@ -34,10 +34,25 @@ export function classNameFor(model: CharacterModel): string {
 }
 
 /**
- * The learner's class for `model`, if the program has it: named after it ("Penguin", or
- * "Penguin2" if something else had the name first) and extending its Story API class.
+ * The learner's class for `model`, if the program has it. The class an object of the model is
+ * of already, when `fields` (the model's objects, from the set-ups) are given: a model's name can
+ * change, from a stand-in's label or a missing model's id to Backstage's own name, and its class
+ * stays the one its objects are of. Else the class named after it ("Penguin", or "Penguin2" if
+ * something else had the name first) and extending its Story API class.
  */
-export function classOf(program: Program, model: CharacterModel): TypeDecl | null {
+export function classOf(
+  program: Program,
+  model: CharacterModel,
+  fields: readonly NodeId[] = [],
+): TypeDecl | null {
+  const index = indexOf(program);
+  for (const id of fields) {
+    const f = index.get(id)?.node;
+    if (f?.kind !== 'field' || f.type.kind !== 'user') continue;
+    const type = (f.type as { readonly type: NodeId }).type;
+    const cls = program.types.find((t) => t.id === type);
+    if (cls?.extends.kind === 'story' && cls.extends.name === model.storyClass) return cls;
+  }
   const name = classNameFor(model);
   return (
     program.types.find(
@@ -50,9 +65,16 @@ export function classOf(program: Program, model: CharacterModel): TypeDecl | nul
   );
 }
 
-/** The type a new object of `model` takes: its class once it has one, else its Story API class. */
-export function fieldTypeFor(program: Program, model: CharacterModel): TypeRef {
-  const cls = classOf(program, model);
+/**
+ * The type a new object of `model` takes: its class once it has one, else its Story API class.
+ * `fields`, the model's other objects, find its class as `classOf` does.
+ */
+export function fieldTypeFor(
+  program: Program,
+  model: CharacterModel,
+  fields: readonly NodeId[] = [],
+): TypeRef {
+  const cls = classOf(program, model, fields);
   return cls ? { kind: 'user', type: cls.id } : { kind: 'story', name: model.storyClass };
 }
 
@@ -79,7 +101,7 @@ export function classFor(
   if (found.some((f) => f?.kind !== 'field')) return null;
   const said = label ?? fill(word('character.class'), { model: model.name });
   const edits: EditOperation[] = [];
-  let cls = classOf(program, model);
+  let cls = classOf(program, model, fields);
   if (!cls) {
     cls = {
       id: mint(),
