@@ -261,6 +261,8 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Next: what's left of WP3 waits on others: Alice's models on CMU (3.1's last part, 3.2), the budgets on the reference devices (3.9), the import and licence screens (3.11, 3.12) on reviews of S5's screens. Meanwhile, as the owner chooses: the children's clothes (`people.md`), or placing borderline items (3.10).
 
 ## S5 Studio interface
+- In review, after #628:
+  - 22 Nov (this PR; decision 0074, on S4's #628): **an object added after its character's class is of it**: Backstage's Add and drop, and Set the stage from the storyboard (the button and the Prompter's `stage_scene`), pass `addObject` the learner's class for the model (`newObjectType` in `@storystage/staging`, where `modelFields` and `sceneType` now live). Also 7.15 ticked: copy and paste is in Blocks (#611) and Tiles, and 0075 is recorded (#610). **S7:** the runner's `#addModel` needs the same `type`; 7.14 is ticked once it has it.
 - In review:
   - 22 Nov (this PR; spec 04 §6.8, on S7's #608 and #609): **repeats in the Prompter's plan**: held steps indented with the loop colour's line, the screen-reader names, **Repeat…** beside Add a step, Change step's How many times and Steps inside ("Repeats steps 2 and 3."), a repeat moved with its steps, and the panel's own words announced. `PlanSteps` gains `inside`, `holding`, `stepName` and `heldWords`, and `onReorder` passes the moved ids. **S7:** review, please.
 - Merged:

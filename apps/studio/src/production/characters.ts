@@ -7,8 +7,11 @@
  */
 import type { MethodDecl, NodeId, TypeDecl } from '@storystage/ast';
 import type { Production, SceneId } from '@storystage/production';
+import { modelFields, sceneType } from '@storystage/staging';
 import type { BackstageId, SceneObjectSetup } from '@storystage/story-api';
 import { classOf, splitWords, type CharacterModel } from '@storystage/story-api/editing';
+
+export { modelFields, sceneType };
 
 /** A model's name as learners see it, from Backstage, or `null` when it isn't known. */
 export type ModelName = (model: BackstageId) => string | null;
@@ -25,10 +28,6 @@ const nameOf = (modelName: ModelName, model: Model): string =>
     ? model.standIn
     : (modelName(model) ?? (model.split('/').pop() ?? model).replace(/-/g, ' '));
 
-/** Whether two objects are of the same model: the same Backstage id, or stand-ins alike. */
-const sameModel = (a: Model, b: Model): boolean =>
-  typeof a === 'string' || typeof b === 'string' ? a === b : a.standIn === b.standIn;
-
 /** A model in the film: its name and Story API class, and its class if made. */
 export interface Character {
   readonly model: CharacterModel;
@@ -36,24 +35,6 @@ export interface Character {
   readonly fields: readonly NodeId[];
   /** The learner's class for it, once the first move has made it. */
   readonly type: NodeId | null;
-}
-
-/** The type holding scene `scene`'s script method: the scene's own class in the code. */
-export function sceneType(p: Production, scene: SceneId): TypeDecl | undefined {
-  const script = p.scenes.find((s) => s.id === scene)?.method;
-  return p.program.types.find((t) => t.methods.some((m) => m.id === script));
-}
-
-/** Every field, in every scene, whose set-up object is of model `model`. */
-export function modelFields(p: Production, model: Model): NodeId[] {
-  return p.scenes.flatMap((s) => {
-    const type = sceneType(p, s.id);
-    if (!type) return [];
-    const names = new Set<string>(
-      s.setup.objects.filter((o) => sameModel(o.model, model)).map((o) => o.id),
-    );
-    return type.fields.filter((f) => names.has(f.name)).map((f) => f.id);
-  });
 }
 
 function character(p: Production, object: SceneObjectSetup, modelName: ModelName): Character {
