@@ -170,6 +170,25 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
     });
   });
 
+  it('takes any block of a list in method_order, and no other (board-02)', async () => {
+    const row = rowById('plan-02');
+    const details = [
+      { name: 'direction', value: 'forward' },
+      { name: 'amount', value: '2' },
+    ];
+    const { done } = await run(row, [
+      testReply([use('p1', 'propose_plan', { steps: [step({ details })] })]),
+      text("Here's my plan."),
+      move('3'),
+      text('Done.'),
+    ]);
+    const passes = (order: unknown) =>
+      scoreRow({ ...done, row: { ...row, checks: [{ type: 'method_order', order }] } })[0]!.pass;
+    expect(passes([['moveTo', 'move']])).toBe(true);
+    expect(passes([['moveTo', 'turn']])).toBe(false);
+    expect(passes(['moveTo'])).toBe(false);
+  });
+
   it('plans and builds loop-01 as one loop: a repeat holding up and down (section 6.8)', async () => {
     const row = rowById('loop-01');
     const hop = (direction: string) =>

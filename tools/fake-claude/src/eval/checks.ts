@@ -215,12 +215,15 @@ function codeCheck(check: EvalCheck, run: RowRun): Result {
       return result(n >= Number(check.min ?? 1), `${n} found`);
     }
     case 'method_order': {
-      const order = (check.order as readonly string[]) ?? [];
+      // An item may be a list of blocks, any of which will do.
+      const order = ((check.order as readonly (string | readonly string[])[]) ?? []).map((item) =>
+        typeof item === 'string' ? [item] : item,
+      );
       const seen = methodStatements(after, scene).map((s) =>
         s.kind === 'call' ? callee(s) : s.kind,
       );
       let i = 0;
-      for (const name of seen) if (name === order[i]) i++;
+      for (const name of seen) if (order[i]?.includes(name)) i++;
       return result(i === order.length, seen.join(' '));
     }
     case 'argument': {

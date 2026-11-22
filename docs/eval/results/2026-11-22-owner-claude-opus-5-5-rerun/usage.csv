@@ -1,0 +1,9 @@
+id,mode,requests,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens
+anim-06,buildIt,2,8,644,63894,65286
+board-02,showMeHow,9,40,3615,576402,75574
+board-03,buildIt,8,36,3375,501752,75192
+board-07,buildIt,7,32,3472,400576,71374
+story-04,storyCoach,2,8,165,58718,59118
+story-06,storyCoach,2,8,177,58710,59118
+story-10,storyCoach,2,8,182,58724,59158
+plan-06,buildIt,8,36,3400,568368,8550

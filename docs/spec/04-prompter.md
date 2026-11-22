@@ -715,7 +715,7 @@ A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `
 - **Change step on a `repeat` step** offers:
   - **How many times**, with the number field the count block uses (2 to 1,000);
   - **Steps inside**, a number from 1 up to the run of `do` steps right after it, listed under the field ("Steps 2 and 3"), so a child sees which ones.
-- **Add a step › Repeat…** adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (the 50 a frame keeps; a plan from `propose_plan` has at most 12).
+- **Repeat…**, a button beside Add a step (the owner's choice of 22 Nov, in place of a menu under Add a step, so adding a step stays one tap), adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (the 50 a frame keeps; a plan from `propose_plan` has at most 12).
 - **Reordering:**
   - Dragging a `repeat` step moves its held steps with it.
   - A `do` step moved to between a `repeat` step and its last held step goes inside (`holds` + 1). One moved to just after the last held step stays outside, and Steps inside takes it in.
@@ -836,4 +836,4 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; `jointsFor(catalogue, items)`; the index's budget in the build, without the joint sets' lists | S4 (contract PR, 21 Nov) | Section 2.7 |
 | Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
 | Production format 1.8.0: `PLAN_STEP_KINDS` gains `repeat`; `PlanStep` gains a required `holds`, added as 0 by a migration from 1.7.0; `checkFramePlan` checks what keeps a plan readable (section 6.8, proposed) | S4 (contract PR) | Section 6.8 |
-| The plan panel: held steps indented under their repeat, Change step's How many times and How many steps for a repeat, and Repeat… in Add a step's menu (section 6.8, proposed) | S5 | Section 6.8 |
+| The plan panel: held steps indented under their repeat, Change step's How many times and How many steps for a repeat, and Repeat… beside Add a step (section 6.8) | S5 | Section 6.8 |
