@@ -402,3 +402,74 @@ describe('classes (spec 19, 3.4–3.5)', () => {
     expect(valid(built)).toEqual([]);
   });
 });
+
+describe('a procedure’s inputs (found reviewing #642)', () => {
+  /** `show(given)`, taking a `type`, and the script passing it `value`. */
+  const passing = (type: AliceNode, value: AliceNode) => {
+    const given = param('given', type);
+    const show = method('show', [], { params: [given] });
+    const call = n('MethodInvocation', {
+      expression: self(),
+      method: show,
+      requiredArguments: [n('SimpleArgument', { expression: value, parameter: given })],
+      keyedArguments: [],
+    });
+    const made = build([statement(call)], { methods: [show] });
+    const input = made.scene.methods.find((m) => m.name === 'show')!.params[0]!;
+    return { ...made, input };
+  };
+  const resourceValue = () => n('ResourceExpression', {});
+
+  it('keeps paint as paint, so a colour fits it', () => {
+    const { built, input } = passing(javaType('Paint'), constant('Color', 'RED'));
+    expect(input.type).toEqual({ kind: 'story', name: 'Paint' });
+    expect(built.gaps).toEqual([]);
+    expect(valid(built)).toEqual([]);
+  });
+
+  it('keeps a sound as a sound, and says when the call’s sound couldn’t come across', () => {
+    const { built, body, input } = passing(javaType('AudioSource'), resourceValue());
+    expect(input.type).toEqual({ kind: 'story', name: 'Audio' });
+    expect(Object.values((body[0] as Statement & { kind: 'call' }).args)).toMatchObject([
+      { kind: 'none' },
+    ]);
+    expect(built.gaps).toMatchObject([
+      {
+        kind: 'value',
+        where: 'Scene.myFirstMethod',
+        why: expect.stringContaining('choosing again'),
+      },
+    ]);
+    expect(valid(built)).toEqual([]);
+  });
+
+  it('keeps a list of sounds as one', () => {
+    const list = n(
+      'JavaType',
+      {},
+      { java: { kind: 'type', name: '[Lorg.lgna.story.AudioSource;' } },
+    );
+    const show = method('show', [], { params: [param('given', list)] });
+    const { scene } = build([], { methods: [show] });
+    expect(scene.methods.find((m) => m.name === 'show')!.params[0]!.type).toEqual({
+      kind: 'array',
+      of: { kind: 'story', name: 'Audio' },
+    });
+  });
+
+  it('reports an input of a type StoryStage hasn’t got, and the value passed to it', () => {
+    const { built, input } = passing(javaType('Position'), resourceValue());
+    expect(input.type).toEqual({ kind: 'story', name: 'Thing' });
+    expect(built.gaps).toMatchObject([
+      { kind: 'value', where: 'Scene.show', what: 'input given, a kind of position' },
+      { kind: 'value', where: 'Scene.myFirstMethod' },
+    ]);
+    expect(valid(built)).toEqual([]);
+  });
+
+  it('says nothing of an input that takes any object', () => {
+    const { built, input } = passing(javaType('SThing'), on(cat));
+    expect(input.type).toEqual({ kind: 'story', name: 'Thing' });
+    expect(built.gaps).toEqual([]);
+  });
+});

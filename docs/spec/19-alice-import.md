@@ -86,7 +86,7 @@ An Alice world is a `Program` type holding a `Scene` type, and a type for each g
 ### 5.1 Calls
 
 1. **A call of one of Alice's methods** is matched to the Story API entry whose `alice` list names it (`SMovableTurnable.move` is `move`), on the object's class. Its arguments become the entry's parameters in order (Alice's `requiredArguments`), and its keyed arguments become details by name (`duration`, `animationStyle`, `asSeenBy` and the rest).
-2. **A call of a learner's method** is a call of that method.
+2. **A call of a learner's method** is a call of that method, with a value for each input. One that can't come across is left empty, to choose again, and is reported. An input keeps its meaning: Alice's `Paint` is `Paint` and `AudioSource` is `Audio`. One of a type StoryStage hasn't got (`Position`) takes any object (`Thing`, or a list of them), and is reported.
 3. **A member Alice has and the Story API left out** (`dropped.ts`) leaves a **note in its place** (0069): "In Alice: cat move toward chair. StoryStage leaves this out: (the reason from `dropped.ts`)". The note keeps the statement's switched-off state. The report lists it with its method and position.
 4. **A member neither has nor left out** (newer Alice, or an Alice extension) leaves the same kind of note, with "StoryStage doesn't know this Alice block", and is reported.
 5. **An argument a block doesn't take,** or a value of the wrong kind, keeps the block and drops the argument, and is reported.

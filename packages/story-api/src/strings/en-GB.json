@@ -300,6 +300,7 @@
   "parameter.type.WholeNumber": "whole number",
   "parameter.type.Text": "text",
   "parameter.type.Boolean": "true or false",
+  "parameter.type.Audio": "sound",
   "parameter.list": "list",
   "parameter.problem.empty": "Give the input a name.",
   "parameter.problem.shape": "Names start with a letter and use only letters, numbers and _.",

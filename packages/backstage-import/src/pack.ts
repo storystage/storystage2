@@ -140,7 +140,8 @@ export async function packModels(
   if (!models.every((m) => SAFE_ID.test(m.folder))) throw new Error('A model folder is unsafe.');
   return {
     production: { ...p, manifest: { ...p.manifest, models } },
-    files: { audio: files.audio, models: modelFiles },
+    // Only the models change: speech and imported sounds go through as they are.
+    files: { ...files, models: modelFiles },
     missing,
   };
 }
