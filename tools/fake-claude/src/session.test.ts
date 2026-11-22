@@ -96,6 +96,24 @@ describe('the conversation loop against the fake server', () => {
     expect(await prompter.ask('and next?', explain)).toMatchObject({ status: 'done' });
   });
 
+  it("takes the learner's next turn, in another mode, straight after an answer ended one", async () => {
+    server.use(
+      withTurns(
+        { ...recording('text'), turns: [] },
+        {
+          events: reply([{ type: 'tool_use', id: 't1', name: 'explain', input: { text: 'Hi.' } }]),
+        },
+        text('And next.'),
+      ),
+    );
+    const prompter = session();
+    expect(await prompter.ask('hi', explain)).toMatchObject({ status: 'done', toolCalls: 1 });
+    expect(await prompter.ask('next', { mode: 'storyCoach', level: 'full' })).toMatchObject({
+      status: 'done',
+    });
+    expect(server.requests).toHaveLength(2);
+  });
+
   it('starts a fresh conversation past the limit, which the server takes as a new one', async () => {
     server.use(withTurns(recording('over-the-limit'), text('A fresh start.')));
     const prompter = session();

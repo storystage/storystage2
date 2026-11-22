@@ -100,6 +100,7 @@ Stream the reply, then look at `stop_reason` before doing anything else:
 
 A reply that ended any way but `end_turn` or `tool_use` is never added to the conversation: a cut-off `tool_use` has no result to go with it, so it can't be sent back. If the request kept no reply at all (a refusal, a cut-off first reply, an error, Stop before anything came back), the session also takes back the learner's turn and mode message it added for that request. Otherwise a mode message would be followed by the next learner turn, which the API refuses. This edits nothing a thinking block is bound to, because every one of those blocks comes before the last kept reply, and nothing after it is bound. If the request kept some replies before it ended, they stay, with their tool results, and the next learner turn follows them (two user turns in a row are allowed).
 
+- **An answer ends the turn:** when every call in a reply is an `explain` and one was shown, the loop returns their results to the history and sends no further request. The tool's result alone wasn't enough: in the second full run (22 Nov) the panel showed the answer twice in two rows, and text under it in 14, six of them about "the learner". A reply that also calls another tool goes on, as that result is still to be read, and so does a build of an agreed plan.
 - **Limit:** 25 tool calls in one learner request, counted across the whole loop. At the limit the loop stops, and the Prompter says what it finished and why it stopped.
 - **Validation.** Parse each input strictly from the accumulated `partial_json`, then validate it against the tool's schema and the rules JSON Schema can't express under strict mode (ranges, lengths). A failure doesn't run the tool: it returns `is_error: true` with `bad_argument`.
 - **Retries.** The same step failing three times ends the loop (section 7).
@@ -266,7 +267,7 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `backstage_item` | string | An id from the catalogue or the production's imported models |
 | `name` | string | Made unique if taken (`cat2`); the result returns the final name |
 | `position` | `{x, y, z}` numbers, metres | `y` 0 is ground level |
-| `turn_degrees` | number, optional | About the vertical axis from the default facing |
+| `turn_degrees` | number, optional | About the vertical axis: 0 faces +z, and a positive turn is to the model's own left (90 faces +x, 180 faces -z). `system` says so too, and that +x is on the left of an unturned camera's picture |
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
 

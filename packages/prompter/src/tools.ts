@@ -220,7 +220,9 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
       backstage_item: text('A Backstage id: "Quadruped/Cat/AbyssinianCat".'),
       name: text('Its name in the scene. Made unique if taken; the result says the final name.'),
       position: vector,
-      turn_degrees: number('Turn about the vertical axis from its default facing, in degrees.'),
+      turn_degrees: number(
+        'Turn about the vertical axis, in degrees. 0 faces +z; a positive turn is to its left: 90 faces +x, -90 faces -x, 180 faces -z.',
+      ),
       scale: number('Resize, 0.05 to 20; 1 is its usual size.'),
       ...CHANGE_FIELDS,
     },
@@ -233,7 +235,7 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
       'Which property.',
     ),
     value: text(
-      'As text: a position as "x, y, z" in metres; degrees or a scale as a number; a paint name or #rrggbb; opacity from 0 to 1; or the name of the object it rides on.',
+      'As text: a position as "x, y, z" in metres; degrees (as turn_degrees in add_model) or a scale as a number; a paint name or #rrggbb; opacity from 0 to 1; or the name of the object it rides on.',
     ),
     ...CHANGE_FIELDS,
   }),

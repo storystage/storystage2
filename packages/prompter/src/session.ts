@@ -284,6 +284,7 @@ export class PrompterSession {
       const results: Json[] = [];
       let stop: AskStatus | null = null;
       let failedStep: number | string | undefined;
+      let answered = false;
       for (const use of uses) {
         const id = String(use.id);
         let outcome: ToolOutcome;
@@ -299,8 +300,10 @@ export class PrompterSession {
           outcome = await this.#runOne(use, reply.badInputs.get(id), options);
         }
         const input = (use.input ?? {}) as Record<string, unknown>;
-        if (outcome.ok && use.name === 'explain' && typeof input.text === 'string')
+        if (outcome.ok && use.name === 'explain' && typeof input.text === 'string') {
           options.onEvent?.({ type: 'explain', text: input.text });
+          answered = true;
+        }
         if (outcome.ok && isChange(String(use.name))) {
           changes += 1;
           const step = outcome.step ?? input.plan_step;
@@ -325,6 +328,10 @@ export class PrompterSession {
       // Every call gets its result, in one message, even when the request stops here.
       this.#messages.push({ role: 'user', content: results });
       if (stop) return done(stop, failedStep === undefined ? {} : { failedStep });
+      // An answer is the whole reply (section 1.6). Asked again, Claude showed it twice, or wrote
+      // about "the learner" under it. A build goes on, and so does a call waiting for its result.
+      const onlyExplains = uses.every((use) => use.name === 'explain');
+      if (answered && onlyExplains && options.agreedPlan === undefined) return done('done');
     }
   }
 
