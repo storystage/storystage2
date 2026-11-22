@@ -22,7 +22,6 @@ export const CHANGE_TOOLS = [
   'set_property',
   'insert_statement',
   'insert_control',
-  'declare_procedure',
   'add_event_listener',
   'stage_scene',
   'code_frame',
@@ -31,8 +30,8 @@ export const CHANGE_TOOLS = [
 export const TOOL_NAMES = [...READ_TOOLS, ...PLAN_TOOLS, ...CHANGE_TOOLS] as const;
 
 /**
- * The tools sent with `strict: true` (spec 04, section 3). All fifteen strict compile to a grammar
- * the API refuses as too large, and so do the eight change tools on their own; the read and plan
+ * The tools sent with `strict: true` (spec 04, section 3). When there were fifteen, all strict
+ * compiled to a grammar the API refuses as too large, and so did the change tools alone; the read and plan
  * tools together compile (the owner's probe of 21 Nov 2026, `tools/fake-claude/src/eval/
  * probe-grammar.ts`). Every call is still checked against its schema before it runs.
  */

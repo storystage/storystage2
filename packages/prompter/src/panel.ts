@@ -34,6 +34,7 @@ import {
 } from './repeats.ts';
 import { PrompterSession, type AskOutcome, type SessionEvent } from './session.ts';
 import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
+import type { StepBlock } from './step-blocks.ts';
 import type { Json, PrompterMode, PrompterTransport, TransportErrorCode } from './transport.ts';
 
 export type PanelPhase =
@@ -331,10 +332,41 @@ export class PrompterPanel<S extends string = string> {
   /** Build these steps: the learner's version of the plan, as agreed. */
   async build(): Promise<void> {
     const plan = this.#state.plan;
-    if (!this.#state.canBuild || !plan) return;
+    if (!this.#state.canBuild || !plan || !this.#stillBuilds(plan)) return;
     await this.#run(BUILD_REQUEST, {
       agreedPlan: { plan: plan.plan, frame: plan.frame, steps: plan.steps } as unknown as Json,
     });
+  }
+
+  /**
+   * Checks the plan again as Build is pressed (section 6.3): the program may have changed since
+   * it was shown. A step that can't be built now says so, and nothing is sent.
+   */
+  #stillBuilds(plan: PanelPlan): boolean {
+    const problems = this.#setup.runner.checkSteps(plan.steps, plan.frame);
+    if (problems.length === 0) return true;
+    this.#set({ plan: { ...plan, problems } });
+    return false;
+  }
+
+  /**
+   * The blocks a `do` step of `actor`'s can use at `step`'s place in the plan on show, from 0
+   * (by default, at its end), the learner's own first (section 6.9). With no plan, none.
+   */
+  stepBlocks(actor: string, step = Infinity): readonly StepBlock[] {
+    const plan = this.#state.plan;
+    if (!plan) return [];
+    return this.#setup.runner.stepBlocks(actor, plan.steps.slice(0, step), plan.frame);
+  }
+
+  /**
+   * Who can do a step at `step`'s place in the plan on show, from 0 (by default, at its end): the
+   * scene (`this`), its objects and those earlier steps add.
+   */
+  stepActors(step = Infinity): readonly string[] {
+    const plan = this.#state.plan;
+    if (!plan) return [];
+    return this.#setup.runner.stepActors(plan.steps.slice(0, step), plan.frame);
   }
 
   stop(): void {
@@ -375,7 +407,7 @@ export class PrompterPanel<S extends string = string> {
     const made = change([...plan.steps]);
     const { steps, words, rewrite }: StepsEdit = Array.isArray(made) ? { steps: made } : made;
     if (steps === null) return words ? { ok: false, words } : { ok: false };
-    for (const i of rewrite ?? []) steps[i] = this.#worded(steps[i]!, false);
+    for (const i of rewrite ?? []) steps[i] = this.#worded(steps[i]!, false, steps.slice(0, i));
     this.#set({
       plan: {
         ...plan,
@@ -398,8 +430,16 @@ export class PrompterPanel<S extends string = string> {
 
   /** Works the ticks out again after the production changed. */
   #progress(): void {
-    const plan = this.#state.plan;
+    let plan = this.#state.plan;
     if (!plan || this.#busy) return;
+    // A problem found as Build was pressed goes once the program is put right, such as by Undo.
+    if (plan.problems.length > 0 && this.#setup.level() !== 'planOnly') {
+      const problems = this.#setup.runner.checkSteps(plan.steps, plan.frame);
+      if (JSON.stringify(problems) !== JSON.stringify(plan.problems)) {
+        plan = { ...plan, problems };
+        this.#set({ plan });
+      }
+    }
     const done = this.#ticks(plan.steps, plan.frame);
     if (done.length === plan.done.length && done.every((d, i) => d === plan.done[i])) return;
     this.#set({ plan: { ...plan, done } });
@@ -462,7 +502,7 @@ export class PrompterPanel<S extends string = string> {
       const made = addRepeatStep(steps);
       if (!made.steps) return made;
       const at = made.steps.length - 2;
-      made.steps[at] = this.#worded(made.steps[at]!, false);
+      made.steps[at] = this.#worded(made.steps[at]!, false, made.steps.slice(0, at));
       return made;
     });
     if (!edit.ok) return edit;
@@ -482,12 +522,17 @@ export class PrompterPanel<S extends string = string> {
       const next = { ...s, ...change };
       // A repeat's How many times and Steps inside stay within their limits (section 6.8).
       if (!repeatFits(steps, index, next)) return { steps: null };
-      // A change that changes nothing, such as Save with nothing changed, keeps the words.
+      // A change that changes nothing, such as Save with nothing changed, keeps the words. It's
+      // still the learner changing the step, so a block step fixes its procedure again (6.9).
       const same = (Object.keys(change) as (keyof PlanStep)[]).every(
         (k) => JSON.stringify(next[k]) === JSON.stringify(s[k]),
       );
       return steps.map((step, i) =>
-        i !== index ? step : same ? s : this.#worded(next, 'words' in change),
+        i !== index
+          ? step
+          : same
+            ? { ...s }
+            : this.#worded(next, 'words' in change, steps.slice(0, index)),
       );
     });
   }
@@ -499,15 +544,17 @@ export class PrompterPanel<S extends string = string> {
       // A new step doesn't land inside a repeat: it goes after it (section 6.8).
       const holder = heldBy(steps)[place];
       if (holder !== null && holder !== undefined) place = holder + steps[holder]!.holds + 1;
-      steps.splice(place, 0, this.#worded(step, step.words.trim() !== ''));
+      const before = steps.slice(0, place);
+      // A copy: the step is new here, whatever it meant where it came from (6.9).
+      steps.splice(place, 0, this.#worded({ ...step }, step.words.trim() !== '', before));
       return steps;
     });
   }
 
-  #worded(step: PlanStep, keep: boolean): PlanStep {
+  #worded(step: PlanStep, keep: boolean, before: readonly PlanStep[]): PlanStep {
     if (keep) return step;
     const frame = this.#state.plan?.frame ?? null;
-    return { ...step, words: this.#setup.runner.stepWords(step, frame) };
+    return { ...step, words: this.#setup.runner.stepWords(step, frame, before) };
   }
 
   /**
@@ -519,7 +566,7 @@ export class PrompterPanel<S extends string = string> {
     if (!this.#state.canRetry || !last) return Promise.resolve();
     if (last.extra.agreedPlan === undefined) return this.#run(last.text, last.extra);
     const plan = this.#state.plan;
-    if (!plan || plan.problems.length > 0) return Promise.resolve();
+    if (!plan || plan.problems.length > 0 || !this.#stillBuilds(plan)) return Promise.resolve();
     return this.#run(last.text, {
       agreedPlan: { plan: plan.plan, frame: plan.frame, steps: plan.steps } as unknown as Json,
     });

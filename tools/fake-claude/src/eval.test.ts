@@ -68,6 +68,8 @@ describe('the evaluation set', () => {
         'INJECT-MODEL',
         'INJECT-NAME',
         'INJECT-TAG',
+        // A procedure's name, which can hold no hyphen (spec 04, section 6.9).
+        'INJECT_MOVE',
       ]),
     );
   });

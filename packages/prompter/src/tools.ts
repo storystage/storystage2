@@ -85,7 +85,9 @@ const object = (
 const VALUE =
   'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), a position as "x, y, z" in metres, or a list as its items separated by commas ("owl, cat").';
 const nameValue = object({
-  name: text('The parameter or detail name, from the Story API catalog.'),
+  name: text(
+    "The parameter or detail name from the Story API catalog, or an input's name of one of the learner's own procedures.",
+  ),
   value: text(VALUE),
 });
 const vector = object(
@@ -124,7 +126,7 @@ const PLAN_STEP = object({
   ),
   actor: text('The object that acts, by its name in the scene; "scene" for stage; "" for repeat.'),
   action: text(
-    'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id. For repeat, "".',
+    'For do, a Story API procedure, or one of the learner\'s own procedures by its exact name in the program text. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id. For repeat, "".',
   ),
   target: text(
     'Another object or marker the block acts on, such as the one to turn to face or move toward; "" for none. Never the actor itself.',
@@ -241,15 +243,23 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
   }),
   insert_statement: tool(
     'insert_statement',
-    `Add one Story API procedure block to a method. Words a character says must be a script line's exact words, given in line, or come from the learner's own request. ${BUILDING}`,
+    `Add one procedure block to a method: the Story API's, or one of the learner's own. Words a character says, on-screen text (setValue) and every text input of a learner's procedure must be a script line's exact words, given in line, or come from the learner's own request. ${BUILDING}`,
     {
       method: METHOD,
       parent_block: PARENT,
       position: POSITION,
       target: text('An object name, "this" for the scene, or a joint in the catalog\'s form.'),
-      procedure: text('A Story API procedure on the target\'s class: "move", "turn", "say".'),
-      arguments: list(nameValue, 'The required parameters.'),
-      details: list(nameValue, 'Optional details: duration, animationStyle and so on.'),
+      procedure: text(
+        'A Story API procedure on the target\'s class ("move", "turn", "say"), or one of the learner\'s own by its exact name in the program text.',
+      ),
+      arguments: list(
+        nameValue,
+        "The required parameters; for one of the learner's own, every input.",
+      ),
+      details: list(
+        nameValue,
+        "Optional details: duration, animationStyle and so on. The learner's own take none.",
+      ),
       line: text('The script line id whose words this block says.'),
       ...CHANGE_FIELDS,
     },
@@ -280,23 +290,6 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
       ...CHANGE_FIELDS,
     },
     ['parent_block', 'count', 'condition', 'items'],
-  ),
-  declare_procedure: tool(
-    'declare_procedure',
-    `Make a new procedure, a block of the learner's own. The result gives its name, for insert_statement. ${BUILDING}`,
-    {
-      class: text('"Scene", or a class in the program.'),
-      name: text("The new procedure's name."),
-      parameters: list(
-        object({
-          name: text("The parameter's name."),
-          type: text('A type from the Story API catalog.'),
-        }),
-        'Its parameters.',
-      ),
-      ...CHANGE_FIELDS,
-    },
-    ['parameters'],
   ),
   add_event_listener: tool(
     'add_event_listener',
