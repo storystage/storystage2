@@ -488,6 +488,8 @@ export type ToolOutcome =
       readonly ok: true;
       readonly ids: Readonly<Record<string, string>>;
       readonly summary: string;
+      /** The step a change was built for, when it isn't the one the call named (section 6.4). */
+      readonly step?: number;
       /** `find_models`: the full Backstage lines found, and their sets' joints (section 2.7). */
       readonly models?: readonly string[];
       readonly joints?: Readonly<Record<string, readonly string[]>>;

@@ -178,6 +178,12 @@ const fail = (error: ToolErrorCode, message: string): Result => ({ ok: false, er
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 const pairs = (v: unknown): NameValue[] => (Array.isArray(v) ? (v as NameValue[]) : []);
 const story = (name: string): TypeRef => ({ kind: 'story', name });
+/** The step that starts the group a step runs together in, from 1 (section 6.4). */
+function groupStart(steps: readonly PlanStep[], number: number): number {
+  let start = number;
+  while (start > 1 && steps[start - 1]?.together) start -= 1;
+  return start;
+}
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -615,10 +621,13 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     switch (name) {
       case 'insert_statement':
         return this.#insert(input, step, number, scene, mint, () => this.#call(input, scene, mint));
-      case 'insert_control':
-        return this.#insert(input, step, number, scene, mint, () =>
+      case 'insert_control': {
+        const serves = text(input.kind) === 'doTogether' ? groupStart(steps, number) : number;
+        const built = this.#insert(input, steps[serves - 1]!, serves, scene, mint, () =>
           this.#control(input, scene, mint),
         );
+        return built.ok && serves !== number ? { ...built, step: serves } : built;
+      }
       case 'declare_procedure':
         return this.#declareProcedure(input, program, type, mint);
       case 'add_model':

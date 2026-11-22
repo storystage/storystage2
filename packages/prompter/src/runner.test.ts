@@ -250,6 +250,31 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     runner.end();
   });
 
+  it('gives a do together named for a later step to the step that starts its group (plan-06)', () => {
+    const { runner, run, now } = setUp();
+    const first = step({ words: 'The penguin goes.' });
+    const second = step({ words: 'The fox goes too.', actor: 'fox', together: true });
+    runner.begin('go', agreed([first, second]));
+    const group = run('insert_control', {
+      method: 'myFirstMethod',
+      position: 'end',
+      kind: 'doTogether',
+      narration: 'These happen at the same time.',
+      plan_step: 2,
+    });
+    const inside = { parent_block: (group.ok && group.ids.block) || '' };
+    run('insert_statement', move('1', inside));
+    run('insert_statement', move('1', { ...inside, target: 'fox', plan_step: 2 }));
+    runner.end();
+    const [above, block] = methodBody(now()).slice(-2);
+    expect(above).toMatchObject({ kind: 'comment', text: first.words });
+    expect(block).toMatchObject({
+      kind: 'doTogether',
+      body: [{ kind: 'call' }, { kind: 'comment', text: second.words }, { kind: 'call' }],
+    });
+    expect(group).toMatchObject({ ok: true, step: 1 });
+  });
+
   it("gives an if's two halves as places to build", () => {
     const { runner, run } = setUp();
     runner.begin('go', agreed([step({ together: true })]));
