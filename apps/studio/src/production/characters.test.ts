@@ -53,6 +53,18 @@ describe('a character in the Code editor (0074)', () => {
     );
   });
 
+  it('names a packed model this device hasn’t checked as the film does', () => {
+    const item = { id: PENGUIN, class: 'Flyer', displayName: 'Waddles' };
+    const packed = {
+      ...p,
+      manifest: { ...p.manifest, models: [{ folder: 'waddles', item }] },
+    } as unknown as Production;
+    const id = fieldNamed(p, s1, 'penguin').id;
+    expect(characterOf(packed, s1, id, () => null)!.model.name).toBe('Waddles');
+    // Backstage's own name still comes first.
+    expect(characterOf(packed, s1, id, named)!.model.name).toBe('Emperor penguin');
+  });
+
   it('makes the class, the move and its inputs as one undo step, for every scene', () => {
     const penguin = characterOf(p, s1, fieldNamed(p, s1, 'penguin').id, named)!;
     const label = 'Add move waddle for Emperor penguin with steps';

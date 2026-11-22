@@ -22,6 +22,7 @@ import {
 import type { BackstageId } from '@storystage/story-api';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { placeFromStoryboard, storyboardPlan } from '@storystage/staging';
+import { addedObjectType } from '../production/characters.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { sceneNumber } from '../storyboard/edits.ts';
 import { sceneFrames } from '../storyboard/frames.ts';
@@ -139,6 +140,9 @@ export function usePrompter({
       level: () => (held.current ? 'off' : currentLevel.current),
       scene: () => (sceneNow.current ?? firstScene()) as SceneId,
       backstageClass: (id) => modelsNow.current.item(id as BackstageId)?.class ?? null,
+      // An object it adds has its character's own moves, as Backstage's Add gives it (0074).
+      objectType: (p, object) =>
+        addedObjectType(p, object, (id) => modelsNow.current.item(id)?.displayName ?? null),
       stageFromStoryboard: (p, at, label) => {
         const placed = placeFromStoryboard(p, at, storyboardPlan(p, at, backstage), label);
         return placed.ok ? placed : { ok: false, refusal: placed.refusal, name: placed.name };
