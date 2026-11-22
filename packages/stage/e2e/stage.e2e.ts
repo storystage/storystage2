@@ -434,3 +434,13 @@ test('reads back the same picture from WebGPU as from WebGL2, top row first, red
   expect(r.frame).toBeLessThan(6);
   expect(r.picture).toBeLessThan(6);
 });
+
+test('a part-faded glTF model is blended with what is behind it', async ({ page }) => {
+  const problems = await open(page);
+  const got = await call<{ covered: number; alpha: number; off: number }>(page, 'fadedModel');
+  expect(got.covered).toBeGreaterThan(500);
+  // Unblended, the frame is the solid model with a see-through alpha (#117 to 22 Nov).
+  expect(got.alpha).toBe(255);
+  expect(got.off).toBeLessThan(6);
+  expect(problems).toEqual([]);
+});

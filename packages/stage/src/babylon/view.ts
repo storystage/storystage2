@@ -1,4 +1,5 @@
 import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup.js';
+import { Material } from '@babylonjs/core/Materials/material.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { Matrix, Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
@@ -163,7 +164,11 @@ export class ObjectView {
   readonly meshes: readonly AbstractMesh[];
   private readonly root: TransformNode;
   private readonly label: ViewParts['label'];
-  private readonly surfaces: readonly { material: StandardMaterial; colour: Color3 }[];
+  private readonly surfaces: readonly {
+    material: StandardMaterial;
+    colour: Color3;
+    mode: number | null;
+  }[];
   private readonly bones: readonly { joint: JointName; node: TransformNode; rest: Quat }[];
   private readonly jointNodes: ReadonlyMap<JointName, TransformNode>;
   /** The way each joint faces, in its own axes: the way the model faces (+Z), at rest. */
@@ -211,7 +216,11 @@ export class ObjectView {
     this.meshes = meshes;
     this.box = box;
     this.label = label;
-    this.surfaces = paintable.map((material) => ({ material, colour: material.diffuseColor }));
+    this.surfaces = paintable.map((material) => ({
+      material,
+      colour: material.diffuseColor,
+      mode: material.transparencyMode,
+    }));
     this.bones = [...(joints ?? [])].map(([joint, node]) => {
       // A copy: `setRotation` writes to the node's own quaternion.
       const { x, y, z, w } = node.rotationQuaternion ?? Quaternion.FromEulerVector(node.rotation);
@@ -525,6 +534,10 @@ export class ObjectView {
     this.root.setEnabled(opacity > 0);
     this.label?.mesh.setEnabled(opacity > 0);
     for (const mesh of this.meshes) mesh.visibility = opacity;
+    // Babylon.js takes a surface's transparency mode over its meshes' visibility, and glTF gives
+    // every surface one (nearly always opaque), so part faded it must be told to blend.
+    for (const { material, mode } of this.surfaces)
+      if (mode !== null) material.transparencyMode = opacity < 1 ? blending(mode) : mode;
   }
 
   /** A paint tints each surface; part-way through a blend, the old tint and the new are mixed. */
@@ -540,4 +553,11 @@ export class ObjectView {
         : to;
     }
   }
+}
+
+/** A surface's transparency mode while it's part faded: a cut-out stays cut out. */
+function blending(mode: number): number {
+  return mode === Material.MATERIAL_ALPHATEST || mode === Material.MATERIAL_ALPHATESTANDBLEND
+    ? Material.MATERIAL_ALPHATESTANDBLEND
+    : Material.MATERIAL_ALPHABLEND;
 }
