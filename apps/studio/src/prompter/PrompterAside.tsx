@@ -368,9 +368,13 @@ export function PrompterAside({
                   moving?.kind === 'repeat'
                     ? repeatMove(steps.length, move.from, moving.holds, move.to)
                     : move.to;
+                if (!moving) return;
+                const edit = panel.moveStep(move.from, to);
+                // Where it landed: one place sooner when its repeat went with the move (S7, #629).
+                const landed = panel.state.plan?.steps.indexOf(moving) ?? to;
                 announce(
-                  panel.moveStep(move.from, to),
-                  words.t('prompter.stepMoved', { from: move.from + 1, to: to + 1 }),
+                  edit,
+                  words.t('prompter.stepMoved', { from: move.from + 1, to: landed + 1 }),
                 );
               }}
               onDelete={(id) => {

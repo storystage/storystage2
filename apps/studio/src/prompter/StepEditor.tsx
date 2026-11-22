@@ -379,8 +379,10 @@ export function StepEditor({
           <Checkbox
             isSelected={draft.together}
             onChange={(together) => set({ together })}
-            // Nothing is before the first step, nor before a repeat's first step inside it.
-            isDisabled={number === 1 || held === 'first'}
+            // Nothing is before the first step, nor before a repeat's first step inside it. One
+            // already ticked there can be unticked, or the plan couldn't be built (S7, #629). It
+            // goes by the step as opened, so unticking doesn't take keyboard focus off the box.
+            isDisabled={!step.together && (number === 1 || held === 'first')}
           >
             {words.t('prompter.step.together')}
           </Checkbox>

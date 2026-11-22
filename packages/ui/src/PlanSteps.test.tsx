@@ -95,6 +95,12 @@ describe('a repeat in the plan (04-prompter §6.8)', () => {
     expect(screen.getByRole('row', { name: 'Step 4: The owl says “Again!”' }));
   });
 
+  it('drops a colon with space after it from a repeat’s name', () => {
+    expect(stepName({ id: 'r', text: 'Repeat 2 times: ', holding: [2] }, 1)).toBe(
+      'Step 1: Repeat 2 times, holding step 2',
+    );
+  });
+
   it('says which steps a repeat holds', () => {
     expect(heldWords([3])).toBe('step 3');
     expect(heldWords([2, 3])).toBe('steps 2 and 3');

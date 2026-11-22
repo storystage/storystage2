@@ -43,7 +43,7 @@ export function stepName(step: PlanStep, n: number): string {
   if (step.holding && step.holding.length > 0)
     text =
       messages.t('plan.holding', {
-        text: step.text.replace(/:s*$/, ''),
+        text: step.text.replace(/:\s*$/, ''),
         steps: heldWords(step.holding),
       }) + (step.problem ? ` ${step.problem}` : '');
   const key = step.inside
