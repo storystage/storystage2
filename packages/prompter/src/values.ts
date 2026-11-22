@@ -49,6 +49,30 @@ export function objectRef(
   };
 }
 
+/** A plain value as a step writes it, or null for one no step can give (an expression). */
+export function plainText(e: Expression, fields: ReadonlyMap<NodeId, string>): string | null {
+  switch (e.kind) {
+    case 'number':
+    case 'wholeNumber':
+      return String(e.value);
+    case 'boolean':
+      return e.value ? 'true' : 'false';
+    case 'text':
+    case 'enum':
+      return e.value;
+    case 'this':
+      return 'this';
+    case 'fieldRef':
+      return e.target.kind === 'this' ? (fields.get(e.field) ?? null) : null;
+    case 'arrayOf': {
+      const items = e.items.map((item) => plainText(item, fields));
+      return items.every((item) => item !== null) ? items.join(', ') : null;
+    }
+    default:
+      return null;
+  }
+}
+
 /** A list's items as text: separated by commas, each one trimmed, none empty. */
 export function listItems(value: string): string[] {
   return value

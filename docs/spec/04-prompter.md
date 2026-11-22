@@ -239,7 +239,7 @@ The definitions are in `packages/prompter/src/tools.ts`, and the tables below de
 
 Tool schemas are fixed for a release, so they use plain strings where StoryStage 1 used enums built from catalogs. The catalogs are in the system prompt; the client checks each value and answers `unknown_object` or `unknown_method`. The two enums that are fixed for a release come from their sources: control blocks from the AST's `STATEMENT_KINDS`, and events from the Story API's `EVENTS`.
 
-**Which tools are strict** (`STRICT_TOOLS`): the read and plan tools. The API compiles every strict tool's schema into one grammar, and refused all fifteen, and the eight change tools on their own, as too large; each change tool compiles alone, and so do the read and plan tools together (the owner's probe of 21 Nov 2026, `tools/fake-claude/src/eval/probe-grammar.ts`). The change tools are sent without `strict`, with the same schemas; nothing changes for them but where a malformed call is caught, which is the client's check before anything runs, as for every tool (section 1.6). Making them strict again needs fewer optional fields (each roughly doubles part of the grammar), so it waits for what the pilot shows of malformed calls.
+**Which tools are strict** (`STRICT_TOOLS`): the read and plan tools. The API compiles every strict tool's schema into one grammar, and refused all fifteen (there are fourteen since section 6.9 took `declare_procedure` away), and the change tools on their own, then eight, as too large; each change tool compiles alone, and so do the read and plan tools together (the owner's probe of 21 Nov 2026, `tools/fake-claude/src/eval/probe-grammar.ts`). The change tools are sent without `strict`, with the same schemas; nothing changes for them but where a malformed call is caught, which is the client's check before anything runs, as for every tool (section 1.6). Making them strict again needs fewer optional fields (each roughly doubles part of the grammar), so it waits for what the pilot shows of malformed calls.
 
 Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints. So:
 
@@ -311,7 +311,7 @@ Adds one procedure call to a method.
 | `parent_block` | string, optional | Id of a control block; default is the method's body |
 | `position` | string | `end`, or a whole number as text |
 | `target` | string | An object name, `this` for the scene, or a joint in the catalog's form |
-| `procedure` | string | A Story API procedure (`move`, `turn`, `say`, `moveTo`, `turnToFace`), or the name of one of the learner's own (section 6.9, proposed) |
+| `procedure` | string | A Story API procedure (`move`, `turn`, `say`, `moveTo`, `turnToFace`), or the name of one of the learner's own (section 6.9) |
 | `arguments` | list of `{name, value}` | Required parameters |
 | `details` | list of `{name, value}`, optional | `duration`, `animationStyle`, `asSeenBy` and so on |
 | `line` | string, optional | A script line id; see section 6.5 |
@@ -331,19 +331,6 @@ Adds a control block that later statements can go inside.
 | `narration`, `plan_step` | | |
 
 Result `ids.block`: the id to use as `parent_block` (for `if`, `ids.then` and `ids.else`).
-
-#### `declare_procedure`
-
-*Proposed (section 6.9): removed. Until that is built, it works as below.*
-
-| Field | Type | Notes |
-|---|---|---|
-| `class` | string | `Scene`, or a class in the program |
-| `name` | string | |
-| `parameters` | list of `{name, type}`, optional | Types from the catalog |
-| `narration`, `plan_step` | | |
-
-Result `ids.method`: the name to use in `insert_statement`.
 
 #### `add_event_listener`
 
@@ -586,7 +573,7 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | `words` | string | The step in plain words, under 20 words |
 | `kind` | enum `do`, `add`, `change`, `when`, `stage`, `repeat` | A Story API call; add a model; change how something starts; an event; set the scene from the storyboard; repeat the steps after it (section 6.8, proposed) |
 | `actor` | string | Object name, or `scene` for `stage` |
-| `action` | string | For `do`: a Story API procedure, or one of the learner's own (section 6.9, proposed). For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
+| `action` | string | For `do`: a Story API procedure, or one of the learner's own (section 6.9). For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
 | `target` | string | Object or marker it acts on, or `""` for none |
 | `details` | list of `{name, value}` | For `do`, every setting the block needs, with the value to build, and any of its details. At most 20, names up to 64 characters, values up to 300 |
 | `line` | string | A script line id, or `""` for none |
@@ -604,11 +591,15 @@ Steps are flat, because strict mode allows no recursive schemas: a plan expresse
 
 Before a plan is shown, and again when the learner presses **Build these steps**, code checks each step against the Story API and the production: the actor exists; the action exists on its class; the target exists; every setting the block needs is there, with a value (the step's `target` fills the block's object, and its `line` a say's words); the line and sketch exist; an `add` names a real Backstage item or a stand-in. A step that can't be built says so in plain words on the step, before building, not after ("There's no owl in this scene yet. Add one first, or change who does this.", "A move block needs a value for amount.").
 
+**A step's words and its side.** A plan the Prompter proposes or revises is also refused, to the Prompter, when a step's words put a model on one side of the picture and its position is on the other ("Add a fox on the left", at x -1). The owner's rerun of 22 Nov showed a learner that step, and the learner agrees to the words. The check reads plain phrases only: "on the left" before a stop or a comma, "the left side", "to the left of the picture". A side of another object or of a row isn't read, and nor is any plan while the camera isn't at the start's middle with no turn, or a step moves it. On the 261 plan steps in that day's and earlier runs, it refused that step and no other. It doesn't check the learner's own edits, whose words code writes.
+
 A step gives every setting so the learner can see and change each one with the dropdowns (6.1, step 5), and so the build is held to the values agreed (6.4): a setting left out would be the Prompter's to choose while building. The owner chose this on 18 Nov, and the system prompt asks for it.
 
 ### 6.4 The build matches the plan
 
 Code, not trust, keeps the build to the plan. During a build the executor holds the agreed steps, and each change call must name a `plan_step` and match it: same actor, same action, same target, same details and same line. Anything else answers `not_in_plan` and changes nothing. Supporting calls that a step needs, such as the `doTogether` block for steps marked `together`, must name the step they serve.
+
+A setting is given once. A step or a call that gives one twice is refused: before 22 Nov 2026 a call matched its step on the first value and built the last.
 
 When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 
@@ -620,7 +611,7 @@ When the loop ends, every agreed step must have landed. A step that didn't is re
 
 ### 6.5 What characters say
 
-Text in `say`, `think` and the speak line block comes from one of two places, and code checks it: a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
+Code holds three kinds of words in the film: text in `say`, `think` and the speak line block, on-screen text (`Text.setValue`; the owner's choice, 22 Nov 2026), and every text input of a learner's procedure (6.9). Each is a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
 
 ### 6.6 Plan only
 
@@ -746,9 +737,9 @@ A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `
   - Change step's own values are left to the plan check, which says what's wrong under the step.
 - **The tool's input check** lets `actor` and `action` be empty, for a repeat step. The plan check then says "Say who does this step." or "Say what this step does." for any other step that leaves them empty.
 
-### 6.9 Calling the learner's own procedures and moves (proposed)
+### 6.9 Calling the learner's own procedures and moves
 
-**Proposed on 22 Nov 2026; none of it is built.** The owner asked for this spec on 21 Nov, after decision 0074 gave learners procedures with inputs (parameters) and a character's own moves. Today a plan step and `insert_statement` take only Story API procedures, so the Prompter can't show a learner how to use "waddle" once they've written it.
+**Approved by the owner on 22 Nov 2026 (#642), and S7's half is built:** the step editor is S5's to build, and no live run has tried it. The owner asked for this spec on 21 Nov, after decision 0074 gave learners procedures with inputs (parameters) and a character's own moves. Before, a plan step and `insert_statement` took only Story API procedures, so the Prompter couldn't show a learner how to use "waddle" once they'd written it.
 
 **The owner's choices (22 Nov):**
 1. A plan calls only procedures and moves that already exist. `declare_procedure` is removed, and the learner makes new ones in the Code editor. It made a procedure no step had agreed to, and no tool could call it.
@@ -796,9 +787,11 @@ These are refused on the step, before the learner can build:
 | A value missing, or of the wrong type | "A waddle block needs a value for steps." |
 | A setting that isn't an input | "A waddle block has no speed setting." |
 | More than 20 inputs, or a name too long for a step (`PLAN_LIMITS`: 300 characters for the procedure's, 64 for an input's) | "waddle has too much to fit in a step, so add it in the Code editor." |
+| A target the procedure doesn't act on | "A soar block doesn't act on the owl." |
+| Its procedure changed since the plan was shown | "The waddle block has changed since this plan was made. Change this step, or ask again." |
 | More than one text input, in a frame's plan | "waddle has more than one text input, so add it in the Code editor." |
 
-An object added earlier in the plan is checked too, now that its class is known then: today its blocks are checked only as they're built.
+An object added earlier in the plan is checked too, as its class is known then. That holds for the Story API's blocks as well, which before were checked only as they were built. The Prompter asks `objectType` for it as it reads a plan, so the hook changes nothing.
 
 #### Building (6.4)
 
@@ -815,18 +808,29 @@ An object added earlier in the plan is checked too, now that its class is known 
 
 #### Plan only (6.6)
 
-A step ticks when the learner's block calls the procedure it means (by id, and still by that name), with the same values by input name, under 6.6's other rules. An input the block leaves out, as the editors' new blocks do for one with a default, counts as its default when that's a plain value, and otherwise doesn't match. A step's line is matched against the only text input, whatever its name. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7).
+A step ticks when the learner's block calls the procedure it means (by id, and still by that name), with the same values by input name, under 6.6's other rules. An input the block leaves out, as the editors' new blocks do for one with a default, counts as its default when that's a plain value, and otherwise doesn't match. A step's line is matched against the only text input, whatever its name. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7). After the film is reopened a kept plan doesn't come back into the panel (6.6), so nothing ticks or builds from it and no id is needed: the name is never resolved again.
 
 #### What the Prompter is sent, and what it's told
 
 - **No data block changes.** The program text already has each class with what it extends, each field's type, and each procedure with its inputs. Over the program's budget, a procedure keeps its first line.
 - **`system`** gains one rule: a step may use one of the learner's own procedures from the program text, by its exact name and with every input; use one when the learner asks for it by name or it plainly does what they ask; never make one up.
 - **Names, comments and bodies stay data** (2.4). No name enters `system` or a tool's definition. A tool result repeats a procedure's or an input's name where it must, and never a body.
-- **The tools:** the descriptions of `action` and `procedure` change, and `declare_procedure` goes from the list, from 3.1 and from 3.4. The pins are regenerated. No strict tool's schema changes shape.
+- **The tools:** the descriptions of `action` and `procedure` change, and `declare_procedure` is gone from the list and from 3.1. The pins are regenerated. No strict tool's schema changes shape.
 
 #### The studio's half
 
-The panel gives `stepBlocks(actor, step)`: for that actor at that step, every block a `do` step can use, each with its name, words, and inputs with their types, the learner's own first under "your own" as in the palette. It lists only what each name resolves to: no procedure hidden by a built-in or by a nearer class's, which the palette does show, so a pick under "your own" can't build something else. The step editor reads it for "which block" and each setting, in place of the Story API's entries alone, so the learner can choose, and correct, the same calls the Prompter can plan (S5).
+The panel gives two things for the plan on show, read from the program as it is at the call (S5's review). `step` is a place in the plan from 0, and may be the plan's length, for a new step.
+
+- **`stepActors(step)`:** who can do a step there: `this`, the scene's objects and those earlier steps add.
+- **`stepBlocks(actor, step)`:** every block a `do` step of that actor's can use there, the learner's own first, for "your own" as in the palette. It lists only what each name resolves to: no procedure hidden by a built-in or by a nearer class's, which the palette does show, so a pick under "your own" can't build something else.
+
+| Each block | What |
+|---|---|
+| `name`, `words`, `own` | The step's `action`, the block's short words, and whether it's the learner's |
+| `details` | The optional details it takes. The learner's own take none |
+| `inputs` | Each setting: `name`, `words` (an input's own name, never a built-in's word), `type`, `objects` (for an object, the names that fit it), `start` (its default, when that's a plain value) and `filledBy` (`target`, `line` or null, by the plan check's rule) |
+
+The step editor reads them for "who", "which block" and each setting, in place of the Story API's entries alone, so the learner can choose, and correct, the same calls the Prompter can plan (S5).
 
 #### Done when
 
@@ -937,6 +941,7 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
+| The step editor on `stepActors` and `stepBlocks`, sending `target` with a change and clearing one the new block can't use | S5 | Section 6.9 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
 | A `plan` field on `Frame` in `packages/production`: done, `Frame.plan` in format 1.6.0 (#517). The Prompter uses production's `PlanStep` and keeps steps within `PLAN_LIMITS` | S4 | Section 6.7 |
 | `FramePlan.done` in format 1.7.0, and `ProductionSession.keepPlans` to keep a frame's plan outside undo, agreed with S4 (20 Nov, #568): the step numbers ticked off in Plan only, from 1, ascending, each once, none past `agreed.length`. It may be empty. Only a Plan only plan has it, so a teacher can tell what the learner built from what code built | S4 | Section 6.6 |

@@ -31,6 +31,17 @@ const world: PlanWorld = {
 };
 
 describe('checkPlan (spec 04, section 6.3)', () => {
+  it('refuses a setting given twice', () => {
+    const details = [
+      { name: 'direction', value: 'forward' },
+      { name: 'amount', value: '1' },
+      { name: 'amount', value: '99' },
+    ];
+    expect(checkPlan([step({ action: 'move', target: '', details })], world)).toEqual([
+      { step: 1, message: 'A move block can have amount only once.' },
+    ]);
+  });
+
   it("passes the workplan's frame 2.3 plan", () => {
     expect(
       checkPlan(

@@ -15,9 +15,18 @@ import {
   type ParamDef,
 } from '@storystage/story-api';
 import { word } from '@storystage/story-api/editing';
+import {
+  onlyInput,
+  typesIn,
+  unplannable,
+  type OwnInput,
+  type OwnMove,
+  type PlanCode,
+} from './own-moves.ts';
+import { stageAdd, stageNow, stepMove, type Stage } from './plan-stage.ts';
 import { PLAN_EDIT_WORDS, heldBy, holdable } from './repeats.ts';
 import { LISTENER_EVENTS } from './tools.ts';
-import { listText } from './values.ts';
+import { listText, toValue } from './values.ts';
 
 /**
  * A plan step, as `propose_plan` sends it (section 6.2). `""` means none. It's the production
@@ -37,6 +46,11 @@ export interface PlanWorld {
   readonly sketches: ReadonlySet<string>;
   readonly scenes: ReadonlySet<string>;
   readonly isBackstageItem: (id: string) => boolean;
+  /**
+   * The code, for the learner's own procedures and moves (section 6.9) and the class of a model a
+   * step adds. Without it, a step can use only the Story API's blocks.
+   */
+  readonly code?: PlanCode;
 }
 
 export interface PlanProblem {
@@ -46,7 +60,7 @@ export interface PlanProblem {
 }
 
 /** A setting's name as the blocks show it ("amount", "words"). */
-function settingWords(name: string): string {
+export function settingWords(name: string): string {
   const param = word(`param.${name}`);
   if (param !== `param.${name}`) return param;
   const detail = word(`detail.${name}`);
@@ -69,12 +83,51 @@ export const SETTABLE_PROPERTIES = [
  */
 export const targetOf = (step: PlanStep): string => (step.target === step.actor ? '' : step.target);
 
-/** The problem with one step, given the objects the steps before it leave in the scene. */
-function stepProblem(
-  step: PlanStep,
-  objects: Map<string, ApiClass | null>,
-  world: PlanWorld,
-): string | null {
+/** A setting given more than once: the step would match on one value and build the other. */
+const givenTwice = (given: readonly NameValue[]): string | undefined =>
+  given.find((g, i) => given.findIndex((h) => h.name === g.name) !== i)?.name;
+
+/** Whether a step's value fits an input of a learner's procedure (section 6.9). */
+function inputFits(input: OwnInput, value: string, stage: Stage, code: PlanCode): boolean {
+  if (input.kind === 'object') {
+    const type = stage.types.get(value);
+    return type !== undefined && typesIn(code.program).typeFits(type, input.type);
+  }
+  if (input.kind === 'text') return value.trim() !== '';
+  // A plain value needs no object, and isn't put in the program: any id will do.
+  const nowhere = { type: code.scene, classOf: () => null };
+  return toValue(value, input.storyType!, nowhere, () => code.scene.id).ok;
+}
+
+/** The problem with a step that calls one of the learner's procedures (section 6.9). */
+function ownProblem(step: PlanStep, move: OwnMove, stage: Stage, code: PlanCode): string | null {
+  const cant = unplannable(code, move);
+  if (cant !== null) return cant;
+  const { name } = move.method;
+  const needs = (input: string) => `A ${name} block needs a value for ${input}.`;
+  const unknown = step.details.find((d) => !move.inputs.some((i) => i.name === d.name));
+  if (unknown) return `A ${name} block has no ${unknown.name} setting.`;
+
+  const target = targetOf(step);
+  const targeted = target === '' ? null : onlyInput(move, 'object');
+  const lined = step.line === '' ? null : onlyInput(move, 'text');
+  const values: string[] = [];
+  for (const input of move.inputs) {
+    const given = step.details.find((d) => d.name === input.name)?.value;
+    // A line's words can be longer than a step's value may be, so they aren't given again.
+    if (given === undefined && input === lined) continue;
+    const value = given ?? (input === targeted ? target : undefined);
+    if (value === undefined || !inputFits(input, value, stage, code)) return needs(input.name);
+    values.push(value);
+  }
+  if (target !== '' && !values.includes(target))
+    return `A ${name} block doesn't act on the ${target}.`;
+  return null;
+}
+
+/** The problem with one step, given what the steps before it leave in the scene. */
+function stepProblem(step: PlanStep, stage: Stage, world: PlanWorld): string | null {
+  const { objects } = stage;
   const has = (name: string) => objects.has(name);
   const missing = (name: string) =>
     `There's no ${name} in this scene yet. Add one first, or change who does this.`;
@@ -91,12 +144,20 @@ function stepProblem(
   switch (step.kind) {
     case 'do': {
       if (!has(step.actor)) return missing(step.actor);
+      const twice = givenTwice(step.details);
+      if (twice !== undefined)
+        return `A ${step.action} block can have ${settingWords(twice)} only once.`;
+      const move = stepMove(step, stage, world);
+      if (move) return ownProblem(step, move, stage, world.code!);
       const cls = objects.get(step.actor);
-      // An object added earlier in the plan has no class yet: its blocks are checked as it's built.
+      // Without the code, an object added earlier in the plan has no class yet: its blocks are
+      // checked as it's built.
       if (cls === null || cls === undefined) return null;
       const entry = findEntry(cls, step.action);
-      if (!entry || entry.kind !== 'procedure')
-        return `The ${step.actor} has no ${step.action} block.`;
+      if (!entry || entry.kind !== 'procedure') {
+        const who = step.actor === 'this' ? 'scene' : step.actor;
+        return `The ${who} has no ${step.action} block.`;
+      }
       const known = new Set([...entry.params.map((p) => p.name), ...entry.details]);
       const unknown = step.details.find((d) => !known.has(d.name));
       if (unknown) return `A ${step.action} block has no ${unknown.name} setting.`;
@@ -115,7 +176,7 @@ function stepProblem(
     case 'add':
       if (!world.isBackstageItem(step.action)) return `${step.action} isn't in Backstage.`;
       if (has(step.actor)) return `There's already something called ${step.actor} here.`;
-      objects.set(step.actor, null);
+      stageAdd(stage, step, world);
       return null;
     case 'change':
       if (!has(step.actor)) return missing(step.actor);
@@ -136,10 +197,10 @@ function stepProblem(
 
 /** Every step that can't be built, in order. Empty means the plan can be shown. */
 export function checkPlan(steps: readonly PlanStep[], world: PlanWorld): PlanProblem[] {
-  const objects = new Map<string, ApiClass | null>(world.objects);
+  const stage = stageNow(world);
   const repeats = repeatProblems(steps);
   return steps.flatMap((step, i) => {
-    const message = repeats.get(i) ?? stepProblem(step, objects, world);
+    const message = repeats.get(i) ?? stepProblem(step, stage, world);
     return message === null ? [] : [{ step: i + 1, message }];
   });
 }
@@ -188,7 +249,7 @@ const text = (value: unknown) => (typeof value === 'string' ? value : '');
  * Why a change call doesn't match the agreed step it names, or `null` if it does. Supporting
  * calls are allowed for the step they serve: the `doTogether` for a step that runs together,
  * or for the step the next one runs together with, the `count` for one that repeats, a
- * `doInOrder` to hold either, and a new procedure. `next` is the step after this one.
+ * `doInOrder` to hold either. `next` is the step after this one.
  * These messages go to Claude, not the learner: each says what differs, so it can build again.
  */
 export function mismatch(
@@ -210,6 +271,9 @@ export function mismatch(
       if (text(input.target) !== step.actor || text(input.procedure) !== step.action)
         return differs(`is the ${step.actor}'s ${step.action} block, with target ${step.actor}`);
       const given = [...pairs(input.arguments), ...pairs(input.details)];
+      const twice = givenTwice(given);
+      if (twice !== undefined)
+        return differs(`has each setting once, and this gives ${twice} more than once`);
       const target = targetOf(step);
       if (target !== '' && !given.some((g) => g.value === target))
         return differs(`acts on the ${target}: give ${target} as the block's object`);
@@ -241,8 +305,6 @@ export function mismatch(
           : 'runs on its own, after the step before it',
       );
     }
-    case 'declare_procedure':
-      return null;
     case 'add_event_listener':
       return step.kind === 'when' && text(input.event) === step.action ? null : wrong;
     case 'add_model':

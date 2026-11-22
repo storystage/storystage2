@@ -400,17 +400,24 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(now()).toEqual(original);
   });
 
-  it("adds a procedure of the learner's own, and a listener", () => {
+  it('refuses a setting given twice, which would build a value the step does not have', () => {
+    const { runner, run, now, original } = setUp();
+    runner.begin('go', agreed([step({})]));
+    const twice = [
+      { name: 'direction', value: 'forward' },
+      { name: 'amount', value: '1' },
+      { name: 'amount', value: '99' },
+    ];
+    expect(run('insert_statement', move('1', { arguments: twice }))).toMatchObject({
+      ok: false,
+      error: 'not_in_plan',
+    });
+    expect(now()).toEqual(original);
+  });
+
+  it('adds a listener', () => {
     const { runner, run, now } = setUp();
     runner.begin('go', agreed([step({ kind: 'when', actor: 'penguin', action: 'clickOnObject' })]));
-    expect(
-      run('declare_procedure', {
-        class: 'Scene',
-        name: 'hop',
-        narration: 'A new hop block.',
-        plan_step: 1,
-      }),
-    ).toMatchObject({ ok: true, ids: { method: 'hop' } });
     expect(
       run('add_event_listener', {
         event: 'clickOnObject',
@@ -422,7 +429,6 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     ).toMatchObject({ ok: true, ids: { block: expect.any(String) } });
     runner.end();
     const scene = now().types.find((t) => t.name === 'Scene2')!;
-    expect(scene.methods.map((m) => m.name)).toEqual(['myFirstMethod', 'hop']);
     expect(scene.listeners.map((l) => l.event)).toEqual(['clickOnObject']);
     expect(scene.listeners[0]!.params.map((p) => p.name)).toEqual(['model', 'x', 'y']);
   });
@@ -555,7 +561,10 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
       ok: true,
     });
     runner.end();
-    expect(asked).toEqual([{ model: 'example/Quadruped/owl', class: 'Quadruped' }]);
+    // Asked as the plan is read (section 6.9), and as the model is added: the same each time.
+    expect(asked.length).toBeGreaterThan(0);
+    for (const object of asked)
+      expect(object).toEqual({ model: 'example/Quadruped/owl', class: 'Quadruped' });
     const scene = session.program().types.find((t) => t.name === 'Scene2')!;
     expect(scene.fields.at(-1)).toMatchObject({
       name: 'owl',

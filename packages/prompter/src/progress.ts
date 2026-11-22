@@ -6,9 +6,10 @@
 import type { Expression, ListenerDecl, NodeId, Statement, TypeDecl } from '@storystage/ast';
 import type { SceneObjectSetup } from '@storystage/story-api';
 import { classOfType, findEntry, type ApiClass } from '@storystage/story-api';
+import { onlyInput, type OwnMove } from './own-moves.ts';
 import { targetOf, type PlanStep } from './plans.ts';
 import { heldBy } from './repeats.ts';
-import { listText } from './values.ts';
+import { listText, plainText } from './values.ts';
 
 /** What the ticks are worked out against: the scene now, and what counts as the learner's. */
 export interface ProgressWorld {
@@ -27,6 +28,10 @@ export interface ProgressWorld {
   readonly counts: (id: NodeId, around: readonly NodeId[]) => boolean;
   /** Whether the scene is set up from its storyboard card, with nothing left to add. */
   readonly staged: boolean;
+  /** One of the learner's procedures, by its id, as it is now (section 6.9). */
+  readonly move?: (id: NodeId) => OwnMove | null;
+  /** For each step, the learner's procedure it means, fixed when it was shown or changed. */
+  readonly meant?: readonly (NodeId | null)[];
 }
 
 /** A call in the scene, with what a step is matched by. */
@@ -34,34 +39,12 @@ interface Found {
   readonly id: NodeId;
   readonly target: string;
   readonly procedure: string;
+  /** The learner's procedure it calls, or null for a Story API block. */
+  readonly move: OwnMove | null;
   readonly values: ReadonlyMap<string, string>;
   readonly counts: readonly number[];
   readonly together: boolean;
   readonly mine: boolean;
-}
-
-/** A value as a step writes it, or null for one no step can give (an expression). */
-function valueText(e: Expression, fields: ReadonlyMap<NodeId, string>): string | null {
-  switch (e.kind) {
-    case 'number':
-    case 'wholeNumber':
-      return String(e.value);
-    case 'boolean':
-      return e.value ? 'true' : 'false';
-    case 'text':
-    case 'enum':
-      return e.value;
-    case 'this':
-      return 'this';
-    case 'fieldRef':
-      return e.target.kind === 'this' ? (fields.get(e.field) ?? null) : null;
-    case 'arrayOf': {
-      const items = e.items.map((item) => valueText(item, fields));
-      return items.every((item) => item !== null) ? items.join(', ') : null;
-    }
-    default:
-      return null;
-  }
 }
 
 /**
@@ -95,18 +78,31 @@ function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
       const here = [...around, s.id];
       switch (s.kind) {
         case 'call': {
-          if (s.callee.kind !== 'story') break;
-          const target = valueText(s.target, fields);
+          const target = plainText(s.target, fields);
           if (target === null) break;
           const values = new Map<string, string>();
-          for (const [name, e] of [...Object.entries(s.args), ...Object.entries(s.details)]) {
-            const v = valueText(e, fields);
+          const put = (name: string, e: Expression | null | undefined) => {
+            const v = e ? plainText(e, fields) : null;
             if (v !== null) values.set(name, v);
+          };
+          let procedure: string;
+          let move: OwnMove | null = null;
+          if (s.callee.kind === 'story') {
+            procedure = s.callee.name;
+            for (const [name, e] of [...Object.entries(s.args), ...Object.entries(s.details)])
+              put(name, e);
+          } else {
+            move = world.move?.(s.callee.method) ?? null;
+            if (!move) break;
+            procedure = move.method.name;
+            // An input left out, as the editors' new blocks do for one with a default, is its default.
+            for (const input of move.inputs) put(input.name, s.args[input.id] ?? input.default);
           }
           found.push({
             id: s.id,
             target,
-            procedure: s.callee.name,
+            procedure,
+            move,
             values,
             counts,
             together,
@@ -157,7 +153,15 @@ function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
  * Whether a call does what a `do` step says, by the rule a build is held to (6.4, 6.3). A step
  * inside a repeat (6.8) must be inside a count with the repeat's times (`within`).
  */
-function matches(step: PlanStep, call: Found, world: ProgressWorld, within?: number): boolean {
+function matches(
+  step: PlanStep,
+  meant: NodeId | null,
+  call: Found,
+  world: ProgressWorld,
+  within?: number,
+): boolean {
+  // The learner's own is matched by id, and still by its name; a built-in only by a built-in.
+  if ((call.move?.method.id ?? null) !== meant) return false;
   if (within !== undefined && !call.counts.includes(within)) return false;
   if (call.target !== step.actor || call.procedure !== step.action) return false;
   for (const d of step.details) {
@@ -166,13 +170,24 @@ function matches(step: PlanStep, call: Found, world: ProgressWorld, within?: num
   }
   const target = targetOf(step);
   if (target !== '' && ![...call.values.values()].includes(target)) return false;
-  if (step.line !== '') {
+  // A line's words are a built-in's `text`, or the learner's only text input, whatever its name.
+  const worded = call.move ? onlyInput(call.move, 'text')?.name : 'text';
+  if (step.line !== '' && worded !== undefined) {
     const words = world.lines.get(step.line);
-    if (words === undefined || call.values.get('text') !== words) return false;
+    if (words === undefined || call.values.get(worded) !== words) return false;
+  }
+  if (call.move) {
+    const targeted = target === '' ? undefined : onlyInput(call.move, 'object')?.name;
+    for (const input of call.move.inputs) {
+      if (step.details.some((d) => d.name === input.name)) continue;
+      if (step.line !== '' && input.name === worded) continue;
+      if (input.name === targeted && call.values.get(input.name) === target) continue;
+      return false;
+    }
   }
   // The block's own settings a step left out are its object and words, filled by target and line.
   const cls = world.classOf(step.actor);
-  const entry = cls ? findEntry(cls, step.action) : undefined;
+  const entry = cls && !call.move ? findEntry(cls, step.action) : undefined;
   if (entry)
     for (const p of entry.params) {
       if (step.details.some((d) => d.name === p.name)) continue;
@@ -247,7 +262,11 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
     const within = holder === null || holder === undefined ? undefined : steps[holder]!.repeat;
     switch (step.kind) {
       case 'do':
-        return take(mine.filter((c) => matches(step, c, world, within)).map((c) => c.id));
+        return take(
+          mine
+            .filter((c) => matches(step, world.meant?.[i] ?? null, c, world, within))
+            .map((c) => c.id),
+        );
       case 'add':
         return world.objects.some(
           (o) => o.id === step.actor && typeof o.model === 'string' && o.model === step.action,

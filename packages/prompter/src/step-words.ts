@@ -7,8 +7,12 @@
  */
 import { PLAN_LIMITS } from '@storystage/production';
 import { DETAILS, enumValues, findEntry, isEnumName, type TypeName } from '@storystage/story-api';
-import { fill, word } from '@storystage/story-api/editing';
+import type { Expression, NodeId } from '@storystage/ast';
+import { describer, fill, word } from '@storystage/story-api/editing';
+import { onlyInput, type OwnMove, type PlanCode } from './own-moves.ts';
+import { stageAfter, stepMove } from './plan-stage.ts';
 import { targetOf, type NameValue, type PlanStep, type PlanWorld } from './plans.ts';
+import { toValue } from './values.ts';
 
 /** A step's words are under 20 words (section 6.2), which also keeps a kept plan in the format's limits. */
 export const STEP_WORDS_MAX = 19;
@@ -23,8 +27,48 @@ function valueWords(value: string, type: TypeName | undefined): string {
 /** Who does it: an object's name, or the scene's words for the scene itself (`this`). */
 const who = (actor: string): string => (actor === 'this' ? word('words.scene') : actor);
 
-function doWords(step: PlanStep, world: PlanWorld): string {
-  const cls = world.objects.get(step.actor);
+/** A call of the learner's own in the editors' words: "penguin waddle steps 3" (section 6.9). */
+function ownWords(step: PlanStep, move: OwnMove, code: PlanCode, world: PlanWorld): string {
+  const id = code.scene.id;
+  const mint = (): NodeId => id;
+  // An object's words are its name, and one added earlier in the plan has no field yet.
+  const named = (name: string): Expression =>
+    name === 'this' ? { id, kind: 'this' } : { id, kind: 'text', value: name };
+  const given = new Map(step.details.map((d) => [d.name, d.value] as const));
+  const target = targetOf(step);
+  const targeted = onlyInput(move, 'object');
+  if (target !== '' && targeted && !given.has(targeted.name)) given.set(targeted.name, target);
+  const lined = onlyInput(move, 'text');
+  const line = step.line ? world.lines.get(step.line) : undefined;
+  if (line !== undefined && lined) given.set(lined.name, line);
+  const args: Record<string, Expression> = {};
+  for (const input of move.inputs) {
+    const value = given.get(input.name);
+    if (value === undefined) continue;
+    if (input.kind === 'object') args[input.id] = named(value);
+    else if (input.storyType) {
+      const made = toValue(value, input.storyType, { type: code.scene, classOf: () => null }, mint);
+      args[input.id] = made.ok ? made.expression : named(value);
+    }
+  }
+  return describer(code.program).inside(
+    {
+      id,
+      kind: 'call',
+      target: named(step.actor),
+      callee: { kind: 'user', method: move.method.id },
+      args,
+      details: {},
+    },
+    code.scene.id,
+  );
+}
+
+function doWords(step: PlanStep, world: PlanWorld, before: readonly PlanStep[]): string {
+  const stage = stageAfter(before, world);
+  const move = stepMove(step, stage, world);
+  if (move) return ownWords(step, move, world.code!, world);
+  const cls = stage.objects.get(step.actor);
   const entry = cls ? findEntry(cls, step.action) : undefined;
   if (!entry || entry.kind !== 'procedure') return `${who(step.actor)} ${step.action}`;
   const given = new Map(step.details.map((d: NameValue) => [d.name, d.value] as const));
@@ -46,12 +90,16 @@ function doWords(step: PlanStep, world: PlanWorld): string {
   return [`${who(step.actor)} ${phrase}`, ...extra].join(', ');
 }
 
-/** The step's words, from what it does. */
-export function stepWords(step: PlanStep, world: PlanWorld): string {
+/** The step's words, from what it does, after the steps before it. */
+export function stepWords(
+  step: PlanStep,
+  world: PlanWorld,
+  before: readonly PlanStep[] = [],
+): string {
   let words: string;
   switch (step.kind) {
     case 'do':
-      words = doWords(step, world);
+      words = doWords(step, world, before);
       break;
     case 'add':
       words = `add ${step.actor}`;
