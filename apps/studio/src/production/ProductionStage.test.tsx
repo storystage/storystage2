@@ -277,6 +277,12 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     expect(
       document.getElementById(name.getAttribute('aria-describedby')!.split(' ')[0]!)?.textContent,
     ).toMatch(/no spaces/);
+    // Nor will one of a scene's own blocks: a plan would take it to mean that block (S6).
+    await user.clear(name);
+    await user.type(name, 'delay{Enter}');
+    expect(
+      within(dialog).getByText('Scenes already have a block called delay. Choose another name.'),
+    ).toBeTruthy();
     await user.clear(name);
     await user.type(name, 'walkToTheDoor{Enter}');
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
