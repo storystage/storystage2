@@ -12,6 +12,7 @@ import {
   type FieldDecl,
   type NodeId,
   type TypeDecl,
+  type TypeRef,
 } from '@storystage/ast';
 import type {
   BackstageId,
@@ -24,7 +25,7 @@ import type {
 import { skeletonOf } from '@storystage/backstage';
 import { keptJoints } from './pose.ts';
 import { applyProgramEdits, type SceneRefusal, type SceneStepResult } from './scenes.ts';
-import type { Production, Scene, SceneId } from './types.ts';
+import { storyAncestor, type Production, type Scene, type SceneId } from './types.ts';
 
 /**
  * The most objects one scene holds: a guard against runaway adding, well above what the device
@@ -81,6 +82,12 @@ export interface NewObject {
   /** The name wanted, from its display name: made a valid, unique field name (`objectName`). */
   readonly name: string;
   readonly transform: Transform;
+  /**
+   * The field's type in the code, when it isn't the class itself: a learner's class the model's
+   * objects are of (`{ kind: 'user' }`, decision 0074; S6's `fieldTypeFor`), so an object added
+   * after the class exists is of it. It must come down from `class`.
+   */
+  readonly type?: TypeRef;
 }
 
 /**
@@ -99,12 +106,17 @@ export function addObject(
   if (!found) return refuse({ code: 'noSuchScene' });
   if (found.scene.setup.objects.length >= OBJECT_LIMIT)
     return refuse({ code: 'tooManyObjects', limit: OBJECT_LIMIT });
+  const type: TypeRef = object.type ?? { kind: 'story', name: object.class };
+  const types = new Map(p.program.types.map((t) => [t.id, t] as const));
+  // The caller's mistake, not the learner's: `checkReferences` would find the two disagreeing.
+  if (storyAncestor(type, types) !== object.class)
+    throw new Error(`addObject: the field's type doesn't come down from ${object.class}.`);
   const name = objectName(p, scene, object.name)!;
   const field: FieldDecl = {
     id: idMinter(p.program, random)(),
     kind: 'field',
     name,
-    type: { kind: 'story', name: object.class },
+    type,
     initial: null,
   };
   const edits: EditOperation[] = [

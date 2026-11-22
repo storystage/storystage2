@@ -398,7 +398,7 @@ function checkSceneTypes(p: Production, problems: string[]): void {
  * by node id. Null when a type it names is missing or the chain goes round, which the program's
  * own check reports; undefined for a list, which no set-up object is.
  */
-function storyAncestor(
+export function storyAncestor(
   ref: TypeRef,
   types: ReadonlyMap<NodeId, TypeDecl>,
 ): string | null | undefined {
