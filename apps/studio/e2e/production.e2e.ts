@@ -192,6 +192,42 @@ test('a procedure gets an input in New, shown on its block and its calls, with a
   await expect(page.getByRole('tab', { name: 'waddle' })).toBeHidden();
 });
 
+test('the penguin learns a move from New, with a tab of its own, and the scene can call it (7.14)', async ({
+  page,
+}) => {
+  await openCode(page);
+  const blocksFor = async (name: string) => {
+    await page.getByRole('button', { name: /Blocks for/ }).click();
+    await page.locator('.sb-popover').getByRole('option', { name, exact: true }).click();
+  };
+  await blocksFor('penguin');
+  await page.getByRole('button', { name: 'New in scene 1' }).press('Enter');
+  await page.getByRole('menuitem', { name: 'Move for penguin…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New move for penguin' });
+  await expect(dialog).toContainText('Every penguin in every scene can use it.');
+  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('waddle');
+  const { violations } = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+  expect(violations.map((v) => v.id)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  const tab = page.getByRole('tab', { name: 'penguin: waddle' });
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+  await expect(undoButton(page)).toHaveText('Undo: Add move waddle for penguin');
+  // Its own blocks are the penguin's, for "this penguin" only.
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect(page.getByRole('button', { name: /Blocks for/ })).toContainText('this penguin');
+  await expect(page.locator('.blocklyFlyout .blocklyDraggable').first()).toBeVisible();
+  // Back in the scene's script, with the penguin chosen, "your own" offers it.
+  await page.getByRole('tab', { name: 'When the scene starts' }).click();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await blocksFor('penguin');
+  await expect(
+    page.locator('.blocklyFlyout .blocklyDraggable').filter({ hasText: 'waddle' }).first(),
+  ).toBeVisible();
+  await undoButton(page).click();
+  await expect(tab).toBeHidden();
+});
+
 test('a block’s menu and keys switch it off, add a detail and duplicate, each one step', async ({
   page,
 }) => {

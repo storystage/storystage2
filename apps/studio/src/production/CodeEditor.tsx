@@ -35,6 +35,14 @@ import {
 import { words } from '../strings.ts';
 import type { Highlights } from './BlocksPanel.tsx';
 import { sceneNumber } from '../storyboard/edits.ts';
+import {
+  characterOf,
+  characterOfClass,
+  classMethods,
+  classWords,
+  sceneType,
+  type ModelName,
+} from './characters.ts';
 import { InputsMenu } from './InputsMenu.tsx';
 import { NewMethod } from './NewMethod.tsx';
 import { useTextViewSetting } from './textViewSetting.ts';
@@ -62,6 +70,10 @@ export interface CodeEditorProps {
    * and says why in these words. Only what's shown is held; the learner's own choice stays theirs.
    */
   held?: string | null;
+  /** A Backstage model's name, for a character's own moves (decision 0074); else its id's. */
+  modelName?: ModelName;
+  /** Opens the Code editor at a block: where an input that can't be removed is used. */
+  onReveal?: (node: NodeId) => void;
 }
 
 const STORY = STORY_WORDS as Readonly<Record<string, string>>;
@@ -75,6 +87,15 @@ export function sceneMethods(p: Production, scene: SceneId): (MethodDecl | Liste
   const others = type.methods.filter((m) => m.id !== script);
   return [...first, ...type.listeners, ...others];
 }
+
+/**
+ * The Code editor's tabs: the scene's methods, then the moves of the characters in it (decision
+ * 0074), a class's once however many of its objects the scene has.
+ */
+export const codeTabs = (p: Production, scene: SceneId): (MethodDecl | ListenerDecl)[] => [
+  ...sceneMethods(p, scene),
+  ...classMethods(p, scene).map((c) => c.method),
+];
 
 /** Which of `methods` holds `node`, or `null` for a node in none of them. */
 export function methodHolding(
@@ -93,13 +114,16 @@ export function methodHolding(
  * A tab's name: a method's own, or its listener's words with what it waits for ("when penguin is
  * clicked"), as Tiles words it (spec 14, 3a: this tab row serves both editors). The scene's script
  * method is "When the scene starts" (the owner, 21 Nov), though its code keeps `myFirstMethod`.
+ * A character's move says whose it is ("penguin: waddle").
  */
-const tabName = (p: Production, m: MethodDecl | ListenerDecl) =>
-  m.kind === 'listener'
-    ? describer(p.program)(m)
-    : isSceneScript(p.program, m.id)
-      ? methodTitle(p.program, m.id)
-      : m.name;
+function tabName(p: Production, scene: SceneId, m: MethodDecl | ListenerDecl): string {
+  if (m.kind === 'listener') return describer(p.program)(m);
+  if (isSceneScript(p.program, m.id)) return methodTitle(p.program, m.id);
+  const owner = classMethods(p, scene).find((c) => c.method.id === m.id)?.type;
+  return owner
+    ? words.t('production.classTab', { model: classWords(owner), name: m.name })
+    : m.name;
+}
 
 const BlocksPanel = lazy(() => import('./BlocksPanel.tsx'));
 const TilesPanel = lazy(() => import('./TilesPanel.tsx'));
@@ -127,6 +151,8 @@ export function CodeEditor({
   editorRef,
   editorDefault = 'blocks',
   held = null,
+  modelName = () => null,
+  onReveal,
 }: CodeEditorProps) {
   const themeStyle = useThemeStyle();
   // Blocks or Tiles (14-editors section 4): the learner's choice, the class default, or locked.
@@ -136,7 +162,7 @@ export function CodeEditor({
   const [editorChoice, setEditorChoice] = useEditorSetting();
   const shown = editorShown(editorChoice, { default: editorDefault, locked });
   const handoff = useHandoff();
-  const methods = sceneMethods(p, scene);
+  const methods = codeTabs(p, scene);
   // Opened to show a block: its method first. Each reveal opens the editor afresh (a new key).
   const [chosen, setChosen] = useState<Key | null>(() =>
     reveal ? methodHolding(p, methods, reveal) : null,
@@ -159,11 +185,22 @@ export function CodeEditor({
   const type = p.program.types.find(
     (t) => t.methods.some((m) => m.id === open) || t.listeners.some((l) => l.id === open),
   );
-  const objects = [
-    { id: SCENE, name: words.t('production.theScene') },
-    ...(type?.fields ?? []).map((f) => ({ id: f.id as string, name: f.name })),
-  ];
+  const own = sceneType(p, scene);
+  // In a character's move, its blocks are for "this penguin" only (decision 0074).
+  const inClass = type !== undefined && type.id !== own?.id ? type : null;
+  const objects = inClass
+    ? [{ id: SCENE, name: words.t('production.thisCharacter', { model: classWords(inClass) }) }]
+    : [
+        { id: SCENE, name: words.t('production.theScene') },
+        ...(type?.fields ?? []).map((f) => ({ id: f.id as string, name: f.name })),
+      ];
   const picked = objects.some((o) => o.id === object) ? object : SCENE;
+  // New's move and question are for the character chosen, or whose move is open.
+  const character = inClass
+    ? characterOfClass(p, inClass, modelName)
+    : picked === SCENE
+      ? null
+      : characterOf(p, scene, picked as NodeId, modelName);
   const target = useMemo(() => paletteTarget(picked), [picked]);
   // The open method's panel is our own, not React Aria's TabPanel, whose search for a tab stop
   // walked the whole editor on every change (S6, #526; `useTabPanel`).
@@ -245,15 +282,30 @@ export function CodeEditor({
                   className="pr-tab"
                   {...(x.id === open ? { ref: tabRef } : {})}
                 >
-                  {tabName(p, x)}
+                  {tabName(p, scene, x)}
                 </Tab>
               ))}
             </TabList>
             {/* The open procedure's or function's inputs (7.14); none for a script or listener. */}
             {m.kind === 'method' && takesParameters(p.program, m.id) && (
-              <InputsMenu host={host} program={p.program} method={m} />
+              <InputsMenu
+                host={host}
+                program={p.program}
+                method={m}
+                source={shown}
+                {...(onReveal ? { onReveal } : {})}
+              />
             )}
-            {type && <NewMethod host={host} type={type.id} n={n} onAdded={setChosen} />}
+            {own && (
+              <NewMethod
+                host={host}
+                type={own.id}
+                n={n}
+                onAdded={setChosen}
+                character={character}
+                source={shown}
+              />
+            )}
           </div>
         </Tabs>
         {/* Beside Tabs, not in it: React Aria draws what's in Tabs twice, once hidden. A new
@@ -296,7 +348,7 @@ export function CodeEditor({
                 program={p.program}
                 style={text.style}
                 method={m.id}
-                label={words.t('production.textOf', { name: tabName(p, m) })}
+                label={words.t('production.textOf', { name: tabName(p, scene, m) })}
                 {...(highlights ? { highlight: highlights } : {})}
               />
             </div>

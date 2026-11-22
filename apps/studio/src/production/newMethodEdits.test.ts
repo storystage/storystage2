@@ -28,6 +28,10 @@ describe('New in the Code editor (7.2)', () => {
     expect(nameProblem(p.program, type, taken)).toBe('taken');
     expect(nameProblem(p.program, type, scene.fields[0]!.name)).toBe('taken');
     expect(nameProblem(p.program, type, 'walkToTheDoor')).toBeNull();
+    // A character's class can't take its Story API class's names either (S6's review of #623).
+    expect(nameProblem(p.program, type, 'say', 'Flyer')).toBe('builtIn');
+    expect(nameProblem(p.program, type, 'waddle', 'Flyer')).toBeNull();
+    expect(nameProblem(p.program, type, 'say')).toBeNull();
   });
 
   it('adds a procedure after the scene’s methods, valid and empty', () => {

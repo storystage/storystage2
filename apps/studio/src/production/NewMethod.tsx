@@ -1,10 +1,11 @@
 /**
  * **New** beside the method tabs (`07-ux.md` section 7.3; WP7.2): a procedure or a function,
- * named in a dialog, or a listener for one of the Story API's events. Each is one undo step, and
- * its tab opens.
+ * named in a dialog, or a listener for one of the Story API's events. With a character chosen, a
+ * move or a question for it, which every one of its model in every scene can use (decision 0074).
+ * Each is one undo step, and its tab opens.
  */
 import type { NodeId } from '@storystage/ast';
-import type { EditorHost } from '@storystage/editor-contract';
+import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import { Button, Dialog, Icon, NeutralNote, Segmented, useThemeStyle } from '@storystage/ui';
 import { useState, type FormEvent } from 'react';
 import {
@@ -26,6 +27,7 @@ import {
   inputProblems,
   nameProblem,
   newListener,
+  newCharacterMethod,
   newMethodWithInputs,
   suggestedName,
   type Declared,
@@ -33,6 +35,7 @@ import {
   type NewInput,
 } from './newMethodEdits.ts';
 import { listWords } from './inputWords.ts';
+import type { Character } from './characters.ts';
 
 export interface NewMethodProps {
   host: EditorHost;
@@ -42,11 +45,36 @@ export interface NewMethodProps {
   n: number;
   /** Opens the new method's tab. */
   onAdded: (id: NodeId) => void;
+  /** The character chosen in "Blocks for", or open: New offers a move and a question for it. */
+  character?: Character | null;
+  /** The editor showing, which the edits come from. */
+  source?: EditorId;
 }
 
-type Making = 'procedure' | 'function';
+type Making = 'procedure' | 'function' | 'move' | 'question';
+const MAKING: readonly Making[] = ['procedure', 'function', 'move', 'question'];
+/** Each one's part of its words' keys ("production.addMove"), and the name it suggests. */
+const KEY: Record<Making, string> = {
+  procedure: 'Procedure',
+  function: 'Function',
+  move: 'Move',
+  question: 'Question',
+};
+const BASE: Record<Making, string> = {
+  procedure: 'newProcedure',
+  function: 'newFunction',
+  move: 'newMove',
+  question: 'newQuestion',
+};
 
-export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
+export function NewMethod({
+  host,
+  type,
+  n,
+  onAdded,
+  character = null,
+  source = 'blocks',
+}: NewMethodProps) {
   const themeStyle = useThemeStyle();
   const [making, setMaking] = useState<Making | null>(null);
   const [name, setName] = useState('');
@@ -55,11 +83,17 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
   const [tried, setTried] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
 
+  // A move or question joins the character's class, which the first one makes.
+  const forCharacter = making === 'move' || making === 'question';
+  const owner = forCharacter ? (character?.type ?? null) : type;
+  const model = character?.model.name ?? '';
+  const isFunction = making === 'function' || making === 'question';
+
   const start = (kind: Making) => {
     setMaking(kind);
-    setName(
-      suggestedName(host.program(), type, kind === 'procedure' ? 'newProcedure' : 'newFunction'),
-    );
+    const base = BASE[kind];
+    const into = kind === 'move' || kind === 'question' ? (character?.type ?? null) : type;
+    setName(into ? suggestedName(host.program(), into, base) : base);
     setGives('Number');
     setInputs([]);
     setTried(false);
@@ -78,7 +112,7 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
 
   const apply = (made: Declared | null, label: string) => {
     if (!made) return false;
-    const result = host.apply([made.edit], label, 'blocks');
+    const result = host.apply([made.edit], label, source);
     if (!result.ok) {
       setRefusal(result.reason);
       host.announce(result.reason);
@@ -95,32 +129,50 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
   };
 
   const chosen = name.trim();
-  const problem = making ? nameProblem(host.program(), type, chosen) : null;
+  // A class not made yet has no names taken.
+  const problem = making
+    ? nameProblem(
+        host.program(),
+        owner ?? ('' as NodeId),
+        chosen,
+        forCharacter ? character?.model.storyClass : undefined,
+      )
+    : null;
+  // A character's name problems say whose: "penguin already has a block called say."
+  const problemKey =
+    problem && forCharacter && problem !== 'empty' && problem !== 'shape' && problem !== 'long'
+      ? `production.name.${problem}By`
+      : `production.name.${problem}`;
   const problems = inputProblems(inputs);
   const add = (e?: FormEvent) => {
     e?.preventDefault();
     setTried(true);
     if (!making || problem || problems.some((p) => p !== null)) return;
     const named = inputs.map((i) => i.name.trim());
+    const key = KEY[making];
     const label =
       named.length === 0
-        ? words.t(making === 'procedure' ? 'production.addProcedure' : 'production.addFunction', {
+        ? words.t(`production.add${key}` as WordKey, { name: chosen, model })
+        : words.t(`production.add${key}With` as WordKey, {
             name: chosen,
-          })
-        : words.t(
-            making === 'procedure' ? 'production.addProcedureWith' : 'production.addFunctionWith',
-            { name: chosen, inputs: listWords(named) },
-          );
-    const made = newMethodWithInputs(
-      host.program(),
-      type,
-      chosen,
-      making === 'function' ? gives : null,
-      inputs,
-      label,
-    );
+            model,
+            inputs: listWords(named),
+          });
+    const returns = isFunction ? gives : null;
+    const made =
+      forCharacter && character
+        ? newCharacterMethod(
+            host.program(),
+            character.model,
+            character.fields,
+            chosen,
+            returns,
+            inputs,
+            label,
+          )
+        : newMethodWithInputs(host.program(), type, chosen, returns, inputs, label);
     if (!made) return;
-    const result = host.apply(made.edits, label, 'blocks');
+    const result = host.apply(made.edits, label, source);
     if (!result.ok) {
       setRefusal(result.reason);
       host.announce(result.reason);
@@ -149,7 +201,7 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
             aria-label={words.t('production.newIn', { n })}
             onAction={(key) => {
               const k = String(key);
-              if (k === 'procedure' || k === 'function') start(k);
+              if ((MAKING as readonly string[]).includes(k)) start(k as Making);
               else listen(k.slice('event:'.length));
             }}
           >
@@ -161,6 +213,16 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
                 {words.t('production.newFunction')}
               </MenuItem>
             </MenuSection>
+            {character ? (
+              <MenuSection>
+                <MenuItem id="move" className="sb-menu-item">
+                  {words.t('production.newMove', { model: character.model.name })}
+                </MenuItem>
+                <MenuItem id="question" className="sb-menu-item">
+                  {words.t('production.newQuestion', { model: character.model.name })}
+                </MenuItem>
+              </MenuSection>
+            ) : null}
             <MenuSection>
               <Header className="pr-new-heading">{words.t('production.newListener')}</Header>
               {NEW_EVENTS.map((event) => (
@@ -175,18 +237,19 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
       <Dialog
         isOpen={making !== null}
         onOpenChange={(open) => !open && setMaking(null)}
-        title={words.t(
-          making === 'function' ? 'production.newFunctionTitle' : 'production.newProcedureTitle',
-        )}
+        title={words.t(`production.new${KEY[making ?? 'procedure']}Title` as WordKey, { model })}
         width={520}
       >
         <form className="pr-new-form" onSubmit={add}>
+          {forCharacter && (
+            <p className="pr-new-note">{words.t('production.characterNote', { model })}</p>
+          )}
           <SpokenField
             field="production.newName"
             label={words.t('production.newName')}
             description={
               tried && problem
-                ? words.t(`production.name.${problem}` as WordKey, { n, name: chosen })
+                ? words.t(problemKey as WordKey, { n, name: chosen, model })
                 : words.t('production.newNameHint')
             }
             isInvalid={tried && problem !== null}
@@ -198,7 +261,7 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
             }}
             autoFocus
           />
-          {making === 'function' && (
+          {isFunction && (
             <div className="pr-new-gives">
               {/* Seen; the choices themselves are named by Segmented's own label. */}
               <span className="ss-field-label" aria-hidden="true">
