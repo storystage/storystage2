@@ -5,12 +5,14 @@ import {
   catalogText,
   checkCall,
   classChain,
+  classOfType,
   entriesOf,
   findEntry,
   findEvent,
   fits,
   inRange,
   isKindOf,
+  typeOfClass,
 } from './catalog.ts';
 import { MOVE_AXES, ROLL_AXES, TURN_AXES } from './axes.ts';
 import { DETAILS, IGNORED_DETAILS } from './details.ts';
@@ -297,6 +299,17 @@ describe('classes', () => {
   it('knows kinds', () => {
     expect(isKindOf('Biped', 'Model')).toBe(true);
     expect(isKindOf('Camera', 'Model')).toBe(false);
+  });
+});
+
+describe('a class as a type (spec 02, section 1, rule 3)', () => {
+  it('is TextModel for 3D text, as Text is words', () => {
+    expect(typeOfClass('Text')).toBe('TextModel');
+    expect(fits(typeOfClass('Text'), 'Thing')).toBe(true);
+  });
+
+  it.each(API_CLASSES)('gives %s back through classOfType', (cls) => {
+    expect(classOfType(typeOfClass(cls))).toBe(cls);
   });
 });
 
