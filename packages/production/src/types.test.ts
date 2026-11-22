@@ -203,6 +203,56 @@ describe('checkReferences', () => {
     expect(problems).toContain('Scene s1: fox is a Quadruped in the set-up and a Biped in code.');
   });
 
+  // Decision 0074 (S6): a field can be of the learner's own class, `Fox extends Quadruped`.
+  describe('a field of a learner’s class', () => {
+    const learnerType = (id: string, parent: TypeDecl['extends']): TypeDecl => ({
+      id: nodeId(id),
+      kind: 'type',
+      name: id[0]!.toUpperCase() + id.slice(1),
+      extends: parent,
+      fields: [],
+      methods: [],
+      listeners: [],
+    });
+    const foxOf = (types: TypeDecl[], fox: string) =>
+      broken((p) => {
+        const typed = withFirstType(p, (t) => ({
+          ...t,
+          fields: t.fields.map((f) =>
+            f.name === 'fox' ? { ...f, type: { kind: 'user', type: nodeId(fox) } } : f,
+          ),
+        }));
+        return {
+          ...typed,
+          program: { ...typed.program, types: [...typed.program.types, ...types] },
+        };
+      });
+    const story = (name: string) => ({ kind: 'story', name }) as const;
+    const user = (id: string) => ({ kind: 'user', type: nodeId(id) }) as const;
+
+    it('is checked by the Story API class it comes down from', () => {
+      expect(foxOf([learnerType('fox', story('Quadruped'))], 'fox')).toEqual([]);
+      expect(
+        foxOf(
+          [learnerType('fox', user('animal')), learnerType('animal', story('Quadruped'))],
+          'fox',
+        ),
+      ).toEqual([]);
+      expect(foxOf([learnerType('fox', story('Biped'))], 'fox')).toContain(
+        'Scene s1: fox is a Quadruped in the set-up and a Biped in code.',
+      );
+    });
+
+    it('is refused when its type is missing or its classes go round', () => {
+      const lost = "Scene s1: fox's type in code doesn't come down from a Story API class.";
+      expect(foxOf([], 'fox')).toContain(lost);
+      expect(foxOf([learnerType('fox', user('gone'))], 'fox')).toContain(lost);
+      expect(
+        foxOf([learnerType('fox', user('cub')), learnerType('cub', user('fox'))], 'fox'),
+      ).toContain(lost);
+    });
+  });
+
   it('refuses two frames in one place in a scene', () => {
     const problems = broken((p) => ({
       ...p,

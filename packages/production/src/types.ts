@@ -17,6 +17,7 @@ import {
   type Problem,
   type Program,
   type TypeDecl,
+  type TypeRef,
 } from '@storystage/ast';
 import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
@@ -371,6 +372,7 @@ export interface Production {
 /** Each scene's script method, the type holding it and the problems with it (spec section 2). */
 function checkSceneTypes(p: Production, problems: string[]): void {
   const index = indexProgram(p.program);
+  const types = new Map(p.program.types.map((t) => [t.id, t]));
   const owners = new Map<string, SceneId>();
   for (const scene of p.scenes) {
     const at = index.get(scene.method);
@@ -386,12 +388,38 @@ function checkSceneTypes(p: Production, problems: string[]): void {
     const owner = owners.get(type.id);
     if (owner) problems.push(`Scenes ${owner} and ${scene.id} share a type.`);
     owners.set(type.id, scene.id);
-    checkObjects(scene, type, problems);
+    checkObjects(scene, type, types, problems);
   }
 }
 
+/**
+ * The Story API class a field's type comes down from: its own name for a story type, or for a
+ * learner's class (`Penguin extends Animal`, decision 0074) the story type its `extends` reach,
+ * by node id. Null when a type it names is missing or the chain goes round, which the program's
+ * own check reports; undefined for a list, which no set-up object is.
+ */
+function storyAncestor(
+  ref: TypeRef,
+  types: ReadonlyMap<NodeId, TypeDecl>,
+): string | null | undefined {
+  const seen = new Set<NodeId>();
+  let at: TypeRef = ref;
+  while (at.kind === 'user') {
+    const type = types.get(at.type);
+    if (!type || seen.has(at.type)) return null;
+    seen.add(at.type);
+    at = type.extends;
+  }
+  return at.kind === 'story' ? at.name : undefined;
+}
+
 /** The scene's objects and its fields with no value of their own have to match. */
-function checkObjects(scene: Scene, type: TypeDecl, problems: string[]): void {
+function checkObjects(
+  scene: Scene,
+  type: TypeDecl,
+  types: ReadonlyMap<NodeId, TypeDecl>,
+  problems: string[],
+): void {
   const fields = new Map(
     type.fields.filter((f) => f.initial === null && f.name !== 'camera').map((f) => [f.name, f]),
   );
@@ -402,9 +430,15 @@ function checkObjects(scene: Scene, type: TypeDecl, problems: string[]): void {
       continue;
     }
     fields.delete(object.id);
-    if (field.type.kind === 'story' && field.type.name !== object.class)
+    // A field of a learner's class is checked by the story class it comes down from (S6, 0074).
+    const ancestor = storyAncestor(field.type, types);
+    if (ancestor === null)
       problems.push(
-        `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${field.type.name} in code.`,
+        `Scene ${scene.id}: ${object.id}'s type in code doesn't come down from a Story API class.`,
+      );
+    else if (ancestor !== undefined && ancestor !== object.class)
+      problems.push(
+        `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${ancestor} in code.`,
       );
   }
   for (const name of fields.keys())
