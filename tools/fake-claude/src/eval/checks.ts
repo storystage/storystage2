@@ -15,7 +15,7 @@ import {
 import type { Production, SceneId } from '@storystage/production';
 import { READ_TOOLS } from '@storystage/prompter';
 import type { SceneObjectSetup } from '@storystage/story-api';
-import { CHECK_TYPES, type CheckType, type EvalCheck } from '../eval.ts';
+import { CHECK_TYPES, eventKinds, type CheckType, type EvalCheck } from '../eval.ts';
 import type { RowRun } from './run.ts';
 
 export interface CheckScore {
@@ -245,7 +245,7 @@ function codeCheck(check: EvalCheck, run: RowRun): Result {
     case 'event_listener': {
       const was = new Set(sceneType(before, scene)?.listeners.map((l) => l.id));
       const has = (sceneType(after, scene)?.listeners ?? []).some(
-        (l) => !was.has(l.id) && l.event === check.kind,
+        (l) => !was.has(l.id) && eventKinds(check).includes(l.event),
       );
       return result(has);
     }

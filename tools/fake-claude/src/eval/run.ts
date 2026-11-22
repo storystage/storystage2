@@ -358,6 +358,17 @@ export async function runRow(
 export const pilotRows = (all: readonly EvalRow[]) =>
   CATEGORIES.map((c) => all.find((r) => r.category === c)!).filter(Boolean);
 
+/** Why no row can run with this key (HTTP 401 or 402), or null: then the run stops. */
+export function refusedKey(run: RowRun): string | null {
+  for (const s of run.streams)
+    for (const e of s) {
+      if (e.type !== 'error') continue;
+      if (e.code === 'key_revoked') return 'Anthropic refused the key (HTTP 401).';
+      if (e.code === 'no_credit') return "The key's account has no credit (HTTP 402).";
+    }
+  return null;
+}
+
 /** A run's streams as a recording the fake server replays (`recording.ts`). */
 export function recordingOf(run: RowRun): Recording {
   const status: Record<string, number> = {

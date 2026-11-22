@@ -83,7 +83,7 @@ const object = (
 });
 
 const VALUE =
-  'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), or a position as "x, y, z" in metres.';
+  'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), a position as "x, y, z" in metres, or a list as its items separated by commas ("owl, cat").';
 const nameValue = object({
   name: text('The parameter or detail name, from the Story API catalog.'),
   value: text(VALUE),
@@ -488,6 +488,8 @@ export type ToolOutcome =
       readonly ok: true;
       readonly ids: Readonly<Record<string, string>>;
       readonly summary: string;
+      /** The step a change was built for, when it isn't the one the call named (section 6.4). */
+      readonly step?: number;
       /** `find_models`: the full Backstage lines found, and their sets' joints (section 2.7). */
       readonly models?: readonly string[];
       readonly joints?: Readonly<Record<string, readonly string[]>>;

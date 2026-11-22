@@ -87,6 +87,11 @@ export interface EvalCheck {
   readonly [key: string]: unknown;
 }
 
+/** An event_listener check's events: its kind, or a list of kinds any of which will do. */
+export function eventKinds(check: EvalCheck): readonly string[] {
+  return Array.isArray(check.kind) ? check.kind.map(String) : [String(check.kind)];
+}
+
 export interface EvalRow {
   readonly id: string;
   readonly category: Category;
@@ -173,8 +178,9 @@ export function checkEvalSet(
         problems.push(`${where}: ${row.start} doesn't contain ${check.marker}.`);
       if (check.type === 'control' && !CONTROL_KINDS.includes(check.kind as never))
         problems.push(`${where}: no control block ${String(check.kind)}.`);
-      if (check.type === 'event_listener' && !LISTENER_EVENTS.includes(check.kind as string))
-        problems.push(`${where}: no event ${String(check.kind)}.`);
+      if (check.type === 'event_listener')
+        for (const kind of eventKinds(check))
+          if (!LISTENER_EVENTS.includes(kind)) problems.push(`${where}: no event ${kind}.`);
     }
 
     for (const frame of row.request.match(/\bf\d+-\d+\b/g) ?? [])

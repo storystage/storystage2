@@ -8,6 +8,7 @@ import type { SceneObjectSetup } from '@storystage/story-api';
 import { classOfType, findEntry, type ApiClass } from '@storystage/story-api';
 import { targetOf, type PlanStep } from './plans.ts';
 import { heldBy } from './repeats.ts';
+import { listText } from './values.ts';
 
 /** What the ticks are worked out against: the scene now, and what counts as the learner's. */
 export interface ProgressWorld {
@@ -54,14 +55,21 @@ function valueText(e: Expression, fields: ReadonlyMap<NodeId, string>): string |
       return 'this';
     case 'fieldRef':
       return e.target.kind === 'this' ? (fields.get(e.field) ?? null) : null;
+    case 'arrayOf': {
+      const items = e.items.map((item) => valueText(item, fields));
+      return items.every((item) => item !== null) ? items.join(', ') : null;
+    }
     default:
       return null;
   }
 }
 
-/** Two values the same, as a step and a block give them: numbers by value ("2" is "2.0"). */
+/**
+ * Two values the same, as a step and a block give them: numbers by value ("2" is "2.0"), and
+ * lists by their items ("owl,cat" is "owl, cat").
+ */
 function same(a: string, b: string): boolean {
-  if (a === b) return true;
+  if (a === b || (a.includes(',') && listText(a) === listText(b))) return true;
   const x = Number(a);
   const y = Number(b);
   return a.trim() !== '' && b.trim() !== '' && Number.isFinite(x) && x === y;

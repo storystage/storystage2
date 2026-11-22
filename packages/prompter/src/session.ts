@@ -303,11 +303,12 @@ export class PrompterSession {
           options.onEvent?.({ type: 'explain', text: input.text });
         if (outcome.ok && isChange(String(use.name))) {
           changes += 1;
+          const step = outcome.step ?? input.plan_step;
           if (typeof input.narration === 'string')
             options.onEvent?.({
               type: 'narration',
               text: input.narration,
-              ...(typeof input.plan_step === 'number' ? { step: input.plan_step } : {}),
+              ...(typeof step === 'number' ? { step } : {}),
             });
         }
         if (!outcome.ok && outcome.error !== 'limit_reached') {

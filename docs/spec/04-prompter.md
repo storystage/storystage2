@@ -242,7 +242,7 @@ Tool schemas are fixed for a release, so they use plain strings where StoryStage
 
 Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints. So:
 
-- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, or a position as `"x, y, z"` in metres;
+- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, a position as `"x, y, z"` in metres, or a list as its items separated by commas (`"owl, cat"`, for the camera's frame shot), each read by the type of one item. The full run (22 Nov) found lists refused, so a frame shot of two characters couldn't be built;
 - plan steps are flat;
 - the client checks ranges, whole numbers and lengths before anything runs (`checkToolInput`, section 1.6). A string field may be empty only where `""` means none.
 
@@ -538,7 +538,7 @@ The coach helps a learner think. The learner writes every word.
 
 **It does:**
 
-- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends.
+- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov).
 - Offer the arc templates (10.2) and say what each part is for, in general, from the system prompt's list (section 2.5). Which arc fits is the learner's choice, and what happens in each part is the learner's to write.
 - Say what it notices in the learner's own words: "Your logline says who Pip is, but not what Pip wants."
 - Ask about gaps `script_check` finds.
@@ -611,7 +611,7 @@ When the loop ends, every agreed step must have landed. A step that didn't is re
 
 **After the first pilot (21 Nov 2026),** three things the owner's run showed:
 - **A step's target that is its own actor means none** (`targetOf`). Claude wrote "the penguin moves" with target "penguin", and the rule wanted "penguin" among the block's values, so no build of such a step could land. The plan check, the build rule, Plan only's ticks and a step's words all read it as none, and the `target` field's description now says "never the actor itself".
-- **A step that runs together starts its group with the step before it.** `together` on step 2 means "at the same time as step 1", so the `doTogether` is built for step 1. The rule allows it for a step whose next step is together, as well as for one that is.
+- **A step that runs together starts its group with the step before it.** `together` on step 2 means "at the same time as step 1", so the `doTogether` is built for step 1. The rule allows it for a step whose next step is together, as well as for one that is. Either way it counts as the group's first step's: that step's words go above it, and that step is highlighted. The rerun of 22 Nov (plan-06) named step 2, so step 2's words sat above step 1's.
 - **A when step's blocks go in its listener** (the third pilot run, event-01). `add_event_listener`'s description said to pass the listener's id as `parent_block`, but the runner took only a control block's id there, so no handler could be built. A listener's id is now a place for blocks, its body.
 - **`not_in_plan` says what differs:** the block and actor, the object it acts on, the setting and value, the line, or the holding block. Before, it said only that the call didn't match, and Claude retried blind, then stopped.
 

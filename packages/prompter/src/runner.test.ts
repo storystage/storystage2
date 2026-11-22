@@ -165,6 +165,49 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(now()).toEqual(original);
   });
 
+  it("builds a list from its items, separated by commas: the camera's frame shot", () => {
+    const { runner, run, now } = setUp();
+    const shot = step({
+      words: 'The camera shows the penguin and the fox.',
+      actor: 'camera',
+      action: 'frameShot',
+      details: [
+        { name: 'shot', value: 'medium' },
+        { name: 'targets', value: 'penguin, fox' },
+      ],
+    });
+    const frameShot = (targets: string) => ({
+      method: 'myFirstMethod',
+      position: 'end',
+      target: 'camera',
+      procedure: 'frameShot',
+      arguments: [
+        { name: 'shot', value: 'medium' },
+        { name: 'targets', value: targets },
+      ],
+      narration: 'The camera shows the penguin and the fox.',
+      plan_step: 1,
+    });
+    runner.begin('frame them', agreed([shot]));
+    expect(run('insert_statement', frameShot('penguin, owl'))).toMatchObject({
+      error: 'not_in_plan',
+    });
+    expect(run('insert_statement', frameShot('penguin,fox'))).toMatchObject({ ok: true });
+    runner.end();
+    const call = methodBody(now()).at(-1);
+    expect(call).toMatchObject({
+      kind: 'call',
+      args: {
+        targets: {
+          kind: 'arrayOf',
+          of: { kind: 'story', name: 'Thing' },
+          items: [{ kind: 'fieldRef' }, { kind: 'fieldRef' }],
+        },
+      },
+    });
+    expect(programText(now()).text).toContain('camera.frameShot(');
+  });
+
   it('refuses every change when no plan was agreed', () => {
     const { runner, run } = setUp();
     runner.begin('go', {});
@@ -205,6 +248,31 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
       }),
     ).toMatchObject({ ok: true });
     runner.end();
+  });
+
+  it('gives a do together named for a later step to the step that starts its group (plan-06)', () => {
+    const { runner, run, now } = setUp();
+    const first = step({ words: 'The penguin goes.' });
+    const second = step({ words: 'The fox goes too.', actor: 'fox', together: true });
+    runner.begin('go', agreed([first, second]));
+    const group = run('insert_control', {
+      method: 'myFirstMethod',
+      position: 'end',
+      kind: 'doTogether',
+      narration: 'These happen at the same time.',
+      plan_step: 2,
+    });
+    const inside = { parent_block: (group.ok && group.ids.block) || '' };
+    run('insert_statement', move('1', inside));
+    run('insert_statement', move('1', { ...inside, target: 'fox', plan_step: 2 }));
+    runner.end();
+    const [above, block] = methodBody(now()).slice(-2);
+    expect(above).toMatchObject({ kind: 'comment', text: first.words });
+    expect(block).toMatchObject({
+      kind: 'doTogether',
+      body: [{ kind: 'call' }, { kind: 'comment', text: second.words }, { kind: 'call' }],
+    });
+    expect(group).toMatchObject({ ok: true, step: 1 });
   });
 
   it("gives an if's two halves as places to build", () => {

@@ -85,7 +85,7 @@ A check passes or fails. `code` checks read the production and the tool calls, s
 | `method_order` | code | Those blocks appear in that order |
 | `argument` | code | The block's detail has that value |
 | `control` | code | A **do together** or **count** block (with `value` repeats) is used |
-| `event_listener` | code | An event of that kind is added |
+| `event_listener` | code | An event of that kind is added, or of any kind in a list |
 | `narrated_steps` | code | At least `min` steps were captioned |
 | `no_errors` | code | No step failed in the end |
 | `no_change` | code | The production is unchanged |

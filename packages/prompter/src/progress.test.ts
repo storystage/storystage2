@@ -92,6 +92,60 @@ describe('stepsDone (spec 04, section 6.6)', () => {
     expect(stepsDone([step({})], world([move(2)]))).toEqual([false]);
   });
 
+  it('reads a list by its items, however it is spaced', () => {
+    const ref = (name: string) => ({
+      id: id(),
+      kind: 'fieldRef',
+      target: { id: id(), kind: 'this' },
+      field: `field${name}` as NodeId,
+    });
+    const shot = (names: string[]): Statement =>
+      ({
+        id: id(),
+        kind: 'call',
+        target: ref('camera'),
+        callee: { kind: 'story', name: 'frameShot' },
+        args: {
+          shot: { id: id(), kind: 'enum', type: 'ShotType', value: 'medium' },
+          targets: {
+            id: id(),
+            kind: 'arrayOf',
+            of: { kind: 'story', name: 'Thing' },
+            items: names.map(ref),
+          },
+        },
+        details: {},
+      }) as Statement;
+    const planned = step({
+      actor: 'camera',
+      action: 'frameShot',
+      details: [
+        { name: 'shot', value: 'medium' },
+        { name: 'targets', value: 'penguin,fox' },
+      ],
+    });
+    const scene = (body: Statement[]) => {
+      const w = world(body, {
+        classOf: (name) =>
+          name === 'camera'
+            ? 'Camera'
+            : name === 'this'
+              ? 'Scene'
+              : name === 'penguin' || name === 'fox'
+                ? 'Flyer'
+                : null,
+      });
+      (w.type as unknown as { fields: unknown[] }).fields = [
+        field('penguin'),
+        field('fox'),
+        field('camera'),
+      ];
+      return w;
+    };
+    expect(stepsDone([planned], scene([shot(['penguin', 'fox'])]))).toEqual([true]);
+    expect(stepsDone([planned], scene([shot(['fox', 'penguin'])]))).toEqual([false]);
+  });
+
   it("wants a repeat's count and a together's do together", () => {
     const thrice = step({ repeat: 3 });
     expect(stepsDone([thrice], world([move(1)]))).toEqual([false]);

@@ -27,7 +27,7 @@ import {
   withGrades,
   type RowResult,
 } from './report.ts';
-import { pilotRows, recordingOf, runRow, type RowRun } from './run.ts';
+import { pilotRows, recordingOf, runRow, type RowRun, refusedKey } from './run.ts';
 
 const root = join(import.meta.dirname, '..', '..', '..', '..');
 const docs = join(root, 'docs', 'eval');
@@ -75,6 +75,9 @@ const busy = (run: RowRun) =>
     s.some((e) => e.type === 'error' && (e.code === 'overloaded' || e.code === 'rate_limited')),
   );
 
+const STOPPED =
+  'The run stopped, and nothing was written. Set the key again, check it with probe-grammar.ts, then run again.';
+
 async function main(): Promise<void> {
   const list = chosen();
   const key = process.env.ANTHROPIC_API_KEY ?? '';
@@ -90,6 +93,13 @@ async function main(): Promise<void> {
       if (busy(run)) {
         await sleep(30_000);
         run = await runRow(row, starts[row.start]!, transport);
+      }
+      const refused = refusedKey(run);
+      if (refused) {
+        console.log(refused);
+        console.log(STOPPED);
+        process.exitCode = 1;
+        return;
       }
       runs.push(run);
       console.log(`${run.phase}, ${run.usage.requests} turn(s)`);
@@ -133,7 +143,12 @@ async function main(): Promise<void> {
         try {
           graded.push({ row: run.row, grades: await judge(run, rules, key) });
         } catch (e) {
-          console.log(`${run.row.id}: not graded (${(e as Error).message})`);
+          const message = (e as Error).message;
+          console.log(`${run.row.id}: not graded (${message})`);
+          if (/HTTP 40[12]/.test(message)) {
+            console.log("The judge's key was refused, so no more rows are graded.");
+            break;
+          }
         }
       }
       writeFileSync(join(out, 'grades.proposed.csv'), gradesCsv(graded));
