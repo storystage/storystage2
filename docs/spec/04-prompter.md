@@ -771,7 +771,7 @@ The learner reads:
 - **A name has one meaning,** worked out by code:
   - A Story API procedure of that name on the actor's class wins, so no plan made today changes its meaning. A learner's procedure with that name can't be planned.
   - Otherwise it's the nearest class's, as the palette's "your own" finds them (`parentsOf`).
-- **Inputs** can be a number, a whole number, text, true or false, one of a Story API enum's values, or an object in the scene. A procedure with any other input (an imported one may have one) can't be planned.
+- **Inputs** can be a number, a whole number, text, true or false, one of a Story API enum's values, or an object in the scene that fits the input's type by the program check's own rule (`typeFits`). An owl doesn't fit a Penguin input, though both are Flyers, so the Story API class alone isn't enough. A procedure with any other input (a list, say, which only an imported one has) can't be planned. An input is read as the program types it, so one an import gave the wrong type is read by that type (S6's importer fix).
 
 #### The step and the block
 
@@ -781,7 +781,7 @@ Neither schema gains a field, and the production format doesn't change.
 - **A step's `target`** fills the input when the procedure has exactly one object input, and its `line` when it has exactly one text input.
 - **The block** is `insert_statement` with `procedure` the name and the inputs in `arguments`. A learner's procedure takes no details, so `details` is empty. The runner writes `callee: { kind: 'user', method }`, with each value keyed by its input's id.
 - **`together`, `repeat` and a repeat step's `holds`** work as for any `do` step.
-- **When code writes its words** (6.1: a step the learner changed or added), they're the editors' own words for that call, as they are for a Story API block's.
+- **When code writes its words** (6.1: a step the learner changed or added), they're the editors' own for that call (`newCall`, then `describer`, from `@storystage/story-api/editing`): "penguin waddle steps 3", not the sentence the Prompter wrote. A value the describer reads from its place in the program, such as a sound's label, is described in a scratch copy of the program with the call in it.
 
 #### Checking the plan (6.3)
 
@@ -795,15 +795,16 @@ These are refused on the step, before the learner can build:
 | An input the Prompter can't fill | "waddle needs an input you can fill only in the Code editor." |
 | A value missing, or of the wrong type | "A waddle block needs a value for steps." |
 | A setting that isn't an input | "A waddle block has no speed setting." |
+| More than 20 inputs, or a name too long for a step (`PLAN_LIMITS`: 300 characters for the procedure's, 64 for an input's) | "waddle has too much to fit in a step, so add it in the Code editor." |
 | More than one text input, in a frame's plan | "waddle has more than one text input, so add it in the Code editor." |
 
 An object added earlier in the plan is checked too, now that its class is known then: today its blocks are checked only as they're built.
 
 #### Building (6.4)
 
-- **Pressing Build fixes which procedure each step means,** by id. The plan is checked again first, so one renamed, deleted or given another input since the plan was shown stops the build on that step, with nothing changed.
+- **Showing a plan fixes which procedure each step means,** by id, and changing a step fixes that step's again. The panel holds the ids: the step and a kept plan have only names. Pressing Build checks each id is still the procedure that name resolves to, with the same inputs by id, name and type. One renamed, deleted, retyped, given or losing an input, or whose name another procedure now has, stops the build on that step, with nothing changed.
 - **A call must match its step** as any block does: actor, procedure, every input's value and the line. A different procedure with the same name is `not_in_plan`.
-- **No new loops by calling.** A call can't go inside the procedure it calls, or inside one that procedure reaches through its calls. That answers `would_break_program`. Recursion the learner wrote is left alone, under the runtime's own limit.
+- **No new loops by calling.** This is the Prompter's own rule: both editors let a procedure call itself. A call can't go inside the procedure it calls, or inside one that procedure reaches. Reaching follows calls to procedures and to functions wherever they are: statements, values at any depth, inputs' defaults, and switched-off blocks, which can be switched on again. A loop answers `would_break_program`. Recursion the learner wrote is left alone, under the runtime's own limit.
 - **The procedure's body is the learner's.** The plan agrees to the call and its inputs, not to each block inside, and the Prompter doesn't change a body to make a step fit. What the body says is already the learner's, so 6.5 doesn't check it.
 
 #### Text inputs (6.5)
@@ -814,7 +815,7 @@ An object added earlier in the plan is checked too, now that its class is known 
 
 #### Plan only (6.6)
 
-A step ticks when the learner's block calls the procedure it means, with the same values by input name, under 6.6's other rules. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7).
+A step ticks when the learner's block calls the procedure it means (by id, and still by that name), with the same values by input name, under 6.6's other rules. An input the block leaves out, as the editors' new blocks do for one with a default, counts as its default when that's a plain value, and otherwise doesn't match. A step's line is matched against the only text input, whatever its name. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7).
 
 #### What the Prompter is sent, and what it's told
 
@@ -825,11 +826,11 @@ A step ticks when the learner's block calls the procedure it means, with the sam
 
 #### The studio's half
 
-The panel gives `stepBlocks(actor, step)`: for that actor at that step, every block a `do` step can use, each with its name, words, and inputs with their types, the learner's own first under "your own" as in the palette. The step editor reads it for "which block" and each setting, in place of the Story API's entries alone, so the learner can choose, and correct, the same calls the Prompter can plan (S5).
+The panel gives `stepBlocks(actor, step)`: for that actor at that step, every block a `do` step can use, each with its name, words, and inputs with their types, the learner's own first under "your own" as in the palette. It lists only what each name resolves to: no procedure hidden by a built-in or by a nearer class's, which the palette does show, so a pick under "your own" can't build something else. The step editor reads it for "which block" and each setting, in place of the Story API's entries alone, so the learner can choose, and correct, the same calls the Prompter can plan (S5).
 
 #### Done when
 
-1. Unit tests cover each rule above, each refusal included, and a call built from a plan passes `checkProgram` and `checkReferences`.
+1. Unit tests cover each rule above, each refusal included (an input of a learner's class, a left-out default, a name another procedure took, and a loop closed only through a function's value among them), and a call built from a plan passes `checkProgram` and `checkReferences`.
 2. A film whose procedure names and bodies carry injected instructions changes nothing that wasn't agreed.
 3. The evaluation's starts can declare procedures and classes, and it has rows for: a scene's procedure, a character's move on a second object of that model, a text input from the learner's words, a move asked for that doesn't exist (nothing made up, nothing built), a frame's line through a text input, and an injected procedure name.
 4. The owner's live rerun passes those rows, with no failures where none are allowed.
