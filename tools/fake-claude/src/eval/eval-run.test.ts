@@ -112,6 +112,17 @@ describe('the starts (docs/eval/productions)', () => {
     expect(checkProgram(production.program)).toEqual([]);
   });
 
+  it.each(Object.keys(starts))('%s has its backdrop, which the Prompter is sent', (name) => {
+    const { production, scene } = openStart(starts[name]!);
+    const ground = { grass: 'grass', ice: 'ice', forest: 'forestFloor' }[starts[name]!.backdrop];
+    for (const s of production.scenes)
+      expect(s.setup.backdrop.ground).toBe(`storystage/Ground/${ground}`);
+    if (production.scenes.length > 0)
+      expect(JSON.stringify(productionData(production, { scene, open: null }))).toContain(
+        `storystage/Ground/${ground}`,
+      );
+  });
+
   it("builds a start's program, in order", () => {
     const { production } = openStart(starts['penguin-animated']!);
     expect(programText(production.program).text).toMatch(/say[\s\S]*turn[\s\S]*move/);
@@ -388,6 +399,16 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
       no_tool: false,
       no_change: true,
     });
+  });
+
+  it('records the answer that ended the turn as a call, and shows nothing after it', async () => {
+    const { done } = await run(rowById('ask-01'), [
+      testReply([use('x1', 'explain', { text: 'Which animal?' })]),
+      text('I asked the learner.'),
+    ]);
+    expect(done.calls).toMatchObject([{ name: 'explain', outcome: { ok: true } }]);
+    expect(done.usage.requests).toBe(1);
+    expect(done.entries.map((e) => e.kind)).toEqual(['asked', 'explain']);
   });
 
   it('passes an injection left alone, and leaves the reply checks for grading', async () => {

@@ -418,6 +418,46 @@ describe('the tool loop (spec 04, section 1.6)', () => {
     expect((assistant.content as JsonObject[]).map((b) => b.type)).toEqual(['tool_use']);
   });
 
+  it('ends the turn at an answer, so nothing is shown under it', async () => {
+    const { session, transport, events } = setUp([
+      testReply([use('t1', 'explain', { text: 'Which animal?' })]),
+      testReply([{ type: 'text', text: 'I asked the learner.' }]),
+    ]);
+    const onEvent = (e: SessionEvent) => events.push(e);
+    expect(await session.ask('move it', { mode: 'buildIt', level: 'full', onEvent })).toMatchObject(
+      { status: 'done', toolCalls: 1 },
+    );
+    expect(transport.sent).toHaveLength(1);
+    expect(events).toEqual([{ type: 'explain', text: 'Which animal?' }]);
+    expect((session.messages.at(-1) as JsonObject).role).toBe('user');
+  });
+
+  it('goes on after an answer that was refused, so Claude can give another', async () => {
+    const { session, transport } = setUp([
+      testReply([use('t1', 'explain', { text: '' })]),
+      testReply([use('t2', 'explain', { text: 'Which animal?' })]),
+    ]);
+    await session.ask('move it', { mode: 'explain', level: 'full' });
+    expect(transport.sent).toHaveLength(2);
+  });
+
+  it('goes on after an answer beside a call whose result is still to be read', async () => {
+    const { session, transport } = setUp([
+      testReply([use('t1', 'explain', { text: 'I will look.' }), use('t2', 'read_project', {})]),
+    ]);
+    await session.ask('what is here?', { mode: 'explain', level: 'full' });
+    expect(transport.sent).toHaveLength(2);
+  });
+
+  it('goes on after an answer while it builds an agreed plan', async () => {
+    const { session, transport } = setUp([
+      testReply([use('t1', 'explain', { text: 'First the cat.' })]),
+      testReply([use('t2', 'add_model', addCat())]),
+    ]);
+    expect(await session.ask('go', build)).toMatchObject({ status: 'done', changes: 1 });
+    expect(transport.sent).toHaveLength(3);
+  });
+
   it('stops when the learner presses Stop, keeping what landed', async () => {
     const stop = new AbortController();
     const { session } = setUp(

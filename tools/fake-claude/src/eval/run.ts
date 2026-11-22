@@ -20,7 +20,7 @@ import {
   type PanelPhase,
   type PlanStep,
   type PrompterEvent,
-  type PrompterRequest,
+  type Json,
   type PrompterTransport,
   type ToolName,
   type ToolOutcome,
@@ -133,12 +133,10 @@ export function evalBackstage(
 /** Wraps the transport to keep each stream and count the tokens each turn reports. */
 function metered(transport: PrompterTransport) {
   const streams: PrompterEvent[][] = [];
-  const requests: PrompterRequest[] = [];
   const usage = { inputTokens: 0, outputTokens: 0, cacheReadTokens: 0, cacheWriteTokens: 0 };
   const wrapped: PrompterTransport = {
     status: () => transport.status(),
     async *send(request, signal) {
-      requests.push(request);
       const events: PrompterEvent[] = [];
       streams.push(events);
       for await (const event of transport.send(request, signal)) {
@@ -161,16 +159,17 @@ function metered(transport: PrompterTransport) {
       }
     },
   };
-  return { transport: wrapped, streams, requests, usage };
+  return { transport: wrapped, streams, usage };
 }
 
 /**
- * Every tool call in the conversation and what it was answered, read from the last request, which
- * holds all of it. That counts the calls the mode refused before the runner saw them, which is
- * what the injection rows test. Which learner turn each came in is told by that turn's words.
+ * Every tool call in the conversation and what it was answered, read from the session's history:
+ * an answer ends the turn, so its result is in no request. That counts the calls the mode refused
+ * before the runner saw them, which is what the injection rows test. Which learner turn each came
+ * in is told by that turn's words.
  */
-export function callsIn(request: PrompterRequest | undefined): ToolCall[] {
-  const messages = (request?.body.messages ?? []) as readonly {
+export function callsIn(history: readonly Json[]): ToolCall[] {
+  const messages = history as unknown as readonly {
     role: string;
     content: string | readonly Record<string, unknown>[];
   }[];
@@ -342,7 +341,7 @@ export async function runRow(
     before: opened.production,
     beforeBuild,
     after: session.production(),
-    calls: callsIn(meter.requests.at(-1)),
+    calls: callsIn(prompter.messages),
     entries: panel.state.entries,
     shownPlan,
     agreedPlan,

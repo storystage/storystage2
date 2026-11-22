@@ -30,10 +30,12 @@ import {
 } from '@storystage/production';
 import { toValue, type Json, type SceneObjects } from '@storystage/prompter';
 import {
+  backstageId,
   classOfType,
   findEntry,
   type ApiClass,
   type BackstageId,
+  type SceneSetup,
   type StandIn,
   type StoryClass,
 } from '@storystage/story-api';
@@ -69,6 +71,30 @@ export function seeded(seed = 13): () => number {
 const IDENTITY = { x: 0, y: 0, z: 0, w: 1 };
 const ONE = { x: 1, y: 1, z: 1 };
 const same = (a: Item | string, b: Item | string) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * A start's backdrop as the stage's built-in template sets it (packages/stage, backdrops.ts):
+ * the template's id, its ground and its fog.
+ */
+const BACKDROPS: Readonly<
+  Record<string, readonly [template: string, ground: string, fog: number]>
+> = {
+  grass: ['grass', 'grass', 0],
+  ice: ['ice', 'ice', 0.15],
+  forest: ['northwestForest', 'forestFloor', 0.2],
+};
+
+function backdropOf(name: string): SceneSetup['backdrop'] {
+  const found = BACKDROPS[name];
+  if (!found) throw new Error(`No backdrop called ${name}.`);
+  const [template, ground, fog] = found;
+  return {
+    ground: backstageId(`storystage/Ground/${ground}`),
+    sky: backstageId(`storystage/Sky/${template}`),
+    lighting: backstageId(`storystage/Lighting/${template}`),
+    fog,
+  };
+}
 
 /** A class-imported model, so a name the class chose reaches the Prompter as the studio's would. */
 function imported(id: string, cls: StoryClass, displayName: string): PackedModel {
@@ -216,6 +242,9 @@ export function openStart(start: EvalProduction, request = ''): OpenedStart {
       }),
     },
   };
+
+  const backdrop = backdropOf(start.backdrop);
+  p = { ...p, scenes: p.scenes.map((s) => ({ ...s, setup: { ...s.setup, backdrop } })) };
 
   // Objects go in each scene whose cast has them, or in every scene if no cast names them.
   const named = (
