@@ -26,7 +26,12 @@ import {
   type ToolOutcome,
 } from '@storystage/prompter';
 import type { BackstageItem, Catalogue } from '@storystage/backstage';
-import { placeFromStoryboard, storyboardPlan, type PlanBackstage } from '@storystage/staging';
+import {
+  newObjectType,
+  placeFromStoryboard,
+  storyboardPlan,
+  type PlanBackstage,
+} from '@storystage/staging';
 import type { BackstageId, StoryClass } from '@storystage/story-api';
 import { checkProgram } from '@storystage/story-api/program-check';
 import { CATEGORIES, type EvalProduction, type EvalRow } from '../eval.ts';
@@ -282,6 +287,16 @@ export async function runRow(
     checkResult: (frame) => opened.checks.get(frame) ?? null,
     // The same ids every run, so a kept run replays exactly.
     random: seeded(29),
+    // A new object is of its character's class, as Backstage's Add makes it (decision 0074).
+    objectType: (p, { model, class: storyClass }) =>
+      newObjectType(p, {
+        model,
+        class: storyClass,
+        name:
+          typeof model === 'string'
+            ? (evalBackstage(p).item(model)?.displayName ?? model)
+            : model.standIn,
+      }),
     // The studio's own Set the stage from the storyboard (10.10), as its Prompter passes it.
     stageFromStoryboard: (p, scene, label) => {
       const placed = placeFromStoryboard(

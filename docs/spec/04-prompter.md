@@ -271,7 +271,7 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
 
-One step, joined to the rest of the request's (section 1.7): Backstage's own Add (`addObject` in `@storystage/production`), which declares a field of the model's class in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
+One step, joined to the rest of the request's (section 1.7): Backstage's own Add (`addObject` in `@storystage/production`), which declares a field of the model's class (or of the learner's class for that character, once there is one: decision 0074, through the runner's `objectType`, which the studio fills with `newObjectType` from `@storystage/staging`) in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
 
 - The model must be in the shipped catalogue or the production's imported models, or the answer is `unknown_object`.
 - The name is made as Backstage makes it (`objectName`): "Abyssinian cat" becomes `abyssinianCat`, with a number if the scene already uses it (`cat2`). The result says the final name.

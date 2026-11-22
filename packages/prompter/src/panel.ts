@@ -87,7 +87,7 @@ export interface PanelPlan {
   readonly heldBy: readonly (number | null)[];
   /** For a repeat step, the most its Steps inside can be; null for any other step. */
   readonly stepsInsideMax: readonly (number | null)[];
-  /** Whether Add a step › Repeat… is offered. */
+  /** Whether Repeat…, beside Add a step, is offered. */
   readonly canRepeat: boolean;
 }
 

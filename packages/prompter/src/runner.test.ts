@@ -3,6 +3,7 @@ import { nodeId, programText, type Program } from '@storystage/ast';
 import {
   ProductionSession,
   addObject,
+  applyProgramEdits,
   checkReferences,
   exampleProduction,
   frameId,
@@ -11,6 +12,7 @@ import {
   type Production,
   type SceneId,
 } from '@storystage/production';
+import { classFor } from '@storystage/story-api/editing';
 import { checkProgram } from '@storystage/story-api/program-check';
 import type { PlanStep } from './plans.ts';
 import { EXPLAINED, PrompterRunner, type RunnerSetup } from './runner.ts';
@@ -532,6 +534,35 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
     });
     runner.end();
     expect(session.production()).toEqual(before);
+  });
+
+  it("makes it of its character's class, and still builds with it (decision 0074)", () => {
+    const p = exampleProduction();
+    const made = classFor(p.program, { name: 'Owl', storyClass: 'Quadruped' }, [])!;
+    const applied = applyProgramEdits(p, [...made.edits]);
+    if ('code' in applied) throw new Error(applied.code);
+    const withClass = { ...p, program: applied.program };
+    const asked: unknown[] = [];
+    const { runner, run, session } = setUp('s2', withClass, {
+      objectType: (_p, object) => {
+        asked.push(object);
+        return { kind: 'user', type: made.type };
+      },
+    });
+    runner.begin('add an owl', agreed([addOwl, step({ actor: 'owl' })]));
+    expect(run('add_model', owl({}))).toMatchObject({ ok: true });
+    expect(run('insert_statement', move('1', { target: 'owl', plan_step: 2 }))).toMatchObject({
+      ok: true,
+    });
+    runner.end();
+    expect(asked).toEqual([{ model: 'example/Quadruped/owl', class: 'Quadruped' }]);
+    const scene = session.program().types.find((t) => t.name === 'Scene2')!;
+    expect(scene.fields.at(-1)).toMatchObject({
+      name: 'owl',
+      type: { kind: 'user', type: made.type },
+    });
+    expect(checkReferences(session.production())).toEqual([]);
+    expect(checkProgram(session.program())).toEqual([]);
   });
 
   it("adds one of the production's imported models", () => {

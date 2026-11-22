@@ -504,6 +504,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 31 Oct: **13.1** the Prompter spec (#89) and **13.8** the system prompt (#93). The owner has said S7 merges its WP13a, WP13b and WP14a pull requests when green.
 - Blocked on:
   - Nothing.
+- For S5 (22 Nov; this pull request, waits for the owner): **`add_model` takes an added object's class from `RunnerSetup.objectType`** (decision 0074; 7.14's tick waits on it). Fill it in the studio's Prompter with `newObjectType` and the model's Backstage name, imported models too. Until then the Prompter's objects don't have their character's own moves.
 - For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer hands the worker a checked model (bundled, or the optional download), so the webview loads nothing remote.
 - For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3. Spec 06, section 7 also asks for speech in the DPIA and the model weights in `NOTICE`.
 - Next (the owner's order of 22 Nov): **(1) fixes from the second full run**: an answer ends the turn in code, the turn direction and the picture's left are told to Claude, and the harness keeps a start's backdrop; then the owner reruns the rows they touch. **(2) An added object's missing moves**, through a runner hook S5 fills (7.14's tick waits on it). **(3) The spec for calls to a learner's own procedures and class moves.**
