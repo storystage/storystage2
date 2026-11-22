@@ -30,7 +30,7 @@ node tools/convert-alice-models/src/finish-cli.ts <folder>
 - It turns every model to face +Z (Alice's face -Z), once, however often it runs.
 - It writes `alice-models.json` and `conversion-report.md`: each variant's class, home section, triangles, largest texture, and whether its skeleton maps onto the joint map.
 
-Converted models are for testing until the licence audit clears them (WP17.1). Don't publish them or commit them to a public repository.
+**Converted models are subject to CMU's permission before distribution** (the owner, 22 Nov 2026; WP17.1). They may be converted and used for testing, privately. Don't publish them, commit them to a public repository, attach them to a release or share a link to them until CMU agrees in writing.
 
 ## The gallery list (licence audit, appendix A)
 

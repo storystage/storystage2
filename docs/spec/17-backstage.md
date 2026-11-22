@@ -472,4 +472,4 @@ How each rule in this spec is tested, and at which level (`09-testing.md`).
 | Reading glTF: placed meshes, rigged models in their rest pose, binary glTF | `packages/sketches/src/gltf.test.ts` | Unit (Vitest) |
 | 7.4, 7.7 and the tool: sketches written and recorded in a manifest that still validates; touch-up list; hand-drawn replacements; simplified sketches and sketches kept, and a name matching no sketch refused; dry run | `tools/make-sketches/src/make-sketches.test.ts` | Unit (Vitest) |
 | 7.9: 16 sketches in under 10 s on the reference Chromebook | Device run with the first imported character (WP3i) | Device |
-| Every shipped model loads in Babylon.js with its mapped joints (WP3 done-when) | With the first shipped models (WP3b) | Integration, in CI |
+| Every shipped model loads in Babylon.js with its mapped joints (WP3 done-when) | `packages/stage/src/babylon/shipped.test.ts`, over the Backstage `backstage.lock.json` pins (`BACKSTAGE_DIR`); its known faults are listed there and must match exactly | Integration, in CI's `check` |
