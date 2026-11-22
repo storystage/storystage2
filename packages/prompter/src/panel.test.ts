@@ -740,3 +740,36 @@ describe("the panel's repeats (spec 04, section 6.8)", () => {
     expect(t.panel.state.plan?.heldBy).toEqual([null]);
   });
 });
+
+describe("the panel's repeat edits keep the plan buildable (section 6.8)", () => {
+  it('writes the words again when Repeat… changes the step, and Cancel puts it back', async () => {
+    const t = await planned();
+    t.panel.changeStep(0, { repeat: 3 });
+    const original = t.panel.state.plan!.steps;
+    expect(t.panel.addRepeat()).toEqual({ ok: true, index: 0 });
+    const [loop, inside] = t.panel.state.plan!.steps;
+    expect(loop!.words).toBe('Repeat 3 times:');
+    expect(inside!.repeat).toBe(1);
+    expect(inside!.words).not.toBe(original[0]!.words);
+    expect(t.panel.state.plan!.problems).toEqual([]);
+    expect(t.panel.deleteStep(0)).toEqual({ ok: true });
+    expect(t.panel.state.plan!.steps).toEqual(original);
+  });
+
+  it('keeps a deleted repeat’s changes once anything else was edited since', async () => {
+    const t = await planned();
+    t.panel.changeStep(0, { repeat: 3 });
+    t.panel.addRepeat();
+    t.panel.changeStep(0, { repeat: 4 });
+    t.panel.deleteStep(0);
+    expect(t.panel.state.plan!.steps).toMatchObject([{ kind: 'do', repeat: 1 }]);
+  });
+
+  it('puts a new step after a repeat, never inside it', async () => {
+    const t = await planned();
+    t.panel.addRepeat();
+    t.panel.addStep(step({ actor: 'fox' }), 1);
+    expect(t.panel.state.plan!.steps.map((s) => s.kind)).toEqual(['repeat', 'do', 'do']);
+    expect(t.panel.state.plan!.heldBy).toEqual([null, 0, null]);
+  });
+});

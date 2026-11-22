@@ -275,6 +275,78 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(group).toMatchObject({ ok: true, step: 1 });
   });
 
+  it('builds a step at the same time as a whole repeat (section 6.8)', () => {
+    const { runner, run, now } = setUp();
+    const loop = step({
+      words: 'Repeat 3 times:',
+      kind: 'repeat',
+      actor: '',
+      action: '',
+      details: [],
+      repeat: 3,
+      holds: 1,
+    });
+    const inLoop = step({ words: 'The penguin hops.' });
+    const beside = step({ words: 'The fox goes too.', actor: 'fox', together: true });
+    runner.begin('go', agreed([loop, inLoop, beside]));
+    const control = (extra: JsonObject) => ({
+      method: 'myFirstMethod',
+      position: 'end',
+      narration: 'A block.',
+      ...extra,
+    });
+    const group = run('insert_control', control({ kind: 'doTogether', plan_step: 3 }));
+    expect(group).toMatchObject({ ok: true, step: 1 });
+    const inGroup = { parent_block: (group.ok && group.ids.block) || '' };
+    const count = run(
+      'insert_control',
+      control({ kind: 'count', count: 3, plan_step: 1, ...inGroup }),
+    );
+    expect(count).toMatchObject({ ok: true });
+    const inCount = { parent_block: (count.ok && count.ids.block) || '' };
+    expect(run('insert_statement', move('1', { ...inCount, plan_step: 2 }))).toMatchObject({
+      ok: true,
+    });
+    expect(
+      run('insert_statement', move('1', { ...inGroup, target: 'fox', plan_step: 3 })),
+    ).toMatchObject({ ok: true });
+    runner.end();
+    const [above, block] = methodBody(now()).slice(-2);
+    expect(above).toMatchObject({ kind: 'comment', text: loop.words });
+    expect(block).toMatchObject({ kind: 'doTogether' });
+  });
+
+  it('takes a do together named for the repeat itself, and not for its last step inside', () => {
+    const { runner, run } = setUp();
+    const loop = step({ kind: 'repeat', actor: '', action: '', details: [], repeat: 3, holds: 1 });
+    const beside = step({ actor: 'fox', together: true });
+    runner.begin('go', agreed([loop, step({}), beside]));
+    const together = (plan_step: number) =>
+      run('insert_control', {
+        method: 'myFirstMethod',
+        position: 'end',
+        kind: 'doTogether',
+        narration: 'These happen at the same time.',
+        plan_step,
+      });
+    expect(together(2)).toMatchObject({ ok: false, error: 'not_in_plan' });
+    expect(together(1)).toMatchObject({ ok: true });
+    runner.end();
+  });
+
+  it('keeps a together inside a repeat with the step inside that starts it', () => {
+    const { runner, run } = setUp();
+    const loop = step({ kind: 'repeat', actor: '', action: '', details: [], repeat: 4, holds: 2 });
+    runner.begin('go', agreed([loop, step({}), step({ actor: 'fox', together: true })]));
+    const at = { method: 'myFirstMethod', position: 'end', narration: 'A block.' };
+    const count = run('insert_control', { ...at, kind: 'count', count: 4, plan_step: 1 });
+    const inside = { parent_block: (count.ok && count.ids.block) || '' };
+    expect(
+      run('insert_control', { ...at, ...inside, kind: 'doTogether', plan_step: 3 }),
+    ).toMatchObject({ ok: true, step: 2 });
+    runner.end();
+  });
+
   it("gives an if's two halves as places to build", () => {
     const { runner, run } = setUp();
     runner.begin('go', agreed([step({ together: true })]));

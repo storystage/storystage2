@@ -538,7 +538,7 @@ The coach helps a learner think. The learner writes every word.
 
 **It does:**
 
-- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov).
+- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov). So is "Is it friendly, shy, sneaky or something else?" (story-06 in the rerun), so the mode's message rules out examples and choices in the question itself, for names and feelings too.
 - Offer the arc templates (10.2) and say what each part is for, in general, from the system prompt's list (section 2.5). Which arc fits is the learner's choice, and what happens in each part is the learner's to write.
 - Say what it notices in the learner's own words: "Your logline says who Pip is, but not what Pip wants."
 - Ask about gaps `script_check` finds.
@@ -733,6 +733,14 @@ A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `
 **As built (21 Nov 2026; S4's format 1.8.0 in #608):**
 - **The rules:** `packages/prompter/src/repeats.ts` holds them on the steps alone: `heldBy`, `stepsInsideMax`, `canRepeat`, and the moves and deletes with their words (`PLAN_EDIT_WORDS`). The panel's edits use them and return `PlanEdit`. `PanelPlan` carries `heldBy`, `stepsInsideMax` and `canRepeat`.
 - **The runner:** it keeps each repeat's count block by step number, and refuses a held step's block outside it, or before it exists.
+- **Fixed 22 Nov, after the review of #629 and a regression from #626:**
+  - **At the same time as a whole repeat:** for a step just after a repeat, "the step before" is the repeat, not its last held step. A `doTogether` named for either of them counts as the repeat's, and goes around its count.
+  - **A move** that would put a step with its own `repeat` inside, or a `together` step first inside, is refused, in the plan check's own words.
+  - **A step left first inside** by a move or a delete, or by Repeat…, is no longer `together`, and the edit says so: "The first step inside a repeat can't happen at the same time as the step before it, so now it doesn't."
+  - **Repeat… on a step with its own `repeat`** hands it those times ("Repeat 3 times:", not 2), so the film runs the same.
+  - **Cancel straight after Repeat…** puts the step back as it was.
+  - **Steps inside** stops before a step with its own `repeat`, and Add a step never lands inside a repeat.
+  - Change step's own values are left to the plan check, which says what's wrong under the step.
 - **The tool's input check** lets `actor` and `action` be empty, for a repeat step. The plan check then says "Say who does this step." or "Say what this step does." for any other step that leaves them empty.
 
 ## 7. Errors

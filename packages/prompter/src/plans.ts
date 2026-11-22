@@ -172,12 +172,8 @@ function repeatProblems(steps: readonly PlanStep[]): Map<number, string> {
     if (holder === null || holder === undefined || found.has(i)) return;
     if (s.kind === 'repeat') found.set(i, "A repeat can't go inside another repeat yet.");
     else if (!holdable(s)) found.set(i, PLAN_EDIT_WORDS.cantHold);
-    else if (s.repeat > 1) found.set(i, "A step inside a repeat can't repeat on its own as well.");
-    else if (s.together && i === holder + 1)
-      found.set(
-        i,
-        "The first step inside a repeat can't happen at the same time as the step before it.",
-      );
+    else if (s.repeat > 1) found.set(i, PLAN_EDIT_WORDS.cantRepeat);
+    else if (s.together && i === holder + 1) found.set(i, PLAN_EDIT_WORDS.cantBeFirst);
   });
   return found;
 }
@@ -232,6 +228,7 @@ export function mismatch(
       return null;
     }
     case 'insert_control': {
+      // `next` is the step after this one at its own level: after a repeat, after all it holds.
       const kind = text(input.kind);
       const grouped = step.together || next?.together === true;
       if (kind === 'doTogether' && grouped) return null;
