@@ -3,6 +3,7 @@ import {
   exampleProduction,
   openProduction,
   saveProduction,
+  withSound,
   type Production,
 } from '@storystage/production';
 import { box, glbFromMesh } from '@storystage/sketches/testing';
@@ -78,6 +79,27 @@ describe('packModels (spec 03, section 1.3)', () => {
     expect(again.production.manifest.models).toEqual(first.production.manifest.models);
     expect(again.files.models).toEqual(first.files.models);
     expect(again.missing).toEqual([]);
+  });
+
+  it('keeps imported sounds, so a film with one saves and opens with it (1.9.0)', async () => {
+    const { item, classModels } = await classWithCrate();
+    const wav = new Uint8Array(44);
+    wav.set([0x52, 0x49, 0x46, 0x46, 36, 0, 0, 0, 0x57, 0x41, 0x56, 0x45]);
+    const sounds = new Map([['sounds/sn1.wav', wav]]);
+    const film = withSound(using(item.id), {
+      id: 'sn1',
+      file: 'sn1.wav',
+      label: 'Rain',
+      length: 2,
+      bytes: wav.length,
+      trim: { start: 0, end: 2 },
+    });
+    const first = await packModels(film, { ...NO_FILES, sounds }, classModels);
+    // Again, as the next save does, from the files the last one gave.
+    const again = await packModels(first.production, first.files, classModels);
+    const opened = openProduction(saveProduction(again.production, again.files));
+    expect(opened.status).toBe('ok');
+    if (opened.status === 'ok') expect(opened.files.sounds).toEqual(sounds);
   });
 
   it('drops a model the production stopped using, with its files', async () => {
