@@ -5,6 +5,7 @@
 import { defaultLabel } from '@storystage/ast';
 import type { EditOperation, Expression, Program } from '@storystage/ast';
 import { indexOf } from './cache.ts';
+import { wantedAt } from './cascade.ts';
 import { describer, fill, word, type WordsOptions } from './words.ts';
 
 /** Plain words for one edit, about to be made to `program`. */
@@ -51,7 +52,14 @@ export function labelFor(
           : (slot as Record<string, unknown> | undefined)?.[edit.param]
       ) as Expression | null | undefined;
       const owner = describe.ownerOf(changed.id);
-      const words = (e: Expression) => (owner ? describe.inside(e, owner) : describe(e));
+      // The new value isn't in the program yet, so its place says whether it's a sound.
+      const wanted = wantedAt(program, {
+        kind: 'value',
+        node: changed.id,
+        slot: edit.slot,
+        ...(edit.param === undefined ? {} : { param: edit.param }),
+      });
+      const words = (e: Expression) => (owner ? describe.inside(e, owner, wanted) : describe(e));
       if (edit.slot === 'details' && edit.param) {
         const detail = word(`detail.${edit.param}`);
         if (edit.value === null) return fill(word('label.removeDetail'), { detail, what });

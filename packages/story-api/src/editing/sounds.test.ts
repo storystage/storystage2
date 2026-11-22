@@ -1,6 +1,7 @@
 import { applyEdits, nodeId, type Expression, type Program, type Statement } from '@storystage/ast';
 import { describe, expect, it } from 'vitest';
 import { cascadeFor } from './cascade.ts';
+import { labelFor } from './labels.ts';
 import { soundUses } from './sounds.ts';
 import { call, field, ID, mint, scene, text } from './testing.ts';
 import { describer, referenceTypeAt, type WordsOptions } from './words.ts';
@@ -138,5 +139,61 @@ describe('a block’s sound (0076, 7.17)', () => {
       kind: 'text',
       value: 'sn1',
     });
+  });
+});
+
+describe('a sound in a block that isn’t in the film yet (S7’s #642)', () => {
+  const door = 'kenney-audio/Sound/door-creak';
+
+  it('is shown by its label, from the block’s own input', () => {
+    const play = call(field(ID.cat), 'playAudio', { audioSource: text(door) as Expression });
+    expect(describer(withSound(), words).inside(play, ID.scene)).toBe('cat play Door');
+  });
+
+  it('is shown by its label in a variable’s value and in a list', () => {
+    const local: Statement = {
+      id: mint(),
+      kind: 'local',
+      name: 'tunes',
+      type: { kind: 'array', of: { kind: 'story', name: 'Audio' } },
+      value: {
+        id: mint(),
+        kind: 'arrayOf',
+        of: { kind: 'story', name: 'Audio' },
+        items: [text(door) as Expression],
+      },
+    };
+    expect(describer(withSound(), words).inside(local, ID.scene)).toContain('Door');
+    const one: Statement = {
+      id: mint(),
+      kind: 'local',
+      name: 'tune',
+      type: { kind: 'story', name: 'Audio' },
+      value: text(door) as Expression,
+    };
+    expect(describer(withSound(), words).inside(one, ID.scene)).toContain('Door');
+  });
+
+  it('leaves words that only read like a sound, even with a sound’s node id', () => {
+    const say = call(field(ID.cat), 'say', { text: { id: SPLASH, kind: 'text', value: 'sn1' } });
+    expect(describer(withSound(), words).inside(say, ID.scene)).toBe('cat say sn1');
+  });
+
+  it('names the sound being chosen in the undo label', () => {
+    const label = labelFor(
+      withSound(),
+      {
+        kind: 'setArgument',
+        node: PLAY,
+        slot: 'args',
+        param: 'audioSource',
+        value: text(door) as Expression,
+        label: '',
+      },
+      words,
+    );
+    expect(label).toContain('Splash');
+    expect(label).toContain('Door');
+    expect(label).not.toContain(door);
   });
 });

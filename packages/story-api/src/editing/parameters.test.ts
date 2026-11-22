@@ -144,3 +144,15 @@ describe('a learner’s method taking inputs (0074, 7.14)', () => {
     expect(parameterWords(scene(), hop(scene()).params[0]!)).toBe('height: number');
   });
 });
+
+it('calls an imported sound input a sound', () => {
+  expect(
+    parameterWords(scene(), {
+      id: ID.height,
+      kind: 'parameter',
+      name: 'noise',
+      type: { kind: 'story', name: 'Audio' },
+      default: null,
+    }),
+  ).toBe('noise: sound');
+});
