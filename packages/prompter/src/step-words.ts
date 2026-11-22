@@ -44,7 +44,11 @@ function ownWords(step: PlanStep, move: OwnMove, code: PlanCode, world: PlanWorl
   const args: Record<string, Expression> = {};
   for (const input of move.inputs) {
     const value = given.get(input.name);
-    if (value === undefined) continue;
+    if (value === undefined) {
+      // Every input is the step's to give (6.9), so one it leaves out reads as empty.
+      args[input.id] = { id, kind: 'none' };
+      continue;
+    }
     if (input.kind === 'object') args[input.id] = named(value);
     else if (input.storyType) {
       const made = toValue(value, input.storyType, { type: code.scene, classOf: () => null }, mint);

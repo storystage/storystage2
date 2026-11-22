@@ -130,7 +130,14 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     const { runner, run, now } = setUp();
     runner.begin(
       'make the penguin waddle',
-      agreed([step({ details: [{ name: 'amount', value: '3' }] })]),
+      agreed([
+        step({
+          details: [
+            { name: 'direction', value: 'forward' },
+            { name: 'amount', value: '3' },
+          ],
+        }),
+      ]),
     );
     expect(run('insert_statement', move('3'))).toMatchObject({
       ok: true,
@@ -486,7 +493,11 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
   it('adds a model as a field and an object in one step, which Undo takes back', () => {
     const { runner, run, session } = setUp();
     const before = session.production();
-    runner.begin('add an owl', agreed([addOwl]));
+    const details = [
+      { name: 'turn_degrees', value: '90' },
+      { name: 'scale', value: '2' },
+    ];
+    runner.begin('add an owl', agreed([step({ ...addOwl, details })]));
     expect(run('add_model', owl({ turn_degrees: 90, scale: 2 }))).toMatchObject({
       ok: true,
       ids: { name: 'owl' },
@@ -529,7 +540,13 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
   it("refuses a model that isn't in Backstage, and a bad scale, changing nothing", () => {
     const { runner, run, session } = setUp();
     const before = session.production();
-    runner.begin('add', agreed([step({ ...addOwl, action: 'example/Quadruped/dragon' }), addOwl]));
+    runner.begin(
+      'add',
+      agreed([
+        step({ ...addOwl, action: 'example/Quadruped/dragon' }),
+        step({ ...addOwl, details: [{ name: 'scale', value: '50' }] }),
+      ]),
+    );
     expect(run('add_model', owl({ backstage_item: 'example/Quadruped/dragon' }))).toMatchObject({
       ok: false,
       error: 'unknown_object',
@@ -604,8 +621,8 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
       agreed([
         change('fox', 'position', '2, 0, -1'),
         change('fox', 'paint', 'red'),
-        change('fox', 'opacity'),
-        change('camera', 'turn_degrees'),
+        change('fox', 'opacity', '0.5'),
+        change('camera', 'turn_degrees', '180'),
         change('fox', 'vehicle', 'penguin'),
       ]),
     );
@@ -632,12 +649,12 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
     runner.begin(
       'set',
       agreed([
-        change('owl', 'scale'),
-        change('camera', 'paint'),
-        change('fox', 'paint'),
-        change('fox', 'opacity'),
-        change('penguin', 'vehicle'),
-        change('fox', 'vehicle'),
+        change('owl', 'scale', '2'),
+        change('camera', 'paint', 'red'),
+        change('fox', 'paint', 'tartan'),
+        change('fox', 'opacity', '2'),
+        change('penguin', 'vehicle', 'fox'),
+        change('fox', 'vehicle', 'penguin'),
       ]),
     );
     const set = (object: string, property: string, value: string, n: number) =>
@@ -763,7 +780,11 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
 
   it('refuses other words, or none of the script, in a frame', () => {
     const { runner, run } = setUp();
-    runner.begin('code frame f2', agreed([line, step({ actor: 'fox', action: 'say' })], 'f2'));
+    const said = [{ name: 'text', value: 'Hello, friend.' }];
+    runner.begin(
+      'code frame f2',
+      agreed([line, step({ actor: 'fox', action: 'say', details: said })], 'f2'),
+    );
     expect(run('insert_statement', say('Hello, friend.', { line: 'l3' }))).toMatchObject({
       error: 'not_in_script',
     });
@@ -777,14 +798,24 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
 
   it('when building, takes the words of the request that made the plan, and no others', () => {
     const { runner, run } = setUp();
-    const free = step({ actor: 'fox', action: 'say' });
+    const free = step({
+      actor: 'fox',
+      action: 'say',
+      details: [{ name: 'text', value: 'Hello there' }],
+    });
+    // The Prompter's own step, so its words aren't the learner's.
+    const funny = step({
+      actor: 'fox',
+      action: 'say',
+      details: [{ name: 'text', value: 'Something funny' }],
+    });
     runner.begin('make the fox say Hello there', {});
-    run('propose_plan', { steps: [free] });
+    run('propose_plan', { steps: [free, funny] });
     runner.end();
     // The panel's build request is only its button's words (spec 04, section 4.5).
-    runner.begin('Build these steps.', agreed([free]));
+    runner.begin('Build these steps.', agreed([free, funny]));
     expect(run('insert_statement', say('Hello there'))).toMatchObject({ ok: true });
-    expect(run('insert_statement', say('Something funny'))).toMatchObject({
+    expect(run('insert_statement', say('Something funny', { plan_step: 2 }))).toMatchObject({
       error: 'not_in_script',
     });
   });
@@ -818,10 +849,20 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
 
   it("outside a frame, takes only the learner's own words", () => {
     const { runner, run } = setUp();
-    const free = step({ actor: 'fox', action: 'say' });
-    runner.begin('make the fox say Hello there', agreed([free]));
+    const free = step({
+      actor: 'fox',
+      action: 'say',
+      details: [{ name: 'text', value: 'Hello there' }],
+    });
+    const funny = step({
+      actor: 'fox',
+      action: 'say',
+      details: [{ name: 'text', value: 'Something funny' }],
+    });
+    run('propose_plan', { steps: [free, funny] });
+    runner.begin('make the fox say Hello there', agreed([free, funny]));
     expect(run('insert_statement', say('Hello there'))).toMatchObject({ ok: true });
-    expect(run('insert_statement', say('Something funny'))).toMatchObject({
+    expect(run('insert_statement', say('Something funny', { plan_step: 2 }))).toMatchObject({
       error: 'not_in_script',
     });
   });

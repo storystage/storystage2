@@ -599,6 +599,14 @@ A step gives every setting so the learner can see and change each one with the d
 
 Code, not trust, keeps the build to the plan. During a build the executor holds the agreed steps, and each change call must name a `plan_step` and match it: same actor, same action, same target, same details and same line. Anything else answers `not_in_plan` and changes nothing. Supporting calls that a step needs, such as the `doTogether` block for steps marked `together`, must name the step they serve.
 
+**The block is what the step showed, and no more** (tightened on 22 Nov 2026, after S6's review of the build of 6.9):
+
+- a value the step doesn't show is refused, an optional detail included;
+- a step's target is the block's own object setting (or the only object input of a learner's procedure), so a detail or a text that holds the same name doesn't stand in for it. A block with no object of its own can take it in a detail;
+- an added model starts at the step's position, with its turn and size. A turn or size the step doesn't give is none, and the usual size;
+- a change step gives its value, or the plan isn't shown;
+- an event is about only the objects its step names (actor, target or a detail), and about some if it names any, since none means everything. An event that takes a number gets it from the step. A click's objects are the listener's `setOfVisuals`: until 22 Nov 2026 they were dropped, and every such listener ran for a click on anything. A key press has no setting for which key, so a listener runs for any key.
+
 A setting is given once. A step or a call that gives one twice is refused: before 22 Nov 2026 a call matched its step on the first value and built the last.
 
 When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
@@ -762,7 +770,7 @@ The learner reads:
 - **A name has one meaning,** worked out by code:
   - A Story API procedure of that name on the actor's class wins, so no plan made today changes its meaning. A learner's procedure with that name can't be planned.
   - Otherwise it's the nearest class's, as the palette's "your own" finds them (`parentsOf`).
-- **Inputs** can be a number, a whole number, text, true or false, one of a Story API enum's values, or an object in the scene that fits the input's type by the program check's own rule (`typeFits`). An owl doesn't fit a Penguin input, though both are Flyers, so the Story API class alone isn't enough. A procedure with any other input (a list, say, which only an imported one has) can't be planned. An input is read as the program types it, so one an import gave the wrong type is read by that type (S6's importer fix).
+- **Inputs** can be a number, a whole number, text, true or false, one of a Story API enum's values, or an object in the scene that fits the input's type by the program check's own rule (`typeFits`). An owl doesn't fit a Penguin input, though both are Flyers, so the Story API class alone isn't enough. A procedure with any other input (a list, say, which only an imported one has) can't be planned. A Joint is one it can't fill, as it's no object in the scene. An input is read as the program types it, so one an import gave the wrong type is read by that type (S6's importer fix).
 
 #### The step and the block
 
@@ -808,7 +816,7 @@ An object added earlier in the plan is checked too, as its class is known then. 
 
 #### Plan only (6.6)
 
-A step ticks when the learner's block calls the procedure it means (by id, and still by that name), with the same values by input name, under 6.6's other rules. An input the block leaves out, as the editors' new blocks do for one with a default, counts as its default when that's a plain value, and otherwise doesn't match. A step's line is matched against the only text input, whatever its name. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7). After the film is reopened a kept plan doesn't come back into the panel (6.6), so nothing ticks or builds from it and no id is needed: the name is never resolved again.
+A step ticks when the learner's block calls the procedure it means (by id, and still by that name), with the same values by input name, under 6.6's other rules. An input the block leaves out, as the editors' new blocks do for one with a default, counts as its default when that's a plain value, and otherwise doesn't match. In a default, `this` is the call's actor, as the default runs inside the move, and an object's field counts only in a scene's own procedure. A step's line is matched against the only text input, whatever its name. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7). After the film is reopened a kept plan doesn't come back into the panel (6.6), so nothing ticks or builds from it and no id is needed: the name is never resolved again.
 
 #### What the Prompter is sent, and what it's told
 
@@ -828,7 +836,7 @@ The panel gives two things for the plan on show, read from the program as it is 
 |---|---|
 | `name`, `words`, `own` | The step's `action`, the block's short words, and whether it's the learner's |
 | `details` | The optional details it takes. The learner's own take none |
-| `inputs` | Each setting: `name`, `words` (an input's own name, never a built-in's word), `type`, `objects` (for an object, the names that fit it), `start` (its default, when that's a plain value) and `filledBy` (`target`, `line` or null, by the plan check's rule) |
+| `inputs` | Each setting: `name`, `words` (an input's own name, never a built-in's word), `type`, `objects` (for an object, the names that fit it), `start` (its default, when that's a plain value; `this` in one is the actor) and `filledBy` (`target`, `line` or null, by the plan check's rule) |
 
 The step editor reads them for "who", "which block" and each setting, in place of the Story API's entries alone, so the learner can choose, and correct, the same calls the Prompter can plan (S5).
 

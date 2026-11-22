@@ -23,6 +23,7 @@ import {
   type ListenerDecl,
   type MethodDecl,
   type NodeId,
+  type ParameterDecl,
   type Program,
   type Statement,
   type StatementSlot,
@@ -77,6 +78,8 @@ import { stageAfter, stepMoves } from './plan-stage.ts';
 import {
   checkPlan,
   mismatch,
+  targetOf,
+  unplanned,
   type NameValue,
   type PlanProblem,
   type PlanStep,
@@ -622,8 +625,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
             model: item as SceneObjectSetup['model'],
             class: cls,
           }) ?? story(cls);
-        const api = classOfType(cls);
-        return api ? { cls: api, type } : null;
+        // `cls` is a class already: read as a type, Text would be words.
+        return { cls, type };
       },
     };
   }
@@ -973,7 +976,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     if (move) {
       if (!meant)
         return fail('not_in_plan', `The agreed plan didn't show the learner's ${procedure} block.`);
-      return this.#ownCall(input, move, target.expression, parent, scene, mint);
+      return this.#ownCall(input, move, number, target.expression, parent, scene, mint);
     }
     const entry = findEntry(target.class, procedure);
     if (!entry || entry.kind !== 'procedure')
@@ -991,6 +994,11 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     if ('ok' in detailsGiven) return detailsGiven;
     const details = detailsGiven.values;
 
+    const unseen = unplanned(this.#agreed!.steps[number - 1]!, entry.params, [
+      ...pairs(input.arguments),
+      ...pairs(input.details),
+    ]);
+    if (unseen) return fail('not_in_plan', unseen);
     const said = WORDED.has(procedure) ? this.#speech(input, args.text) : null;
     if (said) return said;
     return {
@@ -1007,6 +1015,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   #ownCall(
     input: Input,
     move: OwnMove,
+    number: number,
     target: Expression,
     parent: NodeId,
     scene: SceneObjects,
@@ -1026,6 +1035,15 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       if (!made.ok) return fail('bad_argument', `${given}: ${made.message}`);
       args[param.id] = made.expression;
     }
+    // The step's target is the only object input by name, whatever another input holds.
+    const step = this.#agreed!.steps[number - 1]!;
+    const agreedOn = targetOf(step);
+    const acts = agreedOn === '' ? null : onlyInput(move, 'object');
+    if (acts && pairs(input.arguments).find((g) => g.name === acts.name)?.value !== agreedOn)
+      return fail(
+        'not_in_plan',
+        `Step "${step.words}" acts on the ${agreedOn}: give ${agreedOn} as ${acts.name}. Build exactly the agreed step.`,
+      );
     const missing = move.inputs.find((i) => !Object.hasOwn(args, i.id));
     if (missing) return fail('bad_argument', `${name} needs ${missing.name}.`);
     // Every text input is words in the film, spoken or not (the owner, 22 Nov 2026). A line fills
@@ -1390,19 +1408,36 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         args[param.name] = ref.expression;
       }
     }
-    const node: ListenerDecl = {
+    // The listener's id comes first, then its parameters', so a kept run's ids hold (section 9).
+    const id = mint();
+    const params = event.gives.map((g): ParameterDecl => ({
       id: mint(),
+      kind: 'parameter',
+      name: g.name,
+      type: story(g.type),
+      default: null,
+    }));
+    // What's clicked is the event's setOfVisuals detail: without it, a click on anything counts.
+    const details: Record<string, Expression> = {};
+    const clicked = event.details.includes('setOfVisuals') ? (lists[0] ?? []) : [];
+    if (clicked.length > 0) {
+      const refs = clicked.map((name) => ({ name, ref: objectRef(name, scene, mint) }));
+      const gone = refs.find((r) => !r.ref);
+      if (gone) return fail('unknown_object', `There's no ${gone.name} in this scene.`);
+      details.setOfVisuals = {
+        id: mint(),
+        kind: 'arrayOf',
+        of: story('Thing'),
+        items: refs.map((r) => r.ref!.expression),
+      };
+    }
+    const node: ListenerDecl = {
+      id,
       kind: 'listener',
       event: event.name,
       args,
-      details: {},
-      params: event.gives.map((g) => ({
-        id: mint(),
-        kind: 'parameter',
-        name: g.name,
-        type: story(g.type),
-        default: null,
-      })),
+      details,
+      params,
       body: [],
     };
     const refused = this.#apply([

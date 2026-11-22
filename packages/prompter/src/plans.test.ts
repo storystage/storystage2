@@ -293,7 +293,9 @@ describe('mismatch (spec 04, section 6.4)', () => {
       mismatch('set_property', { object: 'cat', property: 'opacity', value: '1' }, fade),
     ).not.toBeNull();
     const click = step({ kind: 'when', action: 'clickOnObject' });
-    expect(mismatch('add_event_listener', { event: 'clickOnObject' }, click)).toBeNull();
+    expect(
+      mismatch('add_event_listener', { event: 'clickOnObject', objects: ['owl'] }, click),
+    ).toBeNull();
     expect(mismatch('add_event_listener', { event: 'keyPress' }, click)).not.toBeNull();
     expect(
       mismatch('stage_scene', { scene: 's2' }, step({ kind: 'stage', action: 's2' })),

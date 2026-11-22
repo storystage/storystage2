@@ -24,7 +24,7 @@ import {
   type TypeName,
 } from '@storystage/story-api';
 import { describer, isSceneScript } from '@storystage/story-api/editing';
-import { toValue, type Converted, type SceneObjects } from './values.ts';
+import { plainText, toValue, type Converted, type SceneObjects } from './values.ts';
 
 /** The code a plan is checked against: the program, and the scene the plan is for. */
 export interface PlanCode {
@@ -52,6 +52,8 @@ export interface OwnInput {
 
 export interface OwnMove {
   readonly method: MethodDecl;
+  /** The class it's on: the scene's type, or a character's class. */
+  readonly owner: NodeId;
   readonly inputs: readonly OwnInput[];
 }
 
@@ -67,7 +69,8 @@ function inputOf(program: Program, p: ParameterDecl): OwnInput {
   if (storyType !== null && !TEXT_REFERENCES.includes(storyType)) {
     if (storyType === 'Text') kind = 'text';
     else if (PLAIN.has(storyType) || isEnumName(storyType)) kind = 'value';
-    else if (classOfType(storyType) !== null) kind = 'object';
+    // A joint isn't an object in the scene, so a step has no name to give for one.
+    else if (classOfType(storyType) !== null && classOfType(storyType) !== 'Joint') kind = 'object';
   }
   return { id: p.id, name: p.name, type: p.type, kind, storyType, default: p.default };
 }
@@ -84,7 +87,8 @@ export function ownMove(program: Program, type: TypeRef | null, name: string): O
   if (cls && findEntry(cls, name)?.kind === 'procedure') return null;
   for (const owner of types.parentsOf(type.type)) {
     const method = owner.methods.find((m) => m.name === name);
-    if (method) return { method, inputs: method.params.map((p) => inputOf(program, p)) };
+    if (method)
+      return { method, owner: owner.id, inputs: method.params.map((p) => inputOf(program, p)) };
   }
   return null;
 }
@@ -114,6 +118,24 @@ export function unplannable(code: PlanCode, move: OwnMove): string | null {
   if (code.forFrame && inputs.filter((i) => i.kind === 'text').length > 1)
     return `${name} has more than one text input, so add it in the Code editor.`;
   return null;
+}
+
+/**
+ * An input's default as a step writes it, for a call on `actor`, or null if no step can. A
+ * default runs inside the move, so `this` is the actor, and a field is an object of this scene
+ * only in one of the scene's own procedures.
+ */
+export function defaultText(
+  move: OwnMove,
+  input: OwnInput,
+  actor: string,
+  scene: TypeDecl,
+): string | null {
+  const value = input.default;
+  if (value === null) return null;
+  if (value.kind === 'this') return actor;
+  if (value.kind === 'fieldRef' && move.owner !== scene.id) return null;
+  return plainText(value, new Map(scene.fields.map((f) => [f.id, f.name] as const)));
 }
 
 /**

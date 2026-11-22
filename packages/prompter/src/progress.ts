@@ -6,7 +6,7 @@
 import type { Expression, ListenerDecl, NodeId, Statement, TypeDecl } from '@storystage/ast';
 import type { SceneObjectSetup } from '@storystage/story-api';
 import { classOfType, findEntry, type ApiClass } from '@storystage/story-api';
-import { onlyInput, type OwnMove } from './own-moves.ts';
+import { defaultText, onlyInput, type OwnMove } from './own-moves.ts';
 import { targetOf, type PlanStep } from './plans.ts';
 import { heldBy } from './repeats.ts';
 import { listText, plainText } from './values.ts';
@@ -96,7 +96,14 @@ function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
             if (!move) break;
             procedure = move.method.name;
             // An input left out, as the editors' new blocks do for one with a default, is its default.
-            for (const input of move.inputs) put(input.name, s.args[input.id] ?? input.default);
+            for (const input of move.inputs) {
+              const given = s.args[input.id];
+              if (given) put(input.name, given);
+              else {
+                const fallback = defaultText(move, input, target, world.type);
+                if (fallback !== null) values.set(input.name, fallback);
+              }
+            }
           }
           found.push({
             id: s.id,
@@ -192,7 +199,9 @@ function matches(
     for (const p of entry.params) {
       if (step.details.some((d) => d.name === p.name)) continue;
       if (p.name === 'text' && step.line !== '') continue;
-      if (classOfType(p.type) !== null && target !== '') continue;
+      // The target is the block's own object, not just any value the block holds.
+      if (classOfType(p.type) !== null && target !== '' && call.values.get(p.name) === target)
+        continue;
       return false;
     }
   if (step.repeat > 1 && !call.counts.includes(step.repeat)) return false;

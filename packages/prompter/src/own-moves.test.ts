@@ -941,3 +941,270 @@ describe("the learner's own: names and bodies are data (spec 04, sections 2.4 an
     expect(TOOL_NAMES).not.toContain('declare_procedure');
   });
 });
+
+// ---- S6's review of 59edf105, and the same holes in the built-ins ------------------------------
+
+describe("S6's review: a build acts on what the step says", () => {
+  const withMove = (...methods: MethodDecl[]): Production => {
+    const p = film();
+    const types = p.program.types.map((t) =>
+      t.id === ID.penguin ? { ...t, methods: [...t.methods, ...methods] } : t,
+    );
+    return { ...p, program: { ...p.program, types } };
+  };
+  const gift = () =>
+    withMove(
+      method('gift', mint(), [input('who', story('Flyer')), input('message', story('Text'))]),
+    );
+
+  it('holds the only object input to the target, whatever another input holds', () => {
+    const { agree, run } = setUp(gift());
+    agree(
+      [step({ action: 'gift', target: 'pingu', details: pairs({ message: 'pingu' }) })],
+      'gift pingu, saying pingu',
+    );
+    expect(run('insert_statement', call('gift', { who: 'owl', message: 'pingu' }))).toMatchObject({
+      error: 'not_in_plan',
+    });
+    expect(run('insert_statement', call('gift', { who: 'pingu', message: 'pingu' }))).toMatchObject(
+      { ok: true },
+    );
+  });
+
+  it('refuses a target that only a text matches', () => {
+    const { problem } = setUp(gift());
+    expect(
+      problem({
+        action: 'gift',
+        target: 'pingu',
+        details: pairs({ who: 'owl', message: 'pingu' }),
+      }),
+    ).toBe("A gift block doesn't act on the pingu.");
+  });
+
+  it("holds a built-in's object to the target, whatever a detail holds", () => {
+    const { agree, run } = setUp();
+    agree([step({ action: 'pointAt', target: 'pingu', details: [] })]);
+    expect(
+      run(
+        'insert_statement',
+        call(
+          'pointAt',
+          { target: 'owl' },
+          {
+            details: pairs({ upAsSeenBy: 'pingu' }) as unknown as Json,
+          },
+        ),
+      ),
+    ).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it('refuses a detail the step never showed', () => {
+    const { agree, run } = setUp();
+    const values = { direction: 'forward', amount: '1' };
+    agree([step({ action: 'move', details: pairs(values) })]);
+    expect(
+      run(
+        'insert_statement',
+        call('move', values, { details: pairs({ duration: '99' }) as unknown as Json }),
+      ),
+    ).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it("doesn't tick a built-in on another object that names the target in a detail", () => {
+    const { plan, runner, session, script, scene } = setUp();
+    expect(plan([step({ action: 'pointAt', target: 'pingu', details: [] })])).toMatchObject({
+      ok: true,
+    });
+    const before = new Set(indexProgram(session.program()).keys());
+    const ref = (name: string): Expression => ({
+      id: mint(),
+      kind: 'fieldRef',
+      target: THIS(),
+      field: scene().fields.find((f) => f.name === name)!.id,
+    });
+    const node: Statement = {
+      id: mint(),
+      kind: 'call',
+      target: ref('penguin'),
+      callee: { kind: 'story', name: 'pointAt' },
+      args: { target: ref('owl') },
+      details: { upAsSeenBy: ref('pingu') },
+    };
+    const added = session.apply(
+      [{ kind: 'insert', label: 'Add', parent: script().id, slot: 'body', index: 1, node }],
+      'Add',
+      'learner',
+    );
+    expect(added.ok).toBe(true);
+    expect(runner.progress(runner.latestPlan()!.steps, null, before)).toEqual([false]);
+  });
+
+  describe('`this` in a default is the character', () => {
+    const followId = nodeId('followmov');
+    const follow = () =>
+      withMove(method('follow', followId, [input('who', story('Thing'), mint(), THIS())]));
+
+    it('ticks the actor, not the scene', () => {
+      const ticked = (who: string) => {
+        const { plan, runner, session, script, scene } = setUp(follow());
+        expect(plan([step({ action: 'follow', details: pairs({ who }) })])).toMatchObject({
+          ok: true,
+        });
+        const before = new Set(indexProgram(session.program()).keys());
+        const field = scene().fields.find((f) => f.name === 'penguin')!;
+        const target: Expression = {
+          id: mint(),
+          kind: 'fieldRef',
+          target: THIS(),
+          field: field.id,
+        };
+        const node = callOwn(followId, target);
+        const added = session.apply(
+          [{ kind: 'insert', label: 'Add', parent: script().id, slot: 'body', index: 1, node }],
+          'Add',
+          'learner',
+        );
+        expect(added.ok).toBe(true);
+        return runner.progress(runner.latestPlan()!.steps, null, before)[0];
+      };
+      expect(ticked('penguin')).toBe(true);
+      expect(ticked('this')).toBe(false);
+    });
+
+    it('starts the editor on the actor', () => {
+      const blocks = setUp(follow()).runner.stepBlocks('pingu', [], null);
+      expect(blocks.find((b) => b.name === 'follow')!.inputs[0]!.start).toBe('pingu');
+    });
+  });
+
+  it('checks and lists the blocks of a text model the plan adds', () => {
+    const { runner } = setUp(film(), {
+      backstageClass: (id) => (id === 'example/Text/title' ? 'Text' : null),
+    });
+    const add = step({ kind: 'add', actor: 'title', action: 'example/Text/title' });
+    expect(
+      runner.checkSteps([add, step({ actor: 'title', action: 'nonsense' })], null),
+    ).toHaveLength(1);
+    expect(runner.stepBlocks('title', [add], null).map((b) => b.name)).toContain('setValue');
+  });
+
+  it('leaves a Joint input to the Code editor', () => {
+    const { problem, runner } = setUp(
+      withMove(method('elbow', mint(), [input('part', story('Joint'))])),
+    );
+    expect(problem({ action: 'elbow' })).toBe(
+      'elbow needs an input you can fill only in the Code editor.',
+    );
+    expect(runner.stepBlocks('penguin', [], null).map((b) => b.name)).not.toContain('elbow');
+  });
+
+  it('words an input the step leaves out as empty', () => {
+    expect(setUp().runner.stepWords(step({ action: 'flap' }), null)).toBe('Penguin flap times ???');
+  });
+
+  it("names the learner's input by its own name", () => {
+    const { problem } = setUp(withMove(method('kinds', mint(), [input('text', story('Text'))])));
+    const details = [
+      { name: 'text', value: 'a' },
+      { name: 'text', value: 'b' },
+    ];
+    expect(problem({ action: 'kinds', details })).toBe('A kinds block can have text only once.');
+  });
+});
+
+describe('a set-up step is built as the learner saw it (spec 04, section 6.4)', () => {
+  const rock = (extra: JsonObject = {}): JsonObject => ({
+    backstage_item: 'example/Prop/rock',
+    name: 'rock',
+    position: { x: 1, y: 0, z: 0 },
+    narration: 'A rock arrives.',
+    plan_step: 1,
+    ...extra,
+  });
+  const added = (values: Record<string, string>) =>
+    step({ kind: 'add', actor: 'rock', action: 'example/Prop/rock', details: pairs(values) });
+
+  it('holds an added model to its position', () => {
+    const { agree, run } = setUp();
+    agree([added({ position: '-1, 0, 0' })]);
+    expect(run('add_model', rock())).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it('holds an added model to its turn and size', () => {
+    const turned = setUp();
+    turned.agree([added({ turn_degrees: '90' })]);
+    expect(turned.run('add_model', rock())).toMatchObject({ error: 'not_in_plan' });
+    const sized = setUp();
+    sized.agree([added({ scale: '2' })]);
+    expect(sized.run('add_model', rock())).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it('wants the value a change sets, so the build has no choice of its own', () => {
+    expect(setUp().problem({ kind: 'change', action: 'opacity', details: [] })).toBe(
+      'A change step needs the value for opacity.',
+    );
+  });
+});
+
+describe('an event is for what its step showed (spec 04, section 6.4)', () => {
+  const when = (action: string, s: Partial<PlanStep> = {}) =>
+    step({ kind: 'when', action, details: [], ...s });
+  const listen = (event: string, objects: string[], extra: JsonObject = {}): JsonObject => ({
+    event,
+    objects,
+    other_objects: [],
+    narration: 'Something will happen.',
+    plan_step: 1,
+    ...extra,
+  });
+
+  it('keeps a click to what is clicked', () => {
+    const { agree, run, scene, session } = setUp();
+    agree([when('clickOnObject')]);
+    expect(run('add_event_listener', listen('clickOnObject', ['penguin']))).toMatchObject({
+      ok: true,
+    });
+    const field = scene().fields.find((f) => f.name === 'penguin')!;
+    expect(scene().listeners.at(-1)!.details).toMatchObject({
+      setOfVisuals: { kind: 'arrayOf', items: [{ kind: 'fieldRef', field: field.id }] },
+    });
+    expect(checkProgram(session.program())).toEqual([]);
+  });
+
+  it('leaves a click on anything as one', () => {
+    const { agree, run, scene } = setUp();
+    agree([when('clickOnObject', { actor: 'scene' })]);
+    expect(run('add_event_listener', listen('clickOnObject', []))).toMatchObject({ ok: true });
+    expect(scene().listeners.at(-1)!.details).toEqual({});
+  });
+
+  it('refuses another object, or every object, for one the step names', () => {
+    const { agree, run } = setUp();
+    agree([when('clickOnObject')]);
+    for (const objects of [['fox'], []])
+      expect(run('add_event_listener', listen('clickOnObject', objects))).toMatchObject({
+        error: 'not_in_plan',
+      });
+  });
+
+  it('takes the object clicked from the step’s target too', () => {
+    const { agree, run } = setUp();
+    agree([when('clickOnObject', { target: 'fox' })]);
+    expect(run('add_event_listener', listen('clickOnObject', ['fox']))).toMatchObject({ ok: true });
+  });
+
+  it("holds an event's number to its step, which must give one", () => {
+    expect(setUp().problem({ kind: 'when', action: 'timer', details: [] })).toBe(
+      'A timer event needs a value for seconds.',
+    );
+    const { agree, run } = setUp();
+    agree([when('timer', { actor: 'scene', details: pairs({ seconds: '2' }) })]);
+    expect(run('add_event_listener', listen('timer', [], { number: 9 }))).toMatchObject({
+      error: 'not_in_plan',
+    });
+    expect(run('add_event_listener', listen('timer', [], { number: 2 }))).toMatchObject({
+      ok: true,
+    });
+  });
+});

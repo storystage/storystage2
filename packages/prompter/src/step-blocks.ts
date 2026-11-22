@@ -5,10 +5,9 @@
  */
 import { classOfType, entriesOf, isKindOf, type TypeName } from '@storystage/story-api';
 import { word } from '@storystage/story-api/editing';
-import { ownMove, ownNames, typesIn, unplannable } from './own-moves.ts';
+import { defaultText, ownMove, ownNames, typesIn, unplannable } from './own-moves.ts';
 import type { Stage } from './plan-stage.ts';
 import { settingWords, type PlanWorld } from './plans.ts';
-import { plainText } from './values.ts';
 
 export interface StepInput {
   /** As a step's details name it. */
@@ -42,14 +41,13 @@ function ownBlocks(actor: string, stage: Stage, world: PlanWorld): StepBlock[] {
   if (!code) return [];
   const { program } = code;
   const type = stage.types.get(actor) ?? null;
-  const fields = new Map(code.scene.fields.map((f) => [f.id, f.name] as const));
   return ownNames(program, type).flatMap((name) => {
     // Only what the name resolves to: one a built-in or a nearer class hides isn't listed.
     const move = ownMove(program, type, name);
     if (!move || unplannable(code, move) !== null) return [];
     const only = (kind: string) => move.inputs.filter((i) => i.kind === kind).length === 1;
     const inputs = move.inputs.map((input): StepInput => {
-      const start = input.default === null ? null : plainText(input.default, fields);
+      const start = defaultText(move, input, actor, code.scene);
       const object = input.kind === 'object';
       return {
         name: input.name,
