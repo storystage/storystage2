@@ -71,7 +71,7 @@ The owner's choices of 17 Nov 2026: the key from the environment, recordings kep
 5. **Score with the grades**, for nothing: `pnpm eval -- --replay docs/eval/results/local/<run> --pilot --grades docs/eval/results/local/<run>/grades.csv`. This replays the recordings through the fake server and scores the run against the bars below.
 6. **Keep it.** Move the reviewed recordings, `results.csv`, `usage.csv` and `grades.csv` up to `docs/eval/results/`, named as Scoring says. Push protection is a second guard. Then run the whole set with `--all`.
 
-A recording is valid only for the system prompt and tools that made it (Recorded runs, below). The harness runs with fixed node ids, so a replay builds the same blocks.
+A recording is valid only for the system prompt and tools that made it (Recorded runs, below). The harness runs with fixed node ids, so a replay builds the same blocks. `--all` is every row of the set as it is now, so a run kept before rows were added (own-01 to own-05 and inject-11, 22 Nov 2026) replays with `--rows` and its own ids, or with `--all` on the commit that made it.
 
 ## Checks
 

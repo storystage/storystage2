@@ -772,7 +772,7 @@ Neither schema gains a field, and the production format doesn't change.
 - **A step's `target`** fills the input when the procedure has exactly one object input, and its `line` when it has exactly one text input.
 - **The block** is `insert_statement` with `procedure` the name and the inputs in `arguments`. A learner's procedure takes no details, so `details` is empty. The runner writes `callee: { kind: 'user', method }`, with each value keyed by its input's id.
 - **`together`, `repeat` and a repeat step's `holds`** work as for any `do` step.
-- **When code writes its words** (6.1: a step the learner changed or added), they're the editors' own for that call (`newCall`, then `describer`, from `@storystage/story-api/editing`): "penguin waddle steps 3", not the sentence the Prompter wrote. A value the describer reads from its place in the program, such as a sound's label, is described in a scratch copy of the program with the call in it.
+- **When code writes its words** (6.1: a step the learner changed or added), they're the editors' own for that call (`newCall`, then `describer`, from `@storystage/story-api/editing`): "penguin waddle steps 3", not the sentence the Prompter wrote. The describer words a call that is not in the program yet (#645), so none is put there to word it.
 
 #### Checking the plan (6.3)
 
