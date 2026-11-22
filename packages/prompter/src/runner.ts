@@ -178,11 +178,29 @@ const fail = (error: ToolErrorCode, message: string): Result => ({ ok: false, er
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 const pairs = (v: unknown): NameValue[] => (Array.isArray(v) ? (v as NameValue[]) : []);
 const story = (name: string): TypeRef => ({ kind: 'story', name });
-/** The step that starts the group a step runs together in, from 1 (section 6.4). */
+/**
+ * The step that starts the group a step runs together in, from 1 (section 6.4). Just after a
+ * repeat, the step before is the whole repeat, not the last step inside it (section 6.8).
+ */
 function groupStart(steps: readonly PlanStep[], number: number): number {
+  const held = heldBy(steps);
+  const own = held[number - 1];
   let start = number;
-  while (start > 1 && steps[start - 1]?.together) start -= 1;
+  while (start > 1 && steps[start - 1]?.together) {
+    const holder = held[start - 2];
+    start = holder !== null && holder !== undefined && holder !== own ? holder + 1 : start - 1;
+  }
   return start;
+}
+
+/**
+ * The step after this one at its own level, from 1: after a repeat, the one after all it holds;
+ * after the last step inside a repeat, none (section 6.8).
+ */
+function nextBeside(steps: readonly PlanStep[], number: number): PlanStep | undefined {
+  const held = heldBy(steps);
+  const after = number + (steps[number - 1]?.holds ?? 0);
+  return held[after] === held[number - 1] ? steps[after] : undefined;
 }
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
 
@@ -609,7 +627,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const number = typeof input.plan_step === 'number' ? input.plan_step : 0;
     const step = steps[number - 1];
     if (!step) return fail('not_in_plan', `There is no step ${number} in the agreed plan.`);
-    const wrong = mismatch(name, input, step, steps[number]);
+    const wrong = mismatch(name, input, step, nextBeside(steps, number));
     if (wrong) return fail('not_in_plan', wrong);
 
     const program = this.#setup.session.program();

@@ -86,7 +86,7 @@ const MODE_MESSAGES: Readonly<Record<PrompterMode, string>> = {
   explain:
     'Mode: Explain only. Answer questions about the production and how blocks work, using explain and read_project where they help. Change nothing, and make no plans. If asked to build something, say how the learner could do it themselves.',
   storyCoach:
-    "Mode: Story coach. Help the learner think about their story by asking one question at a time: who wants what, what stops them, what changes, how it ends. Ask open questions, and don't suggest answers to choose from: the answer is theirs to find. You can offer the arc templates and say what you notice in the learner's own words. Change nothing, make no plans, and never write any of the story for them.",
+    "Mode: Story coach. Help the learner think about their story by asking one question at a time: who wants what, what stops them, what changes, how it ends. Ask open questions that name none of the possible answers: ask what a character is like, and stop there, with no examples and no choices such as 'this, that or something else'. That holds for names and feelings too: the answer is theirs to find. You can offer the arc templates and say what you notice in the learner's own words. Change nothing, make no plans, and never write any of the story for them.",
   scriptCheck:
     "Mode: Script check. Call script_check, then explain what it found in plain words, and ask about the gaps. Change nothing, make no plans, and suggest no replacement words: the words are the learner's.",
   showMeHow:

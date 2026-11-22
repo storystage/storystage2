@@ -498,7 +498,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Nothing.
 - For S8: spec 06, section 7: the Tauri apps need COOP and COEP headers for whisper's threads, and the native layer hands the worker a checked model (bundled, or the optional download), so the webview loads nothing remote.
 - For D: the owner confirmed no picture is ever sent to the Prompter (31 Oct). Workplan 17.3 still lists scene pictures in the DPIA's scope, so please correct it; S7 has corrected 13.3. Spec 06, section 7 also asks for speech in the DPIA and the model weights in `NOTICE`.
-- Next: WP13c (the Prompter panel, storyboard tools, story coach, live eval). S5's WP7 and WP10a are in, so it can start. **For S2:** S7 will message S2 when the Prompter is in the studio and explains an automatic-check flag, so S2 can tick 11.6.
+- Next: 22 Nov, **repeat edits, a regression, and the coach's questions** (this pull request, waits for the owner; spec 04 sections 5 and 6.8): #626's fix refused a do together for a step beside a whole repeat, so it now counts as the repeat's. A repeat's edits keep a plan the check accepts (the bug found reviewing #629). The coach's questions name no possible answers (story-06), to be proven live. Then the owner's whole run, for the live bar, and the spec for calls to a learner's own procedures and class moves.
 
 ## S8 Apps, security and class set-up
 - Merged:

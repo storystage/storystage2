@@ -373,8 +373,9 @@ export class PrompterPanel<S extends string = string> {
     const plan = this.#state.plan;
     if (!plan || this.#busy) return { ok: false };
     const made = change([...plan.steps]);
-    const { steps, words } = Array.isArray(made) ? { steps: made, words: undefined } : made;
+    const { steps, words, rewrite }: StepsEdit = Array.isArray(made) ? { steps: made } : made;
     if (steps === null) return words ? { ok: false, words } : { ok: false };
+    for (const i of rewrite ?? []) steps[i] = this.#worded(steps[i]!, false);
     this.#set({
       plan: {
         ...plan,
@@ -436,14 +437,27 @@ export class PrompterPanel<S extends string = string> {
     );
   }
 
-  /** Deletes a step. A repeat that holds nothing then goes too, and the result says so. */
+  /**
+   * Deletes a step. A repeat that holds nothing then goes too, and the result says so. A repeat
+   * deleted straight after Repeat… (Cancel) leaves the plan as it was before it.
+   */
   deleteStep(index: number): PlanEdit {
+    const added = this.#repeatAdded;
+    if (added && added.index === index && added.after === this.#state.plan?.steps)
+      return this.#edit(() => [...added.before]);
     return this.#edit((steps) => deleteSteps(steps, index));
   }
 
+  /** The last Repeat…: the steps either side of it, for Cancel straight after. */
+  #repeatAdded: {
+    readonly index: number;
+    readonly before: readonly PlanStep[];
+    readonly after: readonly PlanStep[];
+  } | null = null;
+
   /** Repeat…: "Repeat 2 times:" before the last step, holding it (section 6.8). */
   addRepeat(): AddRepeat {
-    const before = this.#state.plan?.steps.length ?? 0;
+    const before = this.#state.plan?.steps ?? [];
     const edit = this.#edit((steps) => {
       const made = addRepeatStep(steps);
       if (!made.steps) return made;
@@ -451,7 +465,10 @@ export class PrompterPanel<S extends string = string> {
       made.steps[at] = this.#worded(made.steps[at]!, false);
       return made;
     });
-    return edit.ok ? { ...edit, index: before - 1 } : edit;
+    if (!edit.ok) return edit;
+    const index = before.length - 1;
+    this.#repeatAdded = { index, before, after: this.#state.plan!.steps };
+    return { ...edit, index };
   }
 
   /**
@@ -478,7 +495,11 @@ export class PrompterPanel<S extends string = string> {
   /** Adds a step. One with no words gets them from what it does. */
   addStep(step: PlanStep, at = Infinity): PlanEdit {
     return this.#edit((steps) => {
-      steps.splice(Math.min(at, steps.length), 0, this.#worded(step, step.words.trim() !== ''));
+      let place = Math.min(at, steps.length);
+      // A new step doesn't land inside a repeat: it goes after it (section 6.8).
+      const holder = heldBy(steps)[place];
+      if (holder !== null && holder !== undefined) place = holder + steps[holder]!.holds + 1;
+      steps.splice(place, 0, this.#worded(step, step.words.trim() !== ''));
       return steps;
     });
   }

@@ -114,3 +114,87 @@ describe('deleting a step', () => {
     expect(edit.words).toBe(PLAN_EDIT_WORDS.repeatGone);
   });
 });
+
+describe('every edit keeps a plan the check accepts (section 6.8)', () => {
+  const together = (words: string) => ({ ...block(words), together: true });
+  const thrice = (words: string) => ({ ...block(words), repeat: 3 });
+
+  it('hands a step its own times to Repeat…, and frees a together one', () => {
+    const times = addRepeat([block('a'), thrice('b')]);
+    expect(times.steps?.slice(1)).toMatchObject([{ repeat: 3, holds: 1 }, { repeat: 1 }]);
+    expect(times.rewrite).toEqual([2]);
+    const freed = addRepeat([block('a'), together('b')]);
+    expect(freed.steps?.[2]).toMatchObject({ together: false });
+    expect(freed).toMatchObject({ rewrite: [2], words: PLAN_EDIT_WORDS.notTogether });
+  });
+
+  it('frees a together step left first inside by a delete or a move', () => {
+    const steps = [repeatStep(2, 2), block('a'), together('b'), block('c')];
+    for (const edit of [deleteStep(steps, 1), moveStep(steps, 1, 3)]) {
+      expect(edit.steps?.[1]).toMatchObject({ words: 'b', together: false });
+      expect(edit).toMatchObject({ rewrite: [1], words: PLAN_EDIT_WORDS.notTogether });
+    }
+  });
+
+  it('refuses to move in a step that repeats on its own, or a together one as the first', () => {
+    expect(moveStep([repeatStep(2, 1), block('a'), thrice('b')], 2, 1)).toEqual({
+      steps: null,
+      words: PLAN_EDIT_WORDS.cantRepeat,
+    });
+    expect(moveStep([repeatStep(2, 1), block('a'), together('b')], 2, 1)).toEqual({
+      steps: null,
+      words: PLAN_EDIT_WORDS.cantBeFirst,
+    });
+  });
+
+  it('stops Steps inside before a step that repeats on its own', () => {
+    expect(stepsInsideMax([repeatStep(2, 1), block('a'), thrice('b')])[0]).toBe(1);
+  });
+
+  it('does so for every edit of every plan of up to five steps', () => {
+    const kinds = [
+      () => block('a'),
+      () => together('t'),
+      () => thrice('n'),
+      () => ({ ...when }),
+      () => repeatStep(2, 1),
+      () => repeatStep(2, 2),
+    ];
+    // The plan check's rules for repeats (plans.ts).
+    const sound = (steps: readonly PlanStep[]) => {
+      const held = heldBy(steps);
+      return steps.every((s, i) => {
+        if (s.kind === 'repeat')
+          return held[i] === null && s.repeat >= 2 && s.holds >= 1 && i + s.holds < steps.length;
+        if (held[i] === null) return true;
+        return s.kind === 'do' && s.repeat === 1 && !(s.together && held[i] === i - 1);
+      });
+    };
+    let plans: PlanStep[][] = [[]];
+    const broken: string[] = [];
+    let tried = 0;
+    for (let n = 1; n <= 5; n++) {
+      plans = plans.flatMap((p) => kinds.map((make) => [...p, make()]));
+      for (const plan of plans.filter(sound)) {
+        const edits = [addRepeat(plan)];
+        plan.forEach((s, i) => {
+          edits.push(deleteStep(plan, i));
+          for (let to = 0; to < n; to++) edits.push(moveStep(plan, i, to));
+          if (s.kind !== 'repeat') return;
+          for (let holds = 1; holds < n; holds++) {
+            const next = { ...s, holds };
+            if (repeatFits(plan, i, next))
+              edits.push({ steps: plan.map((x, j) => (j === i ? next : x)) });
+          }
+        });
+        for (const { steps } of edits) {
+          if (steps === null) continue;
+          tried++;
+          if (!sound(steps)) broken.push(`${show(plan)} -> ${show(steps)}`);
+        }
+      }
+    }
+    expect(tried).toBeGreaterThan(1000);
+    expect(broken.slice(0, 5)).toEqual([]);
+  });
+});

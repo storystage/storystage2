@@ -12,6 +12,11 @@ import type { PlanStep } from './plans.ts';
 export const PLAN_EDIT_WORDS = {
   cantHold: 'A repeat can only hold steps that are blocks.',
   repeatGone: "The repeat had no steps left, so it's gone too.",
+  cantRepeat: "A step inside a repeat can't repeat on its own as well.",
+  cantBeFirst:
+    "The first step inside a repeat can't happen at the same time as the step before it.",
+  notTogether:
+    "The first step inside a repeat can't happen at the same time as the step before it, so now it doesn't.",
 } as const;
 
 /** What a plan edit did: whether it changed the plan, and any words to announce. */
@@ -27,10 +32,15 @@ export type AddRepeat = PlanEdit & { readonly index?: number };
 export interface StepsEdit {
   readonly steps: PlanStep[] | null;
   readonly words?: string;
+  /** The places of steps whose values the edit changed, so their words are written again. */
+  readonly rewrite?: readonly number[];
 }
 
 /** A step that can go inside a repeat: a block step (only blocks go in a count). */
 export const holdable = (step: PlanStep): boolean => step.kind === 'do';
+
+/** A step Steps inside can take in as it is: a block step that doesn't repeat on its own. */
+const fitsInside = (step: PlanStep): boolean => holdable(step) && step.repeat <= 1;
 
 /** For each step, the index of the `repeat` step that holds it, or null. */
 export function heldBy(steps: readonly PlanStep[]): (number | null)[] {
@@ -43,14 +53,15 @@ export function heldBy(steps: readonly PlanStep[]): (number | null)[] {
 }
 
 /**
- * For a `repeat` step, the most its Steps inside can be: the run of block steps right after it.
+ * For a `repeat` step, the most its Steps inside can be: the run of block steps right after it,
+ * up to one that repeats on its own.
  * Null for any other step.
  */
 export function stepsInsideMax(steps: readonly PlanStep[]): (number | null)[] {
   return steps.map((s, i) => {
     if (s.kind !== 'repeat') return null;
     let n = 0;
-    while (i + 1 + n < steps.length && holdable(steps[i + 1 + n]!)) n++;
+    while (i + 1 + n < steps.length && fitsInside(steps[i + 1 + n]!)) n++;
     return n;
   });
 }
@@ -84,12 +95,34 @@ export function repeatStep(times = 2, holds = 1): PlanStep {
   };
 }
 
-/** Repeat…: "Repeat 2 times:" put before the last step, holding it. */
+/**
+ * Repeat…: "Repeat 2 times:" put before the last step, holding it. A last step that repeats on
+ * its own hands its times to the repeat, so it still runs as often. One that was together no
+ * longer is, as the first inside.
+ */
 export function addRepeat(steps: readonly PlanStep[]): StepsEdit {
   if (!canRepeat(steps)) return { steps: null };
   const next = [...steps];
-  next.splice(next.length - 1, 0, repeatStep());
-  return { steps: next };
+  const last = next.length - 1;
+  const own = next[last]!.repeat;
+  if (own > 1) next[last] = { ...next[last]!, repeat: 1 };
+  next.splice(last, 0, repeatStep(own > 1 ? own : 2));
+  const edit = freeFirst(next);
+  return own > 1 ? { ...edit, rewrite: [...new Set([last + 1, ...(edit.rewrite ?? [])])] } : edit;
+}
+
+/** An edit's steps with no repeat's first step together, saying so if one was. */
+function freeFirst(steps: PlanStep[], said?: string): StepsEdit {
+  const rewrite: number[] = [];
+  heldBy(steps).forEach((holder, i) => {
+    if (holder !== i - 1 || !steps[i]!.together) return;
+    steps[i] = { ...steps[i]!, together: false };
+    rewrite.push(i);
+  });
+  const words = [said, rewrite.length > 0 ? PLAN_EDIT_WORDS.notTogether : undefined]
+    .filter(Boolean)
+    .join(' ');
+  return { steps, ...(words ? { words } : {}), ...(rewrite.length > 0 ? { rewrite } : {}) };
 }
 
 /** The repeat whose held steps sit at `at` in `steps` (between it and its last), or null. */
@@ -108,9 +141,27 @@ const withHolds = (steps: PlanStep[], at: number, holds: number) => {
 /**
  * Moves a step to `to`, its place in the plan after the move. A repeat moves with the steps it
  * holds. A block step dropped between a repeat and its last held step goes inside; a held step
- * moved out leaves. A step that can't be held, or a repeat, can't be dropped inside a repeat.
+ * moved out leaves. A step that can't be held, or a repeat, can't be dropped inside a repeat,
+ * nor can one that repeats on its own, nor a together one as the first inside. A step left first
+ * inside by the move is no longer together.
  */
 export function moveStep(steps: readonly PlanStep[], from: number, to: number): StepsEdit {
+  const edit = moved(steps, from, to);
+  if (edit.steps === null) return edit;
+  const step = steps[from]!;
+  const at = edit.steps.indexOf(step);
+  const holder = heldBy(edit.steps)[at];
+  // The moved step itself is refused, rather than changed: it's the one the learner is holding.
+  if (holder !== null && holder !== undefined) {
+    if (step.repeat > 1) return { steps: null, words: PLAN_EDIT_WORDS.cantRepeat };
+    if (step.together && holder === at - 1)
+      return { steps: null, words: PLAN_EDIT_WORDS.cantBeFirst };
+  }
+  return freeFirst(edit.steps, edit.words);
+}
+
+/** A move on the places and `holds` alone. */
+function moved(steps: readonly PlanStep[], from: number, to: number): StepsEdit {
   const moving = steps[from];
   if (moving === undefined || to < 0) return { steps: null };
   const held = heldBy(steps);
@@ -160,14 +211,14 @@ export function deleteStep(steps: readonly PlanStep[], index: number): StepsEdit
   if (steps[index] === undefined) return { steps: null };
   const holder = steps[index]!.kind === 'repeat' ? null : heldBy(steps)[index]!;
   const next = steps.filter((_, i) => i !== index);
-  if (holder === null) return { steps: next };
+  if (holder === null) return freeFirst(next);
   const left = next[holder]!.holds - 1;
   if (left > 0) {
     withHolds(next, holder, left);
-    return { steps: next };
+    return freeFirst(next);
   }
   next.splice(holder, 1);
-  return { steps: next, words: PLAN_EDIT_WORDS.repeatGone };
+  return freeFirst(next, PLAN_EDIT_WORDS.repeatGone);
 }
 
 /** Whether a repeat's How many times and Steps inside are within their limits. */
