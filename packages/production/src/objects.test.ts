@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { indexProgram, validateProgram } from '@storystage/ast';
+import {
+  indexProgram,
+  nodeId,
+  validateProgram,
+  type TypeDecl,
+  type TypeRef,
+} from '@storystage/ast';
 import { IDENTITY, backstageId, objectId, type Transform } from '@storystage/story-api';
 import { exampleProduction } from './example.ts';
 import {
@@ -76,6 +82,38 @@ describe('addObject', () => {
     });
     expect(validateProgram(p.program)).toEqual([]);
     expect(checkReferences(p)).toEqual([]);
+  });
+
+  // Decision 0074 (S5's ask): an owl added after the learner's `Owl extends Flyer` is an Owl.
+  it('gives the field a learner’s class when asked, one that comes down from its class', () => {
+    const base = exampleProduction();
+    const owlClass: TypeDecl = {
+      id: nodeId('owlclass'),
+      kind: 'type',
+      name: 'Owl',
+      extends: { kind: 'story', name: 'Flyer' },
+      fields: [],
+      methods: [],
+      listeners: [],
+    };
+    const p0: Production = {
+      ...base,
+      program: { ...base.program, types: [...base.program.types, owlClass] },
+    };
+    const add = (cls: 'Flyer' | 'Biped', type?: TypeRef) =>
+      addObject(p0, s1, { model: owl, class: cls, name: 'Owl', transform: here, type }, 'Add owl');
+    const user = { kind: 'user', type: owlClass.id } as const;
+    const p = done(add('Flyer', user));
+    expect(fieldsOf(p).find((f) => f.name === 'owl')!.type).toEqual(user);
+    expect(p.scenes[0]!.setup.objects.at(-1)!.class).toBe('Flyer');
+    expect(validateProgram(p.program)).toEqual([]);
+    expect(checkReferences(p)).toEqual([]);
+    // A story type is the class itself; anything else is the caller's mistake.
+    const story = { kind: 'story', name: 'Flyer' } as const;
+    expect(fieldsOf(done(add('Flyer', story))).find((f) => f.name === 'owl')!.type).toEqual(story);
+    expect(() => add('Biped', user)).toThrow(/doesn't come down from Biped/);
+    expect(() => add('Biped', story)).toThrow(/doesn't come down from Biped/);
+    expect(() => add('Flyer', { kind: 'user', type: nodeId('nosuchclass') })).toThrow();
   });
 
   it('takes a stand-in as well as a Backstage item', () => {
