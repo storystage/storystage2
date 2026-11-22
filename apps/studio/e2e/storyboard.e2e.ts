@@ -54,6 +54,32 @@ test('a scene moves with the keyboard alone, as one undo step', async ({ page })
     .toEqual(['1 · The locked gate', '2 · Finding the key', '3 · Home at last']);
 });
 
+test('Ctrl+Z changes nothing behind the delete dialog, so it deletes the scene it asked about', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Delete scene' }).click();
+  await expect(page.getByRole('dialog', { name: 'Delete scene 3?' })).toBeVisible();
+  // Enough to undo scene 3's heading and its adding, which would point the dialog at scene 1.
+  await page.keyboard.press('Control+z');
+  await page.keyboard.press('Control+z');
+  await expect(page.getByRole('dialog')).toHaveAccessibleName('Delete scene 3?');
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete scene' }).click();
+  await expect.poll(() => titles(page)).toEqual(['1 · The locked gate', '2 · Finding the key']);
+});
+
+test('the Storyboard’s live region stays out of the inert page behind a dialog', async ({
+  page,
+}) => {
+  await planThreeScenes(page);
+  await page.getByRole('button', { name: 'Delete scene' }).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  const region = page.locator('div:has(> .sb-main) > p[aria-live="polite"]');
+  expect(await region.evaluate((p) => p.closest('[inert], [aria-hidden="true"]') === null)).toBe(
+    true,
+  );
+});
+
 test('axe finds no serious issues with scenes, and with the delete dialog open', async ({
   page,
 }) => {

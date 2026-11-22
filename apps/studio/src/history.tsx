@@ -1,7 +1,8 @@
 /**
  * Undo and Redo (`07-ux.md` sections 6.8 and 7.5): the studio's one history, shared by the
  * Storyboard, the scene view and the Code editor. Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac or iPad)
- * undo and redo outside text fields, and the buttons do the same. Each says what it undid.
+ * undo and redo outside text fields and with nothing over the tab, and the buttons do the same.
+ * Each says what it undid.
  */
 import { Button } from '@storystage/ui';
 import { useEffect } from 'react';
@@ -12,6 +13,16 @@ import type { Studio } from './studio.ts';
 export const isTextEntry = (target: EventTarget | null) =>
   target instanceof HTMLElement &&
   (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+
+/**
+ * Whether a key was pressed with something over the tab: in a menu or a popover, or with a dialog
+ * open (ui's Dialog is every modal). Undo there changes what it's asking about: "Delete scene 3?"
+ * became "Delete scene 1?" once scene 3's adding was undone.
+ */
+const overTab = (target: EventTarget | null) =>
+  (target instanceof Element &&
+    target.closest('[role="dialog"], [role="alertdialog"], [role="menu"]') !== null) ||
+  document.querySelector('.ss-modal') !== null;
 
 export interface History {
   readonly undoLabel: string | null;
@@ -49,7 +60,7 @@ export function useHistory(
     if (!enabled) return;
     const onKey = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 'z') return;
-      if (isTextEntry(e.target)) return;
+      if (isTextEntry(e.target) || overTab(e.target)) return;
       e.preventDefault();
       if (e.shiftKey) history.redo();
       else history.undo();
