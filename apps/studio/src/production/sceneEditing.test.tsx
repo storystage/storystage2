@@ -1,10 +1,13 @@
 import type { EditorHost } from '@storystage/editor-contract';
+import { applyAll } from '@storystage/ast';
+import type { BackstageItem } from '@storystage/backstage';
 import { exampleProduction, type Production } from '@storystage/production';
 import { inMemoryPorts, serve, type Timers } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
 import type { ModelSource } from '@storystage/stage/babylon';
 import { FakeStage } from '@storystage/stage/testing';
 import { CAMERA, STORY_LIBRARY, type ObjectId, type Transform } from '@storystage/story-api';
+import { classFor } from '@storystage/story-api/editing';
 import { ThemeRoot } from '@storystage/ui';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -12,6 +15,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { useStudio, type Studio } from '../studio.ts';
+import { modelFields } from './characters.ts';
 import { ProductionStage } from './ProductionStage.tsx';
 
 // Editing the set-up on the scene view (07-ux 7.2) with S3's FakeStage: edit mode while nothing
@@ -46,7 +50,7 @@ const host = { program: () => exampleProduction().program } as unknown as Editor
 const example = exampleProduction();
 const PENGUIN = 'penguin' as ObjectId;
 
-async function stage(production: Production = example) {
+async function stage(production: Production = example, source: ModelSourceHandle = models) {
   let fake: FakeStage | null = null;
   let latest: Studio | null = null;
   const onAnnounce = vi.fn<(text: string) => void>();
@@ -69,7 +73,7 @@ async function stage(production: Production = example) {
           host={host}
           onGoToStoryboard={() => {}}
           announcement=""
-          models={models}
+          models={source}
           makeStage={makeStage}
           startWorker={startWorker}
           studio={studio}
@@ -87,6 +91,8 @@ async function stage(production: Production = example) {
 const setupOf = (studio: Studio) => studio.production.scenes[0]!.setup;
 const penguinOf = (studio: Studio) => setupOf(studio).objects.find((o) => o.id === PENGUIN)!;
 const list = () => screen.getByRole('listbox', { name: 'Objects in this scene' });
+
+const penguinModel = () => example.scenes[0]!.setup.objects.find((o) => o.id === PENGUIN)!.model;
 
 /** A point of the view where the stage finds `object`. */
 function pointOn(fake: FakeStage, object: string): { x: number; y: number } {
@@ -108,6 +114,36 @@ describe('editing the set-up on the scene view (07-ux 7.2)', () => {
     const { fake } = await stage();
     expect(fake().isEditingNow()).toBe(true);
     expect(screen.getByText('In this shot: penguin, fox')).toBeTruthy();
+  });
+
+  it('adds a model from Backstage as of the class the learner made for it (0074)', async () => {
+    const model = penguinModel();
+    // Made under the model's old name, so only its objects find it (S6, #624).
+    const made = classFor(
+      example.program,
+      { name: 'Old penguin', storyClass: 'Flyer' },
+      modelFields(example, model),
+    )!;
+    const taught = { ...example, program: applyAll(example.program, made.edits).program };
+    const item = {
+      id: model,
+      section: 'cast',
+      class: 'Flyer',
+      displayName: 'Emperor penguin',
+      themes: [],
+      defaultSize: { height: 1 },
+    } as unknown as BackstageItem;
+    const { studio } = await stage(taught, { ...models, catalogue: [item], item: () => item });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Cast' }));
+    await user.click(screen.getByRole('button', { name: 'Add Emperor penguin to the scene' }));
+    const added = setupOf(studio()).objects.at(-1)!;
+    expect(added).toMatchObject({ model, class: 'Flyer' });
+    const fields = studio().production.program.types.flatMap((t) => t.fields);
+    expect(fields.find((f) => f.name === added.id)!.type).toEqual({
+      kind: 'user',
+      type: made.type,
+    });
   });
 
   it('chooses an object clicked on the stage, in the list too, and nothing on the ground', async () => {

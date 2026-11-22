@@ -31,6 +31,7 @@ import { FrameLinks } from './FrameLinks.tsx';
 import {
   chosenPlan,
   modelKey,
+  newObjectType,
   placeFromStoryboard,
   storyboardPlan,
   type PlanBackstage,
@@ -540,6 +541,8 @@ export function ProductionStage({
         model: item.id,
         class: item.class,
         name: item.displayName,
+        // Of the learner's class for the model once there is one, so it has its moves (0074).
+        type: newObjectType(now, { model: item.id, class: item.class, name: item.displayName }),
         // Where it was dropped, or in front of the camera for Add and Enter.
         transform: ground
           ? facingCamera(setup.camera.transform, ground)

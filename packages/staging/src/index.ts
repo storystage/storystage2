@@ -7,4 +7,5 @@
  * `@storystage/sketches`, which both depend on production (S4's review).
  */
 export * from './fromStoryboard.ts';
+export * from './models.ts';
 export * from './scene.ts';

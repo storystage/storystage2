@@ -35,6 +35,7 @@ import type {
   Transform,
   Vec3,
 } from '@storystage/story-api';
+import { newObjectType } from './models.ts';
 import {
   STANDARD_HEIGHT,
   backdropPartOf,
@@ -510,8 +511,8 @@ export function storyboardPlan(
 
 /**
  * The plan, or the part of it chosen, placed as one step ("Set up scene 1 from the storyboard"):
- * each object added as `addObject` adds one, then the backdrop and the camera. Undo takes it all
- * away at once.
+ * each object added as `addObject` adds one, of the learner's class for its model if there is one
+ * (decision 0074), then the backdrop and the camera. Undo takes it all away at once.
  */
 export function placeFromStoryboard(
   p: Production,
@@ -534,7 +535,13 @@ export function placeFromStoryboard(
     const added = addObject(
       now,
       scene,
-      { model: place.model, class: place.class, name: place.name, transform: place.transform },
+      {
+        model: place.model,
+        class: place.class,
+        name: place.name,
+        transform: place.transform,
+        type: newObjectType(now, place),
+      },
       label,
     );
     if (!added.ok) return { ok: false, refusal: added.refusal, name: place.name };

@@ -8,12 +8,15 @@ import {
   type FrameRun,
 } from '@storystage/check';
 import {
+  addObject,
+  applyProgramEdits,
   exampleProduction,
   type Frame,
   type PlacedSketch,
   type Production,
 } from '@storystage/production';
 import type { BackstageId, SceneObjectSetup, Transform } from '@storystage/story-api';
+import { classFor } from '@storystage/story-api/editing';
 import { describe, expect, it } from 'vitest';
 import {
   chosenPlan,
@@ -240,6 +243,48 @@ describe('setting the stage from the storyboard', () => {
     expect(setup.backdrop.ground).toBe('kaykit/Ground/forest-floor');
     expect(placed.step.label).toBe('Set up scene 1 from the storyboard');
     expect(placed.step.edits.length).toBe(placed.step.inverses.length);
+  });
+
+  it.each([
+    ['a Backstage model', 'kaykit/Biped/knight' as BackstageId],
+    ['a stand-in', { standIn: 'Knight' } as SceneObjectSetup['model']],
+  ])('places %s as of the class the learner made for it, in any scene (0074)', (_, model) => {
+    const bare = storyboarded([
+      sketch('a', { x: 0.3, item: model as PlacedSketch['item'] }),
+      sketch('b', { x: 0.7, item: model as PlacedSketch['item'] }),
+    ]);
+    const other = bare.scenes[1]!;
+    const there = addObject(
+      bare,
+      other.id,
+      { model, class: 'Biped', name: 'Sir', transform: other.setup.camera.transform },
+      'Add',
+    );
+    if (!there.ok) throw new Error('refused');
+    const field = there.step.production.program.types
+      .flatMap((t) => t.fields)
+      .find((f) => f.name === 'sir')!;
+    // Made under another name, so only the object in scene 2 finds it (S6, #624).
+    const made = classFor(
+      there.step.production.program,
+      { name: 'Old knight', storyClass: 'Biped' },
+      [field.id],
+    )!;
+    const edited = applyProgramEdits(there.step.production, made.edits);
+    if (!('program' in edited)) throw new Error('refused');
+    const p = { ...there.step.production, program: edited.program };
+    const step = placed(p);
+    const names = step.production.scenes[0]!.setup.objects.map((o) => o.id as string);
+    expect(names).toHaveLength(2);
+    const types = step.production.program.types
+      .flatMap((t) => t.fields)
+      .filter((f) => names.includes(f.name))
+      .map((f) => f.type)
+      .filter((t) => t.kind === 'user');
+    expect(types).toEqual([
+      { kind: 'user', type: made.type },
+      { kind: 'user', type: made.type },
+    ]);
   });
 });
 
