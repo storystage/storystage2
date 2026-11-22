@@ -67,6 +67,12 @@ const droppedWhy = (member: string) =>
 const camel = (constant: string) =>
   constant.toLowerCase().replace(/_([a-z0-9])/g, (_, c: string) => c.toUpperCase());
 
+/** Alice's types that are references in StoryStage, written as text (Story API section 8). */
+const REFERENCE_OF_ALICE: ReadonlyMap<string, string> = new Map([
+  ['Paint', 'Paint'],
+  ['AudioSource', 'Audio'],
+]);
+
 /** Methods of Alice's scene that are its plumbing, not the learner's (spec 19, 3.3). */
 const SCENE_PLUMBING = new Set([
   'performGeneratedSetUp',
@@ -139,8 +145,8 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
   const sceneTypeId = mint();
   ids.set(scene, sceneTypeId);
 
-  /** A Story API or program type for an Alice type. */
-  const typeOf = (t: AliceNode | null): TypeRef => {
+  /** A Story API or program type for an Alice type, or null for one StoryStage hasn't got. */
+  const knownType = (t: AliceNode | null): TypeRef | null => {
     if (!t) return { kind: 'story', name: 'Thing' };
     if (t.type === 'NamedUserType') {
       const id = ids.get(t);
@@ -151,10 +157,13 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
     const name = t.java?.kind === 'type' ? t.java.name : '';
     if (name.startsWith('[')) {
       const inner = name.replace(/^\[L?/, '').replace(/;$/, '');
-      return {
-        kind: 'array',
-        of: typeOf({ type: 'JavaType', key: null, props: {}, java: { kind: 'type', name: inner } }),
-      };
+      const of = knownType({
+        type: 'JavaType',
+        key: null,
+        props: {},
+        java: { kind: 'type', name: inner },
+      });
+      return of && { kind: 'array', of };
     }
     switch (name) {
       case 'java.lang.Double':
@@ -171,8 +180,17 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
     const simple = name.slice(name.lastIndexOf('.') + 1).replace(/^.*\$/, '');
     const cls = CLASS_MAP[simple];
     if (cls) return { kind: 'story', name: cls };
+    const reference = REFERENCE_OF_ALICE.get(simple);
+    if (reference) return { kind: 'story', name: reference };
     if (simple in ENUMS) return { kind: 'story', name: simple };
-    return { kind: 'story', name: 'Thing' };
+    return null;
+  };
+
+  /** The same, with any object for a type StoryStage hasn't got, or a list of them. */
+  const typeOf = (t: AliceNode | null): TypeRef => {
+    const thing: TypeRef = { kind: 'story', name: 'Thing' };
+    const list = t?.java?.kind === 'type' && t.java.name.startsWith('[');
+    return knownType(t) ?? (list ? { kind: 'array', of: thing } : thing);
   };
 
   // ---- Fields ----
@@ -230,15 +248,25 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
     listProp(m, 'requiredParameters').map((p) => {
       const id = mint();
       ids.set(p, id);
-      return {
-        id,
-        kind: 'parameter',
-        name: textProp(p, 'name') ?? 'value',
-        type: typeOf(nodeProp(p, 'valueType')),
-        default: null,
-      };
+      const name = textProp(p, 'name') ?? 'value';
+      const aliceType = nodeProp(p, 'valueType');
+      if (!knownType(aliceType)) {
+        const java = aliceType?.java?.kind === 'type' ? aliceType.java.name : '';
+        gap({
+          kind: 'value',
+          what: `input ${words(name)}, a kind of ${words(java.replace(/;$/, '').replace(/^.*[.$]/, ''))}`,
+          why: 'StoryStage has no type like it, so the input takes an object instead.',
+        });
+      }
+      return { id, kind: 'parameter', name, type: typeOf(aliceType), default: null };
     });
-  for (const ms of methodsOf.values()) for (const m of ms) paramsOf.set(m, makeParams(m));
+  for (const [t, ms] of methodsOf)
+    for (const m of ms) {
+      const owner = t === scene ? world.sceneName : (textProp(t, 'name') ?? 'a class');
+      where = `${owner}.${textProp(m, 'name') ?? 'method'}`;
+      paramsOf.set(m, makeParams(m));
+    }
+  where = `${world.sceneName}.myFirstMethod`;
   if (sceneMethodNode) paramsOf.set(sceneMethodNode, makeParams(sceneMethodNode));
 
   // ---- Expressions ----
@@ -502,7 +530,17 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
         const param = nodeProp(a, 'parameter');
         const pid = param ? ids.get(param) : undefined;
         const value = expression(nodeProp(a, 'expression'));
-        if (pid && value) args[pid] = value;
+        if (!pid) continue;
+        if (value) args[pid] = value;
+        else {
+          // A call gives every input a value, or the program isn't one: an empty one, reported.
+          args[pid] = { id: mint(), kind: 'none' };
+          gap({
+            kind: 'value',
+            what: `${what}, ${words(textProp(param!, 'name') ?? 'value')}`,
+            why: 'Its value couldn’t come across, so it needs choosing again.',
+          });
+        }
       }
       return {
         id: mint(),

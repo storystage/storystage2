@@ -62,6 +62,10 @@ export interface WordsOptions {
 const isReference = (name: string): name is ReferenceType =>
   (REFERENCE_TYPES as readonly string[]).includes(name);
 
+/** The reference type a place of type `wanted` takes, or `null` for any other type. */
+const referenceIn = (wanted: TypeRef): ReferenceType | null =>
+  wanted.kind === 'story' && isReference(wanted.name) ? wanted.name : null;
+
 /**
  * The reference type the value `id` is written for, from the place it's in: a block's argument,
  * an input's, a variable's starting value, an item in a list of them. `null` if it isn't in such a place.
@@ -112,7 +116,7 @@ export function referenceTypeAt(program: Program, id: NodeId): ReferenceType | n
       wanted = at.slot === 'items' ? holder.of : null;
       break;
   }
-  return wanted?.kind === 'story' && isReference(wanted.name) ? wanted.name : null;
+  return wanted ? referenceIn(wanted) : null;
 }
 
 const numberWords = (value: number): string => String(Number(value.toFixed(6)));
@@ -122,8 +126,11 @@ const BINARY = new Set(['arithmetic', 'compare', 'logic', 'join']);
 export interface Describer {
   /** Words for a statement or value anywhere in the program. */
   (node: AstNode): string;
-  /** Words for a statement or value not yet in the program, inside the type `self`. */
-  inside(node: AstNode, self: NodeId): string;
+  /**
+   * Words for a statement or value not yet in the program, inside the type `self`. `wanted` is
+   * the type of the place a value is for, so a sound on its own still reads by its label.
+   */
+  inside(node: AstNode, self: NodeId, wanted?: TypeRef | null): string;
   /** A block's short name, without its values: "cat move", "do together". */
   short(node: AstNode): string;
   /** The type a node is inside, or null for one not in the program. */
@@ -164,10 +171,13 @@ function describe(program: Program, options: WordsOptions): Describer {
     return node && 'name' in node ? node.name : word('words.empty');
   };
   const isScene = (self: TypeRef) => types.classOf(self) === 'Scene';
+  /** The inputs whose defaults are being read: a default can call its own procedure. */
+  const reading = new Set<NodeId>();
 
-  function value(e: Expression, self: TypeRef): string {
-    const part = (x: Expression) => {
-      const text = value(x, self);
+  /** `wanted`: the type of the place `e` is in, when whoever holds it knows. */
+  function value(e: Expression, self: TypeRef, wanted?: TypeRef | null): string {
+    const part = (x: Expression, of?: TypeRef) => {
+      const text = value(x, self, of);
       return BINARY.has(x.kind) ? `(${text})` : text;
     };
     switch (e.kind) {
@@ -177,9 +187,11 @@ function describe(program: Program, options: WordsOptions): Describer {
       case 'boolean':
         return word(e.value ? 'words.true' : 'words.false');
       case 'text': {
-        // A sound or a scene is written as its id, and shown by its name (7.17).
-        const type = options.referenceWord ? referenceTypeAt(program, e.id) : null;
-        return (type && options.referenceWord?.(type, e.value)) ?? e.value;
+        // A sound or a scene is written as its id, and shown by its name (7.17). Its place
+        // says which: the holder's, as a block may not be in the program yet, else the program's.
+        if (!options.referenceWord) return e.value;
+        const type = wanted ? referenceIn(wanted) : referenceTypeAt(program, e.id);
+        return (type && options.referenceWord(type, e.value)) ?? e.value;
       }
       case 'enum':
         return e.type === 'JointId' ? joint(e.value) : word(`value.${e.type}.${e.value}`);
@@ -212,7 +224,7 @@ function describe(program: Program, options: WordsOptions): Describer {
       case 'arrayOf':
         return e.items.length === 0
           ? word('words.emptyList')
-          : fill(word('words.list'), { items: e.items.map(part).join(', ') });
+          : fill(word('words.list'), { items: e.items.map((x) => part(x, e.of)).join(', ') });
       case 'arrayItem':
         return fill(word('words.item'), { index: part(e.index), list: part(e.array) });
       case 'arrayLength':
@@ -225,8 +237,6 @@ function describe(program: Program, options: WordsOptions): Describer {
     self: TypeRef,
   ) {
     const target = value(node.target, self);
-    const given = (args: typeof node.args) =>
-      Object.fromEntries(Object.entries(args).map(([k, v]) => [k, value(v, self)]));
     if (node.callee.kind === 'user') {
       const found = types.methods.get(node.callee.method);
       const method = found?.method;
@@ -235,19 +245,34 @@ function describe(program: Program, options: WordsOptions): Describer {
       // The target stays in front, as every call has it, in both editors.
       if (isSceneScriptIn(found.owner, method))
         return `${target} ${word('method.sceneScriptAgain')}`;
+      const owner: TypeRef = { kind: 'user', type: found.owner.id };
       const values = method.params.map((p) => {
         const v = node.args[p.id];
-        return `${p.name} ${v ? value(v, self) : word('words.empty')}`;
+        let said = word('words.empty');
+        if (v) said = value(v, self, p.type);
+        else if (p.default && !reading.has(p.id)) {
+          // Left out, so it runs with its default, where `this` is the procedure's own.
+          reading.add(p.id);
+          said = value(p.default, owner, p.type);
+          reading.delete(p.id);
+        }
+        return `${p.name} ${said}`;
       });
       return [target, method.name, ...values].join(' ');
     }
     const cls = types.classOf(types.typeOf(node.target, self));
     const entry = cls && findEntry(cls, node.callee.name);
     const phrase = entry ? word(`entry.${entry.on}.${entry.name}`) : node.callee.name;
-    return `${target} ${fill(phrase, given(node.args))}`;
+    const given = Object.fromEntries(
+      Object.entries(node.args).map(([name, v]) => {
+        const type = entry?.params.find((p) => p.name === name)?.type;
+        return [name, value(v, self, type ? { kind: 'story', name: type } : null)];
+      }),
+    );
+    return `${target} ${fill(phrase, given)}`;
   }
 
-  function statement(s: AstNode, self: TypeRef): string {
+  function statement(s: AstNode, self: TypeRef, wanted?: TypeRef | null): string {
     const v = (e: Expression) => value(e, self);
     switch (s.kind) {
       case 'call':
@@ -264,7 +289,7 @@ function describe(program: Program, options: WordsOptions): Describer {
       case 'eachTogether':
         return fill(word(`control.${s.kind}`), { item: s.item.name, items: v(s.items) });
       case 'local':
-        return fill(word('control.local'), { name: s.name, value: v(s.value) });
+        return fill(word('control.local'), { name: s.name, value: value(s.value, self, s.type) });
       case 'assign':
         return fill(word('control.assign'), { target: v(s.target), value: v(s.value) });
       case 'comment':
@@ -282,7 +307,7 @@ function describe(program: Program, options: WordsOptions): Describer {
       case 'loopItem':
         return s.name;
       default:
-        return value(s as Expression, self);
+        return value(s as Expression, self, wanted);
     }
   }
 
@@ -316,7 +341,8 @@ function describe(program: Program, options: WordsOptions): Describer {
     return `${target} ${phrase.split('{')[0]!.trim()}`.trim();
   };
   Object.assign(describe, {
-    inside: (node: AstNode, self: NodeId) => statement(node, { kind: 'user', type: self }),
+    inside: (node: AstNode, self: NodeId, wanted?: TypeRef | null) =>
+      statement(node, { kind: 'user', type: self }, wanted),
     short,
     ownerOf,
     types,

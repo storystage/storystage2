@@ -122,7 +122,7 @@ export const CATEGORIES: readonly Category[] = [
 export interface PaletteItem {
   readonly callee: Callee;
   readonly tab: PaletteTab;
-  /** The block's words with `???` for every value: "cat move ??? ???". */
+  /** The block's words, `???` for each value to choose: "cat move ??? ???". A default shows. */
   readonly words: string;
 }
 
