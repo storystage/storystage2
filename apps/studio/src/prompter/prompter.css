@@ -300,6 +300,12 @@
 .pm-field > label {
   font-weight: 700;
 }
+/* Under a field, in its second column: Steps inside's "Repeats steps 2 and 3." */
+.pm-field-note {
+  grid-column: 2;
+  margin: -4px 0 0;
+  color: var(--ss-text-2);
+}
 /* The Story API's own words ("direction", "how long") start a label with a capital. */
 .pm-field > label::first-letter {
   text-transform: uppercase;

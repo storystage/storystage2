@@ -963,9 +963,13 @@
   "prompter.step.line": "Which line",
   "prompter.step.together": "At the same time as the step before",
   "prompter.step.repeat": "How many times",
+  "prompter.step.inside": "Steps inside",
+  "prompter.step.insideList": "Repeats {steps}.",
   "prompter.step.save": "Save",
   "prompter.step.cancel": "Cancel",
   "prompter.addStep": "Add a step",
+  "prompter.addRepeat": "Repeat…",
+  "prompter.addRepeatName": "Add a repeat around the last step",
   "prompter.stepAdded": "Step {n} added. Change it to say what it does.",
   "prompter.stepChanged": "Step {n} changed."
 }

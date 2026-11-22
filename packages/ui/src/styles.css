@@ -606,6 +606,14 @@
   padding: 6px 0;
   line-height: 1.3;
 }
+/* Inside a repeat (04-prompter section 6.8): indented, with the count block's loop colour down
+   its left, so the end of the loop shows at a glance. */
+.ss-plan-step[data-inside] {
+  margin-inline-start: 28px;
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-1),
+    inset 4px 0 0 var(--ss-block-loop);
+}
 .ss-plan-step[data-problem] {
   box-shadow: inset 0 0 0 1.5px var(--ss-stop);
 }

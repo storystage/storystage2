@@ -95,6 +95,21 @@ export function oneMove(
   return null;
 }
 
+/**
+ * Where a repeat goes when its row is moved to `to` (`oneMove`'s place for the row alone): its
+ * place among the other steps once it and the `holds` steps it carries are lifted out, as the
+ * panel's `moveStep` takes it (spec 04 section 6.8). The row dropped among its own held steps
+ * goes back where it was.
+ */
+export function repeatMove(length: number, from: number, holds: number, to: number): number {
+  const group = (i: number) => i >= from && i <= from + holds;
+  const single = [...Array(length).keys()].filter((i) => i !== from);
+  single.splice(to, 0, from);
+  const before = single.slice(0, single.indexOf(from)).filter((i) => !group(i));
+  const rest = [...Array(length).keys()].filter((i) => !group(i));
+  return before.length === 0 ? 0 : rest.indexOf(before.at(-1)!) + 1;
+}
+
 function Entry({ entry, step }: { entry: PanelEntry; step: number | undefined }) {
   switch (entry.kind) {
     case 'asked':
@@ -264,8 +279,18 @@ export function PrompterAside({
         ...(problem ? { problem } : {}),
         ...(s.why ? { why: s.why } : {}),
         ...(plan.done[i] === true ? { done: true } : {}),
+        // A repeat and the steps it holds (spec 04 section 6.8).
+        ...(plan.heldBy[i] != null ? { inside: true } : {}),
+        ...(s.kind === 'repeat'
+          ? { holding: plan.heldBy.flatMap((h, j) => (h === i ? [j + 1] : [])) }
+          : {}),
       };
     }) ?? [];
+  /** Says what an edit did: `said` if it was made, and the panel's own words either way. */
+  const announce = (edit: { ok: boolean; words?: string }, said: string) => {
+    const all = [edit.ok ? said : null, edit.words ?? null].filter(Boolean).join(' ');
+    if (all) onAnnounce(all);
+  };
   const built = plan?.done.filter(Boolean).length ?? 0;
   const showPlan = plan !== null && (phase === 'planned' || phase === 'working');
 
@@ -330,15 +355,29 @@ export function PrompterAside({
             <PlanSteps
               steps={steps}
               isDisabled={busy}
-              onReorder={(next) => {
-                const move = oneMove(steps, next);
+              onReorder={(next, moved) => {
+                // The step dragged, where the order alone could be read either way.
+                const dragged = moved.length === 1 ? Number(moved[0]) : NaN;
+                const move = Number.isInteger(dragged)
+                  ? { from: dragged, to: next.findIndex((s) => s.id === moved[0]) }
+                  : oneMove(steps, next);
                 if (!move) return;
-                panel.moveStep(move.from, move.to);
-                onAnnounce(words.t('prompter.stepMoved', { from: move.from + 1, to: move.to + 1 }));
+                // A repeat carries the steps it holds (spec 04 section 6.8).
+                const moving = plan.steps[move.from];
+                const to =
+                  moving?.kind === 'repeat'
+                    ? repeatMove(steps.length, move.from, moving.holds, move.to)
+                    : move.to;
+                announce(
+                  panel.moveStep(move.from, to),
+                  words.t('prompter.stepMoved', { from: move.from + 1, to: to + 1 }),
+                );
               }}
               onDelete={(id) => {
-                panel.deleteStep(Number(id));
-                onAnnounce(words.t('prompter.stepDeleted', { n: Number(id) + 1 }));
+                announce(
+                  panel.deleteStep(Number(id)),
+                  words.t('prompter.stepDeleted', { n: Number(id) + 1 }),
+                );
               }}
               {...(world
                 ? {
@@ -366,25 +405,54 @@ export function PrompterAside({
                 {words.t('prompter.addStep')}
               </Button>
             )}
+            {/* Repeat…: a repeat around the last step, then Change step on it (spec 04 6.8). */}
+            {world && phase === 'planned' && plan.canRepeat && (
+              <Button
+                variant="secondary"
+                icon="replay"
+                aria-label={words.t('prompter.addRepeatName')}
+                onPress={() => {
+                  const made = panel.addRepeat();
+                  if (!made.ok || made.index === undefined) return announce(made, '');
+                  setEditing(made.index);
+                  setAdding(true);
+                  onAnnounce(words.t('prompter.stepAdded', { n: made.index + 1 }));
+                }}
+              >
+                {words.t('prompter.addRepeat')}
+              </Button>
+            )}
             {world && editing !== null && plan.steps[editing] && (
               <StepEditor
                 key={editing}
                 step={plan.steps[editing]}
                 number={editing + 1}
                 world={world}
+                insideMax={plan.stepsInsideMax[editing] ?? null}
+                held={
+                  plan.heldBy[editing] == null
+                    ? null
+                    : plan.heldBy[editing] === editing - 1
+                      ? 'first'
+                      : 'later'
+                }
+                following={editing + 2}
                 onClose={() => {
                   // Cancel straight after Add a step leaves the plan as it was (S7, #519).
-                  if (adding) {
-                    panel.deleteStep(editing);
-                    onAnnounce(words.t('prompter.stepDeleted', { n: editing + 1 }));
-                  }
+                  if (adding)
+                    announce(
+                      panel.deleteStep(editing),
+                      words.t('prompter.stepDeleted', { n: editing + 1 }),
+                    );
                   setAdding(false);
                   setEditing(null);
                 }}
                 onSave={(change) => {
-                  panel.changeStep(editing, change);
+                  announce(
+                    panel.changeStep(editing, change),
+                    words.t('prompter.stepChanged', { n: editing + 1 }),
+                  );
                   setAdding(false);
-                  onAnnounce(words.t('prompter.stepChanged', { n: editing + 1 }));
                   setEditing(null);
                 }}
               />

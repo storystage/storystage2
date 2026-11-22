@@ -18,7 +18,7 @@ import {
   type TypeName,
 } from '@storystage/story-api';
 import { arrowOf, word } from '@storystage/story-api/editing';
-import { Button, Checkbox, Dialog } from '@storystage/ui';
+import { Button, Checkbox, Dialog, heldWords } from '@storystage/ui';
 import { useId, useState } from 'react';
 import { words } from '../strings.ts';
 
@@ -214,17 +214,34 @@ function Setting({
   );
 }
 
-/** Change step N: who, which block, its settings, which line, together and how many times. */
+/** A number as typed, as a whole number from `min` to `max`; `min` when it isn't one. */
+const clamp = (typed: string, min: number, max: number) =>
+  Math.min(max, Math.max(min, Math.round(Number(typed)) || min));
+
+/**
+ * Change step N: who, which block, its settings, which line, together and how many times. A
+ * repeat step (spec 04 section 6.8) has How many times and Steps inside, with the steps it holds
+ * listed under it; a step inside a repeat repeats with it, so has no How many times of its own.
+ */
 export function StepEditor({
   step,
   number,
   world,
+  insideMax = null,
+  held = null,
+  following = number + 1,
   onSave,
   onClose,
 }: {
   step: PlanStep;
   number: number;
   world: StepWorld;
+  /** For a repeat step, the most its Steps inside can be: the run of block steps after it. */
+  insideMax?: number | null;
+  /** Inside a repeat: its first step (nothing in the loop is before it), or a later one. */
+  held?: 'first' | 'later' | null;
+  /** For a repeat step, the number of the step right after it, its first held step. */
+  following?: number;
   /** The step's changed fields, without words: the panel writes them again from these. */
   onSave: (change: Partial<PlanStep>) => void;
   onClose: () => void;
@@ -232,7 +249,19 @@ export function StepEditor({
   const [draft, setDraft] = useState(step);
   // How many times, as typed: clamped to 1 to 1000 only on Save, so the field can be cleared.
   const [times, setTimes] = useState(String(step.repeat));
-  const ids = { who: useId(), what: useId(), line: useId(), repeat: useId() };
+  // Steps inside, as typed, clamped to 1 to the most it can be on Save.
+  const [inside, setInside] = useState(String(step.holds));
+  const ids = {
+    who: useId(),
+    what: useId(),
+    line: useId(),
+    repeat: useId(),
+    inside: useId(),
+    list: useId(),
+  };
+  const isRepeat = draft.kind === 'repeat';
+  const most = Math.max(1, insideMax ?? 1);
+  const holds = clamp(inside, 1, most);
   const set = (change: Partial<PlanStep>) => setDraft((d) => ({ ...d, ...change }));
   const cls = world.objects.get(draft.actor);
   const blocks = procedures(cls);
@@ -253,13 +282,14 @@ export function StepEditor({
         className="pm-editor"
         onSubmit={(e) => {
           e.preventDefault();
+          if (isRepeat) return onSave({ repeat: clamp(times, 2, 1000), holds });
           onSave({
             actor: draft.actor,
             action: draft.action,
             details: draft.details.map((d) => filled(d, typeOf(entry, d.name))),
             line: draft.line,
             together: draft.together,
-            repeat: Math.min(1000, Math.max(1, Math.round(Number(times)) || 1)),
+            repeat: held ? 1 : clamp(times, 1, 1000),
             // No words: the panel writes them again from what the step now does (S7).
           });
         }}
@@ -345,26 +375,54 @@ export function StepEditor({
             </select>
           </div>
         )}
-        <Checkbox
-          isSelected={draft.together}
-          onChange={(together) => set({ together })}
-          isDisabled={number === 1}
-        >
-          {words.t('prompter.step.together')}
-        </Checkbox>
-        <div className="pm-field">
-          <label htmlFor={ids.repeat}>{words.t('prompter.step.repeat')}</label>
-          <input
-            id={ids.repeat}
-            className="pm-input"
-            type="number"
-            min={1}
-            max={1000}
-            step={1}
-            value={times}
-            onChange={(e) => setTimes(e.target.value)}
-          />
-        </div>
+        {!isRepeat && (
+          <Checkbox
+            isSelected={draft.together}
+            onChange={(together) => set({ together })}
+            // Nothing is before the first step, nor before a repeat's first step inside it.
+            isDisabled={number === 1 || held === 'first'}
+          >
+            {words.t('prompter.step.together')}
+          </Checkbox>
+        )}
+        {held === null && (
+          <div className="pm-field">
+            <label htmlFor={ids.repeat}>{words.t('prompter.step.repeat')}</label>
+            <input
+              id={ids.repeat}
+              className="pm-input"
+              type="number"
+              // A repeat repeats at least twice, as the count block's number field.
+              min={isRepeat ? 2 : 1}
+              max={1000}
+              step={1}
+              value={times}
+              onChange={(e) => setTimes(e.target.value)}
+            />
+          </div>
+        )}
+        {isRepeat && (
+          <div className="pm-field">
+            <label htmlFor={ids.inside}>{words.t('prompter.step.inside')}</label>
+            <input
+              id={ids.inside}
+              className="pm-input"
+              type="number"
+              min={1}
+              max={most}
+              step={1}
+              value={inside}
+              aria-describedby={ids.list}
+              onChange={(e) => setInside(e.target.value)}
+            />
+            {/* Which steps, so a child sees them: "Repeats steps 2 and 3." */}
+            <p className="pm-field-note" id={ids.list} aria-live="polite">
+              {words.t('prompter.step.insideList', {
+                steps: heldWords(Array.from({ length: holds }, (_, k) => following + k)),
+              })}
+            </p>
+          </div>
+        )}
         <div className="st-actions">
           <Button variant="primary" icon="check_circle" type="submit">
             {words.t('prompter.step.save')}
