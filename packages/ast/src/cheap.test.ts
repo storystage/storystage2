@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { applyEdit, EditRefused, type EditOperation } from './edits.ts';
 import { nodeId, type NodeId } from './ids.ts';
-import type { Expression, Program, Statement } from './nodes.ts';
+import type { Expression, Program, Statement, TypeRef } from './nodes.ts';
 import { MAX_DEPTH } from './schema.ts';
 import { serializeProgram } from './serialize.ts';
 import { ids, sampleProgram } from './testing.ts';
@@ -209,6 +209,15 @@ describe('the depth, checked only where an edit adds (spec section 4.2)', () => 
         },
       },
     ]);
+  });
+
+  it('agrees for a field given a list type of any depth (retype, #614)', () => {
+    const program = sampleProgram();
+    const cat = indexProgram(program).get(ids.cat)!.node;
+    if (cat.kind !== 'field') throw new Error('ids.cat is a field');
+    const lists = (n: number): TypeRef =>
+      n === 0 ? cat.type : { kind: 'array', of: lists(n - 1) };
+    acrossTheLimit((n) => [program, { kind: 'retype', label, node: ids.cat, type: lists(n) }]);
   });
 
   it('agrees for a statement moved deep inside others', () => {

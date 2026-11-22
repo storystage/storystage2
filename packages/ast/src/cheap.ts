@@ -45,6 +45,9 @@ function added(edit: EditOperation, index: Index): { part: unknown; depth: numbe
       const inMap = shapeOf(kind).maps?.includes(edit.slot) ?? false;
       return { part: edit.value, depth: depthOf(index, edit.node) + (inMap ? 2 : 1) };
     }
+    case 'retype':
+      // A field's type is a single slot, and a list type can hold lists to any depth.
+      return { part: edit.type, depth: depthOf(index, edit.node) + 1 };
     default:
       // A name, a comment's words or switching off add no depth; taking out takes it away.
       return null;
