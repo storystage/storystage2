@@ -18,7 +18,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { nodeId, type Statement } from '@storystage/ast';
 import type { StudioSource } from '../studio.ts';
-import { PrompterAside, oneMove } from './PrompterAside.tsx';
+import { PrompterAside, oneMove, repeatMove } from './PrompterAside.tsx';
 import type { StepWorld } from './StepEditor.tsx';
 import type { ApiClass } from '@storystage/story-api';
 import { keepFramePlan, levelNow, prompterInBuild } from './usePrompter.ts';
@@ -466,6 +466,164 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(said(onAnnounce)).toContain('Step 2 added.');
   });
 
+  it('shows a repeat’s steps inside it, and changes how many times and which (6.8)', async () => {
+    const repeat = step({
+      kind: 'repeat',
+      words: 'Repeat 3 times:',
+      actor: '',
+      action: '',
+      repeat: 3,
+      holds: 2,
+      why: 'So she hops three times.',
+    });
+    const up = step({ words: 'The penguin moves up.' });
+    const down = step({ words: 'The penguin moves down.' });
+    const { panel, onAnnounce } = setUp(
+      [proposes([repeat, up, down, step({ actor: 'fox' })]), say("Here's the plan.")],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin hop three times.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    expect(panel.state.plan!.problems).toEqual([]);
+    // Named for screen readers as spec 04 section 6.8 has it; held steps indented.
+    const rows = within(plan).getAllByRole('row');
+    expect(rows.map((r) => r.getAttribute('data-inside'))).toEqual([null, 'true', 'true', null]);
+    expect(
+      within(plan).getByRole('row', { name: 'Step 1: Repeat 3 times, holding steps 2 and 3' }),
+    ).toBeTruthy();
+    expect(within(plan).getByRole('row', { name: /^Step 2, inside the repeat: / })).toBeTruthy();
+    expect(within(plan).getByRole('row', { name: /^Step 4: / })).toBeTruthy();
+
+    // Change step on the repeat: How many times and Steps inside, with which steps listed.
+    await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 1' });
+    const times = within(editor).getByRole('spinbutton', { name: 'How many times' });
+    const inside = within(editor).getByRole('spinbutton', { name: /^Steps inside/ });
+    expect(times).toHaveProperty('value', '3');
+    expect(inside).toHaveProperty('value', '2');
+    expect(inside.getAttribute('max')).toBe('3');
+    expect(within(editor).getByText('Repeats steps 2 and 3.')).toBeTruthy();
+    expect(within(editor).queryByRole('checkbox')).toBeNull();
+    await user.clear(inside);
+    await user.type(inside, '3');
+    expect(within(editor).getByText('Repeats steps 2 to 4.')).toBeTruthy();
+    await user.clear(times);
+    await user.type(times, '5');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]).toMatchObject({ kind: 'repeat', repeat: 5, holds: 3 });
+    expect(panel.state.plan!.heldBy).toEqual([null, 0, 0, 0]);
+    expect(said(onAnnounce)).toContain('Step 1 changed');
+
+    // A step inside repeats with it: no How many times of its own; the first isn't together.
+    await user.click(within(plan).getByRole('button', { name: 'Change step 2' }));
+    const held = await screen.findByRole('dialog', { name: 'Change step 2' });
+    expect(within(held).queryByRole('spinbutton', { name: 'How many times' })).toBeNull();
+    expect(
+      within(held).getByRole('checkbox', { name: 'At the same time as the step before' }),
+    ).toHaveProperty('disabled', true);
+    await user.click(within(held).getByRole('button', { name: 'Cancel' }));
+
+    // Deleting the steps inside one by one: the last takes the repeat with it, and says so.
+    for (let k = 0; k < 3; k++)
+      await user.click(within(plan).getByRole('button', { name: 'Delete step 2' }));
+    // It held all three since Save, so nothing is left.
+    expect(panel.state.plan!.steps).toEqual([]);
+    expect(said(onAnnounce)).toContain('The repeat had no steps left');
+  });
+
+  it('puts a repeat around the last step at Repeat…, and Cancel takes it out (6.8)', async () => {
+    const { panel, onAnnounce } = setUp(
+      [proposes([step(), step({ actor: 'fox' })]), say("Here's the plan.")],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make them walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    const repeat = () => screen.getByRole('button', { name: 'Add a repeat around the last step' });
+    await user.click(repeat());
+    const editor = await screen.findByRole('dialog', { name: 'Change step 2' });
+    expect(within(editor).getByText('Repeats step 3.')).toBeTruthy();
+    await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    expect(panel.state.plan!.steps.map((x) => x.kind)).toEqual(['do', 'do']);
+
+    await user.click(repeat());
+    const again = await screen.findByRole('dialog', { name: 'Change step 2' });
+    await user.click(within(again).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps.map((x) => x.kind)).toEqual(['do', 'repeat', 'do']);
+    expect(
+      within(plan).getByRole('row', { name: 'Step 2: Repeat 2 times, holding step 3' }),
+    ).toBeTruthy();
+    expect(said(onAnnounce)).toContain('Step 2 added.');
+    // The last step is held now, so Repeat… isn't offered again.
+    expect(screen.queryByRole('button', { name: 'Add a repeat around the last step' })).toBeNull();
+  });
+
+  it('lets At the same time be unticked on the first step inside a repeat (S7, #629)', async () => {
+    const { panel } = setUp(
+      [proposes([step(), step({ actor: 'fox', together: true })]), say("Here's the plan.")],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make them walk together.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    // As a plan can have it, whichever edit left it so: a together step first inside a repeat.
+    act(() => {
+      panel.addRepeat();
+      panel.changeStep(2, { together: true });
+    });
+    expect(panel.state.plan!.problems).toHaveLength(1);
+    await user.click(within(plan).getByRole('button', { name: 'Change step 3' }));
+    const editor = await screen.findByRole('dialog', { name: 'Change step 3' });
+    const box = within(editor).getByRole('checkbox', {
+      name: 'At the same time as the step before',
+    });
+    expect(box).toHaveProperty('disabled', false);
+    await user.click(box);
+    expect(box).toHaveProperty('checked', false);
+    // It keeps keyboard focus, so Tab goes on to Save from there.
+    expect(box).toHaveProperty('disabled', false);
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[2]).toMatchObject({ together: false });
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
+  it('says where a step landed when its repeat went with the move (S7, #629)', async () => {
+    const repeat = step({
+      kind: 'repeat',
+      words: 'Repeat 2 times:',
+      actor: '',
+      action: '',
+      repeat: 2,
+      holds: 1,
+    });
+    const { panel, onAnnounce } = setUp(
+      [
+        proposes([repeat, step(), step({ actor: 'fox' }), step({ actor: 'fox' })]),
+        say("Here's the plan."),
+      ],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make them walk.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    // From the keyboard: down to step 2, right to its handle, and on to the plan's end.
+    act(() => within(plan).getAllByRole('row')[0]!.focus());
+    await user.keyboard('{ArrowDown}{ArrowRight}{Enter}');
+    const at = () => document.activeElement?.getAttribute('aria-label') ?? '';
+    await waitFor(() => expect(at()).toMatch(/^Insert/));
+    for (let i = 0; i < 6 && !at().startsWith('Insert after Step 4'); i++)
+      await user.keyboard('{ArrowDown}');
+    expect(at()).toMatch(/^Insert after Step 4/);
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(panel.state.plan!.steps).toHaveLength(3));
+    expect(said(onAnnounce)).toContain('Step 2 moved to 3. The repeat had no steps left');
+  });
+
   it('drops a plan not yet built, at Undo this request', async () => {
     const { onAnnounce } = setUp([proposes([step()]), say("Here's the plan.")]);
     const user = userEvent.setup();
@@ -675,5 +833,15 @@ describe('the Prompter in the studio', () => {
     expect(oneMove(ids('abcd'), ids('bcad'))).toEqual({ from: 0, to: 2 });
     expect(oneMove(ids('abcd'), ids('adbc'))).toEqual({ from: 3, to: 1 });
     expect(oneMove(ids('abcd'), ids('abcd'))).toBeNull();
+  });
+
+  it('moves a repeat with the steps it holds, to its place among the others (6.8)', () => {
+    // Steps R a b c d, with R holding a and b: dragged to the end, it goes after c and d.
+    expect(repeatMove(5, 0, 2, 4)).toBe(2);
+    // Dropped among its own steps, it stays where it was.
+    expect(repeatMove(5, 0, 2, 1)).toBe(0);
+    // Steps a R b c, with R holding b: to the top, then to the end.
+    expect(repeatMove(4, 1, 1, 0)).toBe(0);
+    expect(repeatMove(4, 1, 1, 3)).toBe(2);
   });
 });

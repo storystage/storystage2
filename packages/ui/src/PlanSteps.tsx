@@ -20,12 +20,49 @@ export interface PlanStep {
   why?: string;
   /** Plan only: what the learner built matches the step, so it's ticked (04-prompter §6.6). */
   done?: boolean;
+  /** Inside a repeat (04-prompter §6.8): indented under it, with the loop colour's line. */
+  inside?: boolean;
+  /** A repeat step: the numbers of the steps it holds, for its name ("holding steps 2 and 3"). */
+  holding?: readonly number[];
+}
+
+/** The steps a repeat holds, in words: "step 2", "steps 2 and 3", "steps 2 to 5". */
+export function heldWords(held: readonly number[]): string {
+  const first = held[0] ?? 0;
+  const last = held.at(-1) ?? first;
+  if (held.length <= 1) return messages.t('plan.heldOne', { n: first });
+  return messages.t(held.length === 2 ? 'plan.heldTwo' : 'plan.heldMany', { first, last });
+}
+
+/**
+ * A step's name for screen readers, starting with its number: "Step 1: Repeat 3 times, holding
+ * steps 2 and 3", "Step 2, inside the repeat, done: …" (04-prompter §6.8).
+ */
+export function stepName(step: PlanStep, n: number): string {
+  let text = step.problem ? `${step.text} ${step.problem}` : step.text;
+  if (step.holding && step.holding.length > 0)
+    text =
+      messages.t('plan.holding', {
+        text: step.text.replace(/:\s*$/, ''),
+        steps: heldWords(step.holding),
+      }) + (step.problem ? ` ${step.problem}` : '');
+  const key = step.inside
+    ? step.done
+      ? 'plan.insideDone'
+      : 'plan.inside'
+    : step.done
+      ? 'plan.done'
+      : 'plan.step';
+  return messages.t(key, { n, text });
 }
 
 export interface PlanStepsProps {
   steps: readonly PlanStep[];
-  /** The steps in their new order, after a drag or a keyboard move. */
-  onReorder: (steps: PlanStep[]) => void;
+  /**
+   * The steps in their new order, after a drag or a keyboard move, and the ids of the ones moved:
+   * moving one step up past another gives the same order as moving the other down.
+   */
+  onReorder: (steps: PlanStep[], moved: readonly string[]) => void;
   /** Opens the step for changing (Direction A: inline, with a mic). No Change button without it. */
   onEdit?: (id: string) => void;
   /** Takes the step out of the plan. No Delete button without it. */
@@ -41,7 +78,7 @@ export interface PlanStepsProps {
  * from the keyboard: focus the handle, press Enter, move with the arrow keys and press Enter again.
  * A step that can't be built says why under its words. In Plan only, a step the learner has built
  * shows a tick in place of its number, and its name begins "Step 2, done:" where another's begins
- * "Step 2:".
+ * "Step 2:". The steps a repeat holds are indented under it, with a line in the loop colour.
  */
 export function PlanSteps({
   steps,
@@ -63,7 +100,10 @@ export function PlanSteps({
     getItems: (keys) =>
       [...keys].map((key) => ({ 'text/plain': steps.find((s) => s.id === key)?.text ?? '' })),
     onReorder: (e) => {
-      onReorder(moveSteps(steps, [...e.keys], e.target.key, e.target.dropPosition));
+      onReorder(
+        moveSteps(steps, [...e.keys], e.target.key, e.target.dropPosition),
+        [...e.keys].map(String),
+      );
     },
     isDisabled,
   });
@@ -79,15 +119,15 @@ export function PlanSteps({
       {(step) => {
         const n = steps.findIndex((s) => s.id === step.id) + 1;
         const whyShown = step.why !== undefined && step.why !== '' && asked.has(step.id);
-        const words = step.problem ? `${step.text} ${step.problem}` : step.text;
         return (
           <GridListItem
             id={step.id}
             // Every row's name starts with its number, which is drawn but hidden from screen readers.
-            textValue={messages.t(step.done ? 'plan.done' : 'plan.step', { n, text: words })}
+            textValue={stepName(step, n)}
             className="ss-plan-step"
             data-problem={step.problem ? true : undefined}
             data-done={step.done ? true : undefined}
+            data-inside={step.inside ? true : undefined}
           >
             <AriaButton
               slot="drag"

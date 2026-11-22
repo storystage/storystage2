@@ -202,6 +202,86 @@ test('a step is changed with the blocks’ own choices, and its words follow', a
   await expect(prompter.getByRole('button', { name: 'Build these steps' })).toBeEnabled();
 });
 
+test('a repeat holds the steps after it, indented, and moves with them (6.8)', async ({ page }) => {
+  const step = (words: string, s: Partial<PlanStep> = {}): PlanStep => ({ ...walks, words, ...s });
+  const hops = [
+    step('The fox walks forward.', { actor: 'fox' }),
+    step('Repeat 3 times:', {
+      kind: 'repeat',
+      actor: '',
+      action: '',
+      details: [],
+      repeat: 3,
+      holds: 2,
+      why: 'So she hops three times.',
+    }),
+    step('The penguin moves up.', {
+      details: [
+        { name: 'direction', value: 'up' },
+        { name: 'amount', value: '0.3' },
+      ],
+    }),
+    step('The penguin moves down.', {
+      details: [
+        { name: 'direction', value: 'down' },
+        { name: 'amount', value: '0.3' },
+      ],
+    }),
+  ];
+  await openStage(page, undefined, [
+    testReply([toolUse('t1', 'propose_plan', { steps: hops })]),
+    say('Here is a plan with a repeat.'),
+  ]);
+  const prompter = panel(page);
+  await prompter.getByRole('radio', { name: 'Show me how' }).check();
+  const field = prompter.getByRole('textbox', { name: 'Ask the Prompter' });
+  await field.fill('Make the penguin hop three times.');
+  await field.press('Enter');
+  const plan = prompter.getByRole('grid', { name: 'Plan before change' });
+  await expect(
+    plan.getByRole('row', { name: 'Step 2: Repeat 3 times, holding steps 3 and 4' }),
+  ).toBeVisible();
+  await expect(plan.locator('[data-inside]')).toHaveCount(2);
+  // Indented, with the loop colour's line down its left.
+  const inside = plan.getByRole('row', { name: /^Step 3, inside the repeat: / });
+  const shift = await inside.evaluate((row) => getComputedStyle(row).marginInlineStart);
+  expect(shift).toBe('28px');
+  const { violations } = await new AxeBuilder({ page })
+    .include('.pm-plan')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // The repeat moved to the top, from the keyboard, takes its steps with it.
+  // The list keeps focus on its rows: down to step 2, right to its handle, Enter to pick it up.
+  await plan.getByRole('row').first().focus();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowRight');
+  await expect(plan.getByRole('button', { name: 'Move step 2' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  // React Aria's first drop place is just after step 1, where it is now; the next is before it.
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('ArrowUp');
+  await page.keyboard.press('Enter');
+  await expect(
+    plan.getByRole('row', { name: 'Step 1: Repeat 3 times, holding steps 2 and 3' }),
+  ).toBeVisible();
+  await expect(plan.getByRole('row', { name: /^Step 4: The fox walks forward/ })).toBeVisible();
+
+  // Change step on it: how many times, and which steps are inside.
+  await plan.getByRole('button', { name: 'Change step 1' }).click();
+  const editor = page.getByRole('dialog', { name: 'Change step 1' });
+  await expect(editor.getByText('Repeats steps 2 and 3.')).toBeVisible();
+  const axe = await new AxeBuilder({ page })
+    .include('.pm-editor')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(axe.violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+  await editor.getByRole('spinbutton', { name: 'How many times' }).fill('4');
+  await editor.getByRole('button', { name: 'Save' }).click();
+  await expect(plan.getByRole('row', { name: /^Step 1: Repeat 4 times, holding/ })).toBeVisible();
+});
+
 test('an adult sets the Prompter up from the panel, and removes the key in Settings', async ({
   page,
 }) => {
