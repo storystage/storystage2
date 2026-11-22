@@ -190,12 +190,12 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 26 of 61 items finished and 18 more started:
+**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 27 of 61 items finished and 18 more started:
 
-- **Release candidate:** week 11 (4 Jan 2027). The plan above says week 18.5 (26 Feb 2027).
-- **Pilot ends:** week 17 (15 Feb 2027). The plan says week 24.5 (9 Apr 2027).
-- **Later strands done:** week 22 (22 Mar 2027). The plan says week 29.5 (13 May 2027).
-- **What now sets the pilot's end:** WP7 → WP10b → WP11c → RC → WP19.
+- **Release candidate:** week 8 (14 Dec 2026). The plan above says week 18.5 (26 Feb 2027).
+- **Pilot ends:** week 16.5 (12 Feb 2027). The plan says week 24.5 (9 Apr 2027).
+- **Later strands done:** week 19 (1 Mar 2027). The plan says week 29.5 (13 May 2027).
+- **What now sets the pilot's end:** WP13b → WP17b → WP19.
 
 Finished items keep their actual dates; started ones run for their estimate from their start, but end no sooner than half a week after the as-of date; the rest start when what they wait for has finished. The estimates themselves are still the first plan's: they're recalibrated at M1 (WP1.12), and dates the sessions haven't recorded aren't counted.
 
@@ -285,16 +285,16 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 10 Dec to 24 Dec |
 | WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 | forecast: 28 Dec to 7 Jan |
 | WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | started 12 Nov; ends about 26 Nov |
-| WP11c | Automatic check against the storyboard (11.6) | Screening room | WP10b, WP11b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | forecast: 21 Dec to 4 Jan |
-| WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 4 Jan to 15 Feb |
-| WP22a | AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4) | AR | WP6, WP8, WP11a, RC | 4 | wk 18.5 (26 Feb 2027) | 2 | forecast: 4 Jan to 1 Feb |
-| WP20 | Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial | Beyond | WP4a, WP8, RC | 6 | wk 18.5 (26 Feb 2027) | 5 | forecast: 4 Jan to 15 Feb |
-| WP19 | Pilot in schools (19.3, 19.4) | Curriculum and legal | RC, WP16b, WP17b, WP19a | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 4 Jan to 15 Feb |
-| WP23b | Projection stage: surfaces, virtual projectors, preview (23.3, 23.4) | Projection | WP23a, WP8, WP12b, RC | 3 | wk 18.5 (26 Feb 2027) | 5 | forecast: 4 Jan to 25 Jan |
-| WP23c | Classroom projection: full-screen warped output (23.5) | Projection | WP23b, WP15a | 1.5 | wk 21.5 (18 Mar 2027) | 6.5 | forecast: 25 Jan to 4 Feb |
-| WP23d | Export for projection and Export to Pixera, flash check, guide (23.6–23.9) | Projection | WP23b, WP11a, WP11b | 3 | wk 21.5 (18 Mar 2027) | 5 | forecast: 25 Jan to 15 Feb |
-| WP22b | AR player, AR staging, Export for AR (22.5–22.7) | AR | WP22a, WP21, WP11b, WP10a | 3 | wk 24.5 (9 Apr 2027) | **0 (critical)** | forecast: 15 Feb to 8 Mar |
-| WP22c | Mixed-reality film and safeguards (22.8, 22.9) | AR | WP22b | 2 | wk 27.5 (29 Apr 2027) | **0 (critical)** | forecast: 8 Mar to 22 Mar |
+| WP11c | Automatic check against the storyboard (11.6) | Screening room | WP10b, WP11b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | 1.9 (10–22 Nov) |
+| WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 14 Dec to 25 Jan |
+| WP22a | AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4) | AR | WP6, WP8, WP11a, RC | 4 | wk 18.5 (26 Feb 2027) | 2 | forecast: 14 Dec to 11 Jan |
+| WP20 | Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial | Beyond | WP4a, WP8, RC | 6 | wk 18.5 (26 Feb 2027) | 5 | forecast: 14 Dec to 25 Jan |
+| WP19 | Pilot in schools (19.3, 19.4) | Curriculum and legal | RC, WP16b, WP17b, WP19a | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 1 Jan to 12 Feb |
+| WP23b | Projection stage: surfaces, virtual projectors, preview (23.3, 23.4) | Projection | WP23a, WP8, WP12b, RC | 3 | wk 18.5 (26 Feb 2027) | 5 | forecast: 14 Dec to 4 Jan |
+| WP23c | Classroom projection: full-screen warped output (23.5) | Projection | WP23b, WP15a | 1.5 | wk 21.5 (18 Mar 2027) | 6.5 | forecast: 4 Jan to 15 Jan |
+| WP23d | Export for projection and Export to Pixera, flash check, guide (23.6–23.9) | Projection | WP23b, WP11a, WP11b | 3 | wk 21.5 (18 Mar 2027) | 5 | forecast: 4 Jan to 25 Jan |
+| WP22b | AR player, AR staging, Export for AR (22.5–22.7) | AR | WP22a, WP21, WP11b, WP10a | 3 | wk 24.5 (9 Apr 2027) | **0 (critical)** | forecast: 25 Jan to 15 Feb |
+| WP22c | Mixed-reality film and safeguards (22.8, 22.9) | AR | WP22b | 2 | wk 27.5 (29 Apr 2027) | **0 (critical)** | forecast: 15 Feb to 1 Mar |
 
 <!-- /schedule:dependency-table -->
 
@@ -734,7 +734,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 11.3 **Export for distribution:** a frame-by-frame offscreen render at a fixed rate (30 fps, 1280×720 by default), encoded to MP4 with H.264 video and AAC audio. Progress bar and cancel. (C)
 - [x] 11.4 Title card from the title and logline. End credits listing the learner's chosen names (optional), music and model credits from the manifest grouped as Cast, Props, Set and Backdrops, and the required notices (for example CMU's acknowledgement for Alice-derived models). Captions file (WebVTT and SRT) from the script's dialogue and say/speak blocks. (C)
 - [ ] 11.5 Fallback where WebCodecs isn't available, as decided in WP1.8. (C)
-- [ ] 11.6 **Automatic check against the storyboard** (from Roblox Studio's automated playtesting; works without the Prompter and without a network):
+- [x] 11.6 **Automatic check against the storyboard** (from Roblox Studio's automated playtesting; works without the Prompter and without a network):
     - **What it does:** "Check this frame", "Check this scene" and, in the Screening room, "Check the whole production" rehearse the code offscreen in deterministic mode (6.5) and compare what happened with what the storyboard planned.
     - **What it compares**, from scene state rather than pictures: who is on screen at the end of the frame and who should be; left-to-right order and rough position of each character against its sketch; which way each faces; whether the shot type framed its targets; whether each pinned script line was said or spoken; how long the frame lasted against its planned length; and run-time problems (errors, endless loops, characters walking off camera).
     - **The report:** a checklist on the frame card, in plain words: "Owl is on screen", "Owl ends on the left; your sketch has it on the right", "Line 2.3 is never said", "This frame lasts 6 seconds; you planned 3". Each item links to the block and the sketch, and the frame strip shows a tick or a flag.
