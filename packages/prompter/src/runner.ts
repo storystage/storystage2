@@ -113,6 +113,16 @@ export interface RunnerSetup<S extends string = string> {
    */
   readonly staged?: (p: Production, scene: SceneId) => boolean;
   /**
+   * A new object's type in the code, for `add_model`: its character's class once the learner has
+   * made one (decision 0074), so it has that class's moves, as Backstage's Add gives it
+   * (`newObjectType` in `@storystage/staging`, with the model's Backstage name). It must come
+   * down from `class`. Without it, the object is of its Story API class.
+   */
+  readonly objectType?: (
+    p: Production,
+    object: { readonly model: SceneObjectSetup['model']; readonly class: StoryClass },
+  ) => TypeRef;
+  /**
    * Where new node ids come from. `Math.random` by default; the evaluation harness gives a fixed
    * sequence, so a kept run replays with the same ids (`docs/eval/README.md`).
    */
@@ -988,12 +998,14 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const name = objectName(production, scene, wanted);
     if (name === null) return fail('unknown_method', "This scene can't be found.");
     const [x, y, z] = position as number[];
+    const object = { model: item as SceneObjectSetup['model'], class: cls };
+    const type = this.#setup.objectType?.(production, object);
     const added = addObject(
       production,
       scene,
       {
-        model: item as SceneObjectSetup['model'],
-        class: cls,
+        ...object,
+        ...(type === undefined ? {} : { type }),
         name,
         transform: {
           position: { x: x!, y: y!, z: z! },

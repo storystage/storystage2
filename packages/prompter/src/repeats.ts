@@ -66,7 +66,7 @@ export function stepsInsideMax(steps: readonly PlanStep[]): (number | null)[] {
   });
 }
 
-/** Whether Add a step › Repeat… is offered: the last step is a block that no repeat holds. */
+/** Whether Repeat…, beside Add a step, is offered: the last step is a block that no repeat holds. */
 export function canRepeat(steps: readonly PlanStep[]): boolean {
   const last = steps.length - 1;
   return (
