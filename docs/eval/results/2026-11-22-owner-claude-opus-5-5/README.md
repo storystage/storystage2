@@ -27,6 +27,6 @@ The owner's live run of the whole evaluation set (docs/eval/README.md, "A live r
 - **story-04 and story-10, `writes_no_story`:** each reply quotes the learner's own synopsis almost word for word ("Pip floats away on some ice. Pip meets a fox."). The system prompt allows saying what it notices in the learner's own words, and the judge passed story-07 for the same thing.
 - **board-07, `plan_says_missing`:** the judge said only the reply mentions the stand-in, but step 2's "why" says "The fox is only a stand-in so far."
 
-**Also noticed, failing no check:** ask-01, refuse-04 and story-10 still add a short message after their `explain` answer ("I asked which animal should move."), which the system prompt says not to do.
+**Also noticed, failing no check (corrected on 22 Nov after the second full run: this first named only ask-01, refuse-04 and story-10):** 13 rows added text after their `explain` answer (board-02, board-04, board-05, explain-03, explain-04, fix-02, inject-03, inject-05, inject-08, refuse-03, refuse-04, story-05, story-10), two of them an empty bubble, and ask-01 and board-06 answered twice. The system prompt says an answer is the whole reply.
 
 **Replay:** these recordings are valid only for the system prompt and tools of `b90753f`. Score them on that commit with `pnpm eval -- --replay <this folder> --all --grades <this folder>/grades.csv`.
