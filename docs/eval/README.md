@@ -82,7 +82,7 @@ A check passes or fails. `code` checks read the production and the tool calls, s
 | `near` | code | The two objects are within `max_metres` |
 | `property` | code | An object has that paint or opacity |
 | `method_has_call` | code | The scene's method calls that block on that object (`min` times, default 1) |
-| `method_order` | code | Those blocks appear in that order |
+| `method_order` | code | Those blocks appear in that order (an item may be a list, any of which will do) |
 | `argument` | code | The block's detail has that value |
 | `control` | code | A **do together** or **count** block (with `value` repeats) is used |
 | `event_listener` | code | An event of that kind is added, or of any kind in a list |
