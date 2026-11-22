@@ -420,7 +420,8 @@ export function PrompterAside({
                   if (!made.ok || made.index === undefined) return announce(made, '');
                   setEditing(made.index);
                   setAdding(true);
-                  onAnnounce(words.t('prompter.stepAdded', { n: made.index + 1 }));
+                  // With what else it changed: an At the same time it took off (S7, #632).
+                  announce(made, words.t('prompter.stepAdded', { n: made.index + 1 }));
                 }}
               >
                 {words.t('prompter.addRepeat')}
