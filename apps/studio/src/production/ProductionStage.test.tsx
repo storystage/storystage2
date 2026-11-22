@@ -423,6 +423,14 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     expect(within(dialog).getByText('Every penguin in every scene can use it.')).toBeTruthy();
     const name = within(dialog).getByRole('textbox', { name: 'Name' });
     expect(name).toHaveProperty('value', 'newMove');
+    // A name the penguin's built-in blocks have says why.
+    await user.clear(name);
+    await user.type(name, 'say');
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    expect(name.getAttribute('aria-invalid')).toBe('true');
+    expect(
+      within(dialog).getByText('penguin already has a block called say. Choose another name.'),
+    ).toBeTruthy();
     await user.clear(name);
     await user.type(name, 'waddle');
     await user.click(within(dialog).getByRole('button', { name: 'Add an input (parameter)…' }));

@@ -130,7 +130,19 @@ export function NewMethod({
 
   const chosen = name.trim();
   // A class not made yet has no names taken.
-  const problem = making ? nameProblem(host.program(), owner ?? ('' as NodeId), chosen) : null;
+  const problem = making
+    ? nameProblem(
+        host.program(),
+        owner ?? ('' as NodeId),
+        chosen,
+        forCharacter ? character?.model.storyClass : undefined,
+      )
+    : null;
+  // A character's name problems say whose: "penguin already has a block called say."
+  const problemKey =
+    problem && forCharacter && problem !== 'empty' && problem !== 'shape' && problem !== 'long'
+      ? `production.name.${problem}By`
+      : `production.name.${problem}`;
   const problems = inputProblems(inputs);
   const add = (e?: FormEvent) => {
     e?.preventDefault();
@@ -237,7 +249,7 @@ export function NewMethod({
             label={words.t('production.newName')}
             description={
               tried && problem
-                ? words.t(`production.name.${problem}` as WordKey, { n, name: chosen })
+                ? words.t(problemKey as WordKey, { n, name: chosen, model })
                 : words.t('production.newNameHint')
             }
             isInvalid={tried && problem !== null}

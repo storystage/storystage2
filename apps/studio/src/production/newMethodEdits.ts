@@ -15,7 +15,7 @@ import {
   type Program,
   type TypeRef,
 } from '@storystage/ast';
-import { EVENTS, findEvent } from '@storystage/story-api';
+import { API_CLASSES, EVENTS, findEntry, findEvent, type ApiClass } from '@storystage/story-api';
 import {
   addParameter,
   classFor,
@@ -59,14 +59,25 @@ function takenOn(program: Program, type: NodeId): string[] {
 export const suggestedName = (program: Program, type: NodeId, base: string): string =>
   freshName(base, takenOn(program, type));
 
-export type NameProblem = 'empty' | 'shape' | 'long' | 'taken';
+export type NameProblem = 'empty' | 'shape' | 'long' | 'taken' | 'builtIn';
 
-/** Why `name` can't be a new method's on `type`, or `null` if it can. */
-export function nameProblem(program: Program, type: NodeId, name: string): NameProblem | null {
+/**
+ * Why `name` can't be a new method's on `type`, or `null` if it can. A character's class
+ * (`storyClass` given) can't take a name its Story API class has either ("say"): the film would
+ * still run, as a call goes by its method, but the editors would show two blocks of that name (S6).
+ */
+export function nameProblem(
+  program: Program,
+  type: NodeId,
+  name: string,
+  storyClass?: string,
+): NameProblem | null {
   if (name === '') return 'empty';
   if (name.length > MAX_NAME) return 'long';
   if (!NAME.test(name)) return 'shape';
   if (takenOn(program, type).includes(name)) return 'taken';
+  const cls = API_CLASSES.find((c) => c === storyClass) as ApiClass | undefined;
+  if (cls && findEntry(cls, name)) return 'builtIn';
   return null;
 }
 

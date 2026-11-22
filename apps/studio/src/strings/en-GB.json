@@ -298,6 +298,8 @@
   "production.name.shape": "Use letters, numbers and _ only, with no spaces, starting with a letter.",
   "production.name.long": "Use 60 letters or fewer.",
   "production.name.taken": "Scene {n} already has something called {name}.",
+  "production.name.takenBy": "{model} already has something called {name}.",
+  "production.name.builtInBy": "{model} already has a block called {name}. Choose another name.",
   "production.gives": "Gives back",
   "production.gives.Number": "A number",
   "production.gives.WholeNumber": "A whole number",
