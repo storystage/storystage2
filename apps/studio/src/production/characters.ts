@@ -7,8 +7,8 @@
  */
 import type { MethodDecl, NodeId, TypeDecl } from '@storystage/ast';
 import type { Production, SceneId } from '@storystage/production';
-import { modelFields, sceneType } from '@storystage/staging';
-import type { BackstageId, SceneObjectSetup } from '@storystage/story-api';
+import { modelFields, newObjectType, sceneType } from '@storystage/staging';
+import type { BackstageId, SceneObjectSetup, StoryClass } from '@storystage/story-api';
 import { classOf, splitWords, type CharacterModel } from '@storystage/story-api/editing';
 
 export { modelFields, sceneType };
@@ -19,14 +19,26 @@ export type ModelName = (model: BackstageId) => string | null;
 type Model = SceneObjectSetup['model'];
 
 /**
- * A model's name: a stand-in's label; a Backstage model's from Backstage or, for one this device
- * hasn't got, the last part of its id (`class/Biped/big-robot` is "big robot", as the studio names
- * a missing model).
+ * A model's name: a stand-in's label; a Backstage model's from Backstage, else from the film's
+ * packed models (one not checked yet, or that failed its check, is only there), else the last part
+ * of its id (`class/Biped/big-robot` is "big robot", as the studio names a missing model).
  */
-const nameOf = (modelName: ModelName, model: Model): string =>
+const nameOf = (p: Production, modelName: ModelName, model: Model): string =>
   typeof model !== 'string'
     ? model.standIn
-    : (modelName(model) ?? (model.split('/').pop() ?? model).replace(/-/g, ' '));
+    : (modelName(model) ??
+      p.manifest.models.find((m) => m.item.id === model)?.item.displayName ??
+      (model.split('/').pop() ?? model).replace(/-/g, ' '));
+
+/**
+ * The type of an object the Prompter adds (`RunnerSetup.objectType`): its character's class,
+ * found by the same name the Code editor makes it with.
+ */
+export const addedObjectType = (
+  p: Production,
+  { model, class: storyClass }: { readonly model: Model; readonly class: StoryClass },
+  modelName: ModelName,
+) => newObjectType(p, { model, class: storyClass, name: nameOf(p, modelName, model) });
 
 /** A model in the film: its name and Story API class, and its class if made. */
 export interface Character {
@@ -38,7 +50,10 @@ export interface Character {
 }
 
 function character(p: Production, object: SceneObjectSetup, modelName: ModelName): Character {
-  const model: CharacterModel = { name: nameOf(modelName, object.model), storyClass: object.class };
+  const model: CharacterModel = {
+    name: nameOf(p, modelName, object.model),
+    storyClass: object.class,
+  };
   const fields = modelFields(p, object.model);
   // The class its objects are already of, whatever the model is called now (S6's #624).
   return { model, fields, type: classOf(p.program, model, fields)?.id ?? null };
