@@ -420,6 +420,21 @@ describe('opacity and paint', () => {
     expect(root(ann).isEnabled()).toBe(true);
   });
 
+  it('blend what is part faded, and only that (opaque glTF said never to blend, #117)', async () => {
+    const { stage, body } = await loaded();
+    stage.schedule([
+      cmd(0, 1, { object: ann, kind: 'opacity', to: 0.5 }),
+      cmd(1, 1, { object: ann, kind: 'opacity', to: 1 }),
+    ]);
+    const blends = (id: ObjectId) => body(id).material!.needAlphaBlendingForMesh(body(id));
+    expect(blends(ann)).toBe(false);
+    stage.seek(micros(1));
+    expect(blends(ann)).toBe(true);
+    expect(blends(bob)).toBe(false);
+    stage.seek(micros(2));
+    expect(blends(ann)).toBe(false);
+  });
+
   it('start from the set-up', async () => {
     const { body, root } = await loaded({
       ...setup,

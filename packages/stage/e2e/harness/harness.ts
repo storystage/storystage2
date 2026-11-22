@@ -251,6 +251,60 @@ async function picture(name: string, seconds: number, still = false) {
 }
 
 /**
+ * A glTF model part faded, against the same frame with it solid and with it gone: of the pixels
+ * it covers, how many there are, the least alpha any was drawn with, and how far (0 to 255, on
+ * average) they are from 0.35 of the model over 0.65 of what's behind it.
+ */
+async function fadedModel() {
+  const id = backstageId('test/Prop/panel');
+  const url = tinyModelUrl(['hips']);
+  const at = (x: number, y: number, z: number, turned = false) => ({
+    position: { x, y, z },
+    rotation: turned ? { x: 0, y: 1, z: 0, w: 0 } : { x: 0, y: 0, z: 0, w: 1 },
+    scale: { x: 1, y: 1, z: 1 },
+  });
+  const frame = async (opacity: number) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const stage = await createBabylonStage({
+      canvas,
+      models: { find: () => ({ url, joints: 'prop-only' }) },
+      offscreen: true,
+      renderer: 'webgl2',
+    });
+    await stage.load({
+      backdrop: BACKDROP_TEMPLATES.find((b) => b.id === 'grass')!.backdrop,
+      objects: [
+        { id: objectId('panel'), model: id, class: 'Prop', transform: at(0, 0, 0, true), opacity },
+      ],
+      camera: { transform: at(0, 1, -4) },
+      markers: [],
+    });
+    stage.seek(micros(0));
+    const { data } = await stage.renderFrame();
+    const copy = data.slice();
+    stage.dispose();
+    return copy;
+  };
+  const solid = await frame(1);
+  const gone = await frame(0);
+  const faded = await frame(0.35);
+  let covered = 0;
+  let alpha = 255;
+  let off = 0;
+  for (let p = 0; p < solid.length; p += 4) {
+    const apart = [0, 1, 2].reduce((sum, c) => sum + Math.abs(solid[p + c]! - gone[p + c]!), 0);
+    if (apart < 30) continue;
+    covered++;
+    alpha = Math.min(alpha, faded[p + 3]!);
+    for (let c = 0; c < 3; c++)
+      off += Math.abs(faded[p + c]! - (0.35 * solid[p + c]! + 0.65 * gone[p + c]!)) / 3;
+  }
+  return { covered, alpha, off: covered ? off / covered : 0 };
+}
+
+/**
  * WP5.7: a picture of a moment, taken while the scene is at another, against the frame drawn at
  * that moment, and a small picture's top and bottom rows: sky above, ground below.
  */
@@ -1069,6 +1123,7 @@ Object.assign(window, {
     picture,
     humanPicture,
     scenePictures,
+    fadedModel,
     crossfadeSky,
     goLive,
     sceneView,
