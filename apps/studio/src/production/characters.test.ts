@@ -91,6 +91,26 @@ describe('a character in the Code editor (0074)', () => {
     expect(hop.edits.map((e) => e.kind)).toEqual(['declare']);
   });
 
+  it('finds the class its objects are of after the model’s name changes (S6, #624)', () => {
+    const penguin = characterOf(p, s1, fieldNamed(p, s1, 'penguin').id, () => null)!;
+    const made = newCharacterMethod(
+      p.program,
+      penguin.model,
+      penguin.fields,
+      'waddle',
+      null,
+      [],
+      '',
+    )!;
+    const q = after(made.edits);
+    // Made as "penguin", from its id; this device now has the model, as "Emperor penguin".
+    const now = characterOf(q, s2, fieldNamed(q, s2, 'penguin').id, named)!;
+    expect(now.type).toBe(made.type);
+    const hop = newCharacterMethod(q.program, now.model, now.fields, 'hop', null, [], '')!;
+    expect(hop.type).toBe(made.type);
+    expect(hop.edits.map((e) => e.kind)).toEqual(['declare']);
+  });
+
   it('names a class with no objects left after itself', () => {
     const penguin = characterOf(p, s1, fieldNamed(p, s1, 'penguin').id, named)!;
     const made = newCharacterMethod(p.program, penguin.model, [], 'waddle', null, [], '')!;

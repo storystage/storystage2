@@ -58,11 +58,9 @@ export function modelFields(p: Production, model: Model): NodeId[] {
 
 function character(p: Production, object: SceneObjectSetup, modelName: ModelName): Character {
   const model: CharacterModel = { name: nameOf(modelName, object.model), storyClass: object.class };
-  return {
-    model,
-    fields: modelFields(p, object.model),
-    type: classOf(p.program, model)?.id ?? null,
-  };
+  const fields = modelFields(p, object.model);
+  // The class its objects are already of, whatever the model is called now (S6's #624).
+  return { model, fields, type: classOf(p.program, model, fields)?.id ?? null };
 }
 
 /** The character scene `scene`'s field `field` is, or `null` for a field with no set-up object. */
