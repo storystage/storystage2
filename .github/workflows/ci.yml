@@ -37,17 +37,9 @@ jobs:
           key: alice-starters-${{ hashFiles('packages/a3p-import/starters.json') }}
       - name: Alice's starter projects for WP9's test (fetched at a pinned commit, not kept here)
         run: node packages/a3p-import/scripts/fetch-starters.ts "$RUNNER_TEMP/alice-starters"
-      # Cached by the lock. The check still hashes the manifest and catalogue against it.
-      - id: backstage
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: .backstage
-          key: backstage-${{ hashFiles('backstage.lock.json') }}
+      # Not cached: a fetch by commit checks every file, and the folder is over 600 MB.
       - name: The shipped Backstage, for WP3's test (fetched at the pinned commit, not kept here)
-        env:
-          CACHED: ${{ steps.backstage.outputs.cache-hit }}
-        run: |
-          if [ "$CACHED" = true ]; then pnpm -w run backstage:fetch --check-only; else pnpm -w run backstage:fetch; fi
+        run: pnpm -w run backstage:fetch
       - run: pnpm test
         env:
           ALICE_STARTERS: ${{ runner.temp }}/alice-starters

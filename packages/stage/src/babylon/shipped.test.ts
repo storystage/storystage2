@@ -16,18 +16,19 @@ import { headlessEngine } from './headless.ts';
 import { ModelLibrary } from './models.ts';
 
 /**
- * Found on 22 Nov 2026, for S3 to fix. The lists must match exactly, so a new fault fails the test,
- * and so does a fixed one still listed: take it out with the fix.
+ * Found on 22 Nov 2026, for S3 to fix. The lists must match exactly, reasons included, so a new
+ * fault fails the test, and so does a fixed one still listed: take it out with the fix.
  */
-const CANT_BE_PLACED = [
-  // One mesh on several nodes: an instance's material has already been made plain.
-  'nasa/Prop/robonaut-2',
-  'sketchfab-history/Prop/roman-temple',
-  'sketchfab-history/Prop/roundhouse-simple',
-  'storybook/Biped/anansi',
-  'storybook/Biped/medusa',
-  'storybook/Biped/sherlock-holmes',
-];
+// One mesh on several nodes: an instance's material has already been made plain.
+const INSTANCED = "Cannot read properties of undefined (reading 'toGammaSpace')";
+const CANT_BE_PLACED: Readonly<Record<string, string>> = {
+  'nasa/Prop/robonaut-2': INSTANCED,
+  'sketchfab-history/Prop/roman-temple': INSTANCED,
+  'sketchfab-history/Prop/roundhouse-simple': INSTANCED,
+  'storybook/Biped/anansi': INSTANCED,
+  'storybook/Biped/medusa': INSTANCED,
+  'storybook/Biped/sherlock-holmes': INSTANCED,
+};
 /** Listed joints the stage doesn't find, and how many: their bones have names it doesn't know. */
 const JOINTS_NOT_FOUND: Readonly<Record<string, number>> = {
   'osa/Biped/ajo-majo': 2,
@@ -60,7 +61,7 @@ describe.skipIf(!folder)('the shipped Backstage', () => {
     const items = shippedModels(folder!);
     expect(items.length).toBeGreaterThan(0);
     const engine = headlessEngine();
-    const failed: string[] = [];
+    const failed: Record<string, string> = {};
     const short: Record<string, number> = {};
     for (const item of items) {
       const scene = new Scene(engine);
@@ -74,14 +75,14 @@ describe.skipIf(!folder)('the shipped Backstage', () => {
           const lacks = item.joints.filter((joint) => !shape.jointPlaces.has(joint)).length;
           if (lacks > 0) short[item.id] = lacks;
         }
-      } catch {
-        failed.push(item.id);
+      } catch (e) {
+        failed[item.id] = e instanceof Error ? e.message : String(e);
       } finally {
         scene.dispose();
       }
     }
     engine.dispose();
-    expect(failed.sort()).toEqual(CANT_BE_PLACED);
+    expect(failed).toEqual(CANT_BE_PLACED);
     expect(short).toEqual(JOINTS_NOT_FOUND);
   });
 });
