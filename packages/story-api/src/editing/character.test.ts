@@ -59,6 +59,28 @@ const wave = (type: ReturnType<typeof nodeId>): EditOperation => ({
   } satisfies MethodDecl,
 });
 
+describe('a class found by its objects (S5’s #623)', () => {
+  it('keeps the class its objects are of when the model’s name changes', () => {
+    // Made while the model was a stand-in called "kitty"; Backstage names it "cat" now.
+    const made = classFor(scene([]), { name: 'kitty', storyClass: 'Biped' }, [ID.cat], '');
+    const program = apply(scene([]), made!.edits).program;
+    const kitty = made!.type;
+    expect(classOf(program, CAT)).toBeNull();
+    expect(classOf(program, CAT, [ID.cat])?.id).toBe(kitty);
+    expect(fieldTypeFor(program, CAT, [ID.cat])).toEqual({ kind: 'user', type: kitty });
+    // A move for the cat goes on the kitty class, and no second class is made.
+    const again = classFor(program, CAT, [ID.cat], '');
+    expect(again).toEqual({ edits: [], type: kitty });
+  });
+
+  it('isn’t fooled by an object of another kind’s class', () => {
+    const made = classFor(scene([]), CAT, [ID.cat], '');
+    const program = apply(scene([]), made!.edits).program;
+    // The cat's class extends Biped; a dog that's an Animal isn't of it.
+    expect(classOf(program, { name: 'dog', storyClass: 'Animal' }, [ID.cat])).toBeNull();
+  });
+});
+
 describe('a character’s class (0074)', () => {
   it('is named after its model', () => {
     expect(classNameFor({ name: 'Emperor penguin', storyClass: 'Animal' })).toBe('EmperorPenguin');
