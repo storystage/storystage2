@@ -135,7 +135,11 @@ describe('stepsDone (spec 04, section 6.6)', () => {
                 ? 'Flyer'
                 : null,
       });
-      (w.type as { fields: unknown[] }).fields = [field('penguin'), field('fox'), field('camera')];
+      (w.type as unknown as { fields: unknown[] }).fields = [
+        field('penguin'),
+        field('fox'),
+        field('camera'),
+      ];
       return w;
     };
     expect(stepsDone([planned], scene([shot(['penguin', 'fox'])]))).toEqual([true]);
