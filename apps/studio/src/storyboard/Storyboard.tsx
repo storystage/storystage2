@@ -272,7 +272,8 @@ export function Storyboard({
           </div>,
           document.body,
         )}
-      <p className="ss-visually-hidden" aria-live="polite">
+      {/* React Aria's mark for a live announcer, as on the Production stage: heard past a dialog. */}
+      <p className="ss-visually-hidden" aria-live="polite" data-live-announcer="true">
         {announcement}
       </p>
     </div>
