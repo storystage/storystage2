@@ -1208,3 +1208,82 @@ describe('an event is for what its step showed (spec 04, section 6.4)', () => {
     });
   });
 });
+
+describe("S6's recheck: an event's objects are read by the list the listener uses", () => {
+  const when = (action: string, s: Partial<PlanStep> = {}) =>
+    step({ kind: 'when', action, details: [], ...s });
+  const build = (s: PlanStep, objects: string[], others: string[] = []) => {
+    const { agree, run } = setUp();
+    agree([s]);
+    return run('add_event_listener', {
+      event: s.action,
+      objects,
+      other_objects: others,
+      narration: 'Something will happen.',
+      plan_step: 1,
+    });
+  };
+  const pair = () => when('collisionStart', { target: 'owl' });
+
+  it("refuses the clicked object in the list a click doesn't use", () => {
+    expect(build(when('clickOnObject'), [], ['penguin'])).toMatchObject({ error: 'not_in_plan' });
+    expect(build(when('clickOnObject'), ['penguin'], ['penguin'])).toMatchObject({
+      error: 'not_in_plan',
+    });
+  });
+
+  it('refuses a pair with a side left empty', () => {
+    expect(build(pair(), ['penguin'], [])).toMatchObject({ error: 'not_in_plan' });
+    expect(build(pair(), [], ['penguin', 'owl'])).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it('refuses a pair that leaves out one the step names', () => {
+    expect(build(pair(), ['penguin'], ['penguin'])).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it('builds the pair, either way round', () => {
+    expect(build(pair(), ['penguin'], ['owl'])).toMatchObject({ ok: true });
+    expect(build(pair(), ['owl'], ['penguin'])).toMatchObject({ ok: true });
+  });
+
+  it('refuses a second object where the event takes one', () => {
+    const arrows = when('moveWithArrowKeys', { target: 'owl' });
+    expect(build(arrows, ['penguin', 'owl'])).toMatchObject({ error: 'not_in_plan' });
+  });
+
+  it('refuses a plan whose event would have an empty list, which never runs', () => {
+    const { problem } = setUp();
+    const event = (action: string, actor: string) =>
+      problem({ kind: 'when', action, actor, details: [] });
+    expect(event('collisionStart', 'penguin')).toBe(
+      'A collisionStart event needs two objects: who, and what it meets.',
+    );
+    expect(event('viewEnter', 'scene')).toBe('A viewEnter event needs an object.');
+  });
+
+  it("refuses a plan about someone who isn't in the scene", () => {
+    expect(
+      setUp().problem({ kind: 'when', action: 'clickOnObject', actor: 'player', details: [] }),
+    ).toBe("There's no player in this scene yet. Add one first, or change who does this.");
+  });
+
+  it('allows an actor of any name for an event about no object', () => {
+    expect(
+      setUp().problem({ kind: 'when', action: 'keyPress', actor: 'player', details: [] }),
+    ).toBe(null);
+  });
+
+  it("doesn't read a setting's value as an object", () => {
+    const s = when('clickOnObject', {
+      actor: 'scene',
+      details: pairs({ multipleEventPolicy: 'combine' }),
+    });
+    expect(build(s, [])).toMatchObject({ ok: true });
+  });
+
+  it('knows an object an earlier step adds', () => {
+    const { runner } = setUp();
+    const add = step({ kind: 'add', actor: 'rock', action: 'example/Prop/rock' });
+    expect(runner.checkSteps([add, when('clickOnObject', { actor: 'rock' })], null)).toEqual([]);
+  });
+});

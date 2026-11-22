@@ -599,15 +599,17 @@ A step gives every setting so the learner can see and change each one with the d
 
 Code, not trust, keeps the build to the plan. During a build the executor holds the agreed steps, and each change call must name a `plan_step` and match it: same actor, same action, same target, same details and same line. Anything else answers `not_in_plan` and changes nothing. Supporting calls that a step needs, such as the `doTogether` block for steps marked `together`, must name the step they serve.
 
-**The block is what the step showed, and no more** (tightened on 22 Nov 2026, after S6's review of the build of 6.9):
+**Each call's values are what the step showed, and no more** (tightened on 22 Nov 2026, after S6's review of the build of 6.9):
 
 - a value the step doesn't show is refused, an optional detail included;
 - a step's target is the block's own object setting (or the only object input of a learner's procedure), so a detail or a text that holds the same name doesn't stand in for it. A block with no object of its own can take it in a detail;
 - an added model starts at the step's position, with its turn and size. A turn or size the step doesn't give is none, and the usual size;
 - a change step gives its value, or the plan isn't shown;
-- an event is about only the objects its step names (actor, target or a detail), and about some if it names any, since none means everything. An event that takes a number gets it from the step. A click's objects are the listener's `setOfVisuals`: until 22 Nov 2026 they were dropped, and every such listener ran for a click on anything. A key press has no setting for which key, so a listener runs for any key.
+- an event is about only the objects its step names (actor, target, or a detail's value that is an object), read by the list the listener uses: `other_objects` only for an event with two groups. No list the event needs is empty, since an empty one never runs, and a pair has every object named. Only a click can have none, which means everything, and only when its step names none. A plan whose event couldn't have these, or is about someone not in the scene, isn't shown. An event that takes a number gets it from the step. A click's objects are the listener's `setOfVisuals`: until 22 Nov 2026 they were dropped, and every such listener ran for a click on anything. A key press has no setting for which key, so a listener runs for any key.
 
 A setting is given once. A step or a call that gives one twice is refused: before 22 Nov 2026 a call matched its step on the first value and built the last.
+
+**Not built yet: the build's shape** (probed on 22 Nov 2026). Each call is checked against its step, but nothing holds the build as a whole. A step can be built twice, out of order, in another method, outside its event, together when it runs after, after when it runs together, or once when it repeats. The check below isn't built either: a build that leaves a step out ends as built. A repeat step's held steps are the exception, kept inside their count (6.8).
 
 When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 

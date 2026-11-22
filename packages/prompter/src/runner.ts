@@ -766,7 +766,10 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         'not_in_plan',
         `Step ${stale.step}: ${stale.message} Build nothing, and tell the learner.`,
       );
-    const wrong = mismatch(name, input, step, nextBeside(steps, number));
+    const fields = this.#sceneType()?.fields ?? [];
+    const wrong = mismatch(name, input, step, nextBeside(steps, number), (who) =>
+      fields.some((f) => f.name === who),
+    );
     if (wrong) return fail('not_in_plan', wrong);
 
     const program = this.#setup.session.program();

@@ -92,10 +92,49 @@ const changeValue = (step: PlanStep): string | undefined =>
   step.details.find((d) => d.name === step.action || d.name === 'value')?.value;
 const propertyWords = (name: string) => (name === 'turn_degrees' ? 'turn' : name);
 
-/** Why a step's event can't be built, or null: one that takes a number needs the step to give it. */
-function whenProblem(step: PlanStep): string | null {
+/**
+ * How many lists of objects a listener uses: a click's is its setOfVisuals detail, where none
+ * means everything; any other event's are its arguments, where an empty one means it never runs.
+ */
+function eventObjects(event: NonNullable<ReturnType<typeof findEvent>>) {
+  const args = event.args.filter((a) => a.type !== 'Number');
+  return {
+    lists: event.details.includes('setOfVisuals') ? 1 : args.length,
+    needed: args.length,
+    single: args.length === 1 && !args[0]!.type.endsWith('[]'),
+  };
+}
+
+/**
+ * The objects a when step names: its actor, its target, and a detail's values that are objects
+ * (so a setting's own value, such as "combine", isn't taken for one).
+ */
+function eventNames(step: PlanStep, isObject: (name: string) => boolean): string[] {
+  const listed = step.details.flatMap((d) => listItems(d.value)).filter(isObject);
+  const names = [step.actor, targetOf(step), ...listed];
+  return [...new Set(names.filter((n) => n !== '' && n !== 'scene' && n !== 'this'))];
+}
+
+/**
+ * Why a step's event can't be built, or null: who it's about must be in the scene, an event with
+ * lists of objects needs one for each, and one that takes a number needs the step to give it.
+ */
+function whenProblem(
+  step: PlanStep,
+  stage: Stage,
+  missing: (name: string) => string,
+): string | null {
   const event = LISTENER_EVENTS.includes(step.action) ? findEvent(step.action) : null;
   if (!event) return `There's no ${step.action} event.`;
+  const { lists, needed } = eventObjects(event);
+  if (lists > 0) {
+    const { actor } = step;
+    if (actor !== 'scene' && actor !== 'this' && !stage.objects.has(actor)) return missing(actor);
+    const named = eventNames(step, (name) => stage.objects.has(name)).length;
+    if (needed === 2 && named < 2)
+      return `A ${step.action} event needs two objects: who, and what it meets.`;
+    if (needed === 1 && named < 1) return `A ${step.action} event needs an object.`;
+  }
   const number = event.args.find((a) => a.type === 'Number');
   return number && stepNumber(step) === null
     ? `A ${step.action} event needs a value for ${number.name}.`
@@ -210,7 +249,7 @@ function stepProblem(step: PlanStep, stage: Stage, world: PlanWorld): string | n
         ? null
         : `A change step needs the value for ${propertyWords(step.action)}.`;
     case 'when':
-      return whenProblem(step);
+      return whenProblem(step, stage, missing);
     case 'stage':
       return world.scenes.has(step.action) ? null : `There's no scene ${step.action}.`;
     case 'repeat':
@@ -281,6 +320,8 @@ export function mismatch(
   input: Input,
   step: PlanStep,
   next?: PlanStep,
+  /** Whether a name is an object in the scene, to read a when step's details by. */
+  isObject: (name: string) => boolean = () => false,
 ): string | null {
   const build = 'Build exactly the agreed step.';
   const wrong = `Step "${step.words}" doesn't do that. ${build}`;
@@ -331,7 +372,7 @@ export function mismatch(
     }
     case 'add_event_listener':
       if (step.kind !== 'when' || text(input.event) !== step.action) return wrong;
-      return eventDiffers(input, step, differs);
+      return eventDiffers(input, step, differs, isObject);
     case 'add_model':
       if (
         step.kind !== 'add' ||
@@ -412,14 +453,16 @@ export function unplanned(
 }
 
 /**
- * Why a listener isn't the event its step showed, or null (section 6.4). It's about only the
- * objects the step names (its actor, its target, or a detail), and about some if it names any:
- * none would mean everything. Its number is the step's.
+ * Why a listener isn't the event its step showed, or null (section 6.4). Its lists are read as
+ * the runner uses them: objects first, and other_objects only for an event with two. It's about
+ * only the objects the step names, no list an event needs is empty, and a pair has every one
+ * named. Its number is the step's.
  */
 function eventDiffers(
   input: Input,
   step: PlanStep,
   differs: (what: string) => string,
+  isObject: (name: string) => boolean,
 ): string | null {
   const event = findEvent(step.action);
   if (!event) return null;
@@ -428,17 +471,24 @@ function eventDiffers(
     if (shown === null) return differs('gives no number for the event');
     if (input.number !== shown) return differs(`gives ${shown} as the number`);
   }
-  const aboutObjects =
-    event.args.some((a) => a.type !== 'Number') || event.details.includes('setOfVisuals');
-  if (!aboutObjects) return null;
-  const named = [step.actor, targetOf(step), ...step.details.flatMap((d) => listItems(d.value))]
-    .filter((name) => name !== '' && name !== 'scene' && name !== 'this')
-    .filter((name) => !Number.isFinite(Number(name)));
-  const built = [input.objects, input.other_objects].flatMap((list) =>
-    Array.isArray(list) ? (list as string[]) : [],
-  );
+  const { lists, needed, single } = eventObjects(event);
+  const namesIn = (list: unknown) => (Array.isArray(list) ? (list as string[]) : []);
+  const objects = namesIn(input.objects);
+  const others = namesIn(input.other_objects);
+  if (lists < 2 && others.length > 0)
+    return differs('has no second group: give its objects in objects, and other_objects empty');
+  if (lists === 0) return null;
+  const named = eventNames(step, isObject);
+  const built = [...objects, ...others];
   const other = built.find((name) => !named.includes(name));
   if (other !== undefined) return differs(`doesn't name ${other}`);
-  if (named.length > 0 && built.length === 0) return differs(`is about ${named.join(', ')}`);
+  const about = `is about ${named.join(', ') || 'no object'}`;
+  if (objects.length === 0 && (needed > 0 || named.length > 0)) return differs(about);
+  if (single && objects.length !== 1) return differs('takes one object, in objects');
+  if (needed === 2) {
+    if (others.length === 0)
+      return differs('has two groups: give one in objects and the other in other_objects');
+    if (named.some((name) => !built.includes(name))) return differs(about);
+  }
   return null;
 }
