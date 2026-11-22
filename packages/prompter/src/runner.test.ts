@@ -165,6 +165,49 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(now()).toEqual(original);
   });
 
+  it("builds a list from its items, separated by commas: the camera's frame shot", () => {
+    const { runner, run, now } = setUp();
+    const shot = step({
+      words: 'The camera shows the penguin and the fox.',
+      actor: 'camera',
+      action: 'frameShot',
+      details: [
+        { name: 'shot', value: 'medium' },
+        { name: 'targets', value: 'penguin, fox' },
+      ],
+    });
+    const frameShot = (targets: string) => ({
+      method: 'myFirstMethod',
+      position: 'end',
+      target: 'camera',
+      procedure: 'frameShot',
+      arguments: [
+        { name: 'shot', value: 'medium' },
+        { name: 'targets', value: targets },
+      ],
+      narration: 'The camera shows the penguin and the fox.',
+      plan_step: 1,
+    });
+    runner.begin('frame them', agreed([shot]));
+    expect(run('insert_statement', frameShot('penguin, owl'))).toMatchObject({
+      error: 'not_in_plan',
+    });
+    expect(run('insert_statement', frameShot('penguin,fox'))).toMatchObject({ ok: true });
+    runner.end();
+    const call = methodBody(now()).at(-1);
+    expect(call).toMatchObject({
+      kind: 'call',
+      args: {
+        targets: {
+          kind: 'arrayOf',
+          of: { kind: 'story', name: 'Thing' },
+          items: [{ kind: 'fieldRef' }, { kind: 'fieldRef' }],
+        },
+      },
+    });
+    expect(programText(now()).text).toContain('camera.frameShot(');
+  });
+
   it('refuses every change when no plan was agreed', () => {
     const { runner, run } = setUp();
     runner.begin('go', {});

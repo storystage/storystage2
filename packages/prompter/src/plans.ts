@@ -17,6 +17,7 @@ import {
 import { word } from '@storystage/story-api/editing';
 import { PLAN_EDIT_WORDS, heldBy, holdable } from './repeats.ts';
 import { LISTENER_EVENTS } from './tools.ts';
+import { listText } from './values.ts';
 
 /**
  * A plan step, as `propose_plan` sends it (section 6.2). `""` means none. It's the production
@@ -217,7 +218,13 @@ export function mismatch(
       if (target !== '' && !given.some((g) => g.value === target))
         return differs(`acts on the ${target}: give ${target} as the block's object`);
       const missing = step.details.find(
-        (d) => !given.some((g) => g.name === d.name && g.value === d.value),
+        (d) =>
+          !given.some(
+            (g) =>
+              g.name === d.name &&
+              (g.value === d.value ||
+                (d.value.includes(',') && listText(g.value) === listText(d.value))),
+          ),
       );
       if (missing) return differs(`sets ${missing.name} to ${missing.value}`);
       if (text(input.line) !== step.line)

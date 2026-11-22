@@ -83,7 +83,7 @@ const object = (
 });
 
 const VALUE =
-  'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), or a position as "x, y, z" in metres.';
+  'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), a position as "x, y, z" in metres, or a list as its items separated by commas ("owl, cat").';
 const nameValue = object({
   name: text('The parameter or detail name, from the Story API catalog.'),
   value: text(VALUE),

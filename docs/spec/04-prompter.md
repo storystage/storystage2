@@ -242,7 +242,7 @@ Tool schemas are fixed for a release, so they use plain strings where StoryStage
 
 Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints. So:
 
-- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, or a position as `"x, y, z"` in metres;
+- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, a position as `"x, y, z"` in metres, or a list as its items separated by commas (`"owl, cat"`, for the camera's frame shot), each read by the type of one item. The full run (22 Nov) found lists refused, so a frame shot of two characters couldn't be built;
 - plan steps are flat;
 - the client checks ranges, whole numbers and lengths before anything runs (`checkToolInput`, section 1.6). A string field may be empty only where `""` means none.
 
@@ -538,7 +538,7 @@ The coach helps a learner think. The learner writes every word.
 
 **It does:**
 
-- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends.
+- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov).
 - Offer the arc templates (10.2) and say what each part is for, in general, from the system prompt's list (section 2.5). Which arc fits is the learner's choice, and what happens in each part is the learner's to write.
 - Say what it notices in the learner's own words: "Your logline says who Pip is, but not what Pip wants."
 - Ask about gaps `script_check` finds.

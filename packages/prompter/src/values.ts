@@ -49,6 +49,19 @@ export function objectRef(
   };
 }
 
+/** A list's items as text: separated by commas, each one trimmed, none empty. */
+export function listItems(value: string): string[] {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter((item) => item !== '');
+}
+
+/** A list written the one way: its items separated by a comma and a space. */
+export function listText(value: string): string {
+  return listItems(value).join(', ');
+}
+
 /** A value given as text, for a parameter or detail of the given type. */
 export function toValue(
   value: string,
@@ -59,7 +72,18 @@ export function toValue(
   const ok = (expression: Expression): Converted => ({ ok: true, expression });
   const no = (message: string): Converted => ({ ok: false, message });
 
-  if (type.endsWith('[]')) return no(`A list of ${type.slice(0, -2)} can't be given as text here.`);
+  if (type.endsWith('[]')) {
+    const of = type.slice(0, -2) as TypeName;
+    const items = listItems(value);
+    if (items.length === 0) return no(`Give one or more, separated by commas, such as "owl, cat".`);
+    const expressions: Expression[] = [];
+    for (const item of items) {
+      const converted = toValue(item, of, scene, mint);
+      if (!converted.ok) return converted;
+      expressions.push(converted.expression);
+    }
+    return ok({ id: mint(), kind: 'arrayOf', of: { kind: 'story', name: of }, items: expressions });
+  }
   switch (type) {
     case 'Number':
       return NUMBER.test(value)

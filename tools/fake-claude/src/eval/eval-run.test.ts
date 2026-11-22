@@ -22,7 +22,15 @@ import {
   withGrades,
   type RowResult,
 } from './report.ts';
-import { classFromId, evalBackstage, pilotRows, recordingOf, runRow } from './run.ts';
+import {
+  classFromId,
+  evalBackstage,
+  pilotRows,
+  recordingOf,
+  refusedKey,
+  runRow,
+  type RowRun,
+} from './run.ts';
 import { judgeRequest, liveTransport, passesWhen } from './live.ts';
 import { httpTransport } from '../http-transport.ts';
 import { startFakeClaude } from '../server.ts';
@@ -534,5 +542,13 @@ describe('a live run (docs/eval/README.md, "A live run")', () => {
     const pilot = pilotRows(rows);
     expect(new Set(pilot.map((r) => r.category)).size).toBe(pilot.length);
     expect(pilot).toHaveLength(13);
+  });
+
+  it('stops at a refused key: no row can run with it', () => {
+    const run = (code: string) =>
+      ({ streams: [[{ type: 'error', code, message: '' }]] }) as unknown as RowRun;
+    expect(refusedKey(run('key_revoked'))).toBe('Anthropic refused the key (HTTP 401).');
+    expect(refusedKey(run('no_credit'))).toMatch(/no credit/);
+    expect(refusedKey(run('overloaded'))).toBeNull();
   });
 });
