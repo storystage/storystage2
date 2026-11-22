@@ -102,9 +102,10 @@
 /* The Code editor: one tab per method, then the method's blocks. */
 .pr-code {
   display: flex;
-  flex: 1;
+  /* Never shorter than what it holds: the column round it scrolls. It shrank to nothing in a
+     short window, its blocks drawn below its own box. */
+  flex: 1 0 auto;
   flex-direction: column;
-  min-height: 0;
 }
 /* The method tabs, scrolling sideways when there are many, then New (07-ux 7.3). */
 .pr-tab-row {

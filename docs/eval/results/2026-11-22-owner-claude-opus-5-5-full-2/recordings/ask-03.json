@@ -1,0 +1,652 @@
+{
+  "id": "ask-03",
+  "source": "recorded",
+  "note": "Live run of ask-03, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHkwLRh6A5n8XEnfcAuT",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 30556,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 30556,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 9,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQSjQoKEAgUGAI4AUIIdGhpbmtpbmcSDEa4v0ZgkbAGqwxImxoMdyZail74sl6S0i4AIjDxsswRgq5Wy9NYExH7BFNqITyHzOQ4EeGgczX+Oagx9Oqg5sgpzCd2qX5bUX9RzScqqgmphVQmjDZxp30f5grxgrWVv2lfoxBdgXEWkCx7ijinWNwonm/HRBJc/qvjr5Tur0M1dj5zaFYF89DEyHWrYaj4J7ac2UKEI6InYQJA65KgHj9yofFf/uB0G5DkCzMAxI6mGyltEI0fLE8bWiCXMls9m5S1C3wM0RimSQ1knfJ/vIyxulheuFzMeyfje1j8gQMld/t72FvxSloqSPha2rxA1N8hlSBNglgStpQGx5YJfh52bpx3iQffs87KIuvzTW32KzV/W28aHhNen2qjdFNzLC7Nx8EE3j8r8ecAdZb+cW295vqyRIdwZizlsQJ6WDFbmpg3+15lcre5CzPV7aMQilC6uQzGUWtjEGhBzGKqWaaKVSgiA1FynvWeGK4ex/C4z/5PkaTEu7riqEzDmhZ32W4jHPcdbqA1+pjS44xuhDC38l70Il91Jc80d3yYV7+FH7+6eyIheWhZjMRLE6LW9QkDoCQ7+ftbGplqt3bUb8eNWhAYbtoSTkh2CoSiqHSbEEySyUBRIt0nB7LHZ13O/lLpJKFytAeJDQfOu1d8+XmCwH0fVyKTlvPUAFNveWZ+h4o+QMtwUpCELvYK0iZxjkp6IGzBAvpmeK8eGfOI50G+sidcnFXowzv09DWfmNtTGkEkOnC7YdGRF7SL/8bqJDjbqW4uFiMt/bf/0EWBmHTmE0H+tsNiO56TUpYNxUV+zv4Nmu2rWAGMOShzGm5puSkSJO8qX9rZeGZ++vWD/e2Ajck+D1Ou+n7pBhWe+fWmBDJTfozkuW5Ml5n2edPh4KcPpTTTmLjX8uDQWaOz0b3v1+f+rsJbpEjnVxu4gToD+Ji4WFyANZvtGGkhcskbF2JhHlq7oFk48ACXRB5eiBTcaqZMGvGDPK7UKWslO0t/6HoziSgHxzg/tVaRnPCyXOy+o9Iu8+dwjvWLbd1idBE+ndvN015bYEGPLiW99YIGJ+AZ9ESTwSl5ktwOvu/X8b2/HtlxznAI1/btavOgoNWJMP88oeiA8ljDAz4F69/3Im6x5CVHe8ybA0ej1HQ2UYBgdCW5mMqf6gevxsHD9C6EHQHAIaHoDjqMEp5fhb2PRXslP+oIImNJoZdApo59h/fWBqJOHiLXphdzkEVmhNZQMJ3laPV95veb/JjjdTahWVGMS1LOjhg//cjLg7IqiaMxqAdr7XG+wdcVkdKTdKBeOauVFKvU25D57TPuJk5dAwKVlj1iLIci8A0X8+9inR/Ko4Pad5S5YJLPDKO8P2S/ETj+yhHGgut2u6JflS0Etq7USWkGg0c0++5RsjDAewYgm+d2EooMRdqiQST10C3Dsw6/S91EmBK0d3inQAUDVhuO5IGkC9fglrhXMQTt5KNWwXWfCazowjZFmZAe4Px9v+cSP4UbRSLj7jNeEfBREqUcsMjUtc9SM61oxbOh0HMI5UBAIY5OUhs1FAjTrxIi2f3QUJBLClGvvhu6k/EKC2HT6BQ0QuBtIvX+NTuFh5LRKrvIq7DL3vijyp4DPSt7tykzJ8fmZo6wSd4/+CaeVl3t9llv8ipiLM20IGu8I2vBj9EMzfjCcB+KNNfepaPhZp0M2PZhVfwYAQ=="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_014duxZbb23bK4hURLAtTRU2",
+            "name": "explain",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"text\": \"I'd love to help"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "! Your scene has two anim"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "als, the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " cat and the dog,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " so"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " I'm not sure which one"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " you mean y"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "et."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " Which animal should"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " move"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", and what should it do? For"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " example, it could move, turn"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", or say something."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"highlight\": [\"cat\", \""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "dog\"]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 30556,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 381,
+            "output_tokens_details": {
+              "thinking_tokens": 238
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 381,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 30556,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 30556,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHkwdsv8nMc2RgvC6tg7",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 439,
+              "cache_read_input_tokens": 30556,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 439,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 17,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01K9rTuWY3wxdCSWCD86fE8s",
+            "name": "explain",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"text\": \"I'd love to help!"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " Your scene has two animals"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", the cat and the dog"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " Which one do"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " you mean, and what should it"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " do?"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " It"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " could move, turn or say something"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ","
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " for"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " example."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"highlight\": [\"cat\", \"dog\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 439,
+            "cache_read_input_tokens": 30556,
+            "output_tokens": 127,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 127,
+                "cache_read_input_tokens": 30556,
+                "cache_creation_input_tokens": 439,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 439,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHkwkxKgvUeBnRyGWkxi",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 185,
+              "cache_read_input_tokens": 30995,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 185,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 62,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "text",
+            "text": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "I asked you"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " which animal you mean, the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " cat or the dog, and"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " what it should do. My question"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " show"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "ed up twice by"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " mistake, so you"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "'"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "ll see it two"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " times. Nothing in"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " your scene has changed yet"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "."
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 185,
+            "cache_read_input_tokens": 30995,
+            "output_tokens": 62,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 62,
+                "cache_read_input_tokens": 30995,
+                "cache_creation_input_tokens": 185,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 185,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}

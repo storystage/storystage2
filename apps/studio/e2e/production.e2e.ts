@@ -228,6 +228,48 @@ test('the penguin learns a move from New, with a tab of its own, and the scene c
   await expect(tab).toBeHidden();
 });
 
+test('Ctrl+Z changes nothing behind a dialog, and undoes again once it closes', async ({
+  page,
+}) => {
+  await openCode(page);
+  await page.getByRole('button', { name: 'Add a marker here' }).click();
+  const marker = page.locator('[role="option"]').filter({ hasText: 'marker1' });
+  await expect(marker).toHaveCount(1);
+  await page.getByRole('button', { name: 'New in scene 1' }).press('Enter');
+  await page.getByRole('menuitem', { name: 'Procedure…' }).click();
+  const dialog = page.getByRole('dialog');
+  await dialog.getByRole('button', { name: 'Close' }).focus();
+  await page.keyboard.press('Control+z');
+  await expect(marker).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toBeHidden();
+  await page.keyboard.press('Control+z');
+  await expect(marker).toHaveCount(0);
+});
+
+test('the Code editor is as tall as what it holds, however short the window', async ({ page }) => {
+  await openCode(page);
+  const code = async () =>
+    page.locator('.pr-code').evaluate((el) => ({
+      height: el.getBoundingClientRect().height,
+      holds: el.scrollHeight,
+      workspace: el.querySelector('.pr-workspace-frame')!.getBoundingClientRect().height,
+    }));
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await expect
+    .poll(async () => {
+      const { height, holds } = await code();
+      return holds - height;
+    })
+    .toBeLessThan(2);
+  // A taller window, then a short one again: the workspace gives back any room it took.
+  const short = (await code()).workspace;
+  await page.setViewportSize({ width: 1180, height: 1500 });
+  await page.waitForTimeout(500);
+  await page.setViewportSize({ width: 1180, height: 820 });
+  await expect.poll(async () => (await code()).workspace).toBeLessThan(short + 2);
+});
+
 test('a block’s menu and keys switch it off, add a detail and duplicate, each one step', async ({
   page,
 }) => {
