@@ -1,0 +1,1711 @@
+{
+  "id": "plan-06",
+  "source": "recorded",
+  "note": "Live run of plan-06, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRaMswxRKHfZ6zfcJN8",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 55,
+              "cache_read_input_tokens": 33253,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 55,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 10,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "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"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01Szy2fL6zaf9feUQ2ePWLN6",
+            "name": "propose_plan",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"frame\": \"f2-3"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"steps\": [{\"words"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\"The camera sh"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ows the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " owl and the cat in a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " medium shot.\",\"kind"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\"do\",\"actor\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "camera\",\"action\":\"frame"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "Shot\",\"target\":\"\",\"details"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":[{\"name\":\"sh"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ot\",\"value\":\"medium\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "},{\"name\":\"targets"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\",\"value\":\"owl, c"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "at\"},{\"name\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "duration\",\"value\":\"0\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}],\"line\":\"\",\"s"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ketch\":\"\",\"together\":false"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ",\"repeat\":1,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"holds\":0,\"why"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\"Your frame's"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " shot is medium,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " so the camera fr"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ames the owl and the cat"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ".\"},{\"words\":\"The"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " owl moves toward the t"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ree.\",\"kind\":\"do"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\",\"actor\":\"ow"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "l\",\"action\":\"moveTo"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ward\",\"target\":\"tree\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "details\":[{\"name\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "amount\",\"value\":\"1."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "5\"},{\"name\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "duration\",\"value\":\"1\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}],\"line\":\"\",\"s"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ketch\":\"k4\",\"together"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":false,\"repeat\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "1,\"holds\":0,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"why\":\"Your caption"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " says the owl goes to the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " tree.\"},{\"words\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"The owl turns to face"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the cat.\",\"kind\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"do\",\"actor\":\"ow"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "l\",\"action\":\"turnTo"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "Face\",\"target\":\"cat"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\",\"details\":[{\"name\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"duration\",\"value\":\"0"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ".5\"}],\"line\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"\",\"sketch\":\"k"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "4\",\"together\":false,\"rep"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "eat\":1,\"holds"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":0,\"why\":\"In"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " your sketch the owl fa"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ces the cat before"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " she"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " speaks.\"},{\"words"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\"The owl says her"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " line to"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the cat.\",\"kind\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"do\",\"actor\":\"ow"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "l\",\"action\":\"say\",\"target"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\"\",\"details\":[{\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "name\":\"duration\",\"value\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"2\"}],\"line\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"l4\",\"sketch\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"k4\",\"together\":false,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"repeat\":1,\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "holds\":0,\"why\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"This is"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the owl's line from"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " your script for this frame.\"}"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 55,
+            "cache_read_input_tokens": 33253,
+            "output_tokens": 1068,
+            "output_tokens_details": {
+              "thinking_tokens": 476
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 1068,
+                "cache_read_input_tokens": 33253,
+                "cache_creation_input_tokens": 55,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 55,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRb6sLXEzeZZt3fyDmt",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 1172,
+              "cache_read_input_tokens": 33308,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 1172,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 107,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "text",
+            "text": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "Here's my"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " plan for this"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " frame, built"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " from"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " your s"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "ketch,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " your"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " caption and the ow"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "l's line. Your"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " owl is"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " a b"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "ird, so she can't walk"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": ". She'll glide to the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " tree instead."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " Your scene has no key y"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "et, and there isn't a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " key model in Backstage either"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": ", so the owl just"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " says her line. Change any step"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " you like, then press Build these"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " steps."
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 1172,
+            "cache_read_input_tokens": 33308,
+            "output_tokens": 107,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 107,
+                "cache_read_input_tokens": 33308,
+                "cache_creation_input_tokens": 1172,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 1172,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRbF4hj8jGAfJboNsj6",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 4,
+              "cache_creation_input_tokens": 841,
+              "cache_read_input_tokens": 34480,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 841,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 16,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01VHrvjEzQSamqDsUyiDqWAQ",
+            "name": "code_frame",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"frame\": \"f2-"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "3"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 4,
+            "cache_creation_input_tokens": 841,
+            "cache_read_input_tokens": 34480,
+            "output_tokens": 52,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 4,
+                "output_tokens": 52,
+                "cache_read_input_tokens": 34480,
+                "cache_creation_input_tokens": 841,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 841,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRbP4usYZ8qu85K3eJp",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 132,
+              "cache_read_input_tokens": 35321,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 132,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 4,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQSrwYKEAgUGAI4AUIIdGhpbmtpbmcSDLl5Pfx3I3HS/wQfMhoMkVfHRva4kX8aG36IIjDtNrWQIPJck/EmG6yQBw6WVeoUfVlm6/vvwA573ACv7A5r6bi2KASTtFveRRe/CzAqzAWiwytyVHWKVHAZvqyByc7IzBeBKrnipoWyRSg6J1I9EwzwhTcC4gvH8eqOpKHY3IIC/TMmSz6tDKaErEyiXYqXZ5xD//thdLTdwx7jRmwB19eNaVnEIwmCiYc6bSZmx/5eSmgwFHvvx6zU2eZ+nW+vnt2UbCLDwqtit6QMUbw9VW/Mr7Rek/C1WDD7vLLCokae9FFLOLqPbtvah6rgG7BpRRN6YWCcXnQFm3e/Whm7GXZQJF/gOed+vqnCHpe6rHt7kFH9g8fweu0aJdisSOCY6Cb2siJGUPGAZ4+aQ9i7A2gmIP6rfR5n76Ep5vnVeUAc1UCe8zQ70eJYObuHC5cpnQlPxm7vznwMaOwFvCbX9lcv/R639kkktI4Up90jcbOeMv2/g6ShPJWELt2chG+c2eeyEzXd5HwEHbgirbN5bSz1kqMQmMaXNGmXAaHrZAwP+/eDoWnE+8wGhGiTbOyQ5RZ3xVzOjlX+/Dmmzp4nhsDxpWRByyuvnnFBT+8aOZwnE372zr5ynmcPLe/5xFRBN/0iP2WU22Vl9Juq/PBktqH/H2VeAix3qulet1YqRZig1XUHdf9/aTDBKSZ4WumztRgK217LUo6Oh2WulpVwDcIo0AqW8bdiIY4cksZnfWyPOeKiGmfpTeQ6Gz6+1Kg97FAaAiKhP2KhNt9NoJtaSbV29e9/g8mC23pyUIBD+VK1f2UOEOmakopBj9d+bPi5rtlwdcuajmT7+cl3+bTaPF0skXrRWzQVErv09QCO0/BFbmxWYGyebkGoLqZvsNO5jWm6fVyXAvp0WoaAVfuy3WQzXfwOoPoWqc1DrgFprxa7v9LmeLI4BPKsmReRJ0yS078N2VQA7L8pQE9dTMTUG9tDHT6usAoufLoKjUVVA7LgM3NdNgl/yoVSdSz90/9HPqSM9/x7bDR3XFE8kwvKQEisjkbogs5vuzKuYhgB"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_016ftG28Zvt8FRJUiCH3UFgk",
+            "name": "insert_statement",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"method\": \"myF"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "irstMethod"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"position\": \"end"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"target\": \"camera"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"procedure\": \"frame"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "Shot"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"arguments\": [{\"name\":\"shot"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\",\"value\":\"medium\"},"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"name\":\"targets\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "value\":\"owl, cat"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"}]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", \"details\": ["
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"name\":\"duration\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "value\":\"2\"}]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", \"narration\": \"The camera gl"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ides in to show the owl and"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the cat together"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"plan_step\": 1"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 132,
+            "cache_read_input_tokens": 35321,
+            "output_tokens": 318,
+            "output_tokens_details": {
+              "thinking_tokens": 38
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 318,
+                "cache_read_input_tokens": 35321,
+                "cache_creation_input_tokens": 132,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 132,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRbcgxiguP7QA6b1f8j",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 371,
+              "cache_read_input_tokens": 35453,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 371,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 8,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQS/gUKEAgUGAI4AUIIdGhpbmtpbmcSDOqN4YOEE4hI/ttZDxoMpQoeB7lWoHSo1lRIIjB+wSHSkIOf6kSmXvA9ub6kpq2FdEGpxLD9JS6xBfN1aPQ7A+UM5bzuy/EHrvnWJ60qmwV7u7877nqB9mrprgQ+AkBmqO3KIFEd+L7/eltfdidehKpPj454VDX6X8EcahvqlvRTKWg5wzeHf1yLa9YvCHGByPMz39qsZcW6dcDZFKuJKWCeFH4Lw3NGti4ClsexynEErsM8U94dPuuqx7epquN8gA67YXBBld6GuM6HErbmSbNsg0LvZ2gDhCxuSsKfDNbBXYmZNNLCiAJphdcip8tOO9USY9vg0Cn5bUY4bHpQ/aQFQVVaphVbnV8dqi400t4Q+3yl+hnUqkERIVAad+RBr+Ti0SxVjwchDLxh3Xuk4MdIyy4tG00oj31QVS8kxradqtmnn6m3LiONgP8T7tfWDB0wBqRui+lLHMd4qaQNM1IXIv8PcHy+IcwgTiTtGxRXTB74WgEvPoB5ksiiZGTKnyegxVWL5CocDiWZHSc4YT3Jm4oFOQW+RB4HevyE4gXBcdtQ8IZqmm04//am9Sl87H8HWhwtbbL4p6g+8yR3c9sFNcoXssVkQP2chVRiwu6jOMYioM65hgjMDfeiVWDMFJU0MphFb9RSHbx/271QuEHOgiKYbYSiQKvF+ilJHVHc7yb6jSDj5QlANOUUpz5J67pJle3ImnsCtYuy58rq6ZXyfP4t0pHx13n/JQSUGelP1+Ib5zPafklJ9EJPpp2azJINvpK6K7yDPrXbTsKRtaQJDfU0bhRUw0tIEqHfEYS+v4NfjDFH+aHxf5o/HucKAkiy5nkB5JfKd4lD9//dljKurOIh7Bo/rgoaB3OLQ3uekWMa0WuGac88VS2Aq0YaaBKz5Zacb+BisFckUqjtRosSwe/gM+l8B0XCq6rJv+xJNz5/s3F1sYaL1z0m4VQNK/UR4qOgVdzrIObrPwT7qKkiOaHPnzd7I7l1GAE="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "text",
+            "text": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "I"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " couldn't build step 1"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": ", so nothing in"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " your scene has changed yet"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": ". The fr"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "ame shot block needs a list"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " with"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the owl and the cat in"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " it, and I can"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "'t make that list for"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " you. You"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " can do"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " it yourself in \""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "When the scene starts\"."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " Add the camera's frame sh"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "ot block, choose medium,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " put"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the owl and the cat in"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " its list,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " and set the time to 2 "
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "seconds. T"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "ell me when it"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "'s there, and I'll build"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the other three steps: the ow"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "l mo"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "ves to"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the tree, turns to face"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the cat and"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " says her line."
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 371,
+            "cache_read_input_tokens": 35453,
+            "output_tokens": 173,
+            "output_tokens_details": {
+              "thinking_tokens": 17
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 173,
+                "cache_read_input_tokens": 35453,
+                "cache_creation_input_tokens": 371,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 371,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}

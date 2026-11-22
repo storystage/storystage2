@@ -1,0 +1,23 @@
+{
+  "name": "@storystage/check",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The automatic check against the storyboard: what a run did against what the storyboard planned, in plain words, and the runner (decision 0071).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/playback": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/stage": "workspace:*",
+    "@storystage/story-api": "workspace:*"
+  },
+  "devDependencies": {
+    "@storystage/runtime": "workspace:*"
+  }
+}

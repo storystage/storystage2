@@ -5,18 +5,43 @@
  * file's SHA-256, or an Arweave address (whose transaction id names fixed content). Pinning
  * means a build fetches exactly what was reviewed.
  */
-import { SECTIONS, descriptionProblem, type Section } from '@storystage/backstage';
-import { STORY_CLASSES, type StoryClass } from '@storystage/story-api';
+import {
+  GAITS,
+  SECTIONS,
+  descriptionProblem,
+  jointsOf,
+  skeletonOf,
+  type Gait,
+  type Section,
+} from '@storystage/backstage';
+import { groundLook } from '@storystage/stage';
+import { STORY_CLASSES, backstageId, type StoryClass } from '@storystage/story-api';
+import { addJointsProblem, type AddedJoint } from './add-joints.ts';
+import { coverProblem, type Cover } from './cover.ts';
+import { globeProblem, type Globe } from './globe.ts';
+import { clipsProblem, type Clips } from './clips.ts';
 import type { Exclude } from './exclude.ts';
+import { kitbashProblems, type Kitbash } from './kitbash.ts';
 
 /** Licences the audit allows in the shipped catalogue (audit, section 2, rule 1). */
-export const SHIPPABLE_LICENCES = ['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0'] as const;
+export const SHIPPABLE_LICENCES = [
+  'CC0-1.0',
+  'CC-BY-3.0',
+  'CC-BY-4.0',
+  'public-domain',
+  'VRM-PL-1.0',
+] as const;
 export type ShippableLicence = (typeof SHIPPABLE_LICENCES)[number];
 
 export type FetchSpec =
+  /** A backdrop's `path` is its picture: .jpg, .png or .webp. */
   | { readonly github: string; readonly commit: string; readonly path: string }
   /** `sha256` may be left out only for an Arweave address, which names fixed content. */
-  | { readonly url: string; readonly sha256?: string; readonly ext: 'glb' | 'vrm' }
+  | {
+      readonly url: string;
+      readonly sha256?: string;
+      readonly ext: 'glb' | 'vrm' | 'jpg' | 'png' | 'webp';
+    }
   /** A model made in the build itself: a path under the Backstage folder's `generated/`. */
   | { readonly generated: string };
 
@@ -29,14 +54,109 @@ export interface SourceItem {
   readonly themes: readonly string[];
   /** What it looks like, for the Prompter's catalogue (spec 17, section 1, rule 5). */
   readonly description?: string;
+  /**
+   * Its real height in metres, where the file's own scale is something else: the build scales a
+   * glTF model to it (spec 17, section 3, pipelines). Models from galleries such as Poly Pizza
+   * come at every scale their makers used. Not for VRM files, which are kept byte for byte.
+   */
+  readonly height?: number;
+  /**
+   * Turns in whole degrees, so a glTF model faces +Z and stands up as every Backstage model
+   * does (spec 17, section 1): `x` first (to stand it up), then `y` (to face it forward).
+   * Galleries' models face every way their makers chose. Usually quarter turns, but a model that
+   * leans in its own data (Poly Pizza's crutches lean 34°) takes whatever stands it up. Not for
+   * VRM files.
+   */
+  readonly turn?: { readonly x?: number; readonly y?: number };
   readonly licence: ShippableLicence;
+  /**
+   * For `public-domain`, and only there: its record in `docs/legal/` (for NASA's models,
+   * `docs/legal/public-domain/nasa.md`), which says why and keeps the guidelines that come with it.
+   */
+  readonly publicDomain?: string;
   readonly credit: string;
   /** The item's own page: the manifest's `source.url`. */
   readonly page: string;
   readonly fetch: FetchSpec;
+  /**
+   * The model's own bone names, each with the joint it is (`{ "Body.002": "head" }`), for a
+   * glTF model whose maker named its bones in a way the joint map can't read (spec 17, section
+   * 2a): the build renames them before mapping, so the joint map reads our own ids. Every joint
+   * must be one of the item's class, and each at most once. Not for VRM files.
+   */
+  readonly bones?: Readonly<Record<string, string>>;
+  /**
+   * Which of the model's own animations are its standard clips (`idle`, `walk`, `run`, `jump`,
+   * `fly`, `swim`), each by name or as `{ clip, start, end }` in seconds for a stretch of one long
+   * track (spec 17, section 3). The build renames them, makes them play in place, and drops every
+   * other animation. Without it the model keeps its animations as they are. Not for VRM files.
+   */
+  readonly clips?: Clips;
+  /**
+   * Joints the model lacks, each hung on one of its own bones at a place in its frame, moving
+   * nothing (`add-joints.ts`): the chicken's wings, the ladybird's head. Added before `bones`
+   * renames, which can then name them.
+   */
+  readonly addJoints?: readonly AddedJoint[];
+  /**
+   * Marks to paint out of the model's pictures in the shipped copy (`cover.ts`): NASA's insignia
+   * (the owner's choice of 21 Nov 2026). For a glTF model only.
+   */
+  readonly cover?: readonly Cover[];
+  /**
+   * A sphere the build makes from the fetched picture (`globe.ts`): the Sun, the Moon and the
+   * planets (the owner's choice of 21 Nov 2026). Its fetch is the picture, from GitHub.
+   */
+  readonly globe?: Globe;
+  /**
+   * How it moves when it walks, in place of the stage's own choice (manifest 2.4.0): `hop` for the
+   * frog.
+   * Copied to the manifest. Not with a `walk` clip, so the two can't disagree.
+   */
+  readonly gait?: Gait;
   /** Parts to remove, added to the list's own `exclude` (`exclude.ts`). */
   readonly exclude?: Exclude;
+  /**
+   * A character made from KayKit's parts (`kitbash.ts`; spec 17, section 3): the fetched model is
+   * the base, and other parts come from the same repository and commit. Applied before the
+   * excludes. For a glTF fetched from GitHub only.
+   */
+  readonly kitbash?: Kitbash;
+  /**
+   * For the `backdrops` section, and only there: what to make of the fetched picture (spec 17
+   * section 2, `backdrops.ts`). A ground is a tile `tile` metres across, colour-matched to
+   * `look`, the stage's flat colour for it as `rrggbb`; a sky is a dome. A sky's light may be
+   * scaled by `exposure` (0.05 to 1, default 1) and coloured by `tint` (what white becomes, as
+   * `rrggbb`), since a gallery's night sky comes as bright and grey as noon; `ahead` (0 to 1,
+   * default 0.5) is the picture's column that faces straight ahead, so a sunset's sun is there.
+   */
+  readonly backdrop?: Backdrop;
 }
+
+export type Backdrop =
+  | { readonly kind: 'ground'; readonly tile: number; readonly look?: string }
+  | {
+      readonly kind: 'sky';
+      readonly exposure?: number;
+      readonly tint?: string;
+      readonly ahead?: number;
+    };
+
+/**
+ * How the stage draws ground `id` flat, as `rrggbb` (S3's `groundLook`, from the stage's own table),
+ * or null if the stage has no such ground. A ground's picture is matched to it.
+ */
+export function stageLook(id: string): string | null {
+  return groundLook(backstageId(id))?.replace(/^#/, '').toLowerCase() ?? null;
+}
+
+/** The ids the stage draws backdrops under (spec 17 section 2). */
+const BACKDROP_IDS = {
+  ground: /^storystage\/Ground\/[a-z][A-Za-z0-9]*$/,
+  sky: /^storystage\/Sky\/[a-z][A-Za-z0-9]*$/,
+} as const;
+const BACKDROP_CLASS = { ground: 'Ground', sky: 'Scene' } as const;
+const PICTURE = /\.(jpg|png|webp)$/;
 
 export interface SourceList {
   readonly source: string;
@@ -80,10 +200,17 @@ export function validateSources(json: unknown): Result {
       e('is not an object.');
       return;
     }
-    if (!isText(item.id) || !/^[a-z0-9-]+\/[A-Z][A-Za-z]+\/[a-z0-9-]+$/.test(item.id))
+    const backdrop = item.section === 'backdrops';
+    if (backdrop) {
+      // The stage's ids, which name grounds and skies in camelCase (`storystage/Ground/darkGrass`).
+      if (!isText(item.id) || !Object.values(BACKDROP_IDS).some((r) => r.test(item.id as string)))
+        e('a backdrop id must be storystage/Ground/<name> or storystage/Sky/<name>.');
+    } else if (!isText(item.id) || !/^[a-z0-9-]+\/[A-Z][A-Za-z]+\/[a-z0-9-]+$/.test(item.id))
       e('id must be source/Class/name, for example kaykit/Biped/knight.');
-    else if (seen.has(item.id)) e('has the same id as an earlier item.');
-    else seen.add(item.id);
+    if (isText(item.id)) {
+      if (seen.has(item.id)) e('has the same id as an earlier item.');
+      else seen.add(item.id);
+    }
     if (!isText(item.displayName)) e('needs a display name.');
     if (!STORY_CLASSES.includes(item.class as StoryClass)) e('class must be a Story API class.');
     if (!SECTIONS.includes(item.section as Section))
@@ -99,9 +226,86 @@ export function validateSources(json: unknown): Result {
     }
     if (!SHIPPABLE_LICENCES.includes(item.licence as ShippableLicence))
       e(`licence must be one the audit allows to ship: ${SHIPPABLE_LICENCES.join(', ')}.`);
+    if (
+      item.licence === 'public-domain' &&
+      !/^docs\/legal\/[\w./-]+\.md$/.test(String(item.publicDomain ?? ''))
+    )
+      e('a public-domain item must name its record, as a path under docs/legal/ ending .md.');
+    if (item.licence === 'VRM-PL-1.0' && !fetchesVrm(item.fetch))
+      e('the VRM Public License is for a VRM file.');
+    if (item.licence !== 'public-domain' && item.publicDomain !== undefined)
+      e('publicDomain is only for a public-domain item.');
     if (!isText(item.credit)) e('needs a credit line.');
     if (!isUrl(item.page)) e("page must be the https address of the item's own page.");
     if (badExclude(item.exclude)) e(EXCLUDE);
+    if (item.clips !== undefined) {
+      const problem = clipsProblem(item.clips);
+      if (problem) e(problem);
+    }
+    if (item.gait !== undefined) {
+      if (!(GAITS as readonly unknown[]).includes(item.gait))
+        e(`gait must be one of ${GAITS.join(', ')}.`);
+      if (
+        item.section !== 'cast' ||
+        item.class === 'Biped' ||
+        !skeletonOf(item.class as StoryClass)
+      )
+        e('a gait is for an animal in the cast, whose class has joints and is not Biped.');
+      if (isObject(item.clips) && 'walk' in item.clips)
+        e('a gait is for an animal with no walk clip of its own; it has one.');
+    }
+    if (item.cover !== undefined) {
+      const problem = coverProblem(item.cover);
+      if (problem) e(problem);
+    }
+    if (item.globe !== undefined) {
+      const problem = globeProblem(item.globe);
+      if (problem) e(problem);
+      if (backdrop) e('a globe is a model, not a backdrop.');
+      const gf = item.fetch as Record<string, unknown> | undefined;
+      if (!gf || !('github' in gf))
+        e("a globe's fetch is its picture from GitHub, so a ring comes from the same commit.");
+    }
+    if (item.addJoints !== undefined) {
+      const problem = addJointsProblem(item.addJoints);
+      if (problem) e(problem);
+      if (!skeletonOf(item.class as StoryClass))
+        e(`addJoints is only for a class with joints, not ${String(item.class)}.`);
+    }
+    if (item.bones !== undefined) {
+      const problem = bonesProblem(item.bones, item.class as StoryClass);
+      if (problem) e(problem);
+    }
+    if (item.kitbash !== undefined) {
+      kitbashProblems(item.kitbash).forEach(e);
+      const kf = item.fetch as Record<string, unknown> | undefined;
+      if (!kf || !('github' in kf) || typeof kf.path !== 'string' || !/.(glb|gltf)$/.test(kf.path))
+        e('kitbash needs a glTF base fetched from GitHub, so its parts come from the same commit.');
+    }
+    if (backdrop) backdropProblems(item).forEach(e);
+    else if (item.backdrop !== undefined) e('backdrop is for the backdrops section only.');
+    if (item.turn !== undefined) {
+      const t = item.turn as Record<string, unknown>;
+      const degrees = (v: unknown) =>
+        v === undefined || (Number.isInteger(v) && Math.abs(v as number) <= 270);
+      if (
+        !isObject(t) ||
+        !Object.keys(t).every((k) => k === 'x' || k === 'y') ||
+        !degrees(t.x) ||
+        !degrees(t.y)
+      )
+        e('turn must be { x?, y? }, each a whole number of degrees from -270 to 270.');
+    }
+    if (item.height !== undefined || item.turn !== undefined) {
+      if (
+        item.height !== undefined &&
+        (typeof item.height !== 'number' || !(item.height > 0 && item.height <= 1000))
+      )
+        e('height must be metres, more than 0 and at most 1,000.');
+      const f = item.fetch as Record<string, unknown> | undefined;
+      const vrm = f && (f.ext === 'vrm' || (typeof f.path === 'string' && f.path.endsWith('.vrm')));
+      if (vrm) e('height and turn are for glTF models; a VRM file keeps its own size and facing.');
+    }
     const f = item.fetch;
     if (!isObject(f))
       e('needs a fetch: { github, commit, path }, { url, sha256, ext } or { generated }.');
@@ -115,7 +319,12 @@ export function validateSources(json: unknown): Result {
         e(
           'fetch.commit must be a full 40-character commit, so the build fetches what was reviewed.',
         );
-      if (!isText(f.path) || !/\.(glb|gltf|vrm)$/.test(f.path))
+      if (backdrop || item.globe !== undefined) {
+        if (!isText(f.path) || !PICTURE.test(f.path))
+          e(
+            `a ${backdrop ? 'backdrop' : 'globe'}'s fetch.path must be its picture: .jpg, .png or .webp.`,
+          );
+      } else if (!isText(f.path) || !/\.(glb|gltf|vrm)$/.test(f.path))
         e('fetch.path must end .glb, .gltf or .vrm.');
     } else {
       if (!isUrl(f.url)) e('fetch.url must be an https address.');
@@ -127,8 +336,87 @@ export function validateSources(json: unknown): Result {
         e(
           "fetch.sha256 must be the file's SHA-256, 64 hex characters (only an Arweave address may leave it out).",
         );
-      if (f.ext !== 'glb' && f.ext !== 'vrm') e('fetch.ext must be glb or vrm.');
+      if (backdrop) {
+        if (f.ext !== 'jpg' && f.ext !== 'png' && f.ext !== 'webp')
+          e("a backdrop's fetch.ext must be jpg, png or webp.");
+      } else if (f.ext !== 'glb' && f.ext !== 'vrm') e('fetch.ext must be glb or vrm.');
     }
   });
   return errors.length ? { ok: false, errors } : { ok: true, list: json as unknown as SourceList };
+}
+
+/** A backdrop item's own rules: its kind, its class, and nothing a model would take. */
+function backdropProblems(item: Record<string, unknown>): string[] {
+  const b = item.backdrop;
+  if (!isObject(b) || (b.kind !== 'ground' && b.kind !== 'sky'))
+    return ["a backdrop needs backdrop: { kind: 'ground', tile, look? } or { kind: 'sky' }."];
+  const problems: string[] = [];
+  const kind = b.kind;
+  if (typeof item.id === 'string' && !BACKDROP_IDS[kind].test(item.id))
+    problems.push(
+      `a ${kind}'s id must be storystage/${kind === 'ground' ? 'Ground' : 'Sky'}/<name>.`,
+    );
+  if (item.class !== BACKDROP_CLASS[kind])
+    problems.push(`a ${kind}'s class must be ${BACKDROP_CLASS[kind]}.`);
+  if (kind === 'ground') {
+    if (!Object.keys(b).every((k) => k === 'kind' || k === 'tile' || k === 'look'))
+      problems.push('a ground takes only kind, tile and look.');
+    if (typeof b.tile !== 'number' || !(b.tile >= 0.5 && b.tile <= 20))
+      problems.push("a ground's tile must be its size in metres, from 0.5 to 20.");
+    // The stage's table is the one source of the colour: a list may leave it out, and one it gives
+    // must agree, so the two can't drift apart.
+    const stage = typeof item.id === 'string' ? stageLook(item.id) : null;
+    if (typeof item.id === 'string' && BACKDROP_IDS.ground.test(item.id) && stage === null)
+      problems.push(`the stage has no ground called ${item.id}.`);
+    if (b.look !== undefined) {
+      if (typeof b.look !== 'string' || !/^[0-9a-f]{6}$/.test(b.look))
+        problems.push("a ground's look must be the stage's flat colour as rrggbb.");
+      else if (stage !== null && b.look !== stage)
+        problems.push(`a ground's look is #${b.look}, but the stage draws it #${stage}.`);
+    }
+  } else {
+    if (!Object.keys(b).every((k) => ['kind', 'exposure', 'tint', 'ahead'].includes(k)))
+      problems.push('a sky takes only kind, exposure, tint and ahead.');
+    if (b.tint !== undefined && (typeof b.tint !== 'string' || !/^[0-9a-f]{6}$/.test(b.tint)))
+      problems.push("a sky's tint must be what white becomes, as rrggbb.");
+    if (b.ahead !== undefined && (typeof b.ahead !== 'number' || !(b.ahead >= 0 && b.ahead <= 1)))
+      problems.push("a sky's ahead must be the picture's column that faces ahead, from 0 to 1.");
+    if (
+      b.exposure !== undefined &&
+      (typeof b.exposure !== 'number' || !(b.exposure >= 0.05 && b.exposure <= 1))
+    )
+      problems.push("a sky's exposure must be from 0.05 to 1.");
+  }
+  if (item.height !== undefined || item.turn !== undefined || item.exclude !== undefined)
+    problems.push('a backdrop takes no height, turn or exclude: the build makes its model.');
+  if (isObject(item.fetch) && 'generated' in item.fetch)
+    problems.push(
+      "a backdrop's fetch is its picture, pinned: { github, commit, path } or { url, sha256, ext }.",
+    );
+  return problems;
+}
+
+/** What is wrong with an item's `bones`, or null: each a joint of its class, used once. */
+export function bonesProblem(bones: unknown, cls: StoryClass): string | null {
+  const skeleton = skeletonOf(cls);
+  if (!skeleton) return `bones is only for a class with joints, not ${cls}.`;
+  if (typeof bones !== 'object' || bones === null || Array.isArray(bones))
+    return 'bones must map bone names to joints.';
+  const joints = new Set<string>(jointsOf(skeleton).map((d) => d.id));
+  const used = new Set<string>();
+  for (const [bone, joint] of Object.entries(bones)) {
+    if (!bone.trim()) return 'bones has an empty bone name.';
+    if (typeof joint !== 'string' || !joints.has(joint))
+      return `bones: "${String(joint)}" is not a ${skeleton} joint.`;
+    if (used.has(joint)) return `bones: ${joint} is given twice.`;
+    used.add(joint);
+  }
+  return null;
+}
+
+/** Whether an item fetches a VRM file (by its `ext`, or its path or address). */
+function fetchesVrm(fetch: unknown): boolean {
+  const f = (fetch ?? {}) as { ext?: unknown; path?: unknown; url?: unknown };
+  if (f.ext !== undefined) return f.ext === 'vrm';
+  return /\.vrm$/i.test(String(f.path ?? f.url ?? ''));
 }

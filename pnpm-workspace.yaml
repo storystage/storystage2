@@ -13,3 +13,6 @@ onlyBuiltDependencies:
 # owner, 7 Nov 2026). glTF Transform needs it only to resize textures in Node; the tools pass their own.
 overrides:
   ndarray-pixels>sharp: '-'
+  # Dependabot alert #3 (denial of service, fixed in 11.0.1). ESLint and typescript-eslint still ask
+  # for ^10; build tools only. Remove once they move to 11.
+  minimatch: ^11.0.1

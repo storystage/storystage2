@@ -30,6 +30,23 @@ describe('validateManifest', () => {
     expect(validateManifest(manifest(cat))).toMatchObject({ ok: true });
   });
 
+  // 2.4.0 (owner, 20 Nov 2026; agreed with S3): the frog hops, in the stage's code.
+  it('takes a gait only for a shipped animal in the cast whose class has joints, not a Biped', () => {
+    const frog = { ...cat, id: 'sketchfab/Quadruped/frog', joints: 'prop-only', gait: 'hop' };
+    expect(validateManifest(manifest(frog))).toMatchObject({ ok: true });
+    for (const [over, why] of [
+      [{ gait: 'waddle' }, /gait must be one of hop/],
+      [{ section: 'props' }, /a gait is for an animal in the cast/],
+      [{ class: 'Biped' }, /a gait is for an animal in the cast/],
+      [{ class: 'Prop' }, /a gait is for an animal in the cast/],
+      [{ origin: 'imported' }, /imported model cannot have a gait/],
+    ] as const) {
+      const r = validateManifest(manifest({ ...frog, ...over }));
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
   it('needs a section, a licence and a credit for every item', () => {
     const r = validateManifest(
       manifest({ ...cat, section: 'scenery', licence: 'MIT', credit: ' ' }),
@@ -77,7 +94,46 @@ describe('validateManifest', () => {
     ).toBe(true);
   });
 
-  it('ships only the licences the audit allows: CC0, CC BY and written permission', () => {
+  it('takes the VRM Public License for a shipped VRM file only', () => {
+    const seed = {
+      ...cat,
+      licence: 'VRM-PL-1.0',
+      vrm: '1',
+      files: { model: 'models/vrmc/seed-san.vrm', thumbnail: 'thumbs/vrmc/seed-san.webp' },
+    };
+    expect(validateManifest(manifest(seed)).ok).toBe(true);
+    const glb = validateManifest(manifest({ ...seed, files: cat.files }));
+    expect(glb.ok).toBe(false);
+    if (!glb.ok) expect(glb.errors.join('\n')).toMatch(/VRM file/);
+    const imported = validateManifest(manifest({ ...seed, origin: 'imported' }));
+    expect(imported.ok).toBe(false);
+    if (!imported.ok) expect(imported.errors.join('\n')).toMatch(/short list/);
+  });
+
+  it('needs a record for a "public-domain" licence, and keeps it for shipped models', () => {
+    expect(validateManifest(manifest({ ...cat, licence: 'public-domain' })).ok).toBe(false);
+    const nasa = {
+      ...cat,
+      licence: 'public-domain',
+      publicDomain: 'docs/legal/public-domain/nasa.md',
+    };
+    expect(validateManifest(manifest(nasa)).ok).toBe(true);
+    const imported = validateManifest(manifest({ ...nasa, origin: 'imported' }));
+    expect(imported.ok).toBe(false);
+    if (!imported.ok) expect(imported.errors.join('\n')).toMatch(/short list/);
+    expect(
+      validateManifest(
+        manifest({
+          ...cat,
+          origin: 'imported',
+          licence: 'permission',
+          permission: 'docs/legal/cmu.md',
+        }),
+      ).ok,
+    ).toBe(false);
+  });
+
+  it('ships only the licences the audit allows: CC0, CC BY, written permission and public domain', () => {
     for (const licence of ['CC-BY-SA-4.0', 'CC-BY-NC-4.0', 'own-work', 'not-sure']) {
       const r = validateManifest(manifest({ ...cat, licence }));
       expect(r.ok, licence).toBe(false);
@@ -89,7 +145,14 @@ describe('validateManifest', () => {
     const imported = { ...cat, origin: 'imported' };
     expect(validateManifest(manifest({ ...imported, licence: 'CC-BY-SA-4.0' })).ok).toBe(true);
     expect(validateManifest(manifest({ ...imported, licence: 'CC-BY-NC-4.0' })).ok).toBe(true);
-    expect(SHIPPED_LICENCES).toEqual(['CC0-1.0', 'CC-BY-3.0', 'CC-BY-4.0', 'permission']);
+    expect(SHIPPED_LICENCES).toEqual([
+      'CC0-1.0',
+      'CC-BY-3.0',
+      'CC-BY-4.0',
+      'permission',
+      'public-domain',
+      'VRM-PL-1.0',
+    ]);
   });
 
   it('needs what every model was reduced to', () => {
@@ -128,7 +191,7 @@ describe('validateManifest', () => {
   });
 
   it('refuses the wrong version and junk', () => {
-    expect(MANIFEST_VERSION).toBe('2.1.0');
+    expect(MANIFEST_VERSION).toBe('2.4.0');
     expect(validateManifest({ manifestVersion: '1.0.0', items: [] }).ok).toBe(false);
     expect(validateManifest({ manifestVersion: '0.1', items: [] }).ok).toBe(false);
     expect(validateManifest(null).ok).toBe(false);

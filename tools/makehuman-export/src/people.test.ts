@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { ageToMacro, peopleTable, skinFor, validatePeople, type Person } from './people.ts';
+import {
+  ageToMacro,
+  peopleTable,
+  skinFor,
+  straightHem,
+  validatePeople,
+  type Person,
+} from './people.ts';
 
 const person = (over: Partial<Person> = {}): Person => ({
   id: 'p01',
@@ -129,7 +136,113 @@ describe('hairTint', () => {
     expect(tinted).toEqual(
       people.filter((p) => p.ageYears >= 65 && p.hair !== null).map((p) => p.name),
     );
-    expect(tinted).toEqual(['Margaret', 'Lin', 'Ravi', 'Eileen']);
+    expect(tinted).toEqual(['Margaret', 'Lin', 'Ravi', 'Eileen', 'George']);
+  });
+});
+
+describe('glasses', () => {
+  it('accepts plain frames from the CC0 glasses pack, and nothing else', () => {
+    expect(validatePeople([person({ glasses: 'kwnet_at_optical_glasses' })]).ok).toBe(true);
+    expect(validatePeople([person({ glasses: 'ews_3d_glasses' })]).ok).toBe(false);
+    expect(validatePeople([person({ glasses: 'toigo_round_glasses_leopard' })]).ok).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    expect(peopleTable([person({ glasses: 'kwnet_at_optical_glasses' })])).toContain(
+      'male_casualsuit01, shoes01, kwnet_at_optical_glasses |',
+    );
+  });
+
+  it('are worn by five people of mixed ages in people.json, and their descriptions say so', () => {
+    const file = fileURLToPath(new URL('../people.json', import.meta.url));
+    const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+    const wearing = people.filter((p) => p.glasses);
+    expect(wearing.map((p) => [p.name, p.ageYears])).toEqual([
+      ['Kai', 8],
+      ['Oskar', 13],
+      ['Hannah', 36],
+      ['Chen', 45],
+      ['Margaret', 72],
+    ]);
+    for (const p of wearing) expect(p.description).toMatch(/glasses/);
+  });
+});
+
+describe('headwear and hearing aids', () => {
+  const file = fileURLToPath(new URL('../people.json', import.meta.url));
+  const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+
+  it('accepts the four kinds in a listed colour; a hijab, turban or patka hides the hair', () => {
+    expect(ok({ hair: null, headwear: { kind: 'hijab', colour: 'navy' } })).toBe(true);
+    expect(ok({ hair: null, headwear: { kind: 'turban', colour: 'saffron' } })).toBe(true);
+    expect(ok({ hair: null, headwear: { kind: 'patka', colour: 'black' } })).toBe(true);
+    expect(ok({ headwear: { kind: 'kippah', colour: 'navy' } })).toBe(true);
+    expect(ok({ headwear: { kind: 'hijab', colour: 'navy' } })).toBe(false);
+    expect(ok({ headwear: { kind: 'beret' as never, colour: 'navy' } })).toBe(false);
+    expect(ok({ headwear: { kind: 'kippah', colour: 'gold' as never } })).toBe(false);
+    expect(ok({ hat: 'fedora01', headwear: { kind: 'kippah', colour: 'navy' } })).toBe(false);
+  });
+
+  it('accepts hearing aids in a listed colour', () => {
+    expect(ok({ hearingAids: 'purple' })).toBe(true);
+    expect(ok({ hearingAids: 'gold' as never })).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    const table = peopleTable([
+      person({ hair: null, headwear: { kind: 'hijab', colour: 'navy' }, hearingAids: 'beige' }),
+    ]);
+    expect(table).toContain('| covered |');
+    expect(table).toContain('hijab (navy, made), hearing aids (beige, made) |');
+  });
+
+  it('are worn by the seven people of 16 Nov, and their descriptions say so', () => {
+    expect(people.filter((p) => p.headwear).map((p) => [p.name, p.headwear!.kind])).toEqual([
+      ['Maryam', 'hijab'],
+      ['Samira', 'hijab'],
+      ['Arjan', 'patka'],
+      ['Gurdeep', 'turban'],
+      ['Eli', 'kippah'],
+    ]);
+    expect(people.filter((p) => p.hearingAids).map((p) => [p.name, p.hearingAids])).toEqual([
+      ['Poppy', 'purple'],
+      ['George', 'beige'],
+    ]);
+    for (const p of people.filter((x) => x.headwear))
+      expect(p.description).toContain(p.headwear!.kind);
+    for (const p of people.filter((x) => x.hearingAids))
+      expect(p.description).toContain('hearing aids');
+  });
+});
+
+describe('trousersColour', () => {
+  const file = fileURLToPath(new URL('../people.json', import.meta.url));
+  const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+
+  it('recolours the jeans of an outfit with jeans, in a listed colour', () => {
+    expect(ok({ clothes: ['male_casualsuit03'], trousersColour: 'navy' })).toBe(true);
+    expect(ok({ clothes: ['male_casualsuit05'], trousersColour: 'khaki' })).toBe(true);
+    expect(ok({ clothes: ['male_casualsuit03'], trousersColour: 'pink' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit01'], trousersColour: 'grey' })).toBe(false);
+    expect(ok({ clothes: ['female_elegantsuit01'], trousersColour: 'grey' })).toBe(false);
+  });
+
+  it('shows in the review table', () => {
+    expect(
+      peopleTable([person({ clothes: ['male_casualsuit03'], trousersColour: 'navy' })]),
+    ).toContain('male_casualsuit03, navy trousers, shoes01');
+  });
+
+  it("isn't every child in jeans: five in other trousers, and their descriptions say so", () => {
+    const children = people.filter((p) => p.ageYears <= 12);
+    const inTrousers = children.filter((p) => p.trousersColour);
+    expect(inTrousers.map((p) => p.name)).toEqual(['Kai', 'Rhys', 'Zain', 'Arjan', 'Eli']);
+    for (const p of inTrousers) expect(p.description).toContain(`${p.trousersColour} trousers`);
+    expect(children.filter((p) => !/jeans/.test(p.description)).length).toBeGreaterThan(
+      children.length / 2,
+    );
   });
 });
 
@@ -148,10 +261,10 @@ describe('people.json', () => {
   const file = fileURLToPath(new URL('../people.json', import.meta.url));
   const people = JSON.parse(readFileSync(file, 'utf8')) as Person[];
 
-  it('is valid, with 30 people', () => {
+  it('is valid, with 37 people', () => {
     const r = validatePeople(people);
     expect(r.ok ? [] : r.errors).toEqual([]);
-    expect(people).toHaveLength(30);
+    expect(people).toHaveLength(37);
   });
 
   it('spans children, teenagers, adults and older people', () => {
@@ -161,5 +274,68 @@ describe('people.json', () => {
     expect(count(13, 17)).toBeGreaterThanOrEqual(5);
     expect(count(18, 64)).toBeGreaterThanOrEqual(8);
     expect(count(65, 90)).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('pattern', () => {
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+  const shirt = { clothes: ['male_casualsuit03'], clothesColour: 'teal' } as const;
+
+  it('makes a shirt or blouse on its own plain or checked, in its colour', () => {
+    expect(ok({ ...shirt, pattern: 'plain' })).toBe(true);
+    expect(ok({ ...shirt, pattern: 'checks' })).toBe(true);
+    expect(
+      ok({ clothes: ['female_elegantsuit01'], clothesColour: 'coral', pattern: 'checks' }),
+    ).toBe(true);
+    expect(ok({ ...shirt, pattern: 'tartan' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit03'], pattern: 'plain' })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit05'], clothesColour: 'teal', pattern: 'plain' })).toBe(
+      false,
+    );
+  });
+
+  it('shows in the review table', () => {
+    expect(peopleTable([person({ ...shirt, pattern: 'checks' })])).toContain(
+      'male_casualsuit03 (teal, checks), shoes01',
+    );
+  });
+});
+
+describe('straightHem', () => {
+  it('levels every skirt, not trousers', () => {
+    expect(straightHem({ clothes: ['female_elegantsuit01'] })).toBe(true);
+    expect(straightHem({ clothes: ['male_casualsuit03'] })).toBe(false);
+  });
+});
+
+describe('more patterns, and a long skirt', () => {
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+  const blouse = { clothes: ['female_elegantsuit01'], clothesColour: 'rose' } as const;
+
+  it('takes spots, flowers and flecks as well as plain and checks', () => {
+    for (const pattern of ['dots', 'flowers', 'flecks'] as const)
+      expect(ok({ ...blouse, pattern })).toBe(true);
+  });
+
+  it('lengthens only the skirt, to the ankle', () => {
+    expect(ok({ ...blouse, skirtLength: 'ankle' })).toBe(true);
+    expect(ok({ ...blouse, skirtLength: 'floor' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit03'], skirtLength: 'ankle' })).toBe(false);
+    expect(peopleTable([person({ ...blouse, skirtLength: 'ankle' })])).toContain(
+      'skirt to the ankle',
+    );
+  });
+});
+
+describe('suitColour', () => {
+  const ok = (over: Partial<Person>) => validatePeople([person(over)]).ok;
+  const suit = { clothes: ['male_elegantsuit01'] } as const;
+
+  it('recolours only the suit, in a listed colour, not with clothesColour', () => {
+    expect(ok({ ...suit, suitColour: 'navy' })).toBe(true);
+    expect(ok({ ...suit, suitColour: 'pink' as never })).toBe(false);
+    expect(ok({ clothes: ['male_casualsuit03'], suitColour: 'navy' })).toBe(false);
+    expect(ok({ ...suit, suitColour: 'navy', clothesColour: 'teal' })).toBe(false);
+    expect(peopleTable([person({ ...suit, suitColour: 'brown' })])).toContain('brown suit');
   });
 });

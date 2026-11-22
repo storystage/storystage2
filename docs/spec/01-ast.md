@@ -138,18 +138,30 @@ Edit operations are the only way to change a program. They are plain JSON, so th
 | `rename` | `node`, `name` | Renames a `type`, `field`, `method`, `parameter`, `local` or `loopItem` | `rename` |
 | `setEnabled` | `node`, `enabled` | Switches a statement off or on. Added to the workplan's six: it changes the saved program (`toggleEnabled`, WP7.6) | `setEnabled` |
 | `setComment` | `node`, `text` | Changes a comment's text. Added for the same reason | `setComment` |
+| `retype` | `node`, `type` | Gives a `field` another type: a character's objects becoming the learner's class for its model, so it can be taught moves (decision 0074, 21 Nov; S6, reviewed by S1 for S2). The type must be one the program has; whether every use still fits is the Story API's check, which every session runs after each edit | `retype` |
 
 `index` may equal the list's length, to add at the end. Moving declarations isn't offered: nothing depends on their order.
 
 **Removing something in use is refused.** `remove` on a field, method, parameter, type or a `local` that code still refers to breaks a reference, so validation refuses it, with the reason in plain words. Remove the uses first, in the same step. Alice refuses this the same way.
 
-**Adding a parameter to a method** already in use needs a `default`, or the calls to it would be invalid. Since every call then has a value, no edit has to touch every call.
+**Adding a parameter to a method** already in use needs a `default`, or the calls to it would be invalid. Since every call then has a value, no edit has to touch every call. The editors' inputs (decision 0074) have none, as Alice's don't: story-api's `addParameter` declares one with a default, gives every call its own value and then takes the default away, all in one step, so each edit on the way leaves a whole program.
+
+**A learner's class can't stop extending its Story API class**: no edit changes a type's `extends`. So a field `retype`d to it keeps every use the Story API's check let through.
 
 ### 4.2 Applying
 
 `applyEdit(program, edit)` returns the new program and the inverse. `applyEdits(program, edits)` applies several and returns the new program; it is what `TestHost`'s `apply` option wants. Programs are immutable: a change copies only the path to the node, so unchanged parts are shared and the old program stays good.
 
-Every edit is validated when it is applied, and a list of edits is all or nothing. Each edit must leave a valid program, so in a step that removes a field and its uses, the uses go first. A full validation costs a walk over the program. If that hurts on the reference Chromebook, validation can move to the end of a step, without changing what's refused.
+Every edit is validated when it is applied, and a list of edits is all or nothing. Each edit must leave a valid program, so in a step that removes a field and its uses, the uses go first. 
+
+**Checking an edit cheaply.** An edit is checked only where it adds or takes away. The rest of the program is the same objects as before, which were valid, so the result is the same as checking it all, and property and unit tests hold the two to it (`checkWholeShape`, `cheap.test.ts`). `applyEdit` therefore needs a valid program to start from, as every session holds.
+- **The schema** is checked against what an edit adds: the new statement or declaration, the new value, the new name or text.
+- **The depth** is checked for what an edit adds, from how deep the place it goes sits: a statement put in or moved, a declaration, a value, a field's new type.
+- **The rules** a schema can't state are checked over the whole program unless what the edit changed can't break one. That's a statement or value that names no variable, declares nothing, has no `return`, calls none of the learner's methods, names only fields and types that are there, and brings no id already in use (a replaced value's ids are free again); and a statement taken out that declares nothing, switching off, and a comment's words. Anything else, and every refusal, goes through the whole check, so a refusal's words don't change. The check from outside (section 4.5) always runs on the whole program.
+- **One index for each program.** `indexProgram` is worked out once for each program object and kept, so the editors, the session and the edit share it. A move doesn't index the program again in the middle.
+- **The same edit twice.** The same edit object applied to the same program gives back the same program object, as when a drop tries an edit and the session then makes it, so whatever was worked out for that program carries over. It is still checked each time, with the options given.
+
+At 500 statements (about 2,600 nodes) on the PC, an edit on a program the editors have already indexed took about 1.4 ms before these, and takes 0.005 to 0.03 ms now; indexing a new program is about 0.5 ms, once. This is for the tile editor's 100 ms budget on the reference Chromebook (WP7.10; spec 14 section 3h.3).
 
 ### 4.3 Labels
 
@@ -251,6 +263,7 @@ A migration is a function from one version's JSON to the next, listed in `MIGRAT
 | The schema is a real JSON schema and our interpreter agrees with Ajv | `schema.test.ts`, valid and damaged programs | Unit |
 | Each rule in section 2 | `validate.test.ts`, one failing program per rule | Unit |
 | Each operation, its inverse and each refusal (section 4) | `edits.test.ts` | Unit |
+| Checking an edit cheaply agrees with checking it all: depth at the limit for each kind of edit, the rules, one index, the same edit twice (section 4.2) | `cheap.test.ts`; `properties.test.ts`'s agreement test | Unit, property-based |
 | Ids (section 3) | `ids.test.ts` | Unit |
 | Grouping, history, subscribers (section 5) | `session.test.ts` | Unit |
 | Text and spans (section 6) | `text.test.ts` | Unit |

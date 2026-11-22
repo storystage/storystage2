@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spike 23.1: projection bake</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 16px;
+      }
+      #gallery {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      figure {
+        margin: 0;
+        width: 256px;
+      }
+      figcaption {
+        font-size: 14px;
+      }
+      #canvas {
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Spike 23.1: the surface bake renderer</h1>
+    <p>
+      Bakes each frame, as the audience at the sweet spot sees it, into the surface's texture
+      layout. Then a virtual projector throws it back onto a plain white model, to check the
+      illusion from the sweet spot and from off to one side.
+    </p>
+    <canvas id="canvas"></canvas>
+    <div id="gallery"></div>
+    <pre id="out">Baking…</pre>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -89,40 +89,40 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | `Turnable` | `turn` | `direction: TurnDirection`, `amount: Number` | `duration`, `animationStyle`, `asSeenBy` | turn {direction} {amount} | `command:rotate` |
 | `Turnable` | `roll` | `direction: RollDirection`, `amount: Number` | `duration`, `animationStyle`, `asSeenBy` | roll {direction} {amount} | `command:rotate` |
 | `Turnable` | `turnToFace` | `target: Thing` | `duration`, `animationStyle` | turn to face {target} | `command:turnToFace` |
-| `Turnable` | `orientToUpright` | — | `duration`, `animationStyle`, `upAsSeenBy` | turn upright | `needs:orient` |
-| `Turnable` | `pointAt` | `target: Thing` | `duration`, `animationStyle`, `upAsSeenBy` | point at {target} | `needs:orient` |
-| `Turnable` | `orientTo` | `target: Thing` | `duration`, `animationStyle` | line up with {target} | `needs:orient` |
+| `Turnable` | `orientToUpright` | — | `duration`, `animationStyle`, `upAsSeenBy` | turn upright | `command:orient` |
+| `Turnable` | `pointAt` | `target: Thing` | `duration`, `animationStyle`, `upAsSeenBy` | point at {target} | `command:orient` |
+| `Turnable` | `orientTo` | `target: Thing` | `duration`, `animationStyle` | line up with {target} | `command:orient` |
 | `MovableTurnable` | `move` | `direction: MoveDirection`, `amount: Number` | `duration`, `animationStyle`, `asSeenBy` | move {direction} {amount} | `command:translate` |
-| `MovableTurnable` | `moveToward` | `target: Thing`, `amount: Number` | `duration`, `animationStyle` | move toward {target} by {amount} | `needs:moveToward` |
-| `MovableTurnable` | `moveAwayFrom` | `target: Thing`, `amount: Number` | `duration`, `animationStyle` | move away from {target} by {amount} | `needs:moveToward` |
+| `MovableTurnable` | `moveToward` | `target: Thing`, `amount: Number` | `duration`, `animationStyle` | move toward {target} by {amount} | `command:moveToward` |
+| `MovableTurnable` | `moveAwayFrom` | `target: Thing`, `amount: Number` | `duration`, `animationStyle` | move away from {target} by {amount} | `command:moveToward` |
 | `MovableTurnable` | `moveTo` | `target: Thing` | `duration`, `animationStyle`, `pathStyle` | move to {target} | `command:moveTo` |
-| `MovableTurnable` | `moveAndOrientTo` | `target: Thing` | `duration`, `animationStyle`, `pathStyle` | move to and line up with {target} | `needs:moveAndOrientTo` |
-| `MovableTurnable` | `place` | `spatialRelation: SpatialRelation`, `target: Thing` | `duration`, `animationStyle`, `pathStyle`, `alongAxisOffset` | place {spatialRelation} {target} | `needs:place` |
+| `MovableTurnable` | `moveAndOrientTo` | `target: Thing` | `duration`, `animationStyle`, `pathStyle` | move to and line up with {target} | `command:moveAndOrientTo` |
+| `MovableTurnable` | `place` | `spatialRelation: SpatialRelation`, `target: Thing` | `duration`, `animationStyle`, `pathStyle`, `alongAxisOffset` | place {spatialRelation} {target} | `command:place` |
 | `MovableTurnable` | `setVehicle` | `vehicle: Thing` | — | ride on {vehicle} | `command:vehicle` |
-| `Scene` | `setAtmosphereColor` | `color: Color` | `duration`, `animationStyle` | change the sky colour to {color} | `needs:sceneLook` |
-| `Scene` | `setFromAboveLightColor` | `color: Color` | — | change the light from above to {color} | `needs:sceneLook` |
-| `Scene` | `setFromBelowLightColor` | `color: Color` | — | change the light from below to {color} | `needs:sceneLook` |
-| `Scene` | `setFogDensity` | `density: Number` (portion) | `duration`, `animationStyle` | change the fog to {density} | `needs:sceneLook` |
+| `Scene` | `setAtmosphereColor` | `color: Color` | `duration`, `animationStyle` | change the sky colour to {color} | `command:atmosphere` |
+| `Scene` | `setFromAboveLightColor` | `color: Color` | — | change the light from above to {color} | `command:light` |
+| `Scene` | `setFromBelowLightColor` | `color: Color` | — | change the light from below to {color} | `command:light` |
+| `Scene` | `setFogDensity` | `density: Number` (portion) | `duration`, `animationStyle` | change the fog to {density} | `command:fog` |
 | `Ground` | `setPaint` | `paint: Paint` | `duration`, `animationStyle` | paint {paint} | `command:paint` |
 | `Ground` | `setOpacity` | `opacity: Number` (portion) | `duration`, `animationStyle` | change opacity to {opacity} | `command:opacity` |
-| `Camera` | `moveAndOrientToAGoodVantagePointOf` | `entity: Thing` | `duration`, `animationStyle` | find a good view of {entity} | `needs:moveAndOrientTo` |
-| `Camera` | `setVerticalViewingAngle` | `angle: Number` | — | change the viewing angle to {angle} | `needs:cameraLens` |
+| `Camera` | `moveAndOrientToAGoodVantagePointOf` | `entity: Thing` | `duration`, `animationStyle` | find a good view of {entity} | `command:moveAndOrientTo` |
+| `Camera` | `setVerticalViewingAngle` | `angle: Number` | — | change the viewing angle to {angle} | `command:lens` |
 | `Model` | `setPaint` | `paint: Paint` | `duration`, `animationStyle` | paint {paint} | `command:paint` |
 | `Model` | `setOpacity` | `opacity: Number` (portion) | `duration`, `animationStyle` | change opacity to {opacity} | `command:opacity` |
-| `Model` | `setWidth` | `width: Number` (positive) | `duration`, `animationStyle`, `policy` | change width to {width} | `needs:size` |
+| `Model` | `setWidth` | `width: Number` (positive) | `duration`, `animationStyle`, `policy` | change width to {width} | `command:setSize` |
 | `Model` | `resizeWidth` | `factor: Number` (positive) | `duration`, `animationStyle`, `isVolumePreserved` | resize width by {factor} | `command:resize` |
-| `Model` | `setHeight` | `height: Number` (positive) | `duration`, `animationStyle`, `policy` | change height to {height} | `needs:size` |
+| `Model` | `setHeight` | `height: Number` (positive) | `duration`, `animationStyle`, `policy` | change height to {height} | `command:setSize` |
 | `Model` | `resizeHeight` | `factor: Number` (positive) | `duration`, `animationStyle`, `isVolumePreserved` | resize height by {factor} | `command:resize` |
-| `Model` | `setDepth` | `depth: Number` (positive) | `duration`, `animationStyle`, `policy` | change depth to {depth} | `needs:size` |
+| `Model` | `setDepth` | `depth: Number` (positive) | `duration`, `animationStyle`, `policy` | change depth to {depth} | `command:setSize` |
 | `Model` | `resizeDepth` | `factor: Number` (positive) | `duration`, `animationStyle`, `isVolumePreserved` | resize depth by {factor} | `command:resize` |
 | `Model` | `resize` | `factor: Number` (positive) | `duration`, `animationStyle` | resize by {factor} | `command:resize` |
 | `Model` | `say` | `text: Text` | `duration`, `textScale`, `textStyle`, `fontType`, `fontColor`, `bubbleFillColor`, `bubbleOutlineColor`, `bubblePosition` | say {text} | `command:say` |
 | `Model` | `think` | `text: Text` | `duration`, `textScale`, `textStyle`, `fontType`, `fontColor`, `bubbleFillColor`, `bubbleOutlineColor`, `bubblePosition` | think {text} | `command:say` |
-| `JointedModel` | `straightenOutJoints` | — | `duration`, `animationStyle` | straighten out joints | `needs:pose` |
-| `Billboard` | `setBackPaint` | `paint: Paint` | `duration`, `animationStyle` | paint the back {paint} | `needs:look` |
-| `Text` | `setValue` | `text: Text` | — | change the words to {text} | `needs:look` |
-| `Flyer` | `foldWings` | — | `duration`, `animationStyle` | fold wings | `needs:pose` |
-| `Flyer` | `spreadWings` | — | `duration`, `animationStyle` | spread wings | `needs:pose` |
+| `JointedModel` | `straightenOutJoints` | — | `duration`, `animationStyle` | straighten out joints | `command:pose` |
+| `Billboard` | `setBackPaint` | `paint: Paint` | `duration`, `animationStyle` | paint the back {paint} | `command:backPaint` |
+| `Text` | `setValue` | `text: Text` | — | change the words to {text} | `command:text` |
+| `Flyer` | `foldWings` | — | `duration`, `animationStyle` | fold wings | `command:pose` |
+| `Flyer` | `spreadWings` | — | `duration`, `animationStyle` | spread wings | `command:pose` |
 <!-- /catalog:procedures -->
 
 1. **Units.** Distances and sizes are metres, and turns are whole revolutions: `turn left 0.25` is a quarter turn, as in Alice and in the contract's `rotate`. Durations are seconds; `micros()` turns them into scene time.
@@ -137,7 +137,7 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | Class | Block | Parameters | Returns | Details | On screen | Runs |
 | --- | --- | --- | --- | --- | --- | --- |
 | `Thing` | `isCollidingWith` | `other: Thing` | `Boolean` | — | is touching {other} | `query:isColliding` |
-| `Thing` | `getVehicle` | — | `Thing` | — | vehicle | `needs:vehicle` |
+| `Thing` | `getVehicle` | — | `Thing` | — | vehicle | `query:vehicle` |
 | `Thing` | `getBooleanFromUser` | `message: Text` | `Boolean` | — | ask yes or no: {message} | `needs:ask` |
 | `Thing` | `getStringFromUser` | `message: Text` | `Text` | — | ask for words: {message} | `needs:ask` |
 | `Thing` | `getDoubleFromUser` | `message: Text` | `Number` | — | ask for a number: {message} | `needs:ask` |
@@ -156,25 +156,25 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | `Turnable` | `isInFrontOf` | `other: Thing` | `Boolean` | `asSeenBy` | is in front of {other} | `query:transform` |
 | `Turnable` | `getDistanceBehind` | `other: Thing` | `Number` | `asSeenBy` | distance behind {other} | `query:transform` |
 | `Turnable` | `isBehind` | `other: Thing` | `Boolean` | `asSeenBy` | is behind {other} | `query:transform` |
-| `Scene` | `getAtmosphereColor` | — | `Color` | — | sky colour | `needs:sceneLook` |
-| `Scene` | `getFromAboveLightColor` | — | `Color` | — | light from above | `needs:sceneLook` |
-| `Scene` | `getFromBelowLightColor` | — | `Color` | — | light from below | `needs:sceneLook` |
-| `Scene` | `getFogDensity` | — | `Number` | — | how thick the fog is | `needs:sceneLook` |
-| `Ground` | `getPaint` | — | `Paint` | — | paint | `needs:look` |
-| `Ground` | `getOpacity` | — | `Number` | — | opacity | `needs:look` |
-| `Camera` | `getVerticalViewingAngle` | — | `Number` | — | viewing angle | `needs:cameraLens` |
-| `Joint` | `getWidth` | — | `Number` | — | width | `needs:size` |
-| `Joint` | `getHeight` | — | `Number` | — | height | `needs:size` |
-| `Joint` | `getDepth` | — | `Number` | — | depth | `needs:size` |
-| `Model` | `getPaint` | — | `Paint` | — | paint | `needs:look` |
-| `Model` | `getOpacity` | — | `Number` | — | opacity | `needs:look` |
-| `Model` | `getWidth` | — | `Number` | — | width | `needs:size` |
-| `Model` | `getHeight` | — | `Number` | — | height | `needs:size` |
-| `Model` | `getDepth` | — | `Number` | — | depth | `needs:size` |
+| `Scene` | `getAtmosphereColor` | — | `Color` | — | sky colour | `query:sceneLook` |
+| `Scene` | `getFromAboveLightColor` | — | `Color` | — | light from above | `query:sceneLook` |
+| `Scene` | `getFromBelowLightColor` | — | `Color` | — | light from below | `query:sceneLook` |
+| `Scene` | `getFogDensity` | — | `Number` | — | how thick the fog is | `query:sceneLook` |
+| `Ground` | `getPaint` | — | `Paint` | — | paint | `query:look` |
+| `Ground` | `getOpacity` | — | `Number` | — | opacity | `query:look` |
+| `Camera` | `getVerticalViewingAngle` | — | `Number` | — | viewing angle | `query:lens` |
+| `Joint` | `getWidth` | — | `Number` | — | width | `query:size` |
+| `Joint` | `getHeight` | — | `Number` | — | height | `query:size` |
+| `Joint` | `getDepth` | — | `Number` | — | depth | `query:size` |
+| `Model` | `getPaint` | — | `Paint` | — | paint | `query:look` |
+| `Model` | `getOpacity` | — | `Number` | — | opacity | `query:look` |
+| `Model` | `getWidth` | — | `Number` | — | width | `query:size` |
+| `Model` | `getHeight` | — | `Number` | — | height | `query:size` |
+| `Model` | `getDepth` | — | `Number` | — | depth | `query:size` |
 | `JointedModel` | `getJoint` | `joint: JointId` | `Joint` | — | {joint} | `runtime` |
 | `JointedModel` | `getJointChain` | `chain: JointChain` | `Joint[]` | — | all of the {chain} | `runtime` |
-| `Billboard` | `getBackPaint` | — | `Paint` | — | back paint | `needs:look` |
-| `Text` | `getValue` | — | `Text` | — | words | `needs:look` |
+| `Billboard` | `getBackPaint` | — | `Paint` | — | back paint | `query:look` |
+| `Text` | `getValue` | — | `Text` | — | words | `query:look` |
 <!-- /catalog:functions -->
 
 1. **The four "ask" functions** (`getBooleanFromUser` and the others) stop the program and ask the learner while they rehearse. An export has nobody to ask, so in the deterministic mode (WP6.5) they give `false`, empty text or `0`. The Screening room says so before an export of a program that uses them.
@@ -201,7 +201,7 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | `Key` | a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, r, s, t, u, v, w, x, y, z, digit0, digit1, digit2, digit3, digit4, digit5, digit6, digit7, digit8, digit9, left, right, up, down, space, enter, tab, backSpace, escape, shift, control, alt, comma, period, minus, equals, slash, semicolon, quote | Alice |
 | `ShotType` | wide, medium, closeUp, overTheShoulder, follow, twoShot | StoryStage |
 | `Gesture` | wave, nod, shrug, clap, point | StoryStage |
-| `Expression` | happy, sad, angry, surprised, relaxed, blink | StoryStage |
+| `Expression` | neutral, happy, sad, angry, surprised, relaxed, blink | StoryStage |
 | `SceneEdge` | left, right, back, front | StoryStage |
 | `JointChain` | neck, tail | StoryStage |
 <!-- /catalog:values -->
@@ -237,6 +237,7 @@ Details are Alice's optional keyword arguments, the "add detail" of both editors
 | `heldKeyPolicy` | `HeldKeyPolicy` | `fireMultiple` | — | when the key is held |
 | `multipleEventPolicy` | `MultipleEventPolicy` | `ignore` | — | if it happens again while running |
 | `setOfVisuals` | `Thing[]` | every object | — | which objects |
+| `line` | `LineId` | words the script doesn’t have | — | script line |
 <!-- /catalog:details -->
 
 1. **Each block lists its own** in sections 2 and 3, as Alice does. A test checks them against her detail lists, so `say` has no `animationStyle` and `moveToward` no `pathStyle`, for example.
@@ -270,11 +271,11 @@ An event kind is the `event` of a `listener` in the AST.
 | `moveWithArrowKeys` | `object: MovableTurnable` | — | — | `key` | move {object} with the arrow keys |
 | `timer` | `seconds: Number` | `seconds: Number` | `multipleEventPolicy` | `runtime` | every {seconds} seconds |
 | `collisionStart` | `setA: Thing[]`, `setB: Thing[]` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `collisionStart` | when {setA} touches {setB} |
-| `collisionEnd` | `setA: Thing[]`, `setB: Thing[]` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `needs:collisionEnd` | when {setA} stops touching {setB} |
+| `collisionEnd` | `setA: Thing[]`, `setB: Thing[]` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `collisionEnd` | when {setA} stops touching {setB} |
 | `proximityEnter` | `setA: Thing[]`, `setB: Thing[]`, `distance: Number` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `proximityEnter` | when {setA} gets within {distance} of {setB} |
-| `proximityExit` | `setA: Thing[]`, `setB: Thing[]`, `distance: Number` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `needs:proximityExit` | when {setA} gets further than {distance} from {setB} |
-| `viewEnter` | `set: Model[]` | `model: Model` | `multipleEventPolicy` | `needs:viewEnter` | when {set} comes into shot |
-| `viewExit` | `set: Model[]` | `model: Model` | `multipleEventPolicy` | `needs:viewExit` | when {set} leaves shot |
+| `proximityExit` | `setA: Thing[]`, `setB: Thing[]`, `distance: Number` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `proximityExit` | when {setA} gets further than {distance} from {setB} |
+| `viewEnter` | `set: Model[]` | `model: Model` | `multipleEventPolicy` | `viewEnter` | when {set} comes into shot |
+| `viewExit` | `set: Model[]` | `model: Model` | `multipleEventPolicy` | `viewExit` | when {set} leaves shot |
 <!-- /catalog:events -->
 
 1. **Named values, not an event object.** Alice's handler receives an `event` and calls accessors on it (`event.getModelAtMouseLocation()`). Here the handler receives what it needs by name (`model`), which is the listener's `params` in the AST. It reads better on a tile and needs no event class. The accessors are mapped one for one, and the `.a3p` import uses that mapping.
@@ -290,27 +291,27 @@ Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters ma
 <!-- catalog:added -->
 | Class | Block | Parameters | Details | Task | On screen | Runs |
 | --- | --- | --- | --- | --- | --- | --- |
-| `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `needs:sceneChange` |
-| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `needs:sceneChange` |
-| `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `needs:sceneChange` |
+| `Scene` | `goToScene` | `scene: SceneId` | — | 4.4 | go to {scene} | `runtime` |
+| `Scene` | `fadeToBlack` | — | `duration` | 4.4 | fade to black | `runtime` |
+| `Scene` | `crossfade` | `scene: SceneId` | `duration` | 4.4 | crossfade to {scene} | `runtime` |
 | `Camera` | `frameShot` | `shot: ShotType`, `targets: Thing[]` | `duration`, `animationStyle` | 4.10 | frame a {shot} of {targets} | `command:shot` |
-| `Model` | `speakLine` | `text: Text` | — | 4.4 | speak line {text} | `needs:speech` |
-| `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `needs:animation` |
-| `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `needs:character` |
-| `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `needs:character` |
-| `Biped` | `sitOn` | `target: Thing` | — | 4.5 | sit on {target} | `needs:character` |
-| `Biped` | `standUp` | — | — | 4.5 | stand up | `needs:character` |
-| `Biped` | `lieDown` | — | — | 4.5 | lie down | `needs:character` |
-| `Biped` | `fall` | — | — | 4.5 | fall | `needs:character` |
-| `Biped` | `touch` | `target: Thing` | — | 4.5 | touch {target} | `needs:character` |
-| `Biped` | `reachFor` | `target: Thing` | — | 4.5 | reach for {target} | `needs:character` |
-| `Biped` | `pickUp` | `target: Thing` | — | 4.5 | pick up {target} | `needs:character` |
-| `Biped` | `putDown` | `target: Thing` | — | 4.5 | put down {target} | `needs:character` |
-| `Biped` | `enterFrom` | `edge: SceneEdge` | — | 4.5 | enter from {edge} | `needs:character` |
-| `Biped` | `exitTo` | `edge: SceneEdge` | — | 4.5 | exit to {edge} | `needs:character` |
-| `Biped` | `gesture` | `gesture: Gesture` | — | 4.6 | gesture {gesture} | `needs:animation` |
-| `Biped` | `showExpression` | `expression: Expression` | — | 4.6 | look {expression} | `needs:animation` |
-| `Biped` | `lookAt` | `target: Thing` | — | 4.6 | look at {target} | `needs:animation` |
+| `Model` | `speakLine` | `text: Text` | `duration`, `line` | 4.4 | speak line {text} | `command:say` |
+| `JointedModel` | `playAnimation` | `clip: AnimationClip` | — | 4.6 | play animation {clip} | `command:clip` |
+| `Biped` | `walkTo` | `target: Thing` | — | 4.5 | walk to {target} | `command:walk` |
+| `Biped` | `runTo` | `target: Thing` | — | 4.5 | run to {target} | `command:walk` |
+| `Biped` | `sitOn` | `target: Thing` | — | 4.5 | sit on {target} | `command:posture` |
+| `Biped` | `standUp` | — | — | 4.5 | stand up | `command:posture` |
+| `Biped` | `lieDown` | — | — | 4.5 | lie down | `command:posture` |
+| `Biped` | `fall` | — | — | 4.5 | fall | `command:posture` |
+| `Biped` | `touch` | `target: Thing` | — | 4.5 | touch {target} | `command:reach` |
+| `Biped` | `reachFor` | `target: Thing` | — | 4.5 | reach for {target} | `command:reach` |
+| `Biped` | `pickUp` | `target: Thing` | — | 4.5 | pick up {target} | `command:pickUp` |
+| `Biped` | `putDown` | `target: Thing` | — | 4.5 | put down {target} | `command:putDown` |
+| `Biped` | `enterFrom` | `edge: SceneEdge` | — | 4.5 | enter from {edge} | `command:enter` |
+| `Biped` | `exitTo` | `edge: SceneEdge` | — | 4.5 | exit to {edge} | `command:walk` |
+| `Biped` | `gesture` | `gesture: Gesture` | — | 4.6 | gesture {gesture} | `command:gesture` |
+| `Biped` | `showExpression` | `expression: Expression` | — | 4.6 | look {expression} | `command:expression` |
+| `Biped` | `lookAt` | `target: Thing` | — | 4.6 | look at {target} | `command:lookAt` |
 <!-- /catalog:added -->
 
 1. **Alice's hidden blocks return.** `walkTo`, `touch` and `reachFor` exist in Alice, hidden and unfinished, and aren't on her palette. They're added here as new blocks, so they aren't listed as Alice's.
@@ -344,39 +345,22 @@ The owner reviewed the joint and event choices on 1 Nov 2026 (decision 0051). Oc
 
 ## 9. What the stage contract needs
 
-Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. **S3:** these are the additions WP4.3 will want, for a `contract` pull request S6 and S3 review together. The later ones (WP8, WP14, WP5b) can wait for those work packages.
+Each block's Runs column says what runs it: `command:` and `query:` are in the WP0.8 contract (`stage-commands.ts`), `runtime` is the runtime on its own, and `needs:` isn't in the contract yet. WP4.3's needs are in the contract now: a joint or a marker as a target, sizes, looks, the sky, light and fog, orienting, moving toward, placing, poses, the camera's lens, bubble details, path styles, and the events below with `Stage.watch`. So are 4.5's character actions and 4.6's faces (WP4c): `walk`, `enter`, `posture`, `reach`, `pickUp`, `putDown`, `clip`, `gesture`, `expression` and `lookAt`. 4.4's scene changes, `goToScene`, `crossfade` and `fadeToBlack`, run in the runtime (rule 8).
+
+1. **Not the stage's sums.** `isVolumePreserved` is the Story API's: it sends `resize` the factors that keep the volume. The `ask` functions belong to the runtime.
+2. **Click positions** are fractions of the picture, from its left and bottom edges, as Alice's `getScreenDistanceFromLeft` and `getScreenDistanceFromBottom` are. Viewing angles are in turns, as Alice's are.
+3. **Watching.** The stage reports collisions and keys by itself. It fires `proximityEnter`, `proximityExit`, `viewEnter` and `viewExit` only for what `Stage.watch` asks: the distances come from the listeners, and view tests cost something on every frame (decision 0051). **S2:** the runtime sends its listeners' watches with a message of its own.
+4. **Actions take their own time.** A character action has no `duration` detail. The block asks the stage `naturalDuration` (a walk by the length of its way, a clip by its length on that model), sends the command with that duration, and waits for it.
+5. **Walking goes round things** where they are when the walk starts, with a navigation mesh (WP5.8). Walking to a thing stops in front of it, facing it; walking to an edge ends out of the picture, as the camera sees it when the walk starts.
+6. **Faces are the model's own.** `expression` uses a VRM model's presets (VRM 0.x and 1.0). A model without that face shows no change, by the owner's decision of 8 Nov 2026.
+7. **Joints in a program** are values of their own, `{kind: 'joint', object, joint}`, the same in the Story API's `Value` and the runtime's. `getJoint` makes one from the object it's called on; `getJointChain` asks the stage `jointChain` for the model's joints in that chain, from the root out. On a joint, `turn`, `roll` and `pointAt` send the stage's `joint` command, in the joint's own axes, and anything that takes a target takes a joint; any other block given a joint is a `bad_value` fault (decision 0051: joints turn only).
+8. **A scene change ends the scene.** `goToScene(scene)` ends this scene and goes to the scene you choose; the film carries on from there. `crossfade(scene)` ends this scene and crossfades into the scene you choose. `fadeToBlack` fades to black and ends the scene; the next scene fades in. A transition's `duration` is the whole of it: a 1 s fade is half a second out, then half a second in. The runtime stops every strand at once (spec 18, 3.1), and the production's player makes the transition (spec 03, 3.1), which the stage draws: a fade to black with its `fade` command, and a crossfade with `load`'s `crossfade` option, the old scene fading out over the new one (`Stage.load`, WP8.3). A scene id is text, so `checkProgram` asks the production with `sceneExists` and names a scene that's gone.
 
 <!-- catalog:stage -->
 | Need | What it asks for | Blocks |
 | --- | --- | --- |
-| `size` | Read and set a width, height or depth in metres, with `SetDimensionPolicy` | `getWidth`, `getHeight`, `getDepth`, `setWidth`, `setHeight`, `setDepth` |
-| `look` | Read paint and opacity; set a billboard’s back paint and a text model’s words | `getPaint`, `getOpacity`, `getBackPaint`, `setBackPaint`, `getValue`, `setValue` |
-| `sceneLook` | Read and set the atmosphere colour, the two light colours and the fog density | `getAtmosphereColor`, `setAtmosphereColor`, `getFromAboveLightColor`, `setFromAboveLightColor`, `getFromBelowLightColor`, `setFromBelowLightColor`, `getFogDensity`, `setFogDensity` |
-| `orient` | Orient to a target or to upright, with `upAsSeenBy` | `orientToUpright`, `pointAt`, `orientTo` |
-| `moveToward` | Move a distance towards or away from a target, worked out at the start | `moveToward`, `moveAwayFrom` |
-| `moveAndOrientTo` | Take on a target’s position and orientation, and a good viewpoint on it | `moveAndOrientTo`, `moveAndOrientToAGoodVantagePointOf` |
-| `place` | Place beside a target, using both bounding boxes and `alongAxisOffset` | `place` |
-| `vehicle` | Read an object’s vehicle | `getVehicle` |
-| `pose` | Straighten every joint; fold or spread wings | `straightenOutJoints`, `foldWings`, `spreadWings` |
-| `audio` | Play a sound at a scene time, for the export to mix | `playAudio` |
+| `audio` | Play a sound at a scene time, for the export to mix (with WP11) | `playAudio` |
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
-| `cameraLens` | Read and set the camera’s vertical viewing angle | `getVerticalViewingAngle`, `setVerticalViewingAngle` |
-| `sceneChange` | Fades and scene changes (WP8) | `goToScene`, `fadeToBlack`, `crossfade` |
-| `speech` | Speak a line with visemes (WP14) | `speakLine` |
-| `character` | Navigation, posture and hand contact (WP5b) | `walkTo`, `runTo`, `sitOn`, `standUp`, `lieDown`, `fall`, `touch`, `reachFor`, `pickUp`, `putDown`, `enterFrom`, `exitTo` |
-| `animation` | Clips, gestures, expressions and head turning (WP5b) | `playAnimation`, `gesture`, `showExpression`, `lookAt` |
-| `collisionEnd` | The stage event for two objects no longer touching | `collisionEnd` |
-| `proximityExit` | The stage event for two objects moving apart | `proximityExit` |
-| `viewEnter` | The stage event for a model coming into the camera’s view | `viewEnter` |
-| `viewExit` | The stage event for a model leaving the camera’s view | `viewExit` |
-
-Changes to commands the contract already has:
-
-- `moveTo`, `turnToFace` and `shot` take a joint or a marker as a target, not only an object
-- `paint` animates over its duration, as Alice’s does; the contract says it is instant
-- `say` carries the bubble details: position, colours, font, style and scale
-- `moveTo` carries `pathStyle`
-- `resize` carries `isVolumePreserved`
 <!-- /catalog:stage -->
 
 ## 9a. The program check

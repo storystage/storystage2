@@ -1,4 +1,8 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  "compilerOptions": {
+    // For the pins script and its test, which read and hash files.
+    "types": ["node"]
+  },
+  "include": ["src", "scripts"]
 }

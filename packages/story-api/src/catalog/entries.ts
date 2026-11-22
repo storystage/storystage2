@@ -103,10 +103,10 @@ const direction = (word: string): readonly FunctionEntry[] => [
 const dimension = (word: string): readonly ApiEntry[] => {
   const lower = word.toLowerCase();
   return [
-    func('Model', `get${word}`, [], 'Number', { runs: 'needs:size', unreal: COMPONENT_BOUNDS }),
+    func('Model', `get${word}`, [], 'Number', { runs: 'query:size', unreal: COMPONENT_BOUNDS }),
     proc('Model', `set${word}`, [param(lower, 'Number', 'positive')], {
       details: [...TIMED, 'policy'],
-      runs: 'needs:size',
+      runs: 'command:setSize',
       unreal: SET_SCALE,
     }),
     proc('Model', `resize${word}`, [param('factor', 'Number', 'positive')], {
@@ -123,23 +123,23 @@ const sceneColor = (
   details: readonly string[],
   unreal: string,
 ): readonly ApiEntry[] => [
-  func('Scene', `get${word}Color`, [], 'Color', { runs: 'needs:sceneLook', unreal }),
+  func('Scene', `get${word}Color`, [], 'Color', { runs: 'query:sceneLook', unreal }),
   proc('Scene', `set${word}Color`, [param('color', 'Color')], {
     details,
-    runs: 'needs:sceneLook',
+    runs: word === 'Atmosphere' ? 'command:atmosphere' : 'command:light',
     unreal,
   }),
 ];
 
 const paintAndOpacity = (on: 'Model' | 'Ground'): readonly ApiEntry[] => [
-  func(on, 'getPaint', [], 'Paint', { runs: 'needs:look', unreal: MATERIAL }),
+  func(on, 'getPaint', [], 'Paint', { runs: 'query:look', unreal: MATERIAL }),
   proc(on, 'setPaint', [param('paint', 'Paint')], {
     details: TIMED,
     runs: 'command:paint',
     unreal: MATERIAL,
     ...(on === 'Model' ? { alice: ['SModel.setPaint', 'SBillboard.setPaint'] } : {}),
   }),
-  func(on, 'getOpacity', [], 'Number', { runs: 'needs:look', unreal: MATERIAL }),
+  func(on, 'getOpacity', [], 'Number', { runs: 'query:look', unreal: MATERIAL }),
   proc(on, 'setOpacity', [param('opacity', 'Number', 'portion')], {
     details: TIMED,
     runs: 'command:opacity',
@@ -162,7 +162,7 @@ const BUBBLE = [
 ] as const;
 
 const wings = (name: string): Procedure =>
-  proc('Flyer', name, [], { details: TIMED, runs: 'needs:pose', unreal: 'Play Montage' });
+  proc('Flyer', name, [], { details: TIMED, runs: 'command:pose', unreal: 'Play Montage' });
 
 /** Alice's blocks and StoryStage's new ones (4.4–4.6, 4.10), most general class first. */
 export const ENTRIES: readonly ApiEntry[] = [
@@ -181,7 +181,7 @@ export const ENTRIES: readonly ApiEntry[] = [
     unreal: 'Is Overlapping Actor',
   }),
   func('Thing', 'getVehicle', [], 'Thing', {
-    runs: 'needs:vehicle',
+    runs: 'query:vehicle',
     unreal: 'Get Attach Parent',
   }),
   fromUser('getBooleanFromUser', 'Boolean'),
@@ -208,18 +208,18 @@ export const ENTRIES: readonly ApiEntry[] = [
   }),
   proc('Turnable', 'orientToUpright', [], {
     details: [...TIMED, 'upAsSeenBy'],
-    runs: 'needs:orient',
+    runs: 'command:orient',
     unreal: SET_ACTOR,
   }),
   proc('Turnable', 'pointAt', [target], {
     details: [...TIMED, 'upAsSeenBy'],
-    runs: 'needs:orient',
+    runs: 'command:orient',
     bml: 'pointing',
     unreal: LOOK_AT,
   }),
   proc('Turnable', 'orientTo', [target], {
     details: TIMED,
-    runs: 'needs:orient',
+    runs: 'command:orient',
     unreal: LOOK_AT,
   }),
   func('Turnable', 'isFacing', [other], 'Boolean', {
@@ -241,13 +241,13 @@ export const ENTRIES: readonly ApiEntry[] = [
   ),
   proc('MovableTurnable', 'moveToward', [target, param('amount', 'Number')], {
     details: TIMED,
-    runs: 'needs:moveToward',
+    runs: 'command:moveToward',
     bml: 'locomotion',
     unreal: MOVE_TO,
   }),
   proc('MovableTurnable', 'moveAwayFrom', [target, param('amount', 'Number')], {
     details: TIMED,
-    runs: 'needs:moveToward',
+    runs: 'command:moveToward',
     unreal: MOVE_TO,
   }),
   proc('MovableTurnable', 'moveTo', [target], {
@@ -258,12 +258,12 @@ export const ENTRIES: readonly ApiEntry[] = [
   }),
   proc('MovableTurnable', 'moveAndOrientTo', [target], {
     details: [...TIMED, 'pathStyle'],
-    runs: 'needs:moveAndOrientTo',
+    runs: 'command:moveAndOrientTo',
     unreal: MOVE_TO,
   }),
   proc('MovableTurnable', 'place', [param('spatialRelation', 'SpatialRelation'), target], {
     details: [...TIMED, 'pathStyle', 'alongAxisOffset'],
-    runs: 'needs:place',
+    runs: 'command:place',
     unreal: 'Set Actor Location, from the target’s bounds',
   }),
   proc('MovableTurnable', 'setVehicle', [param('vehicle', 'Thing')], {
@@ -276,27 +276,29 @@ export const ENTRIES: readonly ApiEntry[] = [
   ...sceneColor('Atmosphere', TIMED, ATMOSPHERE),
   ...sceneColor('FromAboveLight', [], ATMOSPHERE),
   ...sceneColor('FromBelowLight', [], ATMOSPHERE),
-  func('Scene', 'getFogDensity', [], 'Number', { runs: 'needs:sceneLook', unreal: FOG }),
+  func('Scene', 'getFogDensity', [], 'Number', { runs: 'query:sceneLook', unreal: FOG }),
   proc('Scene', 'setFogDensity', [param('density', 'Number', 'portion')], {
     details: TIMED,
-    runs: 'needs:sceneLook',
+    runs: 'command:fog',
     unreal: FOG,
   }),
+  // The three scene changes end the scene in the runtime, and the production's player makes the
+  // transition (spec 18, 3.1; spec 03, 3.1).
   proc('Scene', 'goToScene', [param('scene', 'SceneId')], {
     task: '4.4',
-    runs: 'needs:sceneChange',
+    runs: 'runtime',
     unreal: 'Open Level, or level streaming',
   }),
   proc('Scene', 'fadeToBlack', [], {
     task: '4.4',
     details: ['duration'],
-    runs: 'needs:sceneChange',
+    runs: 'runtime',
     unreal: 'Fade track in Sequencer',
   }),
   proc('Scene', 'crossfade', [param('scene', 'SceneId')], {
     task: '4.4',
     details: ['duration'],
-    runs: 'needs:sceneChange',
+    runs: 'runtime',
     unreal: 'Shot blend in Sequencer',
   }),
 
@@ -306,15 +308,15 @@ export const ENTRIES: readonly ApiEntry[] = [
   // Camera
   proc('Camera', 'moveAndOrientToAGoodVantagePointOf', [param('entity', 'Thing')], {
     details: TIMED,
-    runs: 'needs:moveAndOrientTo',
+    runs: 'command:moveAndOrientTo',
     unreal: CINE_CAMERA,
   }),
   func('Camera', 'getVerticalViewingAngle', [], 'Number', {
-    runs: 'needs:cameraLens',
+    runs: 'query:lens',
     unreal: 'CineCamera field of view',
   }),
   proc('Camera', 'setVerticalViewingAngle', [param('angle', 'Number')], {
-    runs: 'needs:cameraLens',
+    runs: 'command:lens',
     unreal: 'CineCamera field of view',
   }),
   proc('Camera', 'frameShot', [param('shot', 'ShotType'), param('targets', 'Thing[]')], {
@@ -325,9 +327,9 @@ export const ENTRIES: readonly ApiEntry[] = [
   }),
 
   // Joint
-  func('Joint', 'getWidth', [], 'Number', { runs: 'needs:size', unreal: COMPONENT_BOUNDS }),
-  func('Joint', 'getHeight', [], 'Number', { runs: 'needs:size', unreal: COMPONENT_BOUNDS }),
-  func('Joint', 'getDepth', [], 'Number', { runs: 'needs:size', unreal: COMPONENT_BOUNDS }),
+  func('Joint', 'getWidth', [], 'Number', { runs: 'query:size', unreal: COMPONENT_BOUNDS }),
+  func('Joint', 'getHeight', [], 'Number', { runs: 'query:size', unreal: COMPONENT_BOUNDS }),
+  func('Joint', 'getDepth', [], 'Number', { runs: 'query:size', unreal: COMPONENT_BOUNDS }),
 
   // Model
   ...paintAndOpacity('Model'),
@@ -348,9 +350,12 @@ export const ENTRIES: readonly ApiEntry[] = [
     runs: 'command:say',
     unreal: 'A UI widget; there is no built-in speech bubble',
   }),
+  // Spec 06, 4.7: a `say` with a caption instead of a bubble, which the studio voices. Its
+  // duration is `lineDuration` of its words unless the `duration` detail says otherwise.
   proc('Model', 'speakLine', [param('text', 'Text')], {
     task: '4.4',
-    runs: 'needs:speech',
+    details: ['duration', 'line'],
+    runs: 'command:say',
     bml: 'speech',
     unreal: 'Audio with lip-sync tools',
   }),
@@ -368,144 +373,123 @@ export const ENTRIES: readonly ApiEntry[] = [
   }),
   proc('JointedModel', 'straightenOutJoints', [], {
     details: TIMED,
-    runs: 'needs:pose',
+    runs: 'command:pose',
     unreal: 'Reset the Control Rig pose',
   }),
   proc('JointedModel', 'playAnimation', [param('clip', 'AnimationClip')], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:clip',
     unreal: 'Play Animation or Montage',
   }),
 
   // Billboard, Text, Flyer
-  func('Billboard', 'getBackPaint', [], 'Paint', { runs: 'needs:look', unreal: MATERIAL }),
+  func('Billboard', 'getBackPaint', [], 'Paint', { runs: 'query:look', unreal: MATERIAL }),
   proc('Billboard', 'setBackPaint', [param('paint', 'Paint')], {
     details: TIMED,
-    runs: 'needs:look',
+    runs: 'command:backPaint',
     unreal: MATERIAL,
   }),
-  func('Text', 'getValue', [], 'Text', { runs: 'needs:look', unreal: 'Get Text' }),
-  proc('Text', 'setValue', [param('text', 'Text')], { runs: 'needs:look', unreal: 'Set Text' }),
+  func('Text', 'getValue', [], 'Text', { runs: 'query:look', unreal: 'Get Text' }),
+  proc('Text', 'setValue', [param('text', 'Text')], { runs: 'command:text', unreal: 'Set Text' }),
   wings('foldWings'),
   wings('spreadWings'),
 
   // Biped: character actions (4.5) and faces (4.6)
   proc('Biped', 'walkTo', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:walk',
     bml: 'locomotion',
     unreal: 'AI MoveTo with a navigation mesh',
   }),
   proc('Biped', 'runTo', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:walk',
     bml: 'locomotion',
     unreal: 'AI MoveTo with a navigation mesh',
   }),
   proc('Biped', 'sitOn', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Montage with Attach To Component',
   }),
   proc('Biped', 'standUp', [], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'lieDown', [], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'fall', [], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:posture',
     bml: 'posture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'touch', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:reach',
     unreal: 'Control Rig IK',
   }),
   proc('Biped', 'reachFor', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:reach',
     bml: 'pointing',
     unreal: 'Control Rig IK',
   }),
   proc('Biped', 'pickUp', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:pickUp',
     unreal: 'Control Rig IK with Attach To Component',
   }),
   proc('Biped', 'putDown', [target], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:putDown',
     unreal: 'Detach From Actor',
   }),
   proc('Biped', 'enterFrom', [param('edge', 'SceneEdge')], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:enter',
     unreal: 'Spawn Actor',
   }),
   proc('Biped', 'exitTo', [param('edge', 'SceneEdge')], {
     task: '4.5',
-    runs: 'needs:character',
+    runs: 'command:walk',
     unreal: 'Destroy Actor',
   }),
   proc('Biped', 'gesture', [param('gesture', 'Gesture')], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:gesture',
     bml: 'gesture',
     unreal: 'Play Montage',
   }),
   proc('Biped', 'showExpression', [param('expression', 'Expression')], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:expression',
     bml: 'faceLexeme',
     unreal: 'Morph targets or pose assets',
   }),
   proc('Biped', 'lookAt', [target], {
     task: '4.6',
-    runs: 'needs:animation',
+    runs: 'command:lookAt',
     bml: 'gaze',
     unreal: 'Look At in Control Rig or an Animation Blueprint',
   }),
 ];
 
-/** What each `needs:` asks of the stage contract. Empty once S3's contract work lands. */
+/**
+ * What each `needs:` asks of the stage contract. The rest of WP4.3's needs are in the contract
+ * now; these wait for their own work packages.
+ */
 export const STAGE_NEEDS: Readonly<Record<string, string>> = {
-  size: 'Read and set a width, height or depth in metres, with `SetDimensionPolicy`',
-  look: 'Read paint and opacity; set a billboard’s back paint and a text model’s words',
-  sceneLook: 'Read and set the atmosphere colour, the two light colours and the fog density',
-  orient: 'Orient to a target or to upright, with `upAsSeenBy`',
-  moveToward: 'Move a distance towards or away from a target, worked out at the start',
-  moveAndOrientTo: 'Take on a target’s position and orientation, and a good viewpoint on it',
-  place: 'Place beside a target, using both bounding boxes and `alongAxisOffset`',
-  vehicle: 'Read an object’s vehicle',
-  pose: 'Straighten every joint; fold or spread wings',
-  audio: 'Play a sound at a scene time, for the export to mix',
+  audio: 'Play a sound at a scene time, for the export to mix (with WP11)',
   ask: 'Ask the learner for a value while a program runs (the runtime, not the stage)',
-  cameraLens: 'Read and set the camera’s vertical viewing angle',
-  sceneChange: 'Fades and scene changes (WP8)',
-  speech: 'Speak a line with visemes (WP14)',
-  character: 'Navigation, posture and hand contact (WP5b)',
-  animation: 'Clips, gestures, expressions and head turning (WP5b)',
-  collisionEnd: 'The stage event for two objects no longer touching',
-  proximityExit: 'The stage event for two objects moving apart',
-  viewEnter: 'The stage event for a model coming into the camera’s view',
-  viewExit: 'The stage event for a model leaving the camera’s view',
 };
 
-/** Changes to commands the contract already has. */
-export const STAGE_CHANGES: readonly string[] = [
-  '`moveTo`, `turnToFace` and `shot` take a joint or a marker as a target, not only an object',
-  '`paint` animates over its duration, as Alice’s does; the contract says it is instant',
-  '`say` carries the bubble details: position, colours, font, style and scale',
-  '`moveTo` carries `pathStyle`',
-  '`resize` carries `isVolumePreserved`',
-];
+/** Changes to commands the contract already has, still to make. */
+export const STAGE_CHANGES: readonly string[] = [];

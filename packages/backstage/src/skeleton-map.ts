@@ -179,6 +179,44 @@ const RIGIFY: Names = (() => {
   ]);
 })();
 
+/**
+ * Rigify's four-legged metarigs (wolf, cat, horse), as Blender makes them and as galleries'
+ * animals come: the spine numbered from the tail's tip (`spine`) through the pelvis
+ * (`spine.004`) and the back to the head (`spine.011`); `thigh`, `shin`, `foot` and `toe` the
+ * back legs, and `shoulder` and `front_thigh` to `front_toe` the front legs.
+ */
+const RIGIFY_QUADRUPED: Names = (() => {
+  const spell = (_side: string, s: string, b: string) => [`${b}${s}`];
+  const leg = (joint: (Side: string) => string, bone: string) =>
+    sides.map(
+      ([side, s]) => [joint(side[0]!.toUpperCase() + side.slice(1)), [`${bone}${s}`]] as const,
+    );
+  return dictionary([
+    ['pelvis', ['spine004']],
+    ['spineBase', ['spine005']],
+    ['spineMiddle', ['spine006', 'spine007']],
+    ['spineUpper', ['spine008']],
+    ['neck', ['spine009']],
+    ['head', ['spine011', 'head']],
+    ['jaw', ['jaw']],
+    ...sided('Eye', ['eye'], spell),
+    ...sided('Ear', ['ear'], spell),
+    ['tail', ['spine003']],
+    ['tail2', ['spine002']],
+    ['tail3', ['spine001']],
+    ['tail4', ['spine']],
+    ...leg((S) => `front${S}Clavicle`, 'shoulder'),
+    ...leg((S) => `front${S}Shoulder`, 'frontthigh'),
+    ...leg((S) => `front${S}Knee`, 'frontshin'),
+    ...leg((S) => `front${S}Ankle`, 'frontfoot'),
+    ...leg((S) => `front${S}Toe`, 'fronttoe'),
+    ...leg((S) => `back${S}Hip`, 'thigh'),
+    ...leg((S) => `back${S}Knee`, 'shin'),
+    ...leg((S) => `back${S}Hock`, 'foot'),
+    ...leg((S) => `back${S}Toe`, 'toe'),
+  ]);
+})();
+
 const GENERIC: Names = dictionary([
   ['hips', ['hips', 'pelvis', 'hip']],
   ['spine', ['spine']],
@@ -206,12 +244,19 @@ function namesFor(convention: Convention, skeleton: Skeleton): Names | null {
     case 'alice':
       return dictionary(jointsOf(skeleton).map((d) => [d.id, d.alice.map(normalizeBoneName)]));
     default:
+      if (convention === 'rigify' && skeleton === 'quadruped') return RIGIFY_QUADRUPED;
       if (skeleton !== 'biped') return null;
       return { mixamo: MIXAMO, unreal: UNREAL, rigify: RIGIFY, generic: GENERIC }[convention];
   }
 }
 
-/** Matches bones to joints with one convention: best rank wins, then the bone nearer the root. */
+/** A Rigify deform bone (`DEF-`), which moves the mesh, unlike its `ORG-`, `MCH-` and control twins. */
+const isDeform = (bone: string) => /^DEF[-_.]/i.test(bone.replace(/^.*[:|]/, ''));
+
+/**
+ * Matches bones to joints with one convention: best rank wins, then a deform bone over its twins
+ * of the same name, then the bone nearer the root.
+ */
 function match(
   bones: readonly string[],
   skeleton: Skeleton,
@@ -224,7 +269,12 @@ function match(
     const hit = names.get(normalizeBoneName(bone));
     if (!hit) continue;
     const held = best.get(hit.joint);
-    if (!held || hit.rank < held.rank) best.set(hit.joint, { bone, rank: hit.rank });
+    if (
+      !held ||
+      hit.rank < held.rank ||
+      (hit.rank === held.rank && isDeform(bone) && !isDeform(held.bone))
+    )
+      best.set(hit.joint, { bone, rank: hit.rank });
   }
   const found = new Map([...best].map(([joint, { bone }]) => [joint, bone]));
   if (convention === 'unreal' || convention === 'generic') numberedSpine(bones, found);

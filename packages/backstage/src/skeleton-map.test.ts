@@ -256,6 +256,102 @@ describe('mapSkeleton, animals', () => {
     expect(m.unmapped).toEqual(['ROOT']);
   });
 
+  // Styloo's dog, cow and giraffe (CC0): Rigify's four-legged metarig, deform bones only.
+  const RIGIFY_QUADRUPED = [
+    'DEF-spine.004',
+    'DEF-spine',
+    'DEF-pelvis.L',
+    'DEF-pelvis.R',
+    'DEF-thigh.L',
+    'DEF-thigh.R',
+    'DEF-shoulder.L',
+    'DEF-front_thigh.L',
+    'DEF-shoulder.R',
+    'DEF-front_thigh.R',
+    'DEF-breast.L',
+    'DEF-breast.R',
+    'DEF-spine.005',
+    'DEF-spine.006',
+    'DEF-spine.007',
+    'DEF-spine.008',
+    'DEF-spine.009',
+    'DEF-spine.010',
+    'DEF-spine.011',
+    'DEF-spine.001',
+    'DEF-spine.002',
+    'DEF-spine.003',
+    'DEF-thigh.L.001',
+    'DEF-shin.L',
+    'DEF-shin.L.001',
+    'DEF-foot.L',
+    'DEF-foot.L.001',
+    'DEF-toe.L',
+    'DEF-thigh.R.001',
+    'DEF-shin.R',
+    'DEF-shin.R.001',
+    'DEF-foot.R',
+    'DEF-foot.R.001',
+    'DEF-toe.R',
+    'DEF-front_thigh.L.001',
+    'DEF-front_shin.L',
+    'DEF-front_shin.L.001',
+    'DEF-front_foot.L',
+    'DEF-front_foot.L.001',
+    'DEF-front_toe.L',
+    'DEF-front_thigh.R.001',
+    'DEF-front_shin.R',
+    'DEF-front_shin.R.001',
+    'DEF-front_foot.R',
+    'DEF-front_foot.R.001',
+    'DEF-front_toe.R',
+  ];
+
+  it("maps Rigify's four-legged metarig, as Blender's animals come", () => {
+    const m = mapSkeleton(RIGIFY_QUADRUPED, 'quadruped');
+    expect(m.status).toBe('mapped');
+    expect(m.convention).toBe('rigify');
+    expect(m.bones).toMatchObject({
+      pelvis: 'DEF-spine.004',
+      spineBase: 'DEF-spine.005',
+      spineMiddle: 'DEF-spine.006',
+      spineUpper: 'DEF-spine.008',
+      neck: 'DEF-spine.009',
+      head: 'DEF-spine.011',
+      tail: 'DEF-spine.003',
+      tail4: 'DEF-spine',
+      frontLeftClavicle: 'DEF-shoulder.L',
+      frontLeftShoulder: 'DEF-front_thigh.L',
+      frontLeftKnee: 'DEF-front_shin.L',
+      frontLeftAnkle: 'DEF-front_foot.L',
+      frontRightToe: 'DEF-front_toe.R',
+      backLeftHip: 'DEF-thigh.L',
+      backLeftKnee: 'DEF-shin.L',
+      backLeftHock: 'DEF-foot.L',
+      backRightToe: 'DEF-toe.R',
+    });
+    expect(m.unmapped).toContain('DEF-spine.010');
+    expect(m.unmapped).toContain('DEF-thigh.L.001');
+  });
+
+  it("prefers Rigify's deform bones over their ORG, MCH and control twins", () => {
+    // Styloo's cat keeps the whole control rig, and its spine.003 and ORG-thigh.L come first.
+    const m = mapSkeleton(
+      ['root', 'spine.003', 'ORG-spine.004', 'MCH-thigh.L', 'ORG-thigh.L', ...RIGIFY_QUADRUPED],
+      'quadruped',
+    );
+    expect(m.status).toBe('mapped');
+    expect(m.bones.tail).toBe('DEF-spine.003');
+    expect(m.bones.pelvis).toBe('DEF-spine.004');
+    expect(m.bones.backLeftHip).toBe('DEF-thigh.L');
+  });
+
+  it("keeps Rigify's human numbering for bipeds", () => {
+    expect(mapSkeleton(['DEF-spine', 'DEF-spine.006'], 'biped').bones).toMatchObject({
+      hips: 'DEF-spine',
+      head: 'DEF-spine.006',
+    });
+  });
+
   it('maps a model exported with StoryStage ids', () => {
     const m = mapSkeleton(['spineBase', 'head', 'tail', 'neck', 'frontLeftFin'], 'swimmer');
     expect(m.status).toBe('mapped');

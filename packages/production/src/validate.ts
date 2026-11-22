@@ -1,0 +1,488 @@
+/**
+ * WP8.4: the shape of each JSON part of a `.storystage` file, checked before anything loads
+ * (`docs/spec/15-security.md`, section 3.3, F6). The program has its own schema (`packages/ast`);
+ * this covers the manifest, scenes, storyboard and frames. `checkReferences` then checks that
+ * they point at each other.
+ *
+ * A part of this format version, or an older one once migrated, may hold only the fields the
+ * types name: nothing else can ride through a save. A newer file opens read-only, so its extra
+ * fields are allowed (spec 03, section 1.2: a minor version adds what an older reader can skip).
+ */
+import { validateManifest as validateBackstage, MANIFEST_VERSION } from '@storystage/backstage';
+import { SHOT_TYPES, STORY_CLASSES } from '@storystage/story-api';
+import { CHECK_KINDS, CHECK_OUTCOMES, PLAN_STEP_KINDS } from './types.ts';
+import { SOUND_LIMITS } from './sound.ts';
+
+export interface ShapeOptions {
+  /** True for a newer file, opened read-only: fields this version doesn't know are allowed. */
+  readonly allowExtra?: boolean;
+}
+
+/**
+ * Lengths for the learner's own words that format 1.1.0 added (spec 07, section 6.9). The screens
+ * keep to them; a file over them, edited by hand, is refused when it opens.
+ */
+export const TEXT_LIMITS = {
+  /** One scene's retake notes. */
+  retakeNotes: 200,
+  /** One name in the end credits. */
+  creditName: 40,
+  /** How many names the end credits hold. */
+  creditNames: 40,
+} as const;
+
+type Json = Record<string, unknown>;
+
+/** Collects problems with paths, for developers ("frames/f1.json: sketches[0].x: a number"). */
+class Shape {
+  readonly problems: string[] = [];
+  private readonly where: string;
+  private readonly options: ShapeOptions;
+  constructor(where: string, options: ShapeOptions) {
+    this.where = where;
+    this.options = options;
+  }
+
+  private add(path: string, what: string) {
+    this.problems.push(`${this.where}: ${path || '(top)'}: ${what}`);
+  }
+
+  object(
+    v: unknown,
+    path: string,
+    keys: readonly string[],
+    optional: readonly string[] = [],
+  ): v is Json {
+    if (typeof v !== 'object' || v === null || Array.isArray(v)) {
+      this.add(path, 'should be an object');
+      return false;
+    }
+    for (const k of keys) if (!(k in v)) this.add(path, `is missing ${k}`);
+    if (!this.options.allowExtra) {
+      const known = new Set([...keys, ...optional]);
+      for (const k of Object.keys(v))
+        if (!known.has(k)) this.add(path, `has an unknown field ${k}`);
+    }
+    return true;
+  }
+
+  string(v: unknown, path: string, max = Infinity): v is string {
+    if (typeof v !== 'string') {
+      this.add(path, 'should be text');
+      return false;
+    }
+    if ([...v].length <= max) return true;
+    this.add(path, `should be at most ${max} characters`);
+    return false;
+  }
+
+  number(v: unknown, path: string, min = -Infinity, max = Infinity): v is number {
+    if (typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max) return true;
+    this.add(
+      path,
+      `should be a number${min > -Infinity ? ` from ${min}` : ''}${max < Infinity ? ` to ${max}` : ''}`,
+    );
+    return false;
+  }
+
+  boolean(v: unknown, path: string): v is boolean {
+    if (typeof v === 'boolean') return true;
+    this.add(path, 'should be true or false');
+    return false;
+  }
+
+  oneOf(v: unknown, path: string, values: readonly string[]): boolean {
+    if (typeof v === 'string' && values.includes(v)) return true;
+    this.add(path, `should be one of ${values.join(', ')}`);
+    return false;
+  }
+
+  stringOrNull(v: unknown, path: string) {
+    if (v !== null) this.string(v, path);
+  }
+
+  array<T>(v: unknown, path: string, each: (item: unknown, path: string) => T): boolean {
+    if (!Array.isArray(v)) {
+      this.add(path, 'should be a list');
+      return false;
+    }
+    v.forEach((item, i) => each(item, `${path}[${i}]`));
+    return true;
+  }
+
+  fail(path: string, what: string) {
+    this.add(path, what);
+  }
+}
+
+const join = (path: string, key: string) => (path ? `${path}.${key}` : key);
+
+function vec3(s: Shape, v: unknown, path: string) {
+  if (s.object(v, path, ['x', 'y', 'z']))
+    for (const k of ['x', 'y', 'z']) s.number(v[k], join(path, k));
+}
+
+function transform(s: Shape, v: unknown, path: string) {
+  if (!s.object(v, path, ['position', 'rotation', 'scale'])) return;
+  vec3(s, v.position, join(path, 'position'));
+  vec3(s, v.scale, join(path, 'scale'));
+  const r = v.rotation;
+  const at = join(path, 'rotation');
+  if (s.object(r, at, ['x', 'y', 'z', 'w']))
+    for (const k of ['x', 'y', 'z', 'w']) s.number(r[k], join(at, k));
+}
+
+/** A Backstage id (text) or a stand-in (`{ standIn }`). */
+/** The largest stand-in box, in metres on each side (format 1.2.0; S6's `StandIn.size`). */
+export const STAND_IN_SIZE_MAX = 1000;
+
+/** A Backstage id (text) or a stand-in (`{ standIn, size? }`). */
+function modelRef(s: Shape, v: unknown, path: string) {
+  if (typeof v === 'string') return;
+  if (!s.object(v, path, ['standIn'], ['size'])) return;
+  s.string(v.standIn, join(path, 'standIn'));
+  if (v.size === undefined) return;
+  const at = join(path, 'size');
+  if (s.object(v.size, at, ['x', 'y', 'z']))
+    for (const k of ['x', 'y', 'z'] as const) {
+      const n = v.size[k];
+      if (s.number(n, join(at, k), 0, STAND_IN_SIZE_MAX) && n === 0)
+        s.fail(join(at, k), 'should be more than 0');
+    }
+}
+
+function transition(s: Shape, v: unknown, path: string) {
+  if (!s.object(v, path, ['kind', 'duration'])) return;
+  s.oneOf(v.kind, join(path, 'kind'), ['cut', 'fadeToBlack', 'crossfade']);
+  s.number(v.duration, join(path, 'duration'), 0);
+}
+
+/** `manifest.json`. */
+export function checkManifestShape(v: unknown, options: ShapeOptions = {}): string[] {
+  const s = new Shape('manifest.json', options);
+  const keys = [
+    'format',
+    'formatVersion',
+    'createdWith',
+    'title',
+    'origin',
+    'runningOrder',
+    'audio',
+    'models',
+  ];
+  // `voices` is only allowed here: `keptVoices` keeps what fits when the file opens (format 1.4.0).
+  if (!s.object(v, '', keys, ['credits', 'voices', 'sounds', 'mix'])) return s.problems;
+  // Imported sounds and the tracks' volumes (format 1.9.0); `checkReferences` checks the rest.
+  if (v.sounds !== undefined)
+    s.array(v.sounds, 'sounds', (c, p) => {
+      if (!s.object(c, p, ['id', 'file', 'label', 'length', 'bytes', 'trim'])) return;
+      s.string(c.id, join(p, 'id'));
+      s.string(c.file, join(p, 'file'));
+      s.string(c.label, join(p, 'label'), SOUND_LIMITS.label);
+      s.number(c.length, join(p, 'length'), 0);
+      s.number(c.bytes, join(p, 'bytes'), 0);
+      if (s.object(c.trim, join(p, 'trim'), ['start', 'end'])) {
+        s.number(c.trim.start, join(p, 'trim.start'), 0);
+        s.number(c.trim.end, join(p, 'trim.end'), 0);
+      }
+    });
+  if (v.mix !== undefined && s.object(v.mix, 'mix', ['speech', 'music', 'effects']))
+    for (const track of ['speech', 'music', 'effects'] as const)
+      s.number(v.mix[track], `mix.${track}`, 0, 1);
+  if (v.credits !== undefined && s.object(v.credits, 'credits', ['names'])) {
+    const names = v.credits.names;
+    if (s.array(names, 'credits.names', (n, p) => s.string(n, p, TEXT_LIMITS.creditName)))
+      if ((names as unknown[]).length > TEXT_LIMITS.creditNames)
+        s.fail('credits.names', `should hold at most ${TEXT_LIMITS.creditNames} names`);
+  }
+  if (v.format !== 'storystage') s.fail('format', 'should be storystage');
+  s.string(v.formatVersion, 'formatVersion');
+  if (s.object(v.createdWith, 'createdWith', ['app', 'version'])) {
+    if (v.createdWith.app !== 'StoryStage') s.fail('createdWith.app', 'should be StoryStage');
+    s.string(v.createdWith.version, 'createdWith.version');
+  }
+  s.string(v.title, 'title');
+  s.oneOf(v.origin, 'origin', ['storystage', 'alice']);
+  s.array(v.runningOrder, 'runningOrder', (e, p) => {
+    if (!s.object(e, p, ['scene', 'transition'])) return;
+    s.string(e.scene, join(p, 'scene'));
+    transition(s, e.transition, join(p, 'transition'));
+  });
+  s.array(v.audio, 'audio', (e, p) => {
+    if (!s.object(e, p, ['file', 'scene', 'label'])) return;
+    s.string(e.file, join(p, 'file'));
+    s.stringOrNull(e.scene, join(p, 'scene'));
+    s.string(e.label, join(p, 'label'));
+  });
+  s.array(v.models, 'models', (e, p) => {
+    if (!s.object(e, p, ['folder', 'item'])) return;
+    s.string(e.folder, join(p, 'folder'));
+    // A packed model's record is a Backstage item, checked by Backstage's own rules.
+    const checked = validateBackstage({ manifestVersion: MANIFEST_VERSION, items: [e.item] });
+    if (!checked.ok) for (const problem of checked.errors) s.fail(join(p, 'item'), problem);
+  });
+  return s.problems;
+}
+
+/** `scenes/<id>.json`: a `Scene`, with its `SceneSetup`. */
+export function checkSceneShape(v: unknown, where: string, options: ShapeOptions = {}): string[] {
+  const s = new Shape(where, options);
+  if (!s.object(v, '', ['id', 'setup', 'method'], ['music'])) return s.problems;
+  s.string(v.id, 'id');
+  s.string(v.method, 'method');
+  // Music on the scene's timeline (format 1.9.0); `checkReferences` checks each cue's sound.
+  if (v.music !== undefined)
+    s.array(v.music, 'music', (cue, p) => {
+      const keys = ['sound', 'start', 'from', 'to', 'fadeIn', 'fadeOut', 'loop', 'volume'];
+      if (!s.object(cue, p, [...keys, 'carriesOn'])) return;
+      s.string(cue.sound, join(p, 'sound'));
+      for (const k of ['start', 'from', 'to', 'fadeIn', 'fadeOut'] as const)
+        s.number(cue[k], join(p, k), 0, SOUND_LIMITS.seconds * 10);
+      s.number(cue.volume, join(p, 'volume'), 0, 1);
+      s.boolean(cue.loop, join(p, 'loop'));
+      s.boolean(cue.carriesOn, join(p, 'carriesOn'));
+    });
+  const setup = v.setup;
+  if (!s.object(setup, 'setup', ['backdrop', 'objects', 'camera', 'markers'])) return s.problems;
+  const b = setup.backdrop;
+  if (s.object(b, 'setup.backdrop', [], ['ground', 'sky', 'lighting', 'fog'])) {
+    for (const k of ['ground', 'sky', 'lighting'] as const)
+      if (b[k] !== undefined) s.string(b[k], `setup.backdrop.${k}`);
+    if (b.fog !== undefined) s.number(b.fog, 'setup.backdrop.fog', 0, 1);
+  }
+  s.array(setup.objects, 'setup.objects', (o, p) => {
+    // `joints` (format 1.5.0) is only allowed here: `keptJoints` keeps what fits when the file
+    // opens.
+    const optional = ['opacity', 'paint', 'vehicle', 'joints'];
+    if (!s.object(o, p, ['id', 'model', 'class', 'transform'], optional)) return;
+    s.string(o.id, join(p, 'id'));
+    modelRef(s, o.model, join(p, 'model'));
+    s.oneOf(o.class, join(p, 'class'), STORY_CLASSES);
+    transform(s, o.transform, join(p, 'transform'));
+    if (o.opacity !== undefined) s.number(o.opacity, join(p, 'opacity'), 0, 1);
+    if (o.paint !== undefined) s.string(o.paint, join(p, 'paint'));
+    if (o.vehicle !== undefined) s.stringOrNull(o.vehicle, join(p, 'vehicle'));
+  });
+  if (s.object(setup.camera, 'setup.camera', ['transform'], ['fieldOfViewDegrees'])) {
+    transform(s, setup.camera.transform, 'setup.camera.transform');
+    if (setup.camera.fieldOfViewDegrees !== undefined)
+      s.number(setup.camera.fieldOfViewDegrees, 'setup.camera.fieldOfViewDegrees', 1, 179);
+  }
+  s.array(setup.markers, 'setup.markers', (m, p) => {
+    if (!s.object(m, p, ['id', 'transform'])) return;
+    s.string(m.id, join(p, 'id'));
+    transform(s, m.transform, join(p, 'transform'));
+  });
+  return s.problems;
+}
+
+/** `storyboard.json`. */
+export function checkStoryboardShape(v: unknown, options: ShapeOptions = {}): string[] {
+  const s = new Shape('storyboard.json', options);
+  if (!s.object(v, '', ['logline', 'synopsis', 'arc', 'cards'])) return s.problems;
+  s.string(v.logline, 'logline');
+  s.string(v.synopsis, 'synopsis');
+  if (s.object(v.arc, 'arc', ['template', 'parts'])) {
+    const t = v.arc.template;
+    if (typeof t === 'string') s.oneOf(t, 'arc.template', ['free', 'threePart', 'fivePart']);
+    else if (s.object(t, 'arc.template', ['curriculum']))
+      s.string(t.curriculum, 'arc.template.curriculum');
+    s.array(v.arc.parts, 'arc.parts', (part, p) => s.string(part, p));
+  }
+  s.array(v.cards, 'cards', (c, p) => {
+    if (!s.object(c, p, ['id', 'heading', 'cast', 'arcPart'], ['retakeNotes'])) return;
+    if (c.retakeNotes !== undefined)
+      s.string(c.retakeNotes, join(p, 'retakeNotes'), TEXT_LIMITS.retakeNotes);
+    s.string(c.id, join(p, 'id'));
+    s.string(c.heading, join(p, 'heading'));
+    s.array(c.cast, join(p, 'cast'), (m, q) => modelRef(s, m, q));
+    s.stringOrNull(c.arcPart, join(p, 'arcPart'));
+  });
+  return s.problems;
+}
+
+const FACINGS = ['front', 'threeQuarter', 'side', 'back'] as const;
+
+/**
+ * `frames/<id>.json`. Its `check` and `plan` are only allowed here; `checkFrameCheck` and
+ * `checkFramePlan` judge them, and a file whose check or plan doesn't fit opens without it
+ * (`openProduction`).
+ */
+export function checkFrameShape(v: unknown, where: string, options: ShapeOptions = {}): string[] {
+  const s = new Shape(where, options);
+  const keys = ['id', 'scene', 'order', 'caption', 'shot', 'lengthSeconds', 'sketches', 'links'];
+  if (!s.object(v, '', keys, ['check', 'plan'])) return s.problems;
+  s.string(v.id, 'id');
+  s.string(v.scene, 'scene');
+  s.number(v.order, 'order', 0);
+  s.string(v.caption, 'caption');
+  s.oneOf(v.shot, 'shot', SHOT_TYPES);
+  s.number(v.lengthSeconds, 'lengthSeconds', 0);
+  s.array(v.sketches, 'sketches', (k, p) => {
+    const keys = ['id', 'item', 'facing', 'pose', 'x', 'y', 'scale', 'flipped', 'layer'];
+    if (!s.object(k, p, keys)) return;
+    s.string(k.id, join(p, 'id'));
+    modelRef(s, k.item, join(p, 'item'));
+    s.oneOf(k.facing, join(p, 'facing'), FACINGS);
+    s.stringOrNull(k.pose, join(p, 'pose'));
+    for (const n of ['x', 'y', 'scale', 'layer'] as const) s.number(k[n], join(p, n));
+    s.boolean(k.flipped, join(p, 'flipped'));
+  });
+  s.array(v.links, 'links', (l, p) => s.string(l, p));
+  return s.problems;
+}
+
+/**
+ * Limits for a frame's agreed plan (format 1.6.0, spec 04 section 6.7, agreed with S5 on 17 Nov
+ * 2026). Generous, as the learner edits the steps: a plan over them is dropped when the file
+ * opens, never the file.
+ */
+export const PLAN_LIMITS = {
+  /** Steps in each of `shown` and `agreed`. */
+  steps: 50,
+  /** Each text field of a step but its details. */
+  text: 300,
+  /** Details in one step, and each detail's name and value. */
+  details: 20,
+  detailName: 64,
+  detailValue: 300,
+  /** A step's `repeat`; on a `repeat` step (format 1.8.0), from 2. */
+  repeat: 1000,
+} as const;
+
+/** An ISO 8601 time in UTC, as `Date.prototype.toISOString` writes it, that is a real time. */
+const ISO_UTC = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
+
+/**
+ * A frame's `plan` (format 1.6.0; `done`, 1.7.0; `repeat` steps and `holds`, 1.8.0): its
+ * problems, or none. A plan with any problem is dropped as a whole when the file opens: half a
+ * plan would mislead the teacher reading it.
+ *
+ * For repeats (spec 04 section 6.8) the format checks only what keeps a plan readable: `holds`
+ * is 0 but on a `repeat` step, which holds at least one step within its own list and repeats at
+ * least twice. What a repeat may hold (only `do` steps, no repeat inside another) is the
+ * Prompter's plan check (section 6.3), as those rules may change without a new format.
+ */
+export function checkFramePlan(v: unknown, where: string, options: ShapeOptions = {}): string[] {
+  const s = new Shape(where, options);
+  if (!s.object(v, 'plan', ['agreedAt', 'shown', 'agreed'], ['done'])) return s.problems;
+  // Plan only's ticks (spec 04 section 6.6): step numbers from 1, ascending, each once, none past
+  // the agreed steps, so a kept plan has one spelling. Empty when none is ticked now.
+  if (v.done !== undefined) {
+    const steps = Array.isArray(v.agreed) ? v.agreed.length : 0;
+    if (
+      !Array.isArray(v.done) ||
+      !v.done.every(
+        (n, i, all) =>
+          Number.isInteger(n) &&
+          (n as number) >= 1 &&
+          (n as number) <= steps &&
+          (i === 0 || (n as number) > (all[i - 1] as number)),
+      )
+    )
+      s.fail(
+        'plan.done',
+        'should list step numbers from 1, ascending, each once, none past the agreed steps',
+      );
+  }
+  if (
+    s.string(v.agreedAt, 'plan.agreedAt', 40) &&
+    (!ISO_UTC.test(v.agreedAt) || Number.isNaN(Date.parse(v.agreedAt)))
+  )
+    s.fail('plan.agreedAt', 'should be an ISO 8601 time in UTC');
+  for (const list of ['shown', 'agreed'] as const) {
+    const at = `plan.${list}`;
+    if (Array.isArray(v[list]) && v[list].length > PLAN_LIMITS.steps) {
+      s.fail(at, `should hold at most ${PLAN_LIMITS.steps} steps`);
+      continue;
+    }
+    const steps = Array.isArray(v[list]) ? v[list].length : 0;
+    let index = -1;
+    s.array(v[list], at, (step, p) => {
+      index++;
+      const keys = ['words', 'kind', 'actor', 'action', 'target', 'details', 'line', 'sketch'];
+      if (!s.object(step, p, [...keys, 'together', 'repeat', 'holds', 'why'])) return;
+      for (const k of ['words', 'actor', 'action', 'target', 'line', 'sketch', 'why'] as const)
+        s.string(step[k], join(p, k), PLAN_LIMITS.text);
+      s.oneOf(step.kind, join(p, 'kind'), PLAN_STEP_KINDS);
+      s.boolean(step.together, join(p, 'together'));
+      const whole = (n: unknown, path: string, min: number, max: number): n is number => {
+        if (!s.number(n, path, min, max)) return false;
+        if (Number.isInteger(n)) return true;
+        s.fail(path, 'should be a whole number');
+        return false;
+      };
+      const repeat = whole(step.repeat, join(p, 'repeat'), 1, PLAN_LIMITS.repeat);
+      const holds = whole(step.holds, join(p, 'holds'), 0, PLAN_LIMITS.steps - 1);
+      // A repeat step (format 1.8.0, spec 04 section 6.8) holds the next `holds` steps.
+      if (step.kind === 'repeat') {
+        if (repeat && (step.repeat as number) < 2)
+          s.fail(join(p, 'repeat'), 'should be at least 2 on a repeat step');
+        if (holds && (step.holds as number) < 1)
+          s.fail(join(p, 'holds'), 'should be at least 1 on a repeat step');
+        else if (holds && index + (step.holds as number) >= steps)
+          s.fail(join(p, 'holds'), 'should not run past the last step');
+      } else if (holds && step.holds !== 0)
+        s.fail(join(p, 'holds'), 'should be 0 but on a repeat step');
+      const details = join(p, 'details');
+      if (Array.isArray(step.details) && step.details.length > PLAN_LIMITS.details) {
+        s.fail(details, `should hold at most ${PLAN_LIMITS.details}`);
+        return;
+      }
+      s.array(step.details, details, (d, dp) => {
+        if (!s.object(d, dp, ['name', 'value'])) return;
+        s.string(d.name, join(dp, 'name'), PLAN_LIMITS.detailName);
+        s.string(d.value, join(dp, 'value'), PLAN_LIMITS.detailValue);
+      });
+    });
+  }
+  return s.problems;
+}
+
+/**
+ * Limits for a frame's saved check (format 1.3.0, spec 08 section 9.6, agreed with S2). The check
+ * keeps to them; a file over them opens without its check.
+ */
+export const CHECK_LIMITS = {
+  /** Items in one frame's result. */
+  items: 200,
+  /** One item's words: a `problem` carries the error's own words (spec 08's 6.3). */
+  words: 300,
+  /** An item's `id`, `node`, `sketch` or `line`, and each kept id. */
+  id: 200,
+  /** The hash the result depends on. */
+  basis: 128,
+} as const;
+
+/**
+ * A frame's `check` (format 1.3.0): its problems, or none. Only a cached result, so a check with
+ * problems is dropped, not the file. Whether it's stale is `@storystage/check`'s to judge.
+ */
+export function checkFrameCheck(v: unknown, where: string, options: ShapeOptions = {}): string[] {
+  const s = new Shape(where, options);
+  if (!s.object(v, 'check', ['basis', 'items', 'kept'])) return s.problems;
+  s.string(v.basis, 'check.basis', CHECK_LIMITS.basis);
+  const ids = new Set<string>();
+  const list = (x: unknown, path: string) => {
+    if (!Array.isArray(x) || x.length <= CHECK_LIMITS.items) return true;
+    s.fail(path, `should hold at most ${CHECK_LIMITS.items}`);
+    return false;
+  };
+  if (list(v.items, 'check.items'))
+    s.array(v.items, 'check.items', (item, p) => {
+      if (!s.object(item, p, ['id', 'kind', 'outcome', 'words'], ['node', 'sketch', 'line']))
+        return;
+      if (s.string(item.id, join(p, 'id'), CHECK_LIMITS.id)) {
+        if (ids.has(item.id)) s.fail(join(p, 'id'), 'is used twice');
+        ids.add(item.id);
+      }
+      s.oneOf(item.kind, join(p, 'kind'), CHECK_KINDS);
+      s.oneOf(item.outcome, join(p, 'outcome'), CHECK_OUTCOMES);
+      s.string(item.words, join(p, 'words'), CHECK_LIMITS.words);
+      for (const k of ['node', 'sketch', 'line'] as const)
+        if (k in item) s.string(item[k], join(p, k), CHECK_LIMITS.id);
+    });
+  if (list(v.kept, 'check.kept'))
+    s.array(v.kept, 'check.kept', (k, p) => s.string(k, p, CHECK_LIMITS.id));
+  return s.problems;
+}

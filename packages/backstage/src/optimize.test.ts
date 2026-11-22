@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Document, type Node } from '@gltf-transform/core';
+import { KHRMaterialsPBRSpecularGlossiness } from '@gltf-transform/extensions';
 import { countTriangles, largestTexture, reduceModel, type TextureEncoder } from './optimize.ts';
 
 /**
@@ -129,7 +130,63 @@ describe('countTriangles and largestTexture', () => {
   });
 });
 
+/**
+ * A sphere as a scan's picture cuts it: every quad its own island of the texture, so neighbouring
+ * quads share positions but never texture coordinates, and no corner can be welded to another.
+ */
+function scan(rings: number, segments: number) {
+  const doc = new Document();
+  const buffer = doc.createBuffer();
+  const positions: number[] = [];
+  const uvs: number[] = [];
+  const indices: number[] = [];
+  const point = (r: number, s: number) => {
+    const phi = (Math.PI * r) / rings;
+    const theta = (2 * Math.PI * s) / segments;
+    return [Math.sin(phi) * Math.cos(theta), Math.cos(phi), Math.sin(phi) * Math.sin(theta)];
+  };
+  const across = Math.ceil(Math.sqrt(rings * segments));
+  const cell = 1 / across;
+  let island = 0;
+  for (let r = 0; r < rings; r++)
+    for (let s = 0; s < segments; s++, island++) {
+      const base = positions.length / 3;
+      const u = (island % across) * cell;
+      const v = Math.floor(island / across) * cell;
+      for (const [dr, ds] of [
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [1, 1],
+      ] as const) {
+        positions.push(...point(r + dr, s + ds));
+        uvs.push(u + ds * cell * 0.9, v + dr * cell * 0.9);
+      }
+      indices.push(base, base + 1, base + 2, base + 2, base + 1, base + 3);
+    }
+  const accessor = (type: 'VEC2' | 'VEC3' | 'SCALAR', array: Float32Array | Uint32Array) =>
+    doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
+  const prim = doc
+    .createPrimitive()
+    .setAttribute('POSITION', accessor('VEC3', new Float32Array(positions)))
+    .setAttribute('TEXCOORD_0', accessor('VEC2', new Float32Array(uvs)))
+    .setIndices(accessor('SCALAR', new Uint32Array(indices)));
+  const node = doc.createNode('scan').setMesh(doc.createMesh('scan').addPrimitive(prim));
+  doc.getRoot().setDefaultScene(doc.createScene().addChild(node));
+  return doc;
+}
+
 describe('reduceModel', () => {
+  it("brings a scan to its budget too, though its picture's seams stall the gentle steps", async () => {
+    const doc = scan(60, 100); // 12,000 triangles, each quad its own island of the picture
+    const before = bounds(doc);
+    const report = await reduceModel(doc, { triangles: 4_000, textureMaxPx: 1024 });
+    expect(report.after.triangles).toBeLessThanOrEqual(4_000);
+    expect(report.after.triangles).toBeGreaterThan(1_000);
+    expect(report.fits).toBe(true);
+    bounds(doc).forEach((v, i) => expect(v).toBeCloseTo(before[i]!, 0));
+  });
+
   it('brings a model down to its budget, keeping its shape', async () => {
     const doc = sphere(100, 200); // 40,000 triangles
     const before = bounds(doc);
@@ -198,12 +255,87 @@ describe('reduceModel', () => {
     expect(again.calls).toEqual([]);
   });
 
+  it('takes PNG from an encoder that cannot make WebP, as Safari makes (spec 17, section 5)', async () => {
+    const doc = sphere(10, 20);
+    const big = withTexture(doc, png(4096, 2048));
+    const encode: TextureEncoder = async (_image, _mimeType, maxPx) => ({
+      bytes: png(maxPx, maxPx / 2),
+      mimeType: 'image/png',
+    });
+    const report = await reduceModel(
+      doc,
+      { triangles: 20_000, textureMaxPx: 1024 },
+      { encodeTexture: encode },
+    );
+    expect(big.getMimeType()).toBe('image/png');
+    expect(big.getSize()).toEqual([1024, 512]);
+    expect(report.fits).toBe(true);
+    expect(
+      doc
+        .getRoot()
+        .listExtensionsUsed()
+        .map((e) => e.extensionName),
+    ).not.toContain('EXT_texture_webp');
+  });
+
   it('says so when it cannot shrink textures without an encoder', async () => {
     const doc = sphere(10, 20);
     withTexture(doc, png(4096, 4096));
     const report = await reduceModel(doc, { triangles: 20_000, textureMaxPx: 1024 });
     expect(report.after.textureMaxPx).toBe(4096);
     expect(report.fits).toBe(false);
+  });
+
+  it('drops a mesh placed twice in the same place, keeping one placed elsewhere', async () => {
+    const doc = sphere(10, 20); // 400 triangles
+    const root = doc.getRoot();
+    const [node] = root.listNodes();
+    const scene = root.getDefaultScene()!;
+    // The same shape again, as its own mesh, as some converted models carry it.
+    const copy = doc.createMesh('copy');
+    for (const p of node!.getMesh()!.listPrimitives()) copy.addPrimitive(p.clone());
+    scene.addChild(doc.createNode('copy').setMesh(copy));
+    // And once more, moved: that one is meant.
+    scene.addChild(doc.createNode('moved').setMesh(node!.getMesh()).setTranslation([2, 0, 0]));
+    const report = await reduceModel(doc, { triangles: 20_000, textureMaxPx: 1024 });
+    expect(report.before.triangles).toBe(800);
+    expect(report.after.triangles).toBe(400);
+    expect(
+      root
+        .listNodes()
+        .filter((n) => n.getMesh())
+        .map((n) => n.getName()),
+    ).toEqual([node!.getName(), 'moved']);
+  });
+
+  it('makes an older specular-glossiness material an ordinary base-colour one', async () => {
+    const doc = sphere(4, 8);
+    const picture = doc.createTexture('hull').setImage(png(64, 64)).setMimeType('image/png');
+    const sg = doc.createExtension(KHRMaterialsPBRSpecularGlossiness);
+    const material = doc
+      .createMaterial('hull')
+      .setExtension(
+        'KHR_materials_pbrSpecularGlossiness',
+        sg
+          .createPBRSpecularGlossiness()
+          .setDiffuseFactor([0.5, 0.25, 1, 1])
+          .setDiffuseTexture(picture)
+          .setGlossinessFactor(0.2),
+      );
+    doc.getRoot().listMeshes()[0]!.listPrimitives()[0]!.setMaterial(material);
+    await reduceModel(doc, { triangles: 10_000, textureMaxPx: 1024 });
+    const after = doc.getRoot().listMaterials()[0]!;
+    expect(after.getBaseColorTexture()).toBe(picture);
+    expect(after.getBaseColorFactor()).toEqual([0.5, 0.25, 1, 1]);
+    expect(after.getMetallicFactor()).toBe(0);
+    expect(after.getRoughnessFactor()).toBeCloseTo(0.8);
+    expect(after.getExtension('KHR_materials_pbrSpecularGlossiness')).toBeNull();
+    expect(
+      doc
+        .getRoot()
+        .listExtensionsUsed()
+        .map((e) => e.extensionName),
+    ).not.toContain('KHR_materials_pbrSpecularGlossiness');
   });
 
   it('drops what nothing uses', async () => {

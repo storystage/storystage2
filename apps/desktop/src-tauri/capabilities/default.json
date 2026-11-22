@@ -6,9 +6,12 @@
   "permissions": [
     "allow-policy-in-force",
     "allow-app-version",
+    "allow-backstage-folder",
     "allow-prompter-send",
     "allow-prompter-cancel",
     "allow-prompter-status",
+    "allow-prompter-pupil",
+    "allow-prompter-usage",
     "allow-key-add",
     "allow-key-status",
     "allow-key-remove",
@@ -16,6 +19,21 @@
     "allow-speech-model-load",
     "allow-speech-model-download",
     "allow-speech-model-cancel",
-    "allow-speech-model-remove"
+    "allow-speech-model-remove",
+    "allow-classes-read",
+    "allow-classes-write",
+    "allow-classes-remove",
+    "allow-classes-list",
+    "allow-classes-move",
+    "allow-picker-kind",
+    "allow-picker-save",
+    "allow-picker-save-film",
+    "allow-picker-open",
+    "allow-picker-collect-start",
+    "allow-picker-collect-write",
+    "allow-picker-collect-finish",
+    "allow-picker-hand-back-start",
+    "allow-picker-hand-back-read",
+    "allow-picker-end"
   ]
 }

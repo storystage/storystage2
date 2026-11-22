@@ -14,11 +14,52 @@ import type { SourceItem } from './sources.ts';
 
 export type Fetcher = (url: string) => Promise<Uint8Array>;
 
-export const httpFetch: Fetcher = async (url) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Could not fetch ${url}: ${res.status} ${res.statusText}`);
+/** A fetch that failed in a way worth trying again: the network, or the server's own error. */
+class Passing extends Error {}
+
+const once: Fetcher = async (url) => {
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (e) {
+    throw new Passing(`Could not reach ${url}: ${(e as Error).message}`);
+  }
+  if (!res.ok) {
+    const message = `Could not fetch ${url}: ${res.status} ${res.statusText}`;
+    throw res.status === 401 || res.status === 403 ? new Error(message) : new Passing(message);
+  }
   return new Uint8Array(await res.arrayBuffer());
 };
+
+/**
+ * Tries a fetch again after a dropped connection or a server error, waiting longer each time
+ * (1, 2, then 4 seconds), up to `tries` in all. Only a refusal (401, 403) fails at once; every
+ * other failing status is tried again, a missing file (404) included, since a gateway can give
+ * one for a moment, so a file truly gone (404, 410, 451) takes about 7 seconds to fail. The CI
+ * build lost three runs on 19 Nov 2026 to Arweave hosts dropping a connection, and one on 20 Nov
+ * to a 404 for a file that answered seconds later. Every fetch is still checked against its pin.
+ */
+export function withRetries(
+  fetcher: Fetcher,
+  tries = 4,
+  wait = (ms: number) => new Promise<void>((done) => setTimeout(done, ms)),
+): Fetcher {
+  return async (url) => {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await fetcher(url);
+      } catch (e) {
+        if (!(e instanceof Passing) || attempt >= tries) throw e;
+        await wait(1000 * 2 ** (attempt - 1));
+      }
+    }
+  };
+}
+
+export const httpFetch: Fetcher = withRetries(once);
+
+/** For tests: a failure worth trying again. */
+export const passingFailure = (message: string): Error => new Passing(message);
 
 export interface Fetched {
   readonly bytes: Uint8Array;
@@ -27,6 +68,25 @@ export interface Fetched {
 }
 
 const sha256 = (b: Uint8Array) => createHash('sha256').update(b).digest('hex');
+
+/** A backdrop's picture (spec 17 section 2), pinned as a model is. */
+export async function fetchPicture(
+  item: SourceItem,
+  fetcher: Fetcher,
+): Promise<{ readonly bytes: Uint8Array; readonly fetched: Fetched['fetched'] }> {
+  const f = item.fetch;
+  if ('generated' in f) throw new Error(`${item.id}: a backdrop's picture is fetched, not made.`);
+  const url =
+    'url' in f
+      ? f.url
+      : `https://raw.githubusercontent.com/${f.github}/${f.commit}/` +
+        f.path.split('/').map(encodeURIComponent).join('/');
+  const bytes = await fetcher(url);
+  const got = sha256(bytes);
+  if ('url' in f && f.sha256 !== undefined && got !== f.sha256)
+    throw new Error(`${item.id}: ${f.url} has sha256 ${got}, not ${f.sha256} as listed.`);
+  return { bytes, fetched: [{ url, sha256: got }] };
+}
 
 export async function fetchModel(
   item: SourceItem,
@@ -59,6 +119,8 @@ export async function fetchModel(
     const got = sha256(bytes);
     if (f.sha256 !== undefined && got !== f.sha256)
       throw new Error(`${item.id}: ${f.url} has sha256 ${got}, not ${f.sha256} as listed.`);
+    if (f.ext !== 'glb' && f.ext !== 'vrm')
+      throw new Error(`${item.id}: ${f.url} is a picture, not a model.`);
     return { bytes, ext: f.ext, fetched: [{ url: f.url, sha256: got }] };
   }
   const base = `https://raw.githubusercontent.com/${f.github}/${f.commit}/`;

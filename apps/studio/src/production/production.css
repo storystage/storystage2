@@ -1,0 +1,934 @@
+/*
+  The Production stage (docs/spec/07-ux.md section 7; Direction A screen 02). Tokens only: every
+  colour is a var(--ss-*) from ThemeRoot (shell.test.ts checks).
+*/
+
+.pr {
+  --ss-surface: var(--ss-stage-0);
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 14px 0 0;
+  overflow: hidden;
+}
+/* Below the frame strip: the main column, scrolling, and the Prompter beside it (section 7.1). */
+.pr-work {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.pr-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0 16px 14px;
+  overflow-y: auto;
+}
+.pr > .pr-head {
+  margin-inline: 16px;
+}
+
+/* The frame strip, then Undo and Redo at its end (sections 7.1 and 7.5). */
+.pr-head {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.pr-head > .pr-strip {
+  flex: 1;
+  min-width: 0;
+}
+.pr-toolbar {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  margin-inline-start: auto;
+}
+
+/* The Code editor, closed until the scene is storyboarded (section 1.4). */
+.pr-closed {
+  --ss-surface: var(--ss-panel-3);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 560px;
+  padding: 18px 20px;
+  border-radius: 14px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-closed p {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-closed-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(22px * var(--ss-text-size, 1));
+}
+.pr-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pr-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ss-muted);
+}
+.pr-check[data-done] {
+  color: var(--ss-text);
+}
+.pr-check[data-done] .ss-icon {
+  color: var(--ss-ok);
+}
+.pr-check-state {
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: calc(14px * var(--ss-text-size, 1));
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+}
+
+/* The Code editor: one tab per method, then the method's blocks. */
+.pr-code {
+  display: flex;
+  /* Never shorter than what it holds: the column round it scrolls. It shrank to nothing in a
+     short window, its blocks drawn below its own box. */
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+/* The method tabs, scrolling sideways when there are many, then New (07-ux 7.3). */
+.pr-tab-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+.pr-tabs {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+  min-width: 0;
+  overflow-x: auto;
+}
+.pr-tab {
+  flex: none;
+}
+.pr-new {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  min-height: 44px;
+  margin-block-end: 4px;
+  padding: 0 8px 0 12px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 700;
+  color: var(--ss-text);
+  background: var(--ss-field);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  cursor: pointer;
+  outline: none;
+}
+.pr-new[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+.pr-new-popover .sb-menu {
+  max-height: min(60vh, 480px);
+  overflow-y: auto;
+}
+.pr-new-heading {
+  padding: 8px 12px 4px;
+  font-size: calc(14px * var(--ss-text-size, 1));
+  font-weight: 700;
+  color: var(--ss-muted);
+}
+.pr-new-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.pr-new-gives {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+/* New's inputs (7.14): each a name, what it holds, and Take out, then "Add an input (parameter)…". */
+.pr-new-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.pr-new-inputs > legend {
+  margin-bottom: 8px;
+  padding: 0;
+}
+.pr-new-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: stretch;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-new-input > .ss-button {
+  align-self: flex-start;
+}
+.pr-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 12px 12px 0 0;
+  font-weight: 700;
+  color: var(--ss-muted);
+  background: var(--ss-tab);
+  cursor: pointer;
+  outline: none;
+}
+.pr-tab[data-selected] {
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+}
+.pr-tab[data-focus-visible] {
+  box-shadow: inset 0 0 0 3px var(--ss-focus);
+}
+.pr-tab-panel {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  outline: none;
+}
+/* Show as text: the read-only text beside the code, in its own scroll (07-ux 7.3). */
+.pr-tab-panel[data-text] {
+  gap: 12px;
+}
+.pr-text {
+  display: flex;
+  flex: 0 1 34%;
+  flex-direction: column;
+  min-width: 260px;
+  max-height: 520px;
+}
+.pr-text > .tv {
+  flex: 1;
+}
+.pr-text-choice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-inline-start: auto;
+}
+@media (max-width: 1279px) {
+  .pr-tab-panel[data-text] {
+    flex-direction: column;
+  }
+  .pr-text {
+    flex-basis: auto;
+    max-height: 320px;
+  }
+}
+.pr-workspace-frame {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 420px;
+  border-radius: 0 12px 12px 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+/*
+ * Blockly's menus and drop-downs open inside its workspace, which would clip a block's menu near
+ * the edge. So nothing around them clips: the workspace's own drawing is rounded instead.
+ */
+.pr-workspace .injectionDiv {
+  overflow: visible;
+}
+.pr-workspace .blocklySvg {
+  border-radius: 0 12px 12px 12px;
+}
+.pr-workspace {
+  flex: 1;
+  min-height: 420px;
+}
+.pr-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: var(--ss-muted);
+}
+
+/*
+ * The Blocks editor's look (14-editors 3i.5; WP7.6): screen 02's dotted workspace, each block in
+ * its family's colour (the renderer tags it `ss-family-…`), values as white chips, and control
+ * statements and the method as boxes in the workspace's own colours.
+ */
+.pr-workspace .blocklySvg {
+  background-color: var(--ss-code);
+}
+.pr-workspace .blocklyFlyoutBackground {
+  fill: var(--ss-panel-1);
+  fill-opacity: 1;
+}
+.pr-workspace .injectionDiv .blocklyFlyout .blocklyFlyoutLabelText {
+  fill: var(--ss-text-2);
+}
+.pr-workspace .blocklyGridPattern line {
+  stroke: var(--ss-code-dots);
+}
+.pr-workspace .ss-family-move {
+  --block: var(--ss-block-move);
+  --on-block: var(--ss-on-block-move);
+}
+.pr-workspace .ss-family-speech {
+  --block: var(--ss-block-speech);
+  --on-block: var(--ss-on-block-speech);
+}
+.pr-workspace .ss-family-camera {
+  --block: var(--ss-block-camera);
+  --on-block: var(--ss-on-block-camera);
+}
+.pr-workspace .ss-family-look {
+  --block: var(--ss-block-look);
+  --on-block: var(--ss-on-block-look);
+}
+.pr-workspace .ss-family-sound {
+  --block: var(--ss-block-sound);
+  --on-block: var(--ss-on-block-sound);
+}
+.pr-workspace .ss-family-question {
+  --block: var(--ss-block-question);
+  --on-block: var(--ss-on-block-question);
+}
+.pr-workspace .ss-family-yours {
+  --block: var(--ss-block-yours);
+  --on-block: var(--ss-on-block-yours);
+}
+.pr-workspace .ss-family-loop {
+  --block: var(--ss-block-loop);
+  --on-block: var(--ss-on-block-loop);
+}
+.pr-workspace .ss-family-value {
+  --block: var(--ss-block-chip);
+  --on-block: var(--ss-on-block-chip);
+  --block-line: var(--ss-line-2);
+}
+.pr-workspace .ss-family-control,
+.pr-workspace .ss-family-method {
+  --block: var(--ss-code-method);
+  --on-block: var(--ss-text);
+  --block-line: var(--ss-line-2);
+}
+/*
+ * Every block is outlined, a darker shade of its own colour, so two blocks of one colour stacked
+ * together stay two (Blockly's appearance guide: keep visible borders).
+ */
+.pr-workspace [class*='ss-family-'] > .blocklyPath {
+  fill: var(--block);
+  stroke: var(--block-line, color-mix(in srgb, var(--block) 60%, black));
+  stroke-width: 1.5px;
+}
+.pr-workspace [class*='ss-family-'] > .blocklyText,
+.pr-workspace [class*='ss-family-'] > g > .blocklyText {
+  fill: var(--on-block);
+}
+
+/*
+ * "add detail ▾" at the end of a row (14-editors 3i.5): in the block's own words' colour, with a
+ * dashed outline, not a white value chip. (Specific enough to outrank Blockly's field rules.)
+ */
+.pr-workspace .blocklyBlockCanvas .blocklyEditableField.ss-add-detail > rect.blocklyFieldRect {
+  fill: transparent;
+  stroke: var(--on-block);
+  stroke-dasharray: 4 3;
+}
+.pr-workspace .blocklyBlockCanvas .blocklyEditableField.ss-add-detail > text.blocklyText {
+  fill: var(--on-block);
+}
+
+/* Highlights on blocks, through the editor contract (14-editors 3i.10). */
+.ss-highlight-rehearse > .blocklyPath {
+  stroke: var(--ss-amber);
+  stroke-width: 4px;
+}
+.ss-highlight-error > .blocklyPath {
+  stroke: var(--ss-stop);
+  stroke-width: 4px;
+}
+.ss-highlight-prompter > .blocklyPath {
+  stroke: var(--ss-prompter);
+  stroke-width: 4px;
+}
+/* A block the current frame links to (WP10.8): dashed, in the strip's Coded colour. */
+.ss-highlight-link > .blocklyPath {
+  stroke: var(--ss-status-coded);
+  stroke-width: 3px;
+  stroke-dasharray: 8 4;
+}
+
+/*
+ * A switched-off statement (14-editors 3i.7): greyed, with a dashed outline, its words still at
+ * 4.5:1, as Tiles draws one. Blockly's own fades the block to half and leaves its words white.
+ */
+.pr-workspace .blocklyDisabledPattern > .blocklyPath {
+  fill: var(--ss-panel-2);
+  fill-opacity: 1;
+  stroke: var(--ss-muted);
+  stroke-width: 2px;
+  stroke-dasharray: 6 4;
+}
+.pr-workspace .blocklyDisabledPattern > .blocklyLabelField > .blocklyText {
+  fill: var(--ss-muted);
+}
+
+/* The current frame's links, over the Code editor (07-ux 7.3; WP10.8). */
+.pr-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 8px 12px;
+  border: 1px solid var(--ss-line-1);
+  border-radius: 12px;
+  background: var(--ss-panel-2);
+}
+.pr-links-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.pr-links-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(17px * var(--ss-text-size, 1));
+}
+.pr-links-summary,
+.pr-links-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-links-note {
+  color: var(--ss-text);
+}
+
+/* The palette's object and tab, above the method tabs (07-ux 7.3). */
+.pr-palette-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+.pr-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pr-picker-label {
+  font-weight: 700;
+}
+.pr-picker-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 200px;
+  min-height: 48px;
+  padding: 0 10px 0 14px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  color: var(--ss-text);
+  background: var(--ss-field);
+  box-shadow: inset 0 0 0 1px var(--ss-line-2);
+  cursor: pointer;
+  outline: none;
+}
+.pr-picker-button[data-focus-visible] {
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-2),
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+
+/* The scene view and Rehearse (07-ux 7.2, 7.4): the set-up through the scene's camera, its
+   controls on the title band, above the Code editor. */
+.pr-scene {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.pr-scene-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.pr-scene-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(20px * var(--ss-text-size, 1));
+}
+.pr-scene-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+/* Set up this scene from your storyboard? (WP10.10) */
+.pr-from-storyboard {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 1px solid var(--ss-amber-line);
+  border-radius: 12px;
+  background: var(--ss-panel-2);
+}
+.pr-from-storyboard-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(19px * var(--ss-text-size, 1));
+}
+.pr-from-storyboard-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-from-storyboard-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
+}
+.pr-from-storyboard-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+}
+.pr-from-storyboard-section {
+  margin: 0;
+  font-size: calc(15px * var(--ss-text-size, 1));
+  color: var(--ss-text-2);
+}
+.pr-from-storyboard-list {
+  margin: 0;
+  padding-left: 20px;
+}
+.pr-from-storyboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Under the view: Camera view or Look around, Move the camera here, and In this shot. */
+.pr-scene-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+.pr-in-shot {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+
+/* Waiting for the scene view: as tall as its buttons. */
+.pr-scene-controls-waiting {
+  min-height: 44px;
+}
+.pr-scene-why {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-scene-view {
+  position: relative;
+  align-self: center;
+  width: 100%;
+  max-width: calc(clamp(180px, 34vh, 440px) * 16 / 9);
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-scene-view.pr-scene-running {
+  box-shadow: 0 0 0 3px var(--ss-amber);
+}
+.pr-canvas,
+.pr-canvas > canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.pr-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+/* What's said, over the picture's foot, as the Screening room shows its captions. */
+.pr-captions {
+  position: absolute;
+  right: 0;
+  bottom: 6%;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+.pr-caption {
+  max-width: 80%;
+  margin: 0;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-size: calc(18px * var(--ss-text-size, 1));
+  text-align: center;
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+}
+/* A thought, not speech: in italics, outlined rather than filled. */
+.pr-caption[data-thought] {
+  font-style: italic;
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 2px var(--ss-line-2);
+}
+
+/* The frame strip across the top (07-ux 7.1): its sketch thumbnails fill their paper square. */
+.pr-strip {
+  flex: none;
+  padding-bottom: 4px;
+}
+.pr-strip .sb-picture {
+  width: 100%;
+  height: 100%;
+}
+
+/* The scene view and the frame's automatic check side by side (spec 08 section 9). */
+.pr-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: 16px;
+  align-items: start;
+}
+.pr-top > :only-child {
+  grid-column: 1 / -1;
+}
+.pr-check {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  color: var(--ss-text);
+  text-align: start;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-check-title {
+  margin: 0;
+  color: var(--ss-text);
+  font-family: var(--ss-font-display);
+  font-size: calc(18px * var(--ss-text-size, 1));
+}
+.pr-check-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pr-check-summary {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-check-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 40vh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+.pr-check-items[data-stale] {
+  opacity: 0.75;
+}
+.pr-check-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 2px 8px;
+  align-items: start;
+}
+.pr-check-item[data-outcome='flag'] > .ss-icon {
+  color: var(--ss-stop);
+}
+.pr-check-item[data-outcome='passed'] > .ss-icon {
+  color: var(--ss-ok);
+}
+.pr-check-item[data-kept] > .ss-icon {
+  color: var(--ss-muted);
+}
+.pr-check-words {
+  overflow-wrap: anywhere;
+}
+.pr-check-item-actions {
+  display: flex;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  grid-column: 2;
+  gap: 4px;
+}
+
+/* The right-hand column: the objects in the scene, then the frame's check (07-ux 7.2). */
+.pr-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+.pr-objects {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+}
+.pr-objects-title {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: calc(18px * var(--ss-text-size, 1));
+}
+.pr-objects-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-objects-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  outline: none;
+}
+.pr-object {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  outline: none;
+}
+.pr-object[data-hovered] {
+  background: var(--ss-panel-4);
+}
+.pr-object[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.pr-object[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+/* Pose: the joint, then its three turns. */
+.pr-pose {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ss-line-1);
+}
+.pr-pose-title {
+  margin: 0;
+  font-size: calc(16px * var(--ss-text-size, 1));
+}
+.pr-pose-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+  align-items: end;
+}
+.pr-pose-posed {
+  margin-inline-start: 8px;
+  color: var(--ss-text-2);
+  font-size: calc(14px * var(--ss-text-size, 1));
+}
+/* Picked up from the keyboard: held, until Enter, Space or Esc puts it down. */
+.pr-object[data-lifted] {
+  background: var(--ss-amber-tint);
+  box-shadow:
+    inset 0 0 0 2px var(--ss-amber-line),
+    0 0 0 3px var(--ss-focus);
+  outline: 2px dashed var(--ss-amber);
+  outline-offset: 5px;
+  cursor: grabbing;
+}
+.pr-object-name {
+  font-weight: 700;
+}
+.pr-object-model {
+  color: var(--ss-text-2);
+}
+.pr-object-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: 8px;
+}
+.pr-number {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pr-number-label {
+  font-size: calc(14px * var(--ss-text-size, 1));
+  color: var(--ss-text-2);
+}
+.pr-number-input {
+  /* The shared input grows along a row; in this column it keeps its height. */
+  flex: none;
+  width: 100%;
+  min-width: 0;
+  height: 44px;
+}
+
+/* Backstage's rail on the Production stage (07-ux 7.1): 96 px, its panel over the scene view. */
+.pr-top {
+  grid-template-columns: 96px minmax(0, 1fr) minmax(260px, 340px);
+}
+.pr-rail-area {
+  position: relative;
+  z-index: 3;
+}
+.pr-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pr-rail-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 64px;
+  padding: 8px 4px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: calc(13px * var(--ss-text-size, 1));
+  font-weight: 700;
+  color: var(--ss-text);
+  background: var(--ss-panel-3);
+  box-shadow: inset 0 0 0 1px var(--ss-line-1);
+  cursor: pointer;
+  outline: none;
+}
+.pr-rail-button[data-selected] {
+  background: var(--ss-amber-tint);
+  box-shadow: inset 0 0 0 2px var(--ss-amber-line);
+}
+.pr-rail-button[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.pr-backstage {
+  position: absolute;
+  top: 0;
+  left: calc(100% + 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(380px, 60vw);
+  max-height: 70vh;
+  padding: 12px;
+  border-radius: 14px;
+  background: var(--ss-panel-1);
+  /* No shadow token: a stronger edge sets it apart from the scene view under it. */
+  box-shadow: inset 0 0 0 2px var(--ss-line-2);
+}
+.pr-backstage-head {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.pr-backstage-search {
+  display: flex;
+  flex: 1;
+}
+.pr-backstage-note {
+  margin: 0;
+  color: var(--ss-text-2);
+}
+.pr-backstage-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  overflow-y: auto;
+  outline: none;
+}
+.pr-backstage-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--ss-panel-3);
+  outline: none;
+  cursor: pointer;
+}
+.pr-backstage-item[data-focus-visible] {
+  box-shadow: 0 0 0 3px var(--ss-focus);
+}
+.pr-backstage-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 8px;
+  background: var(--ss-sketch-paper);
+  color: var(--ss-sketch-ink);
+  overflow: hidden;
+}
+.pr-backstage-thumb img {
+  max-width: 100%;
+  max-height: 100%;
+}
+.pr-backstage-name {
+  font-weight: 700;
+  text-align: center;
+}
+
+/*
+ * Blockly measures text on an empty canvas it adds to the page. It holds nothing to see or read,
+ * so it is hidden from the page and from screen readers (axe's "region" rule). Measuring still works.
+ */
+.blocklyComputeCanvas {
+  display: none;
+}

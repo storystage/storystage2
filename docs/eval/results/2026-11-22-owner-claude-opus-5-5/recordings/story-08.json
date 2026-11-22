@@ -1,0 +1,342 @@
+{
+  "id": "story-08",
+  "source": "recorded",
+  "note": "Live run of story-08, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRMnZeiwmh5nThoCkg1",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 32797,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 32797,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 5,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQS2gYKEAgUGAI4AUIIdGhpbmtpbmcSDFUz8+7hN0N0yoDaTRoMf+GRMZ1ZQv1ComtkIjBc2Vmj0FjLkHe3nDxfaYYnJBC9o1U3DNXII4N4hy/eT8C5YfM/vMlbM2ecJAqMXOEq9wWFJVb2f95gbpyXLuzJMGB0lOphYxyyAhkUm2cru7K8lZ6/VteeRbIOVztPFAi8vTsnEJnkU16vhvTMXUd0ZatqVEIG1/bo/Uctvf1Go2GhXsQJbtkfycLVWUPFGw1SSN1oQ+gfwNxwlgxOVO/q+JYMFIHxYzv5xZR44MDRyMM4d+iyC9BNpmcvGH7brYYnCRS7kCNzKoZo5BX3n8i6H+4WOsgrVfPWeJFcXB6PSiOkW+a4C5pa27xz8/ECdPyyumkAfUrry/BpQ+gKs9P33sZevcKBbE2B4NrHTNB3VNfHkRfERFGPoAKxR46n103sRC6k4vr/FhwC8ja8uBNkzbD2tQCC1krk73hAmCYCY4ZtlDZSQHFwW5VO243SaGKny98DOg8kQfaXtKxZ2nUskJwg1ahzgfZQYO+wLAUqAxu4pPBvx/O8fqKK0VBdHwYHAzaGJGN5rpPO1H9gqjkpj7BURrpOeNfPK8sMrXMFrfj0bmHmWtyqpzaxW6G1F9shyKryxcfbuImbULcRwzA8KKGbxeYZknamXEx99vdU7cFh3tDLtX3DMJStzoMou1ANpqo7HIVr0Kp/+YQqRx/g/Mf1rKoba5dIIwaMmF/V5R11dzgWHXK6rqXU6o3khAEbsuzapXCZUA6N6jCbtIPzjSoBYRraEWgbmyE11s4UMvIC1yFZ+hsrk9f/3NwxjAEbAqnJ5GwAiE1P77NmlKsgsEMpi2cSOB57eQ2mS2nTZ6z8PCeGLIlDatsClsK5bFKDsQV66t0y6+GH0FO7o6CwazktaUMI2w7+vyNcEFnFyzW1B2THfh1nqkLy2tjqbbbSsQCuW3/QToh2JjKpZhuWsn9snetw5b3LT36GugxaspEYa6a6G7t1zI7MAj/HF7Vpg4xBie2S7MILB77uPBMBwTsGLFi3+SluQZt9txTjUyP/+jYYf5HSQCU0PQ5VN0whh38S2gxRK5f6YM3sNSYEduDAKHGZmOEjVVlsolmdOH6RKFAJwYZYrOoYAQ=="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_016XweytnaAUuYUEMEV7MCCv",
+            "name": "explain",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"text\": \"Fun idea!"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " The owl's words have"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " to come from you, because it's"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " your story. What funny thing"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " would you like the owl to say"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "? Type"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " words just"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " as you want them, and I'"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ll make a plan to put"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " them in your"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " scene."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"highlight\": [\"owl\"]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 32797,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 214,
+            "output_tokens_details": {
+              "thinking_tokens": 78
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 214,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 32797,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 32797,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRN47nQbavdXCLYeMm9",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 272,
+              "cache_read_input_tokens": 32797,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 272,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 7,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQSuAUKEAgUGAI4AUIIdGhpbmtpbmcSDLQYPggd4G8lSHprOhoMwuQd1+BP7ro/NXMiIjDfWYAJ0b987HRVaHjOfvHQebvtFEJd0V1Q6UAmsqJP2BHNEawLAXBOUNa1e0dObdkq1QRXvYKFGTjgAC+zucNi/+nGYxTRr+mcIiqMGTotDxhtbalgWUkfxwd5YN1T8b3nPVeqNDSNxVhXxcJZwKzppAX5V39j1t4E9690sNxgEFlObEazoOaIcp5Y+6RkP0612LgF6EQnZv0e9kdLvTfC0zrs35ngvdICmkDl2df9CwMNwsKEv+aBAbbxPj+t+SeRf5e8qRrAcCknwV5S21nad1gM1esmxFlSN9jfhn5nK9I6DNV6CEP7pqvrkVJPGvSb/7VOQpuDUwLCmwjVgc/6IvTHBQEZs9yx7RoQH5CDoHLOwdJSN1tB2m4+w3qT7Dmu0w/gQi24UXNoqXlNLFV/i3Bqv4YN3huoG/cMGWfN8QrFeoNuu6Dplmg/VETIKDeayUtxItN76+u720mYgMKSjF3aeTAH3VQ6K0Q7WHfBVp0RTmDJ9enlVFxv5W1dRkMQ0BY6TQfvNc2liz4BvJg7TvGXpKy/vzOVas8Z/Xaw1TVEkYtp+yfLsF9ZBXTl0gqeQGzICl/Cvo+YMrx4OL6n9U5+kMlzDIcm8lN/MjVz5DlP7xEyyjwuQnqfdlzzKUG/vcm7R+ETxh02tUddzXtJjgC/rN7sxsnHMqbDE6Dve52iHSQ3/ob6gZByTy83TgbkJUiVMR2S2WHG3YT3vGGptKtb/xHr41ojVj3bEfQxzThi27ull8hT899bSomgFn1JwfBHvcLOG1VPB7I6n5Ig8USKUBfNoeStxPrk/L62l2OG5iXgVyXgGcEvSG0cXhsm0xaWsuLYbglwTInui27CStU51/9L/zQYAQ=="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 272,
+            "cache_read_input_tokens": 32797,
+            "output_tokens": 8,
+            "output_tokens_details": {
+              "thinking_tokens": 6
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 8,
+                "cache_read_input_tokens": 32797,
+                "cache_creation_input_tokens": 272,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 272,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,7 @@ body,
 }
 
 .studio-shell {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -26,7 +27,10 @@ body,
 }
 
 /* Header: 64 px, items on the bottom edge so the active tab sits on the amber frame. */
+/* The header is the studio's chrome: its type stays its size at every text size, so the mode
+   tabs stay on one line at 1180 px (07-ux 2.1; decision 0035 scales what's under it). */
 .studio-header {
+  font-size: 16px;
   display: flex;
   flex: none;
   align-items: flex-end;
@@ -183,20 +187,27 @@ body,
 .studio-panels[hidden] {
   display: none;
 }
+/* Over the working area, inside the frame: below the 64 px header and the 3 px amber border. */
 .studio-overlay {
   --ss-surface: var(--ss-panel-2);
+  position: absolute;
+  top: 67px;
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  border-radius: 0 0 5px 5px;
   display: flex;
-  flex: 1;
   flex-direction: column;
   align-items: flex-start;
   gap: 14px;
   padding: 18px 22px;
+  overflow-y: auto;
   background: var(--ss-panel-2);
 }
 .studio-overlay-title {
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 28px;
+  font-size: calc(28px * var(--ss-text-size, 1));
   font-weight: 800;
   letter-spacing: -0.01em;
 }
@@ -230,4 +241,33 @@ body,
   .studio-modes .ss-mode-tab {
     padding: 0 12px;
   }
+}
+
+/* A note across every mode, above the working area (07-ux 9.2): a failed save, a read-only film. */
+.studio-notice {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 14px 0;
+}
+.studio-notice > * {
+  flex: 1;
+}
+
+/* The study bar (spec 14 section 6.3): one quiet row, the session's code, for a whole session. */
+.studio-study-bar {
+  display: flex;
+  flex: none;
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 14px;
+  color: var(--ss-text-2);
+  background: var(--ss-panel-1);
+  border-bottom: 1px solid var(--ss-line-1);
+  font-weight: 700;
+}
+.studio-study-bar .ss-icon {
+  fill: var(--ss-muted);
 }

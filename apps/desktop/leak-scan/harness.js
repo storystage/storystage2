@@ -79,6 +79,71 @@ async function main() {
   );
   report.crossOriginIsolated = window.crossOriginIsolated;
 
+  // The pupil folders' native store (spec 05 section 6.4): a film's bytes go in as a raw body and
+  // come back whole, and no path leaves the folder.
+  const film = new Uint8Array(3 * 1024 * 1024).map((_, index) => index % 251);
+  const folder = ['pupils', 'pupil-scan', 'production-scan'];
+  await invoke('classes_write', film, {
+    headers: { 'x-storystage-path': [...folder, 'v-1.storystage'].join('/') },
+  });
+  const back = new Uint8Array(
+    await invoke('classes_read', { path: [...folder, 'v-1.storystage'] }),
+  );
+  const failure = (promise) =>
+    promise.then(
+      () => 'answered',
+      (error) => String(error),
+    );
+  report.classes = {
+    whole: back.length === film.length && back.every((byte, index) => byte === film[index]),
+    listed: await invoke('classes_list', { path: folder }),
+    escape: await failure(invoke('classes_read', { path: ['..', 'tauri.conf.json'] })),
+    missing: await failure(invoke('classes_read', { path: ['pupils', 'pupil-none', 'meta.json'] })),
+  };
+  await invoke('classes_remove', { path: ['pupils', 'pupil-scan'] });
+
+  // The day's usage (24.5): only the one request that reached the network counts, against the
+  // device, as no pupil's folder is open; an id that isn't a safe part is ignored.
+  await invoke('prompter_pupil', { pupil: '../escape' });
+  report.usage = await invoke('prompter_usage');
+
+  // The shipped Backstage, through the app's own protocol (decision 0062): backstage.json is
+  // served, and a path out of the folder isn't.
+  const backstage = await invoke('backstage_folder');
+  const status = (path) =>
+    fetch(backstage + path).then(
+      (reply) => reply.status,
+      (error) => String(error),
+    );
+  report.backstage = {
+    manifest: await status('backstage.json'),
+    outside: await status('%2e%2e/tauri.conf.json'),
+  };
+
+  // Speak line's engine, from the app's own origin and checked against this build's pins (spec
+  // 06, 4.6): ONNX Runtime's WebAssembly comes whole, as WebAssembly; a file not pinned doesn't.
+  const wasm = await fetch('speech/ort/ort-wasm-simd-threaded.wasm');
+  const whisper = await fetch('speech/whisper.js');
+  report.whisper = {
+    status: whisper.status,
+    type: whisper.headers.get('content-type'),
+    bytes: (await whisper.arrayBuffer()).byteLength,
+  };
+  const sums = await fetch('speech/kokoro/SHA256SUMS').then(
+    (reply) => reply.text(),
+    () => '',
+  );
+  report.speechFiles = {
+    status: wasm.status,
+    type: wasm.headers.get('content-type'),
+    bytes: (await wasm.arrayBuffer()).byteLength,
+    unpinnedServed: sums.includes('model_quantized'),
+  };
+
+  // The file dialog is opened from Rust only: the page can't reach the plugin itself.
+  report.pickerKind = await invoke('picker_kind');
+  report.dialogPlugin = await failure(invoke('plugin:dialog|open', { options: {} }));
+
   report.visible = {
     replies,
     html: document.documentElement.outerHTML,

@@ -12,8 +12,9 @@
  * Story API type; optional fields are few; and `checkToolInput` checks what the schema can't.
  */
 import type { Statement } from '@storystage/ast';
+import { PLAN_LIMITS, PLAN_STEP_KINDS } from '@storystage/production';
 import { EVENTS } from '@storystage/story-api';
-import { TOOL_NAMES, type ToolName } from './tool-names.ts';
+import { STRICT_TOOLS, TOOL_NAMES, type ToolName } from './tool-names.ts';
 
 export interface JsonSchema {
   readonly type: 'object' | 'array' | 'string' | 'number' | 'integer' | 'boolean';
@@ -28,7 +29,8 @@ export interface JsonSchema {
 export interface ToolDefinition {
   readonly name: ToolName;
   readonly description: string;
-  readonly strict: true;
+  /** True for `STRICT_TOOLS`, the most the API compiles together (section 3). */
+  readonly strict: boolean;
   readonly eager_input_streaming: true;
   readonly input_schema: JsonSchema;
 }
@@ -81,7 +83,7 @@ const object = (
 });
 
 const VALUE =
-  'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), or a position as "x, y, z" in metres.';
+  'The value as text, read by its type in the Story API catalog: a number as digits ("2.5"), a name ("left", "cat"), words ("Hello"), a position as "x, y, z" in metres, or a list as its items separated by commas ("owl, cat").';
 const nameValue = object({
   name: text('The parameter or detail name, from the Story API catalog.'),
   value: text(VALUE),
@@ -108,7 +110,7 @@ const CHANGE_FIELDS = {
 
 const METHOD = text('The method to add to, by its name in the program text.');
 const PARENT = text(
-  'The id of a control block to add inside, from an earlier result. Leave it out to add to the method itself.',
+  'The id of a control block, or of a listener from add_event_listener, to add inside, from an earlier result. Leave it out to add to the method itself.',
 );
 const POSITION = text(
   '"end", or a whole number as text for the place among the blocks there, from 0.',
@@ -117,19 +119,29 @@ const POSITION = text(
 const PLAN_STEP = object({
   words: text('The step in plain words for a child, under 20 words: "The owl walks to the tree."'),
   kind: oneOf(
-    ['do', 'add', 'change', 'when', 'stage'],
-    'do: a Story API block. add: add a model. change: how something starts. when: an event. stage: set the scene from the storyboard.',
+    [...PLAN_STEP_KINDS],
+    'do: a Story API block. add: add a model. change: how something starts. when: an event. stage: set the scene from the storyboard. repeat: run the steps right after it several times, as a count block holds blocks.',
   ),
-  actor: text('The object that acts, by its name in the scene; "scene" for stage.'),
+  actor: text('The object that acts, by its name in the scene; "scene" for stage; "" for repeat.'),
   action: text(
-    'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id.',
+    'For do, a Story API procedure. For add, a Backstage id. For change, a property. For when, an event. For stage, a scene id. For repeat, "".',
   ),
-  target: text('The object or marker it acts on, or "" for none.'),
-  details: list(nameValue, 'Details and parameters, as name and value pairs.'),
+  target: text(
+    'Another object or marker the block acts on, such as the one to turn to face or move toward; "" for none. Never the actor itself.',
+  ),
+  details: list(
+    nameValue,
+    'For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words.',
+  ),
   line: text('The script line id this step says or follows, or "" for none.'),
   sketch: text('The placed sketch id this step comes from, or "" for none.'),
   together: yesNo('True if it runs at the same time as the step before it.'),
-  repeat: whole('How many times it runs; 1 for once.'),
+  repeat: whole(
+    'How many times it runs; 1 for once. For a repeat step, how many times the steps it holds run, from 2.',
+  ),
+  holds: whole(
+    'For a repeat step, how many of the steps right after it are inside the loop, from 1; 0 for every other step.',
+  ),
   why: text('One sentence under 25 words saying why this step is there, for "Why this step?"'),
 });
 const STEPS = list(PLAN_STEP, 'The plan, 1 to 12 steps, in order.');
@@ -142,7 +154,7 @@ const tool = (
 ): ToolDefinition => ({
   name,
   description,
-  strict: true,
+  strict: STRICT_TOOLS.includes(name),
   eager_input_streaming: true,
   input_schema: object(properties, optional),
 });
@@ -167,6 +179,17 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
     'read_project',
     'Get the latest production and storyboard data, after several changes. Changes nothing.',
     {},
+  ),
+  find_models: tool(
+    'find_models',
+    "Get the full Backstage lines, with their joints, of the shipped models that best match some words: for a model in the Backstage index whose full line isn't in <backstage_data>. Imported models aren't searched; they're in <production_data>. Changes nothing.",
+    {
+      query: text('What to look for, under 10 words: "oak tree", "rocket", "girl with a hat".'),
+      section: oneOf(
+        ['', 'cast', 'props', 'set', 'backdrops'],
+        'The Backstage section to search, or "" for every section.',
+      ),
+    },
   ),
   check_frame: tool(
     'check_frame',
@@ -197,20 +220,22 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
       backstage_item: text('A Backstage id: "Quadruped/Cat/AbyssinianCat".'),
       name: text('Its name in the scene. Made unique if taken; the result says the final name.'),
       position: vector,
-      turn_degrees: number('Turn about the vertical axis from its default facing, in degrees.'),
+      turn_degrees: number(
+        'Turn about the vertical axis, in degrees. 0 faces +z; a positive turn is to its left: 90 faces +x, -90 faces -x, 180 faces -z.',
+      ),
       scale: number('Resize, 0.05 to 20; 1 is its usual size.'),
       ...CHANGE_FIELDS,
     },
     ['turn_degrees', 'scale'],
   ),
   set_property: tool('set_property', `Change how an object starts in the scene. ${BUILDING}`, {
-    object: text('A name in the scene: "cat", "camera", "ground".'),
+    object: text('A name in the scene: "cat", or "camera".'),
     property: oneOf(
       ['position', 'turn_degrees', 'scale', 'paint', 'opacity', 'vehicle'],
       'Which property.',
     ),
     value: text(
-      'As text: a position as "x, y, z" in metres; degrees or a scale as a number; a paint name or #rrggbb; opacity from 0 to 1; or the name of the object it rides on.',
+      'As text: a position as "x, y, z" in metres; degrees (as turn_degrees in add_model) or a scale as a number; a paint name or #rrggbb; opacity from 0 to 1; or the name of the object it rides on.',
     ),
     ...CHANGE_FIELDS,
   }),
@@ -293,13 +318,11 @@ const DEFINITIONS: Readonly<Record<ToolName, ToolDefinition>> = {
   ),
   stage_scene: tool(
     'stage_scene',
-    `Place a scene's cast, props, set, backdrop and camera from its storyboard frames, as Set up from storyboard does. It places only what the storyboard has; stand-ins stay stand-ins. ${BUILDING}`,
+    `Place a scene's cast, props, set, backdrop and camera as its first storyboard frame shows them, as Set the stage from the storyboard does. Cast who appear only in later frames wait just off stage. It places only what the storyboard has and the stage doesn't; stand-ins stay stand-ins. ${BUILDING}`,
     {
       scene: text('A scene id.'),
-      from_frame: text('The frame to take positions from. Leave it out for the first.'),
       ...CHANGE_FIELDS,
     },
-    ['from_frame'],
   ),
   code_frame: tool(
     'code_frame',
@@ -320,26 +343,57 @@ const wholeFrom1 = (v: unknown) =>
     : null;
 const upToWords = (most: number) => (v: unknown) =>
   typeof v === 'string' && wordCount(v) > most ? `should be under ${most + 1} words` : null;
+/** A plan step's text, kept with its frame, stays within the format's limits (section 6.7). */
+const planText =
+  (also?: (v: unknown) => string | null) =>
+  (v: unknown): string | null =>
+    typeof v === 'string' && v.length > PLAN_LIMITS.text
+      ? `should be at most ${PLAN_LIMITS.text} characters`
+      : (also?.(v) ?? null);
+const nameValues = (v: unknown) =>
+  Array.isArray(v) &&
+  (v.length > PLAN_LIMITS.details ||
+    v.some(
+      (d: { name?: unknown; value?: unknown }) =>
+        (typeof d?.name === 'string' && d.name.length > PLAN_LIMITS.detailName) ||
+        (typeof d?.value === 'string' && d.value.length > PLAN_LIMITS.detailValue),
+    ))
+    ? `should hold at most ${PLAN_LIMITS.details}, with names up to ${PLAN_LIMITS.detailName} characters and values up to ${PLAN_LIMITS.detailValue}`
+    : null;
 
 /** What the schema can't say, by field name. */
 const RULES: Readonly<Record<string, (value: unknown) => string | null>> = {
   plan_step: wholeFrom1,
-  repeat: wholeFrom1,
+  repeat: (v) =>
+    typeof v === 'number' && (!Number.isInteger(v) || v < 1 || v > PLAN_LIMITS.repeat)
+      ? `should be a whole number from 1 to ${PLAN_LIMITS.repeat}`
+      : null,
   count: wholeFrom1,
+  holds: (v) =>
+    typeof v === 'number' && (!Number.isInteger(v) || v < 0 || v >= PLAN_LIMITS.steps)
+      ? `should be a whole number from 0 to ${PLAN_LIMITS.steps - 1}`
+      : null,
+  details: nameValues,
+  actor: planText(),
+  action: planText(),
+  target: planText(),
+  line: planText(),
+  sketch: planText(),
   scale: (v) =>
     typeof v === 'number' && (v < 0.05 || v > 20) ? 'should be from 0.05 to 20' : null,
   position: (v) =>
     typeof v === 'string' && !/^(end|\d+)$/.test(v) ? 'should be "end" or a whole number' : null,
   narration: upToWords(24),
   text: upToWords(119),
-  words: upToWords(19),
-  why: upToWords(24),
+  words: planText(upToWords(19)),
+  why: planText(upToWords(24)),
+  query: planText(upToWords(9)),
   steps: (v) =>
     Array.isArray(v) && (v.length < 1 || v.length > 12) ? 'should have 1 to 12 steps' : null,
 };
 
-/** Strings that may be empty: "" means none. */
-const MAY_BE_EMPTY = ['target', 'line', 'sketch', 'value'];
+/** Strings that may be empty: "" means none. A repeat step (6.8) has no actor or action. */
+const MAY_BE_EMPTY = ['target', 'line', 'sketch', 'value', 'section', 'actor', 'action'];
 
 const TYPE_WORDS = {
   object: 'an object',
@@ -436,6 +490,11 @@ export type ToolOutcome =
       readonly ok: true;
       readonly ids: Readonly<Record<string, string>>;
       readonly summary: string;
+      /** The step a change was built for, when it isn't the one the call named (section 6.4). */
+      readonly step?: number;
+      /** `find_models`: the full Backstage lines found, and their sets' joints (section 2.7). */
+      readonly models?: readonly string[];
+      readonly joints?: Readonly<Record<string, readonly string[]>>;
     }
   | { readonly ok: false; readonly error: ToolErrorCode; readonly message: string };
 

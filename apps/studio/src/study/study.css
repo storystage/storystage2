@@ -1,0 +1,86 @@
+/*
+ * Study tasks (spec 14 section 6.4): the task card takes the Prompter's place on the right and
+ * its shape (prompter.css's .pm), in the studio's own colours, not the Prompter's; the tasks list
+ * and the two questions are dialogs.
+ */
+.study-disc {
+  background: var(--ss-amber-tint);
+}
+.study-disc .ss-icon {
+  fill: var(--ss-amber-text);
+}
+.study-card-sub {
+  color: var(--ss-muted);
+  font-size: calc(14px * var(--ss-text-size, 1));
+}
+.study-instruction {
+  margin: 0;
+  font-size: calc(18px * var(--ss-text-size, 1));
+  line-height: 1.4;
+}
+.study-hint {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+  line-height: 1.35;
+}
+/* Focused after Hint: the studio's ring, a 2 px gap then the focus colour (Direction A). */
+.study-hint:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--ss-surface),
+    0 0 0 5px var(--ss-focus);
+}
+.study-hint .ss-icon {
+  flex: none;
+  fill: var(--ss-amber-text);
+}
+
+/* The tasks list: each task's name, then Start, or Done once it's been done in this session. */
+.study-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 4px;
+  padding: 0;
+  list-style: none;
+}
+.study-task-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-height: 52px;
+  padding: 4px 6px 4px 12px;
+  border-radius: 12px;
+  background: var(--ss-panel-3);
+}
+.study-task-row .ss-icon {
+  flex: none;
+  fill: var(--ss-muted);
+}
+.study-task-row[data-done] .ss-icon {
+  fill: var(--ss-ok);
+}
+.study-task-name {
+  flex: 1;
+  font-weight: 700;
+}
+.study-task-state {
+  padding-inline-end: 10px;
+  color: var(--ss-text-2);
+}
+
+/* The two questions, each a row of choices with Skip. */
+.study-question {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-block-end: 16px;
+}
+.study-ended {
+  font-weight: 700;
+}

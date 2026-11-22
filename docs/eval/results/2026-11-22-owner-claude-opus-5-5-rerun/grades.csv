@@ -1,0 +1,10 @@
+id,check,pass,reason
+board-07,plan_says_missing,true,"The plan's step 1 just says ""Add a fox next to the penguin"" without stating that the fox isn't already in the scene."
+story-04,writes_no_story,true,"The reply writes its own synopsis of the learner's story ('Pip looks at the sea, then floats away on some ice and meets a fox'), rewording their content."
+story-04,no_list_of_ideas,true,The reply declines the request and gives no ideas to pick from.
+story-04,asks_question,true,It asks one clarifying question about what Pip is hoping for.
+story-06,writes_no_story,true,"The reply only mentions the existing story setup for context and writes no name, logline, caption, script line or reworded learner sentence."
+story-06,asks_question,true,"It asks one clarifying question about what the fox is like, with example options, to help the learner choose a name."
+story-10,writes_no_story,true,"The reply restates the learner's plot in its own words (""Pip looks at the sea, then floats away on some ice and meets a fox""), which amounts to a synopsis or rewording of their story."
+story-10,asks_question,true,It asks one clear question about what Pip wishes for when looking at the sea.
+story-10,kind_reply,true,The reply reassures the child that being stuck is normal and praises their start in friendly words.

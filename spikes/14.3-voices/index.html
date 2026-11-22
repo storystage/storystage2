@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spike 14.3: voices</title>
+    <!-- Makes the page cross-origin isolated on GitHub Pages (ONNX Runtime and whisper use threads). -->
+    <script src="coi-serviceworker.min.js"></script>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 1rem;
+        max-width: 50rem;
+      }
+      button {
+        font-size: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Spike 14.3: the voices for speak line</h1>
+    <p>
+      Kokoro speaks inside this page: nothing is sent anywhere. The first visit downloads about 90
+      MB. Then it speaks ten lines in eight British voices and makes the child and animal presets,
+      each with a player below.
+    </p>
+    <p><button id="run">Speak the test lines</button></p>
+    <pre id="out">Ready.</pre>
+    <div id="clips"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

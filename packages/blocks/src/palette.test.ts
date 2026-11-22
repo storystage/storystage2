@@ -1,0 +1,206 @@
+import {
+  NODE_ID_PATTERN,
+  applyEdits,
+  type Expression,
+  type NodeId,
+  type Statement,
+} from '@storystage/ast';
+import { sampleProgram } from '@storystage/ast/testing';
+import { CONTROL_KINDS, newCall, newControl, palette } from '@storystage/story-api/editing';
+import * as Blockly from 'blockly/core';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { defineBlocks } from './definitions.ts';
+import { dropFromPalette, freshIn, holdsKnown, type Ask } from './drops.ts';
+import { storyStatementType } from './shapes.ts';
+import { CONTROL_GROUP, paletteEntry, toolboxFor } from './toolbox.ts';
+
+beforeAll(() => defineBlocks());
+
+const program = sampleProgram();
+const scene = program.types[0]!;
+const main = scene.methods.find((m) => m.name === 'myFirstMethod')!;
+const catField = scene.fields.find((f) => f.name === 'cat')!;
+let n = 0;
+const mint = () => `new${++n}` as NodeId;
+const cat = (): Expression => ({
+  id: mint(),
+  kind: 'fieldRef',
+  target: { id: mint(), kind: 'this' },
+  field: catField.id,
+});
+const blocksOf = (body: readonly Statement[]) => ({ owner: main.id, body, args: {}, details: {} });
+
+describe('the palette as a toolbox (3i.2)', () => {
+  it('offers the object’s actions in Alice’s categories, then the control blocks', () => {
+    const toolbox = toolboxFor(program, cat(), scene.id, 'actions');
+    const labels = toolbox.contents.flatMap((c) => (c.kind === 'label' ? [c.text] : []));
+    expect(labels[0]).toBe('say, think');
+    expect(labels.at(-1)).toBe('control');
+    const types = toolbox.contents.flatMap((c) => (c.kind === 'block' ? [c.type] : []));
+    expect(types).toContain(storyStatementType('say'));
+    expect(types).toContain(storyStatementType('move'));
+    expect(types).toContain('ss_doTogether');
+    expect(types.some((t) => t.startsWith('ss_storyfn_'))).toBe(false);
+  });
+
+  it('offers questions on the questions tab, with no control blocks', () => {
+    const toolbox = toolboxFor(program, cat(), scene.id, 'questions');
+    const types = toolbox.contents.flatMap((c) => (c.kind === 'block' ? [c.type] : []));
+    expect(types.length).toBeGreaterThan(0);
+    expect(types.every((t) => t.startsWith('ss_storyfn_'))).toBe(true);
+  });
+
+  it('names each block’s entry, in the shared palette’s order and then Tiles’ control bar’s', () => {
+    for (const tab of ['actions', 'questions'] as const) {
+      const target = cat();
+      const entries = toolboxFor(program, target, scene.id, tab).contents.flatMap((c) =>
+        c.kind === 'block' ? [c.data] : [],
+      );
+      const expected = palette(program, target, scene.id, tab).flatMap((g) =>
+        g.items.map((i) => paletteEntry(i.callee)),
+      );
+      if (tab === 'actions') expected.push(...CONTROL_GROUP.map((k) => paletteEntry(k)));
+      expect(entries).toEqual(expected);
+    }
+    // As Tiles' bar has them: variable and set before the note.
+    const control = toolboxFor(program, cat(), scene.id, 'actions').contents.flatMap((c) =>
+      c.kind === 'block' && c.data?.startsWith('control:') ? [c.data] : [],
+    );
+    expect(control).toEqual([
+      ...CONTROL_KINDS.filter((k) => k !== 'comment').map((k) => `control:${k}`),
+      'control:variable',
+      'control:assign',
+      'control:comment',
+    ]);
+    expect(paletteEntry({ kind: 'story', name: 'move' })).toBe('story:move');
+    expect(paletteEntry({ kind: 'user', method: main.id })).toBe(`user:${main.id}`);
+    expect(paletteEntry('doTogether')).toBe('control:doTogether');
+  });
+
+  it('gives every block in it its own id, and Blockly draws each one', () => {
+    const toolbox = toolboxFor(program, cat(), scene.id, 'actions');
+    const blocks = toolbox.contents.filter((c) => c.kind === 'block');
+    const ids = blocks.map((b) => JSON.stringify(b).match(/"id":"[^"]+"/g)).flat();
+    expect(new Set(ids).size).toBe(ids.length);
+    const ws = new Blockly.Workspace();
+    for (const block of blocks) {
+      const state = { ...block } as Record<string, unknown>;
+      delete state.kind;
+      expect(() => Blockly.serialization.blocks.append(state as never, ws)).not.toThrow();
+    }
+    ws.dispose();
+  });
+});
+
+describe('a block dropped from the palette (3i.6)', () => {
+  /** A new `say` on the cat, as the palette makes it, with its words still empty. */
+  const newSay = () => newCall(program, cat(), { kind: 'story', name: 'say' }, false, mint);
+
+  it('is found where it landed, and nothing is found when nothing is new', () => {
+    const say = newSay() as Statement;
+    const found = freshIn(
+      program,
+      blocksOf([...main.body.slice(0, 1), say, ...main.body.slice(1)]),
+    );
+    expect(found).toEqual([
+      { place: { kind: 'statement', parent: main.id, slot: 'body', index: 1 }, node: say },
+    ]);
+    expect(freshIn(program, blocksOf(main.body))).toEqual([]);
+  });
+
+  it('is told apart when it holds blocks the program has, which a step would copy', () => {
+    const empty = newControl('doTogether', mint) as Statement & { body: readonly Statement[] };
+    const holding = { ...empty, body: [main.body[0]!] };
+    const [alone] = freshIn(program, blocksOf([...main.body, empty]));
+    const [held] = freshIn(program, blocksOf([holding, ...main.body.slice(1)]));
+    expect(holdsKnown(program, alone!)).toBe(false);
+    expect(held!.node).toBe(holding);
+    expect(holdsKnown(program, held!)).toBe(true);
+  });
+
+  it('asks for each empty value, then is one insert named for the finished block', async () => {
+    const say = newSay() as Statement;
+    const asked: string[] = [];
+    const ask: Ask = async ({ label }) => {
+      asked.push(label);
+      return { id: mint(), kind: 'text', value: 'Hello' };
+    };
+    const outcome = await dropFromPalette(
+      program,
+      freshIn(program, blocksOf([...main.body, say]))[0]!,
+      ask,
+    );
+    expect(asked).toEqual(['words']);
+    expect(outcome.kind).toBe('edits');
+    if (outcome.kind !== 'edits') return;
+    expect(outcome.edits.map((e) => e.kind)).toEqual(['insert']);
+    expect(outcome.label).toMatch(/say Hello/);
+    const after = applyEdits(program, outcome.edits);
+    const added = after.types[0]!.methods.find((m) => m.id === main.id)!.body.at(-1)!;
+    expect(JSON.stringify(added)).toContain('"value":"Hello"');
+    // Every node in it has an id the program made, not the palette's or Blockly's.
+    for (const id of JSON.stringify(added).match(/"id":"([^"]+)"/g)!) {
+      const value = id.slice(6, -1);
+      expect(value.startsWith('new')).toBe(false);
+      expect(value).toMatch(new RegExp(NODE_ID_PATTERN));
+    }
+  });
+
+  it('adds nothing when the learner presses Escape at a question', async () => {
+    const say = newSay() as Statement;
+    const outcome = await dropFromPalette(
+      program,
+      freshIn(program, blocksOf([...main.body, say]))[0]!,
+      async () => null,
+    );
+    expect(outcome).toEqual({ kind: 'cancelled' });
+  });
+
+  it('keeps its empty values when there is no one to ask', async () => {
+    const control = newControl('count', mint);
+    const outcome = await dropFromPalette(
+      program,
+      freshIn(program, blocksOf([...main.body, control]))[0]!,
+      null,
+    );
+    expect(outcome.kind === 'edits' && outcome.edits.map((e) => e.kind)).toEqual(['insert']);
+  });
+
+  it('gives a loop dropped inside a loop an item name of its own', async () => {
+    // A "for each" already in the method, then another dropped into its body.
+    const outer = newControl('forEach', mint);
+    const first = await dropFromPalette(
+      program,
+      freshIn(program, blocksOf([...main.body, outer]))[0]!,
+      null,
+    );
+    expect(first.kind).toBe('edits');
+    if (first.kind !== 'edits') return;
+    const withOuter = applyEdits(program, first.edits);
+    const placed = withOuter.types[0]!.methods.find((m) => m.id === main.id)!.body.at(-1)!;
+    expect(placed.kind === 'forEach' && placed.item.name).toBe('item');
+    const inner = newControl('forEach', mint);
+    const outcome = await dropFromPalette(
+      withOuter,
+      { place: { kind: 'statement', parent: placed.id, slot: 'body', index: 0 }, node: inner },
+      null,
+    );
+    expect(outcome.kind).toBe('edits');
+    if (outcome.kind !== 'edits') return;
+    const after = applyEdits(withOuter, outcome.edits);
+    const outerAfter = after.types[0]!.methods.find((m) => m.id === main.id)!.body.at(-1)!;
+    const nested = outerAfter.kind === 'forEach' ? outerAfter.body[0] : undefined;
+    expect(nested?.kind === 'forEach' && nested.item.name).toBe('item2');
+  });
+  it('is refused, in plain words, where the drop rule refuses it', async () => {
+    // A block from the palette can't go into a value's place.
+    const say = newSay() as Statement;
+    const outcome = await dropFromPalette(
+      program,
+      { place: { kind: 'value', node: main.body[0]!.id, slot: 'args', param: 'text' }, node: say },
+      null,
+    );
+    expect(outcome.kind).toBe('refused');
+    expect(outcome.kind === 'refused' && outcome.reason).toMatch(/\w/);
+  });
+});

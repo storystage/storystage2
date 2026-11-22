@@ -9,7 +9,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use serde::Serialize;
 use serde_json::{json, Value};
-use storystage_gate::caps::{day_level, used_today, Minute};
+use storystage_gate::caps::{day_level, DayCounts, Minute, DEVICE};
 use storystage_gate::{check, Code, Pins, PrompterEvent, PrompterRequest};
 use storystage_policy::{PolicyInForce, PrompterLevel};
 use storystage_transport::{add_key, send, Key};
@@ -29,6 +29,8 @@ pub struct Prompter {
     pins: Pins,
     minute: Mutex<Minute>,
     running: Mutex<Option<Running>>,
+    /// The pupil whose folder is open, whom requests count against (spec 05 section 2.4).
+    pupil: Mutex<Option<String>>,
 }
 
 /// The pins built into the app. Only the leak scan's test build can give it others, because the
@@ -51,6 +53,7 @@ impl Default for Prompter {
             pins: pins(),
             minute: Mutex::new(Minute::default()),
             running: Mutex::new(None),
+            pupil: Mutex::new(None),
         }
     }
 }
@@ -121,9 +124,14 @@ fn day_file(app: &AppHandle) -> Option<PathBuf> {
     Some(folder.join("prompter-day"))
 }
 
-fn used(file: Option<&PathBuf>) -> u32 {
+fn day_counts(file: Option<&PathBuf>) -> DayCounts {
     let stored = file.and_then(|path| fs::read_to_string(path).ok());
-    used_today(stored.as_deref(), &today())
+    DayCounts::read(stored.as_deref(), &today())
+}
+
+/// Whom a request counts against: the open pupil, or the device.
+fn who(prompter: &Prompter) -> String {
+    prompter.pupil.lock().ok().and_then(|pupil| pupil.clone()).unwrap_or_else(|| DEVICE.to_string())
 }
 
 /// Everything up to the network. Returns the key and the way to stop this request.
@@ -135,8 +143,9 @@ fn begin(
     let refuse = |code| PrompterEvent::error(code);
     let policy = read_policy(app);
     let file = day_file(app);
-    let count = used(file.as_ref());
-    let day = day_level(&policy.prompter, count);
+    let mut counts = day_counts(file.as_ref());
+    let who = who(prompter);
+    let day = day_level(&policy.prompter, counts.used(&who));
     check(request, policy.prompter.level, day, &prompter.pins).map_err(refuse)?;
 
     let mut running = prompter.running.lock().map_err(|_| refuse(Code::Internal))?;
@@ -152,7 +161,8 @@ fn begin(
     let key = store::load(app).ok_or_else(|| refuse(Code::NoKey))?;
 
     if let Some(path) = &file {
-        let _ = fs::write(path, format!("{} {}", today(), count + 1));
+        counts.add(&who);
+        let _ = fs::write(path, counts.write(&today()));
     }
     let (stop, cancel) = watch::channel(false);
     *running = Some(Running { id: request.id.clone(), stop });
@@ -188,6 +198,41 @@ pub fn prompter_cancel(prompter: State<'_, Prompter>, id: String) {
             let _ = running.stop.send(true);
         }
     }
+}
+
+/// Whose folder is open, so requests count against them; `None` when nobody's is. The host
+/// calls it as a folder opens and closes. An id that isn't a safe part counts as nobody's.
+#[tauri::command]
+pub fn prompter_pupil(prompter: State<'_, Prompter>, pupil: Option<String>) {
+    let pupil = pupil.filter(|id| storystage_classes::is_safe_part(id) && id != DEVICE);
+    if let Ok(mut open) = prompter.pupil.lock() {
+        *open = pupil;
+    }
+}
+
+/// Today's use on this device, for the teacher (spec 05 section 2.4): the cap, and each pupil's
+/// count and level. Ids only: the studio has the names.
+#[tauri::command(async)]
+pub fn prompter_usage(app: AppHandle) -> Value {
+    let policy = read_policy(&app);
+    let counts = day_counts(day_file(&app).as_ref());
+    let entries: Vec<Value> = counts
+        .entries()
+        .map(|(who, used)| {
+            json!({
+                "pupil": if who == DEVICE { Value::Null } else { json!(who) },
+                "used": used,
+                "level": day_level(&policy.prompter, used),
+            })
+        })
+        .collect();
+    json!({
+        "date": today(),
+        "level": policy.prompter.level,
+        "dailyCap": policy.prompter.daily_cap,
+        "capAction": policy.prompter.cap_action,
+        "entries": entries,
+    })
 }
 
 fn status_of(policy: &PolicyInForce, key_present: bool) -> Value {

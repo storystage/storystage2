@@ -3,8 +3,9 @@
  * the sketches, it is drawn on the CPU in TypeScript, so the same code runs in the build tools
  * and, for imports, in a Web Worker in the app (3.11), with no graphics card.
  *
- * Steps: stand the model in the sketches' standing pose; look at it from the front, square on
- * (orthographic), fitted to the picture; give each corner a smooth normal, keeping sharp folds
+ * Steps: stand the model in the sketches' standing pose; look at it from its section's view
+ * (`THUMBNAIL_VIEWS`: a character from the front, a prop or set from three-quarters and a little
+ * above), orthographic, fitted to the picture; give each corner a smooth normal, keeping sharp folds
  * sharp; fill each triangle with its material's colour, picture and vertex colours, lit softly
  * from the front, above and to the left; draw see-through parts last, back to front; and
  * average each 3 x 3 block of pixels so edges are smooth. The background is clear.
@@ -12,11 +13,11 @@
  * Pictures are decoded by the caller (`decodeImage`): sharp in the tools, the browser's own
  * decoder in the app. Without one, each material is drawn in its plain colour.
  */
-import type { Facing } from '@storystage/backstage';
+import type { Facing, Section } from '@storystage/backstage';
 import { cross, dot, normalize, sub, type Vec3 } from './math.ts';
 import { weld, type SketchMesh } from './mesh.ts';
 import { canPose, poseMesh } from './pose.ts';
-import { viewOf } from './render.ts';
+import { viewOf, type View } from './render.ts';
 
 /** Red, green, blue and alpha bytes per pixel, row by row from the top; sRGB, not premultiplied. */
 export interface Picture {
@@ -31,8 +32,41 @@ export interface ThumbnailOptions {
   /** Width and height in pixels. Default `THUMBNAIL_SIZE`. */
   readonly size?: number;
   readonly decodeImage?: ImageDecoder;
-  /** Default front, as the manifest's `files.thumbnail` says. */
+  /** Default front. */
   readonly facing?: Facing;
+  /** How far above level the viewer looks down, in degrees, 0 to 60. Default 0. */
+  readonly elevation?: number;
+}
+
+/**
+ * Each section's own view (WP3.10; spec 17, section 7a, rule 1): a character from the front, so
+ * its face shows; a prop and a piece of set from three-quarters and a little above, so their
+ * shape and depth show (front on, a bicycle is a line and a sofa a block). Backdrops' thumbnails
+ * are their own pictures, not drawn here.
+ */
+export const THUMBNAIL_VIEWS: Readonly<
+  Record<Section, { readonly facing: Facing; readonly elevation: number }>
+> = {
+  cast: { facing: 'front', elevation: 0 },
+  props: { facing: 'threeQuarter', elevation: 25 },
+  set: { facing: 'threeQuarter', elevation: 30 },
+  backdrops: { facing: 'front', elevation: 0 },
+};
+
+/** `view` looked at from `degrees` above level: the viewer rises and looks down. */
+function lookingDown(view: View, degrees: number): View {
+  const e = (Math.min(60, Math.max(0, degrees)) * Math.PI) / 180;
+  const [c, s] = [Math.cos(e), Math.sin(e)];
+  const mix = (a: Vec3, ka: number, b: Vec3, kb: number): Vec3 => [
+    a[0] * ka + b[0] * kb,
+    a[1] * ka + b[1] * kb,
+    a[2] * ka + b[2] * kb,
+  ];
+  return {
+    forward: normalize(mix(view.forward, c, view.up, -s)),
+    right: view.right,
+    up: normalize(mix(view.forward, s, view.up, c)),
+  };
 }
 
 /** The same as a sketch's default size, so a thumbnail and a sketch line up. */
@@ -149,7 +183,7 @@ export async function renderThumbnail(
   options: ThumbnailOptions = {},
 ): Promise<Picture> {
   const size = options.size ?? THUMBNAIL_SIZE;
-  const view = viewOf(options.facing ?? 'front');
+  const view = lookingDown(viewOf(options.facing ?? 'front'), options.elevation ?? 0);
   const posed = canPose(mesh) ? poseMesh(mesh, 'stand') : mesh;
   const { positions, indices } = posed;
   const surface = posed.surface;

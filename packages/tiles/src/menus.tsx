@@ -1,0 +1,422 @@
+/**
+ * The cascade on a value pill, "Other number…", and "add detail ▾" (spec 14, 2.3 and 3e), with
+ * React Aria's menus, so arrows, Enter, Escape and submenus behave as screen readers expect.
+ * They open in a portal, outside the editor's root, so each carries the tile colours itself.
+ * React Aria draws a menu's popover as a dialog, so each popover is named as its menu is
+ * (axe's aria-dialog-name).
+ */
+import { idMinter, indexProgram } from '@storystage/ast';
+import type { Expression, NodeId, Program } from '@storystage/ast';
+import {
+  answer,
+  cascadeFor,
+  describer,
+  detailsToAdd,
+  menuFor,
+  rangeAt,
+  type MenuAction,
+  type Ask,
+  type CascadeOptions,
+  type Choice,
+  type NameInScope,
+  type ValuePlace,
+  VARIABLE_TYPES,
+  wantedAt,
+} from '@storystage/story-api/editing';
+import { useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import {
+  Button,
+  Dialog,
+  Input,
+  Label,
+  Menu,
+  MenuItem,
+  Popover,
+  Radio,
+  RadioGroup,
+  SubmenuTrigger,
+  TextField,
+} from 'react-aria-components';
+import { tileVariables } from './tokens.ts';
+import { Arrow } from './arrow.tsx';
+import { t } from './words.ts';
+
+/** The kinds of value a new variable may hold. */
+export type VariableType = (typeof VARIABLE_TYPES)[number];
+
+interface Anchored {
+  /** The pill or button the menu opens from. */
+  readonly anchor: Element;
+  /**
+   * Closed without a choice: Escape, or a click outside. Not called after a choice, an ask or
+   * a removal, so a caller never has to tell React Aria's own close from the learner's.
+   */
+  readonly onClose: () => void;
+}
+
+/**
+ * A menu's `onClose`, and a way to mark that an item has acted: React Aria closes a menu after
+ * its action, and that close isn't the learner's.
+ */
+function useCloseUnlessActed(onClose: () => void) {
+  const acted = useRef(false);
+  return {
+    acted: () => void (acted.current = true),
+    closed: () => {
+      if (!acted.current) onClose();
+    },
+  };
+}
+
+/** Everything a menu's popover takes but its anchor, which is passed straight in as `triggerRef`. */
+const popoverProps = (onClose: () => void) =>
+  ({
+    isOpen: true,
+    onOpenChange: (open: boolean) => {
+      if (!open) onClose();
+    },
+    placement: 'bottom start',
+    shouldFlip: true,
+    className: 'tl-popover',
+    style: tileVariables(),
+  }) as const;
+
+const REMOVE = 'remove';
+
+export interface ValueMenuProps extends Anchored {
+  readonly program: Program;
+  readonly place: ValuePlace;
+  /** What the value is for, in words ("amount"): the menu's name. */
+  readonly label: string;
+  readonly options?: CascadeOptions;
+  /** For a detail's pill: offers taking the detail out. */
+  readonly detail?: string;
+  /** The words of the value there now, which the menu marks as chosen and opens on. */
+  readonly current?: string;
+  readonly onChoose: (value: Expression) => void;
+  readonly onAsk: (ask: Ask) => void;
+  readonly onRemoveDetail?: () => void;
+}
+
+/** The menu of values that fit a slot. */
+export function ValueMenu(props: ValueMenuProps) {
+  const { program, place, options, anchor } = props;
+  const anchorRef = useRef(anchor);
+  const choices = useMemo(
+    () => cascadeFor(program, place, idMinter(program), options),
+    [program, place, options],
+  );
+
+  // The value there now; for an empty slot, the one the cascade suggests (Alice's default).
+  const now = choices.findIndex((c) => c.value && c.words === props.current);
+  const chosen =
+    now >= 0 || props.current !== undefined ? now : choices.findIndex((c) => c.suggested);
+
+  const close = useCloseUnlessActed(props.onClose);
+  const pick = (key: string) => {
+    close.acted();
+    if (key === REMOVE) return props.onRemoveDetail?.();
+    let list: readonly Choice[] = choices;
+    let choice: Choice | undefined;
+    for (const i of key.split('.').map(Number)) {
+      choice = list[i];
+      list = choice?.choices ?? [];
+    }
+    if (choice?.value) props.onChoose(choice.value);
+    else if (choice?.ask) props.onAsk(choice.ask);
+  };
+
+  const items = (list: readonly Choice[], path: string): ReactNode[] =>
+    list.flatMap((c, i) => {
+      const key = `${path}${i}`;
+      const item = (
+        <MenuItem key={key} id={key} textValue={c.words} className="tl-menu-item">
+          {c.words}
+          <Arrow arrow={c.arrow} />
+        </MenuItem>
+      );
+      if (!c.choices) return [item];
+      const sub = (
+        <SubmenuTrigger key={`${key}-sub`}>
+          <MenuItem
+            id={`${key}-sub`}
+            textValue={t('partsOf', { name: c.words })}
+            className="tl-menu-item"
+          >
+            {t('partsOf', { name: c.words })}
+          </MenuItem>
+          <Popover
+            className="tl-popover"
+            style={tileVariables()}
+            aria-label={t('partsOf', { name: c.words })}
+          >
+            <Menu aria-label={t('partsOf', { name: c.words })} onAction={(k) => pick(String(k))}>
+              {items(c.choices, `${key}.`)}
+            </Menu>
+          </Popover>
+        </SubmenuTrigger>
+      );
+      return c.value ? [item, sub] : [sub];
+    });
+
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={props.label}>
+      <Menu
+        aria-label={props.label}
+        autoFocus={chosen >= 0 ? true : 'first'}
+        selectionMode={chosen >= 0 ? 'single' : 'none'}
+        selectedKeys={chosen >= 0 ? [String(chosen)] : []}
+        onAction={(k) => pick(String(k))}
+      >
+        {items(choices, '')}
+        {choices.length === 0 ? (
+          // Nothing to choose: say why, rather than open an empty menu (7.17).
+          <MenuItem id="nothing" isDisabled className="tl-menu-item tl-menu-note">
+            {nothingWords(program, place)}
+          </MenuItem>
+        ) : null}
+        {props.detail ? (
+          <MenuItem id={REMOVE} className="tl-menu-item tl-menu-remove">
+            {t('removeDetail', { detail: props.label })}
+          </MenuItem>
+        ) : null}
+      </Menu>
+    </Popover>
+  );
+}
+
+/** Why a value menu has nothing in it: no sounds yet, for a sound. */
+function nothingWords(program: Program, place: ValuePlace): string {
+  const wanted = wantedAt(program, place);
+  return wanted?.kind === 'story' && wanted.name === 'Audio' ? t('noSounds') : t('noChoices');
+}
+
+export interface AskProps extends Anchored {
+  readonly program: Program;
+  readonly place: ValuePlace;
+  readonly ask: Ask;
+  readonly label: string;
+  readonly onAnswer: (value: Expression) => void;
+}
+
+/** A value the learner types: "Other number…", "Other words…". */
+export function AskValue(props: AskProps) {
+  const { program, place, ask, label, anchor } = props;
+  const anchorRef = useRef(anchor);
+  const [text, setText] = useState('');
+  const [problem, setProblem] = useState<string | null>(null);
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const result = answer(ask, text, idMinter(program), rangeAt(program, place));
+    if (result.ok) props.onAnswer(result.value);
+    else setProblem(result.reason);
+  };
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(props.onClose)}>
+      <Dialog aria-label={label} className="tl-ask">
+        <form onSubmit={submit}>
+          <TextField
+            className="tl-ask-field"
+            value={text}
+            onChange={(v) => {
+              setText(v);
+              setProblem(null);
+            }}
+            isInvalid={problem !== null}
+            autoFocus
+          >
+            <Label className="tl-ask-label">{label}</Label>
+            <Input className="tl-ask-input" inputMode={ask === 'text' ? 'text' : 'decimal'} />
+          </TextField>
+          {problem ? (
+            <p role="alert" className="tl-ask-problem">
+              {problem}
+            </p>
+          ) : null}
+          <Button type="submit" className="tl-ask-ok">
+            {t('use')}
+          </Button>
+        </form>
+      </Dialog>
+    </Popover>
+  );
+}
+
+export interface DetailMenuProps extends Anchored {
+  readonly program: Program;
+  readonly node: NodeId;
+  readonly onChoose: (detail: string) => void;
+}
+
+export interface RowMenuProps extends Anchored {
+  readonly program: Program;
+  readonly node: NodeId;
+  readonly onChoose: (action: MenuAction) => void;
+}
+
+/**
+ * A row's menu (spec 14, 3c.7), opened by right-click, a long press or the Menu key: the shared
+ * statement menu (`menuFor`), the same items in the same words as Blocks' block menu.
+ */
+export function RowMenu(props: RowMenuProps) {
+  const anchorRef = useRef(props.anchor);
+  const items = useMemo(() => menuFor(props.program, props.node), [props.program, props.node]);
+  const name = useMemo(() => {
+    const node = indexProgram(props.program).get(props.node)?.node;
+    return t('rowMenu', { what: node ? describer(props.program).short(node) : '' });
+  }, [props.program, props.node]);
+  const close = useCloseUnlessActed(props.onClose);
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={name}>
+      <Menu
+        aria-label={name}
+        autoFocus="first"
+        onAction={(k) => {
+          close.acted();
+          props.onChoose(items[Number(k)]!.action);
+        }}
+      >
+        {items.map((item, i) => (
+          <MenuItem key={i} id={i} className="tl-menu-item">
+            {item.words}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Popover>
+  );
+}
+
+/** "add detail ▾": the details a block can still take. */
+export function DetailMenu(props: DetailMenuProps) {
+  const anchorRef = useRef(props.anchor);
+  const details = useMemo(
+    () => detailsToAdd(props.program, props.node),
+    [props.program, props.node],
+  );
+  const close = useCloseUnlessActed(props.onClose);
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={t('addDetail')}>
+      <Menu
+        aria-label={t('addDetail')}
+        autoFocus="first"
+        onAction={(k) => {
+          close.acted();
+          props.onChoose(String(k));
+        }}
+      >
+        {details.map((d) => (
+          <MenuItem key={d.name} id={d.name} className="tl-menu-item">
+            {d.words}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Popover>
+  );
+}
+
+/** The longest name the program format takes (`ast` schema). */
+const NAME_MAX = 60;
+const NAME = /^\p{L}[\p{L}\p{N}_]*$/u;
+
+/** Why `name` can't be a new variable's here, or null if it can (spec 14, 2.3). */
+export function variableNameProblem(name: string, taken: readonly string[]): string | null {
+  if (name === '') return t('variable.noName');
+  if (name.length > NAME_MAX) return t('variable.long');
+  if (!NAME.test(name)) return t('variable.badName');
+  if (taken.includes(name)) return t('variable.taken', { name });
+  return null;
+}
+
+export interface NewVariableProps extends Anchored {
+  /** The names already in scope where it goes, which it may not have. */
+  readonly taken: readonly string[];
+  readonly onMake: (name: string, type: VariableType) => void;
+}
+
+/**
+ * The variable tile's question (spec 14, 2.3): a name and the kind of value it holds. What it
+ * starts as is asked next, by the cascade, like any other value.
+ */
+export function NewVariable(props: NewVariableProps) {
+  const anchorRef = useRef(props.anchor);
+  const [name, setName] = useState('');
+  const [type, setType] = useState<VariableType>('Number');
+  const [problem, setProblem] = useState<string | null>(null);
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    const trimmed = name.trim();
+    const why = variableNameProblem(trimmed, props.taken);
+    if (why) setProblem(why);
+    else props.onMake(trimmed, type);
+  };
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(props.onClose)}>
+      <Dialog aria-label={t('variable.title')} className="tl-ask">
+        <form onSubmit={submit}>
+          <TextField
+            className="tl-ask-field"
+            value={name}
+            onChange={(v) => {
+              setName(v);
+              setProblem(null);
+            }}
+            isInvalid={problem !== null}
+            autoFocus
+          >
+            <Label className="tl-ask-label">{t('variable.name')}</Label>
+            <Input className="tl-ask-input" />
+          </TextField>
+          {problem ? (
+            <p role="alert" className="tl-ask-problem">
+              {problem}
+            </p>
+          ) : null}
+          <RadioGroup
+            className="tl-ask-types"
+            value={type}
+            onChange={(v) => setType(v as VariableType)}
+          >
+            <Label className="tl-ask-label">{t('variable.type')}</Label>
+            {VARIABLE_TYPES.map((v) => (
+              <Radio key={v} value={v} className="tl-ask-type">
+                {t(`variable.type.${v}`)}
+              </Radio>
+            ))}
+          </RadioGroup>
+          <Button type="submit" className="tl-ask-ok">
+            {t('use')}
+          </Button>
+        </form>
+      </Dialog>
+    </Popover>
+  );
+}
+
+export interface ChooseVariableProps extends Anchored {
+  readonly names: readonly NameInScope[];
+  readonly onChoose: (variable: NodeId) => void;
+}
+
+/** The assign tile's question: which variable it sets (only those that may be changed). */
+export function ChooseVariable(props: ChooseVariableProps) {
+  const anchorRef = useRef(props.anchor);
+  const close = useCloseUnlessActed(props.onClose);
+  return (
+    <Popover triggerRef={anchorRef} {...popoverProps(close.closed)} aria-label={t('assign.title')}>
+      <Menu
+        aria-label={t('assign.title')}
+        autoFocus="first"
+        onAction={(k) => {
+          close.acted();
+          props.onChoose(String(k) as NodeId);
+        }}
+      >
+        {props.names.map((v) => (
+          <MenuItem key={v.id} id={v.id} className="tl-menu-item">
+            {v.name}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Popover>
+  );
+}

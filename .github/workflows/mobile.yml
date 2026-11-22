@@ -42,6 +42,16 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
       - name: Generate the Android project
         working-directory: apps/desktop
         # The runner image ships the Android SDK and NDK.
@@ -79,6 +89,18 @@ jobs:
           workspaces: apps/desktop/src-tauri -> target
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      # The Backstage fetch is a workspace script, so this job needs the repository set up too.
+      - uses: ./.github/actions/setup
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
       - name: Compile for iPad
         working-directory: apps/desktop/src-tauri
         run: |
@@ -104,6 +126,16 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
       - name: Generate the Xcode project
         working-directory: apps/desktop
         run: pnpm tauri ios init --ci

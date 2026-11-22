@@ -15,6 +15,36 @@ const answering =
   };
 
 describe('the Tauri host', () => {
+  it('finds the shipped Backstage through the app’s own protocol', async () => {
+    const invoke = async (command: string): Promise<unknown> =>
+      command === 'backstage_folder' ? 'http://backstage.localhost/' : answering('1.4.2')(command);
+    expect((await tauriHost(invoke, native)).backstageFolder).toBe('http://backstage.localhost/');
+  });
+
+  it('never takes another address for the Backstage from the native layer', async () => {
+    const invoke = async (command: string): Promise<unknown> =>
+      command === 'backstage_folder' ? 'https://example.com/' : answering('1.4.2')(command);
+    expect((await tauriHost(invoke, native)).backstageFolder).toMatch(/\/backstage\/$/);
+    expect((await tauriHost(invoke, native)).backstageFolder).not.toContain('example.com');
+  });
+
+  it('keeps files for sure, as the native store is never cleared by a browser', async () => {
+    const host = await tauriHost(answering('1.4.2'), native);
+    expect(await host.storagePersistent()).toBe(true);
+  });
+
+  it('keeps pupil folders through the native store', async () => {
+    const asked: string[] = [];
+    const invoke = async (command: string): Promise<unknown> => {
+      asked.push(command);
+      if (command === 'classes_read') throw 'not_found';
+      return answering('1.4.2')(command);
+    };
+    const host = await tauriHost(invoke, native);
+    expect(await host.classes.pupils()).toEqual([]);
+    expect(asked).toContain('classes_read');
+  });
+
   it('asks the native layer for the policy and the version', async () => {
     const host = await tauriHost(answering('1.4.2'), native);
     expect(host.policy.prompter.level).toBe('planOnly');
@@ -91,5 +121,31 @@ describe('the browser host', () => {
 
   it('has no speech models', () => {
     expect(browserHost.speech).toBeNull();
+  });
+});
+
+describe('the Claude key’s commands', () => {
+  it('are the native layer’s three, and none takes or gives the key', async () => {
+    const calls: [string, unknown][] = [];
+    const invoke = async (command: string, args?: unknown): Promise<unknown> => {
+      calls.push([command, args]);
+      if (command === 'key_status') return 'present';
+      if (command === 'key_add') return 'saved';
+      if (command === 'key_remove') return null;
+      return answering('1.4.2')(command);
+    };
+    const key = (await tauriHost(invoke, native)).prompterKey!;
+    expect(await key.status()).toBe('present');
+    expect(await key.add()).toBe('saved');
+    await key.remove();
+    expect(calls.filter(([c]) => c.startsWith('key_'))).toEqual([
+      ['key_status', undefined],
+      ['key_add', undefined],
+      ['key_remove', undefined],
+    ]);
+  });
+
+  it('are not in the browser version', () => {
+    expect(browserHost.prompterKey).toBeNull();
   });
 });

@@ -319,3 +319,21 @@ export function validateSchema(value: unknown, lenient = false): SchemaProblem[]
   check(value, PROGRAM_SCHEMA as Schema, '', lenient, problems);
   return problems;
 }
+
+/**
+ * Checks one part of a program against one of the schema's definitions, or against one
+ * property's schema in it: what an edit adds (`docs/spec/01-ast.md`, section 4.2). The rest of
+ * the program is unchanged and was valid, so this and the whole-program check agree.
+ */
+export function validateSchemaPart(
+  value: unknown,
+  def: string,
+  property?: string,
+): SchemaProblem[] {
+  const definition = DEFS[def];
+  const schema = property === undefined ? definition : definition?.properties?.[property];
+  if (!schema) return [{ at: '', message: `has no part ${def} ${property ?? ''}` }];
+  const problems: SchemaProblem[] = [];
+  check(value, schema, '', false, problems);
+  return problems;
+}

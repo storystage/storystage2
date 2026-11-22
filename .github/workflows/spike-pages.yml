@@ -8,6 +8,8 @@ on:
     branches: ['lane/s1-wp1-*', main]
     paths:
       - spikes/**
+      - packages/stage/**
+      - backstage.lock.json
       - .github/workflows/spike-pages.yml
   workflow_dispatch:
 
@@ -32,13 +34,28 @@ jobs:
       - name: Spike 1.3's whisper build, models and clips
         working-directory: spikes/1.3-whisper
         run: bash scripts/prepare-assets.sh "$RUNNER_TEMP/whisper-work"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/voices-cache
+          key: voices-${{ hashFiles('spikes/14.3-voices/scripts/prepare-assets.mjs') }}
+      - name: Spike 14.3's voices (Kokoro, its phonemiser, and whisper from spike 1.3)
+        working-directory: spikes/14.3-voices
+        run: node scripts/prepare-assets.mjs "$RUNNER_TEMP/voices-cache" ../1.3-whisper/public
       - name: Build each spike page with relative paths
         run: |
           site="$GITHUB_WORKSPACE/_site"
-          for spike in 1.2-models 1.3-whisper 1.4-scheduler 1.5-editors 1.8-mp4; do
+          for spike in 1.2-models 1.3-whisper 1.4-scheduler 1.5-editors 1.8-mp4 23.1-projection 14.3-voices; do
             (cd "spikes/$spike" && pnpm exec vite build --base ./ --outDir "$site/$spike" --emptyOutDir)
           done
           sed -e "s|BRANCH|${GITHUB_REF_NAME}|" -e "s|COMMIT|${GITHUB_SHA::7}|" spikes/pages/index.html > "$site/index.html"
+      - name: The real stage's device page (5.6, 5.8), with two of Backstage's people at the pinned commit
+        run: |
+          site="$GITHUB_WORKSPACE/_site/stage"
+          (cd packages/stage && pnpm exec vite build --config e2e/harness/vite.config.ts --base ./ --outDir "$site" --emptyOutDir)
+          commit=$(node -p "require('./backstage.lock.json').commit")
+          for model in makehuman/Biped/p01.glb kaykit/Biped/knight.glb; do
+            curl -fsSL --create-dirs -o "$site/backstage/$model"               "https://raw.githubusercontent.com/storystage/backstage-assets/$commit/models/$model"
+          done
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
@@ -56,3 +73,7 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+        # The site carries the voices' and whisper's models (about 200 MB); GitHub's file sync for it
+        # can take more than the default 10 minutes, which cancelled the deploy on 10 Nov 2026.
+        with:
+          timeout: 1800000

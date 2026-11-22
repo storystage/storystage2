@@ -134,14 +134,23 @@ export interface Location {
   readonly key: SlotKey;
 }
 
-/** Where every node is. */
-export function indexProgram(program: Program): Map<NodeId, Location> {
+/** Each program's index, made once: a program never changes, so its index stays right (WP7.10). */
+const indexes = new WeakMap<Program, ReadonlyMap<NodeId, Location>>();
+
+/**
+ * Where every node is. Worked out once for each program, so the editors, the session and every
+ * edit share it.
+ */
+export function indexProgram(program: Program): ReadonlyMap<NodeId, Location> {
+  const kept = indexes.get(program);
+  if (kept) return kept;
   const index = new Map<NodeId, Location>();
   const add = (node: AstNode, parent: NodeId | null, slot: string, key: SlotKey) => {
     index.set(node.id, { node, parent, slot, key });
     for (const child of childrenOf(node)) add(child.node, node.id, child.slot, child.key);
   };
   program.types.forEach((type, i) => add(type, null, 'types', i));
+  indexes.set(program, index);
   return index;
 }
 

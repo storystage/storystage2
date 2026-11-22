@@ -14,12 +14,21 @@ import { fileURLToPath } from 'node:url';
 export const ICON_NAMES = [
   '360',
   'add',
+  'add_comment', // the Prompter's New conversation
   'add_photo_alternate',
+  'arrow_back',
+  'arrow_drop_down',
+  'arrow_forward', // the set-up wizard's Next (screens 10a to 10c)
+  'block', // what the Prompter is never sent (10b)
   'category',
+  'check', // the set-up wizard's Done (10d)
   'check_circle',
+  'checklist', // the Prompter's plan (10b)
   'chevron_left',
   'chevron_right',
   'close',
+  'cloud_upload', // what is sent to Claude (10b)
+  'construction', // the Prompter's Build these steps
   'deck',
   'delete',
   'description',
@@ -27,36 +36,60 @@ export const ICON_NAMES = [
   'drag_indicator',
   'draw',
   'edit',
+  'edit_off', // the Prompter never writes the story (10b)
   'edit_note',
+  'error', // a plan step that can't be built
   'extension',
   'flag',
   'flip',
   'flip_to_back',
   'flip_to_front',
+  'folder',
   'fullscreen',
   'gesture',
   'groups',
   'handyman',
+  'help', // no key (10c)
   'headset_mic',
+  'history',
   'hourglass_empty',
   'info',
   'inventory_2',
   'ios_share',
   'keep', // the pin on a script line (was push_pin)
+  'key', // Add key (10c)
+  'key_off', // Remove key (10d)
   'landscape',
+  'lightbulb', // the Prompter's explain
+  'link', // a frame's links to its blocks (WP10.8)
+  'link_off',
   'lock',
   'mic',
+  'movie',
+  'pause',
+  'person',
+  'person_add',
+  'person_remove',
   'photo_camera',
   'play_arrow',
+  'print',
   'radio_button_unchecked',
   'redo',
   'remove',
   'replay',
+  'right_panel_close', // hide the Prompter
+  'right_panel_open', // show the Prompter
+  'restore_from_trash',
   'school',
+  'send', // ask the Prompter
   'settings',
+  'shield_person', // the adult who owns the key (10a, 10d)
   'stop',
+  'stop_circle', // the Prompter's Stop
   'theaters',
   'undo',
+  'upload',
+  'upload_file',
   'videocam',
   'view_in_ar',
   'zoom_in',

@@ -10,17 +10,27 @@
  * (`outcomes.ts`); the tools' runner over the program, with the plan checks (`runner.ts`,
  * `plans.ts`, `values.ts`, `script-check.ts`).
  */
+export * from './backstage-data.ts';
+export * from './context.ts';
 export * from './data.ts';
 export * from './levels.ts';
 export * from './models.ts';
 export * from './outcomes.ts';
+export * from './panel.ts';
+export * from './pins.ts';
+export * from './progress.ts';
+export * from './repeats.ts';
 export * from './plans.ts';
 export * from './request.ts';
 export * from './runner.ts';
 export * from './script-check.ts';
 export * from './session.ts';
+export * from './setup.ts';
+export * from './shipped-catalogue.ts';
+export * from './step-words.ts';
 export * from './stream.ts';
 export * from './system-prompt.ts';
+export * from './tauri-transport.ts';
 export * from './tool-names.ts';
 export * from './tools.ts';
 export * from './transport.ts';

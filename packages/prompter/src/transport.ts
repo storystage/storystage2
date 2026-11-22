@@ -75,6 +75,11 @@ export type PrompterEvent =
       readonly type: 'error';
       readonly code: TransportErrorCode;
       readonly retryAfterSeconds?: number;
+      /**
+       * The API's own status and words, where a transport has them, for the evaluation's
+       * recordings. Never shown to a learner: the panel words the error by its code (section 7).
+       */
+      readonly detail?: { readonly status: number; readonly message: string };
     }
   /** The stream finished normally. After `end` or `error`, nothing else arrives. */
   | { readonly type: 'end' };

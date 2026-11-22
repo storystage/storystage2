@@ -2,12 +2,24 @@
   "name": "@storystage/a3p-import",
   "version": "0.0.0",
   "private": true,
-  "description": "Alice .a3p reader to the StoryStage 2 program.",
+  "description": "Alice 3 worlds (.a3p) into StoryStage: reading them safely (WP9.1), then the program (WP9.2).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./worker": "./src/alice-worker.ts",
+    "./worker-client": "./src/worker-client.ts",
+    "./models": "./src/models.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "fetch-starters": "node scripts/fetch-starters.ts"
+  },
+  "dependencies": {
+    "@storystage/ast": "workspace:*",
+    "@storystage/backstage": "workspace:*",
+    "@storystage/backstage-import": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/story-api": "workspace:*"
   }
 }

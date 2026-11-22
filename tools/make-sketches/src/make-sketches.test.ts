@@ -108,6 +108,35 @@ describe('makeSketches', () => {
     );
   });
 
+  it('draws named sketches simplified, and stops listing those looked at and kept', async () => {
+    await writeFile(
+      join(dir, 'sketches/touch-up.json'),
+      JSON.stringify({
+        simplified: ['sketches/test/Biped/robot/front.svg'],
+        kept: ['sketches/test/Prop/sign/side.svg'],
+      }),
+    );
+    const report = await makeSketches(dir);
+    expect(report.flagged).toEqual([]);
+    expect(report.simplified).toEqual(['sketches/test/Biped/robot/front.svg']);
+    expect(report.kept).toEqual(['sketches/test/Prop/sign/side.svg']);
+    const drawn = await readFile(join(dir, 'sketches/test/Biped/robot/front.svg'), 'utf8');
+    expect(drawn).toContain('data-facing="front"');
+    const list = await readFile(join(dir, 'sketches/touch-up.md'), 'utf8');
+    expect(list).toContain('## Drawn simplified\n\n- `sketches/test/Biped/robot/front.svg`');
+    expect(list).toContain('## Looked at and kept\n\n- `sketches/test/Prop/sign/side.svg`');
+    expect(list).toContain('Nothing: every sketch passed the checks.');
+  });
+
+  it('refuses a touch-up.json naming a sketch there is none of', async () => {
+    await writeFile(
+      join(dir, 'sketches/touch-up.json'),
+      JSON.stringify({ kept: ['sketches/test/Prop/crate/upside-down.svg'] }),
+    );
+    await expect(makeSketches(dir, { write: false })).rejects.toThrow(/no such sketch/);
+    await rm(join(dir, 'sketches/touch-up.json'));
+  });
+
   it('writes nothing on a dry run', async () => {
     const before = await readFile(join(dir, 'backstage.json'), 'utf8');
     await rm(join(dir, 'sketches/test/Prop/crate'), { recursive: true });

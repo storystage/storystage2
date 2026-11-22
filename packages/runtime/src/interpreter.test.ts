@@ -477,6 +477,58 @@ describe('procedures and functions', () => {
     ]);
   });
 
+  it("calls a class's method on a field of that class, with its arguments (decision 0074)", () => {
+    // "Teach the penguin a new move": the field's type is the learner's class for its model.
+    const n = param('n');
+    const hop = method(
+      'hop',
+      [n],
+      [
+        {
+          id: id(),
+          kind: 'call',
+          target: self(),
+          callee: { kind: 'story', name: 'say' },
+          args: { text: ref(n) },
+          details: {},
+        },
+      ],
+    );
+    const penguin: TypeDecl = {
+      id: nodeId('pengtp'),
+      kind: 'type',
+      name: 'Penguin',
+      extends: { kind: 'story', name: 'Quadruped' },
+      fields: [],
+      methods: [hop],
+      listeners: [],
+    };
+    const pip: FieldDecl = {
+      id: nodeId('pipfld'),
+      kind: 'field',
+      name: 'pip',
+      type: { kind: 'user', type: penguin.id },
+      initial: null,
+    };
+    const base = program([
+      {
+        id: id(),
+        kind: 'call',
+        target: field(pip),
+        callee: { kind: 'user', method: hop.id },
+        args: { [n.id]: num(7) },
+        details: {},
+      },
+      say(DOG, text('after')),
+    ]);
+    const [scene] = base.types;
+    const p: Program = {
+      ...base,
+      types: [{ ...scene!, fields: [...scene!.fields, pip] }, penguin],
+    };
+    expect(run(p).said).toEqual(['0:pip 7', '1:dog after']);
+  });
+
   it('uses a default for a parameter left out', () => {
     const p = param('n', num(4));
     const hop = method('hop', [p], [say(CAT, ref(p))]);

@@ -1,7 +1,7 @@
 [package]
 name = "tauri-plugin-secure-key"
 version = "0.1.0"
-description = "The key's store and dialog on Android: Android Keystore and a system dialog"
+description = "The key's dialog on Android and iPad, and its store on Android (Android Keystore)"
 license = "Apache-2.0"
 edition = "2021"
 rust-version = "1.80"

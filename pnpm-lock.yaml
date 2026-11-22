@@ -6,6 +6,7 @@ settings:
 
 overrides:
   ndarray-pixels>sharp: '-'
+  minimatch: ^11.0.1
 
 importers:
 
@@ -50,21 +51,81 @@ importers:
 
   apps/studio:
     dependencies:
+      '@storystage/a3p-import':
+        specifier: workspace:*
+        version: link:../../packages/a3p-import
       '@storystage/ast':
         specifier: workspace:*
         version: link:../../packages/ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../../packages/backstage
+      '@storystage/backstage-import':
+        specifier: workspace:*
+        version: link:../../packages/backstage-import
+      '@storystage/blocks':
+        specifier: workspace:*
+        version: link:../../packages/blocks
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../../packages/check
+      '@storystage/diagnostics':
+        specifier: workspace:*
+        version: link:../../packages/diagnostics
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../../packages/editor-contract
+      '@storystage/export':
+        specifier: workspace:*
+        version: link:../../packages/export
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../../packages/host
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../../packages/playback
       '@storystage/production':
         specifier: workspace:*
         version: link:../../packages/production
+      '@storystage/prompter':
+        specifier: workspace:*
+        version: link:../../packages/prompter
+      '@storystage/screening':
+        specifier: workspace:*
+        version: link:../../packages/screening
+      '@storystage/selftest':
+        specifier: workspace:*
+        version: link:../../packages/selftest
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
+      '@storystage/speech':
+        specifier: workspace:*
+        version: link:../../packages/speech
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../../packages/stage
+      '@storystage/staging':
+        specifier: workspace:*
+        version: link:../../packages/staging
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
+      '@storystage/study':
+        specifier: workspace:*
+        version: link:../../packages/study
+      '@storystage/text-view':
+        specifier: workspace:*
+        version: link:../../packages/text-view
+      '@storystage/tiles':
+        specifier: workspace:*
+        version: link:../../packages/tiles
       '@storystage/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@tauri-apps/api':
+        specifier: ^2.12.4
+        version: 2.12.4
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -78,6 +139,12 @@ importers:
       '@axe-core/playwright':
         specifier: ^4.14.0
         version: 4.14.0(playwright-core@1.64.1)
+      '@storystage/fake-claude':
+        specifier: workspace:*
+        version: link:../../tools/fake-claude
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../../packages/runtime
       '@testing-library/react':
         specifier: ^16.3.3
         version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -96,11 +163,30 @@ importers:
       happy-dom:
         specifier: ^21.0.4
         version: 21.0.4
+      mediabunny:
+        specifier: ^1.62.0
+        version: 1.62.0
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
-  packages/a3p-import: {}
+  packages/a3p-import:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/backstage-import':
+        specifier: workspace:*
+        version: link:../backstage-import
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
 
   packages/ar: {}
 
@@ -135,7 +221,92 @@ importers:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@26.6.5)
 
-  packages/blocks: {}
+  packages/backstage-import:
+    dependencies:
+      '@gltf-transform/core':
+        specifier: ^4.5.1
+        version: 4.5.1
+      '@gltf-transform/extensions':
+        specifier: ^4.5.1
+        version: 4.5.1
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/sketches':
+        specifier: workspace:*
+        version: link:../sketches
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      meshoptimizer:
+        specifier: ^1.3.0
+        version: 1.3.0
+    devDependencies:
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
+
+  packages/blocks:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../editor-contract
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      '@storystage/ui':
+        specifier: workspace:*
+        version: link:../ui
+      blockly:
+        specifier: ^13.4.0
+        version: 13.4.0(jsdom@30.1.3)
+    devDependencies:
+      jsdom:
+        specifier: ^30.1.3
+        version: 30.1.3
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
+
+  packages/check:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../playback
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+    devDependencies:
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+
+  packages/diagnostics:
+    dependencies:
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
 
   packages/editor-contract:
     dependencies:
@@ -145,10 +316,31 @@ importers:
 
   packages/export:
     dependencies:
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../playback
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
       mediabunny:
         specifier: ^1.62.0
         version: 1.62.0
     devDependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       vite:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
@@ -159,6 +351,24 @@ importers:
         specifier: workspace:*
         version: link:../prompter
 
+  packages/playback:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+
   packages/production:
     dependencies:
       '@storystage/ast':
@@ -167,9 +377,19 @@ importers:
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../story-api
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
+    devDependencies:
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
 
   packages/projection: {}
 
@@ -178,6 +398,9 @@ importers:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
@@ -194,17 +417,72 @@ importers:
         specifier: workspace:*
         version: link:../story-api
 
+  packages/screening:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../check
+      '@storystage/export':
+        specifier: workspace:*
+        version: link:../export
+      '@storystage/playback':
+        specifier: workspace:*
+        version: link:../playback
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      '@storystage/ui':
+        specifier: workspace:*
+        version: link:../ui
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-aria-components:
+        specifier: ^1.22.1
+        version: 1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+    devDependencies:
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@testing-library/user-event':
+        specifier: ^14.6.8
+        version: 14.6.8(@testing-library/dom@10.4.2)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      happy-dom:
+        specifier: ^21.0.4
+        version: 21.0.4
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+
   packages/selftest:
     dependencies:
       '@storystage/ast':
         specifier: workspace:*
         version: link:../ast
-      '@storystage/editor-contract':
+      '@storystage/playback':
         specifier: workspace:*
-        version: link:../editor-contract
+        version: link:../playback
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
       '@storystage/stage':
         specifier: workspace:*
         version: link:../stage
@@ -234,7 +512,24 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
 
-  packages/speech: {}
+  packages/speech:
+    dependencies:
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      onnxruntime-web:
+        specifier: 1.30.0
+        version: 1.30.0
+    devDependencies:
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   packages/stage:
     dependencies:
@@ -244,6 +539,12 @@ importers:
       '@babylonjs/loaders':
         specifier: ^9.31.3
         version: 9.31.3(@babylonjs/core@9.31.1)(babylonjs-gltf2interface@9.31.3)
+      '@recast-navigation/core':
+        specifier: 0.43.1
+        version: 0.43.1
+      '@recast-navigation/generators':
+        specifier: 0.43.1
+        version: 0.43.1
       '@storystage/backstage':
         specifier: workspace:*
         version: link:../backstage
@@ -258,6 +559,24 @@ importers:
         specifier: ^5.0.5
         version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
 
+  packages/staging:
+    dependencies:
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../backstage
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../check
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/sketches':
+        specifier: workspace:*
+        version: link:../sketches
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+
   packages/story-api:
     dependencies:
       '@storystage/ast':
@@ -268,9 +587,119 @@ importers:
         specifier: ^8.20.0
         version: 8.20.0
 
-  packages/text-view: {}
+  packages/study:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/host':
+        specifier: workspace:*
+        version: link:../host
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../production
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+    devDependencies:
+      '@storystage/check':
+        specifier: workspace:*
+        version: link:../check
+      '@storystage/runtime':
+        specifier: workspace:*
+        version: link:../runtime
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../stage
 
-  packages/tiles: {}
+  packages/text-view:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../editor-contract
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@storystage/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.2
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
+      happy-dom:
+        specifier: ^21.0.4
+        version: 21.0.4
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
+
+  packages/tiles:
+    dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../ast
+      '@storystage/editor-contract':
+        specifier: workspace:*
+        version: link:../editor-contract
+      '@storystage/story-api':
+        specifier: workspace:*
+        version: link:../story-api
+      react:
+        specifier: ^19.3.1
+        version: 19.3.1
+      react-aria-components:
+        specifier: ^1.22.1
+        version: 1.22.1(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      react-dom:
+        specifier: ^19.3.1
+        version: 19.3.1(react@19.3.1)
+    devDependencies:
+      '@axe-core/playwright':
+        specifier: ^4.14.0
+        version: 4.14.0(playwright-core@1.64.1)
+      '@storystage/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@testing-library/react':
+        specifier: ^16.3.3
+        version: 16.3.3(@testing-library/dom@10.4.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@testing-library/user-event':
+        specifier: ^14.6.8
+        version: 14.6.8(@testing-library/dom@10.4.2)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.2
+        version: 6.1.2(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
+      happy-dom:
+        specifier: ^21.0.4
+        version: 21.0.4
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
   packages/ui:
     dependencies:
@@ -417,12 +846,48 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
 
+  spikes/14.3-voices:
+    devDependencies:
+      coi-serviceworker:
+        specifier: ^0.1.7
+        version: 0.1.7
+      onnxruntime-web:
+        specifier: 1.30.0
+        version: 1.30.0
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
+
+  spikes/23.1-projection:
+    devDependencies:
+      '@babylonjs/core':
+        specifier: ^9.31.1
+        version: 9.31.1
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.5)(yaml@2.9.1)
+
+  spikes/23.2-pixera:
+    devDependencies:
+      '@playwright/test':
+        specifier: ^1.64.1
+        version: 1.64.1
+      '@types/node':
+        specifier: ^26.6.5
+        version: 26.6.5
+      vitest:
+        specifier: ^5.0.5
+        version: 5.0.5(@types/node@26.6.5)(happy-dom@21.0.4)(jsdom@30.1.3)(vite@8.3.4(@types/node@26.6.5)(yaml@2.9.1))
+
   tools/backstage-sources:
     dependencies:
       '@gltf-transform/core':
         specifier: ^4.5.1
         version: 4.5.1
       '@gltf-transform/extensions':
+        specifier: ^4.5.1
+        version: 4.5.1
+      '@gltf-transform/functions':
         specifier: ^4.5.1
         version: 4.5.1
       '@storystage/backstage':
@@ -434,10 +899,16 @@ importers:
       '@storystage/sketches':
         specifier: workspace:*
         version: link:../../packages/sketches
+      '@storystage/stage':
+        specifier: workspace:*
+        version: link:../../packages/stage
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
     devDependencies:
+      draco3dgltf:
+        specifier: 1.5.9
+        version: 1.5.9
       sharp:
         specifier: ^0.35.5
         version: 0.35.5(@types/node@26.6.5)
@@ -466,9 +937,21 @@ importers:
 
   tools/fake-claude:
     dependencies:
+      '@storystage/ast':
+        specifier: workspace:*
+        version: link:../../packages/ast
+      '@storystage/backstage':
+        specifier: workspace:*
+        version: link:../../packages/backstage
+      '@storystage/production':
+        specifier: workspace:*
+        version: link:../../packages/production
       '@storystage/prompter':
         specifier: workspace:*
         version: link:../../packages/prompter
+      '@storystage/staging':
+        specifier: workspace:*
+        version: link:../../packages/staging
       '@storystage/story-api':
         specifier: workspace:*
         version: link:../../packages/story-api
@@ -890,6 +1373,9 @@ packages:
   '@internationalized/string@3.2.10':
     resolution: {integrity: sha512-PDx6//vHSpRnHfxqMqto11zQvhsaU74O3mKv2F/0eicGZcl9NLjQmGlbHz/LsJh5tLKp4A4L7ZVTzN1/MmMTvA==}
 
+  '@isaacs/nonrecursive-glob-match@1.1.0':
+    resolution: {integrity: sha512-GPm/Dbvk5RLmhRnxXIa7nTpK0xtl4E0wj0MslsuNiJ1FIROU+2+9lgUC/dgF7Ey4QCWhfEsgxilMRMCdHPfDfw==}
+
   '@jridgewell/gen-mapping@0.3.13':
     resolution: {integrity: sha512-2kkt/7niJ6MgEPxF0bYdQ6etZaA+fQvDcLKckhy1yIQOzaoKjBBjSj63/aLVjYE3qhRt5dvM+uUyfCg6UKCBbA==}
 
@@ -926,10 +1412,46 @@ packages:
     engines: {node: '>=20'}
     hasBin: true
 
+  '@protobufjs/aspromise@1.1.2':
+    resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
+
+  '@protobufjs/base64@1.1.2':
+    resolution: {integrity: sha512-AZkcAA5vnN/v4PDqKyMR5lx7hZttPDgClv83E//FMNhR2TMcLUhfRUBHCmSl0oi9zMgDDqRUJkSxO3wm85+XLg==}
+
+  '@protobufjs/codegen@2.0.5':
+    resolution: {integrity: sha512-zgXFLzW3Ap33e6d0Wlj4MGIm6Ce8O89n/apUaGNB/jx+hw+ruWEp7EwGUshdLKVRCxZW12fp9r40E1mQrf/34g==}
+
+  '@protobufjs/eventemitter@1.1.1':
+    resolution: {integrity: sha512-vW1GmwMZNnL+gMRaovlh9yZX74kc+TTU3FObkkurpMaRtBfLP3ldjS9KQWlwZgraRE0+dheEEoAxdzcJQ8eXZg==}
+
+  '@protobufjs/fetch@1.1.1':
+    resolution: {integrity: sha512-GpptLrs57adMSuHi3VNj0mAF8dwh36LMaYF6XyJ6JMWlVsc+t42tm1HSEDmOs3A8fC9yyeisgLhsTVQokOZ0zw==}
+
+  '@protobufjs/float@1.0.2':
+    resolution: {integrity: sha512-Ddb+kVXlXst9d+R9PfTIxh1EdNkgoRe5tOX6t01f1lYWOvJnSPDBlG241QLzcyPdoNTsblLUdujGSE4RzrTZGQ==}
+
+  '@protobufjs/path@1.1.2':
+    resolution: {integrity: sha512-6JOcJ5Tm08dOHAbdR3GrvP+yUUfkjG5ePsHYczMFLq3ZmMkAD98cDgcT2iA1lJ9NVwFd4tH/iSSoe44YWkltEA==}
+
+  '@protobufjs/pool@1.1.0':
+    resolution: {integrity: sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw==}
+
+  '@protobufjs/utf8@1.1.2':
+    resolution: {integrity: sha512-b1UQwcEZ4yCnMCD8DAL1VlbvBJE9/IX4FTIp7BG1xYpf29SLazLSrqUkj4w7Y5y7cCVP6E5tcqqcI0xemPkHug==}
+
   '@react-types/shared@3.37.0':
     resolution: {integrity: sha512-VNlZuifu4tHdxWPfHvoMfKsHA9kVTCGkduv5vKVTdinm8wHFJNhyVB5RzIMiRFj0q3RKoCbP68u2zaoBSiFueg==}
     peerDependencies:
       react: ^16.8.0 || ^17.0.0-rc.1 || ^18.0.0 || ^19.0.0-rc.1
+
+  '@recast-navigation/core@0.43.1':
+    resolution: {integrity: sha512-4igfPgnoV90O92sDSIA0xHa6tanh3z/udlgGmD0SqGQ6PKV4JS2l9jWO8YnxfZuXP/NV52H4c5FU6pSdZc9WDA==}
+
+  '@recast-navigation/generators@0.43.1':
+    resolution: {integrity: sha512-w7r6k/A93wWxuSN+Lg+PmlsUVXq06r5bqXmBglolxqDt2O/Y776BIhYtb6P2P6pbYqDWORu9NCZZJzfY4FNpaA==}
+
+  '@recast-navigation/wasm@0.43.1':
+    resolution: {integrity: sha512-XFL6PhO8JodwXUHBSAkfaLUdUEweIkJsdP3HTmtJvMs5fkqEWxWJmBskZlACHJepv55NAriqWxOtuLlG3t7+Hg==}
 
   '@rolldown/binding-android-arm-eabi@1.2.14':
     resolution: {integrity: sha512-aWR+XKH9+rW7m5fWq/5360J3mHycrx/o6xZM2DQFdJnTMdyP7/WzxPjhtLbVWdKo2y612/4U1bWqb3HQhiF7vg==}
@@ -1399,6 +1921,9 @@ packages:
   dom-accessibility-api@0.5.16:
     resolution: {integrity: sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==}
 
+  draco3dgltf@1.5.9:
+    resolution: {integrity: sha512-nIRZumqUwjqVYAdtt8q0F3FZc5qo2rCPTBH2hHhfSvHSPVJazzaepEHFdAZv4wrQKk5CkaclWGHhpyJ4eUdcJQ==}
+
   electron-to-chromium@1.5.461:
     resolution: {integrity: sha512-3WZFARz1By+/rYcqQ0OLj4UcEdhd6tz2LEcDtKBUq7ey77EeJ1OtetY/5hjSUxw7dC5r5mA7FfkhRbqO9vnTCg==}
 
@@ -1501,6 +2026,9 @@ packages:
       picomatch:
         optional: true
 
+  fflate@0.8.3:
+    resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
+
   file-entry-cache@11.1.5:
     resolution: {integrity: sha512-+PFTHITI08JIGhnNpGNI8T8inUpgZfk3GNEqfT9R2zZV2iFXg3CvqzSl/uEhs7TSGujYRELEANyDvS8Fj7+S7Q==}
 
@@ -1510,6 +2038,9 @@ packages:
 
   flat-cache@6.1.23:
     resolution: {integrity: sha512-f++BY9pTk+983xK1FLzlLpmM0i0z+jHmx3QESGkURMXujQZz1k5wzwX6hjnQ8goaD0B+sYnDK1yZ6MTyZfUaqA==}
+
+  flatbuffers@25.9.23:
+    resolution: {integrity: sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==}
 
   flatted@3.4.4:
     resolution: {integrity: sha512-5+ybhBZANEJxaH3X5evAFatUxLfEHSr7n6kYJ+1Qd0mUqr4eu9gIf6GDbWHf8RJijHrjjO8G+la14SlL2SeS1Q==}
@@ -1530,6 +2061,9 @@ packages:
   globals@17.13.0:
     resolution: {integrity: sha512-RwMTC61u7hrG3ZJMkZQOK4JLJrKS8QtoTii63EmWvFXHqycY9FObBJQCbsLxSO8kjKhWE5kV1GC+Vb1g3RI0Zg==}
     engines: {node: '>=18'}
+
+  guid-typescript@1.0.9:
+    resolution: {integrity: sha512-Y8T4vYhEfwJOTbouREvG+3XDsjr8E3kIr7uf+JZ0BYloFsttiHU0WfvANVsR7TxNUJa/WpCnw/Ino/p+DeBhBQ==}
 
   happy-dom@21.0.4:
     resolution: {integrity: sha512-tFm+GaLBgo6o0awHnvHaNoraVo27qJ+2tZEtZ+cIa08hXbeitrxAJajLI05hsUy/2/YTKcUjQYzHe5mCcraLBw==}
@@ -1702,6 +2236,9 @@ packages:
     resolution: {integrity: sha512-iPZK6eYjbxRu3uB4/WZ3EsEIMJFMqAoopl3R+zuq0UjcAm/MO6KCweDgPfP3elTztoKP3KtnVHxTn2NHBSDVUw==}
     engines: {node: '>=10'}
 
+  long@5.3.2:
+    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
+
   lru-cache@11.5.3:
     resolution: {integrity: sha512-U4N8FgzmWxc8k1VH8Kr6lQg18U7Fjvby6wXHVRX/ZZ7IwWbRMgrRbP0Wrb5q5NVinryp4SQampHKdvtecItxUg==}
     engines: {node: 20 || >=22}
@@ -1725,9 +2262,9 @@ packages:
   meshoptimizer@1.3.0:
     resolution: {integrity: sha512-2oZqMAcEEiCtXWUjIGtZ71oPx1B0ZxYGTqIKsXB1wzWFhleNsCFxQuUJzgCV706bRcwPWtMGf1odmQvAcqKkIw==}
 
-  minimatch@10.2.6:
-    resolution: {integrity: sha512-vpLQEs+VLCr1nU0BXS07maYoFwlDAH0gngQuuttxIwutDFEMHq2blX+8vpgxDdK3J1PwjCJiep77OitTZ4Ll1A==}
-    engines: {node: 18 || 20 || >=22}
+  minimatch@11.0.5:
+    resolution: {integrity: sha512-snPlVppFcYWfLLFQGhDxUyBcHNtMlWmn3jtj7pEaO+DP8pqL0IvAzXhMYmn1z9ASNtgmwLBdFxSf4tMUB0OTKA==}
+    engines: {node: 20 || >=22}
 
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
@@ -1760,6 +2297,12 @@ packages:
     resolution: {integrity: sha512-5vvB5+W7ePv+p3uqxi+RcW1XAzLW0/hxt3/4X4Lc4qHudzOhmBiBwOY6DRob4WnanAEGvNcLjF+KNOufrUoEQw==}
     engines: {node: '>=12.20.0'}
 
+  onnxruntime-common@1.30.0:
+    resolution: {integrity: sha512-7fdVWjAID1dVhH/G8qK3APARunV4VkBFoCQAP7qp4Wkab0mrorvmc+sqiT+mKXOzDqdjN5j+/Z9nb4gzNPWcyA==}
+
+  onnxruntime-web@1.30.0:
+    resolution: {integrity: sha512-q0y+JrrtukXSzsBWEMccVfqX25LRmosXHF+CaRJmg8pZClzcV7svNc4rKY3jL02Vb7QmRMDs1SigqR4CXAfKYQ==}
+
   optionator@0.9.4:
     resolution: {integrity: sha512-6IpQ7mKUxRcZNLIObR0hz7lxsapSSIYNZJwXPGeF0mTVqGKFIXj1DQcMoT22S3ROcLyY/rz0PWaWZ9ayWmad9g==}
     engines: {node: '>= 0.8.0'}
@@ -1790,6 +2333,9 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  platform@1.3.6:
+    resolution: {integrity: sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==}
+
   playwright-core@1.64.1:
     resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
     engines: {node: '>=20'}
@@ -1819,6 +2365,10 @@ packages:
 
   property-graph@4.1.0:
     resolution: {integrity: sha512-AvPcP7XECNWy4LGmFQ77k7un4lSKM4eS29PTvW4ck95uYeLxXPWJM7hLuBqK91FaHqCcgJvIUCuNJjjxKE7VKQ==}
+
+  protobufjs@7.6.6:
+    resolution: {integrity: sha512-dYDWdjSl5RNb7SgPxGQcRU+GtvP7s2fpkrY0r432PcOIaZ0/rBcxEZnQN67iJhFuQiVw754JDoPruPCNdGsbjg==}
+    engines: {node: '>=12.0.0'}
 
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
@@ -2330,7 +2880,7 @@ snapshots:
     dependencies:
       '@eslint/object-schema': 3.0.5
       debug: 4.4.3
-      minimatch: 10.2.6
+      minimatch: 11.0.5
     transitivePeerDependencies:
       - supports-color
 
@@ -2511,6 +3061,8 @@ snapshots:
     dependencies:
       '@swc/helpers': 0.5.23
 
+  '@isaacs/nonrecursive-glob-match@1.1.0': {}
+
   '@jridgewell/gen-mapping@0.3.13':
     dependencies:
       '@jridgewell/sourcemap-codec': 1.6.0
@@ -2546,9 +3098,40 @@ snapshots:
     dependencies:
       playwright: 1.64.1
 
+  '@protobufjs/aspromise@1.1.2': {}
+
+  '@protobufjs/base64@1.1.2': {}
+
+  '@protobufjs/codegen@2.0.5': {}
+
+  '@protobufjs/eventemitter@1.1.1': {}
+
+  '@protobufjs/fetch@1.1.1':
+    dependencies:
+      '@protobufjs/aspromise': 1.1.2
+
+  '@protobufjs/float@1.0.2': {}
+
+  '@protobufjs/path@1.1.2': {}
+
+  '@protobufjs/pool@1.1.0': {}
+
+  '@protobufjs/utf8@1.1.2': {}
+
   '@react-types/shared@3.37.0(react@19.3.1)':
     dependencies:
       react: 19.3.1
+
+  '@recast-navigation/core@0.43.1':
+    dependencies:
+      '@recast-navigation/wasm': 0.43.1
+
+  '@recast-navigation/generators@0.43.1':
+    dependencies:
+      '@recast-navigation/core': 0.43.1
+      '@recast-navigation/wasm': 0.43.1
+
+  '@recast-navigation/wasm@0.43.1': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.14':
     optional: true
@@ -2783,7 +3366,7 @@ snapshots:
       '@typescript-eslint/types': 8.72.0
       '@typescript-eslint/visitor-keys': 8.72.0
       debug: 4.4.3
-      minimatch: 10.2.6
+      minimatch: 11.0.5
       semver: 7.8.5
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@6.0.3)
@@ -2947,6 +3530,8 @@ snapshots:
 
   dom-accessibility-api@0.5.16: {}
 
+  draco3dgltf@1.5.9: {}
+
   electron-to-chromium@1.5.461: {}
 
   entities@7.0.1: {}
@@ -3010,7 +3595,7 @@ snapshots:
       imurmurhash: 0.1.4
       is-glob: 4.0.3
       json-stable-stringify-without-jsonify: 1.0.1
-      minimatch: 10.2.6
+      minimatch: 11.0.5
       natural-compare: 1.4.0
       optionator: 0.9.4
     transitivePeerDependencies:
@@ -3056,6 +3641,8 @@ snapshots:
     optionalDependencies:
       picomatch: 4.0.7
 
+  fflate@0.8.3: {}
+
   file-entry-cache@11.1.5:
     dependencies:
       flat-cache: 6.1.23
@@ -3071,6 +3658,8 @@ snapshots:
       flatted: 3.4.4
       hookified: 1.15.1
 
+  flatbuffers@25.9.23: {}
+
   flatted@3.4.4: {}
 
   fsevents@2.3.3:
@@ -3083,6 +3672,8 @@ snapshots:
       is-glob: 4.0.3
 
   globals@17.13.0: {}
+
+  guid-typescript@1.0.9: {}
 
   happy-dom@21.0.4:
     dependencies:
@@ -3238,6 +3829,8 @@ snapshots:
     dependencies:
       p-locate: 5.0.0
 
+  long@5.3.2: {}
+
   lru-cache@11.5.3: {}
 
   lru-cache@5.1.1:
@@ -3259,8 +3852,9 @@ snapshots:
 
   meshoptimizer@1.3.0: {}
 
-  minimatch@10.2.6:
+  minimatch@11.0.5:
     dependencies:
+      '@isaacs/nonrecursive-glob-match': 1.1.0
       brace-expansion: 5.0.12
 
   ms@2.1.3: {}
@@ -3293,6 +3887,17 @@ snapshots:
 
   obug@3.0.0: {}
 
+  onnxruntime-common@1.30.0: {}
+
+  onnxruntime-web@1.30.0:
+    dependencies:
+      flatbuffers: 25.9.23
+      guid-typescript: 1.0.9
+      long: 5.3.2
+      onnxruntime-common: 1.30.0
+      platform: 1.3.6
+      protobufjs: 7.6.6
+
   optionator@0.9.4:
     dependencies:
       deep-is: 0.1.4
@@ -3322,6 +3927,8 @@ snapshots:
 
   picomatch@4.0.7: {}
 
+  platform@1.3.6: {}
+
   playwright-core@1.64.1: {}
 
   playwright@1.64.1:
@@ -3345,6 +3952,20 @@ snapshots:
       react-is: 17.0.2
 
   property-graph@4.1.0: {}
+
+  protobufjs@7.6.6:
+    dependencies:
+      '@protobufjs/aspromise': 1.1.2
+      '@protobufjs/base64': 1.1.2
+      '@protobufjs/codegen': 2.0.5
+      '@protobufjs/eventemitter': 1.1.1
+      '@protobufjs/fetch': 1.1.1
+      '@protobufjs/float': 1.0.2
+      '@protobufjs/path': 1.1.2
+      '@protobufjs/pool': 1.1.0
+      '@protobufjs/utf8': 1.1.2
+      '@types/node': 26.6.5
+      long: 5.3.2
 
   punycode@2.3.1: {}
 

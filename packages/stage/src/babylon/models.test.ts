@@ -1,5 +1,8 @@
-import type { Scene } from '@babylonjs/core/scene.js';
-import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Color3 } from '@babylonjs/core/Maths/math.color.js';
+import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
+import { Scene } from '@babylonjs/core/scene.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import {
   IDENTITY,
@@ -15,13 +18,15 @@ import type { BackstageManifest } from '@storystage/backstage';
 import { describe, expect, it } from 'vitest';
 import { SETUP, cmd } from '../testing/conformance.ts';
 import { headlessEngine } from './headless.ts';
-import { modelsFromManifest, type ModelSource } from './models.ts';
+import { glow, modelsFromManifest, type ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
-import { tinyModelUrl } from './tiny-model.ts';
+import { tinyModelUrl, tinySkeletonUrl } from './tiny-model.ts';
 
 const head = jointName('head');
 const robot = backstageId('test/Biped/robot');
 const url = tinyModelUrl(['hips', 'spine', 'chest', 'neck', 'head']);
+/** The tiny model's blue, 0.6 in its file (linear), as it shows on screen (sRGB). */
+const SHOWN_BLUE = Math.pow(0.6, 1 / 2.2);
 const source: ModelSource = {
   find: (id) => (id === robot ? { url, joints: [jointName('neck'), head] } : null),
 };
@@ -59,17 +64,105 @@ describe('models', () => {
     expect(body(ann)).toBeDefined();
   });
 
-  it('refuse a model Backstage does not have, or a file that will not load', async () => {
+  it('that Backstage does not have, or that will not load, show as stand-ins (spec 03, 1.3)', async () => {
+    const ghost = backstageId('test/Biped/ghost');
     const missing = new BabylonStage(headlessEngine(), { models: source });
-    const nothing = { ...setup, objects: [place(ann, 0, backstageId('test/Biped/ghost'))] };
-    await expect(missing.load(nothing)).rejects.toMatchObject({ code: 'unknown_model' });
+    await missing.load({ ...setup, objects: [place(ann, 0, ghost), place(bob, 2)] });
+    // The scene plays on, the missing one as a stand-in with its model's name, and it says so.
+    expect(missing.objects()).toEqual(expect.arrayContaining([ann, bob]));
+    expect(missing.missing()).toEqual([{ kind: 'model', object: ann, model: ghost }]);
+    expect(missing.joints(ann)).toContain(head);
     const broken = new BabylonStage(headlessEngine(), {
       models: { find: () => ({ url: 'data:model/gltf-binary;base64,AAAA', joints: [] }) },
     });
-    await expect(broken.load(setup)).rejects.toMatchObject({ code: 'unknown_model' });
-    await expect(new BabylonStage(headlessEngine()).load(setup)).rejects.toMatchObject({
-      code: 'unknown_model',
+    await broken.load(setup);
+    expect(broken.missing().map((m) => m.kind)).toEqual(['model', 'model']);
+    const none = new BabylonStage(headlessEngine());
+    await none.load(setup);
+    expect(none.missing()).toHaveLength(2);
+    // A scene with everything found has nothing missing.
+    const found = new BabylonStage(headlessEngine(), { models: source });
+    await found.load(setup);
+    expect(found.missing()).toEqual([]);
+  });
+
+  it("walk an animal with its own clip, as fast as its toe sweeps (S4's clip names, 18 Nov)", async () => {
+    // A leg 0.5 m long that swings a twelfth of a turn over its 1 s walk: its toe sweeps
+    // 0.5 sin 30° = 0.25 m, so the walk goes 0.25 / 0.65 m a second.
+    const animal = backstageId('test/Quadruped/animal');
+    const toe = jointName('frontLeftToe');
+    const file = tinySkeletonUrl(
+      [{ name: 'spineBase' }, { name: 'frontLeftToe', parent: 'spineBase', at: [0, -0.5, 0] }],
+      {
+        clips: [
+          { name: 'walk', bone: 'spineBase', axis: [1, 0, 0], turns: 1 / 12 },
+          { name: 'iddle', bone: 'spineBase', axis: [0, 1, 0], turns: 0.01 },
+        ],
+      },
+    );
+    const stage = new BabylonStage(headlessEngine(), {
+      models: {
+        find: (id) => (id === animal ? { url: file, joints: [jointName('spineBase'), toe] } : null),
+      },
     });
+    const spot = objectId('spot');
+    await stage.load({
+      ...SETUP,
+      objects: [{ ...place(ann, 0, animal), class: 'Quadruped' as const }],
+      markers: [{ id: spot, transform: { ...IDENTITY, position: { x: 2, y: 0, z: 0 } } }],
+    });
+    const walk = { object: ann, kind: 'walk', to: spot, gait: 'walk' } as const;
+    const seconds = stage.answer({ kind: 'naturalDuration', action: walk, at: 0 }).value as number;
+    expect(seconds / 1e6).toBeCloseTo(2 / (0.25 / 0.65), 2);
+  });
+
+  it("reckon a foot below the knee for a leg mapped no lower (S4's savanna animals)", async () => {
+    // A knee 0.5 m up that swings a twelfth of a turn: the ground below it sweeps
+    // 0.5 sin 30° = 0.25 m, as the toe did above. The knee itself only turns where it is.
+    const animal = backstageId('test/Quadruped/kneed');
+    const file = tinySkeletonUrl(
+      [{ name: 'spineBase' }, { name: 'frontLeftKnee', parent: 'spineBase', at: [0, 0.5, 0] }],
+      { clips: [{ name: 'walk', bone: 'frontLeftKnee', axis: [1, 0, 0], turns: 1 / 12 }] },
+    );
+    const knee = jointName('frontLeftKnee');
+    const stage = new BabylonStage(headlessEngine(), {
+      models: {
+        find: (id) =>
+          id === animal ? { url: file, joints: [jointName('spineBase'), knee] } : null,
+      },
+    });
+    const spot = objectId('spot');
+    await stage.load({
+      ...SETUP,
+      objects: [{ ...place(ann, 0, animal), class: 'Quadruped' as const }],
+      markers: [{ id: spot, transform: { ...IDENTITY, position: { x: 2, y: 0, z: 0 } } }],
+    });
+    const walk = { object: ann, kind: 'walk', to: spot, gait: 'walk' } as const;
+    const seconds = stage.answer({ kind: 'naturalDuration', action: walk, at: 0 }).value as number;
+    expect(seconds / 1e6).toBeCloseTo(2 / (0.25 / 0.65), 2);
+  });
+
+  it('say which posed joints the model has not got, after its model, and never for a stand-in (spec 03, 2.2)', async () => {
+    const wing = jointName('leftWing');
+    const turn = { x: 0, y: 0, z: 0, w: 1 };
+    const posed = (id: ObjectId, x: number, model?: BackstageId) => ({
+      ...place(id, x, model),
+      joints: { [head]: turn, [wing]: turn },
+    });
+    const ghost = backstageId('test/Biped/ghost');
+    const stage = new BabylonStage(headlessEngine(), { models: source });
+    // Bob's model is missing, so he's a stand-in: only his model is reported.
+    await stage.load({ ...setup, objects: [posed(ann, -2), posed(bob, 2, ghost)] });
+    expect(stage.missing()).toEqual([
+      { kind: 'joint', object: ann, joint: wing },
+      { kind: 'model', object: bob, model: ghost },
+    ]);
+    // A load that only changes the pose keeps the scene, and says again what's missing.
+    await stage.load({
+      ...setup,
+      objects: [{ ...posed(ann, -2), joints: { [head]: turn } }, posed(bob, 2, ghost)],
+    });
+    expect(stage.missing()).toEqual([{ kind: 'model', object: bob, model: ghost }]);
   });
 
   it('are found through a manifest', () => {
@@ -79,6 +172,19 @@ describe('models', () => {
     const found = modelsFromManifest(manifest, 'backstage');
     expect(found.find(robot)).toEqual({ url: 'backstage/robot.glb', joints: 'prop-only' });
     expect(found.find(backstageId('nope'))).toBeNull();
+    // Manifest 2.4.0's `gait` goes on to the stage: S4's frog hops.
+    const frog = backstageId('frog');
+    const hopping = modelsFromManifest(
+      {
+        items: [{ id: frog, files: { model: 'frog.glb' }, joints: 'prop-only', gait: 'hop' }],
+      } as unknown as BackstageManifest,
+      'backstage',
+    );
+    expect(hopping.find(frog)).toEqual({
+      url: 'backstage/frog.glb',
+      joints: 'prop-only',
+      gait: 'hop',
+    });
   });
 
   it('share the geometry but not the skeleton or surfaces', async () => {
@@ -87,12 +193,52 @@ describe('models', () => {
     expect(body(ann).skeleton).not.toBe(body(bob).skeleton);
   });
 
-  it('become plain surfaces that keep their colour', async () => {
+  it('become plain surfaces that keep their colour, as it shows on screen', async () => {
     const { body } = await loaded();
     const surface = body(ann).material as StandardMaterial;
     expect(surface.getClassName()).toBe('StandardMaterial');
-    expect(surface.diffuseColor.b).toBeCloseTo(0.6, 5);
+    // glTF gives a linear colour (0.6); a plain surface takes it as it shows, in sRGB.
+    expect(surface.diffuseColor.b).toBeCloseTo(SHOWN_BLUE, 5);
     expect(surface.specularColor.r).toBe(0);
+  });
+
+  it("keep their own light, as glTF adds it to the lit colour (S4's Sun, 21 Nov)", async () => {
+    const lamp = backstageId('test/Prop/lamp');
+    const lampUrl = tinyModelUrl(['hips'], { emissive: [1, 0.5, 0] });
+    const stage = new BabylonStage(headlessEngine(), {
+      models: { find: (id) => (id === lamp ? { url: lampUrl, joints: [] } : source.find(id)) },
+    });
+    await stage.load({ ...SETUP, objects: [place(ann, 0, lamp), place(bob, 2)] });
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    const surface = (id: ObjectId) =>
+      inside
+        .getTransformNodeByName(id)!
+        .getChildMeshes()
+        .find((m) => m.name === 'Body')!.material as StandardMaterial;
+    const lit = surface(ann);
+    expect(lit.useEmissiveAsIllumination).toBe(true);
+    // glTF's colour is linear; a plain surface takes it as it shows, in sRGB.
+    expect(lit.emissiveColor.r).toBeCloseTo(1, 5);
+    expect(lit.emissiveColor.g).toBeCloseTo(Math.pow(0.5, 1 / 2.2), 5);
+    expect(lit.emissiveColor.b).toBe(0);
+    // A surface with no light of its own is lit only by the scene.
+    expect(surface(bob).useEmissiveAsIllumination).toBe(false);
+    expect(surface(bob).emissiveColor.r).toBe(0);
+  });
+
+  it("keep a picture of their own light at the colour's level (S4's review, 21 Nov)", () => {
+    const scene = new Scene(headlessEngine());
+    const source = new PBRMaterial('lamp', scene);
+    const picture = new Texture(null, scene);
+    source.emissiveTexture = picture;
+    source.emissiveColor = new Color3(0.5, 0.5, 0.5);
+    const plain = new StandardMaterial('plain lamp', scene);
+    glow(plain, source);
+    expect(plain.emissiveTexture).toBe(picture);
+    expect(picture.level).toBe(0.5);
+    // The picture is the light; the colour adds none of its own.
+    expect(plain.emissiveColor.equals(Color3.Black())).toBe(true);
+    expect(plain.useEmissiveAsIllumination).toBe(true);
   });
 
   it('turn a joint on top of its pose, and only on that object', async () => {
@@ -117,6 +263,20 @@ describe('models', () => {
     expect(stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(true);
     const apart = await loaded({ ...setup, objects: [place(ann, 0), place(bob, 1.1)] });
     expect(apart.stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(false);
+  });
+
+  it('measure a stand-in by the size it carries (StandIn.size)', async () => {
+    // A table 2 m wide at x = -1 reaches to x = 0; a robot a metre wide at 0.2 overlaps it.
+    const table = (x: number) => ({
+      id: bob,
+      model: { standIn: 'table', size: { x: 2, y: 0.75, z: 1 } },
+      class: 'Prop' as const,
+      transform: { ...IDENTITY, position: { x, y: 0, z: 0 } },
+    });
+    const near = await loaded({ ...setup, objects: [place(ann, 0.2), table(-1)] });
+    expect(near.stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(true);
+    const far = await loaded({ ...setup, objects: [place(ann, 1.5), table(-1.5)] });
+    expect(far.stage.answer({ kind: 'isColliding', a: ann, b: bob, at: 0 }).value).toBe(false);
   });
 });
 
@@ -163,7 +323,7 @@ describe('opacity and paint', () => {
     stage.seek(micros(2));
     expect(colour().r).toBeCloseTo(0.2, 5);
     stage.seek(0);
-    expect(colour().b).toBeCloseTo(0.6, 5);
+    expect(colour().b).toBeCloseTo(SHOWN_BLUE, 5);
   });
 
   it('paint a stand-in, but leave its nose', async () => {

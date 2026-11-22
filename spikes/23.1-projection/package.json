@@ -1,0 +1,16 @@
+{
+  "name": "@storystage/spike-23-1-projection",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Spike 23.1 (throwaway): bake each frame from the audience's sweet spot into a projection surface's texture layout, and check the illusion through a virtual projector.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p ."
+  },
+  "devDependencies": {
+    "@babylonjs/core": "^9.31.1",
+    "vite": "^8.3.4"
+  }
+}

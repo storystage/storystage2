@@ -1,5 +1,6 @@
 import type { Production } from '@storystage/production';
 import { Segmented, TextField, messages } from '@storystage/ui';
+import { useFieldSpeech } from '../speech/talkToType.tsx';
 import { hasWord, words } from '../strings.ts';
 import { ARC_TEMPLATES, BUILT_IN_ARCS, isBuiltIn, type BuiltInArc } from './arc.ts';
 import { LIMITS, planLength, setArc, setLogline, setSynopsis, setTitle } from './edits.ts';
@@ -38,6 +39,11 @@ export function partName(part: string): string {
 export function ScriptHeader({ production: p, onChange, onLeave }: ScriptHeaderProps) {
   const { arc } = p.storyboard;
   const arcId: BuiltInArc | null = isBuiltIn(arc.template) ? arc.template : null;
+  const speech = {
+    title: useFieldSpeech('title'),
+    logline: useFieldSpeech('logline'),
+    synopsis: useFieldSpeech('synopsis'),
+  };
   return (
     <section className="sb-header" aria-labelledby="sb-header-title">
       <h2 id="sb-header-title" className="ss-visually-hidden">
@@ -52,6 +58,7 @@ export function ScriptHeader({ production: p, onChange, onLeave }: ScriptHeaderP
             value={p.manifest.title}
             maxLength={LIMITS.title}
             onChange={(v) => onChange(words.t('step.title'), setTitle(p, v), 'title')}
+            {...(speech.title ? { speech: speech.title } : {})}
             onBlur={onLeave}
           />
         </div>
@@ -64,6 +71,7 @@ export function ScriptHeader({ production: p, onChange, onLeave }: ScriptHeaderP
           value={p.storyboard.logline}
           maxLength={LIMITS.logline}
           onChange={(v) => onChange(words.t('step.logline'), setLogline(p, v), 'logline')}
+          {...(speech.logline ? { speech: speech.logline } : {})}
           onBlur={onLeave}
         />
       </div>
@@ -75,6 +83,7 @@ export function ScriptHeader({ production: p, onChange, onLeave }: ScriptHeaderP
           value={p.storyboard.synopsis}
           maxLength={LIMITS.synopsis}
           onChange={(v) => onChange(words.t('step.synopsis'), setSynopsis(p, v), 'synopsis')}
+          {...(speech.synopsis ? { speech: speech.synopsis } : {})}
           onBlur={onLeave}
         />
       </div>

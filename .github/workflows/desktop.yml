@@ -10,6 +10,11 @@ on:
   pull_request:
     paths:
       - apps/desktop/**
+      - apps/studio/e2e/desktop/**
+      - apps/studio/src/startHost.ts
+      - packages/host/**
+      - packages/prompter/**
+      - tools/fake-claude/**
       - .github/workflows/desktop.yml
       - .github/actions/**
   workflow_dispatch:
@@ -71,9 +76,9 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: apps/desktop/src-tauri -> target
-      - name: Test the policy, the gate, the transport and the speech models
+      - name: Test the policy, the gate, the transport, the speech models and the pupil folders
         working-directory: apps/desktop/src-tauri
-        run: cargo test -p storystage-policy -p storystage-gate -p storystage-transport -p storystage-speech --features storystage-transport/test-endpoint --locked
+        run: cargo test -p storystage-policy -p storystage-classes -p storystage-gate -p storystage-transport -p storystage-speech --features storystage-transport/test-endpoint --locked
 
   # Proves the key can't be found in anything the webview can see (spec 05 section 2.7). Spike
   # 1.6's check, on the real app: see apps/desktop/leak-scan/README.md. Windows, where WebView2
@@ -98,6 +103,16 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node scripts/fetch-whisper.mjs
       - name: The shipped config has no debugging port
         run: '! grep -q remote-debugging src-tauri/tauri.conf.json'
       - name: Build the test app
@@ -122,6 +137,60 @@ jobs:
       - name: Delete the test key
         if: always()
         run: src-tauri/target/debug/test-key.exe delete || true
+
+  # The M5 gate in the app itself (apps/studio/e2e/desktop/README.md): the real studio on the real
+  # native layer in WebView2, driven by Playwright through a DevTools port that only this test
+  # build has (the leak scan's job checks the shipped config has none). The Prompter's requests
+  # go to tools/fake-claude, with a random test key in the system's store.
+  app-gate:
+    name: M5 gate (desktop app)
+    if: github.event_name != 'schedule'
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+      - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
+      # With the leak scan's test endpoint, so the Prompter talks to tools/fake-claude.
+      - name: Build the test app
+        working-directory: apps/desktop
+        run: pnpm tauri build --debug --no-bundle --features test-endpoint --config ../studio/e2e/desktop/tauri.conf.json -- --locked
+      - name: Build the key helper
+        working-directory: apps/desktop/src-tauri
+        run: cargo build -p storystage-transport --features test-endpoint --bin test-key --locked
+      - name: Run the gate in the app
+        run: pnpm exec playwright test -c apps/studio/e2e/desktop/playwright.config.ts
+      - name: Delete the test key
+        if: always()
+        run: apps/desktop/src-tauri/target/debug/test-key.exe delete || true
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: failure()
+        with:
+          name: app-gate-report
+          path: |
+            apps/studio/e2e/desktop/playwright-report/
+            apps/studio/e2e/desktop/test-results/
+          retention-days: 7
 
   build:
     name: desktop (${{ matrix.name }})
@@ -158,6 +227,16 @@ jobs:
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
       - name: Build the app
         run: pnpm --filter @storystage/desktop tauri build ${{ matrix.args }} -- --locked
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

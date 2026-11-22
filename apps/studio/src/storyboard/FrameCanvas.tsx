@@ -12,7 +12,7 @@ import {
   resizeSketch,
   scaleSketch,
 } from '@storystage/sketches';
-import { Button, type IconName } from '@storystage/ui';
+import { Button, Icon, type IconName } from '@storystage/ui';
 import {
   useEffect,
   useRef,
@@ -24,8 +24,11 @@ import {
 import { DropZone, type DropZoneProps } from 'react-aria-components';
 import { words, type WordKey } from '../strings.ts';
 import { updateFrame } from './frames.ts';
-import { SketchArt, sketchAspect, sketchName, type SketchItem } from './SketchArt.tsx';
-import { SKETCH_DRAG_TYPE } from './SketchLibrary.tsx';
+import { pinnedLines } from './lines.ts';
+import { describeSketch, sketchStyle } from './FramePicture.tsx';
+import { SketchArt, type SketchItem } from './SketchArt.tsx';
+import { useSketches, type Look } from './sketchSource.tsx';
+import { SKETCH_DRAG_TYPE, type SketchDrag } from './SketchLibrary.tsx';
 
 export interface FrameCanvasProps {
   production: Production;
@@ -39,27 +42,11 @@ export interface FrameCanvasProps {
   /** Ends a run of changes that join one undo step: a drag, or a pick-up. */
   onLeave: () => void;
   /** Puts a library item on this frame, at (x, y) or in the middle. */
-  onAdd: (item: SketchItem, x?: number, y?: number) => void;
+  onAdd: (item: SketchItem, x?: number, y?: number, look?: Look) => void;
   onAnnounce: (text: string) => void;
   /** The frame's caption line: its number, shot and length. */
   children: ReactNode;
 }
-
-/** A sketch at standard size is this tall, as a share of the frame's height. */
-const STANDARD_HEIGHT = 0.3;
-
-/** "Owl, on the left": a sketch's accessible name (`07-ux.md` section 6.5). */
-function describe(s: PlacedSketch): string {
-  const name = sketchName(s.item);
-  const where = words.t(`storyboard.canvas.where.${across(s)}`);
-  return words.t(s.flipped ? 'storyboard.canvas.sketchFlipped' : 'storyboard.canvas.sketch', {
-    name,
-    where,
-  });
-}
-
-/** A share of the frame as a CSS length, to 0.01%. */
-const percent = (share: number) => `${Math.round(share * 10000) / 100}%`;
 
 const optionId = (frame: Frame, id: string) => `sb-sketch-${frame.id}-${id}`;
 
@@ -87,6 +74,7 @@ export function FrameCanvas({
   onAnnounce,
   children,
 }: FrameCanvasProps) {
+  const art = useSketches();
   const paper = useRef<HTMLDivElement>(null);
   const list = useRef<HTMLDivElement>(null);
   const drag = useRef<Drag | null>(null);
@@ -95,6 +83,7 @@ export function FrameCanvas({
   const current = ordered.find((s) => s.id === chosen) ?? null;
   const focusTarget = current ?? ordered.at(-1) ?? null;
   const full = frame.sketches.length >= SKETCH_LIMIT;
+  const pinned = pinnedLines(p, frame.id);
 
   // Keyboard choice moves focus with it, while focus is in the list.
   useEffect(() => {
@@ -106,7 +95,7 @@ export function FrameCanvas({
   /** One change to sketch `s`, named for it: "Move owl". */
   const change = (step: WordKey, s: PlacedSketch, next: Frame, key?: string) =>
     onChange(
-      words.t(step, { name: sketchName(s.item) }),
+      words.t(step, { name: art.name(s.item) }),
       updateFrame(p, frame.id, () => next),
       key,
     );
@@ -119,7 +108,7 @@ export function FrameCanvas({
     if (s)
       onAnnounce(
         words.t('storyboard.canvas.putDown', {
-          name: sketchName(s.item),
+          name: art.name(s.item),
           where: words.t(`storyboard.canvas.where.${across(s)}`),
         }),
       );
@@ -131,7 +120,7 @@ export function FrameCanvas({
     const next = ordered[at + 1] ?? ordered[at - 1] ?? null;
     change('step.removeSketch', current, removeSketch(frame, current.id));
     onChosenChange(next?.id ?? null);
-    onAnnounce(words.t('storyboard.canvas.removed', { name: sketchName(current.item) }));
+    onAnnounce(words.t('storyboard.canvas.removed', { name: art.name(current.item) }));
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -178,7 +167,7 @@ export function FrameCanvas({
       e.preventDefault();
       onChosenChange(s.id);
       setLifted(s.id);
-      onAnnounce(words.t('storyboard.canvas.pickedUp', { name: sketchName(s.item) }));
+      onAnnounce(words.t('storyboard.canvas.pickedUp', { name: art.name(s.item) }));
     } else if (e.key === 'Delete' || e.key === 'Backspace') {
       e.preventDefault();
       if (current) remove();
@@ -260,9 +249,9 @@ export function FrameCanvas({
     const r = paper.current?.getBoundingClientRect();
     for (const dropped of e.items) {
       if (dropped.kind !== 'text' || !dropped.types.has(SKETCH_DRAG_TYPE)) continue;
-      const item = JSON.parse(await dropped.getText(SKETCH_DRAG_TYPE)) as SketchItem;
-      if (r && r.width > 0) onAdd(item, e.x / r.width, e.y / r.height);
-      else onAdd(item);
+      const { item, look } = JSON.parse(await dropped.getText(SKETCH_DRAG_TYPE)) as SketchDrag;
+      if (r && r.width > 0) onAdd(item, e.x / r.width, e.y / r.height, look);
+      else onAdd(item, undefined, undefined, look);
       return;
     }
   };
@@ -339,18 +328,12 @@ export function FrameCanvas({
                       id={optionId(frame, s.id)}
                       role="option"
                       aria-selected={isChosen}
-                      aria-label={describe(s)}
+                      aria-label={describeSketch(s, art.name)}
                       tabIndex={s === focusTarget ? 0 : -1}
                       className="sb-sketch"
                       data-chosen={isChosen || undefined}
                       data-lifted={lifted === s.id || undefined}
-                      style={{
-                        left: percent(s.x),
-                        top: percent(s.y),
-                        height: percent(STANDARD_HEIGHT * s.scale),
-                        aspectRatio: sketchAspect(s.item),
-                        zIndex: s.layer + 1,
-                      }}
+                      style={sketchStyle(s, art.aspect(s.item, s))}
                       onFocus={() => {
                         if (!isChosen) onChosenChange(s.id);
                       }}
@@ -361,7 +344,7 @@ export function FrameCanvas({
                       onPointerCancel={onPointerUp}
                     >
                       <span className="sb-sketch-art" data-flipped={s.flipped || undefined}>
-                        <SketchArt item={s.item} />
+                        <SketchArt item={s.item} look={s} />
                       </span>
                       {isChosen &&
                         (['nw', 'ne', 'sw', 'se'] as const).map((corner) => (
@@ -381,6 +364,22 @@ export function FrameCanvas({
             )}
           </div>
         </DropZone>
+        {pinned.length > 0 && (
+          <ul
+            className="sb-canvas-lines"
+            aria-label={words.t('storyboard.canvas.pinned', { number })}
+          >
+            {pinned.map((l) => (
+              <li key={l.id} className="sb-canvas-line">
+                <Icon name="keep" size={18} filled />
+                <span>
+                  {l.character && <strong className="sb-canvas-speaker">{l.character}: </strong>}
+                  {l.text}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </figure>
       <p id="sb-canvas-how" className="ss-visually-hidden">
         {words.t('storyboard.canvas.howTo')}

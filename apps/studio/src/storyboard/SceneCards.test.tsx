@@ -19,7 +19,7 @@ const undo = () => screen.getByRole('button', { name: /^Undo/ });
 describe('Add a scene (10.1, 10.3)', () => {
   it('waits for the logline and synopsis, and says why', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(<App start={newProduction()} />);
     expect(addButton().hasAttribute('data-disabled')).toBe(true);
     expect(screen.getByText('Write a logline and a synopsis first.')).toBeTruthy();
     await user.type(screen.getByRole('textbox', { name: 'Logline' }), 'A logline.');

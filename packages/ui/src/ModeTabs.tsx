@@ -32,15 +32,38 @@ export function ModeTabs({ mode, onModeChange, children }: ModeTabsProps) {
   );
 }
 
-export function ModeTabList() {
+/** Something going on in a mode, on its tab: "64%" shown, "exporting 64%" heard. */
+export interface ModeBadge {
+  /** What fits on the badge. */
+  readonly text: string;
+  /** What a screen reader hears after the tab's name. */
+  readonly spoken: string;
+}
+
+/**
+ * The tabs, each with an optional badge in its corner, which takes no width, so the header's
+ * tabs stay on one line (an export running, on the Screening room's tab).
+ */
+export function ModeTabList({ badges = {} }: { badges?: Partial<Record<Mode, ModeBadge>> }) {
   return (
     <TabList className="ss-mode-tabs" aria-label={messages.t('mode.label')}>
-      {MODES.map((m) => (
-        <Tab key={m} id={m} className="ss-mode-tab">
-          <Icon name={ICON[m]} size={24} />
-          <span className="ss-mode-tab-label">{messages.t(`mode.${m}`)}</span>
-        </Tab>
-      ))}
+      {MODES.map((m) => {
+        const badge = badges[m];
+        return (
+          <Tab key={m} id={m} className="ss-mode-tab">
+            <Icon name={ICON[m]} size={24} />
+            <span className="ss-mode-tab-label">{messages.t(`mode.${m}`)}</span>
+            {badge && (
+              <>
+                <span className="ss-visually-hidden">, {badge.spoken}</span>
+                <span className="ss-mode-tab-badge" aria-hidden="true">
+                  {badge.text}
+                </span>
+              </>
+            )}
+          </Tab>
+        );
+      })}
     </TabList>
   );
 }

@@ -54,6 +54,8 @@ export type JointName = string & { readonly __jointName: true };
 export const objectId = (s: string) => s as ObjectId;
 /** The camera is an object like any other in commands and queries, under this name. */
 export const CAMERA = 'camera' as ObjectId;
+/** The scene itself, for the sky, light and fog. It isn't in a stage's `objects()`. */
+export const SCENE = 'scene' as ObjectId;
 export const backstageId = (s: string) => s as BackstageId;
 export const jointName = (s: string) => s as JointName;
 
@@ -120,6 +122,13 @@ export type ShotType = (typeof SHOT_TYPES)[number];
 /** A labelled outline standing in for a model that isn't in Backstage yet (WP10.9). */
 export interface StandIn {
   readonly standIn: string;
+  /**
+   * Its box, in metres at scale 1: width (X), height (Y) and depth (Z), each above 0 and at most
+   * 1,000. It stands on its origin, centred across and front to back, as a model does: from
+   * (-w/2, 0, -d/2) to (w/2, h, d/2). Without it, the stage's usual stand-in box. `transform.scale`
+   * multiplies it, as it does a model. An imported Alice world gives each stand-in its object's size in Alice (spec 19).
+   */
+  readonly size?: Vec3;
 }
 
 export interface SceneObjectSetup {
@@ -133,6 +142,11 @@ export interface SceneObjectSetup {
   readonly paint?: string;
   /** The object this one rides on (Alice's vehicle). Default: the scene. */
   readonly vehicle?: ObjectId | null;
+  /**
+   * Its pose (07-ux section 7.2): each joint's turn from its rest pose, in the joint's own axes,
+   * as a unit quaternion. Joints only turn (decision 0051). A joint left out stays at rest.
+   */
+  readonly joints?: { readonly [joint: JointName]: Quat };
 }
 
 export interface SceneSetup {

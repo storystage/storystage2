@@ -23,6 +23,14 @@
 
 `packages/prompter` builds each request in TypeScript, without the key, and hands it to a `PrompterTransport` (`packages/prompter/src/transport.ts`). In the Tauri apps the native layer checks it (section 1.8), adds the key and streams the reply back as `PrompterEvent`s. In the browser version the transport is `offTransport`, so no Prompter feature appears. Tests use `tools/fake-claude`.
 
+**In the Tauri apps** the transport is `tauriTransport(invoke, Channel)`, over S8's `prompter_send`, `prompter_cancel` and `prompter_status`:
+
+- A request holding anything like a key is refused as `refused_by_policy` before it's sent (`containsSecret`); the native layer checks again.
+- Events come back on a Tauri `Channel`, in order. The stream ends at the first `end` or `error`, and anything after it is ignored. Anything that isn't a `PrompterEvent` ends it as `internal`, and so does a command that fails.
+- Stopping (the `AbortSignal`) calls `prompter_cancel` with the request's id and ends the stream at once with `cancelled`.
+- The native layer runs one request at a time and answers a second with `rate_limited` (spec 05, section 2.4). The session never sends two at once.
+- A status reply it can't read counts as `internal`, so the panel never shows a Prompter it can't reach as ready.
+
 ### 1.2 Request settings
 
 The body is a Messages API request. These settings hold for every mode unless the next table changes them.
@@ -34,7 +42,7 @@ The body is a Messages API request. These settings hold for every mode unless th
 | `tool_choice` | Not sent (`auto`) | Opus 5.5 rejects forced tool choice |
 | Sampling (`temperature`, `top_p`, `top_k`) | Never sent | Rejected |
 | `tools` | The whole list in section 3, every request, in every mode | `tools` is part of the conversation's prefix (section 1.5); section 4 says how modes limit them |
-| Each tool | `strict: true`, `eager_input_streaming: true` | Schema-shaped inputs, streamed. Inputs are still validated before running, because streamed input can be cut off |
+| Each tool | `eager_input_streaming: true`; `strict: true` on the read and plan tools (`STRICT_TOOLS`) | Schema-shaped inputs where the API can compile them, streamed. Every input is still validated before running, because streamed input can be cut off and the change tools aren't strict |
 | `cache_control` | `{ "type": "ephemeral" }` at the top level | Automatic caching; the stable content comes first |
 
 **Thinking blocks.** Under the default display they arrive with empty text and a `signature`. They count towards `max_tokens`. The conversation keeps them exactly as they came, including the empty ones: never drop or rewrite a block because its text is empty. The panel never shows them. Read content by block `type`, never by position.
@@ -92,6 +100,7 @@ Stream the reply, then look at `stop_reason` before doing anything else:
 
 A reply that ended any way but `end_turn` or `tool_use` is never added to the conversation: a cut-off `tool_use` has no result to go with it, so it can't be sent back. If the request kept no reply at all (a refusal, a cut-off first reply, an error, Stop before anything came back), the session also takes back the learner's turn and mode message it added for that request. Otherwise a mode message would be followed by the next learner turn, which the API refuses. This edits nothing a thinking block is bound to, because every one of those blocks comes before the last kept reply, and nothing after it is bound. If the request kept some replies before it ended, they stay, with their tool results, and the next learner turn follows them (two user turns in a row are allowed).
 
+- **An answer ends the turn:** when every call in a reply is an `explain` and one was shown, the loop returns their results to the history and sends no further request. The tool's result alone wasn't enough: in the second full run (22 Nov) the panel showed the answer twice in two rows, and text under it in 14, six of them about "the learner". A reply that also calls another tool goes on, as that result is still to be read, and so does a build of an agreed plan.
 - **Limit:** 25 tool calls in one learner request, counted across the whole loop. At the limit the loop stops, and the Prompter says what it finished and why it stopped.
 - **Validation.** Parse each input strictly from the accumulated `partial_json`, then validate it against the tool's schema and the rules JSON Schema can't express under strict mode (ranges, lengths). A failure doesn't run the tool: it returns `is_error: true` with `bad_argument`.
 - **Retries.** The same step failing three times ends the loop (section 7).
@@ -112,6 +121,18 @@ For S8. Each item is something this spec makes checkable.
 - No top-level `thinking`, `tool_choice` or sampling field, no image content, and no key (`containsSecret`). Thinking blocks in the history are expected.
 - The per-minute and per-day caps (24.5), retried at most twice with backoff and jitter.
 
+### 1.9 Pins
+
+The native layer pins `system`, `tools` and the mode messages (section 1.8; spec 05, section 2.3). `packages/prompter/src/pins.ts` makes them:
+
+- `system` is `releaseSystem()`: the instructions, `catalogText()` from `@storystage/story-api`, and the Backstage index (section 2.7). The index is `renderIndex()` from `@storystage/backstage` over the shipped catalogue, which is kept in `src/shipped-catalogue.ts`: an exact copy of `prompter-catalogue.json` at the commit `backstage.lock.json` pins. It is kept compact, a third smaller in the studio's bundle; printed as the build prints it (`JSON.stringify(c, null, 2)` and a newline), it is the pinned file byte for byte, and a test fails if that file's SHA-256 differs from the lock's `catalogueJsonSha256`. `pnpm prompter:pins --fetch` fetches it.
+- `tools` is `TOOLS`, and the mode messages are `pinnedSystemMessages()`.
+- **The studio sends `releaseSystem()` and `releaseTools()` as they are.** It never rebuilds a catalogue at run time, not even from the fetched `.backstage/`, so what it sends can't drift from what is pinned by a byte.
+- **A class's imported models never go in `system`** (section 2.1). They travel in `<production_data>` as `imported` (section 2.6), so a teacher importing a model (`backstage.import`) never changes the pin, and the gate never refuses that class's requests for it.
+- `system` and `tools` are hashed as JSON with keys sorted and no spaces (`canonicalJson`); mode messages as their text. A test hashes S8's `gate/fixtures/hash.json` the same way and gets its `sha256`.
+
+`pnpm prompter:pins` writes `apps/desktop/src-tauri/gate/pins.json`, and `gate/fixtures/release-request.json`: a real Build it request made by `buildRequest` with the release's `system` and `tools` and a mode message, which the gate's own test passes through the shipped pins. With `--fetch` it first fetches the catalogue for the locked commit and checks it. A test fails when either file is out of date, so a change to the prompt, a tool, a mode's model or the Backstage lock shows up in CI with the command that fixes it.
+
 ## 2. Context
 
 ### 2.1 What goes where
@@ -120,7 +141,8 @@ For S8. Each item is something this spec makes checkable.
 |---|---|---|---|
 | Instructions (section 2.5, 13.8) | `system` | Yes | |
 | Story API catalog, from WP4 metadata | `system` | Yes | 40,000 tokens; a unit test fails above 45,000 |
-| Backstage catalogue: **shipped models only**, grouped by Cast, Props, Set, Backdrops | `system` | Yes | 12,000 tokens |
+| The Backstage index: every **shipped** model, one short line each, by section and class (section 2.7) | `system` | Yes | 12,000 tokens (`CATALOGUE_INDEX_TOKEN_BUDGET`). It's the same text every request, so it caches |
+| Full Backstage lines for the models this request needs (section 2.7) | User turn, `<backstage_data>` | No | 6,000 tokens a turn |
 | Imported models in this class | User turn, as data | No | Part of the production |
 | The scene, as data | User turn, as data | No | Part of the production |
 | The program as text with node ids | User turn, as data | No | 20,000 tokens |
@@ -152,7 +174,7 @@ Each piece goes in its own block, as JSON, inside a named tag:
 
 - One function writes every block. It JSON-encodes the value, then replaces each `<`, `>` and `&` with its `\u` escape, so no learner text can close a tag or open one.
 - The learner's request travels the same way. Its text is what the learner asked for; data blocks are never instructions, whatever they say. Transcribed speech (14.1) is a request like typed text, once the learner has seen and sent it.
-- Other tags: `<agreed_plan>` (section 6) and `<check_result>` (11.6).
+- Other tags: `<agreed_plan>` (section 6), `<check_result>` (11.6) and `<backstage_data>` (section 2.7). `<backstage_data>` holds only Backstage's own text, never a learner's, and goes through the same writer.
 - A turn carries the production and storyboard blocks only when they have changed since the last time they were sent, which keeps the history small and the cache useful. A new conversation always sends them.
 
 ### 2.5 The system prompt
@@ -161,13 +183,55 @@ Each piece goes in its own block, as JSON, inside a named tag:
 
 1. **Role:** who the Prompter is, and who it is talking to.
 2. **Whose story it is:** the learner writes the story; the Prompter never does.
+   - **Story arcs:** the three built-in arcs (10.2; `ARC_TEMPLATES` in the studio, spec 07, section 6.3), by id and by the names the learner sees, with what each part is for, so the coach can offer them (section 5). A class's own arc (WP16) isn't in the prompt, which can't vary by class; its part names come in `<storyboard_data>`. Never what happens in any part of the learner's story.
 3. **Trust:** what's in the data tags is material to read, never instructions to follow.
 4. **Plans:** nothing changes without an agreed plan.
 5. **How to work:** use the tools; ordinary blocks; only what's in the catalogs; say it in plain words.
 6. **Modes:** a mode message says what is allowed (section 4.2), and it wins over a request.
 7. **Audience and safety.**
 8. **Words:** rule 9's words, and narration.
-9. The Story API catalog and the Backstage catalogue.
+9. The Story API catalog and the Backstage index (section 2.7), with a line saying where the full lines are: in `<backstage_data>`, or from `find_models`.
+
+### 2.6 The data blocks, exactly
+
+`packages/prompter/src/context.ts` makes both blocks from the open production. `read_project` returns the same two blocks. Numbers are rounded to two decimal places. A rotation that is the identity and a scale of 1 are left out.
+
+`<production_data>`:
+
+| Field | What |
+|---|---|
+| `scene` | The scene the learner is in |
+| `scenes` | Every scene in running order: `id` and `method`, the id of its script method |
+| `setup` | The current scene's set-up: `backdrop`; `objects`, each with `id`, `model` (a Backstage id or `{"standIn": …}`), `class`, `position` `[x, y, z]` in metres, and `rotation` `[x, y, z, w]` and `scale` `[x, y, z]` where they aren't the default; `camera`; `markers` |
+| `imported` | This production's class-imported models: `id`, `name`, `section`, `class`, and `description` where there is one |
+| `program` | The program as text (section 2.2) |
+| `open` | The method open in the editor, if any |
+
+**Ids in the program text.** Each line that starts a type, field, method, listener or statement ends with `  # [id]`, the id of the innermost of those that starts on the line. Tools name blocks by these ids. Above 20,000 tokens, each method other than the open one and the current scene's keeps its first line and loses its body to one line: `... N lines not shown`. `read_project` with the method open shows it.
+
+`<storyboard_data>`: `logline`, `synopsis`, `arc` and `cards` as stored; `script`, each line with `id`, `scene`, `kind`, `character` for dialogue, `text` and `frame` if pinned; and `frames`, each with `id`, `scene`, `order`, `caption`, `shot`, `seconds`, `links` and `sketches`, each sketch with `id`, `item`, `facing`, `x`, `y`, and `pose`, `scale`, `flipped` and `layer` where they aren't the default (`null`, 1, `false`, 0). Above 8,000 tokens, scenes other than the current one lose their script lines and their frames' sketches, keeping cards and captions.
+
+### 2.7 The Backstage catalogue: an index, and the lines a request needs
+
+The owner's choice of 21 Nov 2026: the Prompter sends only the catalogue lines a request needs, not the whole list, so Backstage can grow (space, history, Poly by Google's models) without raising the budget. It is built before the owner's pilot run, which then runs once on this prompt. S4 makes the catalogue's form and its search (`@storystage/backstage`, S4's contract PR); S7 decides what is sent.
+
+**The catalogue** is `prompter-catalogue.json`, built in `storystage/backstage-assets` and pinned in `backstage.lock.json` by `catalogueJsonSha256`: `{ header, joints, items }`. Each item has `id`, `section`, `class`, `name`, `joints` (a joint set's name, or `"none"`), `line` (the full line, `id: Name, description [themes] height m, joints`), `short` (`id: Name (J2)`, or `id: Name (no joints)`; a backdrop's is `id: Name`, as it has no size or joints) and `words` (for search). Only shipped models are in it. A class's imported models are never in it, and never searched: they travel whole in `<production_data>` (section 2.6).
+
+**In `system`, the index:** `renderIndex(catalogue)` gives the header (the rules for adding a model) and every item's `short` line under section and class headings. A short line names its joint set (`J7`) but not the set's joints: those go with the model's full line (below), because the 55 sets' lists alone came to 7,614 tokens of the 398-model build (S4's measure, 21 Nov). The header says so. The Prompter always knows what exists and which models can walk or gesture. It is pinned and cached like the rest of `system`, within 12,000 tokens. The full `.txt` is still built, for people to read, but isn't sent.
+
+**In the user turn, `<backstage_data>`:** `{"models": [line, …], "joints": {"J7": [joint, …], …}}`, the full lines for the models this request needs, in this order, each once, and the joints of each set those lines name (`jointsFor` in `@storystage/backstage`):
+
+1. The models the production already uses: every scene's set-up objects and backdrop, then every frame's sketches that are Backstage models. The current scene's come first.
+2. The best matches (`searchCatalogue`, up to 20) for the words of the learner's request.
+3. The best matches for the current frame's caption and script lines, then the current scene's (up to 20 each).
+
+Lines stop before the next one, with any set it adds, would pass 6,000 tokens; the joint lists count towards it. A turn sends only lines, and sets, not already sent in this conversation, because the history keeps them (section 1.5), and leaves the block out when there are none. A new conversation starts afresh. The block goes with requests in `explain`, `showMeHow` and `buildIt`. The story coach and the script check don't place models, so they get none, and `find_models` is there if one is needed.
+
+The learner's words only choose which of Backstage's lines go. None of their text goes into the block.
+
+**When the Prompter wants a model whose full line wasn't sent,** it calls `find_models` (section 3.1). The index shows what to ask for.
+
+**As built (21 Nov 2026):** `packages/prompter/src/backstage-data.ts`. `backstageCandidates` chooses the models in the order above, `backstageBlock` keeps to the budget and to what the conversation has had (the session holds that, takes it back with a request that wasn't kept, and starts afresh on New conversation), and `findModels` answers the tool. The panel sends the block in the three placing modes. The studio and the evaluation harness use this release's catalogue, `SHIPPED_CATALOGUE`; tests may give the runner and the panel another (`catalogue`). The harness reads a shipped model's name, class and height from it, as Set the stage does.
 
 ## 3. Tools
 
@@ -175,9 +239,11 @@ The definitions are in `packages/prompter/src/tools.ts`, and the tables below de
 
 Tool schemas are fixed for a release, so they use plain strings where StoryStage 1 used enums built from catalogs. The catalogs are in the system prompt; the client checks each value and answers `unknown_object` or `unknown_method`. The two enums that are fixed for a release come from their sources: control blocks from the AST's `STATEMENT_KINDS`, and events from the Story API's `EVENTS`.
 
+**Which tools are strict** (`STRICT_TOOLS`): the read and plan tools. The API compiles every strict tool's schema into one grammar, and refused all fifteen, and the eight change tools on their own, as too large; each change tool compiles alone, and so do the read and plan tools together (the owner's probe of 21 Nov 2026, `tools/fake-claude/src/eval/probe-grammar.ts`). The change tools are sent without `strict`, with the same schemas; nothing changes for them but where a malformed call is caught, which is the client's check before anything runs, as for every tool (section 1.6). Making them strict again needs fewer optional fields (each roughly doubles part of the grammar), so it waits for what the pilot shows of malformed calls.
+
 Strict mode also rules out free-form objects, recursive schemas and numeric or length constraints. So:
 
-- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, or a position as `"x, y, z"` in metres;
+- `arguments` and `details` are lists of `{ name, value }` pairs, and **every `value` is text**, read by the client by its type in the catalog: a number as digits, a name, words, a position as `"x, y, z"` in metres, or a list as its items separated by commas (`"owl, cat"`, for the camera's frame shot), each read by the type of one item. The full run (22 Nov) found lists refused, so a frame shot of two characters couldn't be built;
 - plan steps are flat;
 - the client checks ranges, whole numbers and lengths before anything runs (`checkToolInput`, section 1.6). A string field may be empty only where `""` means none.
 
@@ -201,9 +267,15 @@ Adds a Backstage model to the scene, as Backstage's add does.
 | `backstage_item` | string | An id from the catalogue or the production's imported models |
 | `name` | string | Made unique if taken (`cat2`); the result returns the final name |
 | `position` | `{x, y, z}` numbers, metres | `y` 0 is ground level |
-| `turn_degrees` | number, optional | About the vertical axis from the default facing |
+| `turn_degrees` | number, optional | About the vertical axis: 0 faces +z, and a positive turn is to the model's own left (90 faces +x, 180 faces -z). `system` says so too, and that +x is on the left of an unturned camera's picture |
 | `scale` | number, optional | 0.05 to 20 |
 | `narration`, `plan_step` | | |
+
+One step, joined to the rest of the request's (section 1.7): Backstage's own Add (`addObject` in `@storystage/production`), which declares a field of the model's class (or of the learner's class for that character, once there is one: decision 0074, through the runner's `objectType`, which the studio fills with `newObjectType` from `@storystage/staging`) in the scene's type, with no value of its own, and an object of the same name in the scene's set-up, as spec 03, section 2 requires.
+
+- The model must be in the shipped catalogue or the production's imported models, or the answer is `unknown_object`.
+- The name is made as Backstage makes it (`objectName`): "Abyssinian cat" becomes `abyssinianCat`, with a number if the scene already uses it (`cat2`). The result says the final name.
+- `turn_degrees` turns it about the vertical axis. A `scale` outside 0.05 to 20, or a position that isn't three numbers, is `bad_argument`.
 
 #### `set_property`
 
@@ -211,10 +283,23 @@ Changes how an object starts in the scene.
 
 | Field | Type | Notes |
 |---|---|---|
-| `object` | string | A name in the scene (`cat`, `camera`, `ground`) |
+| `object` | string | A name in the scene (`cat`), or `camera` |
 | `property` | enum `position`, `turn_degrees`, `scale`, `paint`, `opacity`, `vehicle` | |
 | `value` | string | A position as `"x, y, z"`, a number, a paint name or `#rrggbb`, opacity 0 to 1, or the object it rides on; checked per property |
 | `narration`, `plan_step` | | |
+
+It changes only the scene's set-up, never the program, as one step joined to the rest of the request's. Position, turn, scale, paint and opacity go through the stage's own change to an object (`setObject` in `@storystage/production`).
+
+| Property | Value | Objects |
+|---|---|---|
+| `position` | `"x, y, z"` in metres | Any object, and `camera` |
+| `turn_degrees` | Degrees about the vertical axis, replacing any other turn | Any object, and `camera` |
+| `scale` | 0.05 to 20, the same in every direction | Objects |
+| `paint` | A `Color` from the catalog, or `#rrggbb` | Objects |
+| `opacity` | 0 (invisible) to 1 | Objects |
+| `vehicle` | Another object's name, or `scene` to ride on nothing. A vehicle can't end up carrying itself | Objects |
+
+An object that isn't in the scene is `unknown_object`; a value that doesn't fit, or a property the object can't have, is `bad_argument`.
 
 #### `insert_statement`
 
@@ -226,7 +311,7 @@ Adds one procedure call to a method.
 | `parent_block` | string, optional | Id of a control block; default is the method's body |
 | `position` | string | `end`, or a whole number as text |
 | `target` | string | An object name, `this` for the scene, or a joint in the catalog's form |
-| `procedure` | string | A Story API procedure (`move`, `turn`, `say`, `moveTo`, `turnToFace`) |
+| `procedure` | string | A Story API procedure (`move`, `turn`, `say`, `moveTo`, `turnToFace`), or the name of one of the learner's own (section 6.9, proposed) |
 | `arguments` | list of `{name, value}` | Required parameters |
 | `details` | list of `{name, value}`, optional | `duration`, `animationStyle`, `asSeenBy` and so on |
 | `line` | string, optional | A script line id; see section 6.5 |
@@ -248,6 +333,8 @@ Adds a control block that later statements can go inside.
 Result `ids.block`: the id to use as `parent_block` (for `if`, `ids.then` and `ids.else`).
 
 #### `declare_procedure`
+
+*Proposed (section 6.9): removed. Until that is built, it works as below.*
 
 | Field | Type | Notes |
 |---|---|---|
@@ -281,21 +368,32 @@ Changes nothing.
 
 #### `read_project`
 
-Changes nothing. Returns the latest production and storyboard data (sections 2.2, 2.3) when the Prompter needs them after several changes. Takes no fields.
+Changes nothing. Returns the latest `<production_data>` and `<storyboard_data>` blocks, exactly as a turn sends them (section 2.6), when the Prompter needs them after several changes. Takes no fields.
+
+#### `find_models`
+
+Changes nothing. Returns the full Backstage lines (section 2.7) of the shipped models that best match, by `searchCatalogue` in `@storystage/backstage`: `{"ok": true, "models": [line, …], "joints": {"J7": [joint, …]}, "summary": "…"}`, up to 20, best first, with the joints of every set those lines name. Nothing matching is `ok` with no models, and a summary that says so and that the index lists every model. Imported models aren't searched; they're in `<production_data>`. New in StoryStage 2 (section 2.7, the owner's choice of 21 Nov 2026).
+
+| Field | Type | Notes |
+|---|---|---|
+| `query` | string | What to look for, under 10 words: "oak tree", "rocket". (Not `words`, which plan steps hold to 20.) |
+| `section` | enum: `""`, `cast`, `props`, `set`, `backdrops` | `""` searches every section |
 
 ### 3.2 Storyboard tools
 
 #### `stage_scene`
 
-Places a scene's cast, props, set, backdrop and camera from its frames, as Set the stage from the storyboard does (10.10), using the same code.
+Places a scene's cast, props, set, backdrop and camera as its first frame shows them, by running the studio's own Set the stage from the storyboard (10.10). The studio passes that step to the runner as `stageFromStoryboard`, the same `placeFromStoryboard(…, storyboardPlan(…), …)` its button runs, so the two always agree.
 
 | Field | Type | Notes |
 |---|---|---|
 | `scene` | string | A scene id |
-| `from_frame` | string, optional | The frame to take positions from; default the first |
 | `narration`, `plan_step` | | |
 
-It places only what the storyboard has. Anything else is `add_model` in a plan of its own. Stand-ins stay stand-ins.
+- It places only what the storyboard has and the stage doesn't. Cast who appear only in later frames wait just off stage, on the side they come in from. Stand-ins stay stand-ins. Anything else is `add_model` in a plan of its own.
+- It is one step, joined to the rest of the request's, labelled "Set up <heading> from the storyboard".
+- If there's nothing to place, it says so and changes nothing. A scene that doesn't exist is `unknown_object`. Too many objects is `limit_reached`.
+- Without the studio's step (a host that has no stage), it answers `not_allowed_here`.
 
 #### `code_frame`
 
@@ -305,11 +403,16 @@ Starts building a frame's agreed plan, and returns where to build it. It adds no
 |---|---|---|
 | `frame` | string | A frame id with an agreed plan |
 
-Result `ids.method`, `ids.parent_block`. Answers `no_agreed_plan` if the learner hasn't pressed **Build these steps**.
+Result `ids.method`, `ids.position`, and `ids.parent_block` when the place is inside a control block. Answers `no_agreed_plan` if the learner hasn't pressed **Build these steps**.
+
+- **Where:** in the scene's method, after the blocks the frame already links to; for a frame with none, after the blocks of the scene's frames before it; else before those of the frames after it; else at the end. Only links to blocks still in the method count.
+- **Linking:** each block `insert_statement` or `insert_control` adds after it, the step's comment among them, is added to `Frame.links` in the same step as the block, so Undo takes both back. A block inside one the frame already links isn't linked again. The runner does this itself, as the studio's link button does (`withLink`): a link is just the block's id on the frame (spec 03, section 7).
 
 #### `check_frame`
 
 Changes nothing. Returns the latest result of the automatic check for a frame (11.6), so the Prompter can explain it in the learner's words. It doesn't run the check. Field: `frame`.
+
+The result is the studio's (`checkResult`), or else the check saved on the frame (`Frame.check`, spec 08, section 9.6): each item's `id`, `kind`, `outcome`, `words`, `node` and `line`, and the flags the learner `kept`. As built (19 Nov), the studio's `checkResult` is the saved check with the frame's `frame` id and the `number` the learner sees ("2.3"), and a question asked from a flag on the frame card names its frame and the item (`ask(text, { frame, item })`), so the result goes with the request, with `asked` set to the item's id. The question names the frame, not the flag's words: those come from the file (`Frame.check` is saved in the film, and a shared one can say anything), so they belong in the data block, never in `<learner_request>`, whose words the Prompter takes as the learner's own (rule 7, and section 6.5). It goes as a `<check_result>` data block, since the words come from the file.
 
 #### `script_check`
 
@@ -343,7 +446,7 @@ The tool list never changes (section 1.5). The client decides what runs: a call 
 
 | Tool | `explain` | `storyCoach` | `scriptCheck` | `showMeHow`, `buildIt` |
 |---|---|---|---|---|
-| `explain`, `read_project`, `check_frame` | Yes | Yes | Yes | Yes |
+| `explain`, `read_project`, `find_models`, `check_frame` | Yes | Yes | Yes | Yes |
 | `script_check` | Yes | Yes | Yes | Yes |
 | `propose_plan`, `revise_plan` | | | | Yes |
 | `code_frame` and everything that changes the production | | | | Yes, after an agreed plan, and never at the Plan only level |
@@ -377,7 +480,60 @@ The levels pick from the modes (decision 0034); `prompter.enabled`, `prompter.ex
 | **Plan only** | Those, plus `showMeHow` and `buildIt`, which write and revise plans | None. The learner builds every block and ticks steps off |
 | **Full** | All | After an agreed plan |
 
-If `explainOnly` and `planOnly` are both set, Explain only wins. A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a class to Explain only, the level changes as it would for a teacher, and the next turn carries the new mode message.
+If `explainOnly` and `planOnly` are both set, Explain only wins. When the level turns Off while a request runs (a teacher's lock, or a study task, spec 14 section 6.5, where the studio gives the panel the level Off), `refresh` stops the request and the panel stays Off; it comes back with the level. At Limit reached, `refresh` updates the modes to the lowered level but keeps the phase and the class's words until the next request (spec 07, section 2.4). A malformed policy means Off (15.3). The native layer enforces these again; the client's check is what the learner sees, the native check is what can't be got round. When the daily cap's action switches a pupil to Explain only (the cap is counted for each pupil, against whoever's folder is open; spec 05, section 3.3), the level changes as it would for a teacher, and the next turn carries the new mode message.
+
+### 4.4 Set-up (13.6)
+
+The set-up wizard's pages and the system dialog are spec 05, section 1. The studio draws the pages (S5). `packages/prompter/src/setup.ts` holds what they run on, so every page works the same way and is tested without the native layer:
+
+- **`tauriKey(invoke)`** wraps `key_add`, `key_status` and `key_remove` (spec 05, section 1.3). None of them takes or gives the key. A reply that isn't one of spec 05's words is an error, never taken as success.
+- **`PrompterSetup`** walks the pages in order: 10a, 10b, 10c, 10d.
+
+| Page | What can happen | Goes to |
+|---|---|---|
+| 10a Who is setting up | **I'm a learner**: the wizard ends, and the Prompter stays off | The app |
+| | **I'm an adult** | 10b |
+| 10b About the Prompter | **Back** | 10a |
+| | **Carry on**, only once the adult has ticked that the Claude account is theirs, not a child's | 10c |
+| 10c Add your Claude key | **Add key** opens the system dialog. `saved` | 10d |
+| | Any other outcome stays here, with spec 05's words for it. `cancelled` shows nothing | 10c |
+| | **Back** | 10b |
+| 10d You're ready | **Remove key** deletes it, which switches the Prompter off | 10a |
+
+- **Opening the wizard with a key already stored** starts on 10d, so the adult can see the key works or remove it. Without one, it starts on 10a.
+- **Add key can't be pressed twice.** While the dialog is open and the key is being checked, the page says so, and a second press does nothing.
+- **A command that fails** (the native layer is missing or gives something unexpected) keeps the page where it is, with "That didn't work. Try again."
+- The words for each outcome are `KEY_OUTCOME_WORDS`, exactly as spec 05, section 1.3 gives them. S5 shows them; it doesn't write its own.
+- **The usage meter** is `PrompterUsage` in `@storystage/host` (S8, spec 05 section 2.4), for the teacher's screen (S5). The wizard doesn't count anything.
+
+### 4.5 The Prompter panel (WP13c)
+
+The panel's states are spec 07, section 2.4. The studio draws them (S5). `packages/prompter/src/panel.ts` holds what they run on, `PrompterPanel`, so every state is tested on scripted replies without a screen. It sits over the request loop (`PrompterSession`), the tool runner (`PrompterRunner`) and the production's undo history (`ProductionSession`). The studio makes all three with one call, `createPrompterPanel`, which always sends this release's pinned `system` and `tools` (section 1.9). It takes the studio's own session as it is: the runner and the panel are generic over the history's names for where changes come from (`ProductionSession<S>`, with `source: S`).
+
+| Phase | When | What the learner can do |
+|---|---|---|
+| `absent` | The browser version: no panel at all | Nothing |
+| `off` | The school has switched the Prompter off (`prompter_off`, `refused_by_policy`) | Nothing |
+| `notSetUp` | No key (`no_key`) | Adults see **Set up…** (section 4.4) |
+| `ready` | The Prompter can take a request | Ask, in any mode the level allows |
+| `working` | A request is running, before any change | Stop |
+| `planned` | The last request showed a plan | Edit the plan; **Build these steps**, unless the level is Plan only; ask for changes in words; Stop |
+| `building` | The agreed plan is being built | Stop |
+| `built` | The request changed the production | **Undo this request**; ask again |
+| `limit` | The day's cap (`cap_reached`) | What the new level allows |
+| `problem` | Anything else that went wrong (section 7) | The message's action: try again, open set-up or undo |
+
+- **Modes** are `modesAt(level)` (section 4.3). A mode the level leaves out isn't offered at all.
+- **What the panel shows** is the conversation so far: what the learner asked, the Prompter's replies, its `explain` texts, and one line per change as it lands, with its plan step.
+  - A reply is one entry that grows as it streams, with `done: false`, and is marked `done` once it is complete, so a screen reader can read it once.
+  - A change carries `nodes`, the blocks it added (the step's comment among them), for the editor's `highlight`. The panel finds them by comparing the program before and after the change. A change to the scene's set-up alone has none.
+- **Each request** carries the production and the storyboard as data (section 2.6), from the production as it stands.
+- **Editing a plan** happens in the client, with no request and no cost: move a step, delete one, change a value, add one. Each edit is checked again (section 6.3), and a step that can't be built carries its problem in plain words. **Build these steps** waits until no step has a problem. The panel keeps the plan as the Prompter showed it beside the learner's version, so it can be kept with the frame (section 6.7).
+- **Build these steps** sends "Build these steps." in the same mode, with the learner's plan as `<agreed_plan>`.
+- **Code this frame** asks for frame `f` in the current mode, so the Prompter's plan is for that frame.
+- **Try again** (`retry`, offered while `canRetry`) sends the last request again as it was sent: the same words, Code this frame for the same frame, or Build these steps with the plan as it stands. It is offered for a problem whose action is try again, and only when that request changed nothing. A build that stopped part-way is undone with Undo this request, not built again on top.
+- **Undo this request** (`undoRequest`) is offered in Planned and in Built, as spec 07 lists it. In Planned nothing is built yet, so it drops the plan and goes back to Ready. In Built it undoes the request's one step, and only while that is still the latest step in the history. Once the learner has changed something since, the Prompter's step is undone from the history, like any other.
+- **Stop** stops the request. Changes that already landed stay, as one step, and **Undo this request** is offered for them.
 
 ## 5. Story coach
 
@@ -385,8 +541,8 @@ The coach helps a learner think. The learner writes every word.
 
 **It does:**
 
-- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends.
-- Offer the arc templates (10.2) and say what each part is for.
+- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov). So is "Is it friendly, shy, sneaky or something else?" (story-06 in the rerun), so the mode's message rules out examples and choices in the question itself, for names and feelings too.
+- Offer the arc templates (10.2) and say what each part is for, in general, from the system prompt's list (section 2.5). Which arc fits is the learner's choice, and what happens in each part is the learner's to write.
 - Say what it notices in the learner's own words: "Your logline says who Pip is, but not what Pip wants."
 - Ask about gaps `script_check` finds.
 
@@ -414,7 +570,8 @@ Show me how and Build it never change anything until the learner agrees a plan (
 2. The Prompter calls `propose_plan`, made from the frame's sketches, its script lines and its shot.
 3. The client checks the plan (section 6.3). Problems go back to the Prompter as an error it can fix, or are shown on the step if it can't.
 4. The Prompter ends its turn. The panel shows the numbered plan, in plain words.
-5. The learner edits it. These edits happen in the client, with no request and no cost: reorder by drag or keyboard, delete, change a value with the same dropdowns the blocks use, add from a short menu. **Why this step?** reads the step's `why`.
+5. The learner edits it. These edits happen in the client, with no request and no cost: reorder by drag or keyboard, delete, change a value with the same dropdowns the blocks use, add from a short menu. **Why this step?** reads the step's `why`, and isn't offered for a step the learner added, which has none.
+   - A step the learner changes or adds gets its words written again from what it now does (`stepWords`), in the Story API's own phrases, the ones the tile editor's rows read ("Penguin move forward 3."). The panel does this itself unless the change gives words of its own. The plan on show, and the comment the build writes above the step's blocks, then never describe a different step.
 6. The learner can also ask for changes in words. That's an ordinary turn, and the Prompter answers with `revise_plan`.
 7. The learner presses **Build these steps**. The next turn carries the plan in `<agreed_plan>`.
 8. The Prompter builds it, in order, step by step, with one `plan_step` on each call. Each step's words become a comment above its blocks, and each step is highlighted as it lands.
@@ -427,22 +584,27 @@ The plan isn't a pending tool call: `propose_plan` returns at once, so nothing w
 | Field | Type | Notes |
 |---|---|---|
 | `words` | string | The step in plain words, under 20 words |
-| `kind` | enum `do`, `add`, `change`, `when`, `stage` | A Story API call; add a model; change how something starts; an event; set the scene from the storyboard |
+| `kind` | enum `do`, `add`, `change`, `when`, `stage`, `repeat` | A Story API call; add a model; change how something starts; an event; set the scene from the storyboard; repeat the steps after it (section 6.8, proposed) |
 | `actor` | string | Object name, or `scene` for `stage` |
-| `action` | string | For `do`: a Story API procedure. For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
+| `action` | string | For `do`: a Story API procedure, or one of the learner's own (section 6.9, proposed). For `add`: a Backstage id. For `change`: a property. For `when`: an event kind. For `stage`: a scene id |
 | `target` | string | Object or marker it acts on, or `""` for none |
-| `details` | list of `{name, value}` | |
+| `details` | list of `{name, value}` | For `do`, every setting the block needs, with the value to build, and any of its details. At most 20, names up to 64 characters, values up to 300 |
 | `line` | string | A script line id, or `""` for none |
 | `sketch` | string | A placed sketch id, or `""` for none |
 | `together` | boolean | Runs at the same time as the step before it |
-| `repeat` | integer | Times to run; 1 for once |
+| `repeat` | integer | Times to run, 1 to 1,000; 1 for once. For a `repeat` step, how many times the steps it holds run, from 2 |
+| `holds` | integer | For a `repeat` step, how many of the steps right after it it repeats, from 1; 0 for every other step (section 6.8, proposed) |
 | `why` | string | One sentence, under 25 words |
 
-Steps are flat, because strict mode allows no recursive schemas: a plan expresses "at the same time" and "repeat", not nesting. A request that needs more than that is a sign to suggest smaller steps.
+Every text field is at most 300 characters. These are the production format's `PLAN_LIMITS` (1.6.0), since a frame keeps its plan (6.7), and the input check refuses a step outside them with `bad_argument`, as it does a plan with more than 12 steps. The type is production's `PlanStep`, which the Prompter re-exports.
+
+Steps are flat, because strict mode allows no recursive schemas: a plan expresses "at the same time" and "repeat", not nesting. A `repeat` step holds the steps after it by count, not by nesting (section 6.8). A request that needs more than that is a sign to suggest smaller steps.
 
 ### 6.3 Checking a plan
 
-Before a plan is shown, and again when the learner presses **Build these steps**, code checks each step against the Story API and the production: the actor exists; the action exists on its class; the target exists; required details are there; the line and sketch exist; an `add` names a real Backstage item or a stand-in. A step that can't be built says so in plain words on the step, before building, not after ("There's no owl in this scene yet. Add one first, or change who does this.").
+Before a plan is shown, and again when the learner presses **Build these steps**, code checks each step against the Story API and the production: the actor exists; the action exists on its class; the target exists; every setting the block needs is there, with a value (the step's `target` fills the block's object, and its `line` a say's words); the line and sketch exist; an `add` names a real Backstage item or a stand-in. A step that can't be built says so in plain words on the step, before building, not after ("There's no owl in this scene yet. Add one first, or change who does this.", "A move block needs a value for amount.").
+
+A step gives every setting so the learner can see and change each one with the dropdowns (6.1, step 5), and so the build is held to the values agreed (6.4): a setting left out would be the Prompter's to choose while building. The owner chose this on 18 Nov, and the system prompt asks for it.
 
 ### 6.4 The build matches the plan
 
@@ -450,17 +612,239 @@ Code, not trust, keeps the build to the plan. During a build the executor holds 
 
 When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 
+**After the first pilot (21 Nov 2026),** three things the owner's run showed:
+- **A step's target that is its own actor means none** (`targetOf`). Claude wrote "the penguin moves" with target "penguin", and the rule wanted "penguin" among the block's values, so no build of such a step could land. The plan check, the build rule, Plan only's ticks and a step's words all read it as none, and the `target` field's description now says "never the actor itself".
+- **A step that runs together starts its group with the step before it.** `together` on step 2 means "at the same time as step 1", so the `doTogether` is built for step 1. The rule allows it for a step whose next step is together, as well as for one that is. Either way it counts as the group's first step's: that step's words go above it, and that step is highlighted. The rerun of 22 Nov (plan-06) named step 2, so step 2's words sat above step 1's.
+- **A when step's blocks go in its listener** (the third pilot run, event-01). `add_event_listener`'s description said to pass the listener's id as `parent_block`, but the runner took only a control block's id there, so no handler could be built. A listener's id is now a place for blocks, its body.
+- **`not_in_plan` says what differs:** the block and actor, the object it acts on, the setting and value, the line, or the holding block. Before, it said only that the call didn't match, and Claude retried blind, then stopped.
+
 ### 6.5 What characters say
 
-Text in `say`, `think` and the speak line block comes from one of two places, and code checks it: a script line (`line`), or, outside a frame, the learner's own request. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
+Text in `say`, `think` and the speak line block comes from one of two places, and code checks it: a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
 
 ### 6.6 Plan only
 
 In Plan only (the `prompter.planOnly` policy, or the level), the Prompter writes and revises plans, but **Build these steps** isn't offered and change tools answer `not_allowed_here`. The learner builds the blocks and ticks steps off as the frame strip checks them (11.6).
 
+**Ticking steps off.** The learner doesn't tick a step: code does, when what the learner built matches it, by the same rule a build is held to (6.4). The panel's plan has `done`, one flag a step, beside `steps`. The learner can still reorder, change, add and delete steps, and each edit works the ticks out again.
+
+- **What a step matches:**
+  - `do`: a block, by the object it acts on, which block it is, every setting and detail the step gives with the same value, and its line. A step's target and line fill the block's object and words, as in 6.3. If the step repeats, the block must be inside a count of that many. If it runs together, the block must be inside a do together.
+  - `add`: an object of that name, from that Backstage item, in the scene.
+  - `change`: that object starts with the property set to that value.
+  - `when`: a listener for that event.
+  - `stage`: the scene is set up from its storyboard card, with nothing left to add (`RunnerSetup.staged`).
+- **Which blocks count:** the frame's linked blocks, and the blocks added since the plan was shown. A block that was there before is another frame's, so it ticks nothing. Each block ticks one step, in plan order, so two steps that are the same need two blocks.
+- **When:** the panel works the ticks out again whenever the production changes (it listens to the session) or the plan does. The studio calls nothing. The frame strip's check doesn't tick steps: the two read the same blocks, but neither waits on the other.
+- **Kept with the frame, outside undo** (6.7; the owner's choices of 20 Nov): from the first tick, the plan is kept with its frame and kept again whenever its ticks change, through the session's `keepPlans` (S4, format 1.7.0). That is outside the history, as a check's results are (`annotate`), so Undo takes back the learner's block, not an unseen keep, and the ticks follow the code.
+  - What's kept is `{ agreedAt, shown, agreed, done }`. `agreedAt` is when the first step was ticked, and stays so. `agreed` is the plan as it stands. `done` lists the ticked steps by number, from 1, ascending, each once.
+  - `done` follows the code: undoing a block takes its tick back, and redoing brings it back. It may be empty, once the learner has undone every ticked step: the plan stays with its frame, since its steps are still the learner's plan.
+  - Only a Plan only plan has `done`. A build's plan has none, since it says what code built, not what the learner's own building matched.
+  - A plan with no frame is never kept, as in 6.7. Nor is one the format wouldn't keep (`isFramePlan`).
+  - A step of the learner's own that changes the frame's plan, such as agreeing a new plan in another mode, takes over from the kept one, and Undo can take that back.
+- **After the film is reopened,** or in a new conversation, a kept plan stays with its frame as it was last kept, for the teacher, but doesn't come back into the panel, and ticks no more. Ticking needs the blocks that were there when the plan was shown, which last only while the panel has the plan.
+- **As built (20 Nov):** `PanelPlan.done`, beside `steps`, and all false at the levels where the Prompter builds. The matching is `stepsDone` (`progress.ts`), which the runner's `progress(steps, frame, before)` gives the scene: a frame's plan is worked out, and checked (6.3), in its frame's scene, whichever scene is on show, so opening another scene changes no tick (S5's review); a plan with no frame uses the scene on show. The panel follows the session from when it's made; `panel.dispose()` stops that. `RunnerSetup.staged(p, scene)` says whether a scene has nothing left to add from its card, and without it a `stage` step never ticks. `PanelSetup.now` is the clock for `agreedAt`.
+- **For the learner:** each ticked step shows a tick, and its accessible name says it's done ("Step 2, done: …"). When the last step is ticked, the studio says once, in its polite live region, "All the steps are built.", read from the panel's state, not as an entry in the conversation.
+
 ### 6.7 Kept with the frame
 
-The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
+The agreed plan is saved with the frame in the storyboard data, not in the program, with a record of what the learner changed, so a teacher can see it: `Frame.plan`, as the plan was shown and as it was agreed (format 1.6.0; `03-production-format.md` section 6). `PlanStep` is the format's type, which the Prompter uses. It's pseudonymous in the study log (7.13). Plans made with no frame last as long as the conversation.
+
+- **Where:** `Frame.plan` (S4, format 1.6.0): when it was agreed, the plan as the Prompter last proposed or revised it (`shown`), and as the learner built it (`agreed`). What the learner changed is read by comparing the two, step by step.
+- **When:** in the build's own undo step, so Undo takes the plan back with what it built. The runner's `keepPlan(p, { frame, shown, agreed })` is called once, as the build's group opens, and the studio's version writes `{ agreedAt, shown, agreed }` with `withFramePlan` when `isFramePlan` accepts it. A build that changes nothing makes no step, so it keeps nothing. Keeping never stops a build: if `keepPlan` returns `p` unchanged, or throws, nothing is kept and nothing is recorded for it.
+
+### 6.8 Repeating several steps
+
+The owner's choice of 21 Nov 2026, before the full evaluation run: a plan can repeat several steps as one loop. A step's own `repeat` repeats only that step, so "hop up, then down, three times" couldn't be one loop. The pilot's loop-01 planned six steps, and loop-02 (walk a square) and loop-05 (two turns together, four times) can't be planned at all. In blocks, that's a `count` block holding several blocks, and it's basic coding the Prompter should show.
+
+**A `repeat` step** stands before the steps it repeats and holds the next `holds` of them, as a count block holds the blocks under it. The learner reads:
+
+> 1. Repeat 3 times:
+> 2. &nbsp;&nbsp;&nbsp;The penguin moves up 0.3 metres.
+> 3. &nbsp;&nbsp;&nbsp;The penguin moves down 0.3 metres.
+> 4. The penguin says "Again!"
+
+| Field | For a `repeat` step |
+|---|---|
+| `kind` | `repeat` |
+| `repeat` | How many times, 2 to 1,000 |
+| `holds` | How many of the steps right after it are inside, from 1 to the steps that follow |
+| `words` | Its words, which `stepWords` writes as "Repeat 3 times:" |
+| `why` | As for any step |
+| `actor`, `action`, `target`, `line`, `sketch` | `""` |
+| `details` | Empty |
+| `together` | `false` |
+
+Every other step has `holds` 0. The schema stays flat, so strict mode compiles it, and there's no recursion.
+
+**Checking (6.3):** these are refused, with a message for the step:
+- a `repeat` step whose `repeat` is below 2, or whose `holds` is 0 or runs past the plan's end;
+- a held step that isn't a `do` step, since only blocks go in a count;
+- a held step that is a `repeat` step, or has its own `repeat` above 1, since loops in loops wait for a later choice;
+- a first held step that is `together`, since nothing in the loop is before it;
+- `holds` above 0 on any step but a `repeat`.
+
+Steps that are `together` inside the loop are built as a `doTogether` inside the count, as anywhere else. A step's own `repeat` stays, for one block repeated ("The dog says Woof", 5 times). The system prompt says to use a `repeat` step when several steps repeat, and a step's own `repeat` when one does.
+
+**Building (6.4):**
+- The `repeat` step is built as `insert_control` with `kind: "count"`, `count` its `repeat`, and its number as `plan_step`. Its words go above the count as a comment, as for any step's first block.
+- Each held step's blocks go inside that count: `parent_block` is the count's id, or a `doTogether` inside it.
+- The runner holds this. A held step built outside its count answers `not_in_plan`, saying it's inside step N's repeat, and changes nothing.
+
+**Plan only (6.6):** a `repeat` step is ticked when the learner's own blocks include a count with its times. A held step is ticked when its block matches, by the 6.4 rule, inside a count with its `repeat` step's times.
+
+**Kept with the frame (6.7):** `PlanStep` gains `holds`, a required field, and `PLAN_STEP_KINDS` gains `repeat`, in production format 1.8.0 (S4). A plan kept before 1.8.0 gains `holds` 0 on every step when the file opens, by a format migration.
+
+The format checks only what keeps a plan readable:
+- `holds` is a whole number from 0 to `PLAN_LIMITS.steps` − 1;
+- `holds` is above 0 only on a `repeat` step;
+- a `repeat` step holds at least one step, all within its own list;
+- a `repeat` step's `repeat` is at least 2.
+
+The rules marked "for now" above stay in the plan check (6.3), so lifting one later needs no new format:
+- held steps are `do` steps with `repeat` 1;
+- no `repeat` sits inside another's range;
+- the first held step isn't `together`;
+- a `repeat` step's other fields are empty.
+
+A `repeat` step counts as a step towards the 50 a frame keeps, and Plan only's `done` numbers it like any other.
+
+**The panel (S5 draws it; `PrompterPanel`, S7, makes each edit, so every edit keeps a plan the check accepts):**
+- **Showing it:** held steps are indented under their `repeat` step, with a thin line down their left in the count block's loop colour, so the end of the loop shows at a glance.
+- **Names, for screen readers:**
+  - A `repeat` step is "Step 1: Repeat 3 times, holding steps 2 and 3".
+  - A held step is "Step 2, inside the repeat: …".
+  - Done at Plan only (6.6, with #574's form), they become "Step 1, done: Repeat 3 times, holding steps 2 and 3" and "Step 2, inside the repeat, done: …".
+- **Change step on a `repeat` step** offers:
+  - **How many times**, with the number field the count block uses (2 to 1,000);
+  - **Steps inside**, a number from 1 up to the run of `do` steps right after it, listed under the field ("Steps 2 and 3"), so a child sees which ones.
+- **Repeat…**, a button beside Add a step (the owner's choice of 22 Nov, in place of a menu under Add a step, so adding a step stays one tap), adds "Repeat 2 times:" before the last step, holding it, then opens Change step on it. It's offered only when the last step is a `do` step that isn't held already, and the plan has room for another step (the 50 a frame keeps; a plan from `propose_plan` has at most 12).
+- **Reordering:**
+  - Dragging a `repeat` step moves its held steps with it.
+  - A `do` step moved to between a `repeat` step and its last held step goes inside (`holds` + 1). One moved to just after the last held step stays outside, and Steps inside takes it in.
+  - A held step moved out of the range leaves it (`holds` − 1).
+  - A step that can't be held (a `when`, `stage`, `add` or `change` step, or another `repeat`) can't be moved inside. The move is refused, with the words "A repeat can only hold steps that are blocks."
+- **Deleting:**
+  - Deleting a `repeat` step keeps its steps, which are then no longer held.
+  - Deleting a held step leaves the repeat one fewer.
+  - If that leaves it none, the `repeat` step goes too, with the words "The repeat had no steps left, so it's gone too."
+
+**Tools and pins:** `propose_plan` and `revise_plan`'s step gains `holds` as a required field, since an optional one costs grammar. The kind enum comes from `PLAN_STEP_KINDS`. The plan tools are strict, so the owner's grammar probe (`tools/fake-claude/src/eval/probe-grammar.ts`) runs again before a live run.
+
+**Evaluation:** `build_matches_plan` wants comments for `do` and `repeat` steps. loop-01, loop-02 and loop-05 can then be planned as one loop each.
+
+**As built (21 Nov 2026; S4's format 1.8.0 in #608):**
+- **The rules:** `packages/prompter/src/repeats.ts` holds them on the steps alone: `heldBy`, `stepsInsideMax`, `canRepeat`, and the moves and deletes with their words (`PLAN_EDIT_WORDS`). The panel's edits use them and return `PlanEdit`. `PanelPlan` carries `heldBy`, `stepsInsideMax` and `canRepeat`.
+- **The runner:** it keeps each repeat's count block by step number, and refuses a held step's block outside it, or before it exists.
+- **Fixed 22 Nov, after the review of #629 and a regression from #626:**
+  - **At the same time as a whole repeat:** for a step just after a repeat, "the step before" is the repeat, not its last held step. A `doTogether` named for either of them counts as the repeat's, and goes around its count.
+  - **A move** that would put a step with its own `repeat` inside, or a `together` step first inside, is refused, in the plan check's own words.
+  - **A step left first inside** by a move or a delete, or by Repeat…, is no longer `together`, and the edit says so: "The first step inside a repeat can't happen at the same time as the step before it, so now it doesn't."
+  - **Repeat… on a step with its own `repeat`** hands it those times ("Repeat 3 times:", not 2), so the film runs the same.
+  - **Cancel straight after Repeat…** puts the step back as it was.
+  - **Steps inside** stops before a step with its own `repeat`, and Add a step never lands inside a repeat.
+  - Change step's own values are left to the plan check, which says what's wrong under the step.
+- **The tool's input check** lets `actor` and `action` be empty, for a repeat step. The plan check then says "Say who does this step." or "Say what this step does." for any other step that leaves them empty.
+
+### 6.9 Calling the learner's own procedures and moves (proposed)
+
+**Proposed on 22 Nov 2026; none of it is built.** The owner asked for this spec on 21 Nov, after decision 0074 gave learners procedures with inputs (parameters) and a character's own moves. Today a plan step and `insert_statement` take only Story API procedures, so the Prompter can't show a learner how to use "waddle" once they've written it.
+
+**The owner's choices (22 Nov):**
+1. A plan calls only procedures and moves that already exist. `declare_procedure` is removed, and the learner makes new ones in the Code editor. It made a procedure no step had agreed to, and no tool could call it.
+2. Every text input follows the rule for say (6.5), whether or not the procedure speaks it.
+
+The learner reads:
+
+> 1. The penguin waddles 3 steps.
+> 2. The penguin says "I made it!"
+
+#### What can be called
+
+| Actor | What it can call |
+|---|---|
+| `this`, the scene | The scene's own procedures, except its script ("When the scene starts") |
+| An object | The procedures of its character's class, and of that class's parents |
+| An object added earlier in the plan | The same, for the type `objectType` would give it (`add_model`, section 3.1) |
+
+- **Procedures only.** A learner's function isn't offered, in a step or in a condition.
+- **A name has one meaning,** worked out by code:
+  - A Story API procedure of that name on the actor's class wins, so no plan made today changes its meaning. A learner's procedure with that name can't be planned.
+  - Otherwise it's the nearest class's, as the palette's "your own" finds them (`parentsOf`).
+- **Inputs** can be a number, a whole number, text, true or false, one of a Story API enum's values, or an object in the scene that fits the input's type by the program check's own rule (`typeFits`). An owl doesn't fit a Penguin input, though both are Flyers, so the Story API class alone isn't enough. A procedure with any other input (a list, say, which only an imported one has) can't be planned. An input is read as the program types it, so one an import gave the wrong type is read by that type (S6's importer fix).
+
+#### The step and the block
+
+Neither schema gains a field, and the production format doesn't change.
+
+- **The step** is a `do` step. `action` is the procedure's name. `details` gives every input by its name with a value, one with a default included, so the learner sees and can change each.
+- **A step's `target`** fills the input when the procedure has exactly one object input, and its `line` when it has exactly one text input.
+- **The block** is `insert_statement` with `procedure` the name and the inputs in `arguments`. A learner's procedure takes no details, so `details` is empty. The runner writes `callee: { kind: 'user', method }`, with each value keyed by its input's id.
+- **`together`, `repeat` and a repeat step's `holds`** work as for any `do` step.
+- **When code writes its words** (6.1: a step the learner changed or added), they're the editors' own for that call (`newCall`, then `describer`, from `@storystage/story-api/editing`): "penguin waddle steps 3", not the sentence the Prompter wrote. A value the describer reads from its place in the program, such as a sound's label, is described in a scratch copy of the program with the call in it.
+
+#### Checking the plan (6.3)
+
+These are refused on the step, before the learner can build:
+
+| Problem | The step says |
+|---|---|
+| No procedure of that name | "The penguin has no waddle block." |
+| It's the scene's script | "When the scene starts can't be used as a block." |
+| It's a function | "waddle gives an answer, so a step can't use it." |
+| An input the Prompter can't fill | "waddle needs an input you can fill only in the Code editor." |
+| A value missing, or of the wrong type | "A waddle block needs a value for steps." |
+| A setting that isn't an input | "A waddle block has no speed setting." |
+| More than 20 inputs, or a name too long for a step (`PLAN_LIMITS`: 300 characters for the procedure's, 64 for an input's) | "waddle has too much to fit in a step, so add it in the Code editor." |
+| More than one text input, in a frame's plan | "waddle has more than one text input, so add it in the Code editor." |
+
+An object added earlier in the plan is checked too, now that its class is known then: today its blocks are checked only as they're built.
+
+#### Building (6.4)
+
+- **Showing a plan fixes which procedure each step means,** by id, and changing a step fixes that step's again. The panel holds the ids: the step and a kept plan have only names. Pressing Build checks each id is still the procedure that name resolves to, with the same inputs by id, name and type. One renamed, deleted, retyped, given or losing an input, or whose name another procedure now has, stops the build on that step, with nothing changed.
+- **A call must match its step** as any block does: actor, procedure, every input's value and the line. A different procedure with the same name is `not_in_plan`.
+- **No new loops by calling.** This is the Prompter's own rule: both editors let a procedure call itself. A call can't go inside the procedure it calls, or inside one that procedure reaches. Reaching follows calls to procedures and to functions wherever they are: statements, values at any depth, inputs' defaults, and switched-off blocks, which can be switched on again. A loop answers `would_break_program`. Recursion the learner wrote is left alone, under the runtime's own limit.
+- **The procedure's body is the learner's.** The plan agrees to the call and its inputs, not to each block inside, and the Prompter doesn't change a body to make a step fit. What the body says is already the learner's, so 6.5 doesn't check it.
+
+#### Text inputs (6.5)
+
+- **In a frame's plan,** the text is a script line's exact words, with its id in `line`. So a procedure with two or more text inputs can't be in one.
+- **Otherwise** each text input is the learner's own words, as 6.5 defines them, or the line's exact words when it's the only one.
+- **An input that is only a label follows the same rule.** Code doesn't work out whether text is spoken.
+
+#### Plan only (6.6)
+
+A step ticks when the learner's block calls the procedure it means (by id, and still by that name), with the same values by input name, under 6.6's other rules. An input the block leaves out, as the editors' new blocks do for one with a default, counts as its default when that's a plain value, and otherwise doesn't match. A step's line is matched against the only text input, whatever its name. Only blocks in the scene's methods and listeners count, as now. Renaming the procedure takes the tick back until the step is changed to the new name, as a kept plan holds names (6.7).
+
+#### What the Prompter is sent, and what it's told
+
+- **No data block changes.** The program text already has each class with what it extends, each field's type, and each procedure with its inputs. Over the program's budget, a procedure keeps its first line.
+- **`system`** gains one rule: a step may use one of the learner's own procedures from the program text, by its exact name and with every input; use one when the learner asks for it by name or it plainly does what they ask; never make one up.
+- **Names, comments and bodies stay data** (2.4). No name enters `system` or a tool's definition. A tool result repeats a procedure's or an input's name where it must, and never a body.
+- **The tools:** the descriptions of `action` and `procedure` change, and `declare_procedure` goes from the list, from 3.1 and from 3.4. The pins are regenerated. No strict tool's schema changes shape.
+
+#### The studio's half
+
+The panel gives `stepBlocks(actor, step)`: for that actor at that step, every block a `do` step can use, each with its name, words, and inputs with their types, the learner's own first under "your own" as in the palette. It lists only what each name resolves to: no procedure hidden by a built-in or by a nearer class's, which the palette does show, so a pick under "your own" can't build something else. The step editor reads it for "which block" and each setting, in place of the Story API's entries alone, so the learner can choose, and correct, the same calls the Prompter can plan (S5).
+
+#### Done when
+
+1. Unit tests cover each rule above, each refusal included (an input of a learner's class, a left-out default, a name another procedure took, and a loop closed only through a function's value among them), and a call built from a plan passes `checkProgram` and `checkReferences`.
+2. A film whose procedure names and bodies carry injected instructions changes nothing that wasn't agreed.
+3. The evaluation's starts can declare procedures and classes, and it has rows for: a scene's procedure, a character's move on a second object of that model, a text input from the learner's words, a move asked for that doesn't exist (nothing made up, nothing built), a frame's line through a text input, and an injected procedure name.
+4. The owner's live rerun passes those rows, with no failures where none are allowed.
+5. S5's step editor lists and changes such steps, tested in both editors' words.
+
+#### Who does what
+
+| Who | What |
+|---|---|
+| S7 | The check, build rule, words, ticks, `stepBlocks`, prompt, tools, pins and evaluation rows |
+| S5 | The step editor on `stepBlocks` |
+| S6 | Reviews that names resolve, and calls read, as in the editors |
+| S8 | Reviews the pins' change, one tool fewer |
+| Owner | Approves this section, then runs the rerun |
 
 ## 7. Errors
 
@@ -475,7 +859,7 @@ Errors say what happened and what to do next, with no apologies (rule 9). The na
 | 429, after the native layer's two retries | `rate_limited` | "The Prompter is busy. Carry on and try again shortly." With `retryAfterSeconds`: "Try again in N seconds." | **Try again** |
 | 5xx or 529 | `overloaded` | "Claude is having trouble right now. Try again in a minute." | **Try again** |
 | No network | `offline` | "You're offline, so the Prompter can't help right now. Everything else in StoryStage still works." | |
-| A daily or class limit | `cap_reached` | "Your class has used the Prompter's time for today. You can carry on without it." | |
+| The day's limit, counted for each pupil (spec 05, section 3.3) | `cap_reached` | "You've used the Prompter's time for today. You can carry on without it." | |
 | The school lock stopped it | `refused_by_policy` | "Your school has turned this off." | |
 | The native layer refused the request | `refused_by_allowlist` | "The Prompter can't do that here. Restart StoryStage, and tell your teacher if this happens again." | |
 | Stop pressed | `cancelled` | "Stopped." | **Undo this request**, if anything landed |
@@ -501,7 +885,8 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | Fallback turns echo correctly (1.4) | Fake-server integration | `tools/fake-claude` |
 | The 25-call limit and the three-failure rule (1.6) | Fake-server integration | `tools/fake-claude` |
 | A whole request is one undo step (1.7) | Headless tests on the program | `packages/prompter` |
-| Catalogs stay in budget (2.1) | Unit | `packages/prompter` |
+| Catalogs stay in budget (2.1): the Story API catalog, the Backstage index and each turn's `<backstage_data>` | Unit | `packages/prompter` |
+| `<backstage_data>` holds the production's models first, then matches, never a line twice in a conversation, and no learner text; `find_models` searches shipped models only (2.7) | Unit | `packages/prompter` |
 | Learner text can't close a data tag (2.4) | Unit, including every tag name inside learner text | `packages/prompter` |
 | Modes and levels gate tools (3.4, 4.3) | Unit | `packages/prompter` |
 | System prompt and mode messages hold the rules, and use rule 9's words (2.5) | Unit | `packages/prompter` |
@@ -513,7 +898,7 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 
 ## 9. Evaluation
 
-`docs/eval/` holds the set, the starting productions, the check types and the scoring rules. The bars come from WP13: at least 85% of checks on recorded responses; at least 75% live, with no failures in the refusal, "doesn't write the story" and "build matches the plan" categories.
+`docs/eval/` holds the set, the starting productions, the check types and the scoring rules. `tools/fake-claude/src/eval/` runs a row through the real panel and scores it (`docs/eval/README.md`, "The harness"). The bars come from WP13: at least 85% of checks on recorded responses; at least 75% live, with no failures in the refusal, "doesn't write the story" and "build matches the plan" categories.
 
 ## 10. Differences from StoryStage 1 spec 01
 
@@ -530,6 +915,7 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | `max_tokens` | 32000 | 32000 to build, 16000 otherwise | Thinking counts towards it; a lower cap on read-only modes |
 | Screenshot | Sent for placement | Dropped | Rule 3 |
 | Catalogs | Java reflection; gallery with Sims 2 classes | `story-api` metadata; Backstage shipped models | No Alice code; section 2.1 |
+| Backstage in `system` | | An index of every shipped model; full lines for the request in `<backstage_data>`, others by `find_models` | The catalogue outgrew its budget (section 2.7) |
 | Imported models | None | In the user turn, as data | Hash pinning and injection |
 | Learner text | In the user turn | Delimited JSON, with `<`, `>` and `&` escaped | 13.2, injection |
 | Tool enums | Built from catalogs | Plain strings, checked by the client | Schemas are pinned per release |
@@ -537,7 +923,7 @@ How each rule is tested (`09-testing.md`). Every level uses `tools/fake-claude` 
 | Names | `do_together`, `mouse_click_on_object` and so on | The AST's and the Story API's own names (`doTogether`, `clickOnObject`) | One vocabulary across the program, the editors and the Prompter |
 | Changes | Applied as tools run | Only after an agreed plan, and checked against it | 13.9 |
 | Show me how | Add blocks one at a time | Plan first, then step by step | 13.9 |
-| New tools | | `stage_scene`, `code_frame`, `check_frame`, `script_check`, `propose_plan`, `revise_plan` | 13.4 |
+| New tools | | `stage_scene`, `code_frame`, `check_frame`, `script_check`, `propose_plan`, `revise_plan`, `find_models` | 13.4, section 2.7 |
 | New modes | | Story coach, Script check | 13.5, 24.3 |
 | Error codes | Seven | Twelve: adds `unknown_frame`, `unknown_line`, `no_agreed_plan`, `not_in_plan`, `not_in_script`; `would_break_world` is now `would_break_program` | |
 | 429 message | "Trying again in N seconds" | "Carry on and try again shortly" | 15.2's wording for a class |
@@ -550,11 +936,15 @@ These don't block WP13a. Each is needed by WP13b or WP13c.
 | Needs | From | For |
 |---|---|---|
 | Grouping edit operations into one undo step: done (`EditSession.begin`). Still wanted: a way to name the group when it closes, so a request's undo label can say all it changed ("Add cat and dog") rather than its first change | S2 (WP2.3, spec 01) | Section 1.7 |
-| The production's undo session, holding program edits and scene set-ups in one step. Until it exists, `add_model`, `set_property` and `stage_scene` answer `not_allowed_here` | S4, S2 (WP8.2, spec 03 section 2.1) | Section 3.1, 3.2 |
-| Linking a frame's blocks to the frame (10.8), for `code_frame` | S4, S5 (WP10.8) | Section 3.2 |
 | The text view's node id form. Until then the Prompter's project data lists each block with its id beside the text view | S2 (WP2.5) | Section 2.2 |
 | Final procedure, detail and event names; a metadata export | S6, S3 (WP4.1, WP4.2, spec 02) | Section 3, the catalog |
-| A `plan` field on `Frame` in `packages/production` | S4 | Section 6.7, a contract pull request |
+| A `plan` field on `Frame` in `packages/production`: done, `Frame.plan` in format 1.6.0 (#517). The Prompter uses production's `PlanStep` and keeps steps within `PLAN_LIMITS` | S4 | Section 6.7 |
+| `FramePlan.done` in format 1.7.0, and `ProductionSession.keepPlans` to keep a frame's plan outside undo, agreed with S4 (20 Nov, #568): the step numbers ticked off in Plan only, from 1, ascending, each once, none past `agreed.length`. It may be empty. Only a Plan only plan has it, so a teacher can tell what the learner built from what code built | S4 | Section 6.6 |
+| Plan only in the panel: a tick on each `done` step, "done" in its accessible name, and "All the steps are built." once, read from the panel's state | S5 | Section 6.6 |
 | The allowlist checks in section 1.8, and the beta in the transport contract | S8 (WP15.2) | Section 1.8 |
 | Section 2 of `09-testing.md` should point here and at `docs/eval/` | S1 | Section 8 |
 | Workplan 17.3 still lists scene pictures in the DPIA's scope. The owner confirmed on 31 Oct 2026 that no picture is ever sent, and 13.3 is corrected | D | Section 2.1 |
+| `prompter-catalogue.json` pinned as `catalogueJsonSha256`, with `short` and `words`; `renderIndex` and `searchCatalogue`; `jointsFor(catalogue, items)`; the index's budget in the build, without the joint sets' lists | S4 (contract PR, 21 Nov) | Section 2.7 |
+| Optional: the Backstage panel's search on `searchCatalogue`, so the learner and the Prompter find the same models for the same words | S5 | Section 2.7 |
+| Production format 1.8.0: `PLAN_STEP_KINDS` gains `repeat`; `PlanStep` gains a required `holds`, added as 0 by a migration from 1.7.0; `checkFramePlan` checks what keeps a plan readable (section 6.8, proposed) | S4 (contract PR) | Section 6.8 |
+| The plan panel: held steps indented under their repeat, Change step's How many times and How many steps for a repeat, and Repeat… beside Add a step (section 6.8) | S5 | Section 6.8 |

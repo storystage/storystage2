@@ -446,8 +446,16 @@ mod tests {
     }
 
     #[test]
-    fn the_shipped_pins_refuse_until_s7_sets_them() {
+    fn a_request_from_the_prompter_passes_the_shipped_pins() {
+        // Made by `pnpm prompter:pins` with the release's own system and tools (spec 04, 1.9).
+        let fixture = include_str!("../fixtures/release-request.json");
+        let real: PrompterRequest = serde_json::from_str(fixture).unwrap();
         let shipped = Pins::shipped();
+        assert_eq!(check(&real, Full, Full, &shipped), Ok(()));
+
+        let mut changed = real.clone();
+        changed.body["system"][0]["text"] = json!("You are someone else.");
+        assert_eq!(check(&changed, Full, Full, &shipped), REFUSED);
         assert_eq!(check(&request("explain", body()), Full, Full, &shipped), REFUSED);
     }
 

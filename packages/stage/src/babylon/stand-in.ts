@@ -7,33 +7,65 @@ import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder.js';
-import { DynamicTexture } from '@babylonjs/core/Materials/Textures/dynamicTexture.js';
+import { RawTexture } from '@babylonjs/core/Materials/Textures/rawTexture.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import type { Box } from '../hull.ts';
+import { STAND_IN_BOX } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
 import { ObjectView } from './view.ts';
 
-const BODY = { width: 0.5, height: 1, depth: 0.5 } as const;
-const NOSE = 0.15;
 const PALE = { r: 0.82, g: 0.84, b: 0.88 };
 const DARK = { r: 0.32, g: 0.36, b: 0.44 };
 
-const BOX: Box = {
-  min: { x: -BODY.width / 2, y: 0, z: -BODY.depth / 2 },
-  max: { x: BODY.width / 2, y: BODY.height, z: BODY.depth / 2 },
-};
+const LABEL = { width: 512, height: 96 };
+
+/**
+ * The label's words, drawn on a 2D canvas and handed to the GPU as pixels. Handing over the canvas
+ * itself, as a DynamicTexture does, has WebGPU copy it (`copyExternalImageToTexture`), which
+ * WebGPU in software (SwiftShader, as in CI) sometimes refuses, failing the scene's load.
+ */
+function labelTexture(text: string, name: string, scene: Scene): RawTexture | null {
+  const canvas = document.createElement('canvas');
+  canvas.width = LABEL.width;
+  canvas.height = LABEL.height;
+  const g = canvas.getContext('2d', { willReadFrequently: true });
+  if (!g) return null;
+  g.fillStyle = '#ffffffd9';
+  g.fillRect(0, 0, LABEL.width, LABEL.height);
+  g.font = 'bold 56px sans-serif';
+  g.fillStyle = '#1f2733';
+  g.fillText(text, (LABEL.width - g.measureText(text).width) / 2, 68);
+  const { data } = g.getImageData(0, 0, LABEL.width, LABEL.height);
+  const pixels = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+  const texture = RawTexture.CreateRGBATexture(
+    pixels,
+    LABEL.width,
+    LABEL.height,
+    scene,
+    false,
+    true,
+  );
+  texture.name = `${name} label`;
+  texture.hasAlpha = true;
+  texture.wrapU = Texture.CLAMP_ADDRESSMODE;
+  texture.wrapV = Texture.CLAMP_ADDRESSMODE;
+  return texture;
+}
 
 /** The label needs a 2D canvas, which a headless stage doesn't have. */
 function addLabel(text: string, name: string, scene: Scene): AbstractMesh | null {
   if (typeof document === 'undefined') return null;
-  const size = { width: 512, height: 96 };
-  const label = CreatePlane(`${name} label`, { width: 1, height: 96 / 512 }, scene);
+  const texture = labelTexture(text, name, scene);
+  if (!texture) return null;
+  const label = CreatePlane(
+    `${name} label`,
+    { width: 1, height: LABEL.height / LABEL.width },
+    scene,
+  );
   label.isPickable = false;
   label.billboardMode = AbstractMesh.BILLBOARDMODE_Y;
-  const texture = new DynamicTexture(`${name} label`, size, scene, false);
-  texture.hasAlpha = true;
-  texture.drawText(text, null, 68, 'bold 56px sans-serif', '#1f2733', '#ffffffd9', true);
   const material = plainMaterial(`${name} label`, PALE, scene);
   material.diffuseTexture = texture;
   material.useAlphaFromDiffuseTexture = true;
@@ -45,7 +77,22 @@ function addLabel(text: string, name: string, scene: Scene): AbstractMesh | null
   return label;
 }
 
-export function buildStandIn(name: string, label: string, scene: Scene): ObjectView {
+/** The block drawn is the box the timeline measures (`standInBox`), standing on its origin. */
+export function buildStandIn(
+  name: string,
+  label: string,
+  scene: Scene,
+  box: Box = STAND_IN_BOX,
+): ObjectView {
+  const BODY = {
+    width: box.max.x - box.min.x,
+    height: box.max.y - box.min.y,
+    depth: box.max.z - box.min.z,
+  };
+  // The nose shows which way it faces, in proportion: 15 cm on the usual half-metre block, no
+  // more than 30 cm, and no taller than the block. Alice's flat terrain (49 m by 1 cm by 61 m)
+  // would otherwise have a nose 15 m across.
+  const NOSE = Math.min(0.3 * Math.min(BODY.width, BODY.depth), 0.6 * BODY.height, 0.3);
   const root = new TransformNode(name, scene);
   root.rotationQuaternion = Quaternion.Identity();
   const body = CreateBox(`${name} body`, BODY, scene);
@@ -61,7 +108,7 @@ export function buildStandIn(name: string, label: string, scene: Scene): ObjectV
   return new ObjectView({
     root,
     meshes: words ? [body, nose, words] : [body, nose],
-    box: BOX,
+    box,
     paintable: [surface],
     label: words ? { mesh: words, above: BODY.height } : undefined,
   });

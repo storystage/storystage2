@@ -9,16 +9,31 @@ import {
   jointName,
   micros,
   objectId,
+  type BackstageId,
   type SceneSetup,
   type StageCommand,
   type StageEvent,
+  type StageQuery,
 } from '@storystage/story-api';
 import grassCast from '../../../../tests/scenes/grass-cast.json';
+import fadeOut from '../../../../tests/scenes/fade-out.json';
 import roomCamera from '../../../../tests/scenes/room-camera.json';
+import shots from '../../../../tests/scenes/shots.json';
 import snowFog from '../../../../tests/scenes/snow-fog.json';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../../src/backdrops.ts';
 import { createBabylonStage, type ModelSource } from '../../src/babylon/index.ts';
-import { tinyModelUrl } from '../../src/babylon/tiny-model.ts';
+import {
+  tinyGroundTileUrl,
+  tinyHumanUrl,
+  tinyModelUrl,
+  tinySkyDomeUrl,
+} from '../../src/babylon/tiny-model.ts';
+import type { ObjectView } from '../../src/babylon/view.ts';
+import type { EditEvent, EditTarget, Picked } from '../../src/contract.ts';
+import { toView } from '../../src/editing.ts';
+import { loadHumanLibrary } from '../../src/humanoid/library.ts';
+import { sample as samplePose } from '../../src/humanoid/pose.ts';
+import type { ObjectState } from '../../src/timeline.ts';
 
 const W = 640;
 const H = 360;
@@ -35,6 +50,8 @@ const SCENES = {
   'grass-cast': grassCast,
   'snow-fog': snowFog,
   'room-camera': roomCamera,
+  'fade-out': fadeOut,
+  shots,
 } as unknown as Readonly<Record<string, ReferenceScene>>;
 
 const robot = backstageId('test/Biped/robot');
@@ -48,7 +65,8 @@ function offscreenStage() {
   const canvas = document.createElement('canvas'); // never attached to the page
   canvas.width = W;
   canvas.height = H;
-  return createBabylonStage({ canvas, models, offscreen: true });
+  // WebGL2 everywhere, so the pixels checked here are the same on every machine.
+  return createBabylonStage({ canvas, models, offscreen: true, renderer: 'webgl2' });
 }
 
 function fnv(bytes: Uint8ClampedArray) {
@@ -61,7 +79,7 @@ function fnv(bytes: Uint8ClampedArray) {
 }
 
 async function run(scene: ReferenceScene) {
-  const stage = offscreenStage();
+  const stage = await offscreenStage();
   await stage.load(scene.setup);
   stage.schedule(scene.commands);
   const at = (f: number) => micros((f / (FRAMES - 1)) * scene.seconds);
@@ -112,7 +130,7 @@ const redCat: SceneSetup = {
 
 /** Where a red object at +X lands in the picture, with the camera looking along +Z. */
 async function direction() {
-  const stage = offscreenStage();
+  const stage = await offscreenStage();
   await stage.load(redCat);
   const frame = await stage.renderFrame();
   stage.dispose();
@@ -136,7 +154,7 @@ async function skies() {
   const out = [];
   for (const template of BACKDROP_TEMPLATES) {
     if (template.id === 'room') continue;
-    const stage = offscreenStage();
+    const stage = await offscreenStage();
     await stage.load({
       backdrop: template.backdrop,
       objects: [],
@@ -168,13 +186,25 @@ async function frameOf(name: string, seconds: number) {
       markers: [],
     },
   };
-  const stage = offscreenStage();
+  const stage = await offscreenStage();
   await stage.load(scene.setup);
   stage.schedule(scene.commands);
   stage.seek(micros(seconds));
   const frame = await stage.renderFrame();
   stage.dispose();
   return frame;
+}
+
+/** The same moment as `frameOf`, but taken with `picture` while the scene is at 0 (5.7). */
+async function stillOf(name: string, seconds: number) {
+  const scene = SCENES[name]!;
+  const stage = await offscreenStage();
+  await stage.load(scene.setup);
+  stage.schedule(scene.commands);
+  stage.seek(micros(0));
+  const still = await stage.picture(micros(seconds), W, H);
+  stage.dispose();
+  return still;
 }
 
 /** The colour at one point of a frame. */
@@ -185,17 +215,33 @@ async function sample(name: string, seconds: number, x: number, y: number) {
 }
 
 /** How many pixels of a frame are near black, which only a stand-in's label is. */
-async function darkPixels(name: string, seconds: number) {
-  const { data } = await frameOf(name, seconds);
+async function darkPixels(name: string, seconds: number, still = false) {
+  const { data } = still ? await stillOf(name, seconds) : await frameOf(name, seconds);
   let count = 0;
   for (let p = 0; p < data.length; p += 4)
     if (data[p]! < 70 && data[p + 1]! < 70 && data[p + 2]! < 90) count++;
   return count;
 }
 
-/** A frame as a PNG, for people to look at. */
-async function picture(name: string, seconds: number) {
-  const frame = await frameOf(name, seconds);
+/**
+ * How much of a grass scene's frame is neither sky nor ground: what the camera has framed. The
+ * grass template's sky and ground are flat colours (`backdrops.ts`).
+ */
+async function subjectShare(name: string, seconds: number) {
+  const { data } = await frameOf(name, seconds);
+  const near = (p: number, r: number, g: number, b: number) =>
+    Math.abs(data[p]! - r) < 25 &&
+    Math.abs(data[p + 1]! - g) < 25 &&
+    Math.abs(data[p + 2]! - b) < 25;
+  let count = 0;
+  for (let p = 0; p < data.length; p += 4)
+    if (!near(p, 150, 226, 252) && !near(p, 0x5f, 0x9e, 0x3a)) count++;
+  return count / (W * H);
+}
+
+/** A frame as a PNG, for people to look at; or, with `still`, a picture of that moment. */
+async function picture(name: string, seconds: number, still = false) {
+  const frame = still ? await stillOf(name, seconds) : await frameOf(name, seconds);
   const canvas = document.createElement('canvas');
   canvas.width = frame.width;
   canvas.height = frame.height;
@@ -204,10 +250,163 @@ async function picture(name: string, seconds: number) {
   return canvas.toDataURL('image/png');
 }
 
+/**
+ * WP5.7: a picture of a moment, taken while the scene is at another, against the frame drawn at
+ * that moment, and a small picture's top and bottom rows: sky above, ground below.
+ */
+async function pictureCheck() {
+  const scene = SCENES['grass-cast']!;
+  const stage = await offscreenStage();
+  await stage.load(scene.setup);
+  stage.schedule(scene.commands);
+  stage.seek(micros(0.5));
+  const picture = await stage.picture(micros(2), W, H);
+  const time = stage.time();
+  stage.seek(micros(2));
+  const frame = await stage.renderFrame();
+  let differ = 0;
+  for (let p = 0; p < frame.data.length; p += 4)
+    if (
+      Math.abs(frame.data[p]! - picture.data[p]!) +
+        Math.abs(frame.data[p + 1]! - picture.data[p + 1]!) >
+      24
+    )
+      differ++;
+  const small = await stage.picture(micros(2), 160, 90);
+  const pixel = (y: number) => Array.from(small.data.slice(y * 160 * 4 + 320, y * 160 * 4 + 323));
+  stage.dispose();
+  return { time, differ: differ / (W * H), top: pixel(2), bottom: pixel(87) };
+}
+
+/**
+ * A stage made as the studio makes one, with the renderer chosen for the device: which it got,
+ * how big it draws, and whether anything was drawn.
+ */
+async function rendering(renderer: 'auto' | 'webgl2', quality: 'low' | 'standard') {
+  // On the page, as the studio's is: Babylon.js sizes its drawing from the canvas's size there.
+  const canvas = document.createElement('canvas');
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+  document.body.append(canvas);
+  const stage = await createBabylonStage({ canvas, models, renderer, quality });
+  await stage.load(redCat);
+  const frame = await stage.renderFrame();
+  let lit = 0;
+  for (let p = 0; p < frame.data.length; p += 4)
+    if (frame.data[p]! + frame.data[p + 1]! > 60) lit++;
+  const result = {
+    renderer: stage.renderer,
+    gpu: 'gpu' in navigator,
+    width: frame.width,
+    height: frame.height,
+    lit: lit / (frame.width * frame.height),
+  };
+  stage.dispose();
+  canvas.remove();
+  return result;
+}
+
+/**
+ * The scene view (07-ux section 7.2) live on the page's canvas: the robot and a stand-in, a
+ * marker, edit mode on, and the robot chosen. The test drives it with the real mouse.
+ */
+async function sceneView(
+  given?: SceneSetup,
+  files?: Readonly<Record<string, { url: string; joints: readonly string[] }>>,
+) {
+  const canvas = document.getElementById('stage') as HTMLCanvasElement;
+  const found: ModelSource = files
+    ? {
+        find: (id) => {
+          const file = files[id];
+          return file ? { url: file.url, joints: file.joints.map(jointName) } : null;
+        },
+      }
+    : models;
+  const stage = await createBabylonStage({ canvas, models: found, renderer: 'webgl2' });
+  // A camera 6 m back and 2 m up, looking a little down.
+  const down = 0.1;
+  const setup: SceneSetup = {
+    backdrop: { ground: backstageId('storystage/Ground/grass') },
+    objects: [
+      {
+        id: objectId('robot'),
+        model: robot,
+        class: 'Biped',
+        // The test robot is a card that shows from its front only: turned to face the camera.
+        transform: {
+          ...IDENTITY,
+          position: { x: 1, y: 0, z: 0 },
+          rotation: { x: 0, y: 1, z: 0, w: 0 },
+        },
+      },
+      {
+        id: objectId('box'),
+        model: { standIn: 'box' },
+        class: 'Prop',
+        transform: { ...IDENTITY, position: { x: -1.5, y: 0, z: 1 } },
+      },
+    ],
+    camera: {
+      transform: {
+        ...IDENTITY,
+        position: { x: 0, y: 2, z: -6 },
+        rotation: { x: Math.sin(down / 2), y: 0, z: 0, w: Math.cos(down / 2) },
+      },
+    },
+    markers: [{ id: 'door', transform: { ...IDENTITY, position: { x: 0, y: 0.5, z: 2 } } }],
+  };
+  await stage.load(given ?? setup);
+  stage.editing(true);
+  stage.choose({ object: (given ?? setup).objects[0]!.id });
+  const edits: EditEvent[] = [];
+  const taps: Picked[] = [];
+  stage.onEdit((e) => edits.push(e));
+  stage.onTap((p) => taps.push(p));
+  let frames = 0;
+  stage.startLive(() => frames++);
+  const lens = 0.5 / (2 * Math.PI);
+  /** Amber pixels in a frame read back: none, since handles are never in one. */
+  const amberInFrame = async () => {
+    const frame = await stage.renderFrame();
+    let n = 0;
+    for (let i = 0; i < frame.data.length; i += 4)
+      if (isAmber(frame.data[i]!, frame.data[i + 1]!, frame.data[i + 2]!)) n++;
+    return n;
+  };
+  Object.assign(window, {
+    sceneView: {
+      frames: () => frames,
+      edits: () => edits,
+      taps: () => taps,
+      choose: (t: EditTarget | null) => stage.choose(t),
+      lookAround: (on: boolean) => stage.lookAround(on),
+      editing: (on: boolean) => stage.editing(on),
+      view: () => stage.viewTransform(),
+      transform: (id: string) => stage.transform(objectId(id)),
+      // Where a point of the scene is on the view, in CSS pixels.
+      onView: (x: number, y: number, z: number) =>
+        toView(stage.viewTransform(), lens, canvas.clientWidth, canvas.clientHeight, { x, y, z }),
+      amberInFrame,
+      pick: (x: number, y: number) => stage.pick(x, y),
+      inShot: () => stage.inShot(),
+      stop: () => {
+        stage.stopLive();
+        stage.dispose();
+      },
+    },
+  });
+}
+
+/** The studio's amber, as drawn. */
+function isAmber(r: number, g: number, b: number): boolean {
+  return r > 200 && g > 150 && g < 210 && b < 110;
+}
+
 /** Live on the page's canvas: the real input path, and frames drawn against the clock. */
 async function goLive() {
   const canvas = document.getElementById('stage') as HTMLCanvasElement;
-  const stage = createBabylonStage({ canvas, models });
+  const stage = await createBabylonStage({ canvas, models, renderer: 'webgl2' });
   const setup = { ...redCat, objects: [{ ...redCat.objects[0]!, transform: IDENTITY }] };
   await stage.load(setup);
   const heard: StageEvent[] = [];
@@ -294,6 +493,552 @@ function eventCost(objects: number) {
   };
 }
 
+/**
+ * WP4.6: a humanoid in one of the shared clips' poses, `seconds` in, from the front and a
+ * little to its left. With no `url`, the small humanoid in `tiny-model.ts`. For looking at
+ * how a clip plays on a model it wasn't made on.
+ */
+async function humanPicture(
+  clip: string,
+  seconds: readonly number[],
+  url: string = tinyHumanUrl(),
+  joints: readonly string[] = [],
+) {
+  const id = objectId('person');
+  const person = backstageId('test/Biped/person');
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: (b) => (b === person ? { url, joints: joints.map(jointName) } : null) },
+    offscreen: true,
+    renderer: 'webgl2',
+  });
+  await stage.load({
+    backdrop: BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop,
+    objects: [{ id, model: person, class: 'Biped', transform: IDENTITY }],
+    camera: { transform: IDENTITY },
+    markers: [],
+  });
+  stage.schedule([
+    {
+      seq: 1,
+      object: objectId('camera'),
+      start: 0,
+      duration: 0,
+      style: 'beginAndEndAbruptly',
+      kind: 'shot',
+      shot: 'wide',
+      targets: [id],
+    },
+  ]);
+  stage.seek(micros(0.01));
+  const inside = stage as unknown as {
+    views: Map<string, ObjectView>;
+    timeline: { need(o: string): ObjectState; transform(o: string): typeof IDENTITY };
+  };
+  const view = inside.views.get(id)!;
+  const library = await loadHumanLibrary();
+  const out = [];
+  for (const s of seconds) {
+    const human = samplePose(library.get(clip)!, s);
+    view.show(inside.timeline.need(id), inside.timeline.transform(id), { human });
+    const frame = await stage.renderFrame();
+    const c = document.createElement('canvas');
+    c.width = frame.width;
+    c.height = frame.height;
+    c.getContext('2d')!.putImageData(
+      new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height),
+      0,
+      0,
+    );
+    out.push(c.toDataURL('image/png'));
+  }
+  stage.dispose();
+  return out;
+}
+
+/**
+ * WP4c: any scene, with its models given by address, its commands run, and a picture at each of
+ * `seconds`. For looking at the character actions on real models.
+ */
+async function scenePictures(
+  setup: SceneSetup,
+  commands: readonly StageCommand[],
+  seconds: readonly number[],
+  files: Readonly<Record<string, { url: string; joints: readonly string[]; gait?: 'hop' }>>,
+  quality: 'low' | 'standard' = 'standard',
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: {
+      find: (id) => {
+        const file = files[id];
+        return file
+          ? {
+              url: file.url,
+              joints: file.joints.map(jointName),
+              ...(file.gait ? { gait: file.gait } : {}),
+            }
+          : null;
+      },
+    },
+    offscreen: true,
+    renderer: 'webgl2',
+    quality,
+  });
+  // A backdrop may be named by its template.
+  const backdrop = setup.backdrop as unknown;
+  if (typeof backdrop === 'string')
+    setup = { ...setup, backdrop: BACKDROP_TEMPLATES.find((t) => t.id === backdrop)!.backdrop };
+  await stage.load(setup);
+  // A duration below zero means the action's own, from naturalDuration, as a block asks for it.
+  for (const c of commands) {
+    const { seq, start, duration, style, ...action } = c;
+    void seq;
+    void style;
+    const own =
+      duration < 0
+        ? (stage.answer({ kind: 'naturalDuration', action, at: start } as StageQuery)
+            .value as number)
+        : duration;
+    stage.schedule([{ ...c, duration: own }]);
+  }
+  const out = [];
+  for (const s of seconds) {
+    stage.seek(micros(s));
+    const frame = await stage.renderFrame();
+    const c = document.createElement('canvas');
+    c.width = frame.width;
+    c.height = frame.height;
+    c.getContext('2d')!.putImageData(
+      new ImageData(new Uint8ClampedArray(frame.data), frame.width, frame.height),
+      0,
+      0,
+    );
+    out.push(c.toDataURL('image/png'));
+  }
+  stage.dispose();
+  return out;
+}
+
+/**
+ * WP8.3: the sky's colour, top left, through a one-second crossfade from the grass template's
+ * light blue sky to the moon's near black: at its start, half way and at its end.
+ */
+async function crossfadeSky() {
+  const stage = await offscreenStage();
+  const setup = (template: string): SceneSetup => ({
+    backdrop: BACKDROP_TEMPLATES.find((t) => t.id === template)!.backdrop,
+    objects: [],
+    camera: redCat.camera,
+    markers: [],
+  });
+  await stage.load(setup('grass'));
+  const pixel = async () => {
+    const frame = await stage.renderFrame();
+    const p = (5 * W + 5) * 4;
+    return [frame.data[p]!, frame.data[p + 1]!, frame.data[p + 2]!];
+  };
+  const out: number[][] = [await pixel()];
+  await stage.load(setup('moon'), { crossfade: micros(1) });
+  for (const t of [0, 0.5, 1]) {
+    stage.seek(micros(t));
+    out.push(await pixel());
+  }
+  stage.dispose();
+  return out;
+}
+
+/** A PNG `width` by `height` pixels, each the CSS colour `colour(x, y)` gives. */
+async function png(width: number, height: number, colour: (x: number, y: number) => string) {
+  const canvas = new OffscreenCanvas(width, height);
+  const context = canvas.getContext('2d')!;
+  for (let y = 0; y < height; y++)
+    for (let x = 0; x < width; x++) {
+      context.fillStyle = colour(x, y);
+      context.fillRect(x, y, 1, 1);
+    }
+  const blob = await canvas.convertToBlob({ type: 'image/png' });
+  return new Uint8Array(await blob.arrayBuffer());
+}
+
+/**
+ * One frame of an empty scene with `backdrop`, on a stage whose Backstage has only `items` (id
+ * to glTF address), seen from 2 m up looking along +Z; and what the stage couldn't find.
+ */
+async function backdropFrame(
+  backdrop: SceneSetup['backdrop'],
+  items: ReadonlyMap<BackstageId, string>,
+  commands: readonly StageCommand[] = [],
+) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: (id) => (items.has(id) ? { url: items.get(id)!, joints: [] } : null) },
+    offscreen: true,
+    renderer: 'webgl2',
+  });
+  await stage.load({
+    backdrop,
+    objects: [],
+    camera: { transform: { ...IDENTITY, position: { x: 0, y: 2, z: 0 } } },
+    markers: [],
+  });
+  stage.schedule(commands);
+  stage.seek(micros(0));
+  const { data } = await stage.renderFrame();
+  const missing = stage.missing();
+  stage.dispose();
+  return { data, missing };
+}
+
+/** The mean colour of a frame's rows `from` to `to`, and how far its brightness ranges. */
+function rows(data: Uint8ClampedArray, from: number, to: number) {
+  const sum = [0, 0, 0];
+  let low = 255;
+  let high = 0;
+  for (let y = from; y < to; y++)
+    for (let x = 0; x < W; x++) {
+      const p = (y * W + x) * 4;
+      for (let c = 0; c < 3; c++) sum[c]! += data[p + c]!;
+      const light = (data[p]! + data[p + 1]! + data[p + 2]!) / 3;
+      low = Math.min(low, light);
+      high = Math.max(high, light);
+    }
+  const n = (to - from) * W;
+  return { mean: sum.map((s) => Math.round(s / n)), range: Math.round(high - low) };
+}
+
+/**
+ * Spec 17 section 2: the grass template's ground, near the camera, drawn flat (no item), with a
+ * texture of its own colour, with a black and white check, and with an item that can't be read.
+ */
+async function groundTextures() {
+  const backdrop = BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop;
+  const grass = backdrop.ground!;
+  const tile = async (colour: (x: number, y: number) => string) =>
+    new Map([[grass, tinyGroundTileUrl(2, await png(8, 8, colour))]]);
+  const near = async (items: ReadonlyMap<BackstageId, string>) => {
+    const { data, missing } = await backdropFrame(backdrop, items);
+    return { ...rows(data, 300, H), missing };
+  };
+  return {
+    plain: await near(new Map()),
+    own: await near(await tile(() => '#5f9e3a')),
+    check: await near(await tile((x, y) => (((x >> 2) + (y >> 2)) % 2 ? '#ffffff' : '#000000'))),
+    broken: await near(new Map([[grass, 'data:model/gltf-binary;base64,AAAA']])),
+  };
+}
+
+/** The colour at (x, y). */
+const at = (data: Uint8ClampedArray, x: number, y: number) => {
+  const p = (y * W + x) * 4;
+  return [data[p]!, data[p + 1]!, data[p + 2]!];
+};
+
+/**
+ * Spec 17 section 2: a picture sky. Its picture is red where it faces +Z (u 0.47 to 0.53), blue
+ * towards +X, green towards -X, bright above the horizon and dim below. Seen as it is, tinted by
+ * an atmosphere colour half its own, and with no item.
+ */
+async function pictureSky() {
+  const sky = backstageId('storystage/Sky/clearDay');
+  const backdrop = { sky, lighting: backstageId('storystage/Lighting/clearDay') };
+  const picture = await png(64, 32, (x, y) => {
+    const level = y < 16 ? 'ff' : '66';
+    if (x >= 30 && x < 34) return `#${level}0000`;
+    return x < 30 ? `#0000${level}` : `#00${level}00`;
+  });
+  const items = new Map([[sky, tinySkyDomeUrl(picture)]]);
+  const seen = await backdropFrame(backdrop, items);
+  const half = await backdropFrame(backdrop, items, [
+    {
+      seq: 1,
+      object: objectId('scene'),
+      start: micros(0),
+      duration: micros(0),
+      style: 'beginAndEndAbruptly',
+      kind: 'atmosphere',
+      colour: '#576068',
+    },
+  ]);
+  const none = await backdropFrame(backdrop, new Map());
+  return {
+    middleAbove: at(seen.data, W / 2, 60),
+    middleBelow: at(seen.data, W / 2, H - 20),
+    left: at(seen.data, 10, 60),
+    right: at(seen.data, W - 10, 60),
+    tinted: at(half.data, W / 2, 60),
+    missing: seen.missing,
+    without: { colour: at(none.data, W / 2, 60), missing: none.missing },
+  };
+}
+
+/** A frame's pixels as a PNG `data:` address. */
+function pngOf(data: Uint8ClampedArray) {
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(data), W, H), 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
+/**
+ * For people to look at (spec 17 section 2): the grass template with a 2 m tile of a check over
+ * its colour, and a picture sky whose picture is a grid with its middle marked.
+ */
+async function backdropPictures() {
+  const grass = BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop;
+  const check = await png(16, 16, (x, y) => (((x >> 3) + (y >> 3)) % 2 ? '#7bbd52' : '#447f26'));
+  const ground = await backdropFrame(
+    grass,
+    new Map([[grass.ground!, tinyGroundTileUrl(2, check)]]),
+  );
+  const sky = backstageId('storystage/Sky/sunset');
+  const grid = await png(128, 64, (x, y) => {
+    if (x === 63 || x === 64) return '#ffffff';
+    if (x % 8 === 0 || y % 4 === 0) return '#30204a';
+    return y < 32 ? `rgb(${200 + y}, ${90 + y * 3}, 70)` : '#2a3a2a';
+  });
+  const picture = await backdropFrame(
+    { ground: grass.ground, sky, lighting: backstageId('storystage/Lighting/sunset') },
+    new Map([[sky, tinySkyDomeUrl(grid)]]),
+  );
+  return { ground: pngOf(ground.data), sky: pngOf(picture.data) };
+}
+
+/** Milliseconds: the mean, and the slowest but one in twenty. */
+/**
+ * Plays the scene live from `from` for `seconds`, as the studio does, and counts the frames the
+ * browser shows: frames a second, and the slowest frames (95th percentile), in milliseconds.
+ */
+async function playLive(
+  stage: Awaited<ReturnType<typeof createBabylonStage>>,
+  from: number,
+  seconds: number,
+) {
+  const shown: number[] = [];
+  let start = 0;
+  stage.startLive(() => {
+    const now = performance.now();
+    if (!start) start = now;
+    shown.push(now);
+    stage.seek(micros(from + (now - start) / 1000));
+  });
+  await new Promise((done) => setTimeout(done, seconds * 1000));
+  stage.stopLive();
+  const gaps = shown.slice(1).map((t, i) => t - shown[i]!);
+  const span = (shown.at(-1)! - shown[0]!) / 1000;
+  return {
+    fps: Math.round((gaps.length / Math.max(span, 0.001)) * 10) / 10,
+    slowest: spread(gaps).p95,
+  };
+}
+
+function spread(times: readonly number[]) {
+  const sorted = [...times].sort((a, b) => a - b);
+  const mean = times.reduce((s, t) => s + t, 0) / Math.max(1, times.length);
+  const p95 = sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] ?? 0;
+  return { mean: Math.round(mean * 100) / 100, p95: Math.round(p95 * 100) / 100 };
+}
+
+/**
+ * WP4c and WP8.3: what characters cost each frame. `count` humanoids (the small one in
+ * `tiny-model.ts`, or the model at `url`) stand, then walk round a wall looking at the first
+ * of them, every third one waving, then crossfade into a second scene of the same. For each, at
+ * 30 frames a second for `seconds`:
+ * - `seek`: the stage's own work (timeline, poses, views), in milliseconds;
+ * - `render`: handing the frame to the GPU;
+ * - `frame`: the whole frame, the GPU's drawing included.
+ *
+ * Also how long the scene took to load, and to work out every walk (its walkable area included).
+ * With `live` seconds, it also plays the walk live, as the studio does, and counts the frames the
+ * browser shows (`liveFps`), at the `quality` asked for. On a reference device, `device.html`
+ * runs it with Backstage's own people (#6).
+ */
+async function characterCost(
+  count = 10,
+  seconds = 2,
+  url: string = tinyHumanUrl(),
+  renderer: 'auto' | 'webgl2' = 'webgl2',
+  quality: 'low' | 'standard' = 'standard',
+  live = 0,
+) {
+  const canvas = document.createElement('canvas');
+  canvas.style.width = `${W}px`;
+  canvas.style.height = `${H}px`;
+  document.body.append(canvas);
+  const person = backstageId('test/Biped/person');
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: (id) => (id === person ? { url, joints: [] } : null) },
+    renderer,
+    quality,
+  });
+  const ids = Array.from({ length: count }, (_, i) => objectId(`p${i}`));
+  const setup: SceneSetup = {
+    backdrop: BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop,
+    objects: [
+      ...ids.map((id, i) => ({
+        id,
+        model: person,
+        class: 'Biped' as const,
+        transform: {
+          ...IDENTITY,
+          position: { x: ((i % 5) - 2) * 1.5, y: 0, z: Math.floor(i / 5) * 1.5 },
+        },
+      })),
+      {
+        id: objectId('wall'),
+        model: { standIn: 'wall', size: { x: 6, y: 2, z: 0.3 } },
+        class: 'Prop' as const,
+        transform: { ...IDENTITY, position: { x: 0, y: 0, z: 9 } },
+      },
+    ],
+    camera: { transform: { ...IDENTITY, position: { x: 0, y: 2, z: -8 } } },
+    markers: [
+      { id: objectId('beyond'), transform: { ...IDENTITY, position: { x: 0, y: 0, z: 14 } } },
+    ],
+  };
+  const inside = stage as unknown as {
+    scene: { render(): void };
+    engine: { readPixels(x: number, y: number, w: number, h: number): Promise<unknown> };
+  };
+  const run = async (from: number) => {
+    const seek: number[] = [];
+    const render: number[] = [];
+    const frames = Math.round(seconds * 30);
+    // A few frames first, unmeasured: the first ones also compile shaders.
+    for (let f = 0; f < 5; f++) {
+      stage.seek(micros(from));
+      inside.scene.render();
+    }
+    await inside.engine.readPixels(0, 0, 1, 1);
+    const start = performance.now();
+    for (let f = 0; f < frames; f++) {
+      const a = performance.now();
+      stage.seek(micros(from + f / 30));
+      const b = performance.now();
+      inside.scene.render();
+      render.push(performance.now() - b);
+      seek.push(b - a);
+    }
+    // Waits for the GPU to finish what it was given.
+    await inside.engine.readPixels(0, 0, 1, 1);
+    return {
+      seek: spread(seek),
+      render: spread(render),
+      frame: Math.round(((performance.now() - start) / frames) * 100) / 100,
+    };
+  };
+  let seq = 0;
+  const command = (c: object, start: number): StageCommand => {
+    const timed = {
+      seq: seq++,
+      start: micros(start),
+      duration: 0,
+      style: 'beginAndEndGently',
+      ...c,
+    } as StageCommand;
+    const { seq: _s, start: at, duration: _d, style: _st, ...action } = timed;
+    void _s;
+    void _d;
+    void _st;
+    const own = stage.answer({ kind: 'naturalDuration', action, at } as StageQuery).value as number;
+    return { ...timed, duration: Math.max(own, micros(1)) };
+  };
+
+  const loadStart = performance.now();
+  await stage.load(setup);
+  const loadMs = Math.round(performance.now() - loadStart);
+  const standing = await run(0);
+
+  const planning = performance.now();
+  const acting: StageCommand[] = [];
+  ids.forEach((id, i) => {
+    acting.push(command({ object: id, kind: 'walk', to: objectId('beyond'), gait: 'walk' }, 3));
+    if (i > 0) acting.push(command({ object: id, kind: 'lookAt', target: ids[0]! }, 3));
+    if (i % 3 === 0) acting.push(command({ object: id, kind: 'gesture', gesture: 'wave' }, 3));
+  });
+  stage.schedule(acting);
+  // Working out every walk's way round the wall, its walkable area included, and scheduling it.
+  const planMs = Math.round(performance.now() - planning);
+  const walking = await run(3.6);
+  const liveFps = live > 0 ? await playLive(stage, 3.6, live) : null;
+
+  await stage.load(setup, { crossfade: micros(seconds + 1) });
+  const crossfade = await run(0);
+
+  // Which GPU drew it: software (SwiftShader) in CI, the device's own otherwise.
+  const gpu =
+    (inside.engine as unknown as { getGlInfo?(): { renderer: string } }).getGlInfo?.().renderer ??
+    '';
+  stage.dispose();
+  canvas.remove();
+  return {
+    count,
+    renderer: stage.renderer,
+    quality,
+    gpu,
+    loadMs,
+    planMs,
+    standing,
+    walking,
+    crossfade,
+    ...(liveFps ? { liveFps } : {}),
+  };
+}
+
+/**
+ * The same scene drawn by the renderer `auto` picks (WebGPU where the device has it) and by
+ * WebGL2, read back by `renderFrame` and by `picture`: how far apart they are, on average,
+ * in each colour (0 to 255), and the top and bottom rows' colours. Where there's no WebGPU,
+ * `auto` is WebGL2, so they're the same.
+ */
+async function renderersAgree() {
+  const frames = async (renderer: 'auto' | 'webgl2') => {
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const stage = await createBabylonStage({ canvas, models, offscreen: true, renderer });
+    // Sky above and grass below, so a picture upside down can't pass.
+    const grass = BACKDROP_TEMPLATES.find((t) => t.id === 'grass')!.backdrop;
+    await stage.load({ ...redCat, backdrop: grass });
+    const frame = await stage.renderFrame();
+    const picture = await stage.picture(0, W, H);
+    const used = stage.renderer;
+    stage.dispose();
+    return { used, frame: frame.data, picture: picture.data };
+  };
+  const a = await frames('auto');
+  const b = await frames('webgl2');
+  const apart = (x: Uint8ClampedArray, y: Uint8ClampedArray) => {
+    let sum = 0;
+    for (let p = 0; p < x.length; p += 4)
+      sum +=
+        Math.abs(x[p]! - y[p]!) + Math.abs(x[p + 1]! - y[p + 1]!) + Math.abs(x[p + 2]! - y[p + 2]!);
+    return sum / ((x.length / 4) * 3);
+  };
+  const at = (data: Uint8ClampedArray, row: number) => {
+    const p = (row * W + Math.floor(W / 2)) * 4;
+    return [data[p]!, data[p + 1]!, data[p + 2]!];
+  };
+  return {
+    renderer: a.used,
+    frame: apart(a.frame, b.frame),
+    picture: apart(a.picture, b.picture),
+    top: { auto: at(a.frame, 2), webgl2: at(b.frame, 2) },
+    bottom: { auto: at(a.frame, H - 3), webgl2: at(b.frame, H - 3) },
+  };
+}
+
 /** What the page loaded, in bytes before compression, in order. */
 function scripts() {
   return performance
@@ -312,9 +1057,21 @@ Object.assign(window, {
     skies,
     sample,
     darkPixels,
+    groundTextures,
+    backdropPictures,
+    pictureSky,
+    subjectShare,
+    rendering,
+    pictureCheck,
     eventCost,
+    characterCost,
+    renderersAgree,
     picture,
+    humanPicture,
+    scenePictures,
+    crossfadeSky,
     goLive,
+    sceneView,
     scripts,
   },
 });

@@ -50,5 +50,18 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
+    {
+      command: 'pnpm --filter @storystage/tiles harness',
+      url: 'http://localhost:4183/',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      // The same page built for production, for the tile editor's timing tests (spec 14, 3h).
+      command: 'pnpm --filter @storystage/tiles harness:production',
+      url: 'http://localhost:4184/',
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
   ],
 });

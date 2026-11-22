@@ -42,6 +42,7 @@ export const LICENCE_LINKS: Readonly<Partial<Record<Licence, { name: string; url
   'CC-BY-4.0': { name: 'CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
   'CC-BY-SA-4.0': { name: 'CC BY-SA 4.0', url: 'https://creativecommons.org/licenses/by-sa/4.0/' },
   'CC-BY-NC-4.0': { name: 'CC BY-NC 4.0', url: 'https://creativecommons.org/licenses/by-nc/4.0/' },
+  'VRM-PL-1.0': { name: 'VRM Public License 1.0', url: 'https://vrm.dev/licenses/1.0/' },
 };
 
 /**
@@ -71,13 +72,29 @@ export function creditsBySection(items: readonly Creditable[]): CreditSection[] 
 /** Appended to a changed CC BY model's credit line. */
 export const CHANGED = ', changed for StoryStage';
 
-/** The CC BY licences, which ask that changes be indicated (CC BY 4.0, section 3(a)(1)(B)). */
-const SAYS_CHANGED: readonly Licence[] = ['CC-BY-3.0', 'CC-BY-4.0', 'CC-BY-SA-4.0', 'CC-BY-NC-4.0'];
+/**
+ * The licences that ask for credit: the CC BY licences and the VRM Public License. A film's
+ * credits name and link these on a model's line, and leave CC0's and public domain's link off
+ * (S2's #553; the list is kept here so a licence added later is added once).
+ */
+export const LICENCES_NAMED_IN_CREDIT: readonly Licence[] = [
+  'CC-BY-3.0',
+  'CC-BY-4.0',
+  'CC-BY-SA-4.0',
+  'CC-BY-NC-4.0',
+  'VRM-PL-1.0',
+];
+
+/**
+ * Those same licences ask that changes be indicated (CC BY 4.0, section 3(a)(1)(B); the VRM
+ * Public License, section 4, when credit is required).
+ */
+const SAYS_CHANGED: readonly Licence[] = LICENCES_NAMED_IN_CREDIT;
 
 /**
  * The credit line to write into the manifest. The build changes every glTF model it ships
  * (re-encoded textures, perhaps simplified), and so does an import, so a CC BY model gets
- * `CHANGED`. VRM files are kept byte for byte, so they are not changed.
+ * `CHANGED`. A VRM file is changed only if the build shrank its pictures.
  */
 export function creditFor(
   item: Pick<BackstageItem, 'licence' | 'credit'>,

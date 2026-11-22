@@ -1,11 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { DEV_STUDIO } from './devStudio.ts';
 
 // WP12.5 and WP12's done-when: axe reports no serious issues on any screen, in both themes, at the
 // three sizes (docs/spec/07-ux.md, section 5). The component page shows every component in both
 // themes side by side, so one page covers both. The three tabs join this file as they are built.
 
-const COMPONENT_PAGE = 'http://localhost:4182/components.html';
+const COMPONENT_PAGE = `${DEV_STUDIO}/components.html`;
 
 const SIZES = [
   { name: 'laptop', width: 1536, height: 864 },

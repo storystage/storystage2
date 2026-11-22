@@ -70,8 +70,12 @@ export type SpeechDownloadEvent =
   | { readonly type: 'end' }
   | { readonly type: 'error'; readonly code: SpeechErrorCode };
 
-/** Tauri's `invoke`, with arguments. */
-export type Invoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+/** Tauri's `invoke`: named arguments or a raw body, and headers. */
+export type Invoke = (
+  command: string,
+  args?: Record<string, unknown> | Uint8Array,
+  options?: { readonly headers: Record<string, string> },
+) => Promise<unknown>;
 
 /** Tauri's `Channel` class, passed in so this package has no Tauri in it. */
 export type ChannelClass = new () => { onmessage: (message: unknown) => void };

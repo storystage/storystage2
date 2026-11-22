@@ -18,6 +18,7 @@ const load: ToRuntime = {
   entry: nodeId('m1'),
   seed: 42,
   disabled: [],
+  scenes: ['s1'],
 };
 
 const commands: FromRuntime = {
@@ -51,7 +52,8 @@ describe('runtime messages', () => {
   });
 
   it('refuse another protocol version, junk and unknown types', () => {
-    expect(isToRuntime({ ...load, protocol: 2 })).toBe(false);
+    expect(isToRuntime({ ...load, protocol: RUNTIME_PROTOCOL + 1 })).toBe(false);
+    expect(isToRuntime({ ...load, protocol: 1 })).toBe(false);
     expect(isFromRuntime({ type: 'ready', protocol: 0 })).toBe(false);
     for (const junk of [null, 'load', 42, {}, { type: 'explode' }]) {
       expect(isToRuntime(junk)).toBe(false);

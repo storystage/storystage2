@@ -27,8 +27,22 @@ export function classChain(cls: ApiClass): readonly ApiClass[] {
 
 export const isKindOf = (cls: ApiClass, ancestor: ApiClass) => classChain(cls).includes(ancestor);
 
-/** What a class can do: its own entries, then its parents', nearest first. */
+const entriesKept = new Map<ApiClass, readonly ApiEntry[]>();
+const entryKept = new Map<ApiClass, ReadonlyMap<string, ApiEntry>>();
+
+/**
+ * What a class can do: its own entries, then its parents', nearest first. Worked out once for
+ * each class, since the program check asks for every call (spec 14, 3h).
+ */
 export function entriesOf(cls: ApiClass): readonly ApiEntry[] {
+  const kept = entriesKept.get(cls);
+  if (kept) return kept;
+  const made = listEntries(cls);
+  entriesKept.set(cls, made);
+  return made;
+}
+
+function listEntries(cls: ApiClass): readonly ApiEntry[] {
   const seen = new Set<string>();
   const entries: ApiEntry[] = [];
   for (const c of classChain(cls)) {
@@ -42,8 +56,14 @@ export function entriesOf(cls: ApiClass): readonly ApiEntry[] {
   return entries;
 }
 
-export const findEntry = (cls: ApiClass, name: string): ApiEntry | undefined =>
-  entriesOf(cls).find((e) => e.name === name);
+export function findEntry(cls: ApiClass, name: string): ApiEntry | undefined {
+  let byName = entryKept.get(cls);
+  if (!byName) {
+    byName = new Map(entriesOf(cls).map((e) => [e.name, e]));
+    entryKept.set(cls, byName);
+  }
+  return byName.get(name);
+}
 
 export const findEvent = (name: string): EventDef | undefined =>
   EVENTS.find((e) => e.name === name);

@@ -10,10 +10,11 @@
 import type { AssetContainer } from '@babylonjs/core/assetContainer.js';
 import { LoadAssetContainerAsync } from '@babylonjs/core/Loading/sceneLoader.js';
 import type { Material } from '@babylonjs/core/Materials/material.js';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
 import type { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
 import type { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
-import { Quaternion } from '@babylonjs/core/Maths/math.vector.js';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import type { Scene } from '@babylonjs/core/scene.js';
 import { registerBuiltInLoaders } from '@babylonjs/loaders/dynamic.js';
@@ -30,8 +31,19 @@ import {
   type ObjectId,
   type StoryClass,
 } from '@storystage/story-api';
+import { gaitClipNames, strideSpeed, type Gaits } from '../gaits.ts';
+import { Body } from '../humanoid/body.ts';
 import type { Box } from '../hull.ts';
+import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
+import {
+  binaryFacesOf,
+  faceShiftsOf,
+  faceTargets,
+  facesOf,
+  type FaceShift,
+  type FaceTexture,
+} from './faces.ts';
 import { ObjectView } from './view.ts';
 
 registerBuiltInLoaders();
@@ -41,6 +53,8 @@ export interface ModelFile {
   readonly url: string;
   /** Its joints, from its Backstage entry. */
   readonly joints: BackstageItem['joints'];
+  /** How it moves, if not as the stage would choose: `hop`s, as S4's frog does (manifest 2.4.0). */
+  readonly gait?: 'hop';
 }
 
 /** Where the stage finds a model. The app gives it Backstage (`modelsFromManifest`). */
@@ -54,7 +68,14 @@ export function modelsFromManifest(manifest: BackstageManifest, folder: string):
   return {
     find(id) {
       const item = items.get(id);
-      return item ? { url: `${folder}/${item.files.model}`, joints: item.joints } : null;
+      if (!item) return null;
+      // Manifest 2.4.0's `gait` (S4), read so until its type reaches this package.
+      const { gait } = item as { gait?: 'hop' };
+      return {
+        url: `${folder}/${item.files.model}`,
+        joints: item.joints,
+        ...(gait === 'hop' ? { gait } : {}),
+      };
     },
   };
 }
@@ -73,6 +94,31 @@ export class ModelLibrary {
     this.source = source;
   }
 
+  /** Starts fetching and reading a model, or a backdrop's item, for a scene that may come next. Never rejects. */
+  prefetch(id: BackstageId): Promise<void> {
+    return this.load(id).then(
+      () => {},
+      () => {},
+    );
+  }
+
+  /** Whether Backstage has an item under `id`, without reading it. */
+  async has(id: BackstageId): Promise<boolean> {
+    try {
+      return !!(await this.source.find(id));
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * An item's file, read but not placed: a ground's texture or a picture sky (spec 17 section 2).
+   * Rejects with `unknown_model` if it can't be had.
+   */
+  async asset(id: BackstageId): Promise<AssetContainer> {
+    return (await this.load(id)).container;
+  }
+
   private load(id: BackstageId): Promise<LoadedModel> {
     let model = this.loaded.get(id);
     if (!model) {
@@ -82,12 +128,26 @@ export class ModelLibrary {
     return model;
   }
 
+  /**
+   * Pictures are kept as their pixels are, in sRGB, as the stage's plain materials take a colour.
+   * An sRGB buffer would hand them linear values, which show darker.
+   */
   private async fetch(id: BackstageId): Promise<LoadedModel> {
     const file = await this.source.find(id);
     if (!file) throw noModel(id);
     try {
-      const options = { pluginExtension: '.glb' };
-      return { file, container: await LoadAssetContainerAsync(file.url, this.scene, options) };
+      let json: GltfJson = {};
+      const options = {
+        pluginExtension: '.glb',
+        pluginOptions: {
+          gltf: {
+            onParsed: (data: { json: unknown }) => void (json = data.json as GltfJson),
+            useSRGBBuffers: false,
+          },
+        },
+      };
+      const container = await LoadAssetContainerAsync(file.url, this.scene, options);
+      return { file, container, json };
     } catch {
       throw noModel(id);
     }
@@ -95,24 +155,62 @@ export class ModelLibrary {
 
   /** An object's own copy of a model. Rejects with `unknown_model` if it can't be had. */
   async place(object: ObjectId, id: BackstageId, cls: StoryClass): Promise<PlacedModel> {
-    const { file, container } = await this.load(id);
+    const { file, container, json } = await this.load(id);
     const copy = container.instantiateModelsToScene((name) => name, false, {
       doNotInstantiate: true,
     });
     const root = new TransformNode(object, this.scene);
     root.rotationQuaternion = Quaternion.Identity();
-    for (const node of copy.rootNodes) node.parent = root;
+    // VRM 0.x avatars face -Z (spec 17, section 3); everything on the stage faces +Z.
+    const facing = json.extensions?.VRM ? new TransformNode(`${object} facing`, this.scene) : root;
+    if (facing !== root) {
+      facing.parent = root;
+      facing.rotationQuaternion = Quaternion.RotationAxis(Vector3.Up(), Math.PI);
+    }
+    for (const node of copy.rootNodes) node.parent = facing;
     const meshes = root.getChildMeshes().filter((m) => m.getTotalVertices() > 0);
-    const paintable = plainSurfaces(object, meshes, this.scene);
-    return {
-      view: new ObjectView({
-        root,
-        meshes,
-        box: boxOf(root),
-        paintable,
-        joints: jointNodes(root, cls, file.joints),
+    const surfaces = plainSurfaces(object, meshes, this.scene);
+    const paintable = [...surfaces.values()];
+    const box = boxOf(root);
+    const joints = jointNodes(root, cls, file.joints);
+    // The root is still at the origin, unturned, so a joint's place in the scene is its rest.
+    const jointPlaces = new Map(
+      [...joints].map(([joint, node]) => {
+        node.computeWorldMatrix(true);
+        const { x, y, z } = node.getAbsolutePosition();
+        return [joint, { x, y, z }] as const;
       }),
-      joints: file.joints === 'prop-only' ? [] : file.joints,
+    );
+    const view = new ObjectView({
+      root,
+      meshes,
+      box,
+      paintable,
+      joints,
+      animations: copy.animationGroups,
+      faces: faceTargets(facesOf(json), root.getChildMeshes()),
+      faceTextures: faceTextures(faceShiftsOf(json), surfaces),
+      binaryFaces: binaryFacesOf(json),
+    });
+    // Its own clips, which the play animation block can name, and how long each is.
+    const clips = new Map(
+      copy.animationGroups.map((g) => {
+        const fps = g.targetedAnimations[0]?.animation.framePerSecond ?? 60;
+        return [g.name, (g.to - g.from) / fps] as const;
+      }),
+    );
+    // A humanoid walks with the shared clips (WP4.6); anything else with its own, if it has them.
+    const gaits = Body.of(jointPlaces) ? undefined : gaitsOf(view, cls, clips, joints);
+    return {
+      view,
+      shape: {
+        joints: file.joints === 'prop-only' ? [] : file.joints,
+        box,
+        jointPlaces,
+        clips,
+        ...(gaits ? { gaits } : {}),
+        ...(file.gait === 'hop' ? { hop: true } : {}),
+      },
     };
   }
 
@@ -125,14 +223,82 @@ export class ModelLibrary {
   }
 }
 
+/**
+ * A model's own clips for walking, running and standing (`gaits.ts`), and how fast each carries
+ * it, measured from its feet: its toes, or else its ankles or feet. None if it has no such clip.
+ */
+function gaitsOf(
+  view: ObjectView,
+  cls: StoryClass,
+  clips: ReadonlyMap<string, number>,
+  joints: ReadonlyMap<JointName, TransformNode>,
+): Gaits | undefined {
+  const named = (ends: RegExp) =>
+    [...joints].filter(([j]) => ends.test(j)).map(([, node]) => ({ node }));
+  const toes = named(/Toes?$/);
+  const lower = toes.length > 0 ? toes : named(/(Ankle|Foot)$/);
+  // Legs mapped only down to the knee (S4's savanna animals): each foot is where the ground is
+  // straight below its knee at rest, carried by the knee as it turns.
+  const feet =
+    lower.length > 0
+      ? lower
+      : named(/Knee$/).map(({ node }) => {
+          // At rest, the root at the origin: its joints' places were worked out just before.
+          node.computeWorldMatrix(true);
+          const at = node.getAbsolutePosition();
+          const ground = new Vector3(at.x, view.box.min.y, at.z);
+          return {
+            node,
+            reach: Vector3.TransformCoordinates(ground, node.getWorldMatrix().clone().invert()),
+          };
+        });
+  const gaits: Gaits = {};
+  for (const gait of ['walk', 'run', 'idle', 'move'] as const) {
+    const clip = gaitClipNames(gait, cls).find((name) => clips.has(name));
+    if (!clip) continue;
+    const speed =
+      gait === 'walk' || gait === 'run'
+        ? strideSpeed(view.sweeps(clip, feet), clips.get(clip)!, gait)
+        : null;
+    gaits[gait] = { clip, speed };
+  }
+  return Object.keys(gaits).length > 0 ? gaits : undefined;
+}
+
+/** What the stage reads from a model's glTF itself: a VRM's own extension. */
+interface GltfJson {
+  readonly extensions?: { readonly VRM?: unknown; readonly VRMC_vrm?: unknown };
+}
+
 interface LoadedModel {
   readonly file: ModelFile;
   readonly container: AssetContainer;
+  readonly json: GltfJson;
 }
 
 export interface PlacedModel {
   readonly view: ObjectView;
-  readonly joints: readonly JointName[];
+  readonly shape: Shape;
+}
+
+/**
+ * A glTF surface's own light (its emissive colour and picture), on its plain surface. glTF adds
+ * that light to the lit colour, and so does a plain surface that uses it as illumination: the
+ * Sun (S4's solar system) shows its picture however dark the scene. A plain surface adds its
+ * emissive picture to its emissive colour, where glTF multiplies them, so with a picture the
+ * colour's brightest part becomes the picture's level.
+ */
+export function glow(plain: StandardMaterial, source: PBRMaterial): void {
+  const { r, g, b } = source.emissiveColor;
+  const picture = source.emissiveTexture;
+  if (Math.max(r, g, b) === 0) return;
+  if (picture) {
+    // The level is set on the glTF surface's own picture, which only the plain surface keeps:
+    // the glTF surface is dropped once swapped. Anything that kept it would scale its light twice.
+    picture.level = Math.max(r, g, b);
+    plain.emissiveTexture = picture;
+  } else plain.emissiveColor = source.emissiveColor.toGammaSpace();
+  plain.useEmissiveAsIllumination = true;
 }
 
 /** Gives each mesh a plain surface in place of the glTF one, sharing its texture. */
@@ -140,24 +306,59 @@ function plainSurfaces(
   object: ObjectId,
   meshes: readonly AbstractMesh[],
   scene: Scene,
-): StandardMaterial[] {
+): Map<string, StandardMaterial> {
   const made = new Map<Material, StandardMaterial>();
   for (const mesh of meshes) {
     const source = mesh.material as PBRMaterial | null;
     if (!source) continue;
     let plain = made.get(source);
     if (!plain) {
-      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor, scene);
+      plain = plainMaterial(`${object} ${source.name}`, source.albedoColor.toGammaSpace(), scene);
       plain.diffuseTexture = source.albedoTexture;
       plain.alpha = source.alpha;
       plain.useAlphaFromDiffuseTexture = source.useAlphaFromAlbedoTexture;
       plain.backFaceCulling = source.backFaceCulling;
       plain.transparencyMode = source.transparencyMode;
+      glow(plain, source);
       made.set(source, plain);
     }
     mesh.material = plain;
   }
-  return [...made.values()];
+  // By the glTF material's name, which the loader gave the source. Two materials of one name
+  // would share an entry; Seed-san's, the only model with picture shifts, are all different.
+  return new Map([...made].map(([source, plain]) => [source.name, plain]));
+}
+
+/**
+ * The pictures each expression shifts, on this copy's surfaces. A shifted surface gets its own
+ * copy of its picture, so another surface showing the same one stays as it is.
+ */
+function faceTextures(
+  shifts: ReadonlyMap<string, readonly FaceShift[]>,
+  surfaces: ReadonlyMap<string, StandardMaterial>,
+): Map<string, FaceTexture[]> {
+  const own = new Map<StandardMaterial, Texture>();
+  const out = new Map<string, FaceTexture[]>();
+  for (const [expression, list] of shifts) {
+    const textures = list.flatMap(({ material, scale, offset }) => {
+      const surface = surfaces.get(material);
+      const picture = surface?.diffuseTexture;
+      if (!surface || !(picture instanceof Texture)) return [];
+      let texture = own.get(surface);
+      if (!texture) {
+        texture = picture.clone();
+        // A whole turn across a picture that repeats shows the same picture, but sets the surface
+        // up to shift it from the start. Otherwise Babylon.js does that only when it's first
+        // shifted, after drawing that frame, so the first frame with a face showed none.
+        if (texture.wrapU === Texture.WRAP_ADDRESSMODE) texture.uOffset += 1;
+        surface.diffuseTexture = texture;
+        own.set(surface, texture);
+      }
+      return [{ texture, scale, offset }];
+    });
+    if (textures.length) out.set(expression, textures);
+  }
+  return out;
 }
 
 /** The box round a model that's at the scene's origin, with no turn. */

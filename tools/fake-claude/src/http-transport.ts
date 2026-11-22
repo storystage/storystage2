@@ -1,7 +1,8 @@
 /**
- * A `PrompterTransport` over HTTP, for tests against the fake server. It does what the native
+ * A `PrompterTransport` over HTTP: to the fake server in tests, or the live API in a live
+ * evaluation run (`eval/live.ts`). It does what the native
  * layer will do (WP15.2): send the body, add the beta header, and turn each HTTP status into one
- * error code (spec 04, section 7). It adds no key and makes no retries.
+ * error code (spec 04, section 7). It makes no retries, and adds a key only when given one.
  */
 import {
   containsSecret,
@@ -30,7 +31,14 @@ export function splitEvents(buffer: string): { events: JsonObject[]; rest: strin
   return { events, rest };
 }
 
-export function httpTransport(baseUrl: string): PrompterTransport {
+/**
+ * `headers` are added to each request: a live run passes the key and the API version here
+ * (`eval/live.ts`). The fake server needs none.
+ */
+export function httpTransport(
+  baseUrl: string,
+  headers: Readonly<Record<string, string>> = {},
+): PrompterTransport {
   return {
     status: async () => ({ available: true }),
     async *send(request, signal): AsyncGenerator<PrompterEvent> {
@@ -43,6 +51,7 @@ export function httpTransport(baseUrl: string): PrompterTransport {
           method: 'POST',
           headers: {
             'content-type': 'application/json',
+            ...headers,
             ...(request.betas?.length ? { 'anthropic-beta': request.betas.join(',') } : {}),
           },
           body: JSON.stringify(request.body),
@@ -50,11 +59,23 @@ export function httpTransport(baseUrl: string): PrompterTransport {
         });
         if (!response.ok || !response.body) {
           const retryAfter = Number(response.headers.get('retry-after'));
-          await response.body?.cancel();
+          // The API's error body says what was wrong; it holds no key, which goes only in a header.
+          const text = await response.text().catch(() => '');
+          let message = '';
+          try {
+            message = String(
+              (JSON.parse(text) as { error?: { message?: unknown } }).error?.message ?? '',
+            );
+          } catch {
+            message = '';
+          }
           yield {
             type: 'error',
             code: codeForStatus(response.status),
             ...(retryAfter > 0 ? { retryAfterSeconds: retryAfter } : {}),
+            ...(message
+              ? { detail: { status: response.status, message: message.slice(0, 500) } }
+              : {}),
           };
           return;
         }

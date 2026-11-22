@@ -218,7 +218,7 @@ function editFrom(program: Program, numbers: readonly number[]): EditOperation {
   const place = list && { parent: list.parent, slot: list.slot, index: pick(list.length + 1) };
   const expressions = nodes.filter((n) => (EXPRESSION_KINDS as readonly string[]).includes(n.kind));
   const statements = nodes.filter(isStatement);
-  switch (pick(10)) {
+  switch (pick(11)) {
     case 0:
       if (place) return { kind: 'insert', label, ...place, node: statement(pick, mint, nodes) };
       break;
@@ -270,6 +270,17 @@ function editFrom(program: Program, numbers: readonly number[]): EditOperation {
       return { kind: 'setEnabled', label, node: anyNode.id, enabled: pick(2) === 0 };
     case 8:
       return { kind: 'setComment', label, node: anyNode.id, text: one(pick, NAMES) };
+    case 9: {
+      // A field (or anything) of a story type, a type the program has, or one it hasn't.
+      const types: TypeRef[] = [
+        NUMBER,
+        ...nodes
+          .filter((n) => n.kind === 'type')
+          .map((t) => ({ kind: 'user', type: t.id }) as const),
+        { kind: 'user', type: anyNode.id },
+      ];
+      return { kind: 'retype', label, node: anyNode.id, type: one(pick, types) };
+    }
     default:
       if (expressions.length > 0) return { kind: 'remove', label, node: one(pick, expressions).id };
   }
@@ -398,9 +409,44 @@ describe('any sequence of edits', () => {
       'move',
       'remove',
       'rename',
+      'retype',
       'setArgument',
       'setComment',
       'setEnabled',
     ]);
+  });
+});
+
+/** What applying an edit did: the bytes it gave, or the code it was refused with. */
+function outcome(program: Program, edit: EditOperation, checkWholeShape: boolean) {
+  try {
+    return { bytes: serializeProgram(applyEdit(program, edit, { checkWholeShape }).program) };
+  } catch (e) {
+    if (e instanceof EditRefused) return { refused: e.code };
+    throw e;
+  }
+}
+
+describe('checking only what an edit adds (spec section 4.2)', () => {
+  it('agrees with checking the whole program: same edits made, same refusals', () => {
+    let refused = 0;
+    let made = 0;
+    fc.assert(
+      fc.property(starts, steps, (start, s) => {
+        let program = start();
+        for (const numbers of s) {
+          const edit = editFrom(program, numbers);
+          const fast = outcome(program, edit, false);
+          expect(fast).toEqual(outcome(program, edit, true));
+          if ('bytes' in fast) {
+            made++;
+            program = applyEdit(program, edit).program;
+          } else refused++;
+        }
+      }),
+      { numRuns: 150 },
+    );
+    expect(made).toBeGreaterThan(100);
+    expect(refused).toBeGreaterThan(100);
   });
 });

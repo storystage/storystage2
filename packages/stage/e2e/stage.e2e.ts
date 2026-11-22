@@ -36,7 +36,7 @@ interface Determinism {
   rewindIdentical: boolean;
 }
 
-for (const scene of ['grass-cast', 'snow-fog', 'room-camera']) {
+for (const scene of ['grass-cast', 'snow-fog', 'room-camera', 'fade-out', 'shots']) {
   test(`renders ${scene} the same twice, frame for frame`, async ({ page }) => {
     test.setTimeout(120_000);
     const problems = await open(page);
@@ -97,7 +97,139 @@ test('shows a ground in the colour its table says', async ({ page }) => {
 
 test('labels a stand-in, so a learner can tell what it stands for', async ({ page }) => {
   await open(page);
-  expect(await call<number>(page, 'darkPixels', 'room-camera', 3)).toBeGreaterThan(100);
+  // The label's letters. An export's frame is smoothed by averaging (renderFrame), so fewer of
+  // their pixels are fully dark than when it wasn't: 92 here, against none without a label.
+  expect(await call<number>(page, 'darkPixels', 'room-camera', 3)).toBeGreaterThan(60);
+});
+
+test('labels a stand-in in a picture too (5.7)', async ({ page }) => {
+  await open(page);
+  // A picture drawn on a stage that hasn't drawn a frame left the label where it was made.
+  expect(await call<number>(page, 'darkPixels', 'room-camera', 3, true)).toBeGreaterThan(60);
+});
+
+interface Rows {
+  mean: number[];
+  range: number;
+  missing: { kind: string; id?: string }[];
+}
+
+test('tiles a ground texture from Backstage, matching the flat colour (spec 17 §2)', async ({
+  page,
+}) => {
+  await open(page);
+  const r = await call<Record<'plain' | 'own' | 'check' | 'broken', Rows>>(page, 'groundTextures');
+  console.log(JSON.stringify(r));
+  // A texture of the ground's own colour looks as the flat ground does.
+  r.own.mean.forEach((c, i) => expect(Math.abs(c - r.plain.mean[i]!)).toBeLessThan(6));
+  // A check shows, tiled: dark and light near the camera, where the flat ground is even.
+  expect(r.plain.range).toBeLessThan(20);
+  expect(r.check.range).toBeGreaterThan(120);
+  // No item is normal; an item that can't be read falls back to the colour, and is reported.
+  expect(r.plain.missing).toEqual([]);
+  expect(r.own.missing).toEqual([]);
+  r.broken.mean.forEach((c, i) => expect(Math.abs(c - r.plain.mean[i]!)).toBeLessThan(3));
+  expect(r.broken.missing).toEqual([{ kind: 'backdrop', id: 'storystage/Ground/grass' }]);
+});
+
+test('draws a picture sky around the camera, the right way round, and tints it (spec 17 §2)', async ({
+  page,
+}) => {
+  await open(page);
+  const r = await call<{
+    middleAbove: number[];
+    middleBelow: number[];
+    left: number[];
+    right: number[];
+    tinted: number[];
+    missing: unknown[];
+    without: { colour: number[]; missing: unknown[] };
+  }>(page, 'pictureSky');
+  console.log(JSON.stringify(r));
+  // The picture's middle faces +Z, where the camera looks: red, bright above and dim below.
+  const [red, , blue] = r.middleAbove;
+  expect(red).toBeGreaterThan(220);
+  expect(blue).toBeLessThan(30);
+  expect(r.middleBelow[0]).toBeGreaterThan(70);
+  expect(r.middleBelow[0]).toBeLessThan(140);
+  // +X is on the picture's left (blue there), -X on its right (green).
+  expect(r.left[2]).toBeGreaterThan(200);
+  expect(r.right[1]).toBeGreaterThan(200);
+  // Half its own atmosphere colour halves it.
+  expect(Math.abs(r.tinted[0]! - red! / 2)).toBeLessThan(12);
+  expect(r.missing).toEqual([]);
+  // With no item, its atmosphere colour, reported.
+  expect(Math.abs(r.without.colour[0]! - 0xae)).toBeLessThan(4);
+  expect(r.without.missing).toEqual([{ kind: 'backdrop', id: 'storystage/Sky/clearDay' }]);
+});
+
+test('fades the whole picture to black, the sky included', async ({ page }) => {
+  await open(page);
+  const sky = (t: number) => call<number[]>(page, 'sample', 'fade-out', t, 320, 20);
+  const ground = (t: number) => call<number[]>(page, 'sample', 'fade-out', t, 320, 340);
+  expect(Math.max(...(await sky(0)))).toBeGreaterThan(150);
+  const half = Math.max(...(await sky(2)));
+  expect(half).toBeGreaterThan(20);
+  expect(half).toBeLessThan(150);
+  expect(Math.max(...(await sky(3)))).toBeLessThanOrEqual(2);
+  expect(Math.max(...(await ground(3)))).toBeLessThanOrEqual(2);
+});
+
+test('fills more of the picture with its subject, the closer the shot', async ({ page }) => {
+  await open(page);
+  const share = (t: number) => call<number>(page, 'subjectShare', 'shots', t);
+  const [wide, medium, closeUp] = [await share(0.9), await share(1.9), await share(2.9)];
+  console.log(JSON.stringify({ wide, medium, closeUp }));
+  expect(wide).toBeGreaterThan(0.02);
+  expect(medium).toBeGreaterThan(wide * 2);
+  expect(closeUp).toBeGreaterThan(medium);
+});
+
+interface Rendering {
+  renderer: string;
+  gpu: boolean;
+  width: number;
+  height: number;
+  lit: number;
+}
+
+test('draws with WebGPU where the browser has it, and WebGL2 otherwise', async ({ page }) => {
+  const problems = await open(page);
+  const r = await call<Rendering>(page, 'rendering', 'auto', 'standard');
+  console.log(JSON.stringify(r));
+  // Which one this browser gives is its own business; what matters is a picture either way.
+  expect(r.renderer).toBe(r.gpu ? r.renderer : 'webgl2');
+  expect(['webgpu', 'webgl2']).toContain(r.renderer);
+  expect(r.width).toBe(640);
+  expect(r.lit).toBeGreaterThan(0.5);
+  expect(problems).toEqual([]);
+});
+
+test('draws at two thirds of the size at low quality, for the reference devices', async ({
+  page,
+}) => {
+  await open(page);
+  const low = await call<Rendering>(page, 'rendering', 'webgl2', 'low');
+  // Whole pixels, rounded down.
+  expect(low.width).toBe(Math.floor(640 / 1.5));
+  expect(low.height).toBe(Math.floor(360 / 1.5));
+  expect(low.lit).toBeGreaterThan(0.5);
+});
+
+test('takes a picture of another moment without moving the scene (5.7)', async ({ page }) => {
+  const problems = await open(page);
+  const r = await call<{ time: number; differ: number; top: number[]; bottom: number[] }>(
+    page,
+    'pictureCheck',
+  );
+  console.log(JSON.stringify(r));
+  expect(r.time).toBe(500_000);
+  // The same moment drawn twice: only the smoothing at edges may differ.
+  expect(r.differ).toBeLessThan(0.02);
+  // The right way up: the grass template's sky above and its ground below.
+  expect(r.top[2]).toBeGreaterThan(200);
+  expect(r.bottom[1]).toBeGreaterThan(r.bottom[2]!);
+  expect(problems).toEqual([]);
 });
 
 test('measures what view and occlusion events would cost (decision 0051)', async ({ page }) => {
@@ -141,6 +273,81 @@ test('takes clicks and keys on the live canvas, and lets Tab move on', async ({ 
   expect(problems).toEqual([]);
 });
 
+test('draws the scene view on the live canvas, and moves things with the mouse (07-ux 7.2)', async ({
+  page,
+}, info) => {
+  const problems = await open(page);
+  await call(page, 'sceneView');
+  const view = <T>(name: string, ...args: unknown[]) =>
+    page.evaluate(
+      ([name, args]) => {
+        type Calls = Record<string, (...args: unknown[]) => unknown>;
+        const { sceneView } = window as unknown as { sceneView: Calls };
+        return sceneView[name as string]!(...(args as unknown[]));
+      },
+      [name, args] as const,
+    ) as Promise<T>;
+  await expect.poll(() => view<number>('frames')).toBeGreaterThan(5);
+  const canvas = page.locator('#stage');
+  const box = (await canvas.boundingBox())!;
+  const amberOnPage = async (name: string) => {
+    const shot = await canvas.screenshot({ path: info.outputPath(name) });
+    return page.evaluate(
+      async (png) => {
+        const bitmap = await createImageBitmap(
+          new Blob([new Uint8Array(png)], { type: 'image/png' }),
+        );
+        const c = new OffscreenCanvas(bitmap.width, bitmap.height);
+        const g = c.getContext('2d')!;
+        g.drawImage(bitmap, 0, 0);
+        const d = g.getImageData(0, 0, c.width, c.height).data;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4)
+          if (d[i]! > 200 && d[i + 1]! > 150 && d[i + 1]! < 210 && d[i + 2]! < 110) n++;
+        return n;
+      },
+      [...shot],
+    );
+  };
+  // The outline, ring and knob are on the page, and never in a frame read back.
+  expect(await amberOnPage('scene-view.png')).toBeGreaterThan(300);
+  expect(await view<number>('amberInFrame')).toBe(0);
+
+  // Drag the robot by its body, 100 pixels to the left: it goes to +X along the ground.
+  const body = (await view<{ x: number; y: number }>('onView', 1, 0.6, 0))!;
+  await page.mouse.move(box.x + body.x, box.y + body.y);
+  await page.mouse.down();
+  for (let i = 1; i <= 5; i++) await page.mouse.move(box.x + body.x - i * 20, box.y + body.y);
+  await page.mouse.up();
+  const edits =
+    await view<{ final: boolean; transform: { position: { x: number; y: number } } }[]>('edits');
+  expect(edits.at(-1)!.final).toBe(true);
+  expect(edits.filter((e) => e.final)).toHaveLength(1);
+  const moved = await view<{ position: { x: number; y: number } }>('transform', 'robot');
+  expect(moved.position.x).toBeGreaterThan(1.5);
+  expect(moved.position.y).toBe(0);
+  await amberOnPage('scene-view-moved.png');
+
+  // A click on the stand-in is a tap with it, which the studio would choose.
+  const stand = (await view<{ x: number; y: number }>('onView', -1.5, 0.25, 1))!;
+  await page.mouse.click(box.x + stand.x, box.y + stand.y);
+  const taps = await view<{ target: unknown }[]>('taps');
+  expect(taps.at(-1)!.target).toEqual({ object: 'box' });
+
+  // Look around: a drag turns the view, and the scene's camera stays where it was.
+  await view('lookAround', true);
+  const before = await view<unknown>('view');
+  await page.mouse.move(box.x + 320, box.y + 40);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 420, box.y + 60, { steps: 5 });
+  await page.mouse.up();
+  await page.mouse.wheel(0, -200);
+  expect(await view<unknown>('view')).not.toEqual(before);
+  await amberOnPage('scene-view-look-around.png');
+  await view('stop');
+  expect(problems).toEqual([]);
+});
+
 test('imports Babylon.js by module, and loads the glTF loader only when it needs it', async ({
   page,
 }) => {
@@ -168,4 +375,62 @@ test('keeps pictures of the scenes for people to look at', async ({ page }, info
       contentType: 'image/png',
     });
   }
+  const backdrops = await call<Record<string, string>>(page, 'backdropPictures');
+  for (const [name, png] of Object.entries(backdrops))
+    await info.attach(`textured ${name}`, {
+      body: Buffer.from(png.split(',')[1]!, 'base64'),
+      contentType: 'image/png',
+    });
+});
+
+test('crossfades from one scene to the next (8.3)', async ({ page }) => {
+  await open(page);
+  const [before, start, middle, end] = await call<number[][]>(page, 'crossfadeSky');
+  // At the start, the old sky; half way, half of each; at the end, the new sky alone.
+  for (let i = 0; i < 3; i++) {
+    expect(Math.abs(start![i]! - before![i]!)).toBeLessThan(6);
+    expect(Math.abs(middle![i]! - (before![i]! + end![i]!) / 2)).toBeLessThan(12);
+  }
+  expect(end![2]!).toBeLessThan(80);
+  expect(before![2]!).toBeGreaterThan(200);
+});
+
+test('measures what characters and crossfades cost each frame (WP4c, 8.3)', async ({ page }) => {
+  test.setTimeout(120_000);
+  await open(page);
+  type Times = { seek: { mean: number; p95: number }; render: { mean: number }; frame: number };
+  const r = await call<{
+    count: number;
+    loadMs: number;
+    planMs: number;
+    standing: Times;
+    walking: Times;
+    crossfade: Times;
+  }>(page, 'characterCost', 5, 1);
+  // This run is only a check that it works: the numbers that count are the reference devices'.
+  console.log(JSON.stringify(r));
+  expect(r.count).toBe(5);
+  for (const t of [r.standing, r.walking, r.crossfade]) {
+    expect(t.seek.mean).toBeGreaterThan(0);
+    expect(t.frame).toBeGreaterThan(0);
+  }
+  // Walking poses more than standing does.
+  expect(r.walking.seek.mean).toBeGreaterThan(r.standing.seek.mean * 0.5);
+});
+
+test('reads back the same picture from WebGPU as from WebGL2, top row first, red first', async ({
+  page,
+}) => {
+  await open(page);
+  const r = await call<{
+    renderer: string;
+    frame: number;
+    picture: number;
+    top: { auto: number[]; webgl2: number[] };
+    bottom: { auto: number[]; webgl2: number[] };
+  }>(page, 'renderersAgree');
+  console.log(JSON.stringify(r));
+  // The two renderers smooth edges a little differently; a flipped or blue-first picture is far off.
+  expect(r.frame).toBeLessThan(6);
+  expect(r.picture).toBeLessThan(6);
 });

@@ -53,6 +53,17 @@ export class RuntimeFault extends Error {
   }
 }
 
+/**
+ * Thrown to end the whole run without a fault, for a reason the scheduler passes on: a scene
+ * change (WP8.3). Every strand stops at once, as a fault stops them.
+ */
+export class EndRun {
+  readonly reason: unknown;
+  constructor(reason: unknown) {
+    this.reason = reason;
+  }
+}
+
 export type RunResult =
   | { readonly kind: 'ran' }
   /** A thread needs the stage. Call `answer` or `refuse`, then run again. */
@@ -60,6 +71,8 @@ export type RunResult =
 
 export interface SchedulerOptions {
   readonly onFault?: (fault: RuntimeFault) => void;
+  /** After an `EndRun`, with its reason. */
+  readonly onEnd?: (reason: unknown) => void;
 }
 
 export class Scheduler {
@@ -73,8 +86,10 @@ export class Scheduler {
   private asked: { thread: RunningThread; query: StageQuery } | null = null;
   private readonly threads = new Set<RunningThread>();
   private readonly onFault: (fault: RuntimeFault) => void;
+  private readonly onEnd: (reason: unknown) => void;
 
   constructor(options: SchedulerOptions = {}) {
+    this.onEnd = options.onEnd ?? (() => undefined);
     this.onFault =
       options.onFault ??
       ((fault) => {
@@ -176,6 +191,11 @@ export class Scheduler {
     } catch (e) {
       thread.done = true;
       this.threads.delete(thread);
+      if (e instanceof EndRun) {
+        this.stop();
+        this.onEnd(e.reason);
+        return;
+      }
       this.fail(
         e instanceof RuntimeFault
           ? e

@@ -1,46 +1,77 @@
-import type { FrameId, Production, SceneId } from '@storystage/production';
+import type { FrameId, LineId, Production } from '@storystage/production';
+import type { Studio } from '../studio.ts';
 import { addSketch } from '@storystage/sketches';
-import { Button } from '@storystage/ui';
-import { useEffect, useState, type Dispatch } from 'react';
+import { Button, useThemeStyle } from '@storystage/ui';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { words } from '../strings.ts';
-import { nextRedo, nextUndo, type History, type HistoryAction } from './history.ts';
+import { HistoryButtons, useHistory } from '../history.tsx';
 import { FramePanel } from './FramePanel.tsx';
 import { sceneNumber } from './edits.ts';
 import { sceneFrames, updateFrame } from './frames.ts';
-import { sketchName, type SketchItem } from './SketchArt.tsx';
+import { NOWHERE, currentPlace, type Place } from './place.ts';
+import type { SketchItem } from './SketchArt.tsx';
+import { lookOf, useSketches, type Look } from './sketchSource.tsx';
 import { SketchLibrary } from './SketchLibrary.tsx';
 import { SceneDetails } from './SceneDetails.tsx';
 import { SceneStrip } from './SceneStrip.tsx';
 import { ScriptHeader } from './ScriptHeader.tsx';
+import { PrintStoryboard } from './PrintStoryboard.tsx';
+import { ScriptPane } from './ScriptPane.tsx';
+import { StoryboardBackstage } from './StoryboardBackstage.tsx';
+import { withCastMember } from './cast.ts';
+import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import type { BackstageImport, FilePicker } from '@storystage/host';
+import { ImportScript } from './ImportScript.tsx';
+import { scriptFile, scriptFileName } from './scriptFile.ts';
+import { backdropSketchFor } from '@storystage/sketches';
+import { backstageId, type BackstageId } from '@storystage/story-api';
 
 export interface StoryboardProps {
-  history: History<Production>;
-  dispatch: Dispatch<HistoryAction<Production>>;
+  /** The production and its one undo history (`studio.ts`). */
+  studio: Studio;
+  /** What the learner chose, shared with the other tabs. */
+  place: Place;
+  onPlaceChange: (place: Place) => void;
+  /** The App's model source: Backstage's catalogue, for the Storyboard's Backstage (10.9). */
+  models?: Pick<ModelSourceHandle, 'catalogue' | 'thumbnail'>;
+  /** Who may import models, from the school's policy. Default `off`. */
+  importing?: BackstageImport;
+  /**
+   * The host's file picker: with it, the script can be imported and exported as Fountain (10.4;
+   * 07-ux section 6.6, "when the host can open and save files").
+   */
+  picker?: Pick<FilePicker, 'saveCopy'>;
 }
 
-/** Keys typed into a text field are the field's own: there, Ctrl+Z undoes the typing. */
-const isTextEntry = (target: EventTarget | null) =>
-  target instanceof HTMLElement &&
-  (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
+/** A CSS string, for the page foot's `content`. */
+const cssString = (text: string) =>
+  `"${text.replace(/[\\"]/g, (c) => `\\${c}`).replace(/\s/g, ' ')}"`;
 
 /**
  * The Storyboard tab (`docs/spec/07-ux.md` section 6): the script header and arc (10.1, 10.2) and
  * the scene cards (10.3), the sketch library and the frames with their sketches (10.6), with the
- * Storyboard's undo history (6.8). The script pane follows.
+ * Storyboard's undo history (6.8), and the script pane (10.4).
  */
-export function Storyboard({ history, dispatch }: StoryboardProps) {
+export function Storyboard({
+  studio,
+  place,
+  onPlaceChange,
+  models,
+  importing = 'off',
+  picker,
+}: StoryboardProps) {
   const [announcement, setAnnouncement] = useState('');
-  const [chosen, setChosen] = useState<SceneId | null>(null);
-  const p = history.present;
-  // The chosen scene, or the first one if it has gone (deleted, or undone).
-  const order = p.manifest.runningOrder.map((r) => r.scene);
-  const current = chosen !== null && order.includes(chosen) ? chosen : (order[0] ?? null);
-  const [chosenFrame, setChosenFrame] = useState<FrameId | null>(null);
-  // The chosen frame if it's in the current scene, or the scene's first frame.
+  // What Export the script said, shown beside the toolbar until the next export.
+  const [exported, setExported] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  // Each press of Print storyboard, until the print dialog closes; 0 when not printing.
+  const [printing, setPrinting] = useState(0);
+  const themeStyle = useThemeStyle();
+  const p = studio.production;
+  // Where the learner is, shared with the other tabs (the App keeps it).
+  const { scene: current, frame: currentFrame } = currentPlace(p, place);
   const frames = current ? sceneFrames(p, current) : [];
-  const currentFrame = frames.some((f) => f.id === chosenFrame)
-    ? chosenFrame
-    : (frames[0]?.id ?? null);
   const frameNumber =
     current && currentFrame
       ? `${sceneNumber(p, current)}.${frames.findIndex((f) => f.id === currentFrame) + 1}`
@@ -48,14 +79,27 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
   // The chosen sketch, while its frame is current.
   const [chosenSketch, setChosenSketch] = useState<{ frame: FrameId; id: string } | null>(null);
   const sketch = chosenSketch && chosenSketch.frame === currentFrame ? chosenSketch.id : null;
-  const commit = (label: string, next: Production, key?: string) =>
-    dispatch({ type: 'commit', label, next, key });
+  // The chosen line, while it's in the current scene.
+  const [chosenLine, setChosenLine] = useState<LineId | null>(null);
+  const line = p.script.some((l) => l.id === chosenLine && l.scene === current) ? chosenLine : null;
+  const commit = (label: string, next: Production, key?: string) => studio.commit(label, next, key);
 
-  const addToFrame = (item: SketchItem, x?: number, y?: number) => {
+  const art = useSketches();
+  const addToFrame = (item: SketchItem, x?: number, y?: number, look?: Look) => {
     const frame = p.frames.find((f) => f.id === currentFrame);
-    const added = frame && frameNumber ? addSketch(frame, { item, x, y }) : null;
+    // A model keeps the look the library showed it in, as far as it has one.
+    const kept = look && art.url(item, look) ? lookOf(art.item(item), look) : null;
+    const added =
+      frame && frameNumber
+        ? addSketch(frame, {
+            item,
+            x,
+            y,
+            ...(kept ? { facing: kept.facing, pose: kept.pose } : {}),
+          })
+        : null;
     if (!frame || !frameNumber || !added) return;
-    const name = sketchName(item);
+    const name = art.name(item);
     commit(
       words.t('step.addSketch', { name }),
       updateFrame(p, frame.id, () => added.frame),
@@ -63,65 +107,135 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
     setChosenSketch({ frame: frame.id, id: added.id });
     setAnnouncement(words.t('storyboard.canvas.added', { name, number: frameNumber }));
   };
-  const undoLabel = nextUndo(history);
-  const redoLabel = nextRedo(history);
-
-  const undo = () => {
-    if (!undoLabel) return;
-    dispatch({ type: 'undo' });
-    setAnnouncement(words.t('history.undone', { step: undoLabel }));
-  };
-  const redo = () => {
-    if (!redoLabel) return;
-    dispatch({ type: 'redo' });
-    setAnnouncement(words.t('history.redone', { step: redoLabel }));
+  /** A model or a stand-in into the current scene's cast (10.9): its sketch joins the library. */
+  const addToCast = (member: BackstageId | { standIn: string }, name: string): string | null => {
+    if (!current) return null;
+    const n = sceneNumber(p, current);
+    const next = withCastMember(p, current, member);
+    if (!next) return words.t('storyboard.backstage.already', { name, n });
+    commit(words.t('step.addToCast', { name, n }), next);
+    setAnnouncement(words.t('storyboard.backstage.added', { name, n }));
+    return null;
   };
 
-  // Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac or iPad): the keymap's first shortcuts (07-ux 6.8).
+  // Ctrl+Z and Ctrl+Shift+Z (Cmd on a Mac or iPad), and the buttons (07-ux 6.8).
+  const history = useHistory(studio, setAnnouncement);
+
+  /** Export the script: a Fountain file, saved where the learner picks (10.4). */
+  const say = (text: string) => {
+    setExported(text);
+    setAnnouncement(text);
+  };
+  const exportScript = async () => {
+    if (!picker) return;
+    setExported(null);
+    setExporting(true);
+    try {
+      await picker.saveCopy(scriptFileName(p), scriptFile(p));
+      say(words.t('storyboard.export.done'));
+    } catch (error) {
+      const code = (error as { code?: unknown } | null)?.code;
+      if (code === 'cancelled') return;
+      say(
+        code === 'full' ? words.t('storyboard.export.full') : words.t('storyboard.export.failed'),
+      );
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Print: lay the storyboard out, open the device's print dialog, and put the layout away when
+  // the dialog closes (decision 0054). The page foot reads the title and the word for page from
+  // custom properties on the root, which `@page` margin boxes inherit.
+  const footTitle = p.manifest.title.trim() || words.t('storyboard.untitled');
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey || e.key.toLowerCase() !== 'z') return;
-      if (isTextEntry(e.target)) return;
-      e.preventDefault();
-      if (e.shiftKey) redo();
-      else undo();
+    if (printing === 0) return;
+    const root = document.documentElement.style;
+    root.setProperty('--sb-print-title', cssString(footTitle));
+    root.setProperty('--sb-print-page', cssString(words.t('storyboard.print.page')));
+    const done = () => setPrinting(0);
+    window.addEventListener('afterprint', done);
+    window.print();
+    return () => {
+      window.removeEventListener('afterprint', done);
+      root.removeProperty('--sb-print-title');
+      root.removeProperty('--sb-print-page');
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  });
+  }, [printing, footTitle]);
 
   return (
     <div className="sb">
+      {models && (
+        <StoryboardBackstage
+          catalogue={models.catalogue}
+          thumbnail={(id) => models.thumbnail(id)}
+          scene={current ? sceneNumber(p, current) : null}
+          frame={frameNumber}
+          readOnly={studio.readOnly !== null}
+          importing={importing}
+          onAddToCast={(item) => {
+            const said = addToCast(item.id as BackstageId, item.displayName);
+            if (said) setAnnouncement(said);
+          }}
+          onBackdrop={(item) => {
+            if (!frameNumber) return setAnnouncement(words.t('storyboard.backstage.noFrame'));
+            addToFrame(backstageId(backdropSketchFor(item).id));
+          }}
+          onStandIn={(name) => addToCast({ standIn: name }, name)}
+        />
+      )}
       <SketchLibrary
         production={p}
         frame={currentFrame && frameNumber ? { id: currentFrame, number: frameNumber } : null}
-        onAdd={(item) => addToFrame(item)}
+        onAdd={(item, look) => addToFrame(item, undefined, undefined, look)}
       />
       <div className="sb-main">
         <div className="sb-toolbar" role="toolbar" aria-label={words.t('history.label')}>
-          <Button variant="quiet" icon="undo" isDisabled={!undoLabel} onPress={undo}>
-            {words.t('history.undo')}
-            {undoLabel && <span className="ss-visually-hidden">: {undoLabel}</span>}
+          <Button variant="quiet" icon="print" onPress={() => setPrinting((n) => n + 1)}>
+            {words.t('storyboard.print')}
           </Button>
-          <Button variant="quiet" icon="redo" isDisabled={!redoLabel} onPress={redo}>
-            {words.t('history.redo')}
-            {redoLabel && <span className="ss-visually-hidden">: {redoLabel}</span>}
-          </Button>
+          {picker && (
+            <Button
+              variant="quiet"
+              icon="download"
+              isDisabled={exporting || p.manifest.runningOrder.length === 0}
+              onPress={() => void exportScript()}
+            >
+              {words.t('storyboard.export')}
+            </Button>
+          )}
+          <HistoryButtons history={history} />
         </div>
-        <ScriptHeader production={p} onChange={commit} onLeave={() => dispatch({ type: 'seal' })} />
+        {exported && <p className="sb-toolbar-said">{exported}</p>}
+        <ScriptHeader production={p} onChange={commit} onLeave={studio.seal} />
         <SceneStrip
           production={p}
           current={current}
-          onCurrentChange={setChosen}
-          onChange={commit}
+          onCurrentChange={(scene) => onPlaceChange({ scene, frame: null })}
+          onStep={(step) => studio.step(step)}
+          importScript={
+            picker && (
+              <ImportScript
+                production={p}
+                readOnly={studio.readOnly !== null}
+                onStep={(step) => studio.step(step)}
+                onImported={(scene, said) => {
+                  onPlaceChange({ scene, frame: null });
+                  setAnnouncement(said);
+                }}
+                onAnnounce={setAnnouncement}
+              />
+            )
+          }
         />
         {current && (
           <SceneDetails
             production={p}
             scene={current}
             onChange={commit}
-            onLeave={() => dispatch({ type: 'seal' })}
-            onDeleted={() => setChosen(null)}
+            onStep={(step) => studio.step(step)}
+            onLeave={studio.seal}
+            onDeleted={() => onPlaceChange(NOWHERE)}
           />
         )}
         {current && (
@@ -129,9 +243,9 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
             production={p}
             scene={current}
             current={currentFrame}
-            onCurrentChange={setChosenFrame}
+            onCurrentChange={(frame) => onPlaceChange({ scene: current, frame })}
             onChange={commit}
-            onLeave={() => dispatch({ type: 'seal' })}
+            onLeave={studio.seal}
             sketch={sketch}
             onSketchChange={(id) =>
               setChosenSketch(id && currentFrame ? { frame: currentFrame, id } : null)
@@ -141,7 +255,25 @@ export function Storyboard({ history, dispatch }: StoryboardProps) {
           />
         )}
       </div>
-      <p className="ss-visually-hidden" aria-live="polite">
+      <ScriptPane
+        production={p}
+        scene={current}
+        frame={currentFrame}
+        chosen={line}
+        onChosenChange={setChosenLine}
+        onChange={commit}
+        onLeave={studio.seal}
+        onAnnounce={setAnnouncement}
+      />
+      {printing > 0 &&
+        createPortal(
+          <div className="ss-root sb-print-root" style={themeStyle}>
+            <PrintStoryboard production={p} />
+          </div>,
+          document.body,
+        )}
+      {/* React Aria's mark for a live announcer, as on the Production stage: heard past a dialog. */}
+      <p className="ss-visually-hidden" aria-live="polite" data-live-announcer="true">
         {announcement}
       </p>
     </div>

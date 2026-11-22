@@ -37,6 +37,7 @@ export {
   ModeTabList,
   ModeTabs,
   type Mode,
+  type ModeBadge,
   type ModeTabsProps,
 } from './ModeTabs.tsx';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmented.tsx';
@@ -50,9 +51,17 @@ export {
   type RadioCardsProps,
   type ToggleProps,
 } from './Choice.tsx';
-export { TextField, type TextFieldProps } from './TextField.tsx';
+export { TextField, insertWords, type FieldSpeech, type TextFieldProps } from './TextField.tsx';
 export { Dialog, type DialogProps } from './Dialog.tsx';
-export { PlanSteps, moveSteps, type PlanStep, type PlanStepsProps } from './PlanSteps.tsx';
+export { linkTabPanel, useTabPanel } from './tabPanel.ts';
+export {
+  PlanSteps,
+  heldWords,
+  moveSteps,
+  stepName,
+  type PlanStep,
+  type PlanStepsProps,
+} from './PlanSteps.tsx';
 export {
   FrameStrip,
   type FrameCardData,

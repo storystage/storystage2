@@ -21,7 +21,11 @@
     "schedule:check": "node tools/plan/src/plan-cli.ts",
     "typecheck": "pnpm -r --workspace-concurrency=2 typecheck",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "backstage:fetch": "node tools/backstage-sources/src/bundle-cli.ts",
+    "speech:fetch": "pnpm --filter @storystage/speech exec node scripts/fetch-kokoro-assets.mjs ../../.speech-cache ../../.speech",
+    "prompter:pins": "node packages/prompter/scripts/pins-cli.ts",
+    "eval": "node tools/fake-claude/src/eval/cli.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -5,13 +5,15 @@
   "description": "Tool schemas, context builders, conversation loop and modes; transport-agnostic (talks to the native layer).",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."
   },
   "dependencies": {
     "@storystage/ast": "workspace:*",
+    "@storystage/backstage": "workspace:*",
     "@storystage/production": "workspace:*",
     "@storystage/story-api": "workspace:*"
   }

@@ -6,7 +6,8 @@ import sharp from 'sharp';
 import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { ITEM_BUDGETS, validateManifest } from '@storystage/backstage';
-import { buildSources } from './build.ts';
+import { meshFromDocument } from '@storystage/sketches';
+import { buildSources, scaleToHeight, standOnGround, stripExtras, turnModel } from './build.ts';
 import { sharpEncoder } from './sharp-encoder.ts';
 import type { Fetcher } from './fetch.ts';
 
@@ -99,6 +100,8 @@ beforeAll(async () => {
           licence: 'CC0-1.0',
           credit: 'Rock by a tester (CC0)',
           page: 'https://github.com/pack/props',
+          // The rock is 2 m tall as made; its real height is 1.5 m.
+          height: 1.5,
           fetch: { github: 'pack/props', commit: COMMIT, path: 'rock.glb' },
         },
       ],
@@ -144,6 +147,175 @@ describe('reduceModel with real pictures', () => {
   });
 });
 
+describe('turnModel', () => {
+  it('turns a model about X first, then Y, under one root node', () => {
+    const doc = new Document();
+    const scene = doc.createScene();
+    doc.getRoot().setDefaultScene(scene);
+    // A point in front of the model, at +Z.
+    const point = doc.createNode('point').setTranslation([0, 0, 1]);
+    scene.addChild(point);
+    turnModel(doc, { y: 180 });
+    expect(point.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([
+      0, 0, -1,
+    ]);
+    // Half a turn took it to -Z. x: -90 takes -Z to -Y, and a quarter turn about Y leaves it there.
+    turnModel(doc, { x: -90, y: 90 });
+    expect(point.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([
+      0, -1, 0,
+    ]);
+    expect(scene.listChildren().map((n) => n.getName())).toEqual(['storystage-turn']);
+  });
+
+  it('stands up a model that leans in its own data', () => {
+    const doc = new Document();
+    const scene = doc.createScene();
+    doc.getRoot().setDefaultScene(scene);
+    // The top of a stick leaning forward by 34°, as Poly Pizza's crutches do.
+    const a = (34 * Math.PI) / 180;
+    const top = doc.createNode('top').setTranslation([0, Math.cos(a), Math.sin(a)]);
+    scene.addChild(top);
+    turnModel(doc, { x: -34 });
+    expect(top.getWorldTranslation().map((v) => Math.round(v * 1e6) / 1e6 + 0)).toEqual([0, 1, 0]);
+  });
+});
+
+describe('stripExtras', () => {
+  it("clears a maker's extras on the file, its asset record and every part", async () => {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const advert = { workflow: 'Generate it with an AI tool', url: 'https://example.com' };
+    (doc.getRoot().getAsset() as { extras?: unknown }).extras = advert;
+    doc.getRoot().setExtras(advert);
+    const prim = doc
+      .createPrimitive()
+      .setExtras(advert)
+      .setAttribute(
+        'POSITION',
+        doc
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]))
+          .setBuffer(buffer),
+      );
+    const node = doc
+      .createNode('animal')
+      .setExtras(advert)
+      .setMesh(doc.createMesh('animal').setExtras(advert).addPrimitive(prim));
+    doc.getRoot().setDefaultScene(doc.createScene().setExtras(advert).addChild(node));
+    doc.createMaterial('skin').setExtras(advert);
+    stripExtras(doc);
+    const io = new WebIO();
+    const { json } = await io.binaryToJSON(await io.writeBinary(doc));
+    expect(JSON.stringify(json)).not.toContain('AI tool');
+    expect(JSON.stringify(json)).not.toContain('example.com');
+  });
+});
+
+describe('scaleToHeight', () => {
+  it('scales by the height as measured, not as rounded to the centimetre', () => {
+    // Poly Haven's rat: 3.4 cm tall, asked for 8 cm.
+    const doc = new Document();
+    const prim = doc.createPrimitive().setAttribute(
+      'POSITION',
+      doc
+        .createAccessor()
+        .setType('VEC3')
+        .setArray(new Float32Array([0, 0, 0, 0.15, 0, 0, 0, 0.034, 0]))
+        .setBuffer(doc.createBuffer()),
+    );
+    doc
+      .getRoot()
+      .setDefaultScene(
+        doc
+          .createScene()
+          .addChild(doc.createNode('rat').setMesh(doc.createMesh().addPrimitive(prim))),
+      );
+    scaleToHeight(doc, 0.08);
+    const p = meshFromDocument(doc).positions;
+    expect(Math.max(...p.filter((_, i) => i % 3 === 1))).toBeCloseTo(0.08, 6);
+  });
+});
+
+describe('standOnGround', () => {
+  /** Lowest and highest x, y and z as drawn. */
+  const extent = (doc: Document) => {
+    const p = meshFromDocument(doc).positions;
+    const lo = [Infinity, Infinity, Infinity];
+    const hi = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < p.length; i += 3)
+      for (let a = 0; a < 3; a++) {
+        lo[a] = Math.min(lo[a]!, p[i + a]!);
+        hi[a] = Math.max(hi[a]!, p[i + a]!);
+      }
+    return { lo, hi };
+  };
+  const lowest = (doc: Document) => extent(doc).lo[1]!;
+
+  it('stands a skinned model on its rest pose as drawn, centred if its origin is at its edge', () => {
+    // As the African penguin: the skinned mesh's node sits far from where its joints put it
+    // (glTF ignores a skinned mesh's own transform), the maker's origin is mid-body, and the
+    // body is all to one side of it (here across, 0 to 1 m).
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    const acc = (
+      type: 'VEC3' | 'VEC4' | 'MAT4',
+      array: Float32Array<ArrayBuffer> | Uint16Array<ArrayBuffer>,
+    ) => doc.createAccessor().setType(type).setArray(array).setBuffer(buffer);
+    const joint = doc.createNode('body').setTranslation([0, -0.3, 0]);
+    const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+    const skin = doc
+      .createSkin()
+      .addJoint(joint)
+      .setInverseBindMatrices(acc('MAT4', new Float32Array(identity)));
+    const prim = doc
+      .createPrimitive()
+      .setAttribute('POSITION', acc('VEC3', new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0])))
+      .setAttribute('JOINTS_0', acc('VEC4', new Uint16Array(12)))
+      .setAttribute(
+        'WEIGHTS_0',
+        acc('VEC4', new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0])),
+      );
+    const body = doc
+      .createNode('mesh')
+      .setTranslation([0, 5, 0])
+      .setMesh(doc.createMesh().addPrimitive(prim))
+      .setSkin(skin);
+    doc.getRoot().setDefaultScene(doc.createScene().addChild(joint).addChild(body));
+    expect(lowest(doc)).toBeCloseTo(-0.3, 6);
+    standOnGround(doc);
+    expect(lowest(doc)).toBeCloseTo(0, 6);
+    const { lo, hi } = extent(doc);
+    expect([lo[0], hi[0]].map((x) => Math.round(x! * 1e6) / 1e6)).toEqual([-0.5, 0.5]);
+    expect(
+      doc
+        .getRoot()
+        .getDefaultScene()!
+        .listChildren()
+        .map((n) => n.getName()),
+    ).toEqual(['storystage-ground']);
+  });
+
+  it('leaves a model on the ground with its origin inside it as it is, even off-centre', () => {
+    const doc = new Document();
+    const buffer = doc.createBuffer();
+    // Its origin a fifth of the way along it, as an animal with a long tail behind.
+    const prim = doc.createPrimitive().setAttribute(
+      'POSITION',
+      doc
+        .createAccessor()
+        .setType('VEC3')
+        .setArray(new Float32Array([-0.5, 0, -0.8, 0.5, 0, -0.8, 0, 1, 0.2]))
+        .setBuffer(buffer),
+    );
+    const node = doc.createNode('table').setMesh(doc.createMesh().addPrimitive(prim));
+    doc.getRoot().setDefaultScene(doc.createScene().addChild(node));
+    standOnGround(doc);
+    expect(lowest(doc)).toBeCloseTo(0, 6);
+    expect(doc.getRoot().getDefaultScene()!.listChildren()).toEqual([node]);
+  });
+});
+
 describe('buildSources reduces every glTF model to its budget', () => {
   it('simplifies it, shrinks its picture to WebP, and records before and after', async () => {
     const report = await buildSources(dir, { fetcher, today: '2026-11-07' });
@@ -157,11 +329,16 @@ describe('buildSources reduces every glTF model to its budget', () => {
     const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
     expect(validateManifest(manifest).ok).toBe(true);
     expect(manifest.items[0].budget).toEqual({ triangles: p.triangles, textureMaxPx: 1024 });
+    // Scaled to its real height, under one new root node.
+    expect(manifest.items[0].defaultSize).toEqual({ height: 1.5 });
 
     const doc = await new WebIO()
       .registerExtensions(ALL_EXTENSIONS)
       .readBinary(await readFile(join(dir, 'models/pack/Prop/rock.glb')));
     expect(doc.getRoot().listTextures()[0]!.getMimeType()).toBe('image/webp');
+    const [sized] = doc.getRoot().getDefaultScene()!.listChildren();
+    expect(sized!.getName()).toBe('storystage-size');
+    expect(sized!.getScale()[1]).toBeCloseTo(0.75, 2);
     expect(
       doc
         .getRoot()

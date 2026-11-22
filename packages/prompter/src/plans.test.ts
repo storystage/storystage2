@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkPlan, mismatch, type PlanStep, type PlanWorld } from './plans.ts';
+import { checkPlan, mismatch, targetOf, type PlanStep, type PlanWorld } from './plans.ts';
 
 const step = (s: Partial<PlanStep>): PlanStep => ({
   words: 'The owl walks to the tree.',
@@ -12,6 +12,7 @@ const step = (s: Partial<PlanStep>): PlanStep => ({
   sketch: '',
   together: false,
   repeat: 1,
+  holds: 0,
   why: 'Your sketch has the owl by the tree.',
   ...s,
 });
@@ -42,6 +43,10 @@ describe('checkPlan (spec 04, section 6.3)', () => {
             actor: 'cat',
             action: 'move',
             target: '',
+            details: [
+              { name: 'direction', value: 'up' },
+              { name: 'amount', value: '0.5' },
+            ],
             together: true,
           }),
         ],
@@ -80,6 +85,30 @@ describe('checkPlan (spec 04, section 6.3)', () => {
       checkPlan([step({ details: [{ name: 'colour', value: 'red' }] })], world)[0]?.message,
     ).toBe('A moveTo block has no colour setting.');
     expect(checkPlan([step({ details: [{ name: 'duration', value: '2' }] })], world)).toEqual([]);
+  });
+
+  it('wants every setting the block needs, each with a value; the target and line fill theirs', () => {
+    const cat = step({ actor: 'cat', action: 'move', target: '' });
+    expect(checkPlan([cat], world)[0]?.message).toBe('A move block needs a value for direction.');
+    const half = { ...cat, details: [{ name: 'direction', value: 'up' }] };
+    expect(checkPlan([half], world)[0]?.message).toBe('A move block needs a value for amount.');
+    const empty = {
+      ...cat,
+      details: [
+        { name: 'direction', value: 'up' },
+        { name: 'amount', value: ' ' },
+      ],
+    };
+    expect(checkPlan([empty], world)[0]?.message).toBe('A move block needs a value for amount.');
+    // The target is a moveTo's object, and a line is a say's words.
+    expect(checkPlan([step({})], world)).toEqual([]);
+    expect(checkPlan([step({ action: 'moveTo', target: '' })], world)[0]?.message).toMatch(
+      /needs a value for target/,
+    );
+    expect(checkPlan([step({ action: 'say', target: '', line: 'l4' })], world)).toEqual([]);
+    expect(checkPlan([step({ action: 'say', target: '' })], world)[0]?.message).toBe(
+      'A say block needs a value for words.',
+    );
   });
 
   it('finds a missing target, line or sketch', () => {
@@ -182,6 +211,56 @@ describe('mismatch (spec 04, section 6.4)', () => {
     expect(mismatch('insert_control', { kind: 'while' }, together)).not.toBeNull();
   });
 
+  it("reads a step whose target is its own actor as acting on nothing else (the first pilot's plans)", () => {
+    const glide = step({
+      action: 'move',
+      target: 'owl',
+      details: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: '2' },
+      ],
+    });
+    const call = {
+      target: 'owl',
+      procedure: 'move',
+      arguments: [
+        { name: 'direction', value: 'forward' },
+        { name: 'amount', value: '2' },
+      ],
+    };
+    expect(mismatch('insert_statement', call, glide)).toBeNull();
+    expect(targetOf(glide)).toBe('');
+    expect(targetOf(walk)).toBe('tree');
+  });
+
+  it('allows the do together for the step the next one runs together with', () => {
+    const first = step({ together: false });
+    const second = step({ actor: 'cat', together: true });
+    expect(mismatch('insert_control', { kind: 'doTogether' }, first, second)).toBeNull();
+    expect(mismatch('insert_control', { kind: 'doTogether' }, first, walk)).not.toBeNull();
+    expect(mismatch('insert_control', { kind: 'doTogether' }, first)).not.toBeNull();
+  });
+
+  it('says what differs, so Claude can build the step again', () => {
+    const edited = step({ action: 'move', target: '', details: [{ name: 'amount', value: '3' }] });
+    const move = { target: 'owl', procedure: 'move', arguments: [{ name: 'amount', value: '2' }] };
+    expect(mismatch('insert_statement', move, edited)).toMatch(/sets amount to 3/);
+    expect(mismatch('insert_statement', { ...move, procedure: 'turn' }, edited)).toMatch(
+      /is the owl's move block/,
+    );
+    expect(
+      mismatch('insert_statement', { target: 'owl', procedure: 'moveTo', arguments: [] }, walk),
+    ).toMatch(/acts on the tree: give tree as the block's object/);
+    expect(
+      mismatch(
+        'insert_statement',
+        { ...move, arguments: [{ name: 'amount', value: '3' }], line: 'l2' },
+        edited,
+      ),
+    ).toMatch(/says no script line/);
+    expect(mismatch('insert_control', { kind: 'doTogether' }, walk)).toMatch(/runs on its own/);
+  });
+
   it('matches adds, changes, events and staging to their steps', () => {
     const add = step({ kind: 'add', actor: 'fox', action: 'Quadruped/Fox/RedFox' });
     expect(
@@ -211,5 +290,81 @@ describe('mismatch (spec 04, section 6.4)', () => {
     expect(
       mismatch('insert_statement', { target: 'owl', procedure: 'moveTo' }, click),
     ).not.toBeNull();
+  });
+});
+
+describe('a plan that repeats several steps (spec 04, section 6.8)', () => {
+  const loop = (s: Partial<PlanStep> = {}): PlanStep =>
+    step({
+      words: 'Repeat 3 times:',
+      kind: 'repeat',
+      actor: '',
+      action: '',
+      target: '',
+      repeat: 3,
+      holds: 2,
+      why: 'You asked for three hops.',
+      ...s,
+    });
+  const messages = (steps: PlanStep[]) =>
+    checkPlan(steps, world).map((p) => `${p.step}: ${p.message}`);
+
+  it('passes a repeat holding the block steps after it', () => {
+    expect(messages([loop(), step({}), step({ target: 'cat' }), step({})])).toEqual([]);
+  });
+
+  it("refuses a repeat that can't run, or holds what it can't", () => {
+    expect(messages([loop({ repeat: 1 }), step({}), step({})])).toEqual([
+      '1: A repeat needs to run at least 2 times.',
+    ]);
+    expect(messages([loop({ holds: 0 }), step({})])).toEqual([
+      '1: A repeat needs at least one step inside it.',
+    ]);
+    expect(messages([loop({ holds: 3 }), step({}), step({})])).toEqual([
+      '1: This repeat holds more steps than come after it.',
+    ]);
+    expect(messages([loop({ actor: 'owl' }), step({}), step({})])).toEqual([
+      '1: A repeat step only says how many times, and which steps are inside.',
+    ]);
+    expect(messages([step({ holds: 1 }), step({})])).toEqual([
+      '1: Only a repeat step can hold other steps.',
+    ]);
+  });
+
+  it('holds only block steps, once each, and not at the same time as the repeat', () => {
+    expect(
+      messages([loop(), step({ kind: 'when', action: 'clickOnObject', target: '' }), step({})]),
+    ).toEqual(['2: A repeat can only hold steps that are blocks.']);
+    expect(messages([loop(), step({ repeat: 2 }), step({})])).toEqual([
+      "2: A step inside a repeat can't repeat on its own as well.",
+    ]);
+    expect(messages([loop(), step({ together: true }), step({})])).toEqual([
+      "2: The first step inside a repeat can't happen at the same time as the step before it.",
+    ]);
+    expect(messages([loop(), step({}), step({ together: true })])).toEqual([]);
+    expect(messages([loop(), loop({ holds: 1 }), step({})])).toEqual([
+      "2: A repeat can't go inside another repeat yet.",
+    ]);
+  });
+
+  it('builds a repeat as a count block with its times, and says so if asked for a block', () => {
+    expect(mismatch('insert_control', { kind: 'count', count: 3 }, loop())).toBeNull();
+    expect(mismatch('insert_control', { kind: 'count', count: 2 }, loop())).toMatch(
+      /repeats 3 times/,
+    );
+    expect(mismatch('insert_statement', { target: 'owl', procedure: 'moveTo' }, loop())).toMatch(
+      /is a repeat: build it as a count block with count 3/,
+    );
+  });
+});
+
+describe('a step with nobody or nothing to do', () => {
+  it('says so, now that the tool lets a repeat step leave them empty (6.8)', () => {
+    expect(checkPlan([step({ actor: '' })], world)).toEqual([
+      { step: 1, message: 'Say who does this step.' },
+    ]);
+    expect(checkPlan([step({ action: '' })], world)).toEqual([
+      { step: 1, message: 'Say what this step does.' },
+    ]);
   });
 });

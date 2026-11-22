@@ -1,0 +1,502 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+
+// Spec 14, section 7: the tile editor in a real browser. Keyboard paths and screen-reader names,
+// and axe with WCAG 2.2 AA at the three sizes S5's accessibility test uses (07-ux, section 1).
+
+const PAGE = 'http://localhost:4183/';
+const WCAG_22_AA = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'];
+/** Best-practice rules, outside the WCAG tags, that an open menu must also pass (S5's ask). */
+const MENU_RULES = ['aria-dialog-name'];
+
+/** Axe's serious and critical findings with a menu open: WCAG 2.2 AA, and MENU_RULES. */
+async function seriousWithMenuOpen(page: Page) {
+  const wcag = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  const menu = await new AxeBuilder({ page }).withRules(MENU_RULES).analyze();
+  return [...wcag.violations, ...menu.violations]
+    .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+    .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+}
+const SIZES = [
+  { name: 'laptop', width: 1536, height: 864 },
+  { name: 'Chromebook', width: 1366, height: 768 },
+  { name: 'iPad', width: 1180, height: 820 },
+] as const;
+
+async function open(page: Page) {
+  await page.goto(PAGE);
+  await expect(page.getByRole('tree', { name: 'When the scene starts' })).toBeVisible();
+}
+
+const item = (page: Page, name: string) => page.getByRole('treeitem', { name, exact: true });
+
+for (const size of SIZES) {
+  test(`axe finds no serious issues at ${size.name} size`, async ({ page }) => {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await open(page);
+    const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+    const serious = violations
+      .filter((v) => v.impact === 'serious' || v.impact === 'critical')
+      .map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+    expect(serious).toEqual([]);
+  });
+}
+
+test('every row and empty list is 44 px high or more', async ({ page }) => {
+  await open(page);
+  for (const row of await page.getByRole('treeitem').all()) {
+    const box = await row.boundingBox();
+    expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+  }
+});
+
+test('the keyboard reaches every row and pill, with focus always visible', async ({ page }) => {
+  await open(page);
+  await item(page, 'cat say Hello add detail').focus();
+  await expect(item(page, 'cat say Hello add detail')).toBeFocused();
+  await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowDown');
+  await expect(item(page, 'cat move forward 1 how long 2 add detail')).toBeFocused();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.locator('.tl-pill', { hasText: 'forward' })).toBeFocused();
+  const ring = await page.evaluate(() => getComputedStyle(document.activeElement!).boxShadow);
+  expect(ring).not.toBe('none');
+  await page.keyboard.press('End');
+  await expect(item(page, 'Now the cat looks around')).toBeFocused();
+});
+
+test('names rows by the words they show, and a switched-off row as switched off', async ({
+  page,
+}) => {
+  await open(page);
+  await expect(item(page, 'cat move forward 1 how long 2 add detail')).toBeVisible();
+  await expect(item(page, 'cat turn left 0.25 (switched off) add detail')).toBeVisible();
+  await expect(item(page, 'count up to 2')).toBeVisible();
+});
+
+test('highlights through the contract show on the row', async ({ page }) => {
+  await open(page);
+  await page.evaluate(() => {
+    const { editor } = (
+      window as unknown as {
+        tiles: { editor: { highlight(n: { node: string }[], k: string): void } };
+      }
+    ).tiles;
+    editor.highlight([{ node: 'countt' }], 'rehearse');
+  });
+  await expect(page.locator('li.tl-box', { has: item(page, 'count up to 2') })).toHaveClass(
+    /tl-hl-rehearse/,
+  );
+});
+
+const highlight = (page: Page, nodes: string[], kind: string) =>
+  page.evaluate(
+    ([n, k]) =>
+      (
+        window as unknown as {
+          tiles: { editor: { highlight(n: { node: string }[], k: string): void } };
+        }
+      ).tiles.editor.highlight(
+        (n as string[]).map((node) => ({ node })),
+        k as string,
+      ),
+    [nodes, kind] as const,
+  );
+
+test('the Prompter’s highlight wears the AI badge, and axe finds nothing', async ({ page }) => {
+  await open(page);
+  await highlight(page, ['saystm'], 'prompter');
+  await expect(item(page, 'cat say Hello add detail AI')).toHaveClass(/tl-hl-prompter/);
+  // An error's words beside a blue action tile, checked by axe in the same pass.
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        tiles: {
+          editor: { highlight(m: { node: string; message?: string }[], k: string): void };
+        };
+      }
+    ).tiles.editor.highlight([{ node: 'movest', message: 'That isn’t finished yet' }], 'error'),
+  );
+  await expect(page.locator('.tl-error-words')).toHaveText('That isn’t finished yet');
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+});
+
+test('Rehearse’s outline moves, and holds still for reduced motion', async ({ page }) => {
+  await open(page);
+  await highlight(page, ['saystm'], 'rehearse');
+  const animation = () =>
+    page.locator('[data-key="saystm"]').evaluate((e) => getComputedStyle(e).animationName);
+  expect(await animation()).toBe('tl-running');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  expect(await animation()).toBe('none');
+});
+
+// Editing (spec 14, 3c–3e), which needs real layout and real pointer events.
+
+/** The keys of the statements directly inside `do together`, in order. */
+const together = (page: Page) =>
+  page
+    .locator('[data-key="togeth"]')
+    .evaluate((header) =>
+      [...header.closest('li')!.querySelectorAll('[data-statement]')]
+        .map((e) => e.getAttribute('data-key'))
+        .filter((k) => k !== 'togeth'),
+    );
+
+test('dragging a statement by its grip shows the drop line, then moves it there', async ({
+  page,
+}) => {
+  await open(page);
+  const grip = (await page.locator('[data-key="saystm"] [data-grip]').boundingBox())!;
+  const turn = (await page.locator('[data-key="turnst"]').boundingBox())!;
+  await page.mouse.move(grip.x + 6, grip.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 60, grip.y + 60, { steps: 5 });
+  await page.mouse.move(turn.x + 200, turn.y + 8, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await expect(page.locator('.tl-drop-line')).toContainText('Drops here');
+  await page.mouse.up();
+  expect(await together(page)).toEqual(['movest', 'saystm', 'turnst']);
+});
+
+/** The keys of the method's own statements, in order. */
+const top = (page: Page) =>
+  page
+    .locator('[data-statement][aria-level="1"]')
+    .evaluateAll((rows) => rows.map((e) => e.getAttribute('data-key')));
+
+/** Drags `say` by its grip to a point, then lets go. */
+async function dragSay(page: Page, x: number, y: number) {
+  const grip = (await page.locator('[data-key="saystm"] [data-grip]').boundingBox())!;
+  await page.mouse.move(grip.x + 6, grip.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 60, grip.y + 60, { steps: 5 });
+  await page.mouse.move(x, y, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+}
+
+test('a statement dragged down its own list lands where the line showed', async ({ page }) => {
+  // S5's review of #167: a place counts the list as drawn, with the statement still in it.
+  await open(page);
+  expect(await top(page)).toEqual(['saystm', 'togeth', 'countt', 'ifstmt', 'notest']);
+  const branch = (await page.locator('[data-key="ifstmt"]').boundingBox())!;
+  await dragSay(page, branch.x + 200, branch.y + 6);
+  expect(await top(page)).toEqual(['togeth', 'countt', 'saystm', 'ifstmt', 'notest']);
+  // And to the very end, below the last statement, which was once refused.
+  const note = (await page.locator('[data-key="notest"]').boundingBox())!;
+  await dragSay(page, note.x + 200, note.y + note.height - 4);
+  expect(await top(page)).toEqual(['togeth', 'countt', 'ifstmt', 'notest', 'saystm']);
+});
+
+test('a drag let go somewhere nothing can go changes nothing', async ({ page }) => {
+  await open(page);
+  const grip = (await page.locator('[data-key="saystm"] [data-grip]').boundingBox())!;
+  await page.mouse.move(grip.x + 6, grip.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(grip.x + 400, grip.y + 700, { steps: 10 });
+  await page.mouse.up();
+  await expect(item(page, 'cat say Hello add detail')).toHaveAttribute('aria-posinset', '1');
+});
+
+test('moving by keyboard: Space, ↓, Space', async ({ page }) => {
+  await open(page);
+  await item(page, 'cat say Hello add detail').focus();
+  await page.keyboard.press('Space');
+  await page.keyboard.press('ArrowDown');
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.keyboard.press('Space');
+  expect(await together(page)).toEqual(['saystm', 'movest', 'turnst']);
+  await expect(item(page, 'cat say Hello add detail')).toBeFocused();
+});
+
+test('choosing a value from its menu, with axe finding nothing while it is open', async ({
+  page,
+}) => {
+  await open(page);
+  await page.locator('[data-key="movest"] .tl-pill', { hasText: 'forward' }).click();
+  const menu = page.getByRole('menu', { name: 'direction' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitemradio', { name: 'forward' })).toBeFocused();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await menu.getByRole('menuitemradio', { name: 'backward' }).click();
+  await expect(item(page, 'cat move backward 1 how long 2 add detail')).toBeVisible();
+});
+
+test('a typed number is checked before it goes in', async ({ page }) => {
+  await open(page);
+  await page.locator('[data-key="movest"] .tl-pill', { hasText: /^1$/ }).click();
+  await page.getByRole('menuitemradio', { name: 'Other number…' }).click();
+  const field = page.getByRole('textbox', { name: 'amount' });
+  await field.fill('far');
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('alert')).toHaveText(
+    'That isn’t a number. Type digits, like 2 or 0.5.',
+  );
+  await field.fill('3');
+  await page.keyboard.press('Enter');
+  await expect(item(page, 'cat move forward 3 how long 2 add detail')).toBeVisible();
+});
+
+// The palette and the control bar (spec 14, 3a and 2.3).
+
+async function chooseObject(page: Page, name: string) {
+  await page.getByRole('button', { name: /Blocks for/ }).click();
+  await page.getByRole('option', { name, exact: true }).click();
+}
+
+const last = (page: Page) =>
+  page.evaluate(() =>
+    (
+      window as unknown as { tiles: { host: { announcements: string[] } } }
+    ).tiles.host.announcements.at(-1),
+  );
+
+test('a block from the palette asks for each value, Enter taking the suggestion each time', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  await page.getByRole('option', { name: 'cat move ??? ???' }).click();
+  const direction = page.getByRole('menu', { name: 'direction' });
+  await expect(direction.getByRole('menuitemradio', { name: 'forward' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(
+    page
+      .getByRole('menu', { name: 'amount' })
+      .getByRole('menuitemradio', { name: '1', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await last(page)).toBe('Make cat move forward 1');
+  await expect(page.getByRole('treeitem', { name: 'cat move forward 1 add detail' })).toBeVisible();
+});
+
+test('Escape part way through leaves the program as it was', async ({ page }) => {
+  await open(page);
+  const before = await page.locator('[data-statement]').count();
+  await chooseObject(page, 'cat');
+  await page.getByRole('option', { name: 'cat move ??? ???' }).click();
+  await expect(page.getByRole('menu', { name: 'direction' })).toBeVisible();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('menu', { name: 'amount' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  expect(await last(page)).toBe('Nothing added');
+  await expect(page.locator('[data-statement]')).toHaveCount(before);
+});
+
+test('dragging a control block onto an empty list puts it there', async ({ page }) => {
+  await open(page);
+  const source = (await page.getByRole('button', { name: 'do together' }).first().boundingBox())!;
+  const empty = (await page
+    .getByRole('treeitem', { name: 'drop statement here, in if' })
+    .boundingBox())!;
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 40, source.y + 40, { steps: 5 });
+  await page.mouse.move(empty.x + 40, empty.y + empty.height / 2, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+  expect(await last(page)).toBe('Add do together');
+  await expect(page.getByRole('treeitem', { name: 'drop statement here, in if' })).toHaveCount(0);
+});
+
+test('dragging a block from the palette puts it where it is let go, after its values', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  const source = (await page.getByRole('option', { name: 'cat move ??? ???' }).boundingBox())!;
+  const count = (await page.getByRole('treeitem', { name: 'count up to 2' }).boundingBox())!;
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 60, source.y + 20, { steps: 5 });
+  await page.mouse.move(count.x + 100, count.y + 4, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+  await expect(
+    page.getByRole('menu', { name: 'direction' }).getByRole('menuitemradio', { name: 'forward' }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(
+    page
+      .getByRole('menu', { name: 'amount' })
+      .getByRole('menuitemradio', { name: '1', exact: true }),
+  ).toBeFocused();
+  await page.keyboard.press('Enter');
+  expect(await last(page)).toBe('Make cat move forward 1');
+  const rows = await page
+    .locator('[data-statement][aria-level="1"]')
+    .evaluateAll((els) =>
+      els.map((e) => e.getAttribute('aria-label') ?? e.textContent?.replace(/\s+/g, ' ').trim()),
+    );
+  expect(rows.findIndex((r) => r?.startsWith('cat move forward 1'))).toBe(
+    rows.findIndex((r) => r?.startsWith('count up to 2')) - 1,
+  );
+});
+
+test('adding an event opens it in a tab of its own', async ({ page }) => {
+  await open(page);
+  await page.getByRole('button', { name: 'add event' }).click();
+  await page.getByRole('menuitem', { name: 'when the screen is clicked' }).click();
+  await expect(page.getByRole('tab', { name: 'when the screen is clicked' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await expect(page.getByRole('tree', { name: 'when the screen is clicked' })).toBeVisible();
+});
+
+// The variable and set tiles (spec 14, 2.3).
+
+test('a variable by keyboard: its name, what it holds, then what it starts as, axe clean', async ({
+  page,
+}) => {
+  await open(page);
+  // After the first statement, so it and the set dragged under it stay in view.
+  await page.getByRole('treeitem', { name: /^cat say Hello/ }).focus();
+  await page.getByRole('button', { name: 'variable', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'A new variable' });
+  const name = dialog.getByRole('textbox', { name: 'Its name' });
+  await expect(name).toBeFocused();
+  const { violations } = await new AxeBuilder({ page }).withTags(WCAG_22_AA).analyze();
+  expect(violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')).toEqual([]);
+  await page.keyboard.type('steps');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('ArrowDown');
+  await expect(dialog.getByRole('radio', { name: 'a whole number' })).toBeChecked();
+  await page.keyboard.press('Enter');
+  const start = page.getByRole('menu', { name: 'steps' });
+  await expect(start).toBeVisible();
+  await start.getByRole('menuitemradio', { name: '2', exact: true }).click();
+  await expect(page.getByRole('treeitem', { name: /^steps starts as 2/ })).toBeVisible();
+  // Then set, dragged under it: which variable, then its new value.
+  const made = page.getByRole('treeitem', { name: /^steps starts as 2/ });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const source = (await page.getByRole('button', { name: 'set', exact: true }).boundingBox())!;
+  const row = (await made.boundingBox())!;
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 40, source.y + 40, { steps: 5 });
+  await page.mouse.move(row.x + 40, row.y + row.height - 4, { steps: 10 });
+  await expect(page.locator('.tl-drop-line')).toBeVisible();
+  await page.mouse.up();
+  await page
+    .getByRole('menu', { name: 'Which variable to set' })
+    .getByRole('menuitem', { name: 'steps' })
+    .click();
+  await page.getByRole('menu').getByRole('menuitemradio', { name: '3', exact: true }).click();
+  await expect(page.getByRole('treeitem', { name: /^set steps to 3/ })).toBeVisible();
+});
+
+for (const size of SIZES)
+  test(`every control tile is on screen and big enough to touch at ${size.name} size`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: size.width, height: size.height });
+    await open(page);
+    // The bar may wrap where the font is wider (fonts differ by system); nothing may be cut off.
+    const boxes = await page
+      .getByRole('toolbar', { name: 'Control blocks' })
+      .getByRole('button')
+      .evaluateAll((buttons) =>
+        buttons.map((b) => {
+          const r = b.getBoundingClientRect();
+          return { left: r.left, right: r.right, height: r.height };
+        }),
+      );
+    expect(boxes).toHaveLength(10);
+    for (const box of boxes) {
+      expect(box.left).toBeGreaterThanOrEqual(0);
+      expect(box.right).toBeLessThanOrEqual(size.width);
+      expect(box.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+
+test('the add-detail menu is named, with axe finding nothing while it is open', async ({
+  page,
+}) => {
+  await open(page);
+  await page
+    .locator('[data-key="saystm"]')
+    .getByRole('button', { name: 'add detail', exact: true })
+    .click();
+  await expect(page.getByRole('menu', { name: 'add detail' })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'add detail' })).toBeAttached();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('menu')).toHaveCount(0);
+});
+
+// A row's menu (spec 14, 2.6 and 3c.7): right-click, a long press by touch, or the Menu key.
+
+test('a right-click opens the row’s menu, named and axe clean, and its choice is one step', async ({
+  page,
+}) => {
+  await open(page);
+  await page.locator('[data-key="saystm"]').click({ button: 'right', position: { x: 60, y: 20 } });
+  const menu = page.getByRole('menu', { name: 'Menu for cat say' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('menuitem').first()).toBeFocused();
+  expect(await seriousWithMenuOpen(page)).toEqual([]);
+  await menu.getByRole('menuitem', { name: 'Switch off' }).click();
+  await expect(item(page, 'cat say Hello (switched off) add detail')).toBeVisible();
+  expect(await last(page)).toBe('Switch off cat say Hello');
+});
+
+test('a long press by touch opens the row’s menu; Escape closes it with nothing changed', async ({
+  page,
+}) => {
+  await open(page);
+  const row = page.locator('[data-key="saystm"]');
+  const box = (await row.boundingBox())!;
+  const at = {
+    pointerType: 'touch',
+    isPrimary: true,
+    button: 0,
+    clientX: box.x + 60,
+    clientY: box.y + 20,
+  };
+  await row.dispatchEvent('pointerdown', at);
+  await page.waitForTimeout(650);
+  await row.dispatchEvent('pointerup', at);
+  const menu = page.getByRole('menu', { name: 'Menu for cat say' });
+  await expect(menu).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await expect(item(page, 'cat say Hello add detail')).toBeVisible();
+});
+
+test('a question dragged from the palette goes into a value that takes it, and nowhere else', async ({
+  page,
+}) => {
+  await open(page);
+  await chooseObject(page, 'cat');
+  await page.getByRole('tab', { name: 'Questions' }).click();
+  const source = (await page.getByRole('option', { name: 'cat distance to ???' }).boundingBox())!;
+  const amount = page.locator('[data-place="movest/args/amount"]');
+  const hello = page.locator('[data-place="saystm/args/text"]');
+  await page.mouse.move(source.x + 10, source.y + 10);
+  await page.mouse.down();
+  await page.mouse.move(source.x + 60, source.y + 20, { steps: 5 });
+  // Words don't take a distance: no outline there, and no drop line anywhere.
+  const words = (await hello.boundingBox())!;
+  await page.mouse.move(words.x + 8, words.y + 8, { steps: 10 });
+  await page.waitForTimeout(150);
+  await expect(page.locator('.tl-drop-target')).toHaveCount(0);
+  await expect(page.locator('.tl-drop-line')).toHaveCount(0);
+  // A number does.
+  const box = (await amount.boundingBox())!;
+  await page.mouse.move(box.x + 8, box.y + 8, { steps: 10 });
+  await expect(amount).toHaveClass(/tl-drop-target/);
+  await page.mouse.up();
+  await expect(page.locator('.tl-drop-target')).toHaveCount(0);
+  // Then its own value is asked for, as when it's put in by keyboard.
+  await page
+    .getByRole('menu', { name: 'the other one' })
+    .getByRole('menuitem', { name: 'chair' })
+    .click();
+  expect(await last(page)).toBe('Change 1 to cat distance to chair in cat move');
+  await expect(
+    item(page, 'cat move forward cat distance to chair how long 2 add detail'),
+  ).toBeVisible();
+});

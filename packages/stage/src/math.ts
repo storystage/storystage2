@@ -6,6 +6,16 @@ export const add = (a: Vec3, b: Vec3) => v(a.x + b.x, a.y + b.y, a.z + b.z);
 export const sub = (a: Vec3, b: Vec3) => v(a.x - b.x, a.y - b.y, a.z - b.z);
 export const scale = (a: Vec3, k: number) => v(a.x * k, a.y * k, a.z * k);
 export const length = (a: Vec3) => Math.hypot(a.x, a.y, a.z);
+export const dot = (a: Vec3, b: Vec3) => a.x * b.x + a.y * b.y + a.z * b.z;
+export const cross = (a: Vec3, b: Vec3) =>
+  v(a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x);
+/** Multiplies each part: a size by a scale. */
+export const times = (a: Vec3, b: Vec3) => v(a.x * b.x, a.y * b.y, a.z * b.z);
+/** A unit vector the same way as `a`, or null if `a` is too short to have a way. */
+export function unit(a: Vec3): Vec3 | null {
+  const len = length(a);
+  return len < 1e-9 ? null : scale(a, 1 / len);
+}
 
 export const IDENTITY_Q: Quat = { x: 0, y: 0, z: 0, w: 1 };
 
@@ -41,6 +51,46 @@ export function rotate(q: Quat, p: Vec3): Vec3 {
     iy * q.w + iw * -q.y + iz * -q.x - ix * -q.z,
     iz * q.w + iw * -q.z + ix * -q.y - iy * -q.x,
   );
+}
+
+/**
+ * The rotation `q` as an axis and an amount in turns, the short way round, so that
+ * `axisTurns(axis, turns)` gives `q` back.
+ */
+export function toAxisTurns(q: Quat): { axis: Vec3; turns: number } {
+  const k = q.w < 0 ? -1 : 1;
+  const w = Math.min(1, q.w * k);
+  const s = Math.sqrt(1 - w * w);
+  if (s < 1e-9) return { axis: v(0, 1, 0), turns: 0 };
+  return { axis: v((q.x * k) / s, (q.y * k) / s, (q.z * k) / s), turns: Math.acos(w) / Math.PI };
+}
+
+/**
+ * The rotation that makes something's +Z point along `forward` and its +Y as near `up` as it
+ * can. Null if `forward` has no length or runs along `up`.
+ */
+export function lookRotation(forward: Vec3, up: Vec3): Quat | null {
+  const z = unit(forward);
+  if (!z) return null;
+  const x = unit(cross(up, z));
+  if (!x) return null;
+  const y = cross(z, x);
+  // From the rotation matrix whose columns are x, y and z.
+  const trace = x.x + y.y + z.z;
+  if (trace > 0) {
+    const s = 0.5 / Math.sqrt(trace + 1);
+    return { w: 0.25 / s, x: (y.z - z.y) * s, y: (z.x - x.z) * s, z: (x.y - y.x) * s };
+  }
+  if (x.x > y.y && x.x > z.z) {
+    const s = 2 * Math.sqrt(1 + x.x - y.y - z.z);
+    return { w: (y.z - z.y) / s, x: 0.25 * s, y: (y.x + x.y) / s, z: (z.x + x.z) / s };
+  }
+  if (y.y > z.z) {
+    const s = 2 * Math.sqrt(1 + y.y - x.x - z.z);
+    return { w: (z.x - x.z) / s, x: (y.x + x.y) / s, y: 0.25 * s, z: (z.y + y.z) / s };
+  }
+  const s = 2 * Math.sqrt(1 + z.z - x.x - y.y);
+  return { w: (x.y - y.x) / s, x: (z.x + x.z) / s, y: (z.y + y.z) / s, z: 0.25 * s };
 }
 
 /** Heading in turns about +Y: 0 faces +Z, 0.25 faces +X. */

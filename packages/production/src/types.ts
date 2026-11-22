@@ -17,11 +17,14 @@ import {
   type Problem,
   type Program,
   type TypeDecl,
+  type TypeRef,
 } from '@storystage/ast';
 import type { BackstageItem, Facing } from '@storystage/backstage';
+import type { CastVoice } from './voices.ts';
 import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
+import { SOUND_LIMITS, SOUND_TYPES } from './sound.ts';
 
-export const FORMAT_VERSION = '1.0.0';
+export const FORMAT_VERSION = '1.9.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -51,8 +54,68 @@ export const ZIP_LAYOUT = {
   script: 'script.fountain',
   frame: (id: FrameId) => `frames/${id}.json`,
   audio: 'audio/',
+  sounds: 'sounds/',
   model: (folder: string, file: string) => `models/${folder}/${file}`,
 } as const;
+
+/**
+ * A sound file the learner imported (format 1.9.0, spec 03 section 1.7; decision 0076): kept in
+ * `sounds/` as it was picked, never encoded again, with the part of it the film uses.
+ */
+export interface SoundClip {
+  /** Its id, safe as a file name (`SAFE_ID`), such as `sn1`. */
+  readonly id: string;
+  /** `<id>.mp3`, `<id>.wav` or `<id>.m4a` in `sounds/`, by the type its first bytes show. */
+  readonly file: string;
+  /** The learner's name for it. */
+  readonly label: string;
+  /** The whole file's length in seconds, as the device decoded it on import. */
+  readonly length: number;
+  /** The file's size in bytes, for the production's limit. */
+  readonly bytes: number;
+  /** The part the film uses, in seconds into the file, set once on import. */
+  readonly trim: { readonly start: number; readonly end: number };
+}
+
+/**
+ * A sound the film plays: an imported clip's `id`, or a sound's Backstage id from the shelf
+ * (which has slashes in it, so the two never meet). A shelf sound isn't packed, as a shipped
+ * model isn't.
+ */
+export type SoundRef = string;
+
+/** The three tracks' volumes, each from 0 to 1 (format 1.9.0). The export lowers music under speech. */
+export interface SoundMix {
+  readonly speech: number;
+  readonly music: number;
+  readonly effects: number;
+}
+
+/**
+ * Music placed on a scene's Sound view timeline (format 1.9.0, spec 03 section 2.3). The music
+ * track plays one cue at a time: a later cue takes over from an earlier one with a crossfade
+ * (`MUSIC_CROSSFADE_SECONDS`), in its scene or, for one that carries on, in a later one.
+ */
+export interface MusicCue {
+  readonly sound: SoundRef;
+  /** Seconds from the scene's start. It may be past the scene's end: only a Rehearse run knows. */
+  readonly start: number;
+  /** The part it plays, in the trimmed clip's own time: 0 is the trim's start. */
+  readonly from: number;
+  readonly to: number;
+  /** Seconds. */
+  readonly fadeIn: number;
+  readonly fadeOut: number;
+  /** Plays `from` to `to` again until the scene ends or another cue takes over. */
+  readonly loop: boolean;
+  /** From 0 to 1, on top of the music track's. */
+  readonly volume: number;
+  /**
+   * Plays on into the next scenes, over the cuts, until another cue starts (the owner's choice
+   * of 21 Nov 2026), crossfading there.
+   */
+  readonly carriesOn: boolean;
+}
 
 /** A class-imported model carried in the file (decision 0049, spec section 1.3). */
 export interface PackedModel {
@@ -87,6 +150,21 @@ export interface ProductionManifest {
   }[];
   /** Every class-imported model the production uses. Shipped models are never here. */
   readonly models: readonly PackedModel[];
+  /**
+   * Names the learners chose for the film's end credits (WP11.4), in their order. Optional. The
+   * learners' own words, in a film they'll share (spec section 1.1). Format 1.1.0.
+   */
+  readonly credits?: { readonly names: readonly string[] };
+  /**
+   * Each character's speak-line voice, by the name of its set-up objects (their field name, as
+   * written), so every object of that name in any scene speaks with it (spec 06 section 4.3,
+   * `voices.ts`). Optional. Format 1.4.0. A voice that doesn't fit is dropped when the file opens.
+   */
+  readonly voices?: Readonly<Record<string, CastVoice>>;
+  /** Sound files the learner imported, in `sounds/`. Optional. Format 1.9.0. */
+  readonly sounds?: readonly SoundClip[];
+  /** The tracks' volumes; `SOUND_MIX_DEFAULT` when there's none. Optional. Format 1.9.0. */
+  readonly mix?: SoundMix;
 }
 
 /** Arc templates (WP10.2): free, 3-part, 5-part, or a curriculum template by id (WP16). */
@@ -100,6 +178,11 @@ export interface SceneCard {
   readonly cast: readonly (BackstageId | StandIn)[];
   /** Which part of the arc it belongs to, by the template's part name. */
   readonly arcPart: string | null;
+  /**
+   * Notes for retakes, written in the Screening room (WP11.2) and shown there again. Optional; the
+   * learner's own words, up to a caption's length. Format 1.1.0.
+   */
+  readonly retakeNotes?: string;
 }
 
 /** `storyboard.json`. */
@@ -147,6 +230,123 @@ export interface Frame {
   readonly sketches: readonly PlacedSketch[];
   /** The blocks this frame is linked to. */
   readonly links: readonly NodeId[];
+  /**
+   * The frame's latest automatic check against the storyboard (spec 08 section 9.6, S2's
+   * `@storystage/check`), with the flags the learner kept. Format 1.3.0. Only a cached result:
+   * one that doesn't fit its shape is dropped when the file opens, never refused.
+   */
+  readonly check?: FrameCheck;
+  /**
+   * The plan the learner agreed with the Prompter for this frame (spec 04 section 6.7): as the
+   * Prompter proposed it and as the learner built it, so a teacher can see what was changed.
+   * Format 1.6.0. Kept with the frame, never in the program; a record, so later edits to the
+   * blocks leave it as it was. One that doesn't fit its shape is dropped when the file opens.
+   */
+  readonly plan?: FramePlan;
+}
+
+/** The kinds of plan step (spec 04 section 6.2; `repeat`, section 6.8 and format 1.8.0). */
+export const PLAN_STEP_KINDS = ['do', 'add', 'change', 'when', 'stage', 'repeat'] as const;
+export type PlanStepKind = (typeof PLAN_STEP_KINDS)[number];
+
+/**
+ * One step of a plan (spec 04 section 6.2, S7's): its 12 plain fields (`holds`, format 1.8.0).
+ * The Prompter's own type is this one, or the same shape: the format keeps it, so it lives here.
+ */
+export interface PlanStep {
+  /** The step in plain words. */
+  readonly words: string;
+  readonly kind: PlanStepKind;
+  /** An object's name, or `scene` for `stage`. */
+  readonly actor: string;
+  /** A Story API procedure, a Backstage id, a property, an event kind or a scene id, by kind. */
+  readonly action: string;
+  /** The object or marker it acts on, or `""`. */
+  readonly target: string;
+  readonly details: readonly { readonly name: string; readonly value: string }[];
+  /** A script line id, or `""`. */
+  readonly line: string;
+  /** A placed sketch id, or `""`. */
+  readonly sketch: string;
+  /** Runs at the same time as the step before it. */
+  readonly together: boolean;
+  /** Times to run; 1 for once. For a `repeat` step, how many times the steps it holds run, from 2. */
+  readonly repeat: number;
+  /**
+   * For a `repeat` step (format 1.8.0, spec 04 section 6.8), how many of the steps right after it
+   * it repeats, from 1, as a count block holds the blocks under it; 0 on every other step.
+   */
+  readonly holds: number;
+  /** One sentence. */
+  readonly why: string;
+}
+
+/** A frame's agreed plan (format 1.6.0; `done`, 1.7.0). */
+export interface FramePlan {
+  /**
+   * When the learner pressed Build these steps, or in Plan only when code first ticked a step
+   * off: an ISO 8601 time, in UTC.
+   */
+  readonly agreedAt: string;
+  /** The steps as the Prompter proposed them. */
+  readonly shown: readonly PlanStep[];
+  /** The steps as the learner agreed and built them. */
+  readonly agreed: readonly PlanStep[];
+  /**
+   * Plan only (format 1.7.0, spec 04 section 6.6): the steps code has ticked off because what the
+   * learner built matches them, by number from 1, ascending, each once, none past `agreed`. It
+   * follows the code, so an undone block takes its tick back, and may be empty. Present, even
+   * empty, it marks a plan the learner built themselves; a plan the Prompter built has none.
+   */
+  readonly done?: readonly number[];
+}
+
+/** What a check compares (spec 08 section 9.4). */
+export const CHECK_KINDS = [
+  'onScreen',
+  'offCamera',
+  'position',
+  'order',
+  'facing',
+  'shot',
+  'line',
+  'length',
+  'problem',
+  'missing',
+] as const;
+export type CheckKind = (typeof CHECK_KINDS)[number];
+
+/** A note is never a flag (spec 08 section 9.4). */
+export const CHECK_OUTCOMES = ['passed', 'flag', 'note'] as const;
+export type CheckOutcome = (typeof CHECK_OUTCOMES)[number];
+
+/** One line of a frame's checklist (spec 08 sections 9.5 and 9.6). */
+export interface CheckItem {
+  /** Stable across runs, such as `onScreen:owl` or `line:<lineId>`; unique in the frame. */
+  readonly id: string;
+  readonly kind: CheckKind;
+  readonly outcome: CheckOutcome;
+  /**
+   * In plain words, for the checklist. From a file, so untrusted: drawn as plain text, and never
+   * given to the Prompter as instructions.
+   */
+  readonly words: string;
+  /** The block, sketch or script line the item is about. A stale result may name one since gone. */
+  readonly node?: NodeId;
+  readonly sketch?: string;
+  readonly line?: LineId;
+}
+
+/** A frame's saved check (spec 08 section 9.6). */
+export interface FrameCheck {
+  /**
+   * A hash of what the result depends on, made by `@storystage/check`. When it no longer
+   * matches, the result is stale: it still shows, but the frame isn't Checked.
+   */
+  readonly basis: string;
+  readonly items: readonly CheckItem[];
+  /** The `id`s of the flags the learner chose to keep. */
+  readonly kept: readonly string[];
 }
 
 /** `scenes/<id>.json`: how a scene starts, and the method that runs it (WP8.2). */
@@ -155,6 +355,8 @@ export interface Scene {
   readonly setup: SceneSetup;
   /** The scene's script method in `program.json`. */
   readonly method: NodeId;
+  /** Music on the scene's Sound view timeline, by start. Optional. Format 1.9.0. */
+  readonly music?: readonly MusicCue[];
 }
 
 /** A whole production in memory, as read from or written to a `.storystage` file. */
@@ -170,6 +372,7 @@ export interface Production {
 /** Each scene's script method, the type holding it and the problems with it (spec section 2). */
 function checkSceneTypes(p: Production, problems: string[]): void {
   const index = indexProgram(p.program);
+  const types = new Map(p.program.types.map((t) => [t.id, t]));
   const owners = new Map<string, SceneId>();
   for (const scene of p.scenes) {
     const at = index.get(scene.method);
@@ -185,12 +388,38 @@ function checkSceneTypes(p: Production, problems: string[]): void {
     const owner = owners.get(type.id);
     if (owner) problems.push(`Scenes ${owner} and ${scene.id} share a type.`);
     owners.set(type.id, scene.id);
-    checkObjects(scene, type, problems);
+    checkObjects(scene, type, types, problems);
   }
 }
 
+/**
+ * The Story API class a field's type comes down from: its own name for a story type, or for a
+ * learner's class (`Penguin extends Animal`, decision 0074) the story type its `extends` reach,
+ * by node id. Null when a type it names is missing or the chain goes round, which the program's
+ * own check reports; undefined for a list, which no set-up object is.
+ */
+export function storyAncestor(
+  ref: TypeRef,
+  types: ReadonlyMap<NodeId, TypeDecl>,
+): string | null | undefined {
+  const seen = new Set<NodeId>();
+  let at: TypeRef = ref;
+  while (at.kind === 'user') {
+    const type = types.get(at.type);
+    if (!type || seen.has(at.type)) return null;
+    seen.add(at.type);
+    at = type.extends;
+  }
+  return at.kind === 'story' ? at.name : undefined;
+}
+
 /** The scene's objects and its fields with no value of their own have to match. */
-function checkObjects(scene: Scene, type: TypeDecl, problems: string[]): void {
+function checkObjects(
+  scene: Scene,
+  type: TypeDecl,
+  types: ReadonlyMap<NodeId, TypeDecl>,
+  problems: string[],
+): void {
   const fields = new Map(
     type.fields.filter((f) => f.initial === null && f.name !== 'camera').map((f) => [f.name, f]),
   );
@@ -201,9 +430,15 @@ function checkObjects(scene: Scene, type: TypeDecl, problems: string[]): void {
       continue;
     }
     fields.delete(object.id);
-    if (field.type.kind === 'story' && field.type.name !== object.class)
+    // A field of a learner's class is checked by the story class it comes down from (S6, 0074).
+    const ancestor = storyAncestor(field.type, types);
+    if (ancestor === null)
       problems.push(
-        `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${field.type.name} in code.`,
+        `Scene ${scene.id}: ${object.id}'s type in code doesn't come down from a Story API class.`,
+      );
+    else if (ancestor !== undefined && ancestor !== object.class)
+      problems.push(
+        `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${ancestor} in code.`,
       );
   }
   for (const name of fields.keys())
@@ -278,8 +513,56 @@ export function checkReferences(p: Production): string[] {
     if (a.file.includes('/') || a.file.includes('\\') || a.file.startsWith('.'))
       problems.push(`Audio file name ${a.file} must be a plain name inside audio/.`);
   checkModels(p.manifest.models, problems);
+  checkSounds(p, problems);
   return problems;
 }
+
+/**
+ * Imported sounds and scene music (format 1.9.0): safe ids, one of each, a file named by its id
+ * and type, a trim within the file, the limits, and every cue's sound and part within its clip.
+ * A shelf sound's id is only checked for its form: the shelf judges whether it has it, and one it
+ * lacks plays as silence, as a missing model shows as a stand-in.
+ */
+function checkSounds(p: Production, problems: string[]): void {
+  const clips = new Map<string, SoundClip>();
+  const sounds = p.manifest.sounds ?? [];
+  if (sounds.length > SOUND_LIMITS.clips)
+    problems.push(`The film has more than ${SOUND_LIMITS.clips} imported sounds.`);
+  let total = 0;
+  for (const clip of sounds) {
+    if (!SAFE_ID.test(clip.id)) problems.push(`Sound id ${clip.id} is not safe as a file name.`);
+    if (clips.has(clip.id)) problems.push(`Two sounds have the id ${clip.id}.`);
+    clips.set(clip.id, clip);
+    if (!Object.keys(SOUND_TYPES).some((type) => clip.file === `${clip.id}.${type}`))
+      problems.push(`Sound ${clip.id}'s file should be ${clip.id}.mp3, .wav or .m4a.`);
+    if (!(clip.length > 0 && clip.length <= SOUND_LIMITS.seconds))
+      problems.push(`Sound ${clip.id} should be up to ${SOUND_LIMITS.seconds} seconds long.`);
+    if (!(clip.trim.start >= 0 && clip.trim.start < clip.trim.end && clip.trim.end <= clip.length))
+      problems.push(`Sound ${clip.id}'s trim should be a part of the file.`);
+    if (!(Number.isInteger(clip.bytes) && clip.bytes > 0 && clip.bytes <= SOUND_LIMITS.fileBytes))
+      problems.push(`Sound ${clip.id} should be up to ${SOUND_LIMITS.fileBytes} bytes.`);
+    total += clip.bytes;
+  }
+  if (total > SOUND_LIMITS.totalBytes)
+    problems.push(`The film's imported sounds come to more than ${SOUND_LIMITS.totalBytes} bytes.`);
+  for (const scene of p.scenes) {
+    const music = scene.music ?? [];
+    if (music.length > SOUND_LIMITS.cues)
+      problems.push(`Scene ${scene.id} has more than ${SOUND_LIMITS.cues} music cues.`);
+    music.forEach((cue, i) => {
+      const at = `Scene ${scene.id}'s music cue ${i + 1}`;
+      const clip = clips.get(cue.sound);
+      if (!clip && !SHELF_SOUND.test(cue.sound))
+        problems.push(`${at} plays ${cue.sound}, which isn't an imported sound or a shelf id.`);
+      const span = clip ? clip.trim.end - clip.trim.start : Infinity;
+      if (!(cue.from >= 0 && cue.from < cue.to && cue.to <= span))
+        problems.push(`${at} should play a part of its sound, within its trim.`);
+    });
+  }
+}
+
+/** A sound's Backstage id: `source/Class/name`. */
+const SHELF_SOUND = /^[a-z0-9-]+\/[A-Za-z]+\/[a-z0-9-]+$/;
 
 /** Packed models: safe folders, one of each, imported only, files inside their folder. */
 function checkModels(models: readonly PackedModel[], problems: string[]): void {

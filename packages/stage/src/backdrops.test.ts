@@ -1,6 +1,13 @@
 import { StageError, backstageId } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
-import { BACKDROP_TEMPLATES, GROUND_TYPES, fogDensity, resolveBackdrop } from './backdrops.ts';
+import {
+  BACKDROP_TEMPLATES,
+  GROUND_TYPES,
+  PICTURE_SKY_TYPES,
+  fogDensity,
+  groundLook,
+  resolveBackdrop,
+} from './backdrops.ts';
 
 const template = (id: string) => {
   const found = BACKDROP_TEMPLATES.find((t) => t.id === id);
@@ -28,6 +35,12 @@ describe('backdrops', () => {
     expect(moon.sky.atmosphere).toEqual({ r: 0.11, g: 0.133, b: 0.178 });
     expect(moon.lighting.below).toEqual({ r: 0, g: 0.118, b: 0.396 });
     expect(template('amazon').lighting.above).toEqual({ r: 0.341, g: 0.576, b: 1 });
+  });
+
+  it("gives each ground's look on screen, for its texture to match (spec 17 section 2)", () => {
+    expect(groundLook(backstageId('storystage/Ground/grass'))).toBe('#5f9e3a');
+    expect(groundLook(backstageId('storystage/Ground/nowhere'))).toBeNull();
+    for (const id of GROUND_TYPES) expect(groundLook(id), id).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it('cubes the fog value, as Alice does, so small values stay subtle', () => {
@@ -71,6 +84,24 @@ describe('backdrops', () => {
       expect(error).toBeInstanceOf(StageError);
       expect((error as StageError).code).toBe('unknown_model');
     }
+  });
+
+  it('has the picture skies, each with a lighting of its name (spec 17 §2)', () => {
+    expect(PICTURE_SKY_TYPES.map(String)).toEqual([
+      'storystage/Sky/clearDay',
+      'storystage/Sky/cloudy',
+      'storystage/Sky/sunset',
+      'storystage/Sky/night',
+    ]);
+    for (const sky of PICTURE_SKY_TYPES) {
+      const lighting = backstageId(sky.replace('/Sky/', '/Lighting/'));
+      const b = resolveBackdrop({ sky, lighting });
+      expect(b.sky.picture, sky).toBe(true);
+      expect(b.ids).toEqual({ ground: null, sky });
+    }
+    // Alice's template skies stay colours.
+    for (const t of BACKDROP_TEMPLATES)
+      expect(resolveBackdrop(t.backdrop).sky.picture).toBeUndefined();
   });
 
   it("lists every ground, with Alice's surfaces all there", () => {

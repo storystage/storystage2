@@ -304,6 +304,21 @@ describe('choices', () => {
     expect(checkProgram(programWith(body()), { jointExists: () => true })).toEqual([]);
     expect(checkProgram(programWith(body()))).toEqual([]);
   });
+
+  it('asks the production about scenes, when it’s given', () => {
+    const body = () => [
+      call(self(), 'goToScene', { scene: text('Beach') }),
+      call(self(), 'crossfade', { scene: text('Night') }),
+    ];
+    const sceneExists = (scene: string) => scene === 'Night';
+    const problems = checkProgram(programWith(body()), { sceneExists });
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      name: 'scene',
+      reason: 'There’s no scene called Beach. Choose another one.'.replace('’', "'"),
+    });
+    expect(checkProgram(programWith(body()))).toEqual([]);
+  });
 });
 
 describe('types', () => {
@@ -555,5 +570,44 @@ describe('plain words', () => {
       expect(p.reason).toBeTruthy();
       expect(p.reason).not.toMatch(/\{\w+\}/);
     }
+  });
+});
+
+describe('checking only some methods (canDrop, spec 14 3h)', () => {
+  it('finds the problems in the methods named, and none elsewhere', () => {
+    const bad = () => call(field(PROP), 'walkTo', { target: cat() });
+    const other = method('other', [bad()]);
+    const program = programWith([bad()], { methods: [other] });
+    const main = program.types[0]!.methods[0]!.id;
+    expect(checkProgram(program)).toHaveLength(2);
+    expect(checkProgram(program, {}, new Set([main]))).toHaveLength(1);
+    expect(checkProgram(program, {}, new Set([other.id]))[0]?.node).toBe(other.body[0]!.id);
+    expect(checkProgram(program, {}, new Set())).toEqual([]);
+  });
+
+  it('checks just a statement named, and what’s inside it', () => {
+    const bad = () => call(field(PROP), 'walkTo', { target: cat() });
+    const first = bad();
+    const program = programWith([first, call(cat(), 'move', move()), bad()]);
+    expect(checkProgram(program)).toHaveLength(2);
+    expect(checkProgram(program, {}, new Set([first.id])).map((p) => p.node)).toEqual([first.id]);
+    expect(checkProgram(program, {}, new Set([program.types[0]!.methods[0]!.body[1]!.id]))).toEqual(
+      [],
+    );
+  });
+
+  it('checks a return named against the function it’s in', () => {
+    const wrong = { id: id(), kind: 'return', value: text('no') } as Statement;
+    const answer = method('answer', [wrong], story('Number'));
+    const program = programWith([], { methods: [answer] });
+    expect(checkProgram(program, {}, new Set([wrong.id]))).toHaveLength(1);
+  });
+
+  it('checks a function’s returns only when it’s named', () => {
+    const wrong = { id: id(), kind: 'return', value: text('no') } as Statement;
+    const answer = method('answer', [wrong], story('Number'));
+    const program = programWith([], { methods: [answer] });
+    expect(checkProgram(program, {}, new Set([answer.id]))).toHaveLength(1);
+    expect(checkProgram(program, {}, new Set([program.types[0]!.methods[0]!.id]))).toEqual([]);
   });
 });

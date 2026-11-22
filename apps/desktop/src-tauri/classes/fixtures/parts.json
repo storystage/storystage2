@@ -1,0 +1,43 @@
+{
+  "description": "Path parts for pupil folders (spec 05 section 6.1). Tested from both sides: packages/host's isSafePart and storystage-classes' is_safe_part.",
+  "safe": [
+    "class.json",
+    "meta.json",
+    "pupil-abc123def456",
+    "production-x1y2z3",
+    "v-mh2k1x0-abc123def456.storystage",
+    "original.storystage",
+    "0",
+    "a_b-c.d",
+    "console",
+    "nul2",
+    "comx",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  "unsafe": [
+    "",
+    ".",
+    "..",
+    ".hidden",
+    "-x",
+    "_x",
+    "A",
+    "Class.json",
+    "a/b",
+    "a\\b",
+    "a:b",
+    "a b",
+    "zoë",
+    "x.",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "con",
+    "con.json",
+    "nul",
+    "aux.storystage",
+    "prn",
+    "com1",
+    "com9.txt",
+    "lpt1",
+    "lpt9"
+  ]
+}

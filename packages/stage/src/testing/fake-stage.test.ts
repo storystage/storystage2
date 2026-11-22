@@ -1,9 +1,18 @@
-import { StageError, backstageId, jointName, micros, objectId } from '@storystage/story-api';
+import {
+  CAMERA,
+  StageError,
+  backstageId,
+  jointName,
+  micros,
+  objectId,
+} from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { SETUP, cmd, describeStageContract } from './conformance.ts';
+import { describeEditableStageContract } from './editing-conformance.ts';
 import { FakeStage } from './fake-stage.ts';
 
 describeStageContract('FakeStage', () => new FakeStage());
+describeEditableStageContract('FakeStage', () => new FakeStage());
 
 const cat = objectId('cat');
 const dog = objectId('dog');
@@ -22,9 +31,9 @@ describe('FakeStage', () => {
     await stage.load(SETUP);
     const heard: string[] = [];
     const stop = stage.onEvent((e) => heard.push(e.kind));
-    stage.emit({ kind: 'click', object: cat, at: 0 });
+    stage.emit({ kind: 'click', object: cat, x: 0.5, y: 0.5, at: 0 });
     stop();
-    stage.emit({ kind: 'click', object: dog, at: 0 });
+    stage.emit({ kind: 'click', object: dog, x: 0.5, y: 0.5, at: 0 });
     expect(heard).toEqual(['click']);
   });
 
@@ -54,13 +63,90 @@ describe('FakeStage', () => {
     ).toThrow(StageError);
   });
 
-  it('refuses an unknown model when it is told which models exist', async () => {
+  it('plays on past a model it is told does not exist, and says so (spec 03, 1.3)', async () => {
     const stage = new FakeStage({ knownModels: [backstageId('Quadruped/Cat/AbyssinianCat')] });
+    const dragon = backstageId('Dragon/Big');
     const setup = {
       ...SETUP,
-      objects: [{ ...SETUP.objects[0]!, model: backstageId('Dragon/Big') }],
+      objects: [{ ...SETUP.objects[0]!, model: dragon }, SETUP.objects[1]!],
     };
-    await expect(stage.load(setup)).rejects.toMatchObject({ code: 'unknown_model' });
+    await stage.load(setup);
+    expect(stage.objects()).toContain(SETUP.objects[0]!.id);
+    expect(stage.missing()).toEqual([
+      { kind: 'model', object: SETUP.objects[0]!.id, model: dragon },
+    ]);
+  });
+
+  it('says a picture sky its Backstage lacks is missing, but not a ground (spec 17 §2)', async () => {
+    const clearDay = backstageId('storystage/Sky/clearDay');
+    const backdrop = {
+      ground: backstageId('storystage/Ground/grass'),
+      sky: clearDay,
+      lighting: backstageId('storystage/Lighting/clearDay'),
+    };
+    const without = new FakeStage({ knownModels: [] });
+    await without.load({ ...SETUP, objects: [], backdrop });
+    expect(without.missing()).toEqual([{ kind: 'backdrop', id: clearDay }]);
+    const withIt = new FakeStage({ knownModels: [clearDay] });
+    await withIt.load({ ...SETUP, objects: [], backdrop });
+    expect(withIt.missing()).toEqual([]);
+  });
+
+  it('says which posed joints a model has not got, and none for a stand-in (spec 03, 2.2)', async () => {
+    const turn = { x: 0, y: 0, z: 0, w: 1 };
+    const wing = jointName('leftWing');
+    const pose = { [jointName('head')]: turn, [wing]: turn };
+    const cat = backstageId('Quadruped/Cat/AbyssinianCat');
+    const stage = new FakeStage({ knownModels: [cat] });
+    await stage.load({
+      ...SETUP,
+      objects: [
+        { ...SETUP.objects[0]!, model: cat, joints: pose },
+        { ...SETUP.objects[1]!, joints: pose },
+      ],
+    });
+    expect(stage.missing()).toEqual([{ kind: 'joint', object: SETUP.objects[0]!.id, joint: wing }]);
+  });
+
+  it('reports a tap only while editing, and a drag as a test makes it', async () => {
+    const stage = new FakeStage();
+    await stage.load(SETUP);
+    const taps: unknown[] = [];
+    const drags: unknown[] = [];
+    stage.onTap((p) => taps.push(p.target));
+    stage.onEdit((e) => drags.push(e.final));
+    stage.tap(437, 327);
+    expect(taps).toEqual([]);
+    stage.editing(true);
+    stage.tap(437, 327);
+    expect(taps).toEqual([{ object: cat }]);
+    const transform = stage.transform(cat);
+    stage.drag({ target: { object: cat }, transform, final: false });
+    stage.drag({ target: { object: cat }, transform, final: true });
+    expect(drags).toEqual([false, true]);
+  });
+
+  it('keeps what is chosen across a load while it is still there', async () => {
+    const stage = new FakeStage();
+    await stage.load(SETUP);
+    stage.choose({ object: cat });
+    await stage.load(SETUP);
+    expect(stage.chosen()).toEqual({ object: cat });
+    await stage.load({ ...SETUP, objects: [SETUP.objects[1]!] });
+    expect(stage.chosen()).toBeNull();
+  });
+
+  it("moves Look around's camera only while looking around", async () => {
+    const stage = new FakeStage();
+    await stage.load(SETUP);
+    const elsewhere = { ...stage.transform(cat), position: { x: 5, y: 5, z: 5 } };
+    stage.moveView(elsewhere);
+    expect(stage.viewTransform().position.z).toBeCloseTo(-6, 5);
+    stage.lookAround(true);
+    stage.moveView(elsewhere);
+    expect(stage.viewTransform().position.x).toBe(5);
+    // The scene's camera stays where it was.
+    expect(stage.transform(CAMERA).position.z).toBeCloseTo(-6, 5);
   });
 
   it('turns to face the other way round the short way', async () => {

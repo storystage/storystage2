@@ -8,6 +8,17 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit -p ."
+    "typecheck": "tsc --noEmit -p .",
+    "harness": "vite build --config browser/harness/vite.config.ts && vite preview --config browser/harness/vite.config.ts",
+    "test:whisper": "playwright test -c playwright.whisper.config.ts"
+  },
+  "dependencies": {
+    "@storystage/host": "workspace:*",
+    "@storystage/production": "workspace:*",
+    "@storystage/story-api": "workspace:*",
+    "onnxruntime-web": "1.30.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.4"
   }
 }

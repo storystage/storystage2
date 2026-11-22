@@ -1,0 +1,11 @@
+{
+  "textView.method": "Text of {name}",
+  "textView.program": "Text of the program",
+  "textView.style.python": "Python-like",
+  "textView.style.java": "Java-like",
+  "textView.empty": "Nothing to show",
+  "textView.notPython.do_in_order": "Not in Python: StoryStage’s own word. Python runs lines in order anyway.",
+  "textView.notPython.do_together": "Not in Python: StoryStage’s own word, for things that happen at the same time.",
+  "textView.notPython.each_together": "Not in Python: StoryStage’s own word, for a loop whose items all go at the same time.",
+  "textView.notPython.when": "Not in Python: StoryStage’s own word, for code that runs when something happens."
+}

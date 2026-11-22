@@ -1,0 +1,119 @@
+/**
+ * One tab per procedure, function and event (spec 14, 3a), and "add event ▾" to start a new event
+ * handler. The open method's code is the selected tab's panel.
+ *
+ * The panel is the editor's own, not React Aria's `TabPanel`: that one walks every element inside
+ * it, after each render and each change to the page, to see whether the panel itself needs a tab
+ * stop. Over a method of 500 statements that walk was most of an edit's time with the CPU slowed
+ * fourfold (spec 14, 3h.3). The code always has a tab stop of its own, so the panel never needs one.
+ * `useTabPanel` (`@storystage/ui`, S5's #527) links it to the selected tab, as the studio's is.
+ */
+import type { NodeId, Program } from '@storystage/ast';
+import { EVENTS } from '@storystage/story-api';
+import { describer, fill, methodTitleIn, word } from '@storystage/story-api/editing';
+import { useTabPanel } from '@storystage/ui';
+import type { ReactNode } from 'react';
+import {
+  Button,
+  Menu,
+  MenuItem,
+  MenuTrigger,
+  Popover,
+  Tab,
+  TabList,
+  Tabs,
+} from 'react-aria-components';
+import { tileVariables } from './tokens.ts';
+import { t } from './words.ts';
+
+export interface MethodTabsProps {
+  readonly program: Program;
+  readonly method: NodeId | null;
+  readonly onOpen: (method: NodeId) => void;
+  readonly onAddEvent: (event: string) => void;
+  /** The open method's code. */
+  readonly children: ReactNode;
+  /** False in the studio, whose own tab row and New serve both editors (spec 14, 4.1). */
+  readonly tabs?: boolean;
+}
+
+/** Every method and event handler in the program, with the words on its tab. */
+export function methodsOf(program: Program): readonly { id: NodeId; words: string }[] {
+  const describe = describer(program);
+  return program.types.flatMap((type) => [
+    ...type.methods.map((m) => ({
+      id: m.id,
+      words: methodTitleIn(type, m),
+    })),
+    ...type.listeners.map((l) => ({ id: l.id, words: describe(l) })),
+  ]);
+}
+
+/** An event's words with `???` where it needs a value: "every ??? seconds". */
+const eventWords = (name: string) => fill(word(`event.${name}`), {});
+
+/**
+ * The events a new handler can wait for. Every scene's script method already runs when the scene
+ * starts, so "when the scene starts" isn't offered (spec 14, 2), as the studio's New menu leaves it
+ * out too.
+ */
+const NEW_EVENTS = EVENTS.filter((e) => e.name !== 'sceneStart');
+
+export function MethodTabs({
+  program,
+  method,
+  onOpen,
+  onAddEvent,
+  children,
+  tabs = true,
+}: MethodTabsProps) {
+  const methods = methodsOf(program);
+  const { tabRef, panelRef } = useTabPanel();
+  if (!tabs) return <div className="tl-method-panel">{method === null ? null : children}</div>;
+  // The panel is beside `Tabs`, not in it: React Aria draws what's in `Tabs` twice, once
+  // hidden to find the tabs, and its own panel draws nothing in that pass, as this one couldn't.
+  return (
+    <>
+      <Tabs
+        selectedKey={method ?? undefined}
+        onSelectionChange={(key) => onOpen(String(key) as NodeId)}
+        className="tl-method-tabs"
+      >
+        <div className="tl-method-bar">
+          <TabList aria-label={t('procedures')} className="tl-tab-list">
+            {methods.map((m) => (
+              <Tab
+                key={m.id}
+                id={m.id}
+                className="tl-tab tl-method-tab"
+                {...(m.id === method ? { ref: tabRef } : {})}
+              >
+                {m.words}
+              </Tab>
+            ))}
+          </TabList>
+          <MenuTrigger>
+            <Button className="tl-add-event">
+              {t('addEvent')}
+              <span aria-hidden="true"> ▾</span>
+            </Button>
+            <Popover className="tl-popover" style={tileVariables()} placement="bottom end">
+              <Menu aria-label={t('addEvent')} onAction={(key) => onAddEvent(String(key))}>
+                {NEW_EVENTS.map((e) => (
+                  <MenuItem key={e.name} id={e.name} className="tl-menu-item">
+                    {eventWords(e.name)}
+                  </MenuItem>
+                ))}
+              </Menu>
+            </Popover>
+          </MenuTrigger>
+        </div>
+      </Tabs>
+      {method !== null && methods.some((m) => m.id === method) ? (
+        <div ref={panelRef} role="tabpanel" className="tl-method-panel">
+          {children}
+        </div>
+      ) : null}
+    </>
+  );
+}

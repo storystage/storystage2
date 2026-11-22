@@ -56,6 +56,20 @@ export const SYSTEM_ASSETS = {
 } as const;
 
 /**
+ * Plain glasses in the community's `glasses01_cc0.zip` (CC0), as its page lists them:
+ * https://static.makehumancommunity.org/assets/assetpacks/glasses01.html. Only everyday frames:
+ * the pack's costume and tinted ones (3-D glasses, goggles, sunglasses) aren't offered.
+ */
+export const GLASSES = [
+  'kwnet_at_optical_glasses',
+  'spamrakuen_sagerfrogs_glasses_01',
+  'spamrakuen_sagerfrogs_glasses_02',
+  'spamrakuen_sagerfrogs_glasses_03',
+  'spamrakuen_sagerfrogs_glasses_04',
+  'spamrakuen_tbm_glasses_frames_01',
+] as const;
+
+/**
  * Outfits in the pack that nobody wears (owner, 1 Nov 2026): the crop top and the short denim
  * shorts don't suit a tool for 6 to 13-year-olds, and the rest carry MakeHuman's logo.
  */
@@ -91,6 +105,85 @@ export const CLOTHES_COLOURS = {
   teal: [0.16, 0.56, 0.58],
 } as const;
 export type ClothesColour = keyof typeof CLOTHES_COLOURS;
+
+/**
+ * Colours for an outfit's jeans, so not every child is in denim (owner, 16 Nov 2026): the
+ * pipeline recolours the denim and keeps its folds. Only the outfits whose jeans are blue denim
+ * (`WITH_JEANS`) can have them; the rest have no jeans, or grey ones the pipeline can't tell apart.
+ */
+export const TROUSERS_COLOURS = {
+  black: [0.12, 0.12, 0.13],
+  grey: [0.45, 0.46, 0.48],
+  khaki: [0.62, 0.55, 0.38],
+  navy: [0.14, 0.18, 0.34],
+} as const;
+export type TrousersColour = keyof typeof TROUSERS_COLOURS;
+export const WITH_JEANS = ['male_casualsuit03', 'male_casualsuit05'] as const;
+
+/**
+ * Colours for the dark suit (`male_elegantsuit01`), so the three who wear it don't match (owner,
+ * 17 Nov 2026): the pipeline recolours only its dark cloth, keeping its folds, so the shirt stays
+ * white. Its shirt and tie share the suit's picture, which is why `clothesColour` can't be used.
+ */
+export const SUIT_COLOURS = {
+  brown: [0.4, 0.28, 0.18],
+  grey: [0.5, 0.51, 0.53],
+  navy: [0.16, 0.2, 0.38],
+} as const;
+export type SuitColour = keyof typeof SUIT_COLOURS;
+export const SUIT = 'male_elegantsuit01';
+
+/**
+ * The shirt's pattern, so not everyone wears the pack's stripes (owner, 17 Nov 2026): "plain"
+ * smooths the stripes out of the picture and keeps its folds, and the others lay a pattern over
+ * that: a gingham ("checks"), spots ("dots"), small five-petalled flowers ("flowers") or a
+ * knitted fleck ("flecks").
+ * Only for an outfit that is a shirt or a blouse on its own (`WITH_PATTERN`): the jacket outfit's
+ * jacket shares the shirt's picture and would lose its own detail. It needs a `clothesColour`.
+ */
+export const PATTERNS = ['plain', 'checks', 'dots', 'flowers', 'flecks'] as const;
+export type Pattern = (typeof PATTERNS)[number];
+export const WITH_PATTERN = ['male_casualsuit03', 'female_elegantsuit01'] as const;
+
+/** How long a skirt is: the pack's, to the knee, or to the ankle (owner, 17 Nov 2026). */
+export const SKIRT_LENGTHS = ['ankle'] as const;
+export type SkirtLength = (typeof SKIRT_LENGTHS)[number];
+
+/**
+ * Whether the pipeline levels a skirt's hem: the pack's skirt hangs to a point on a child (16 Nov
+ * 2026) and, less, on some adults (Lin, Eileen), so every skirt's is levelled (owner, 17 Nov).
+ */
+export const straightHem = (p: Pick<Person, 'clothes'>): boolean =>
+  p.clothes[0] === 'female_elegantsuit01';
+
+/**
+ * Headwear the pipeline makes itself (`make_people.py`), as no community pack has any (searched
+ * 10 Nov 2026; the owner's choice of 16 Nov: make our own, CC0). Each is shaped from the person's
+ * own head, so it fits and moves with it. A hijab, a turban and a patka cover the hair, so whoever
+ * wears one has none (`hair: null`); a kippah sits on the hair.
+ */
+export const HEADWEAR = ['hijab', 'turban', 'patka', 'kippah'] as const;
+export type Headwear = (typeof HEADWEAR)[number];
+export const COVERS_HAIR: readonly Headwear[] = ['hijab', 'turban', 'patka'];
+
+/**
+ * Colours for headwear and hearing aids, red, green and blue from 0 to 1. Children's hearing aids
+ * are bright, so they show on a small screen; adults' are grey or beige (owner, 16 Nov 2026).
+ */
+export const PIECE_COLOURS = {
+  ...CLOTHES_COLOURS,
+  beige: [0.82, 0.72, 0.6],
+  black: [0.08, 0.08, 0.09],
+  blue: [0.15, 0.45, 0.85],
+  grey: [0.55, 0.56, 0.58],
+  maroon: [0.45, 0.1, 0.15],
+  navy: [0.1, 0.15, 0.35],
+  purple: [0.5, 0.25, 0.75],
+  red: [0.85, 0.15, 0.15],
+  saffron: [0.95, 0.6, 0.1],
+  white: [0.92, 0.92, 0.9],
+} as const;
+export type PieceColour = keyof typeof PIECE_COLOURS;
 
 export interface Person {
   /** `p01` to `p30`; the Backstage id is `makehuman/Biped/<id>`. */
@@ -131,8 +224,22 @@ export interface Person {
   readonly clothes: readonly string[];
   /** The outfit's colour; left out, it keeps the pack's. */
   readonly clothesColour?: ClothesColour;
+  /** The jeans' colour, for an outfit with jeans (`WITH_JEANS`); left out, they stay denim. */
+  readonly trousersColour?: TrousersColour;
+  /** The dark suit's colour (`SUIT_COLOURS`), for `male_elegantsuit01`; left out, it stays dark. */
+  readonly suitColour?: SuitColour;
+  /** The shirt's pattern (`PATTERNS`); left out, the pack's stripes. */
+  readonly pattern?: Pattern;
+  /** A skirt to the ankle (`SKIRT_LENGTHS`); left out, the pack's, to the knee. */
+  readonly skirtLength?: SkirtLength;
   readonly shoes: string;
   readonly hat?: string;
+  /** Glasses from the community's CC0 glasses pack (`GLASSES`). */
+  readonly glasses?: string;
+  /** Headwear the pipeline makes (`HEADWEAR`), in one of `PIECE_COLOURS`. */
+  readonly headwear?: { readonly kind: Headwear; readonly colour: PieceColour };
+  /** Behind-the-ear hearing aids, one on each ear, in one of `PIECE_COLOURS`. */
+  readonly hearingAids?: PieceColour;
 }
 
 /**
@@ -197,10 +304,46 @@ export function validatePeople(people: readonly Person[]): Result {
       e(`clothesColour must be one of ${Object.keys(CLOTHES_COLOURS).join(', ')}.`);
     else if (p.clothesColour !== undefined && p.clothes?.some((c) => has(NOT_RECOLOURED, c)))
       e(`clothes: "${p.clothes.find((c) => has(NOT_RECOLOURED, c))}" can't be recoloured.`);
+    if (p.trousersColour !== undefined && !(p.trousersColour in TROUSERS_COLOURS))
+      e(`trousersColour must be one of ${Object.keys(TROUSERS_COLOURS).join(', ')}.`);
+    else if (p.trousersColour !== undefined && !has(WITH_JEANS, p.clothes?.[0]))
+      e(`trousersColour needs an outfit with jeans: ${WITH_JEANS.join(', ')}.`);
+    if (p.suitColour !== undefined && !(p.suitColour in SUIT_COLOURS))
+      e(`suitColour must be one of ${Object.keys(SUIT_COLOURS).join(', ')}.`);
+    else if (p.suitColour !== undefined && p.clothes?.[0] !== SUIT)
+      e(`suitColour needs the suit, ${SUIT}.`);
+    else if (p.suitColour !== undefined && p.clothesColour !== undefined)
+      e('a suit takes suitColour, not clothesColour.');
+    if (p.pattern !== undefined && !has(PATTERNS, p.pattern))
+      e(`pattern must be one of ${PATTERNS.join(', ')}.`);
+    else if (p.pattern !== undefined && !has(WITH_PATTERN, p.clothes?.[0]))
+      e(`pattern needs a shirt or blouse on its own: ${WITH_PATTERN.join(', ')}.`);
+    else if (p.pattern !== undefined && p.clothesColour === undefined)
+      e('pattern needs a clothesColour.');
+    if (p.skirtLength !== undefined && !has(SKIRT_LENGTHS, p.skirtLength))
+      e(`skirtLength must be one of ${SKIRT_LENGTHS.join(', ')}.`);
+    else if (p.skirtLength !== undefined && p.clothes?.[0] !== 'female_elegantsuit01')
+      e('skirtLength needs the skirt, female_elegantsuit01.');
     if (!has(SYSTEM_ASSETS.shoes, p.shoes))
       e(`shoes must be one of ${SYSTEM_ASSETS.shoes.join(', ')}.`);
     if (p.hat !== undefined && !has(SYSTEM_ASSETS.hats, p.hat))
       e(`hat must be one of ${SYSTEM_ASSETS.hats.join(', ')}.`);
+    if (p.glasses !== undefined && !has(GLASSES, p.glasses))
+      e(`glasses must be one of ${GLASSES.join(', ')}.`);
+    const colours = Object.keys(PIECE_COLOURS);
+    if (p.headwear !== undefined) {
+      const w = p.headwear;
+      if (typeof w !== 'object' || w === null || !has(HEADWEAR, w.kind))
+        e(`headwear.kind must be one of ${HEADWEAR.join(', ')}.`);
+      else {
+        if (!has(colours, w.colour)) e(`headwear.colour must be one of ${colours.join(', ')}.`);
+        if (COVERS_HAIR.includes(w.kind) && p.hair !== null)
+          e(`a ${w.kind} covers the hair, so hair must be null.`);
+        if (p.hat !== undefined) e("a hat and headwear can't be worn together.");
+      }
+    }
+    if (p.hearingAids !== undefined && !has(colours, p.hearingAids))
+      e(`hearingAids must be one of ${colours.join(', ')}.`);
   });
   return errors.length ? { ok: false, errors } : { ok: true };
 }
@@ -228,13 +371,27 @@ const ancestryWords = (a: Person['ancestry']) =>
     .join(', ');
 
 const hairWords = (p: Person) =>
-  p.hair === null ? 'none' : p.hairTint ? `${p.hair}, tinted ${p.hairTint}` : p.hair;
+  p.hair === null
+    ? p.headwear && COVERS_HAIR.includes(p.headwear.kind)
+      ? 'covered'
+      : 'none'
+    : p.hairTint
+      ? `${p.hair}, tinted ${p.hairTint}`
+      : p.hair;
 
 const clothesWords = (p: Person) =>
   [
-    ...p.clothes.map((c) => (p.clothesColour ? `${c} (${p.clothesColour})` : c)),
+    ...p.clothes.map((c) =>
+      p.clothesColour ? `${c} (${[p.clothesColour, p.pattern].filter(Boolean).join(', ')})` : c,
+    ),
+    ...(p.trousersColour ? [`${p.trousersColour} trousers`] : []),
+    ...(p.suitColour ? [`${p.suitColour} suit`] : []),
+    ...(p.skirtLength ? [`skirt to the ${p.skirtLength}`] : []),
     p.shoes,
     ...(p.hat ? [p.hat] : []),
+    ...(p.glasses ? [p.glasses] : []),
+    ...(p.headwear ? [`${p.headwear.kind} (${p.headwear.colour}, made)`] : []),
+    ...(p.hearingAids ? [`hearing aids (${p.hearingAids}, made)`] : []),
   ].join(', ');
 
 /** The review table: one row per person, in plain words. */

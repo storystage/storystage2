@@ -3,10 +3,22 @@
  * the studio at start-up, so the browser build and the Tauri build differ only in what they
  * pass. The studio never asks which host it is in.
  *
- * Owners: S8 and S5, and S7 for `speech`. Files arrive here when the studio first needs them (WP8).
+ * Owners: S8 and S5, and S7 for `speech`. `classes` and `picker` are S4's to use (8.4) and S8's to provide.
  */
 
-import { offTransport, type PrompterTransport } from '@storystage/prompter';
+import {
+  offTransport,
+  tauriKey,
+  type PrompterKey,
+  type PrompterTransport,
+} from '@storystage/prompter';
+import { browserPicker } from './browser-picker.ts';
+import { browserStore } from './browser-store.ts';
+import { storedClassFolders } from './class-folders.ts';
+import type { ClassFolders, FilePicker } from './files.ts';
+import { readPickerKind, tauriPicker } from './tauri-picker.ts';
+import { tauriStore } from './tauri-store.ts';
+import { countingFor, tauriUsage, type PrompterUsage } from './usage.ts';
 import { BROWSER_POLICY, readPolicy, type PolicyInForce } from './policy.ts';
 import { tauriSpeech, type ChannelClass, type Invoke, type SpeechModels } from './speech.ts';
 
@@ -15,6 +27,11 @@ export interface HostInterface {
   readonly policy: PolicyInForce;
   /** The native layer in the Tauri apps. `offTransport` in the browser version: no Prompter. */
   readonly prompter: PrompterTransport;
+  /**
+   * The Claude key's three commands, for the set-up wizard (spec 05 section 1.3; spec 04 section
+   * 4.4). None of them takes or gives the key. `null` in the browser version, which has no Prompter.
+   */
+  readonly prompterKey: PrompterKey | null;
   /** The installed version, for About (spec 05 section 4.6). `null` in the browser version. */
   readonly version: string | null;
   /**
@@ -22,14 +39,75 @@ export interface HostInterface {
    * in force doesn't allow dictation (`speech.dictation`, decision 0060), whatever the Prompter's level.
    */
   readonly speech: SpeechModels | null;
+  /**
+   * The pupil folders (spec 05 section 6, decision 0065). The Origin Private File System in the
+   * browser version, and the native store in the Tauri apps (6.4).
+   */
+  readonly classes: ClassFolders;
+  /**
+   * The system's own file picker, for Save a copy, Open, Collect and Hand back (spec 05 section
+   * 6.5). In the Tauri desktop apps, the system's dialog
+   * opened by the native layer: on desktop, Android and iPad (iPad's own Files dialogs).
+   */
+  readonly picker: FilePicker;
+  /**
+   * The Prompter's use today on this device, per pupil, for the teacher (24.5, spec 05 section
+   * 2.4). `null` in the browser version, which has no Prompter.
+   */
+  readonly prompterUsage: PrompterUsage | null;
+  /**
+   * Whether this device keeps the pupil folders' files for sure (spec 05 section 6.1). Always
+   * `true` in the Tauri apps. In the browser version, whether the browser agreed to keep them, so
+   * Settings can say "This browser may clear your films if space runs low" when it didn't.
+   */
+  storagePersistent(): Promise<boolean>;
+  /**
+   * Where the shipped Backstage is (decision 0062), for `openBackstage(folder)`: a URL ending in
+   * `/`, with `backstage.json`, `models/`, `thumbnails/` and `sketches/` in it. In the Tauri apps,
+   * the app's own read-only `backstage` protocol; in the browser version, `backstage/` beside the
+   * app (spec 05 section 7).
+   */
+  readonly backstageFolder: string;
+}
+
+const browserFiles = browserStore();
+
+/** `backstage/` beside the app, where the browser version's Backstage is served. */
+export function browserBackstageFolder(
+  page: string | undefined = globalThis.location?.href,
+): string {
+  return new URL('backstage/', page ?? 'http://localhost/').href;
+}
+
+/** The Tauri command that gives the Backstage's address. It takes no arguments. */
+export const BACKSTAGE_COMMAND = 'backstage_folder';
+
+/** The two addresses the app's `backstage` protocol has: one on Windows and Android, one elsewhere. */
+const BACKSTAGE_PROTOCOL = /^(backstage:\/\/localhost\/|http:\/\/backstage\.localhost\/)$/;
+
+async function readBackstageFolder(invoke: Invoke): Promise<string> {
+  try {
+    const reply = await invoke(BACKSTAGE_COMMAND);
+    return typeof reply === 'string' && BACKSTAGE_PROTOCOL.test(reply)
+      ? reply
+      : browserBackstageFolder();
+  } catch {
+    return browserBackstageFolder();
+  }
 }
 
 /** The browser version's host (0022, 15.6): the Prompter has no way to reach anything. */
 export const browserHost: HostInterface = {
   policy: BROWSER_POLICY,
   prompter: offTransport,
+  prompterKey: null,
   version: null,
   speech: null,
+  classes: storedClassFolders(browserFiles),
+  picker: browserPicker(),
+  prompterUsage: null,
+  storagePersistent: () => browserFiles.persistent(),
+  backstageFolder: browserBackstageFolder(),
 };
 
 /** The Tauri command that returns the installed version. It takes no arguments. */
@@ -58,8 +136,27 @@ export async function tauriHost(
   prompter: PrompterTransport,
   Channel?: ChannelClass,
 ): Promise<HostInterface> {
-  const [policy, version] = await Promise.all([readPolicy(invoke), readVersion(invoke)]);
+  const [policy, version, pickerKind, backstageFolder] = await Promise.all([
+    readPolicy(invoke),
+    readVersion(invoke),
+    readPickerKind(invoke),
+    readBackstageFolder(invoke),
+  ]);
   const reachable = policy.source === 'unreadable' ? offTransport : prompter;
   const speech = policy.speech.dictation && Channel ? tauriSpeech(invoke, Channel) : null;
-  return { policy, prompter: reachable, version, speech };
+  return {
+    policy,
+    prompter: reachable,
+    // The native layer refuses `key_add` itself while the level is Off (`refusedByPolicy`).
+    prompterKey: tauriKey(invoke),
+    version,
+    speech,
+    // Requests count against whoever's folder is open (24.5).
+    classes: countingFor(storedClassFolders(tauriStore(invoke)), invoke),
+    picker: pickerKind === 'native' ? tauriPicker(invoke) : browserPicker(),
+    prompterUsage: tauriUsage(invoke),
+    // The native store, in the app's own data: never cleared by a browser.
+    storagePersistent: async () => true,
+    backstageFolder,
+  };
 }

@@ -3,7 +3,9 @@
  * earliest-start schedule, each item's slack and the critical path, plus two simulations: a cap
  * on parallel Claude Code sessions (workplan 5a, "How many lanes?") and the session roster
  * (handover/README.md). Ported from the handover's schedule.py, capsim.py and sessions.py, and
- * gives the same numbers.
+ * gives the same numbers. These are the plan, from week 0 and the estimates only.
+ * `forecast` adds what actually happened (WP1.12): actual dates where there are some, and the
+ * estimates for the rest, from `as_of`.
  */
 import { parse } from 'yaml';
 
@@ -35,6 +37,8 @@ export interface Session {
 
 export interface Plan {
   week0: string;
+  /** The date the actual dates were last brought up to date; the forecast starts from it. */
+  asOf: string;
   laterLanes: string[];
   laneCaps: number[];
   recommendedLanes: number;
@@ -76,6 +80,7 @@ const ITEM_FIELDS = [
 const SESSION_FIELDS = ['brief', 'area', 'first_release', 'later'];
 const TOP_FIELDS = [
   'week0',
+  'as_of',
   'later_lanes',
   'lane_caps',
   'recommended_lanes',
@@ -108,6 +113,9 @@ export function readPlan(text: string): { plan?: Plan; errors: string[] } {
 
   const week0 = typeof raw.week0 === 'string' && DATE.test(raw.week0) ? raw.week0 : '';
   if (!week0) errors.push('week0 should be a date, YYYY-MM-DD.');
+  const asOf = typeof raw.as_of === 'string' && DATE.test(raw.as_of) ? raw.as_of : '';
+  if (!asOf) errors.push('as_of should be a date, YYYY-MM-DD.');
+  else if (week0 && asOf < week0) errors.push('as_of should not be before week0.');
   const laterLanes = isStrings(raw.later_lanes) ? raw.later_lanes : [];
   if (!isStrings(raw.later_lanes)) errors.push('later_lanes should be a list of lane names.');
   const laneCaps =
@@ -202,7 +210,7 @@ export function readPlan(text: string): { plan?: Plan; errors: string[] } {
 
   if (errors.length) return { errors };
   return {
-    plan: { week0, laterLanes, laneCaps, recommendedLanes, bases, items, sessions },
+    plan: { week0, asOf, laterLanes, laneCaps, recommendedLanes, bases, items, sessions },
     errors,
   };
 }
@@ -280,6 +288,81 @@ export function schedule(plan: Plan): Schedule {
 /** First-release items with no slack. */
 export const criticalPath = (s: Schedule) =>
   [...s.items.values()].filter((it) => !it.later && it.slack === 0).map((it) => it.id);
+
+export interface Forecast {
+  plan: Plan;
+  /** `as_of` in weeks from week 0. */
+  asOf: number;
+  /** Each item's start and finish in weeks: actual where known, estimated otherwise. */
+  items: Map<string, { es: number; ef: number; state: 'finished' | 'started' | 'not started' }>;
+  rc: number;
+  pilotEnd: number;
+  end: number;
+  /** The chain of unfinished items that sets the pilot's end, first to last. */
+  critical: string[];
+}
+
+/** Weeks from week 0 to a date, to the nearest half week. `through` counts the whole day. */
+export const weeksTo = (plan: Plan, date: string, through = false) =>
+  Math.round(
+    ((Date.parse(`${date}T00:00:00Z`) - Date.parse(`${plan.week0}T00:00:00Z`)) / 86_400_000 +
+      (through ? 1 : 0)) /
+      3.5,
+  ) / 2;
+
+/**
+ * The schedule from what actually happened. A finished item keeps its actual dates. A started
+ * one keeps its start and runs for its estimate, but ends no earlier than half a week after
+ * `as_of`. One not yet started begins when what it waits for has finished, and not before
+ * `as_of`. Actual dates win over dependencies: sessions often start on a spike's go decision
+ * before the whole item it waits for is done.
+ */
+export function forecast(plan: Plan): Forecast {
+  const by = new Map(plan.items.map((it) => [it.id, it]));
+  const asOf = weeksTo(plan, plan.asOf);
+  const items: Forecast['items'] = new Map();
+  const visit = (id: string): { es: number; ef: number } => {
+    const known = items.get(id);
+    if (known) return known;
+    const it = by.get(id)!;
+    let entry: { es: number; ef: number; state: 'finished' | 'started' | 'not started' };
+    if (it.started && it.finished) {
+      const es = weeksTo(plan, it.started);
+      entry = { es, ef: Math.max(es, weeksTo(plan, it.finished, true)), state: 'finished' };
+    } else if (it.started) {
+      const es = weeksTo(plan, it.started);
+      entry = { es, ef: Math.max(es + it.weeks, asOf + STEP), state: 'started' };
+    } else {
+      const es = Math.max(asOf, ...it.after.map((d) => visit(d).ef));
+      entry = { es, ef: es + it.weeks, state: 'not started' };
+    }
+    items.set(id, entry);
+    return entry;
+  };
+  for (const it of plan.items) visit(it.id);
+
+  // Walk back from the pilot through the unfinished item that finishes last among those each
+  // item waits for (the longest one, if several finish together).
+  const critical: string[] = [];
+  for (let id: string | undefined = PILOT; id;) {
+    critical.unshift(id);
+    const here: { es: number; state: string } = items.get(id)!;
+    if (here.state !== 'not started' || here.es <= asOf) break;
+    id = by
+      .get(id)!
+      .after.filter((d) => items.get(d)!.state !== 'finished' && items.get(d)!.ef === here.es)
+      .sort((a, b) => by.get(b)!.weeks - by.get(a)!.weeks)[0];
+  }
+  return {
+    plan,
+    asOf,
+    items,
+    rc: items.get(RELEASE)!.es,
+    pilotEnd: items.get(PILOT)!.ef,
+    end: Math.max(...[...items.values()].map((x) => x.ef)),
+    critical,
+  };
+}
 
 const STEP = 0.5;
 const EPS = 1e-9;

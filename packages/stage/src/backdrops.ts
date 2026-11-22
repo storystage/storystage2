@@ -1,7 +1,8 @@
 /**
  * WP5.2: Backstage's Backdrops section, built in: ground types, skies and lighting, and the
  * starting templates that combine them. The templates' numbers are Alice's. Her ground textures
- * aren't ours to copy, so each surface is a flat colour until WP3's textures arrive.
+ * aren't ours to copy, so each surface is a flat colour, unless Backstage has a CC0 texture for it
+ * under the same id (spec 17 section 2). Picture skies come from Backstage too.
  */
 import { StageError, backstageId, type BackstageId, type SceneSetup } from '@storystage/story-api';
 
@@ -12,7 +13,10 @@ export interface Colour {
 }
 
 export interface Ground {
+  /** Its material's colour: `look` divided by how much brighter Alice's lights make it. */
   readonly colour: Colour;
+  /** How it looks on screen under white light, `#rrggbb` in sRGB: the table's own hex. */
+  readonly look: string;
   /** Below 1 you can see into it: water, ice and swamp. */
   readonly opacity: number;
   /** Set for a room: its walls and ceiling. The ground is then its floor. */
@@ -20,8 +24,13 @@ export interface Ground {
 }
 
 export interface Sky {
-  /** The sky's colour, which fog fades to. Alice calls it the atmosphere colour. */
+  /**
+   * The sky's colour, which fog fades to. Alice calls it the atmosphere colour. For a picture sky,
+   * the average of its horizon.
+   */
   readonly atmosphere: Colour;
+  /** True for a picture sky: a dome from Backstage under the sky's id (spec 17 section 2). */
+  readonly picture?: true;
 }
 
 export interface Lighting {
@@ -50,11 +59,17 @@ const DEFAULT_LIGHTING: Lighting = { above: WHITE, below: BLACK };
 /** Under Alice's white lights a surface facing up is this much brighter than its colour. */
 const BRIGHTNESS_FACING_UP = 0.3 + 3 * 0.533 * Math.SQRT1_2;
 
+/**
+ * What a ground's texture is multiplied by, so it shows on screen as its pixels are: its average
+ * then looks like the flat ground's `look` (spec 17 section 2).
+ */
+export const TEXTURE_SHADE = 1 / BRIGHTNESS_FACING_UP;
+
 /** A ground that looks like `rrggbb` under white light, so the table says what you'll see. */
 const surface = (rrggbb: string, opacity = 1): Ground => {
   const { r, g, b } = hex(rrggbb);
   const k = 1 / BRIGHTNESS_FACING_UP;
-  return { colour: rgb(r * k, g * k, b * k), opacity };
+  return { colour: rgb(r * k, g * k, b * k), look: `#${rrggbb}`, opacity };
 };
 
 /** Alice's surface appearances, as flat colours. */
@@ -177,6 +192,19 @@ const GROUNDS = new Map<BackstageId, Ground>(
 const SKIES = new Map<BackstageId, Sky>();
 const LIGHTING = new Map<BackstageId, Lighting>();
 
+/**
+ * The picture skies (the owner's choice, 10 Nov 2026), each with a lighting of the same name.
+ * Each atmosphere colour is the average of its picture's band just above the horizon, and each
+ * lighting suits its picture: both from S4's build (backstage-assets#9, 10 Nov 2026), the
+ * sunset's lighting warm, with its sun low ahead.
+ */
+const PICTURE_SKIES: readonly (readonly [name: string, horizon: Colour, lighting: Lighting])[] = [
+  ['clearDay', hex('aebfd0'), { above: hex('99bdec'), below: hex('454c53') }],
+  ['cloudy', hex('99a1b3'), { above: hex('acbfe9'), below: hex('3d4048') }],
+  ['sunset', hex('c6c1b4'), { above: hex('f2c08c'), below: hex('4f4d48') }],
+  ['night', hex('1c2647'), { above: hex('374d8f'), below: hex('0b0f1c') }],
+];
+
 export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map(
   ([id, name, ground, sky, fog = 0, above, below]) => {
     SKIES.set(skyId(id), { atmosphere: sky ?? DEFAULT_SKY });
@@ -192,8 +220,25 @@ export const BACKDROP_TEMPLATES: readonly BackdropTemplate[] = TEMPLATE_ROWS.map
   },
 );
 
+for (const [name, horizon, lighting] of PICTURE_SKIES) {
+  SKIES.set(skyId(name), { atmosphere: horizon, picture: true });
+  LIGHTING.set(lightingId(name), lighting);
+}
+
+/** The picture skies' ids, each also a lighting's name (`storystage/Lighting/<name>`). */
+export const PICTURE_SKY_TYPES: readonly BackstageId[] = PICTURE_SKIES.map(([name]) => skyId(name));
+
 /** Every built-in ground type, for Backstage's Backdrops section. */
 export const GROUND_TYPES: readonly BackstageId[] = [...GROUNDS.keys()];
+
+/** Alice's room, in metres: its floor is centred on the origin. */
+export const ROOM = { width: 10, height: 3, depth: 10 } as const;
+
+/**
+ * How a built-in ground looks on screen under white light, `#rrggbb` in sRGB, or null if there's
+ * no such ground. A ground's texture (spec 17 section 2) is made to match it on average.
+ */
+export const groundLook = (id: BackstageId): string | null => GROUNDS.get(id)?.look ?? null;
 
 /** A built-in ground's colour, for painting something with a surface. */
 export const groundColour = (id: BackstageId): Colour | null => GROUNDS.get(id)?.colour ?? null;
@@ -201,6 +246,8 @@ export const groundColour = (id: BackstageId): Colour | null => GROUNDS.get(id)?
 export interface Backdrop {
   /** Null if the scene has no ground. */
   readonly ground: Ground | null;
+  /** The ground's and sky's ids, which a ground texture or a picture sky comes under. */
+  readonly ids: { readonly ground: BackstageId | null; readonly sky: BackstageId | null };
   readonly sky: Sky;
   readonly lighting: Lighting;
   readonly fogDensity: number;
@@ -212,6 +259,32 @@ export interface Backdrop {
  */
 export const fogDensity = (fog: number) => fog * fog * fog;
 
+/**
+ * A scene's backdrop, with any part that isn't built in (its ground, sky or lighting) as the
+ * default instead, and the ids that weren't found (spec 03 section 1.3: the scene plays on).
+ */
+export function resolveBackdropKnown(backdrop: SceneSetup['backdrop']): {
+  readonly backdrop: Backdrop;
+  readonly missing: readonly BackstageId[];
+} {
+  const missing: BackstageId[] = [];
+  const known = <T>(table: ReadonlyMap<BackstageId, T>, id: BackstageId | undefined) => {
+    if (id === undefined || table.has(id)) return id;
+    missing.push(id);
+    return undefined;
+  };
+  const ground = known(GROUNDS, backdrop.ground);
+  const sky = known(SKIES, backdrop.sky);
+  const lighting = known(LIGHTING, backdrop.lighting);
+  const kept = {
+    ...backdrop,
+    ground,
+    sky,
+    lighting,
+  } as SceneSetup['backdrop'];
+  return { backdrop: resolveBackdrop(kept), missing };
+}
+
 /** What a scene's backdrop looks like. Rejects an id that isn't built in with `unknown_model`. */
 export function resolveBackdrop(backdrop: SceneSetup['backdrop']): Backdrop {
   const find = <T>(table: ReadonlyMap<BackstageId, T>, id: BackstageId): T => {
@@ -221,6 +294,7 @@ export function resolveBackdrop(backdrop: SceneSetup['backdrop']): Backdrop {
   };
   return {
     ground: backdrop.ground ? find(GROUNDS, backdrop.ground) : null,
+    ids: { ground: backdrop.ground ?? null, sky: backdrop.sky ?? null },
     sky: backdrop.sky ? find(SKIES, backdrop.sky) : { atmosphere: DEFAULT_SKY },
     lighting: backdrop.lighting ? find(LIGHTING, backdrop.lighting) : DEFAULT_LIGHTING,
     fogDensity: fogDensity(backdrop.fog ?? 0),

@@ -3,21 +3,21 @@
  * out each tool call through the program's edit operations, holds every change to the agreed
  * plan, and keeps the words characters say to the script or the learner's own request.
  *
- * A whole learner request is one undo step: the first change opens a group on the program's
- * `EditSession`, and the end of the request commits it.
+ * A whole learner request is one undo step: the first change opens a group on the production's
+ * `ProductionSession` (spec 03, section 2.1), which holds program edits and scene set-ups
+ * together, and the end of the request commits it.
  *
- * Tools that change a scene's set-up as well as the program (`add_model`, `set_property`,
- * `stage_scene`) wait for the production's own undo session (WP8.2, spec 03 section 2.1), which
- * holds both in one step. Until then they answer `not_allowed_here`.
+ * The set-up tools run the studio's own steps from `@storystage/production`: `add_model` is
+ * Backstage's Add (`addObject`), `set_property` the stage's change to an object (`setObject`), and
+ * `stage_scene` the studio's Set the stage from the storyboard (10.10), passed in as
+ * `stageFromStoryboard`.
  */
 import {
   defaultLabel,
   idMinter,
   indexProgram,
-  programText,
   type Args,
   type EditOperation,
-  type EditSession,
   type Expression,
   type FieldDecl,
   type ListenerDecl,
@@ -29,39 +29,125 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
-import type { FrameId, Production, SceneId } from '@storystage/production';
+import type { Catalogue, Section } from '@storystage/backstage';
+import {
+  addObject,
+  objectName,
+  setObject,
+  type Frame,
+  type FrameId,
+  type Production,
+  type ProductionRest,
+  type ProductionSession,
+  type SceneId,
+  type SceneRefusal,
+  type SceneStep,
+} from '@storystage/production';
 import {
   DETAILS,
   classOfType,
+  enumValues,
   findEntry,
   findEvent,
   isStoryType,
   type ApiClass,
+  type SceneObjectSetup,
+  type SceneSetup,
+  type StoryClass,
+  type Transform,
   type TypeName,
 } from '@storystage/story-api';
+import { findModels } from './backstage-data.ts';
+import { productionData, storyboardData } from './context.ts';
 import { dataBlock } from './data.ts';
-import { checkPlan, mismatch, type NameValue, type PlanStep, type PlanWorld } from './plans.ts';
+import {
+  checkPlan,
+  mismatch,
+  type NameValue,
+  type PlanProblem,
+  type PlanStep,
+  type PlanWorld,
+} from './plans.ts';
+import { stepsDone } from './progress.ts';
+import { heldBy } from './repeats.ts';
 import { scriptFacts } from './script-check.ts';
+import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
+import { stepWords } from './step-words.ts';
 import type { ToolRunner, RequestContext } from './session.ts';
 import type { ToolName } from './tool-names.ts';
 import type { ToolOutcome, ToolErrorCode } from './tools.ts';
 import type { Json, JsonObject } from './transport.ts';
 import { objectRef, toValue, type SceneObjects } from './values.ts';
 
-/** What the runner works on. The studio supplies these for the open production. */
-export interface RunnerSetup {
-  /** The program, with its undo history. */
-  readonly session: EditSession<string>;
+/**
+ * What the runner works on. The studio supplies these for the open production. `S` is the
+ * history's names for where changes come from, so the studio's own session fits as it is.
+ */
+export interface RunnerSetup<S extends string = string> {
+  /** The open production, with its undo history: program and set-ups together. */
+  readonly session: ProductionSession<S>;
   /** The history's name for Prompter changes. */
-  readonly source: string;
-  /** The production as it stands, for its scenes, script and frames. */
-  readonly production: () => Production;
+  readonly source: S;
   /** The scene the learner is in. */
   readonly scene: () => SceneId;
-  readonly isBackstageItem: (id: string) => boolean;
+  /** The method open in the editor, kept whole when the program is over its budget. */
+  readonly openMethod?: () => NodeId | null;
+  /** A shipped Backstage model's class, or null if there is no such model. */
+  readonly backstageClass: (id: string) => StoryClass | null;
+  /**
+   * The catalogue `find_models` searches: this release's, whose index is in the pinned `system`
+   * (section 2.7). Tests may give another.
+   */
+  readonly catalogue?: Catalogue;
   /** The automatic check's latest result for a frame (11.6), or null if it hasn't run. */
   readonly checkResult?: (frame: FrameId) => Json | null;
+  /**
+   * Set the stage from the storyboard (10.10), as the studio's button runs it, for `stage_scene`:
+   * `placeFromStoryboard(p, scene, storyboardPlan(p, scene, backstage), label)`. Without it,
+   * `stage_scene` answers `not_allowed_here`.
+   */
+  readonly stageFromStoryboard?: (p: Production, scene: SceneId, label: string) => StageResult;
+  /**
+   * Whether a scene is set up from its storyboard card, with nothing left to add, for Plan only's
+   * ticks on a `stage` step (section 6.6). Without it, a `stage` step is never ticked.
+   */
+  readonly staged?: (p: Production, scene: SceneId) => boolean;
+  /**
+   * A new object's type in the code, for `add_model`: its character's class once the learner has
+   * made one (decision 0074), so it has that class's moves, as Backstage's Add gives it
+   * (`newObjectType` in `@storystage/staging`, with the model's Backstage name). It must come
+   * down from `class`. Without it, the object is of its Story API class.
+   */
+  readonly objectType?: (
+    p: Production,
+    object: { readonly model: SceneObjectSetup['model']; readonly class: StoryClass },
+  ) => TypeRef;
+  /**
+   * Where new node ids come from. `Math.random` by default; the evaluation harness gives a fixed
+   * sequence, so a kept run replays with the same ids (`docs/eval/README.md`).
+   */
+  readonly random?: () => number;
+  /**
+   * Keeps the agreed plan with its frame (section 6.7), in the build's own undo step: called once,
+   * as the build's group opens, when the request carries an agreed plan for a frame. `shown` is
+   * the Prompter's plan as last proposed or revised, `agreed` the learner's version. It returns
+   * the production with the plan kept, and may change nothing in the program. Returning `p`
+   * itself keeps nothing; so does throwing, and the build goes on either way.
+   */
+  readonly keepPlan?: (p: Production, plan: KeptPlan) => Production;
 }
+
+/** What `keepPlan` is given. */
+export interface KeptPlan {
+  readonly frame: FrameId;
+  readonly shown: readonly PlanStep[];
+  readonly agreed: readonly PlanStep[];
+}
+
+/** What Set the stage from the storyboard gives: one step, or why not and for which object. */
+export type StageResult =
+  | { readonly ok: true; readonly step: SceneStep }
+  | { readonly ok: false; readonly refusal: SceneRefusal; readonly name?: string };
 
 /** What `propose_plan` and `revise_plan` keep, and an agreed plan carries back. */
 export interface Plan {
@@ -69,6 +155,10 @@ export interface Plan {
   readonly frame: string | null;
   readonly steps: readonly PlanStep[];
 }
+
+/** `explain`'s result: the learner has the answer, so the turn ends there (spec 04, section 3.1). */
+export const EXPLAINED =
+  "Shown to the learner as your reply. End your turn now: don't repeat it, and don't say what you told them.";
 
 const SPEAKING = new Set(['say', 'think', 'speakLine']);
 const CONTAINERS = new Set([
@@ -79,8 +169,12 @@ const CONTAINERS = new Set([
   'forEach',
   'eachTogether',
 ]);
-const LATER =
-  "The Prompter can't add or change objects in the scene yet. Ask the learner to do it from Backstage, then carry on.";
+/** The statement lists a block can sit in, as the studio's links (10.8) count them. */
+const STATEMENT_SLOTS: ReadonlySet<string> = new Set(['body', 'then', 'else']);
+const NO_STAGING =
+  "Setting the stage from the storyboard isn't available here. Add each model with add_model in a plan of its own, or ask the learner to press Set the stage from the storyboard.";
+const SCALE = { min: 0.05, max: 20 };
+const PAINTS: ReadonlySet<string> = new Set(enumValues('Color'));
 
 type Input = Readonly<Record<string, unknown>>;
 type Result = ToolOutcome;
@@ -94,7 +188,89 @@ const fail = (error: ToolErrorCode, message: string): Result => ({ ok: false, er
 const text = (v: unknown) => (typeof v === 'string' ? v : '');
 const pairs = (v: unknown): NameValue[] => (Array.isArray(v) ? (v as NameValue[]) : []);
 const story = (name: string): TypeRef => ({ kind: 'story', name });
+/**
+ * The step that starts the group a step runs together in, from 1 (section 6.4). Just after a
+ * repeat, the step before is the whole repeat, not the last step inside it (section 6.8).
+ */
+function groupStart(steps: readonly PlanStep[], number: number): number {
+  const held = heldBy(steps);
+  const own = held[number - 1];
+  let start = number;
+  while (start > 1 && steps[start - 1]?.together) {
+    const holder = held[start - 2];
+    start = holder !== null && holder !== undefined && holder !== own ? holder + 1 : start - 1;
+  }
+  return start;
+}
+
+/**
+ * The step after this one at its own level, from 1: after a repeat, the one after all it holds;
+ * after the last step inside a repeat, none (section 6.8).
+ */
+function nextBeside(steps: readonly PlanStep[], number: number): PlanStep | undefined {
+  const held = heldBy(steps);
+  const after = number + (steps[number - 1]?.holds ?? 0);
+  return held[after] === held[number - 1] ? steps[after] : undefined;
+}
 const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+
+const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+
+/** A turn about the vertical axis, as a unit quaternion. */
+function yaw(degrees: number): Transform['rotation'] {
+  const half = (degrees * Math.PI) / 360;
+  return { x: 0, y: Math.sin(half), z: 0, w: Math.cos(half) };
+}
+
+/** Why a step from `@storystage/production` couldn't be made, for Claude. */
+function refusal(r: SceneRefusal, name: string): Result {
+  switch (r.code) {
+    case 'noSuchScene':
+      return fail('unknown_object', "That scene can't be found.");
+    case 'noSuchObject':
+      return fail('unknown_object', `There is no ${name} in this scene.`);
+    case 'tooManyObjects':
+      return fail('limit_reached', `A scene holds at most ${r.limit} objects.`);
+    case 'refused':
+      return fail('would_break_program', r.reason);
+    default:
+      return fail('would_break_program', `That can't be done here (${r.code}).`);
+  }
+}
+
+/** True if `carrier` rides, directly or not, on `rider`: then `rider` can't ride on it. */
+function carries(objects: readonly SceneObjectSetup[], rider: string, carrier: string): boolean {
+  const vehicles = new Map(objects.map((o) => [String(o.id), o.vehicle ?? null]));
+  const seen = new Set<string>();
+  for (
+    let at: string | null = carrier;
+    at !== null && !seen.has(at);
+    at = vehicles.get(at) ?? null
+  ) {
+    if (at === rider) return true;
+    seen.add(at);
+  }
+  return false;
+}
+
+/** The check saved on a frame (spec 08, section 9.6), as data: its words are the learner's file. */
+function savedCheck(frame: Frame): Json | null {
+  if (!frame.check) return null;
+  return {
+    items: frame.check.items.map((i) => ({
+      id: i.id,
+      kind: i.kind,
+      outcome: i.outcome,
+      words: i.words,
+      ...(i.node === undefined ? {} : { node: i.node }),
+      ...(i.line === undefined ? {} : { line: i.line }),
+    })),
+    kept: [...frame.check.kept],
+  };
+}
+
+/** All of a production but its program, for a change to anything else. */
+const withoutProgram = ({ program: _program, ...rest }: Production): ProductionRest => rest;
 
 function asPlan(value: Json | undefined): Plan | null {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) return null;
@@ -108,22 +284,41 @@ function asPlan(value: Json | undefined): Plan | null {
     : null;
 }
 
-export class PrompterRunner implements ToolRunner {
-  readonly #setup: RunnerSetup;
-  #request = '';
+export class PrompterRunner<S extends string = string> implements ToolRunner {
+  readonly #setup: RunnerSetup<S>;
+  /**
+   * The learner's own words, for what characters say outside a frame (section 6.5): every request
+   * they have made since the film opened, and the steps they wrote or changed in the agreed plan.
+   * A build's request is only "Build these steps.", so the words come from what came before.
+   */
+  #learnerWords: string[] = [];
   #agreed: Plan | null = null;
   #open = false;
   #commented = new Set<number>();
+  /** The count block each built `repeat` step made, by step number (section 6.8). */
+  #repeatBlocks = new Map<number, NodeId>();
   #plans = new Map<string, Plan>();
+  #latest: string | null = null;
+  /** The frame `code_frame` started in this request: blocks built after it link to it (10.8). */
+  #coding: FrameId | null = null;
 
-  constructor(setup: RunnerSetup) {
+  constructor(setup: RunnerSetup<S>) {
     this.#setup = setup;
   }
 
   begin(request: string, context: RequestContext = {}): void {
-    this.#request = request;
     this.#agreed = asPlan(context.agreedPlan);
+    this.#learnerWords.push(request);
+    // A step the Prompter never showed is the learner's own: they added it, or changed it.
+    const shown = this.#agreed ? this.#plans.get(this.#agreed.plan)?.steps : undefined;
+    const theirs = (this.#agreed?.steps ?? []).filter(
+      (s) => !shown?.some((p) => JSON.stringify(p) === JSON.stringify(s)),
+    );
+    for (const step of theirs)
+      this.#learnerWords.push(step.words, ...step.details.map((d) => d.value));
     this.#commented = new Set();
+    this.#repeatBlocks = new Map();
+    this.#coding = null;
   }
 
   end(): void {
@@ -136,12 +331,75 @@ export class PrompterRunner implements ToolRunner {
     return this.#plans.get(id);
   }
 
+  /** The plan shown or revised last, if any: the one the panel shows. */
+  latestPlan(): Plan | undefined {
+    return this.#latest === null ? undefined : this.#plans.get(this.#latest);
+  }
+
+  /**
+   * Checks steps against the scene and the frame as they are now (spec 04, section 6.3): for
+   * the learner's edits to a plan, before Build these steps. Messages are in plain words.
+   */
+  checkSteps(steps: readonly PlanStep[], frame: string | null): PlanProblem[] {
+    return checkPlan(steps, this.#world(frame));
+  }
+
+  /**
+   * Plan only's ticks (section 6.6): which steps what the learner built matches, by the rule a
+   * build is held to. `before` is the program's blocks when the plan was shown: only blocks added
+   * since, or linked to the plan's frame, are the learner's work for it. A frame's plan is worked
+   * out in the frame's scene; a plan with no frame, in the scene on show.
+   */
+  progress(
+    steps: readonly PlanStep[],
+    frame: string | null,
+    before: ReadonlySet<NodeId>,
+  ): boolean[] {
+    const program = this.#setup.session.program();
+    const production = this.#setup.session.production();
+    // A frame's plan is for the frame's scene, whichever scene is on show (S5's review).
+    const sceneId = production.frames.find((f) => f.id === frame)?.scene ?? this.#setup.scene();
+    const type = this.#sceneType(program, sceneId);
+    const scene = production.scenes.find((s) => s.id === sceneId);
+    if (!type || !scene) return steps.map(() => false);
+    const objects = this.#sceneObjects(type, program);
+    const fields = new Map(type.fields.map((f) => [f.name, f] as const));
+    const links = new Set<NodeId>(production.frames.find((f) => f.id === frame)?.links ?? []);
+    let staged: boolean;
+    try {
+      staged = this.#setup.staged?.(production, scene.id) ?? false;
+    } catch {
+      staged = false;
+    }
+    return stepsDone(steps, {
+      type,
+      classOf: (name) => {
+        if (name === 'this') return 'Scene';
+        const field = fields.get(name);
+        return field ? objects.classOf(field) : null;
+      },
+      objects: scene.setup.objects,
+      lines: new Map(production.script.map((l) => [String(l.id), l.text])),
+      counts: (id, around) => !before.has(id) || links.has(id) || around.some((a) => links.has(a)),
+      staged,
+    });
+  }
+
+  /** A step's words from what it does, for a step the learner changed or added (section 6.1). */
+  stepWords(step: PlanStep, frame: string | null): string {
+    return stepWords(step, this.#world(frame));
+  }
+
   run(name: ToolName, input: JsonObject): Result {
     switch (name) {
       case 'explain':
-        return ok('Shown to the learner.');
+        // The panel shows any text after this as a second reply: the pilot's runs wrote one that
+        // repeated the answer about the learner ("I told the learner…"), so the result says not to.
+        return ok(EXPLAINED);
       case 'read_project':
-        return ok(dataBlock('production_data', this.#projectData()));
+        return ok(this.#projectData());
+      case 'find_models':
+        return this.#findModels(text(input.query), text(input.section) as Section | '');
       case 'check_frame':
         return this.#checkFrame(text(input.frame));
       case 'script_check':
@@ -153,20 +411,25 @@ export class PrompterRunner implements ToolRunner {
         return this.#codeFrame(text(input.frame));
       case 'insert_statement':
       case 'insert_control':
+        return this.#linked(() => this.#change(name, input));
       case 'declare_procedure':
       case 'add_event_listener':
         return this.#change(name, input);
       case 'add_model':
       case 'set_property':
+        return this.#change(name, input);
       case 'stage_scene':
-        return fail('not_allowed_here', LATER);
+        return this.#change(name, input);
     }
   }
 
   // ---- Reading ----------------------------------------------------------------------------------
 
-  #sceneType(program: Program = this.#setup.session.program()): TypeDecl | null {
-    const scene = this.#setup.production().scenes.find((s) => s.id === this.#setup.scene());
+  #sceneType(
+    program: Program = this.#setup.session.program(),
+    id: SceneId = this.#setup.scene(),
+  ): TypeDecl | null {
+    const scene = this.#setup.session.production().scenes.find((s) => s.id === id);
     if (!scene) return null;
     const where = indexProgram(program).get(scene.method);
     const type = where?.parent ? indexProgram(program).get(where.parent)?.node : undefined;
@@ -186,32 +449,23 @@ export class PrompterRunner implements ToolRunner {
     return { type, classOf: (field: FieldDecl) => classOf(field.type) };
   }
 
-  /** The program as text, and each block in the scene with its id, for tools to name. */
-  #projectData(): Json {
-    const program = this.#setup.session.program();
-    const type = this.#sceneType(program);
-    const view = programText(program);
-    const index = indexProgram(program);
-    const blocks: Json[] = [];
-    if (type)
-      for (const span of view.spans) {
-        const node = index.get(span.node)?.node;
-        const shown =
-          node && (CONTAINERS.has(node.kind) || ['if', 'call', 'comment'].includes(node.kind));
-        if (!shown) continue;
-        if (!this.#inside(index, span.node, type.id)) continue;
-        blocks.push({
-          id: span.node,
-          text: view.text.slice(span.start, span.end).split('\n')[0]!.trim(),
-        });
-      }
-    return {
-      scene: this.#setup.scene(),
-      objects: type ? type.fields.map((f) => f.name) : [],
-      methods: type ? type.methods.map((m) => m.name) : [],
-      program: view.text,
-      blocks,
-    };
+  /** The production and the storyboard as a turn sends them (spec 04, section 2.6). */
+  /** `find_models` (section 3.1): shipped models only, since imported ones are in the data. */
+  #findModels(query: string, section: Section | ''): Result {
+    const found = findModels(this.#setup.catalogue ?? SHIPPED_CATALOGUE, query, section);
+    const summary = found.models.length
+      ? `${found.models.length} shipped ${found.models.length === 1 ? 'model matches' : 'models match'}, best first.`
+      : 'No shipped model matches those words. The Backstage index lists every one.';
+    return { ok: true, ids: {}, summary, models: found.models, joints: found.joints };
+  }
+
+  #projectData(): string {
+    const production = this.#setup.session.production();
+    const place = { scene: this.#setup.scene(), open: this.#setup.openMethod?.() ?? null };
+    return [
+      dataBlock('production_data', productionData(production, place)),
+      dataBlock('storyboard_data', storyboardData(production, place)),
+    ].join('\n');
   }
 
   #inside(index: ReturnType<typeof indexProgram>, node: NodeId, ancestor: NodeId): boolean {
@@ -224,16 +478,16 @@ export class PrompterRunner implements ToolRunner {
   }
 
   #checkFrame(frame: string): Result {
-    const found = this.#setup.production().frames.find((f) => f.id === frame);
+    const found = this.#setup.session.production().frames.find((f) => f.id === frame);
     if (!found) return fail('unknown_frame', `There is no frame ${frame}.`);
-    const result = this.#setup.checkResult?.(found.id) ?? null;
+    const result = this.#setup.checkResult?.(found.id) ?? savedCheck(found);
     return result === null
       ? ok("This frame hasn't been checked yet. The learner can press Check this frame.")
       : ok(dataBlock('check_result', result));
   }
 
   #scriptCheck(scene: string): Result {
-    const production = this.#setup.production();
+    const production = this.#setup.session.production();
     if (scene !== '' && !production.scenes.some((s) => s.id === scene))
       return fail('unknown_object', `There is no scene ${scene}.`);
     const facts = scriptFacts(production, scene === '' ? undefined : (scene as SceneId));
@@ -243,9 +497,11 @@ export class PrompterRunner implements ToolRunner {
   // ---- Plans -------------------------------------------------------------------------------------
 
   #world(frame: string | null): PlanWorld {
-    const production = this.#setup.production();
+    const production = this.#setup.session.production();
     const program = this.#setup.session.program();
-    const type = this.#sceneType(program);
+    const onFrame = production.frames.find((f) => f.id === frame);
+    // A frame's plan is checked in the frame's scene, whichever scene is on show.
+    const type = this.#sceneType(program, onFrame?.scene ?? this.#setup.scene());
     const objects = new Map<string, ApiClass>([['this', 'Scene']]);
     if (type) {
       const scene = this.#sceneObjects(type, program);
@@ -254,13 +510,12 @@ export class PrompterRunner implements ToolRunner {
         if (cls) objects.set(field.name, cls);
       }
     }
-    const onFrame = production.frames.find((f) => f.id === frame);
     return {
       objects,
       lines: new Map(production.script.map((l) => [String(l.id), l.text])),
       sketches: new Set(onFrame ? onFrame.sketches.map((s) => s.id) : []),
       scenes: new Set(production.scenes.map((s) => String(s.id))),
-      isBackstageItem: this.#setup.isBackstageItem,
+      isBackstageItem: (id) => this.#modelClass(id) !== null,
     };
   }
 
@@ -274,7 +529,7 @@ export class PrompterRunner implements ToolRunner {
       ({ frame } = shown);
       id = shown.plan;
     }
-    if (frame !== null && !this.#setup.production().frames.some((f) => f.id === frame))
+    if (frame !== null && !this.#setup.session.production().frames.some((f) => f.id === frame))
       return fail('unknown_frame', `There is no frame ${frame}.`);
     const problems = checkPlan(steps, this.#world(frame));
     if (problems.length > 0)
@@ -283,19 +538,96 @@ export class PrompterRunner implements ToolRunner {
         `These steps can't be built: ${problems.map((p) => `step ${p.step}: ${p.message}`).join(' ')} Fix them and try again.`,
       );
     this.#plans.set(id, { plan: id, frame, steps });
+    this.#latest = id;
     return ok(`Plan ${id} is shown to the learner. End your turn now and wait.`, { plan: id });
   }
 
   #codeFrame(frame: string): Result {
-    if (!this.#setup.production().frames.some((f) => f.id === frame))
+    if (!this.#setup.session.production().frames.some((f) => f.id === frame))
       return fail('unknown_frame', `There is no frame ${frame}.`);
     if (this.#agreed?.frame !== frame)
       return fail('no_agreed_plan', `The learner hasn't agreed a plan for frame ${frame}.`);
     const type = this.#sceneType();
-    const scene = this.#setup.production().scenes.find((s) => s.id === this.#setup.scene());
+    const scene = this.#setup.session.production().scenes.find((s) => s.id === this.#setup.scene());
     const method = type?.methods.find((m) => m.id === scene?.method);
     if (!method) return fail('unknown_method', "This scene's method can't be found.");
-    return ok(`Build frame ${frame} in ${method.name}.`, { method: method.name });
+    this.#coding = frame as FrameId;
+    const where = this.#frameSlot(frame as FrameId, method);
+    const inside = where.block ? `, inside ${where.block}` : '';
+    return ok(
+      `Build frame ${frame} in ${method.name}${inside}, from position ${where.position}. Blocks you build now are linked to the frame.`,
+      {
+        method: method.name,
+        ...(where.block ? { parent_block: where.block } : {}),
+        position: where.position,
+      },
+    );
+  }
+
+  /**
+   * Where a frame's blocks go in the scene's method: after its own linked blocks; else after the
+   * blocks of the frames before it; else before those of the frames after it; else at the end.
+   */
+  #frameSlot(frame: FrameId, method: MethodDecl): { block: string | null; position: string } {
+    const production = this.#setup.session.production();
+    const index = indexProgram(production.program);
+    const own = production.frames.find((f) => f.id === frame)!;
+    const live = (f: (typeof production.frames)[number]) =>
+      f.links.filter((l) => index.has(l) && this.#inside(index, l, method.id));
+    const sceneFrames = production.frames
+      .filter((f) => f.scene === own.scene && f.id !== frame)
+      .sort((a, b) => a.order - b.order);
+    const at = (link: NodeId, after: boolean) => {
+      const place = index.get(link)!;
+      const parent = place.parent!;
+      const container = index.get(parent)?.node;
+      const list =
+        container && place.slot in container
+          ? ((container as unknown as Record<string, readonly { id: NodeId }[]>)[place.slot] ?? [])
+          : [];
+      const i = list.findIndex((n) => n.id === link);
+      const block =
+        parent === method.id ? null : container?.kind === 'if' ? `${parent}:${place.slot}` : parent;
+      return { block, position: String(after ? i + 1 : i) };
+    };
+    const mine = live(own);
+    if (mine.length > 0) return at(mine.at(-1)!, true);
+    const before = sceneFrames.filter((f) => f.order < own.order).flatMap(live);
+    if (before.length > 0) return at(before.at(-1)!, true);
+    const after = sceneFrames.filter((f) => f.order > own.order).flatMap(live);
+    if (after.length > 0) return at(after[0]!, false);
+    return { block: null, position: 'end' };
+  }
+
+  /**
+   * Runs a change; after `code_frame`, links the blocks it added to that frame (10.8), in the
+   * request's undo step. A block inside one the frame already links isn't linked again.
+   */
+  #linked(make: () => Result): Result {
+    const frame = this.#coding;
+    const before = new Set(indexProgram(this.#setup.session.program()).keys());
+    const result = make();
+    if (!result.ok || frame === null) return result;
+    const index = indexProgram(this.#setup.session.program());
+    const linked = new Set(
+      this.#setup.session.production().frames.find((f) => f.id === frame)?.links ?? [],
+    );
+    const fresh = [...index.keys()].filter((id) => !before.has(id));
+    const covered = (id: NodeId) => {
+      for (let at = index.get(id)?.parent ?? null; at !== null; at = index.get(at)?.parent ?? null)
+        if (linked.has(at) || !before.has(at)) return true;
+      return false;
+    };
+    const blocks = fresh.filter((id) => STATEMENT_SLOTS.has(index.get(id)!.slot) && !covered(id));
+    if (blocks.length === 0) return result;
+    const { session, source } = this.#setup;
+    session.change(`Link to frame ${frame}`, source, ({ program: _program, ...rest }) => ({
+      ...rest,
+      frames: rest.frames.map((f) =>
+        f.id === frame ? { ...f, links: [...f.links, ...blocks.filter((b) => !linked.has(b))] } : f,
+      ),
+    }));
+    return result;
   }
 
   // ---- Changes -----------------------------------------------------------------------------------
@@ -305,26 +637,61 @@ export class PrompterRunner implements ToolRunner {
     const number = typeof input.plan_step === 'number' ? input.plan_step : 0;
     const step = steps[number - 1];
     if (!step) return fail('not_in_plan', `There is no step ${number} in the agreed plan.`);
-    const wrong = mismatch(name, input, step);
+    const wrong = mismatch(name, input, step, nextBeside(steps, number));
     if (wrong) return fail('not_in_plan', wrong);
 
     const program = this.#setup.session.program();
     const type = this.#sceneType(program);
     if (!type) return fail('unknown_method', "This scene can't be found in the program.");
     const scene = this.#sceneObjects(type, program);
-    const mint = idMinter(program);
+    const mint = idMinter(program, this.#setup.random);
 
     switch (name) {
       case 'insert_statement':
         return this.#insert(input, step, number, scene, mint, () => this.#call(input, scene, mint));
-      case 'insert_control':
-        return this.#insert(input, step, number, scene, mint, () =>
+      case 'insert_control': {
+        const serves = text(input.kind) === 'doTogether' ? groupStart(steps, number) : number;
+        const built = this.#insert(input, steps[serves - 1]!, serves, scene, mint, () =>
           this.#control(input, scene, mint),
         );
+        return built.ok && serves !== number ? { ...built, step: serves } : built;
+      }
       case 'declare_procedure':
         return this.#declareProcedure(input, program, type, mint);
+      case 'add_model':
+        return this.#addModel(input);
+      case 'set_property':
+        return this.#setProperty(input);
+      case 'stage_scene':
+        return this.#stageScene(input);
       default:
         return this.#listen(input, type, scene, mint);
+    }
+  }
+
+  /** Opens the request's undo group, named after its first change. */
+  #group(label: string): void {
+    if (this.#open) return;
+    const { session, source, keepPlan } = this.#setup;
+    session.begin(label, source);
+    this.#open = true;
+    // The agreed plan is kept with its frame in the same step as what it built (section 6.7).
+    const agreed = this.#agreed;
+    if (keepPlan && agreed?.frame) {
+      const plan: KeptPlan = {
+        frame: agreed.frame as FrameId,
+        shown: this.#plans.get(agreed.plan)?.steps ?? agreed.steps,
+        agreed: agreed.steps,
+      };
+      // Keeping the plan never stops the build: a plan that isn't kept (one the studio finds too
+      // big, or a keepPlan that fails) is simply not kept, and nothing is recorded for it.
+      let kept: Production;
+      try {
+        kept = keepPlan(session.production(), plan);
+      } catch {
+        kept = session.production();
+      }
+      if (kept !== session.production()) session.change(label, source, () => withoutProgram(kept));
     }
   }
 
@@ -334,10 +701,7 @@ export class PrompterRunner implements ToolRunner {
     const program = session.program();
     const edits = unlabelled.map((e) => (e.label ? e : { ...e, label: defaultLabel(program, e) }));
     const label = edits.at(-1)!.label;
-    if (!this.#open) {
-      session.begin(label, source);
-      this.#open = true;
-    }
+    this.#group(label);
     const result = session.apply(edits, label, source);
     return result.ok ? null : fail('would_break_program', result.reason);
   }
@@ -356,6 +720,9 @@ export class PrompterRunner implements ToolRunner {
         return fail('unknown_block', `There is no block ${handle} in this scene.`);
       if (node.kind === 'if' && (part === 'then' || part === 'else'))
         return { parent: id, slot: part, length: node[part].length };
+      // A listener's handler, by the id add_event_listener gave (its description says so).
+      if (node.kind === 'listener' && part === undefined)
+        return { parent: id, slot: 'body', length: node.body.length };
       if (CONTAINERS.has(node.kind) && part === undefined && 'body' in node)
         return { parent: id, slot: 'body', length: (node.body as readonly Statement[]).length };
       return fail('unknown_block', `Blocks can't go inside ${handle}.`);
@@ -376,6 +743,9 @@ export class PrompterRunner implements ToolRunner {
   ): Result {
     const where = this.#slot(input, scene);
     if ('ok' in where) return where;
+    // A step inside a repeat is built inside that repeat's count block (section 6.8).
+    const outside = this.#outsideRepeat(number, where.parent);
+    if (outside) return outside;
     const position = text(input.position);
     const at = position === 'end' ? where.length : Number(position);
     if (at > where.length)
@@ -410,10 +780,32 @@ export class PrompterRunner implements ToolRunner {
     const refused = this.#apply(edits);
     if (refused) return refused;
     this.#commented.add(number);
+    if (step.kind === 'repeat' && node.kind === 'count') this.#repeatBlocks.set(number, node.id);
     const ids: Record<string, string> = { block: node.id };
     if (node.kind === 'if')
       Object.assign(ids, { then: `${node.id}:then`, else: `${node.id}:else` });
     return ok(label, ids);
+  }
+
+  /** Why a held step's blocks can't go at `parent`, or null if they can (section 6.8). */
+  #outsideRepeat(number: number, parent: NodeId): Result | null {
+    const steps = this.#agreed?.steps ?? [];
+    const holder = heldBy(steps)[number - 1];
+    if (holder === null || holder === undefined) return null;
+    const words = steps[number - 1]!.words;
+    const block = this.#repeatBlocks.get(holder + 1);
+    if (!block)
+      return fail(
+        'not_in_plan',
+        `Step "${words}" is inside step ${holder + 1}'s repeat: build step ${holder + 1}'s count block first.`,
+      );
+    const index = indexProgram(this.#setup.session.program());
+    return this.#inside(index, parent, block)
+      ? null
+      : fail(
+          'not_in_plan',
+          `Step "${words}" is inside step ${holder + 1}'s repeat: give its count block, ${block}, as parent_block.`,
+        );
   }
 
   #values(
@@ -470,7 +862,7 @@ export class PrompterRunner implements ToolRunner {
     const words = args.text?.kind === 'text' ? args.text.value : '';
     const lineId = text(input.line);
     if (lineId) {
-      const line = this.#setup.production().script.find((l) => l.id === lineId);
+      const line = this.#setup.session.production().script.find((l) => l.id === lineId);
       if (!line) return fail('unknown_line', `There is no script line ${lineId}.`);
       return line.text === words
         ? null
@@ -481,7 +873,7 @@ export class PrompterRunner implements ToolRunner {
         'not_in_script',
         'In a frame, what a character says is a script line: give its exact words and its id in line.',
       );
-    return squash(this.#request).includes(squash(words)) && words.trim() !== ''
+    return words.trim() !== '' && this.#learnerWords.some((w) => squash(w).includes(squash(words)))
       ? null
       : fail(
           'not_in_script',
@@ -560,6 +952,204 @@ export class PrompterRunner implements ToolRunner {
       args: args.values,
       details: {},
     };
+  }
+
+  // ---- The scene's set-up (spec 04, section 3.1) -----------------------------------------------
+
+  /** A model's class: a shipped one, or one of this production's imported models. */
+  #modelClass(id: string): StoryClass | null {
+    const imported = this.#setup.session.production().manifest.models.find((m) => m.item.id === id);
+    return imported ? imported.item.class : this.#setup.backstageClass(id);
+  }
+
+  /** Changes the current scene's set-up, as part of the request's undo step. */
+  #changeSetup(label: string, update: (setup: SceneSetup) => SceneSetup): void {
+    const { session, source } = this.#setup;
+    const scene = this.#setup.scene();
+    this.#group(label);
+    session.change(label, source, ({ program: _program, ...rest }): ProductionRest => ({
+      ...rest,
+      scenes: rest.scenes.map((s) => (s.id === scene ? { ...s, setup: update(s.setup) } : s)),
+    }));
+  }
+
+  /** Backstage's Add (`addObject`): a field and an object, named as Backstage names them. */
+  #addModel(input: Input): Result {
+    const item = text(input.backstage_item);
+    const cls = this.#modelClass(item);
+    if (!cls)
+      return fail(
+        'unknown_object',
+        `${item} isn't in the Backstage catalogue or this production's imported models.`,
+      );
+    const at = input.position as { x?: unknown; y?: unknown; z?: unknown } | undefined;
+    const position = [at?.x, at?.y, at?.z];
+    if (!position.every(finite))
+      return fail('bad_argument', 'position needs x, y and z, each a number of metres.');
+    const scale = input.scale === undefined ? 1 : input.scale;
+    if (!finite(scale) || scale < SCALE.min || scale > SCALE.max)
+      return fail('bad_argument', `scale must be from ${SCALE.min} to ${SCALE.max}.`);
+    const turn = input.turn_degrees === undefined ? 0 : input.turn_degrees;
+    if (!finite(turn)) return fail('bad_argument', 'turn_degrees must be a number.');
+
+    const production = this.#setup.session.production();
+    const scene = this.#setup.scene();
+    const wanted = text(input.name).trim() || item.split('/').at(-1) || 'model';
+    const name = objectName(production, scene, wanted);
+    if (name === null) return fail('unknown_method', "This scene can't be found.");
+    const [x, y, z] = position as number[];
+    const object = { model: item as SceneObjectSetup['model'], class: cls };
+    const type = this.#setup.objectType?.(production, object);
+    const added = addObject(
+      production,
+      scene,
+      {
+        ...object,
+        ...(type === undefined ? {} : { type }),
+        name,
+        transform: {
+          position: { x: x!, y: y!, z: z! },
+          rotation: yaw(turn),
+          scale: { x: scale, y: scale, z: scale },
+        },
+      },
+      `Add ${name}`,
+      this.#setup.random,
+    );
+    if (!added.ok) return refusal(added.refusal, name);
+    return this.#step(added.step) ?? ok(`Added ${name}.`, { name });
+  }
+
+  #setProperty(input: Input): Result {
+    const name = text(input.object);
+    const property = text(input.property);
+    const value = text(input.value).trim();
+    const production = this.#setup.session.production();
+    const scene = production.scenes.find((s) => s.id === this.#setup.scene());
+    if (!scene) return fail('unknown_method', "This scene can't be found.");
+    const objects = scene.setup.objects;
+    const object = objects.find((o) => o.id === name);
+    const camera = name === 'camera';
+    if (!object && !camera) return fail('unknown_object', `There is no ${name} in this scene.`);
+    if (camera && property !== 'position' && property !== 'turn_degrees')
+      return fail('bad_argument', `The camera has no ${property}. Only its position and turn.`);
+
+    const number = value === '' ? NaN : Number(value);
+    const bad = (why: string) => fail('bad_argument', `${property} for ${name}: ${why}`);
+    let change: (o: SceneObjectSetup) => SceneObjectSetup;
+    let words: string;
+    switch (property) {
+      case 'position': {
+        const parts = value.split(',').map((p) => (p.trim() === '' ? NaN : Number(p)));
+        if (parts.length !== 3 || !parts.every(finite))
+          return bad('give "x, y, z", three numbers of metres.');
+        const [x, y, z] = parts as [number, number, number];
+        change = (o) => ({ ...o, transform: { ...o.transform, position: { x, y, z } } });
+        words = `Move ${name}`;
+        break;
+      }
+      case 'turn_degrees':
+        if (!finite(number)) return bad('give a number of degrees.');
+        change = (o) => ({ ...o, transform: { ...o.transform, rotation: yaw(number) } });
+        words = `Turn ${name}`;
+        break;
+      case 'scale':
+        if (!finite(number) || number < SCALE.min || number > SCALE.max)
+          return bad(`give a number from ${SCALE.min} to ${SCALE.max}.`);
+        change = (o) => ({
+          ...o,
+          transform: { ...o.transform, scale: { x: number, y: number, z: number } },
+        });
+        words = `Resize ${name}`;
+        break;
+      case 'paint':
+        if (!PAINTS.has(value) && !/^#[0-9a-fA-F]{6}$/.test(value))
+          return bad('give a colour from the catalog, or #rrggbb.');
+        change = (o) => ({ ...o, paint: value });
+        words = `Paint ${name}`;
+        break;
+      case 'opacity':
+        if (!finite(number) || number < 0 || number > 1) return bad('give a number from 0 to 1.');
+        change = (o) => ({ ...o, opacity: number });
+        words = `Change how see-through ${name} is`;
+        break;
+      case 'vehicle': {
+        const rider = value === 'scene' ? null : value;
+        if (rider !== null && !objects.some((o) => o.id === rider))
+          return bad(`there is no ${rider} in this scene. Give an object's name, or "scene".`);
+        if (rider !== null && carries(objects, name, rider))
+          return bad(`${rider} already rides on ${name}, so ${name} can't ride on it.`);
+        change = (o) => ({ ...o, vehicle: rider as SceneObjectSetup['vehicle'] });
+        words = rider === null ? `Let ${name} ride on nothing` : `Put ${name} on ${rider}`;
+        break;
+      }
+      default:
+        return fail('bad_argument', `There's no property ${property}.`);
+    }
+
+    if (object && property !== 'vehicle') {
+      const next = change(object);
+      const objectChange =
+        property === 'paint'
+          ? { paint: next.paint! }
+          : property === 'opacity'
+            ? { opacity: next.opacity! }
+            : { transform: next.transform };
+      const set = setObject(production, scene.id, name, objectChange, words);
+      if (!set.ok) return refusal(set.refusal, name);
+      return this.#step(set.step) ?? ok(`${words}: done.`);
+    }
+
+    this.#changeSetup(words, (setup) =>
+      camera
+        ? {
+            ...setup,
+            camera: {
+              ...setup.camera,
+              transform: change({ transform: setup.camera.transform } as SceneObjectSetup)
+                .transform,
+            },
+          }
+        : { ...setup, objects: setup.objects.map((o) => (o.id === name ? change(o) : o)) },
+    );
+    return ok(`${words}: done.`);
+  }
+
+  /** Set the stage from the storyboard (10.10), the studio's own step, in the request's. */
+  #stageScene(input: Input): Result {
+    const stage = this.#setup.stageFromStoryboard;
+    if (!stage) return fail('not_allowed_here', NO_STAGING);
+    const id = text(input.scene);
+    const production = this.#setup.session.production();
+    const scene = production.scenes.find((s) => s.id === id);
+    if (!scene) return fail('unknown_object', `There is no scene ${id}.`);
+    const heading = production.storyboard.cards.find((c) => c.id === scene.id)?.heading;
+    const placed = stage(production, scene.id, `Set up ${heading || id} from the storyboard`);
+    if (!placed.ok) return refusal(placed.refusal, placed.name ?? '');
+    if (placed.step.production === production)
+      return ok('Nothing to place: the stage already has everything the storyboard shows.');
+    const before = new Set(scene.setup.objects.map((o) => String(o.id)));
+    const added = (
+      placed.step.production.scenes.find((s) => s.id === scene.id)?.setup.objects ?? []
+    )
+      .map((o) => String(o.id))
+      .filter((n) => !before.has(n));
+    return (
+      this.#step(placed.step) ??
+      ok(
+        added.length > 0
+          ? `Placed ${added.join(', ')} from the storyboard.`
+          : 'Set the backdrop and camera from the storyboard.',
+      )
+    );
+  }
+
+  /** A step from `@storystage/production`, joined to the request's undo step. */
+  #step(step: SceneStep): Result | null {
+    const { session, source } = this.#setup;
+    this.#group(step.label);
+    const result = session.step(step, source);
+    return result.ok ? null : fail('would_break_program', result.reason);
   }
 
   #declareProcedure(

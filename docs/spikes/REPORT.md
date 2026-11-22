@@ -11,6 +11,10 @@ One row per spike, filled in as each one finishes; go/no-go is recorded per spik
 | **1.6 Tauri key path** | **passed in CI** (Windows, WebView2) | Key read from Credential Manager by Rust only; reply streamed to the page in 284 ms; 3 bad requests refused before the network; key found nowhere in the webview: page, storage, IPC replies, or a DevTools heap snapshot (scanner proven by a planted key) | **go** | **go**, 21 Oct 2026 ([record](../decisions/spike-1.6-key-path.md)) |
 | **1.7 Tauri Android on a Chromebook** | **built and passing in CI** (Android 14 emulator, 4 GB); Chromebook run pending (#6) | The APK (ARM and x86_64) installs and starts; Babylon.js scene with WebGL2 at 20.9 fps in software; Blockly draws all its blocks; 33 MB of JS memory | decide after the Chromebook run and the school-policy question | pending |
 | **1.8 MP4 export** | **passed in CI** (Chrome, Chromium, WebKit, WebView2, WKWebView) | H.264 MP4, 10 s at 720p and 30 fps, valid everywhere; 0.65× to 3.5× real time; AAC missing in Chrome on Linux | **go** for video; audio needs a decision (see the findings) | **go for video**; audio after the Chromebook check, 21 Oct 2026 ([record](../decisions/spike-1.8-mp4.md)) |
+| **14.3 Voices** (decision 0068: the bundled speech engine) | **passed in CI** (Chromium, software); devices pending (#6) | Kokoro-82M with a GPL-free phonemiser: whisper's word error rate 0–5% across eight British voices; 1.9× slower than real time on 4 cores; 86 MB model. Piper and KittenTTS fail the licence check | **go for Kokoro**, with lines prepared in advance | **go**, with an American accent switch (British by default), 10 Nov 2026 ([record](../decisions/spike-14.3-voices.md)) |
+| **23.1 Projection bake** (WP23, may run before the release candidate) | **passed in CI** (Chromium, SwiftShader) | Box and building front: from the sweet spot, 99% of projector-lit pixels match the show (mean error 1.5–2.4 of 255); off to one side, 73–78%, as expected; hidden faces left unbaked; about 15 ms a frame | **go**, with the findings below | **go**, 8 Nov 2026 ([record](../decisions/spike-23.1-projection-bake.md)) |
+| **23.2 Pixera build script** (WP23, may run before the release candidate) | **run by hand** in Pixera Creator 26.1 on the owner's PC; the client's tests pass in CI | Media, timeline, layers to screens, clips at the media's length, Play, Pause and Stop cues at the right frames, saved as `.avp`; it plays, and the Pause cue stops at exactly 2 s. VP9 in WebM imports unattended; a PNG sequence needs someone to answer Pixera's frame-rate dialog; screens, projectors, the timeline's frame rate and calibration are manual | **go**, with VP9 at a constant frame rate for Pixera and the findings below | **go**, 21 Nov 2026, as a guided step in the Windows app (0072) ([record](../decisions/spike-23.2-pixera-build.md)) |
+| **24.3 Classroom relay** (option B; decided at M1) | **probe built, passing in CI over loopback**; the school-network test needs the owner | Loopback only so far, on Linux, Windows and macOS: a right code finishes and a wrong one is turned away; 226–406 Mbit/s, round trips under 0.1 ms (`docs/spikes/24.3-classroom-relay.md`) | **A** for the pilot; run the probe at the 1.11 visits; **C** ruled out | |
 | 1.9 AR | not started; **iPad-first** (decision 0042), needs the reference iPad (#6) | | | |
 
 ## 1.4 Interpreter and scheduler
@@ -215,3 +219,109 @@ The first transcription after loading took longer (13.4 s for the quantised mode
 4. The emulator in CI needed time limits on every wait, and `ANDROID_AVD_HOME` set, or it hung. That's noted in the workflow for whoever builds WP15's Android tests.
 
 **Not covered:** the reference Chromebook (#6), and an ARM Chromebook; whether the school policy allows the install (#24); a release build's size.
+
+## 23.1 Projection mapping: the surface bake renderer
+
+**Task:** for each frame, render the scene from the audience's sweet spot, project that image onto the surface model, and unroll it into the surface's UV layout, giving one UV-space frame per surface. Prove it on a box and on a simple building front, and check the illusion from the sweet spot in a projector preview (WP23.1). Code: `spikes/23.1-projection/`. Run: `.github/workflows/spikes.yml`; the page is also on the spike site.
+
+**How it works.** Each surface is a set of flat faces in metres. Its texture layout gives every face its own space in 0–1, in proportion to its real size, with a gap around each face (Pixera's rules, workplan WP23; unit-tested). Each frame:
+1. **Show:** render the scene (the surface's own paint, plus a ball and a ring floating in front of it) from the sweet spot.
+2. **Bake:** draw the surface flat in its texture layout. Each texel looks up its world point in the show picture, unless that point faces away from the audience or another part of the surface hides it (checked against a depth picture from the sweet spot).
+3. **Check, once:** a virtual projector, standing somewhere else, sends out the surface wearing its baked texture (what Pixera or the classroom output plays). That light falls on a plain white model of the surface. The result is compared, pixel by pixel, with the show, from the sweet spot and from off to one side.
+
+**Results (8 Nov 2026; Edge with software rendering on the owner's PC; CI keeps its own run as the `spike-23.1-results` artifact):**
+
+| | Box (5 faces) | Building front (wall, porch, roof: 6 faces) |
+|---|---|---|
+| Texture | 1024², 310 texels per metre | 1024², 177 texels per metre |
+| Bake one frame and read it back | 13 ms median | 16 ms median |
+| From the sweet spot: projector-lit pixels that match (mean error out of 255) | 99.4% (1.5) | 99.2% (2.4) |
+| From off to one side: pixels that match | 73% (21.1) | 78% (19.6) |
+| Faces baked | front, right side, top: all; back and left side: none (the audience can't see them) | wall 84% (the porch hides the rest), porch front and roof 100%, porch top 100% |
+
+**Findings for WP23 (S3, 23.3–23.9):**
+1. **The bake works and is cheap.** One render plus one flat draw per surface per frame, about 15 ms in software. A 30-second show is well under a minute of baking, so 23.6's export can bake on the fly, frame by frame, as WP11's export already renders.
+2. **The illusion holds only from the sweet spot.** Off to one side, things floating in front of the surface no longer line up (a quarter of the pixels differ). The Projection stage (23.4) should show the sweet spot and let learners walk the preview camera away from it.
+3. **Faces the audience can't see are left empty** (the box's back, the wall behind the porch), and the export should say so rather than fill them. A second sweet spot, or a fill colour, is a later choice.
+4. **One projector lights only what it sees.** The box's right side and a strip beside the porch stay dark in the preview. 23.4 should show projector shadows (the workplan already asks for them) and suggest a second projector, or one near the audience.
+5. **Grazing faces need a slope-scaled depth bias.** The porch's top, seen almost edge on, first baked as stripes; dividing the bias by how squarely a face meets the camera fixed it (100% baked).
+6. **The baked texture can't be sharper than the audience's picture.** The 512-pixel show picture gives stepped edges on a 1024 texture. Render the show at least as many pixels as the surface has texels where it's seen.
+7. **The packing wastes space on cubes:** the box uses under half of its texture. A better packer, or a cross-shaped layout for boxes, belongs in 23.3.
+
+**Not covered:** real projectors and real models (23.5); curved surfaces (only flat faces here); Babylon.js projection textures on spotlights for the preview, which 23.4 plans (this spike projects in its own shader); the Pixera build script (23.2, which needs a Windows PC with an NVIDIA graphics card and Pixera Creator).
+
+## 23.2 Projection mapping: the Pixera build script
+
+**Task:** a small script that talks to Pixera's API over TCP to add the exported media, create layers, create clips at the right times, create cues and save the project, recording which steps the API can't do (WP23.2). Also: does Pixera accept VP9 in WebM, and PNG sequences (for 23.6)? Code: `spikes/23.2-pixera/`. Its client and media tests run in `.github/workflows/spikes.yml`; the live run needs Pixera, so it was run by hand.
+
+**How it works.** `make-package.ts` writes a test package: two surfaces, Wall and Box, each a 4-second, 25 fps PNG sequence at 480×270 (a coloured frame with a white bar that sweeps across once a second and a block added each second, so a wrong frame rate shows), the Wall again as VP9 in WebM (recorded in Edge), a WAV soundtrack, and three cues (Start, Play at 0 s; Hold, Pause at 2 s; End, Stop at 4 s). `build.ts` connects to Pixera's API port and builds the show: it checks every command it uses with `getHasFunction`, makes `Media/StoryStage/<title>`, adds the media, makes a timeline with a layer per item (sent to the screen of the same name if there is one), a clip at frame 0 at the media's own length, a cue layer and the cues, and saves the project under a new name. Each step and every request and reply go into a report.
+
+**Results (21 Nov 2026; Pixera Creator 26.1 R 52, API revision 481, on the owner's Windows PC; checked in Pixera's preview through Windows desktop control):**
+
+| | Result |
+|---|---|
+| Connection | JSON-RPC 2.0 over TCP, each message ended by `0xPX` ("JSON/TCP(dl)"). The port must be added in Settings > API first: Pixera listened on 1400 but answered nothing until it was |
+| Commands | all 25 the script uses exist |
+| VP9 in WebM | **imports with no dialog and plays correctly** (the frame at 0.5 s, on a flat screen, matches Edge's). Pixera read Edge's recording as 60 fps and 3.91 s, so its clip was 234 frames, not 240 |
+| WAV | imports with no dialog; 4.000 s, a 240-frame clip |
+| PNG sequence | **imports only when someone answers a dialog in Pixera** ("Import as Image Sequence?", asking the frame rate, 60 by default). The API call waits until it's answered. Answered with 25, each became one 4-second resource at 25 fps that plays at the right speed (seen at 0.52 s and 3.33 s) |
+| Timeline | made and named; 60 fps, which the API can't change |
+| Layers | made and named; sent to screens by name (Generic Box, Decoframe) |
+| Clips | at frame 0, as long as their media in the timeline's frames |
+| Cues | at the right frames (00:00:00:00, 00:00:02:00, 00:00:04:00) with Play, Pause and Stop; playing the timeline, the Pause cue stopped it at exactly 2 s |
+| Save as | works, given a path ending `.avp` |
+
+**Findings for WP23 (S3, 23.6 and 23.7):**
+1. **The script works.** Everything the done-when asks for that the API has, it does, and the result plays.
+2. **Video is the media for an unattended build.** VP9 in WebM goes in and plays with no one at Pixera. 23.6 should write it at a **constant frame rate equal to the show's**, and exactly the show's length: Edge's MediaRecorder writes neither, so the clip came out 6 frames short. Pixera also failed to make its own preview thumbnail of that file ("could not extract image" in its log), although it played.
+3. **A PNG sequence needs the operator at Pixera,** to answer the frame-rate dialog once per surface; the script prints what to type and waits up to 10 minutes. "Remember my Choice" wasn't kept. A folder's "Watch Folder" setting has an "Auto Detect Image Sequence" option that might avoid the dialog; it wasn't tried. So PNG sequences stay possible (all versions can write them), with a step in the operator guide.
+4. **Pixera Creator crashed three times** in the session (dumps in `C:\ProgramData\AV Stumpfl\Pixera\dumps`). Two came after sequence dialogs were answered for calls that had already timed out and closed their connection; when the call was still waiting, and when the sequence was imported by hand, it didn't crash. The script now waits; it's a likely cause, not a proven one, and worth reporting to AV Stumpfl with the dumps if it recurs.
+5. **One call at a time, and only known commands.** Pixera answers a connection's calls in order, and never answers a command it doesn't have, so one wrong name stops that connection. The script checks every command with `getHasFunction` before using it.
+6. **Times are in the timeline's frames.** A new timeline is 60 fps and the API can't set it, so the script reads the rate and places clips and cues from it; the show's own frame rate only matters to the media. The operator can change the timeline's FPS in its properties.
+7. **`saveProjectAs` needs `.avp`.** Without it, Pixera wrote a file with no extension and took ".2" in "23.2" as one, naming the project "StoryStage spike 23". The script adds `.avp`.
+
+**Still by hand in Pixera (the operator guide, 23.7):** import each surface's model and make it a screen, named as in the package, before running the script, so the layers find their screens (the API can't create or import screens); create and place projectors (the API only sets existing ones); set the timeline's frame rate if wanted; answer the image-sequence dialog for PNG sequences; map projectors to outputs and calibrate.
+
+**Not covered:** real surfaces and projectors (23.5); HAP (the desktop app's FFmpeg sidecar, 23.6); Pixera's Watch Folder route for sequences; a multi-machine Pixera system (the API port was the local one).
+
+## 14.3 Voices: the bundled speech engine
+
+**Task:** choose the open-source speech engine bundled with StoryStage for speak line (decision 0068), on every platform including the browser, with voices for adults and children, men and women, and animals, after a licence and size check. Code: `spikes/14.3-voices/`. The licence check: `docs/spikes/tts-engines.md`. Run: `.github/workflows/spikes.yml`; the page is on the spike site.
+
+**How it works.**
+- **The engine:** Kokoro-82M (8-bit ONNX, Apache-2.0) runs in ONNX Runtime Web (MIT), WebAssembly only, in the page.
+- **Pronunciation:** text becomes Kokoro's phonemes through HeadTTS's English phonemiser (MIT) and the CMU dictionary (BSD), not eSpeak NG (GPL-3). British voices get British pronunciations: our own rules over the CMU dictionary, Reece Dunn's RP list (BSD-2-Clause) for content words, and a short hand list (owner, 10 Nov).
+- **What it does:** ten test lines are spoken in eight British voices, plus six presets (woman, man, girl, boy, small and big animal). The presets are made by shifting pitch and formants together, then restoring the length.
+- **The intelligibility check:** whisper (tiny English, quantised, from spike 1.3) transcribes every clip, and the word error rate is counted.
+- **Pinned assets:** every asset is fetched pinned by SHA-256 into `public/`, which git ignores.
+
+**Results (10 Nov 2026):**
+
+| | CI (GitHub runner, 4 cores, Chromium) | Owner's PC (Edge, 8 cores) |
+|---|---|---|
+| Model download | 86 MB, plus 0.5 MB a voice | same |
+| Load (phonemiser, download, session) | 0.4 s, 3.0 s, 2.4 s | 0.4 s, 2.3 s, 2.2 s |
+| Time to speak a line, as a multiple of its length | **1.9×** (median, every voice) | **1.5×** |
+| whisper's word error rate, eight British voices | **0–5%** (mean per voice) | (no whisper locally) |
+| Presets (woman, man, girl, boy, small and big animal) | 0% on 10 of 12 clips | |
+| Making a preset from a line | under 0.1 s | same |
+
+The few misses are mostly whisper's small model ("5s" for *five*, "brothers") and one word, *key*, which two voices blur ("cave", "KU"). The girl and big-animal presets inherit that from their base voices. For comparison, spike 1.3's robotic eSpeak NG request scored 27–36%.
+
+**Findings for WP14b (14.3):**
+1. **Kokoro is the only candidate that passes the licence check.**
+   - Piper's British voice is built on research-only recordings ("lessac": no commercial use, no redistribution).
+   - KittenTTS's models are under a revocable community licence with revenue limits.
+   - The npm package `phonemizer`, which kokoro-js uses, is labelled Apache-2.0 but is eSpeak NG (GPL-3) inside.
+2. **Lines must be prepared in advance.** Speaking takes 1.5–1.9× a line's own length on a PC, so slower still on a 4 GB Chromebook. Spec 06 section 4.6 already plans it: each line's sound is made in a worker as the code changes, and Rehearse and export reuse it.
+3. **Understood almost perfectly.** It is far clearer than eSpeak NG, in every British voice, and the presets keep it.
+4. **British pronunciations need our own rules,** because no British word list with a clean licence and enough words was found (`tts-engines.md` section 6). The rules and the RP list give Southern British on the test lines. The owner judges the accent by ear on the spike page; D may check the MFA UK list (CC BY 4.0) as a bigger source.
+5. **Children's and animals' voices are made from adult voices.** That's because no openly licensed children's voice model exists. They stay as intelligible as the voice they come from. Whether they sound right is for the owner to judge by ear: the clips are in the CI artifact and on the page.
+6. **For D (WP17):** Kokoro was partly trained on audio from closed commercial speech services (its model card). Whether those services' terms allow that needs checking before release. Credits for its CC BY training sets (Koniwa, SIWIS) and the RP list's notice go in `NOTICE` and the About screen.
+
+**Not covered:**
+- the reference Chromebook and iPad (memory and speed, #6);
+- WebAssembly memory (browsers don't report it);
+- a full British word list;
+- the presets' sound, judged by people;
+- lip sync (14.4).

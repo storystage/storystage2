@@ -16,6 +16,10 @@ export default tseslint.config(
       'spikes/**',
       // Design references (HTML prototypes and their generated runtime), not app code.
       'docs/design/**',
+      // Vendored as published (packages/speech/src/speak-line/vendor/headtts/README.md).
+      'packages/*/src/**/vendor/**',
+      // Fetched by the speech scripts for the browser tests (git ignores them too).
+      'packages/speech/browser/harness/public/**',
     ],
   },
   js.configs.recommended,

@@ -1,0 +1,290 @@
+/**
+ * Backstages whose files aren't in a folder the app can fetch from: a film's packed models
+ * (decision 0049) and the class Backstage on this device (decision 0066). Each is a `Backstage`,
+ * as `backstageFrom` makes for the shipped one, giving the stage `blob:` URLs for its model files
+ * thumbnails and sketches. `combineBackstages(shipped, film, classBackstage)` puts them together, shipped
+ * first, for the one model source each App passes to every stage (S2, S3, S5). The film comes
+ * before the class: an id is never reused, so the two copies are the same model, and the film's
+ * is in memory already, so a film opened on another device reads nothing from the class.
+ *
+ * - **A film's models** are in memory already (the open production's `files.models`), so their
+ *   URLs are made on first use, synchronously, and kept.
+ * - **The class Backstage's** files are in the host's store, read asynchronously, and could be
+ *   gigabytes in all. So its records are listed at once, but a model's files are read only when
+ *   `prepare` is asked for its id: the stage's mount prepares the ids a film uses before it loads
+ *   them. Until then, `find`, `thumbnail` and `sketch` give `null`, as for a model that isn't there.
+ *
+ * `dispose` revokes every URL made. Call it when the film closes, or the class Backstage changes.
+ */
+import { catalogueText } from './catalogue.ts';
+import { creditsBySection } from './credits.ts';
+import { sketchFile, type Backstage, type BackstageModel } from './loader.ts';
+import { MANIFEST_VERSION, validateManifest, type BackstageItem } from './manifest.ts';
+
+type Id = BackstageItem['id'];
+
+/** Making and revoking object URLs. The browser's `URL` by default; tests pass their own. */
+export interface ObjectUrls {
+  create(blob: Blob): string;
+  revoke(url: string): void;
+}
+
+const browserUrls: ObjectUrls = {
+  create: (blob) => URL.createObjectURL(blob),
+  revoke: (url) => URL.revokeObjectURL(url),
+};
+
+/** A Backstage that makes `blob:` URLs, and gives them back. */
+export interface DisposableBackstage {
+  readonly backstage: Backstage;
+  /** Revokes every URL this Backstage made. It still lists its items, but finds none. */
+  dispose(): void;
+}
+
+const MIME: Readonly<Record<string, string>> = {
+  glb: 'model/gltf-binary',
+  vrm: 'model/gltf-binary',
+  webp: 'image/webp',
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  // Sketches (WP10.5). Drawn with `<img>`, where an SVG runs nothing (S5, WP10.9).
+  svg: 'image/svg+xml',
+};
+const mimeOf = (path: string) =>
+  MIME[path.slice(path.lastIndexOf('.') + 1).toLowerCase()] ?? 'application/octet-stream';
+
+/** A Backstage over records whose files come from `bytesOf`, which gives `undefined` for none. */
+function overBytes(
+  items: readonly BackstageItem[],
+  bytesOf: (item: BackstageItem, path: string) => Uint8Array | undefined,
+  urls: ObjectUrls,
+): DisposableBackstage & { add(item: BackstageItem): void } {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const made = new Map<string, string>();
+  let disposed = false;
+  const urlOf = (item: BackstageItem, path: string): string | null => {
+    if (disposed) return null;
+    const key = `${item.id}\n${path}`;
+    const known = made.get(key);
+    if (known) return known;
+    const bytes = bytesOf(item, path);
+    if (!bytes) return null;
+    // The Blob takes its own copy, so ordinary bytes aren't copied first (a 4 GB Chromebook).
+    // Bytes over shared memory, which a cross-origin isolated page can have, can't make a Blob,
+    // so those are copied (S2's review).
+    const own =
+      bytes.buffer instanceof ArrayBuffer ? (bytes as Uint8Array<ArrayBuffer>) : bytes.slice();
+    const url = urls.create(new Blob([own], { type: mimeOf(path) }));
+    made.set(key, url);
+    return url;
+  };
+  // Kept as one list, which `add` grows in place, so `items` always shows every model.
+  const list: BackstageItem[] = [...byId.values()];
+  const backstage: Backstage = {
+    items: list,
+    item: (id) => byId.get(id),
+    find(id): BackstageModel | null {
+      const i = byId.get(id);
+      const url = i ? urlOf(i, i.files.model) : null;
+      if (!i || !url) return null;
+      return { url, joints: i.joints, ...(i.vrm ? { vrm: i.vrm } : {}) };
+    },
+    thumbnail(id) {
+      const i = byId.get(id);
+      return i ? urlOf(i, i.files.thumbnail) : null;
+    },
+    sketch(id, facing, pose) {
+      const i = byId.get(id);
+      const file = i ? sketchFile(i, facing, pose) : null;
+      return i && file !== null ? urlOf(i, file) : null;
+    },
+    credits: () => creditsBySection(list),
+    catalogue: () => catalogueText({ manifestVersion: MANIFEST_VERSION, items: list }),
+  };
+  return {
+    backstage,
+    add(item) {
+      if (byId.has(item.id)) return;
+      byId.set(item.id, item);
+      list.push(item);
+    },
+    dispose() {
+      disposed = true;
+      for (const url of made.values()) urls.revoke(url);
+      made.clear();
+    },
+  };
+}
+
+/** A record if it's a valid imported model's. Anything else is left out. */
+function importedRecord(record: unknown): BackstageItem | null {
+  const checked = validateManifest({ manifestVersion: MANIFEST_VERSION, items: [record] });
+  if (!checked.ok) return null;
+  const item = checked.manifest.items[0]!;
+  return item.origin === 'imported' ? item : null;
+}
+
+/** A film's packed model: its folder under `models/` and its record (`PackedModel`). */
+export interface FilmModel {
+  readonly folder: string;
+  readonly item: unknown;
+}
+
+/**
+ * A film's packed models (`manifest.models`) as a Backstage, from the open production's files
+ * (`files.models`, keyed `models/<folder>/<path>`). A film from another device shows its imported
+ * models even where this device's class Backstage lacks them: those that passed the check, only.
+ */
+export function filmBackstage(
+  models: readonly FilmModel[],
+  files: ReadonlyMap<string, Uint8Array>,
+  options: {
+    /**
+     * The folders whose models passed `checkFilmModels` in the import worker
+     * (`@storystage/backstage-import`): a film is untrusted, so only those are shown (spec 03,
+     * section 1.3). Any other is left out, and shows as a stand-in.
+     */
+    readonly checked: readonly string[];
+    readonly urls?: ObjectUrls;
+  },
+): DisposableBackstage {
+  const checked = new Set(options.checked);
+  const folderOf = new Map<Id, string>();
+  const items: BackstageItem[] = [];
+  for (const m of models) {
+    if (!checked.has(m.folder)) continue;
+    const item = importedRecord(m.item);
+    if (!item || folderOf.has(item.id)) continue;
+    folderOf.set(item.id, m.folder);
+    items.push(item);
+  }
+  return overBytes(
+    items,
+    (item, path) => files.get(`models/${folderOf.get(item.id)}/${path}`),
+    options.urls ?? browserUrls,
+  );
+}
+
+/** What the class Backstage view needs from the host. `ClassFolders.backstage()` fits. */
+export interface ClassModelStore {
+  list(): Promise<readonly { readonly id: string; readonly record: unknown }[]>;
+  read(id: string, path: string): Promise<Uint8Array>;
+}
+
+/** The class Backstage as a Backstage, whose models' files are read when they're prepared. */
+export interface ClassBackstageView extends DisposableBackstage {
+  /**
+   * Reads these models' files (model, thumbnail and sketches), so `find`, `thumbnail` and
+   * `sketch` give their URLs. A sketch it can't read stays null; the model is still found.
+   * Asked for a class id it doesn't know, it lists the store again first, so a model imported
+   * since the view was made is found. Ids still not there, and files it can't read, are left out:
+   * those models stay not found.
+   */
+  prepare(ids: readonly string[]): Promise<void>;
+}
+
+/**
+ * The class Backstage on this device as a Backstage (decision 0066). Its records are listed at
+ * once; each model's files are read when `prepare` asks for them.
+ */
+export async function openClassBackstage(
+  store: ClassModelStore,
+  urls: ObjectUrls = browserUrls,
+): Promise<ClassBackstageView> {
+  /** The store's valid imported records that aren't known yet. */
+  const fresh = async (known: ReadonlyMap<Id, BackstageItem>): Promise<BackstageItem[]> => {
+    const found: BackstageItem[] = [];
+    for (const stored of await store.list()) {
+      const item = importedRecord(stored.record);
+      if (!item || item.id !== stored.id || known.has(item.id)) continue;
+      if (found.some((f) => f.id === item.id)) continue;
+      found.push(item);
+    }
+    return found;
+  };
+  const items = await fresh(new Map());
+  // Files read and not yet made into a URL. Once a URL is made, the Blob holds the only copy, so
+  // the bytes are let go: each prepared model is held once, not twice (S2's review).
+  const read = new Map<string, Uint8Array>();
+  // Files read or being read, so two `prepare`s at once (a `load` and a `preload`) read once.
+  const reading = new Map<string, Promise<void>>();
+  let disposed = false;
+  const view = overBytes(
+    items,
+    (item, path) => {
+      const key = `${item.id}\n${path}`;
+      const bytes = read.get(key);
+      read.delete(key);
+      return bytes;
+    },
+    urls,
+  );
+  const byId = new Map(items.map((i) => [i.id, i]));
+  // A model imported since the view was made (Settings, while the Screening tab stays mounted):
+  // `prepare` lists the store again when it's asked for a class id it doesn't know (S2, S5).
+  let listing: Promise<void> | null = null;
+  // Class ids the last listing didn't find (a film's own packed model, or one deleted), so a film
+  // that carries some doesn't make every `prepare` list again (S2's review).
+  let notFound = new Set<string>();
+  const relist = () =>
+    (listing ??= fresh(byId)
+      .then((found) => {
+        if (disposed) return;
+        for (const item of found) {
+          byId.set(item.id, item);
+          view.add(item);
+        }
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        listing = null;
+      }));
+  return {
+    backstage: view.backstage,
+    dispose() {
+      disposed = true;
+      read.clear();
+      view.dispose();
+    },
+    async prepare(ids) {
+      if (disposed) return;
+      const unknown = (id: string) => id.startsWith('class/') && !byId.has(id as Id);
+      if (ids.some((id) => unknown(id) && !notFound.has(id))) {
+        await relist();
+        notFound = new Set([...notFound, ...ids.filter(unknown)]);
+      }
+      if (disposed) return;
+      await Promise.all(
+        ids.flatMap((id) => {
+          const item = byId.get(id as Id);
+          if (!item) return [];
+          const paths = [
+            item.files.model,
+            item.files.thumbnail,
+            ...item.sketches.map((s) => s.file),
+          ];
+          return [...new Set(paths)].map((path) => {
+            const key = `${item.id}\n${path}`;
+            let pending = reading.get(key);
+            if (!pending) {
+              pending = store.read(item.id, path).then(
+                (bytes) => {
+                  // A view disposed while this read was under way keeps nothing.
+                  if (!disposed) read.set(key, bytes);
+                },
+                () => {
+                  // Unreadable: the model stays not found, and shows as a stand-in. A later
+                  // `prepare` may try again.
+                  reading.delete(key);
+                },
+              );
+              reading.set(key, pending);
+            }
+            return pending;
+          });
+        }),
+      );
+    },
+  };
+}

@@ -116,7 +116,7 @@
   align-items: center;
   padding: 1px 6px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 700;
   line-height: 1.2;
   color: var(--ss-on-prompter);
@@ -128,7 +128,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 700;
   line-height: 1;
 }
@@ -195,6 +195,26 @@
     inset -1px 0 0 var(--ss-line-1);
   cursor: pointer;
   outline: none;
+}
+/* A badge in the tab's corner (an export running): over the tab's edge, so it takes no width. */
+.ss-mode-tab {
+  position: relative;
+}
+.ss-mode-tab-badge {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  min-width: 28px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+  box-shadow: 0 0 0 2px var(--ss-stage-0);
 }
 .ss-mode-tab-label {
   font-family: var(--ss-font-display);
@@ -355,7 +375,7 @@
 }
 .ss-group-label {
   font-family: var(--ss-font-display);
-  font-size: 19px;
+  font-size: calc(19px * var(--ss-text-size, 1));
   font-weight: 700;
 }
 .ss-radio-card {
@@ -449,7 +469,7 @@
 }
 .ss-field-description {
   color: var(--ss-muted);
-  font-size: 15px;
+  font-size: calc(15px * var(--ss-text-size, 1));
 }
 
 /* Dialog: radius 20 over a dark scrim. Scrims stay dark in both themes. */
@@ -487,7 +507,7 @@
   flex: 1;
   margin: 0;
   font-family: var(--ss-font-display);
-  font-size: 28px;
+  font-size: calc(28px * var(--ss-text-size, 1));
   font-weight: 800;
   letter-spacing: -0.01em;
 }
@@ -517,6 +537,7 @@
 .ss-plan-step {
   --ss-surface: var(--ss-panel-3);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
   min-height: 52px;
@@ -568,9 +589,57 @@
   color: var(--ss-on-strong);
   background: var(--ss-strong);
 }
-.ss-plan-text {
+/* Plan only: a step the learner has built (04-prompter section 6.6). */
+.ss-plan-number[data-done] {
+  color: var(--ss-ok);
+  background: none;
+}
+.ss-plan-number[data-done] .ss-icon {
+  fill: var(--ss-ok);
+}
+.ss-plan-words {
+  display: flex;
   flex: 1;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
+  padding: 6px 0;
+  line-height: 1.3;
+}
+/* Inside a repeat (04-prompter section 6.8): indented, with the count block's loop colour down
+   its left, so the end of the loop shows at a glance. */
+.ss-plan-step[data-inside] {
+  margin-inline-start: 28px;
+  box-shadow:
+    inset 0 0 0 1px var(--ss-line-1),
+    inset 4px 0 0 var(--ss-block-loop);
+}
+.ss-plan-step[data-problem] {
+  box-shadow: inset 0 0 0 1.5px var(--ss-stop);
+}
+.ss-plan-problem {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  color: var(--ss-text-2);
+  font-size: calc(15px * var(--ss-text-size, 1));
+}
+/* Why, Change and Delete, in a row under the step's words, lined up with them. */
+.ss-plan-actions {
+  display: flex;
+  flex: 1 0 100%;
+  justify-content: flex-end;
+  gap: 2px;
+  margin-block-start: -6px;
+}
+.ss-plan-why {
+  color: var(--ss-text-2);
+  font-size: calc(15px * var(--ss-text-size, 1));
+  font-style: italic;
+}
+.ss-plan-problem .ss-icon {
+  flex: none;
+  fill: var(--ss-stop);
 }
 
 /* Frame strip: 140 × 50 cards grouped by scene; the current frame has a 2 px amber line on amber-tint. */
@@ -584,13 +653,13 @@
   position: relative;
   display: flex;
   gap: 6px;
-  padding-top: 20px;
+  padding-top: calc(20px * var(--ss-text-size, 1));
 }
 .ss-frame-scene-title {
   position: absolute;
   top: 0;
   left: 0;
-  font-size: 14px;
+  font-size: calc(14px * var(--ss-text-size, 1));
   font-weight: 700;
   color: var(--ss-muted);
 }
@@ -600,8 +669,8 @@
   align-items: center;
   gap: 8px;
   box-sizing: border-box;
-  width: 140px;
-  height: 52px;
+  width: calc(140px * var(--ss-text-size, 1));
+  min-height: calc(52px * var(--ss-text-size, 1));
   padding: 0 6px;
   border-radius: 10px;
   background: var(--ss-panel-3);
@@ -643,4 +712,44 @@
 }
 .ss-frame-number {
   font-weight: 700;
+}
+
+/* Talk to type (spec 06 section 1.5): the mic shows it's on, with a level meter under it. */
+.ss-mic {
+  position: relative;
+  display: inline-flex;
+}
+.ss-mic[data-phase='listening'] .ss-button {
+  color: var(--ss-on-strong);
+  background: var(--ss-strong);
+}
+.ss-mic-level {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  left: 6px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--ss-line-2);
+  pointer-events: none;
+}
+.ss-mic-level > span {
+  display: block;
+  height: 100%;
+  background: var(--ss-amber);
+  transform-origin: left;
+  transition: transform 80ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ss-mic-level > span {
+    transition: none;
+  }
+}
+.ss-field-status {
+  font-size: calc(14px * var(--ss-text-size, 1));
+  color: var(--ss-text);
+}
+.ss-field-status:empty {
+  display: none;
 }

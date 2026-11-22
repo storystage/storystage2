@@ -2,6 +2,20 @@
 
 Part of [the StoryStage Story API](README.md). CC BY 4.0. Newest first.
 
+## 0.11.0
+
+21 November 2026. A value type and a detail added, so a minor version.
+
+- `LineId` joins the references written as text: a line of the film's script, by its id.
+- `speakLine` takes the details `duration` (how long the line takes; without it, as long as its words need) and `line` ("script line": the script line the words come from, set only from the script, so never offered as a detail to add).
+- Section 8 says how a scene's code starts: a scene is a class extending `Scene`, and its `myFirstMethod` runs when the scene starts, with no listener needed, as in Alice. A `sceneStart` handler runs at the same time as it. Editors may call that method "When the scene starts", as StoryStage's do; programs keep the name.
+
+## 0.10.0
+
+8 November 2026. A value added, so a minor version.
+
+- `Expression` gains `neutral` ("plain"), which takes a face back to plain: every expression off. Without it, a face stayed until the next one and no block could take it away.
+
 ## 0.9.0
 
 8 November 2026. **The first publication, a draft for comment.**

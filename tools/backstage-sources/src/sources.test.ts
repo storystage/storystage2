@@ -4,9 +4,9 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { WebIO } from '@gltf-transform/core';
+import { Document, WebIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS, EXTTextureWebP } from '@gltf-transform/extensions';
-import { validateManifest } from '@storystage/backstage';
+import { catalogueJson, validateManifest } from '@storystage/backstage';
 import {
   box,
   documentFromMesh,
@@ -14,7 +14,7 @@ import {
   glbFromMesh,
   vrmFromMesh,
 } from '@storystage/sketches/testing';
-import { buildSources } from './build.ts';
+import { buildSources, renameBones } from './build.ts';
 import { fetchModel, type Fetcher } from './fetch.ts';
 import { validateSources } from './sources.ts';
 
@@ -93,6 +93,150 @@ describe('validateSources', () => {
     expect(r.errors.join('\n')).toMatch(/credit/);
   });
 
+  it('takes the VRM Public License only for a VRM file', () => {
+    const seed = {
+      id: 'vrmc/Biped/seed-san',
+      licence: 'VRM-PL-1.0',
+      credit: 'Seed-san by VirtualCast, Inc.',
+    };
+    const vrm = {
+      github: 'vrm-c/vrm-specification',
+      commit: COMMIT,
+      path: 'samples/Seed-san/vrm/Seed-san.vrm',
+    };
+    expect(validateSources({ source: 'vrmc', items: [item({ ...seed, fetch: vrm })] }).ok).toBe(
+      true,
+    );
+    const r = validateSources({ source: 'vrmc', items: [item(seed)] });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.errors.join('\n')).toMatch(/VRM file/);
+  });
+
+  it('takes a public-domain item only with its record in docs/legal/', () => {
+    const nasa = { licence: 'public-domain', credit: 'Saturn V by NASA (public domain)' };
+    expect(
+      validateSources({
+        source: 'nasa',
+        items: [item({ ...nasa, publicDomain: 'docs/legal/public-domain/nasa.md' })],
+      }).ok,
+    ).toBe(true);
+    for (const bad of [
+      item(nasa),
+      item({ ...nasa, publicDomain: 'nasa.md' }),
+      item({ publicDomain: 'docs/legal/public-domain/nasa.md' }),
+    ]) {
+      const r = validateSources({ source: 'nasa', items: [bad] });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(/public-domain|publicDomain/);
+    }
+  });
+
+  it("takes bones only as joints of the item's class, each once", () => {
+    const butterfly = {
+      id: 'styloo/Flyer/butterfly',
+      class: 'Flyer',
+      bones: { body: 'spineBase', 'Body.002': 'head', 'wingsupper.l': 'leftWingShoulder' },
+    };
+    expect(validateSources({ source: 'styloo', items: [item(butterfly)] }).ok).toBe(true);
+    for (const [bones, why] of [
+      [{ body: 'hips' }, /not a flyer joint/],
+      [{ body: 'head', 'Body.002': 'head' }, /twice/],
+      [['body'], /must map/],
+    ] as const) {
+      const r = validateSources({ source: 'styloo', items: [item({ ...butterfly, bones })] });
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+    const prop = validateSources({
+      source: 'styloo',
+      items: [item({ id: 'styloo/Prop/x', class: 'Prop', section: 'props', bones: { a: 'head' } })],
+    });
+    expect(prop.ok).toBe(false);
+  });
+
+  // Manifest 2.4.0 (owner, 20 Nov 2026; agreed with S3).
+  it('takes a gait for an animal in the cast with no walk clip of its own', () => {
+    const frog = {
+      id: 'sketchfab/Quadruped/frog',
+      class: 'Quadruped',
+      gait: 'hop',
+      clips: { idle: 'Take 001' },
+    };
+    expect(validateSources({ source: 's', items: [item(frog)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [{ gait: 'waddle' }, /gait must be one of hop/],
+      [{ clips: { idle: 'Take 001', walk: 'Take 001' } }, /no walk clip of its own/],
+      [{ id: 'kaykit/Biped/knight', class: 'Biped' }, /a gait is for an animal in the cast/],
+      [
+        { id: 'k/Prop/frog', class: 'Prop', section: 'props' },
+        /a gait is for an animal in the cast/,
+      ],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...frog, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
+  // The owner's choice of 20 Nov 2026: the chicken's wings and the ladybird's head.
+  it('takes joints to add, only for a class with joints', () => {
+    const ladybird = {
+      id: 'styloo/Flyer/ladybird',
+      class: 'Flyer',
+      addJoints: [{ name: 'head', parent: 'Bone', at: [0, 0.07, 0] }],
+    };
+    expect(validateSources({ source: 's', items: [item(ladybird)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [{ addJoints: [{ name: 'head', parent: 'Bone' }] }, /three numbers/],
+      [{ id: 's/Prop/box', class: 'Prop', section: 'props' }, /only for a class with joints/],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...ladybird, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
+  // The owner's choices of 21 Nov 2026: the planets, and NASA's insignia painted out.
+  it('takes a globe made from a picture fetched from GitHub, never as a backdrop', () => {
+    const earth = {
+      id: 'solar-system/Prop/earth',
+      class: 'Prop',
+      section: 'props',
+      licence: 'CC-BY-4.0',
+      fetch: {
+        github: 'storystage/backstage-assets',
+        commit: COMMIT,
+        path: 'originals/solar-system/2k_earth_daymap.jpg',
+      },
+      globe: {},
+      height: 1,
+    };
+    expect(validateSources({ source: 's', items: [item(earth)] }).ok).toBe(true);
+    for (const [over, why] of [
+      [
+        { fetch: { github: 'storystage/backstage-assets', commit: COMMIT, path: 'earth.glb' } },
+        /globe's fetch.path must be its picture/,
+      ],
+      [
+        { fetch: { url: 'https://example.org/earth.jpg', sha256: 'a'.repeat(64), ext: 'jpg' } },
+        /picture from GitHub/,
+      ],
+      [{ globe: { ring: { path: 'ring.png', inner: 3, outer: 2 } } }, /inner < outer/],
+    ] as const) {
+      const r = validateSources({ source: 's', items: [item({ ...earth, ...over })] });
+      expect(r.ok, JSON.stringify(over)).toBe(false);
+      if (!r.ok) expect(r.errors.join('\n')).toMatch(why);
+    }
+  });
+
+  it("takes boxes to paint out of a model's pictures", () => {
+    const ok = (cover: unknown) => validateSources({ source: 's', items: [item({ cover })] }).ok;
+    expect(ok([{ texture: 'wingtop', at: [34, 135, 72, 72] }])).toBe(true);
+    expect(ok([{ texture: 'texturelogo', at: [0, 0, 700, 700], colour: '#d2d4e5' }])).toBe(true);
+    expect(ok([{ texture: 'wingtop', at: [34, 135, 72] }])).toBe(false);
+    expect(ok([])).toBe(false);
+  });
+
   it('accepts parts to exclude for the list and for an item, as lists of name patterns', () => {
     const list = (exclude: unknown, itemExclude?: unknown) =>
       validateSources({
@@ -104,6 +248,40 @@ describe('validateSources', () => {
     expect(list({ meshes: ['x'] })).toBe(false);
     expect(list({ nodes: 'Sword' })).toBe(false);
     expect(list(undefined, { animations: [''] })).toBe(false);
+  });
+
+  it('takes a real height in metres for a glTF model, not for a VRM', () => {
+    const ok = (extra: Record<string, unknown>) =>
+      validateSources({ source: 's', items: [item(extra)] }).ok;
+    expect(ok({ height: 0.85 })).toBe(true);
+    expect(ok({ height: 0 })).toBe(false);
+    expect(ok({ height: 1001 })).toBe(false);
+    expect(ok({ height: '2' })).toBe(false);
+    expect(
+      ok({
+        height: 1.7,
+        fetch: { url: 'https://x.org/a.vrm', sha256: 'a'.repeat(64), ext: 'vrm' },
+      }),
+    ).toBe(false);
+  });
+
+  it('takes turns in whole degrees for a glTF model, not for a VRM', () => {
+    const ok = (extra: Record<string, unknown>) =>
+      validateSources({ source: 's', items: [item(extra)] }).ok;
+    expect(ok({ turn: { y: 180 } })).toBe(true);
+    expect(ok({ turn: { x: -90, y: 270 } })).toBe(true);
+    // A model that leans in its own data is stood up by whatever it takes.
+    expect(ok({ turn: { x: -34 } })).toBe(true);
+    expect(ok({ turn: { y: 22.5 } })).toBe(false);
+    expect(ok({ turn: { y: '90' } })).toBe(false);
+    expect(ok({ turn: { z: 90 } })).toBe(false);
+    expect(ok({ turn: { y: 360 } })).toBe(false);
+    expect(
+      ok({
+        turn: { y: 90 },
+        fetch: { url: 'https://x.org/a.vrm', sha256: 'a'.repeat(64), ext: 'vrm' },
+      }),
+    ).toBe(false);
   });
 
   it('lets an Arweave address, which names fixed content, leave out the sha256', () => {
@@ -360,7 +538,7 @@ describe('buildSources', () => {
     expect(existsSync(join(dir, 'sketches/osa/Biped/robert/side-walk.svg'))).toBe(true);
   });
 
-  it("writes each description, and the Prompter's catalogue with its size", async () => {
+  it("writes each description, and the Prompter's catalogue, text and JSON, with their sizes", async () => {
     const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
     const knight = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Biped/knight');
     expect(knight.description).toBe('a knight in silver armour with a blue tunic');
@@ -372,8 +550,12 @@ describe('buildSources', () => {
       'kaykit/Biped/knight: Knight, a knight in silver armour with a blue tunic [fantasy]',
     );
     expect(catalogue).toContain('kaykit/Prop/crate: Crate [fantasy]');
+    const json = await readFile(join(dir, 'prompter-catalogue.json'), 'utf8');
+    expect(json).toBe(catalogueJson(manifest));
     const md = await readFile(join(dir, 'sources-report.md'), 'utf8');
-    expect(md).toMatch(/\*\*Prompter catalogue:\*\* about [\d,]+ of 12,000 tokens/);
+    expect(md).toMatch(
+      /\*\*Prompter catalogue:\*\* the index in its system prompt is about [\d,]+ of 12,000 tokens; every full line, which requests carry a few at a time, about [\d,]+\./,
+    );
   });
 
   it('builds one list on its own with only, leaving the others alone', async () => {
@@ -413,5 +595,124 @@ describe('buildSources', () => {
     expect(after.items.filter((i: { id: string }) => i.id === 'kaykit/Biped/knight')).toHaveLength(
       1,
     );
+  });
+});
+
+describe('renameBones', () => {
+  it("renames a model's own bones to our joint ids, and refuses a name it can't find once", () => {
+    const doc = new Document();
+    doc.createNode('Body.002');
+    doc.createNode('wingsupper.l');
+    renameBones(doc, { 'Body.002': 'head', 'wingsupper.l': 'leftWingShoulder' });
+    expect(
+      doc
+        .getRoot()
+        .listNodes()
+        .map((n) => n.getName()),
+    ).toEqual(['head', 'leftWingShoulder']);
+    expect(() => renameBones(doc, { tail: 'tail' })).toThrow(/0 nodes called "tail"/);
+  });
+});
+
+// Manifest 2.4.0; S3's review of #573: a hopper whose own file keeps a clip called walk.
+describe('a hopper with a walk of its own', () => {
+  it('is refused by the build once its clips are made', async () => {
+    const doc = documentFromMesh(figure());
+    const root = doc.getRoot();
+    const buffer = root.listBuffers()[0]!;
+    const node = root.listNodes()[0]!;
+    const sampler = doc
+      .createAnimationSampler()
+      .setInput(
+        doc
+          .createAccessor()
+          .setType('SCALAR')
+          .setArray(new Float32Array([0, 1]))
+          .setBuffer(buffer),
+      )
+      .setOutput(
+        doc
+          .createAccessor()
+          .setType('VEC3')
+          .setArray(new Float32Array([0, 0, 0, 0, 0.1, 0]))
+          .setBuffer(buffer),
+      );
+    doc
+      .createAnimation('walk')
+      .addSampler(sampler)
+      .addChannel(
+        doc
+          .createAnimationChannel()
+          .setTargetNode(node)
+          .setTargetPath('translation')
+          .setSampler(sampler),
+      );
+    files.set(`${RAW}chars/Hopper.glb`, await new WebIO().writeBinary(doc));
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-hopper-'));
+    await mkdir(join(dir, 'sources'));
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({
+            id: 'kaykit/Quadruped/hopper',
+            class: 'Quadruped',
+            gait: 'hop',
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Hopper.glb' },
+          }),
+        ],
+      }),
+    );
+    await expect(buildSources(dir, { fetcher, today: '2026-11-20' })).rejects.toThrow(
+      /its file has one/,
+    );
+    await rm(dir, { recursive: true, force: true });
+  });
+});
+
+// Styloo's ladybird (owner, 20 Nov 2026): its parts hang on its bones, with no skin in use.
+describe('a model whose parts hang on its bones', () => {
+  it('is mapped from the bones its source list names, though it has no skin', async () => {
+    const doc = documentFromMesh(box([-0.5, 0, -0.5], [0.5, 0.5, 0.5]));
+    const root = doc.getRoot();
+    const body = root.listNodes().find((n) => n.getMesh())!;
+    body.setName('body');
+    const mesh = body.getMesh()!;
+    for (const [name, x] of [
+      ['wing.L', 0.3],
+      ['wing.R', -0.3],
+    ] as const)
+      body.addChild(doc.createNode(name).setTranslation([x, 0.5, 0]).setMesh(mesh));
+    body.addChild(doc.createNode('front').setTranslation([0, 0.3, 0.5]));
+    files.set(`${RAW}chars/Beetle.glb`, await new WebIO().writeBinary(doc));
+    const dir = await mkdtemp(join(tmpdir(), 'backstage-beetle-'));
+    await mkdir(join(dir, 'sources'));
+    await writeFile(
+      join(dir, 'sources/test.json'),
+      JSON.stringify({
+        source: 'test',
+        items: [
+          item({
+            id: 'kaykit/Flyer/beetle',
+            class: 'Flyer',
+            bones: {
+              body: 'spineBase',
+              front: 'head',
+              'wing.L': 'leftWingShoulder',
+              'wing.R': 'rightWingShoulder',
+            },
+            fetch: { github: 'kaykit/pack', commit: COMMIT, path: 'chars/Beetle.glb' },
+          }),
+        ],
+      }),
+    );
+    await buildSources(dir, { fetcher, today: '2026-11-20' });
+    const manifest = JSON.parse(await readFile(join(dir, 'backstage.json'), 'utf8'));
+    const beetle = manifest.items.find((i: { id: string }) => i.id === 'kaykit/Flyer/beetle');
+    expect(beetle.joints).toEqual(
+      expect.arrayContaining(['spineBase', 'head', 'leftWingShoulder', 'rightWingShoulder']),
+    );
+    await rm(dir, { recursive: true, force: true });
   });
 });

@@ -4,8 +4,10 @@ import {
   moveScene,
   type Production,
   type SceneId,
+  type SceneStep,
 } from '@storystage/production';
 import { Button, Icon } from '@storystage/ui';
+import type { ReactNode } from 'react';
 import {
   Button as AriaButton,
   GridList,
@@ -22,7 +24,10 @@ export interface SceneStripProps {
   production: Production;
   current: SceneId | null;
   onCurrentChange: (scene: SceneId) => void;
-  onChange: (label: string, next: Production) => void;
+  /** A scene step (add, move): the program and the rest of the production, one undo step. */
+  onStep: (step: SceneStep) => void;
+  /** Import a script, offered beside Add a scene while there are no scenes (10.4). */
+  importScript?: ReactNode;
 }
 
 /**
@@ -30,7 +35,13 @@ export interface SceneStripProps {
  * order, with its heading, frames, length and part of the arc, then Add a scene. Reorder a card by
  * dragging its handle, or with the keyboard: Enter on the handle, the arrow keys, Enter.
  */
-export function SceneStrip({ production: p, current, onCurrentChange, onChange }: SceneStripProps) {
+export function SceneStrip({
+  production: p,
+  current,
+  onCurrentChange,
+  onStep,
+  importScript,
+}: SceneStripProps) {
   const order = p.manifest.runningOrder.map((r) => r.scene);
   const cards = new Map(p.storyboard.cards.map((c) => [c.id, c]));
   const ready = canAddScene(p.storyboard);
@@ -50,7 +61,7 @@ export function SceneStrip({ production: p, current, onCurrentChange, onChange }
         to,
         words.t('step.moveScene', { n: sceneNumber(p, moving) }),
       );
-      if (result.ok) onChange(result.step.label, result.step.production);
+      if (result.ok) onStep(result.step);
     },
   });
 
@@ -58,7 +69,7 @@ export function SceneStrip({ production: p, current, onCurrentChange, onChange }
     const n = order.length + 1;
     const result = addScene(p, { heading: '', label: words.t('step.addScene', { n }) });
     if (!result.ok) return;
-    onChange(result.step.label, result.step.production);
+    onStep(result.step);
     const added = result.step.production.manifest.runningOrder.at(-1)!.scene;
     onCurrentChange(added);
   };
@@ -135,6 +146,7 @@ export function SceneStrip({ production: p, current, onCurrentChange, onChange }
           <Button variant="secondary" icon="add" isDisabled={!ready || full} onPress={add}>
             {words.t('storyboard.scene.add')}
           </Button>
+          {order.length === 0 && importScript}
           {!ready && (
             <span className="sb-scene-add-why">
               {words.t('storyboard.needsLoglineAndSynopsis')}

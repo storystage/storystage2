@@ -42,6 +42,34 @@ Each request names the production it starts from, in `productions/`. They're pla
 3. If a plan appears, send `follow_up` if the row has one, make the row's `plan_edits`, then press **Build these steps**. At Plan only, stop at the plan.
 4. Score the checks.
 
+### The harness
+
+`tools/fake-claude/src/eval/` runs a row the way the studio would, so a score says something about the Prompter learners will use.
+
+- **`openStart`** builds the row's start as a real production with the production's own steps (`addScene`, `addObject`). Its program lines become blocks in the request's scene, which is the scene of a frame the request names, else the first scene with frames. Ids come from a fixed seed, so every run starts from the same film. A class's own names (`imported`, `displayName`) are class-imported models, so they reach the Prompter as they would in the studio.
+- **`runRow`** runs the row through the real `PrompterPanel`, `PrompterSession` and `PrompterRunner`, with this release's pinned `system` and `tools`, on a transport the caller gives: the fake server for a recorded run, the API for a live one. It follows the steps above: the request, the follow-up, the plan edits as the panel's own edits, then **Build these steps**. It keeps the film before, before the build and after; every tool call and its answer, read from the conversation, so calls the mode refused count too; the replies; and the tokens each turn used.
+- **`scoreRow`** scores each check. A `reply` check comes back with no result and the replies in its notes, for grading.
+- **`resultsCsv`**, **`usageCsv`**, **`readGrades`**, **`withGrades`** and **`summarise`** give the CSV, the tokens per row, and the score against the bars below. A reply check counts only once it has a grade, and no bar is met while any wait.
+
+**Set the stage from the storyboard** (`stage_scene`) runs the studio's own step from `@storystage/staging`, as its Prompter passes it. Its Backstage records come from the catalogue the Prompter is given, with each model's class, name and height. A start's made-up `example/` model is a metre tall. There are no backdrops, so a backdrop is never placed; no check scores one.
+
+### A live run
+
+The owner's choices of 17 Nov 2026: the key from the environment, recordings kept and reviewed before commit, a model judge whose grades the owner confirms, and a pilot first.
+
+0. **After any change to a tool's schema, or to which tools are strict,** first run `node tools/fake-claude/src/eval/probe-grammar.ts` with the key set. The API compiles every strict tool into one grammar and refuses a request whose grammar is too large (a 400, which costs nothing), so a live run would fail every row. The probe sends this release's tools with a one-line message (about 7,000 input tokens if it compiles) and says whether they compile; `--groups` also tries each group, to find room. On 21 Nov 2026 all fifteen strict were refused, and so were the eight change tools on their own; the read and plan tools compile (spec 04, section 3).
+1. **The pilot.** `pnpm eval -- --live --pilot --judge` runs the first row of each category, 13 in all, with `ANTHROPIC_API_KEY` set in that terminal only. The key goes in one header to api.anthropic.com and nowhere else, and nothing writes or prints it. Requests are sent as the native layer sends them (API version `2023-06-01`, the pinned body and betas), with no retries; a row the API was too busy for is run once more after 30 seconds.
+2. **What it writes**, to `docs/eval/results/local/<date>-<who>-<model>/`, which git ignores:
+   - `results.csv` and `usage.csv`;
+   - `recordings/<id>.json`, each row's replies, which hold no key. A request the API refused keeps its status and the API's own words, so a run says why it failed;
+   - with `--judge`, `grades.proposed.csv`: the judge's pass or fail for each reply check, with a reason.
+3. **The judge** is `claude-opus-5-5` at low effort, with structured output and the server-side refusal fallback. It sees the row's request, the Prompter's reply, the changes and the plan, as data, and grades each reply check by its words in the table below.
+4. **Confirm the grades.** Read each reply and its proposed grade, change any you disagree with, and save the file as `grades.csv`.
+5. **Score with the grades**, for nothing: `pnpm eval -- --replay docs/eval/results/local/<run> --pilot --grades docs/eval/results/local/<run>/grades.csv`. This replays the recordings through the fake server and scores the run against the bars below.
+6. **Keep it.** Move the reviewed recordings, `results.csv`, `usage.csv` and `grades.csv` up to `docs/eval/results/`, named as Scoring says. Push protection is a second guard. Then run the whole set with `--all`.
+
+A recording is valid only for the system prompt and tools that made it (Recorded runs, below). The harness runs with fixed node ids, so a replay builds the same blocks.
+
 ## Checks
 
 A check passes or fails. `code` checks read the production and the tool calls, so they need no judgement. `reply` checks read the words. The Prompter's own rules (spec 04, section 6) also enforce several `code` checks: a pass there shows the guard held, not only that the model behaved.
@@ -54,10 +82,10 @@ A check passes or fails. `code` checks read the production and the tool calls, s
 | `near` | code | The two objects are within `max_metres` |
 | `property` | code | An object has that paint or opacity |
 | `method_has_call` | code | The scene's method calls that block on that object (`min` times, default 1) |
-| `method_order` | code | Those blocks appear in that order |
+| `method_order` | code | Those blocks appear in that order (an item may be a list, any of which will do) |
 | `argument` | code | The block's detail has that value |
 | `control` | code | A **do together** or **count** block (with `value` repeats) is used |
-| `event_listener` | code | An event of that kind is added |
+| `event_listener` | code | An event of that kind is added, or of any kind in a list |
 | `narrated_steps` | code | At least `min` steps were captioned |
 | `no_errors` | code | No step failed in the end |
 | `no_change` | code | The production is unchanged |

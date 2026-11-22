@@ -37,9 +37,17 @@ describe('the tool list (spec 04, section 3)', () => {
     expect(JSON.stringify(TOOLS)).toBe(JSON.stringify(TOOLS));
   });
 
-  it('makes every tool strict and streamed, with a description', () => {
+  it('makes the read and plan tools strict, every tool streamed, each with a description', () => {
+    expect(TOOLS.filter((t) => t.strict).map((t) => t.name)).toEqual([
+      'explain',
+      'read_project',
+      'find_models',
+      'check_frame',
+      'script_check',
+      'propose_plan',
+      'revise_plan',
+    ]);
     for (const tool of TOOLS) {
-      expect(tool.strict).toBe(true);
       expect(tool.eager_input_streaming).toBe(true);
       expect(tool.description.length).toBeGreaterThan(40);
     }
@@ -170,6 +178,7 @@ const good: Readonly<Record<string, unknown>> = {
   },
   explain: { text: 'The move block makes something move.' },
   read_project: {},
+  find_models: { query: 'oak tree', section: '' },
   check_frame: { frame: 'f2-2' },
   script_check: {},
   propose_plan: {
@@ -186,6 +195,7 @@ const good: Readonly<Record<string, unknown>> = {
         sketch: 'k4',
         together: false,
         repeat: 1,
+        holds: 0,
         why: 'Your sketch has the owl by the tree.',
       },
     ],
@@ -219,6 +229,17 @@ describe('checkToolInput (spec 04, section 1.6)', () => {
   });
   const without = (name: string, field: string) =>
     Object.fromEntries(Object.entries(good[name] as object).filter(([k]) => k !== field));
+
+  it("keeps find_models' words short, and its section to Backstage's", () => {
+    expect(refused('find_models', { query: 'oak tree', section: 'props' })).toBeNull();
+    expect(refused('find_models', { query: 'w '.repeat(10), section: '' })).toMatch(
+      /query should be under 10 words/,
+    );
+    expect(refused('find_models', { query: '', section: '' })).toMatch(/query is empty/);
+    expect(refused('find_models', { query: 'owl', section: 'imported' })).toMatch(
+      /section should be one of/,
+    );
+  });
 
   it('refuses a missing field, an extra field and a wrong type', () => {
     expect(refused('add_model', without('add_model', 'name'))).toMatch(/name is missing/);
@@ -270,6 +291,33 @@ describe('checkToolInput (spec 04, section 1.6)', () => {
     expect(refused('propose_plan', { steps: [{ ...step, words: 'w '.repeat(25) }] })).toMatch(
       /words/,
     );
+  });
+
+  it('takes a repeat step, with no actor or action, and keeps holds within a frame (6.8)', () => {
+    const [step] = (good.propose_plan as { steps: Record<string, unknown>[] }).steps;
+    const plan = (change: Record<string, unknown>) =>
+      refused('propose_plan', { steps: [{ ...step, ...change }] });
+    expect(
+      plan({ kind: 'repeat', actor: '', action: '', target: '', repeat: 3, holds: 1 }),
+    ).toBeNull();
+    expect(plan({ holds: 49 })).toBeNull();
+    expect(plan({ holds: 50 })).toMatch(/holds should be a whole number from 0 to 49/);
+  });
+
+  it("keeps a plan step within the format's limits, so its frame can keep it (6.7)", () => {
+    const [step] = (good.propose_plan as { steps: Record<string, unknown>[] }).steps;
+    const plan = (change: Record<string, unknown>) =>
+      refused('propose_plan', { steps: [{ ...step, ...change }] });
+    expect(plan({ repeat: 1000 })).toBeNull();
+    expect(plan({ repeat: 1001 })).toMatch(/repeat should be a whole number from 1 to 1000/);
+    expect(plan({ why: 'x'.repeat(301) })).toMatch(/why should be at most 300 characters/);
+    expect(plan({ words: 'x'.repeat(301) })).toMatch(/words should be at most 300/);
+    expect(plan({ action: 'x'.repeat(301) })).toMatch(/action/);
+    const detail = { name: 'amount', value: '3' };
+    expect(plan({ details: Array(20).fill(detail) })).toBeNull();
+    expect(plan({ details: Array(21).fill(detail) })).toMatch(/details should hold at most 20/);
+    expect(plan({ details: [{ name: 'n'.repeat(65), value: '3' }] })).toMatch(/details/);
+    expect(plan({ details: [{ name: 'amount', value: 'v'.repeat(301) }] })).toMatch(/details/);
   });
 });
 

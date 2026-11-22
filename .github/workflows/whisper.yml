@@ -1,0 +1,58 @@
+# Publishes whisper.js, which the apps bundle for Talk to type (spec 06 section 1.11; owner, 15 Nov
+# 2026), to the `whisper-js-v1.9.5` release. It is built from pinned sources by
+# build-whisper.sh, exactly as the `speech` workflow builds it, and dictates in Chromium first, so
+# only a build that works is published. The apps then fetch it and check it against its SHA-256,
+# pinned in the repository. By hand only, and through the `release` environment, so its approval
+# rules apply.
+name: Whisper
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: build, dictate, publish
+    environment: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE: whisper-js-v1.9.5
+      OUT: packages/speech/browser/harness/public
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/setup
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/whisper-work
+          key: speech-whisper-${{ hashFiles('packages/speech/scripts/*.sh') }}
+      - name: Build whisper.cpp from its pinned sources
+        run: bash packages/speech/scripts/build-whisper.sh "$RUNNER_TEMP/whisper-work" "$OUT"
+      - name: Fetch and check the model, and the test clip
+        run: bash packages/speech/scripts/fetch-test-assets.sh "$RUNNER_TEMP/whisper-work" "$OUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/kokoro-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch and check Kokoro's files (the harness's speak line tests share the page)
+        working-directory: packages/speech
+        run: node scripts/fetch-kokoro-assets.mjs "$RUNNER_TEMP/kokoro-cache" browser/harness/public
+      - name: Install Chromium for Playwright
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Dictate in Chromium with this build, before publishing it
+        working-directory: packages/speech
+        run: pnpm exec playwright test -c playwright.whisper.config.ts
+      - name: Publish whisper.js, its licence, version and SHA-256
+        run: |
+          cat "$OUT/VERSION.txt" "$OUT/SHA256SUMS"
+          gh release view "$RELEASE" > /dev/null 2>&1 || gh release create "$RELEASE" \
+            --title "whisper.js (whisper.cpp v1.9.5)" \
+            --notes "whisper.cpp built to WebAssembly from pinned sources by packages/speech/scripts/build-whisper.sh, for Talk to type. The apps bundle it, checked against the SHA-256 pinned in the repository. MIT licence, in LICENSE-whisper.cpp.txt."
+          gh release upload "$RELEASE" "$OUT/whisper.js" "$OUT/LICENSE-whisper.cpp.txt" "$OUT/VERSION.txt" "$OUT/SHA256SUMS" --clobber
+          echo "Pin this SHA-256 in packages/speech/whisper.lock.json:"
+          cut -d' ' -f1 "$OUT/SHA256SUMS"

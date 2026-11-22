@@ -154,6 +154,11 @@ describe('checkEvalSet', () => {
       { checks: [{ type: 'event_listener', kind: 'key_press' }] },
       /no event key_press/,
     ],
+    [
+      'an unknown event in a list',
+      { checks: [{ type: 'event_listener', kind: ['arrowKeyPress', 'key_press'] }] },
+      /no event key_press/,
+    ],
   ])('finds %s', (_name, row, message) => {
     expect(problems(row).join()).toMatch(message);
   });

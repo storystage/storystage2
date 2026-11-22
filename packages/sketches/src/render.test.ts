@@ -140,3 +140,35 @@ describe('renderSketch', () => {
     expect(s.svg).not.toMatch(/NaN|Infinity/);
   });
 });
+
+describe('renderSketch, simplified', () => {
+  // A body with a deep step on its front (+Z, which the front view sees), a shallow bump (a scan's
+  // noise) and a speck beside it.
+  const body = { min: [-0.5, 0, 0], max: [0.5, 1, 0.5] } as Part;
+  const step = { min: [-0.3, 0.2, 0.5], max: [0.3, 0.6, 0.7] } as Part;
+  const bump = { min: [-0.3, 0.7, 0.5], max: [0.3, 0.9, 0.56] } as Part;
+  const speck = { min: [0.9, 0, 0], max: [0.92, 0.02, 0.02] } as Part;
+  const d = (svg: string, part: string) => new RegExp(`class="${part}" d="([^"]*)"`).exec(svg)![1]!;
+
+  it('keeps the outer edge and the long inner lines the surface steps well back across', () => {
+    const s = renderSketch(boxes([body, step, speck]), 'front', { simplified: true });
+    expect(d(s.svg, 'outline')).toMatch(/^M/);
+    // The step stands 0.2 proud of the body, over 7% of the model's size: its edges stay.
+    expect(s.metrics.detailLength).toBeGreaterThan(0);
+  });
+
+  it('leaves out shallow folds and loops too small to be shape, such as a scan’s specks', () => {
+    const without = renderSketch(boxes([body, step, speck]), 'front', { simplified: true });
+    const withBump = renderSketch(boxes([body, step, bump, speck]), 'front', { simplified: true });
+    // The bump stands 0.06 proud, about 3%: drawn with lines it shows, simplified it doesn't.
+    const drawn = (parts: Part[]) => {
+      const m = renderSketch(boxes(parts), 'front').metrics;
+      return m.outlineLength + m.detailLength;
+    };
+    expect(drawn([body, step, bump])).toBeGreaterThan(drawn([body, step]));
+    expect(withBump.metrics.detailLength).toBe(without.metrics.detailLength);
+    // The speck is its own little shape when drawn with lines; simplified, one loop is left.
+    expect(d(renderSketch(boxes([body, speck]), 'front').svg, 'fill').match(/M/g)).toHaveLength(2);
+    expect(d(without.svg, 'fill').match(/M/g)).toHaveLength(1);
+  });
+});
