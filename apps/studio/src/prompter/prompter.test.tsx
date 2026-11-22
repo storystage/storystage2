@@ -561,6 +561,25 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(screen.queryByRole('button', { name: 'Add a repeat around the last step' })).toBeNull();
   });
 
+  it('says so when Repeat… unticks At the same time, and Cancel puts it back (S7, #632)', async () => {
+    const { panel, onAnnounce } = setUp(
+      [proposes([step(), step({ actor: 'fox', together: true })]), say("Here's the plan.")],
+      { world: WORLD },
+    );
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make them walk together.');
+    await screen.findByRole('grid', { name: 'Plan before change' });
+    await user.click(screen.getByRole('button', { name: 'Add a repeat around the last step' }));
+    expect(panel.state.plan!.steps[2]).toMatchObject({ together: false });
+    expect(said(onAnnounce)).toContain(
+      "Step 2 added. Change it to say what it does. The first step inside a repeat can't happen at the same time as the step before it, so now it doesn't.",
+    );
+    const editor = await screen.findByRole('dialog', { name: 'Change step 2' });
+    await user.click(within(editor).getByRole('button', { name: 'Cancel' }));
+    expect(panel.state.plan!.steps[1]).toMatchObject({ together: true });
+  });
+
   it('lets At the same time be unticked on the first step inside a repeat (S7, #629)', async () => {
     const { panel } = setUp(
       [proposes([step(), step({ actor: 'fox', together: true })]), say("Here's the plan.")],

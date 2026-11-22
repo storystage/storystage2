@@ -202,6 +202,37 @@ test('a step is changed with the blocks’ own choices, and its words follow', a
   await expect(prompter.getByRole('button', { name: 'Build these steps' })).toBeEnabled();
 });
 
+test('Repeat… says what it changed where a screen reader can hear it, past its dialog', async ({
+  page,
+}) => {
+  const fox = { ...walks, words: 'The fox walks forward.', actor: 'fox', together: true };
+  await openStage(page, undefined, [
+    testReply([toolUse('t1', 'propose_plan', { steps: [walks, fox] })]),
+    say('Here is a plan.'),
+  ]);
+  const prompter = panel(page);
+  await prompter.getByRole('radio', { name: 'Show me how' }).check();
+  const field = prompter.getByRole('textbox', { name: 'Ask the Prompter' });
+  await field.fill('Make them walk together.');
+  await field.press('Enter');
+  await prompter.getByRole('button', { name: 'Add a repeat around the last step' }).click();
+  const editor = page.getByRole('dialog', { name: 'Change step 2' });
+  await expect(editor).toBeVisible();
+  const region = page.locator('.pr > p[aria-live="polite"]');
+  await expect(region).toContainText('Step 2 added.');
+  await expect(region).toContainText("so now it doesn't.");
+  // The dialog makes the page behind it inert, which silences a live region inside it.
+  expect(await region.evaluate((p) => p.closest('[inert], [aria-hidden="true"]') === null)).toBe(
+    true,
+  );
+  // All else behind the dialog stays out of reach.
+  expect(
+    await page
+      .locator('.pm')
+      .evaluate((el) => el.closest('[inert], [aria-hidden="true"]') !== null),
+  ).toBe(true);
+});
+
 test('a repeat holds the steps after it, indented, and moves with them (6.8)', async ({ page }) => {
   const step = (words: string, s: Partial<PlanStep> = {}): PlanStep => ({ ...walks, words, ...s });
   const hops = [

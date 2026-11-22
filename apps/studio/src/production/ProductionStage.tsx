@@ -829,7 +829,9 @@ export function ProductionStage({
           />
         )}
       </div>
-      <p className="ss-visually-hidden" aria-live="polite">
+      {/* React Aria's mark for a live announcer: its modals make the rest of the page inert, and
+          this must still be heard, as at Repeat…, which opens Change step as it speaks. */}
+      <p className="ss-visually-hidden" aria-live="polite" data-live-announcer="true">
         {announcement}
       </p>
     </div>
