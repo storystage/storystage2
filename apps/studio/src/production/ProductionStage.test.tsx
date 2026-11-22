@@ -314,4 +314,77 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     expect(screen.queryByRole('tab', { name: 'walkToTheDoor' })).toBeNull();
     expect(screen.queryByRole('tab', { name: 'newFunction' })).toBeNull();
   });
+
+  it('gives a procedure inputs, in New and from its Inputs menu, each one undo step (7.14)', async () => {
+    const user = userEvent.setup();
+    render(<App start={exampleProduction()} />);
+    await openStage(user);
+    const undo = () =>
+      within(screen.getByRole('toolbar', { name: 'Undo and redo' })).getByRole('button', {
+        name: /^Undo/,
+      });
+    // The scene's script takes no inputs, so it has no Inputs menu.
+    expect(screen.queryByRole('button', { name: /^Inputs of/ })).toBeNull();
+
+    // New: a procedure with an input, "parameter" in brackets where inputs are first offered.
+    await user.click(screen.getByRole('button', { name: 'New in scene 1' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Procedure…' }));
+    const dialog = screen.getByRole('dialog', { name: 'New procedure' });
+    const name = within(dialog).getByRole('textbox', { name: 'Name' });
+    await user.clear(name);
+    await user.type(name, 'waddle');
+    await user.click(within(dialog).getByRole('button', { name: 'Add an input (parameter)…' }));
+    const input = within(dialog).getByRole('textbox', { name: 'Name of input 1' });
+    expect(input).toHaveProperty('value', 'input1');
+    await user.clear(input);
+    await user.type(input, 'steps');
+    const holds = within(dialog).getByRole('radiogroup', { name: 'What input 1 holds' });
+    await user.click(within(holds).getByRole('radio', { name: 'A whole number' }));
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(screen.getByRole('tab', { name: 'waddle' }).getAttribute('aria-selected')).toBe('true');
+    await waitFor(() => expect(undo().textContent).toBe('Undo: Add procedure waddle with steps'));
+
+    // Its Inputs menu: add a second, then rename and remove it, each one step.
+    const menu = () => screen.getByRole('button', { name: 'Inputs of waddle' });
+    await user.click(menu());
+    expect(screen.getByRole('group', { name: 'steps: whole number' })).toBeTruthy();
+    await user.click(screen.getByRole('menuitem', { name: 'Add an input (parameter)…' }));
+    const adding = screen.getByRole('dialog', { name: 'New input for waddle' });
+    const named = within(adding).getByRole('textbox', { name: 'Name' });
+    await user.clear(named);
+    await user.type(named, 'steps');
+    await user.click(within(adding).getByRole('button', { name: 'Add' }));
+    // A name the method has already says why.
+    expect(named.getAttribute('aria-invalid')).toBe('true');
+    await user.clear(named);
+    await user.type(named, 'height{Enter}');
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    await waitFor(() => expect(undo().textContent).toBe('Undo: Add input height to waddle'));
+
+    await user.click(menu());
+    const height = screen.getByRole('group', { name: 'height: number' });
+    await user.click(within(height).getByRole('menuitem', { name: 'Rename input…' }));
+    const renaming = screen.getByRole('dialog', { name: 'Rename input height' });
+    const renamed = within(renaming).getByRole('textbox', { name: 'Name' });
+    await user.clear(renamed);
+    await user.type(renamed, 'hop{Enter}');
+    await waitFor(() => expect(undo().textContent).toBe('Undo: Rename input height to hop'));
+
+    await user.click(menu());
+    const hop = screen.getByRole('group', { name: 'hop: number' });
+    await user.click(within(hop).getByRole('menuitem', { name: 'Remove input…' }));
+    await waitFor(() => expect(undo().textContent).toBe('Undo: Remove input hop from waddle'));
+
+    // Undo, step by step: hop back, its old name, then height gone, then waddle gone.
+    await user.click(undo());
+    await user.click(undo());
+    await user.click(undo());
+    await user.click(menu());
+    expect(screen.queryByRole('group', { name: /^height|^hop/ })).toBeNull();
+    expect(screen.getByRole('group', { name: 'steps: whole number' })).toBeTruthy();
+    await user.keyboard('{Escape}');
+    await user.click(undo());
+    expect(screen.queryByRole('tab', { name: 'waddle' })).toBeNull();
+  });
 });

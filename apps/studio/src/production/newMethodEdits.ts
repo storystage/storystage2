@@ -3,8 +3,10 @@
  * listener added to the scene, as one `declare` edit the host checks and keeps as one undo step.
  */
 import {
+  applyEdits,
   idMinter,
   type Declare,
+  type EditOperation,
   type Expression,
   type ListenerDecl,
   type MethodDecl,
@@ -14,7 +16,13 @@ import {
   type TypeRef,
 } from '@storystage/ast';
 import { EVENTS, findEvent } from '@storystage/story-api';
-import { fill, freshName, word } from '@storystage/story-api/editing';
+import {
+  addParameter,
+  fill,
+  freshName,
+  word,
+  type ParameterProblem,
+} from '@storystage/story-api/editing';
 
 /** What a new function can give back, with the value its first `return` starts with. */
 export const GIVES = ['Number', 'WholeNumber', 'Text', 'Boolean'] as const;
@@ -90,10 +98,10 @@ export function newMethod(
   name: string,
   gives: Gives | null,
   label: string,
+  mint: () => NodeId = idMinter(program),
 ): Declared | null {
   const decl = typeOf(program, type);
   if (!decl) return null;
-  const mint = idMinter(program);
   const id = mint();
   const node: MethodDecl = {
     id,
@@ -145,4 +153,53 @@ export function newListener(
     id,
     edit: { kind: 'declare', parent: type, index: decl.listeners.length, node, label },
   };
+}
+
+/** An input New's dialog adds with the method: its name and what it holds. */
+export interface NewInput {
+  readonly name: string;
+  readonly type: Gives;
+}
+
+const INPUT_NAME = /^\p{L}[\p{L}\p{N}_]*$/u;
+
+/**
+ * Why each of a new method's inputs can't have its name, or `null`: the rules S6's
+ * `parameterNameProblem` keeps for a method that has nothing in it yet, and no two alike.
+ */
+export function inputProblems(inputs: readonly NewInput[]): (ParameterProblem | null)[] {
+  return inputs.map(({ name }, i) => {
+    const n = name.trim();
+    if (n === '') return 'empty';
+    if (n.length > 60) return 'long';
+    if (!INPUT_NAME.test(n)) return 'shape';
+    return inputs.slice(0, i).some((o) => o.name.trim() === n) ? 'taken' : null;
+  });
+}
+
+/**
+ * A new procedure or function with its inputs, as one undo step (decision 0074, workplan 7.14):
+ * the method's `declare`, then each input's edits from S6's `addParameter`, from one minter.
+ */
+export function newMethodWithInputs(
+  program: Program,
+  type: NodeId,
+  name: string,
+  gives: Gives | null,
+  inputs: readonly NewInput[],
+  label: string,
+): { readonly edits: readonly EditOperation[]; readonly id: NodeId } | null {
+  const mint = idMinter(program);
+  const made = newMethod(program, type, name, gives, label, mint);
+  if (!made) return null;
+  const edits: EditOperation[] = [made.edit];
+  let scratch = applyEdits(program, [made.edit]);
+  for (const input of inputs) {
+    const story: TypeRef = { kind: 'story', name: input.type };
+    const added = addParameter(scratch, made.id, input.name.trim(), story, label, mint);
+    if (!added) return null;
+    edits.push(...added.edits);
+    scratch = applyEdits(scratch, added.edits);
+  }
+  return { edits, id: made.id };
 }

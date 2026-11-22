@@ -18,17 +18,21 @@ import {
 } from 'react-aria-components';
 import { SpokenField } from '../speech/SpokenField.tsx';
 import { words, type WordKey } from '../strings.ts';
+import { parameterProblemWords, word as storyWord } from '@storystage/story-api/editing';
 import {
   GIVES,
   NEW_EVENTS,
   eventWords,
+  inputProblems,
   nameProblem,
   newListener,
-  newMethod,
+  newMethodWithInputs,
   suggestedName,
   type Declared,
   type Gives,
+  type NewInput,
 } from './newMethodEdits.ts';
+import { listWords } from './inputWords.ts';
 
 export interface NewMethodProps {
   host: EditorHost;
@@ -47,6 +51,7 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
   const [making, setMaking] = useState<Making | null>(null);
   const [name, setName] = useState('');
   const [gives, setGives] = useState<Gives>('Number');
+  const [inputs, setInputs] = useState<NewInput[]>([]);
   const [tried, setTried] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
 
@@ -56,9 +61,20 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
       suggestedName(host.program(), type, kind === 'procedure' ? 'newProcedure' : 'newFunction'),
     );
     setGives('Number');
+    setInputs([]);
     setTried(false);
     setRefusal(null);
   };
+
+  /** A new input, named input1, input2… after the ones already there. */
+  const addInput = () => {
+    const taken = new Set(inputs.map((i) => i.name.trim()));
+    let k = inputs.length + 1;
+    while (taken.has(`input${k}`)) k++;
+    setInputs([...inputs, { name: `input${k}`, type: 'Number' }]);
+  };
+  const changeInput = (at: number, change: Partial<NewInput>) =>
+    setInputs(inputs.map((i, k) => (k === at ? { ...i, ...change } : i)));
 
   const apply = (made: Declared | null, label: string) => {
     if (!made) return false;
@@ -80,22 +96,39 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
 
   const chosen = name.trim();
   const problem = making ? nameProblem(host.program(), type, chosen) : null;
+  const problems = inputProblems(inputs);
   const add = (e?: FormEvent) => {
     e?.preventDefault();
     setTried(true);
-    if (!making || problem) return;
-    const label = words.t(
-      making === 'procedure' ? 'production.addProcedure' : 'production.addFunction',
-      { name: chosen },
-    );
-    const made = newMethod(
+    if (!making || problem || problems.some((p) => p !== null)) return;
+    const named = inputs.map((i) => i.name.trim());
+    const label =
+      named.length === 0
+        ? words.t(making === 'procedure' ? 'production.addProcedure' : 'production.addFunction', {
+            name: chosen,
+          })
+        : words.t(
+            making === 'procedure' ? 'production.addProcedureWith' : 'production.addFunctionWith',
+            { name: chosen, inputs: listWords(named) },
+          );
+    const made = newMethodWithInputs(
       host.program(),
       type,
       chosen,
       making === 'function' ? gives : null,
+      inputs,
       label,
     );
-    if (apply(made, label)) setMaking(null);
+    if (!made) return;
+    const result = host.apply(made.edits, label, 'blocks');
+    if (!result.ok) {
+      setRefusal(result.reason);
+      host.announce(result.reason);
+      return;
+    }
+    host.announce(words.t('production.added', { what: label }));
+    onAdded(made.id);
+    setMaking(null);
   };
 
   return (
@@ -182,6 +215,44 @@ export function NewMethod({ host, type, n, onAdded }: NewMethodProps) {
               />
             </div>
           )}
+          {/* Its inputs (decision 0074): "parameter" in brackets where they're first offered. */}
+          <fieldset className="pr-new-inputs">
+            <legend className="ss-field-label">{words.t('production.inputs')}</legend>
+            {inputs.map((input, at) => (
+              <div key={at} className="pr-new-input">
+                <SpokenField
+                  field="production.inputName"
+                  label={words.t('production.inputName', { n: at + 1 })}
+                  description={
+                    tried && problems[at] ? parameterProblemWords(problems[at]!) : undefined
+                  }
+                  isInvalid={tried && problems[at] !== null}
+                  validationBehavior="aria"
+                  value={input.name}
+                  onChange={(v) => changeInput(at, { name: v })}
+                />
+                <Segmented
+                  label={words.t('production.inputHolds', { n: at + 1 })}
+                  options={GIVES.map((g) => ({
+                    id: g,
+                    label: words.t(`production.gives.${g}` as WordKey),
+                  }))}
+                  value={input.type}
+                  onChange={(t) => changeInput(at, { type: t })}
+                />
+                <Button
+                  variant="quiet"
+                  icon="close"
+                  onPress={() => setInputs(inputs.filter((_, k) => k !== at))}
+                >
+                  {words.t('production.inputRemove', { n: at + 1 })}
+                </Button>
+              </div>
+            ))}
+            <Button variant="secondary" icon="add" onPress={addInput}>
+              {storyWord('parameter.firstOffer')}
+            </Button>
+          </fieldset>
           {refusal && <NeutralNote>{refusal}</NeutralNote>}
           <div className="sb-dialog-actions">
             <Button variant="primary" icon="add" type="submit">

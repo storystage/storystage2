@@ -154,6 +154,44 @@ test('New adds a procedure in its own tab, offered in the palette, one undo step
   );
 });
 
+test('a procedure gets an input in New, shown on its block and its calls, with an Inputs menu (7.14)', async ({
+  page,
+}) => {
+  await openCode(page);
+  await page.getByRole('button', { name: 'New in scene 1' }).press('Enter');
+  await page.getByRole('menuitem', { name: 'Procedure…' }).click();
+  const dialog = page.getByRole('dialog', { name: 'New procedure' });
+  await dialog.getByRole('textbox', { name: 'Name', exact: true }).fill('waddle');
+  await dialog.getByRole('button', { name: 'Add an input (parameter)…' }).click();
+  await dialog.getByRole('textbox', { name: 'Name of input 1' }).fill('steps');
+  await dialog
+    .getByRole('radiogroup', { name: 'What input 1 holds' })
+    .getByRole('radio', { name: 'A whole number' })
+    .click({ force: true });
+  const { violations } = await new AxeBuilder({ page }).include('[role="dialog"]').analyze();
+  expect(violations.map((v) => v.id)).toEqual([]);
+  await dialog.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page.getByRole('tab', { name: 'waddle' })).toHaveAttribute('aria-selected', 'true');
+  await expect(undoButton(page)).toHaveText('Undo: Add procedure waddle with steps');
+  // The method's own block names its input; a call from the palette has a slot for it.
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect(
+    page.locator('.pr-workspace').getByText('waddle (steps: whole number)', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.locator('.blocklyFlyout .blocklyDraggable').filter({ hasText: 'waddle' }).first(),
+  ).toContainText('steps');
+  // The Inputs menu lists it, with Rename and Remove.
+  await page.getByRole('button', { name: 'Inputs of waddle' }).press('Enter');
+  const steps = page.getByRole('group', { name: 'steps: whole number' });
+  await expect(steps.getByRole('menuitem', { name: 'Rename input…' })).toBeVisible();
+  await expect(steps.getByRole('menuitem', { name: 'Remove input…' })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await undoButton(page).click();
+  await expect(page.getByRole('tab', { name: 'waddle' })).toBeHidden();
+});
+
 test('a block’s menu and keys switch it off, add a detail and duplicate, each one step', async ({
   page,
 }) => {
