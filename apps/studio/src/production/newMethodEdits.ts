@@ -18,9 +18,12 @@ import {
 import { EVENTS, findEvent } from '@storystage/story-api';
 import {
   addParameter,
+  classFor,
   fill,
   freshName,
+  parameterNameProblem,
   word,
+  type CharacterModel,
   type ParameterProblem,
 } from '@storystage/story-api/editing';
 
@@ -161,20 +164,36 @@ export interface NewInput {
   readonly type: Gives;
 }
 
-const INPUT_NAME = /^\p{L}[\p{L}\p{N}_]*$/u;
-
 /**
- * Why each of a new method's inputs can't have its name, or `null`: the rules S6's
- * `parameterNameProblem` keeps for a method that has nothing in it yet, and no two alike.
+ * Why each of a new method's inputs can't have its name, or `null`: S6's `parameterNameProblem`,
+ * asked of a method that has the inputs before it, so no two are alike.
  */
 export function inputProblems(inputs: readonly NewInput[]): (ParameterProblem | null)[] {
-  return inputs.map(({ name }, i) => {
-    const n = name.trim();
-    if (n === '') return 'empty';
-    if (n.length > 60) return 'long';
-    if (!INPUT_NAME.test(n)) return 'shape';
-    return inputs.slice(0, i).some((o) => o.name.trim() === n) ? 'taken' : null;
+  const id = 'newinput' as NodeId;
+  /** A program whose one method has `params`: what `parameterNameProblem` asks about. */
+  const scratch = (params: ParameterDecl[]): Program => ({
+    schemaVersion: '',
+    types: [
+      {
+        id: 'newinputs' as NodeId,
+        kind: 'type',
+        name: 'NewInputs',
+        extends: { kind: 'story', name: 'Scene' },
+        fields: [],
+        methods: [{ id, kind: 'method', name: 'm', returns: null, params, body: [] }],
+        listeners: [],
+      },
+    ],
   });
+  const before = (i: number): ParameterDecl[] =>
+    inputs.slice(0, i).map((o, k) => ({
+      id: `newinput${k}` as NodeId,
+      kind: 'parameter',
+      name: o.name.trim(),
+      type: { kind: 'story', name: o.type },
+      default: null,
+    }));
+  return inputs.map(({ name }, i) => parameterNameProblem(scratch(before(i)), id, name.trim()));
 }
 
 /**
@@ -188,8 +207,8 @@ export function newMethodWithInputs(
   gives: Gives | null,
   inputs: readonly NewInput[],
   label: string,
+  mint: () => NodeId = idMinter(program),
 ): { readonly edits: readonly EditOperation[]; readonly id: NodeId } | null {
-  const mint = idMinter(program);
   const made = newMethod(program, type, name, gives, label, mint);
   if (!made) return null;
   const edits: EditOperation[] = [made.edit];
@@ -202,4 +221,33 @@ export function newMethodWithInputs(
     scratch = applyEdits(scratch, added.edits);
   }
   return { edits, id: made.id };
+}
+
+/**
+ * A character's new move (a procedure) or question (a function), with its inputs, as one undo
+ * step (decision 0074): S6's `classFor` (the class, made the first time, with every object of
+ * the model made of it), then the method on the class and its inputs, from one minter.
+ */
+export function newCharacterMethod(
+  program: Program,
+  model: CharacterModel,
+  fields: readonly NodeId[],
+  name: string,
+  gives: Gives | null,
+  inputs: readonly NewInput[],
+  label: string,
+): { readonly edits: readonly EditOperation[]; readonly id: NodeId; readonly type: NodeId } | null {
+  const mint = idMinter(program);
+  const cls = classFor(program, model, fields, label, mint);
+  if (!cls) return null;
+  const made = newMethodWithInputs(
+    applyEdits(program, cls.edits),
+    cls.type,
+    name,
+    gives,
+    inputs,
+    label,
+    mint,
+  );
+  return made && { edits: [...cls.edits, ...made.edits], id: made.id, type: cls.type };
 }

@@ -387,4 +387,79 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     await user.click(undo());
     expect(screen.queryByRole('tab', { name: 'waddle' })).toBeNull();
   });
+
+  it('teaches a character its own move from New, a tab of its own, one undo step (7.14)', async () => {
+    const user = userEvent.setup();
+    render(<App start={exampleProduction()} />);
+    await openStage(user);
+    await screen.findByText('blocks', {}, LOADED);
+    const undo = () =>
+      within(screen.getByRole('toolbar', { name: 'Undo and redo' })).getByRole('button', {
+        name: /^Undo/,
+      });
+    const picker = () =>
+      screen
+        .getAllByRole('option')
+        .filter((o) => !o.closest('.ss-frame-strip') && !o.closest('.pr-objects'));
+    const newMenu = async () => {
+      await user.click(screen.getByRole('button', { name: 'New in scene 1' }));
+      return screen.getAllByRole('menuitem').map((i) => i.textContent);
+    };
+    // With the scene chosen, New has no character's moves; with the fox, its own.
+    expect((await newMenu()).filter((i) => i?.includes(' for '))).toEqual([]);
+    await user.keyboard('{Escape}');
+    await user.click(screen.getByRole('button', { name: /Blocks for/ }));
+    await user.click(picker().find((o) => o.textContent === 'fox')!);
+    expect(await newMenu()).toEqual(expect.arrayContaining(['Move for fox…']));
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByRole('button', { name: /Blocks for/ }));
+    await user.click(picker().find((o) => o.textContent === 'penguin')!);
+    expect(await newMenu()).toEqual(
+      expect.arrayContaining(['Move for penguin…', 'Question for penguin…']),
+    );
+    await user.click(screen.getByRole('menuitem', { name: 'Move for penguin…' }));
+    const dialog = screen.getByRole('dialog', { name: 'New move for penguin' });
+    expect(within(dialog).getByText('Every penguin in every scene can use it.')).toBeTruthy();
+    const name = within(dialog).getByRole('textbox', { name: 'Name' });
+    expect(name).toHaveProperty('value', 'newMove');
+    await user.clear(name);
+    await user.type(name, 'waddle');
+    await user.click(within(dialog).getByRole('button', { name: 'Add an input (parameter)…' }));
+    const input = within(dialog).getByRole('textbox', { name: 'Name of input 1' });
+    await user.clear(input);
+    await user.type(input, 'steps');
+    await user.click(within(dialog).getByRole('button', { name: 'Add' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // Its tab says whose it is, and opens; its blocks are for this penguin only.
+    const tab = screen.getByRole('tab', { name: 'penguin: waddle' });
+    expect(tab.getAttribute('aria-selected')).toBe('true');
+    await waitFor(() =>
+      expect(undo().textContent).toBe('Undo: Add move waddle for penguin with steps'),
+    );
+    await waitFor(() =>
+      expect(mounted.at(-1)!.method).not.toBe(exampleProduction().scenes[0]!.method),
+    );
+    const program = mounted.at(-1)!.host.program();
+    const cls = program.types.find((t) => t.name === 'Penguin')!;
+    expect(cls.methods.map((m) => m.name)).toEqual(['waddle']);
+    expect(mounted.at(-1)!.method).toBe(cls.methods[0]!.id);
+    await user.click(screen.getByRole('button', { name: /Blocks for/ }));
+    expect(picker().map((o) => o.textContent)).toEqual(['this penguin']);
+    await user.keyboard('{Escape}');
+    // Inside it, New still offers the penguin's next move.
+    expect(await newMenu()).toContain('Question for penguin…');
+    await user.keyboard('{Escape}');
+
+    // One undo takes the move, the class and the penguins' new type away together.
+    await user.click(undo());
+    await waitFor(() => expect(screen.queryByRole('tab', { name: 'penguin: waddle' })).toBeNull());
+    expect(
+      mounted
+        .at(-1)!
+        .host.program()
+        .types.some((t) => t.name === 'Penguin'),
+    ).toBe(false);
+  });
 });
