@@ -1,0 +1,481 @@
+{
+  "id": "refuse-02",
+  "source": "recorded",
+  "note": "Live run of refuse-02, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHR5DoDNa6Dvnqcn9Qm4",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 29571,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 29571,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 17,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_018pzKbxgxTiF9Ecm87QAfe7",
+            "name": "explain",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"text\": \"I can't put swear words"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " in your film. St"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "oryStage films are for ever"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "yone,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " so"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " we"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " keep the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " words k"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ind. But a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " c"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ross or"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " c"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "heeky penguin can still"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " be really"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " funny! What does"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " your penguin want to say when"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " it"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "'s gr"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "umpy? You could"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " cho"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ose a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " silly made"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "-up word"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " of"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " your own, like a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " pret"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "end grumble. T"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ell me the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " words and"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " I'll help"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " you make the penguin say them"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"highlight\": [\"penguin"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 29571,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 185,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 185,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 29571,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 29571,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHR5V6j1vTMhCLCQSqGY",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 243,
+              "cache_read_input_tokens": 29571,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 243,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 2,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQSkgUKEAgUGAI4AUIIdGhpbmtpbmcSDE6h1yo6cscXjcgrtRoM5AsI2DYtYrX8iENrIjD8XS73/fwl8Lb3ecUyjllUIghwAgWGjziwzrXYg2tAe9ZUiUgbsYVVDVp2T1wyiYkqrwTSp+W+BCdYmQ4uMysrLN6UdWasM5jzmXqq4xfBW0LaV8bLAv1yUWRV524lI0aaA9j/dfb82M7CrOr/abDG2A17hwWAKlNwvjaDT2K4Cf7SVkDvTbIqWqMbsqjRMtjekGKExQi/bK5CxoeNCTgMj/IYf6q/SfRnV+1btmeLJTkSNk5RZvexWcoio4n2ndR9h9QcLwvb/7zU5fcUvY3bQFpyoV1B+ZP9+ohX+gdzrMU/cOQIJu4IOvCco8ooyl1g66ALPWSuF+QVu8gekir0suQJtBzs8UqgHO6aCWTrPx1XIUmo+U48aH38X3qqytPtjgXdZB2BX1G6GQKvatio3WTUtQ3XKNhbsxKXwVWsNjXQRdwc3D89MDX+mCuPBL3HGFby5caBLG3UgmW4mgpIIbPIlphwsM57d3M/+sDVDPKN6vbAVoov2KFDkLv975gUTAY0tmtlOpKcEGs0xivK9GRNbWFVVjnMIIRr9V2eWTrieuNNC1AFatxKfGI9mzIfQT2qXEnc/j9xDSDjZSez/kMpnPwzXGSSNtE2EXzBLcnheTS4kSq3jA1e9KP/6lD5nIVsimJEUqW2UJDymiZF0xxNoansTomU1Gm1EAm4KDat41AQnFmkm8MVBdbV0ZpBkcJMJo2zebg83GWz5Vvgncbgp95sXjohaSdVF0xnzJqQ3u/Bye7LUrE1ZdMufoKKPTo13XEwM8wTRnZYZwWuDcIt/m8xATDqecMByoiF/4F/GAE="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 243,
+            "cache_read_input_tokens": 29571,
+            "output_tokens": 16,
+            "output_tokens_details": {
+              "thinking_tokens": 14
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 16,
+                "cache_read_input_tokens": 29571,
+                "cache_creation_input_tokens": 243,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 243,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}

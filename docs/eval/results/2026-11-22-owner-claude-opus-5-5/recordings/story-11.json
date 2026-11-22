@@ -1,0 +1,377 @@
+{
+  "id": "story-11",
+  "source": "recorded",
+  "note": "Live run of story-11, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRNzkebpvzRgXLA61wW",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 28898,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 28898,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 16,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01BKySkAxM9Yh5rKuEygMRmg",
+            "name": "explain",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"text\": \"A logline is your wh"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ole story told"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " in just one sentence."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " Film makers use it to say what"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " their film is about,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " f"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ast. A"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " good one usually says who the story"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " is about, what they want, and"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " what g"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ets in their way. It's short"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", so you can say"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " it in"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " one breath! Y"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ours is emp"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ty for"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " now, and it's yours to"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " write. Let"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "'s start with one"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " question: who is your"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " story about?"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 28898,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 147,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 147,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 28898,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 28898,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChHRPBVZJafAWw1k6V2St",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 205,
+              "cache_read_input_tokens": 28898,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 205,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 6,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQS8QQKEAgUGAI4AUIIdGhpbmtpbmcSDPU6bjn7N8hRNroWyBoMvEN6ArdrMeLGd8c9IjCd6Penu20MMNL0tDsKeWchB1B4vskSpMdVKSzM+8RHxGsRlSwMuHdOZqKbWxtRtlEqjgTMSuDRRAs4xJep3UnTFaMxEHXuhVYmI8y0FEQON5L3/sTaXzeGby/dRNybE1lQQSRvVTWxyG1MhllCnYcDI6hkWa8q0sNP1EUAyCYuVbEd0DUdxo0snpEwihqNeaALEoLpVnBfkzsxgwReJyJy9E25+pKCvaev6rRl6dcld4xm4Kg+Mrz2Nf9DcsMo59X+OOfLtDT9SAarY6P0UWMeMbuDXYqAX3CoEhEmbyeBa8C5b2XWkylRXa05u0NZOmbSFLnFE19HKc6jn3vlHtoFjdhPz57H/gxxVu5NQWGha/+JyNIKPFGF1S0KqgM2VElw5P26KrCO4mpkqklVVfJB5GJypiEzLp+4V9uBhJ/3F81sIL19g6/KF0qZxuOcYNC7gx9VVAZ27zAterG2r35kv6zvBy4obElgFD4OfQWQz0I4RwHsdzHv6UZijjFXHwrW0JuTgQ9ay1EdHNk0ykLM1Dlv2IT4hMOc6C4pmVwfwK9xnbYjqRrfY9eF1D8ZC0HU457xen8B987c2591j7ZVdYomtHGwAHCUUB3SQ/BYbUBiUrpBMVg22Hu/BuXHUJVfD3lIG+ORULWtkY0GKqZyxS43W53/qNLxwJL67jIPnRHYPEMqj4+FCaUnr/L/zI54xdOvGRSIv20nv2ZybBdE2X7wW7Oi1LTbQ95oG2FdI4+JEjTQdjEgp+2mhLkCewgXGAE="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 205,
+            "cache_read_input_tokens": 28898,
+            "output_tokens": 7,
+            "output_tokens_details": {
+              "thinking_tokens": 5
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 7,
+                "cache_read_input_tokens": 28898,
+                "cache_creation_input_tokens": 205,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 205,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}
