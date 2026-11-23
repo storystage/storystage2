@@ -2,6 +2,7 @@ import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { Texture } from '@babylonjs/core/Materials/Textures/texture.js';
+import { Logger } from '@babylonjs/core/Misc/logger.js';
 import { Scene } from '@babylonjs/core/scene.js';
 import type { TransformNode } from '@babylonjs/core/Meshes/transformNode.js';
 import {
@@ -15,12 +16,13 @@ import {
   type SceneSetup,
 } from '@storystage/story-api';
 import type { BackstageManifest } from '@storystage/backstage';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { SETUP, cmd } from '../testing/conformance.ts';
 import { headlessEngine } from './headless.ts';
-import { glow, modelsFromManifest, type ModelSource } from './models.ts';
+import { Body } from '../humanoid/body.ts';
+import { glow, ModelLibrary, modelsFromManifest, type ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
-import { tinyModelUrl, tinySkeletonUrl } from './tiny-model.ts';
+import { tinyHumanUrl, tinyModelUrl, tinySkeletonUrl, tinyTwinsUrl } from './tiny-model.ts';
 
 const head = jointName('head');
 const robot = backstageId('test/Biped/robot');
@@ -280,6 +282,127 @@ describe('models', () => {
   });
 });
 
+describe('a mesh on several nodes', () => {
+  const twins = backstageId('test/Prop/twins');
+  const models: ModelSource = { find: () => ({ url: tinyTwinsUrl(), joints: 'prop-only' }) };
+  const parts = (inside: Scene, id: ObjectId) =>
+    inside
+      .getTransformNodeByName(id)!
+      .getChildMeshes()
+      .filter((m) => m.getTotalVertices() > 0);
+
+  it("loads, each node with a surface of its own object's (S4's six, 22 Nov)", async () => {
+    const stage = new BabylonStage(headlessEngine(), { models });
+    await stage.load({ ...SETUP, objects: [place(ann, -2, twins), place(bob, 2, twins)] });
+    expect(stage.missing()).toEqual([]);
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    const [left, right] = parts(inside, ann);
+    expect(left!.material!.getClassName()).toBe('StandardMaterial');
+    expect(right!.material).toBe(left!.material);
+    expect(parts(inside, bob)[0]!.material).not.toBe(left!.material);
+  });
+
+  it('fades every node, which an instance would not', async () => {
+    const stage = new BabylonStage(headlessEngine(), { models });
+    await stage.load({
+      ...SETUP,
+      objects: [{ ...place(ann, -2, twins), opacity: 0.5 }, place(bob, 2, twins)],
+    });
+    stage.seek(micros(0));
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    expect(parts(inside, ann).map((m) => [m.isAnInstance, m.visibility])).toEqual([
+      [false, 0.5],
+      [false, 0.5],
+    ]);
+    expect(parts(inside, bob).map((m) => m.visibility)).toEqual([1, 1]);
+  });
+});
+
+describe("a VRM's own bone table", () => {
+  const placed = async (url: string) => {
+    const library = new ModelLibrary(new Scene(headlessEngine()), {
+      find: () => ({ url, joints: [] }),
+    });
+    return (await library.place(ann, robot, 'Biped')).shape;
+  };
+
+  for (const [version, facing] of [
+    ['0.x', 'back'],
+    ['1.0', 'front'],
+  ] as const)
+    it(`says which node is which bone, whatever it's called (VRM ${version})`, async () => {
+      const shape = await placed(tinyHumanUrl({ facing, byTable: true }));
+      const named = await placed(tinyHumanUrl({ facing }));
+      expect([...shape.jointPlaces.keys()].sort()).toEqual([...named.jointPlaces.keys()].sort());
+      for (const [joint, at] of named.jointPlaces) {
+        const got = shape.jointPlaces.get(joint)!;
+        for (const axis of ['x', 'y', 'z'] as const) expect(got[axis]).toBeCloseTo(at[axis], 5);
+      }
+      expect(Body.of(shape.jointPlaces)).not.toBeNull();
+    });
+
+  it('wins over another node that has the bone’s name', async () => {
+    const url = tinySkeletonUrl(
+      [
+        { name: 'Pelvis1', at: [0, 1, 0] },
+        { name: 'hips', at: [0, 3, 0] },
+      ],
+      { extensions: { VRMC_vrm: { humanoid: { humanBones: { hips: { node: 0 } } } } } },
+    );
+    expect((await placed(url)).jointPlaces.get(jointName('hips'))!.y).toBeCloseTo(1, 5);
+  });
+
+  it("takes VRM 0.x's thumb as VRM 1.0 names it, one bone along", async () => {
+    const humanBones = ['Proximal', 'Intermediate', 'Distal'].map((part, node) => ({
+      bone: `leftThumb${part}`,
+      node,
+    }));
+    const url = tinySkeletonUrl(
+      [1, 2, 3].map((y) => ({ name: `T${y}`, at: [0, y, 0] as const })),
+      { extensions: { VRM: { humanoid: { humanBones } } } },
+    );
+    const at = (await placed(url)).jointPlaces;
+    expect(
+      ['Metacarpal', 'Proximal', 'Distal'].map((p) => at.get(jointName(`leftThumb${p}`))!.y),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('leaves the bones it says nothing of to their names', async () => {
+    const url = tinySkeletonUrl([{ name: 'Hips' }, { name: 'LeftToeBase', parent: 'Hips' }], {
+      extensions: { VRMC_vrm: { humanoid: { humanBones: { hips: { node: 0 } } } } },
+    });
+    expect((await placed(url)).jointPlaces.has(jointName('leftToes'))).toBe(true);
+  });
+
+  it('is passed over where it makes no sense', async () => {
+    const humanBones = [null, { bone: 7, node: 0 }, { bone: 'head', node: 99 }, { bone: 'neck' }];
+    const url = tinySkeletonUrl([{ name: 'hips' }], {
+      extensions: { VRM: { humanoid: { humanBones } } },
+    });
+    expect([...(await placed(url)).jointPlaces.keys()]).toEqual(['hips']);
+  });
+});
+
+describe('a model that fails unexpectedly', () => {
+  it('is a stand-in, leaves nothing half placed, and says why in the log', async () => {
+    const log = vi.spyOn(Logger, 'Error').mockImplementation(() => {});
+    const odd = backstageId('test/Biped/odd');
+    // Joints that can't be read: placing fails after the copy is in the scene.
+    const models: ModelSource = {
+      find: (id) => (id === odd ? { url, joints: null as never } : source.find(id)),
+    };
+    const stage = new BabylonStage(headlessEngine(), { models });
+    await stage.load({ ...SETUP, objects: [place(ann, -2, odd), place(bob, 2)] });
+    expect(stage.missing()).toEqual([{ kind: 'model', object: ann, model: odd }]);
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    expect(inside.transformNodes.filter((n) => n.name === ann).length).toBeLessThanOrEqual(1);
+    // Only bob's: none of ann's failed copy.
+    expect(inside.meshes.filter((m) => m.name === 'Body')).toHaveLength(1);
+    expect(String(log.mock.calls[0]![0])).toContain(odd);
+    log.mockRestore();
+  });
+});
+
 describe('opacity and paint', () => {
   it('fade every part of an object, and hide it at nothing', async () => {
     const { stage, root, body } = await loaded();
@@ -295,6 +418,21 @@ describe('opacity and paint', () => {
     stage.seek(0);
     expect(body(ann).visibility).toBe(1);
     expect(root(ann).isEnabled()).toBe(true);
+  });
+
+  it('blend what is part faded, and only that (opaque glTF said never to blend, #117)', async () => {
+    const { stage, body } = await loaded();
+    stage.schedule([
+      cmd(0, 1, { object: ann, kind: 'opacity', to: 0.5 }),
+      cmd(1, 1, { object: ann, kind: 'opacity', to: 1 }),
+    ]);
+    const blends = (id: ObjectId) => body(id).material!.needAlphaBlendingForMesh(body(id));
+    expect(blends(ann)).toBe(false);
+    stage.seek(micros(1));
+    expect(blends(ann)).toBe(true);
+    expect(blends(bob)).toBe(false);
+    stage.seek(micros(2));
+    expect(blends(ann)).toBe(false);
   });
 
   it('start from the set-up', async () => {

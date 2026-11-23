@@ -787,7 +787,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     Token budgets as in StoryStage 1. (C)
     - **Built (20 Nov 2026):** the Story API catalog and the shipped Backstage catalogue, by section, in `system` (#93, pinned by `pnpm prompter:pins`); the program as text with node ids, and the storyboard and script with each frame's sketches as `<production_data>` and `<storyboard_data>`, each within its token budget (#212). Nothing sent holds a picture.
 - [x] 13.4 **Tools:**
-    - the StoryStage 1 tools over the new AST: `add_model`, `set_property`, `insert_statement`, `insert_control`, `declare_procedure`, `add_event_listener`, `explain`, `read_project`;
+    - the StoryStage 1 tools over the new AST: `add_model`, `set_property`, `insert_statement`, `insert_control`, `declare_procedure` (removed 22 Nov 2026 by spec 04 section 6.9), `add_event_listener`, `explain`, `read_project`;
     - storyboard tools: `stage_scene` (place cast from frames, build backdrop and camera) and `code_frame`;
     - read-only `check_frame` (reads the result of the automatic check, 11.6, and explains it in the learner's words) and `script_check`;
     - `propose_plan` and `revise_plan` for plan before change (13.9).

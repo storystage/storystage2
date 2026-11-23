@@ -7,6 +7,7 @@
 import {
   indexProgram,
   type Expression,
+  type MethodDecl,
   type NodeId,
   type Program,
   type Statement,
@@ -144,12 +145,34 @@ export function replyText(run: RowRun): string {
     .join('\n');
 }
 
-/** New say, think and speak line words in the film's program. */
-function spokenWords(run: RowRun): string[] {
+/** The new calls in the film's program. */
+function newCalls(run: RowRun): Call[] {
   const before = nodeIds(run.before.program);
-  return calls(allStatements(run.after, run.scene))
-    .filter((c) => !before.has(c.id) && SPEAKING.has(callee(c)))
+  return calls(allStatements(run.after, run.scene)).filter((c) => !before.has(c.id));
+}
+
+/** The learner's procedure a call calls, or null. */
+function ownMethod(program: Program, call: Call): MethodDecl | null {
+  if (call.callee.kind !== 'user') return null;
+  const node = indexProgram(program).get(call.callee.method)?.node;
+  return node?.kind === 'method' ? node : null;
+}
+
+/** New say, think and speak line words, and words given to a learner's procedure (spec 04, 6.9). */
+function spokenWords(run: RowRun): string[] {
+  return newCalls(run).flatMap((c) => {
+    if (c.callee.kind === 'user')
+      return Object.values(c.args).flatMap((e) => (e.kind === 'text' ? [e.value] : []));
+    return SPEAKING.has(callee(c)) ? [String(value(c.args.text) ?? '')] : [];
+  });
+}
+
+/** All new words in the film: those, and on-screen text (spec 04, 6.5). */
+function wordsWritten(run: RowRun): string[] {
+  const shown = newCalls(run)
+    .filter((c) => callee(c) === 'setValue')
     .map((c) => String(value(c.args.text) ?? ''));
+  return [...spokenWords(run), ...shown];
 }
 
 /**
@@ -213,6 +236,25 @@ function codeCheck(check: EvalCheck, run: RowRun): Result {
           callee(c) === check.procedure && targetName(after.program, c.target) === check.target,
       ).length;
       return result(n >= Number(check.min ?? 1), `${n} found`);
+    }
+    case 'calls_own_move': {
+      const wanted = Object.entries((check.values ?? {}) as Record<string, unknown>);
+      const n = newCalls(run).filter((c) => {
+        const method = ownMethod(after.program, c);
+        if (method?.name !== check.procedure) return false;
+        if (targetName(after.program, c.target) !== check.target) return false;
+        return wanted.every(([name, want]) => {
+          const input = method?.params.find((p) => p.name === name);
+          return input !== undefined && value(c.args[input.id]) === want;
+        });
+      }).length;
+      return result(n >= 1, `${n} found`);
+    }
+    case 'no_own_call': {
+      const n = newCalls(run).filter(
+        (c) => ownMethod(after.program, c)?.name === check.procedure,
+      ).length;
+      return result(n === 0, `${n} found`);
     }
     case 'method_order': {
       // An item may be a list of blocks, any of which will do.
@@ -316,7 +358,7 @@ function codeCheck(check: EvalCheck, run: RowRun): Result {
     }
     case 'no_invented_line': {
       const own = [run.row.request, run.row.follow_up ?? '', ...after.script.map((l) => l.text)];
-      const invented = spokenWords(run).filter(
+      const invented = wordsWritten(run).filter(
         (w) => !own.some((o) => squash(o).includes(squash(w))),
       );
       return result(invented.length === 0, invented.join(' | '));

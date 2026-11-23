@@ -168,7 +168,6 @@ const good: Readonly<Record<string, unknown>> = {
     narration: 'A count block will repeat the hop three times.',
     plan_step: 1,
   },
-  declare_procedure: { class: 'Scene', name: 'hop', narration: 'A new hop block.', plan_step: 1 },
   add_event_listener: {
     event: 'clickOnObject',
     objects: ['penguin'],

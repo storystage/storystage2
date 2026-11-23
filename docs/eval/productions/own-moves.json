@@ -1,0 +1,47 @@
+{
+  "title": "The Waddle",
+  "backdrop": "ice",
+  "objects": [
+    { "name": "penguin", "class": "Flyer", "item": "example/Flyer/penguin", "position": { "x": 1, "y": 0, "z": 0 } },
+    { "name": "penguin2", "class": "Flyer", "item": "example/Flyer/penguin", "position": { "x": 2.5, "y": 0, "z": 0 } },
+    { "name": "fox", "class": "Quadruped", "item": "example/Quadruped/fox", "position": { "x": -1, "y": 0, "z": 0 } }
+  ],
+  "procedures": [
+    {
+      "of": "penguin",
+      "name": "waddle",
+      "inputs": [{ "name": "steps", "type": "Number" }],
+      "body": ["this.move(FORWARD, steps)"]
+    },
+    {
+      "of": "fox",
+      "name": "greet",
+      "inputs": [{ "name": "message", "type": "Text" }],
+      "body": ["this.say(message)"]
+    },
+    {
+      "of": "this",
+      "name": "bigFinish",
+      "inputs": [{ "name": "turns", "type": "Number" }],
+      "body": ["penguin.turn(LEFT, turns)", "fox.turn(RIGHT, turns)"]
+    }
+  ],
+  "program": [],
+  "storyboard": {
+    "logline": "A fox says hello to two penguins.",
+    "synopsis": "A fox meets two penguins on the ice and says hello.",
+    "arc": { "template": "free", "parts": [] }
+  },
+  "scenes": [
+    { "id": "s1", "heading": "Ice, morning", "cast": ["example/Flyer/penguin", "example/Quadruped/fox"], "arcPart": null }
+  ],
+  "script": [
+    { "id": "l1", "scene": "s1", "kind": "dialogue", "character": "Fox", "text": "Hello, little penguins.", "pinnedFrame": "f1-1" }
+  ],
+  "frames": [
+    {
+      "id": "f1-1", "scene": "s1", "order": 0, "caption": "The fox says hello.", "shot": "wide", "lengthSeconds": 3,
+      "sketches": [{ "id": "k1", "item": "example/Quadruped/fox", "facing": "side", "x": 0.7, "y": 0.6 }]
+    }
+  ]
+}

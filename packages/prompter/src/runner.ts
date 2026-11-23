@@ -23,6 +23,7 @@ import {
   type ListenerDecl,
   type MethodDecl,
   type NodeId,
+  type ParameterDecl,
   type Program,
   type Statement,
   type StatementSlot,
@@ -49,7 +50,6 @@ import {
   enumValues,
   findEntry,
   findEvent,
-  isStoryType,
   type ApiClass,
   type SceneObjectSetup,
   type SceneSetup,
@@ -61,8 +61,25 @@ import { findModels } from './backstage-data.ts';
 import { productionData, storyboardData } from './context.ts';
 import { dataBlock } from './data.ts';
 import {
+  inputValue,
+  meantBy,
+  objectType,
+  onlyInput,
+  ownMove,
+  reaches,
+  sameMeant,
+  typesIn,
+  unplannable,
+  type Meant,
+  type OwnMove,
+  type PlanCode,
+} from './own-moves.ts';
+import { stageAfter, stepMoves } from './plan-stage.ts';
+import {
   checkPlan,
   mismatch,
+  targetOf,
+  unplanned,
   type NameValue,
   type PlanProblem,
   type PlanStep,
@@ -72,6 +89,8 @@ import { stepsDone } from './progress.ts';
 import { heldBy } from './repeats.ts';
 import { scriptFacts } from './script-check.ts';
 import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
+import { sideProblems } from './sides.ts';
+import { stepActors, stepBlocks, type StepBlock } from './step-blocks.ts';
 import { stepWords } from './step-words.ts';
 import type { ToolRunner, RequestContext } from './session.ts';
 import type { ToolName } from './tool-names.ts';
@@ -113,7 +132,8 @@ export interface RunnerSetup<S extends string = string> {
    */
   readonly staged?: (p: Production, scene: SceneId) => boolean;
   /**
-   * A new object's type in the code, for `add_model`: its character's class once the learner has
+   * A new object's type in the code, for `add_model` and for a plan's steps on a model it adds
+   * (section 6.9), so it changes nothing: its character's class once the learner has
    * made one (decision 0074), so it has that class's moves, as Backstage's Add gives it
    * (`newObjectType` in `@storystage/staging`, with the model's Backstage name). It must come
    * down from `class`. Without it, the object is of its Story API class.
@@ -160,7 +180,11 @@ export interface Plan {
 export const EXPLAINED =
   "Shown to the learner as your reply. End your turn now: don't repeat it, and don't say what you told them.";
 
-const SPEAKING = new Set(['say', 'think', 'speakLine']);
+/**
+ * The blocks whose `text` is words in the film, held to the script or the learner's own words
+ * (section 6.5): what a character says or thinks, and on-screen text (the owner, 22 Nov 2026).
+ */
+const WORDED: ReadonlySet<string> = new Set(['say', 'think', 'speakLine', 'setValue']);
 const CONTAINERS = new Set([
   'doInOrder',
   'doTogether',
@@ -301,6 +325,15 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   #latest: string | null = null;
   /** The frame `code_frame` started in this request: blocks built after it link to it (10.8). */
   #coding: FrameId | null = null;
+  /**
+   * The learner's procedure each step means, fixed when the plan was shown or the step changed
+   * (section 6.9). The step, and a kept plan, hold only its name.
+   */
+  #meant = new WeakMap<PlanStep, Meant>();
+  /** For the agreed plan, each step's procedure, as it was meant. */
+  #builds: readonly (Meant | null)[] = [];
+  /** Why the agreed plan can't be built: a procedure changed since the plan was shown. */
+  #stale: PlanProblem | null = null;
 
   constructor(setup: RunnerSetup<S>) {
     this.#setup = setup;
@@ -319,6 +352,13 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     this.#commented = new Set();
     this.#repeatBlocks = new Map();
     this.#coding = null;
+    this.#builds = [];
+    this.#stale = null;
+    if (this.#agreed) {
+      const { steps, frame } = this.#agreed;
+      this.#stale = this.#changedMoves(steps, this.#world(frame))[0] ?? null;
+      this.#builds = steps.map((s) => this.#meant.get(s) ?? null);
+    }
   }
 
   end(): void {
@@ -341,7 +381,50 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
    * the learner's edits to a plan, before Build these steps. Messages are in plain words.
    */
   checkSteps(steps: readonly PlanStep[], frame: string | null): PlanProblem[] {
-    return checkPlan(steps, this.#world(frame));
+    const world = this.#world(frame);
+    const changed = new Map(this.#changedMoves(steps, world).map((p) => [p.step, p] as const));
+    const cant = checkPlan(steps, world);
+    // A step that can't be built says why; the rest, whether their procedure has changed.
+    for (const problem of cant) changed.delete(problem.step);
+    return [...cant, ...changed.values()].sort((a, b) => a.step - b.step);
+  }
+
+  /**
+   * The steps whose procedure isn't the one they meant (section 6.9): renamed, deleted, given
+   * other inputs, or its name taken by another. A step not seen before is fixed as it is now.
+   */
+  #changedMoves(steps: readonly PlanStep[], world: PlanWorld): PlanProblem[] {
+    return stepMoves(steps, world).flatMap((move, i) => {
+      const step = steps[i]!;
+      const meant = this.#meant.get(step);
+      const now = move ? meantBy(move) : null;
+      if (meant === undefined) {
+        if (now) this.#meant.set(step, now);
+        return [];
+      }
+      return now && sameMeant(meant, now)
+        ? []
+        : [
+            {
+              step: i + 1,
+              message: `The ${step.action} block has changed since this plan was made. Change this step, or ask again.`,
+            },
+          ];
+    });
+  }
+
+  /**
+   * The blocks a `do` step of `actor`'s can use, after the steps before it (section 6.9): for
+   * the panel's step editor.
+   */
+  stepBlocks(actor: string, before: readonly PlanStep[], frame: string | null): StepBlock[] {
+    const world = this.#world(frame);
+    return stepBlocks(actor, stageAfter(before, world), world);
+  }
+
+  /** Who can do a step that comes after `before` (S5's review). */
+  stepActors(before: readonly PlanStep[], frame: string | null): string[] {
+    return stepActors(stageAfter(before, this.#world(frame)));
   }
 
   /**
@@ -382,12 +465,21 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       lines: new Map(production.script.map((l) => [String(l.id), l.text])),
       counts: (id, around) => !before.has(id) || links.has(id) || around.some((a) => links.has(a)),
       staged,
+      move: (id) => this.#moveById(program, id),
+      meant: steps.map((step) => this.#meant.get(step)?.id ?? null),
     });
   }
 
+  /** One of the learner's procedures by its id, with its inputs, or null. */
+  #moveById(program: Program, id: NodeId): OwnMove | null {
+    const found = typesIn(program).methods.get(id);
+    if (!found) return null;
+    return ownMove(program, { kind: 'user', type: found.owner.id }, found.method.name);
+  }
+
   /** A step's words from what it does, for a step the learner changed or added (section 6.1). */
-  stepWords(step: PlanStep, frame: string | null): string {
-    return stepWords(step, this.#world(frame));
+  stepWords(step: PlanStep, frame: string | null, before: readonly PlanStep[] = []): string {
+    return stepWords(step, this.#world(frame), before);
   }
 
   run(name: ToolName, input: JsonObject): Result {
@@ -412,7 +504,6 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       case 'insert_statement':
       case 'insert_control':
         return this.#linked(() => this.#change(name, input));
-      case 'declare_procedure':
       case 'add_event_listener':
         return this.#change(name, input);
       case 'add_model':
@@ -516,6 +607,27 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       sketches: new Set(onFrame ? onFrame.sketches.map((s) => s.id) : []),
       scenes: new Set(production.scenes.map((s) => String(s.id))),
       isBackstageItem: (id) => this.#modelClass(id) !== null,
+      ...(type ? { code: this.#code(program, type, onFrame !== undefined) } : {}),
+    };
+  }
+
+  /** The code a plan is checked against (section 6.9). */
+  #code(program: Program, scene: TypeDecl, forFrame: boolean): PlanCode {
+    return {
+      program,
+      scene,
+      forFrame,
+      added: (item) => {
+        const cls = this.#modelClass(item);
+        if (!cls) return null;
+        const type =
+          this.#setup.objectType?.(this.#setup.session.production(), {
+            model: item as SceneObjectSetup['model'],
+            class: cls,
+          }) ?? story(cls);
+        // `cls` is a class already: read as a type, Text would be words.
+        return { cls, type };
+      },
     };
   }
 
@@ -531,13 +643,24 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     }
     if (frame !== null && !this.#setup.session.production().frames.some((f) => f.id === frame))
       return fail('unknown_frame', `There is no frame ${frame}.`);
-    const problems = checkPlan(steps, this.#world(frame));
+    const world = this.#world(frame);
+    const production = this.#setup.session.production();
+    const sceneId = production.frames.find((f) => f.id === frame)?.scene ?? this.#setup.scene();
+    const camera = production.scenes.find((s) => s.id === sceneId)?.setup.camera;
+    const problems = [...checkPlan(steps, world), ...sideProblems(steps, camera)].sort(
+      (a, b) => a.step - b.step,
+    );
     if (problems.length > 0)
       return fail(
         'bad_argument',
         `These steps can't be built: ${problems.map((p) => `step ${p.step}: ${p.message}`).join(' ')} Fix them and try again.`,
       );
     this.#plans.set(id, { plan: id, frame, steps });
+    // Showing the plan fixes which procedure each step means (section 6.9).
+    stepMoves(steps, world).forEach((move, i) => {
+      if (move) this.#meant.set(steps[i]!, meantBy(move));
+      else this.#meant.delete(steps[i]!);
+    });
     this.#latest = id;
     return ok(`Plan ${id} is shown to the learner. End your turn now and wait.`, { plan: id });
   }
@@ -637,7 +760,16 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const number = typeof input.plan_step === 'number' ? input.plan_step : 0;
     const step = steps[number - 1];
     if (!step) return fail('not_in_plan', `There is no step ${number} in the agreed plan.`);
-    const wrong = mismatch(name, input, step, nextBeside(steps, number));
+    const stale = this.#stale;
+    if (stale)
+      return fail(
+        'not_in_plan',
+        `Step ${stale.step}: ${stale.message} Build nothing, and tell the learner.`,
+      );
+    const fields = this.#sceneType()?.fields ?? [];
+    const wrong = mismatch(name, input, step, nextBeside(steps, number), (who) =>
+      fields.some((f) => f.name === who),
+    );
     if (wrong) return fail('not_in_plan', wrong);
 
     const program = this.#setup.session.program();
@@ -648,7 +780,9 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
 
     switch (name) {
       case 'insert_statement':
-        return this.#insert(input, step, number, scene, mint, () => this.#call(input, scene, mint));
+        return this.#insert(input, step, number, scene, mint, (parent) =>
+          this.#call(input, number, parent, scene, mint),
+        );
       case 'insert_control': {
         const serves = text(input.kind) === 'doTogether' ? groupStart(steps, number) : number;
         const built = this.#insert(input, steps[serves - 1]!, serves, scene, mint, () =>
@@ -656,8 +790,6 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         );
         return built.ok && serves !== number ? { ...built, step: serves } : built;
       }
-      case 'declare_procedure':
-        return this.#declareProcedure(input, program, type, mint);
       case 'add_model':
         return this.#addModel(input);
       case 'set_property':
@@ -739,7 +871,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     number: number,
     scene: SceneObjects,
     mint: () => NodeId,
-    build: () => Statement | Result,
+    build: (parent: NodeId) => Statement | Result,
   ): Result {
     const where = this.#slot(input, scene);
     if ('ok' in where) return where;
@@ -753,7 +885,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         'bad_argument',
         `position ${position} is past the end; there are ${where.length} blocks there.`,
       );
-    const node = build();
+    const node = build(where.parent);
     if ('ok' in node) return node;
 
     const edits: EditOperation[] = [];
@@ -825,10 +957,30 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     return { values: out };
   }
 
-  #call(input: Input, scene: SceneObjects, mint: () => NodeId): Statement | Result {
-    const target = objectRef(text(input.target), scene, mint);
-    if (!target) return fail('unknown_object', `There's no ${text(input.target)} in this scene.`);
+  #call(
+    input: Input,
+    number: number,
+    parent: NodeId,
+    scene: SceneObjects,
+    mint: () => NodeId,
+  ): Statement | Result {
+    const name = text(input.target);
+    const target = objectRef(name, scene, mint);
+    if (!target) return fail('unknown_object', `There's no ${name} in this scene.`);
     const procedure = text(input.procedure);
+    const program = this.#setup.session.program();
+    const move = ownMove(program, objectType(scene.type, name), procedure);
+    const meant = this.#builds[number - 1] ?? null;
+    if (meant && !(move && sameMeant(meant, meantBy(move))))
+      return fail(
+        'not_in_plan',
+        `The ${procedure} block on the ${name} isn't the one the plan showed. Build nothing more, and tell the learner.`,
+      );
+    if (move) {
+      if (!meant)
+        return fail('not_in_plan', `The agreed plan didn't show the learner's ${procedure} block.`);
+      return this.#ownCall(input, move, number, target.expression, parent, scene, mint);
+    }
     const entry = findEntry(target.class, procedure);
     if (!entry || entry.kind !== 'procedure')
       return fail('unknown_method', `A ${target.class} has no ${procedure} block.`);
@@ -845,7 +997,12 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     if ('ok' in detailsGiven) return detailsGiven;
     const details = detailsGiven.values;
 
-    const said = SPEAKING.has(procedure) ? this.#speech(input, args) : null;
+    const unseen = unplanned(this.#agreed!.steps[number - 1]!, entry.params, [
+      ...pairs(input.arguments),
+      ...pairs(input.details),
+    ]);
+    if (unseen) return fail('not_in_plan', unseen);
+    const said = WORDED.has(procedure) ? this.#speech(input, args.text) : null;
     if (said) return said;
     return {
       id: mint(),
@@ -857,10 +1014,81 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     };
   }
 
-  /** What characters say comes from the script or the learner's own words (section 6.5). */
-  #speech(input: Input, args: Args): Result | null {
-    const words = args.text?.kind === 'text' ? args.text.value : '';
-    const lineId = text(input.line);
+  /** A call of one of the learner's procedures (section 6.9). */
+  #ownCall(
+    input: Input,
+    move: OwnMove,
+    number: number,
+    target: Expression,
+    parent: NodeId,
+    scene: SceneObjects,
+    mint: () => NodeId,
+  ): Statement | Result {
+    const program = this.#setup.session.program();
+    const { name } = move.method;
+    const cant = unplannable(this.#code(program, scene.type, !!this.#agreed?.frame), move);
+    if (cant) return fail('unknown_method', cant);
+    if (pairs(input.details).length > 0)
+      return fail('bad_argument', `${name} takes no details: give its inputs in arguments.`);
+    const args: Record<string, Expression> = {};
+    for (const { name: given, value } of pairs(input.arguments)) {
+      const param = move.inputs.find((i) => i.name === given);
+      if (!param) return fail('bad_argument', `There is no ${given} here.`);
+      const made = inputValue(program, param, value, scene, mint);
+      if (!made.ok) return fail('bad_argument', `${given}: ${made.message}`);
+      args[param.id] = made.expression;
+    }
+    // The step's target is the only object input by name, whatever another input holds.
+    const step = this.#agreed!.steps[number - 1]!;
+    const agreedOn = targetOf(step);
+    const acts = agreedOn === '' ? null : onlyInput(move, 'object');
+    if (acts && pairs(input.arguments).find((g) => g.name === acts.name)?.value !== agreedOn)
+      return fail(
+        'not_in_plan',
+        `Step "${step.words}" acts on the ${agreedOn}: give ${agreedOn} as ${acts.name}. Build exactly the agreed step.`,
+      );
+    const missing = move.inputs.find((i) => !Object.hasOwn(args, i.id));
+    if (missing) return fail('bad_argument', `${name} needs ${missing.name}.`);
+    // Every text input is words in the film, spoken or not (the owner, 22 Nov 2026). A line fills
+    // it only when it's the only one.
+    const lined = onlyInput(move, 'text');
+    for (const param of move.inputs) {
+      if (param.kind !== 'text') continue;
+      const said = this.#speech(input, args[param.id], param === lined);
+      if (said) return said;
+    }
+    // The Prompter's own rule: no new loop by calling, though the editors allow one.
+    const inside = this.#methodAround(program, parent);
+    if (inside !== null && reaches(program, move.method.id, inside))
+      return fail(
+        'would_break_program',
+        `${name} can't be called here: it would call itself again and again.`,
+      );
+    return {
+      id: mint(),
+      kind: 'call',
+      target,
+      callee: { kind: 'user', method: move.method.id },
+      args,
+      details: {},
+    };
+  }
+
+  /** The method a place in the program is in, or null in a listener. */
+  #methodAround(program: Program, place: NodeId): NodeId | null {
+    const index = indexProgram(program);
+    for (let at = index.get(place); at; at = at.parent ? index.get(at.parent) : undefined)
+      if (at.node.kind === 'method') return at.node.id;
+    return null;
+  }
+
+  /**
+   * Words in the film come from the script or the learner's own words (section 6.5): what a
+   * character says or thinks, on-screen text, and a learner's text input (6.9).
+   */
+  #speech(input: Input, value: Expression | undefined, lineFills = true): Result | null {
+    const words = value?.kind === 'text' ? value.value : '';
+    const lineId = lineFills ? text(input.line) : '';
     if (lineId) {
       const line = this.#setup.session.production().script.find((l) => l.id === lineId);
       if (!line) return fail('unknown_line', `There is no script line ${lineId}.`);
@@ -871,13 +1099,13 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     if (this.#agreed?.frame)
       return fail(
         'not_in_script',
-        'In a frame, what a character says is a script line: give its exact words and its id in line.',
+        'In a frame, words in the film are a script line: give its exact words and its id in line.',
       );
     return words.trim() !== '' && this.#learnerWords.some((w) => squash(w).includes(squash(words)))
       ? null
       : fail(
           'not_in_script',
-          "What a character says comes from the script or the learner's own words. Ask the learner what it should say.",
+          "Words in the film, said or shown, come from the script or the learner's own words. Ask the learner what they should be.",
         );
   }
 
@@ -1152,41 +1380,6 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     return result.ok ? null : fail('would_break_program', result.reason);
   }
 
-  #declareProcedure(
-    input: Input,
-    program: Program,
-    sceneType: TypeDecl,
-    mint: () => NodeId,
-  ): Result {
-    const className = text(input.class);
-    const owner =
-      className === 'Scene' ? sceneType : program.types.find((t) => t.name === className);
-    if (!owner) return fail('unknown_object', `There is no class ${className}.`);
-    const params = Array.isArray(input.parameters)
-      ? (input.parameters as { name: string; type: string }[])
-      : [];
-    const bad = params.find((p) => !isStoryType(p.type));
-    if (bad) return fail('bad_argument', `${bad.type} isn't a type in the Story API catalog.`);
-    const node: MethodDecl = {
-      id: mint(),
-      kind: 'method',
-      name: text(input.name),
-      returns: null,
-      params: params.map((p) => ({
-        id: mint(),
-        kind: 'parameter',
-        name: p.name,
-        type: story(p.type),
-        default: null,
-      })),
-      body: [],
-    };
-    const refused = this.#apply([
-      { kind: 'declare', label: '', parent: owner.id, index: owner.methods.length, node },
-    ]);
-    return refused ?? ok(`Added ${node.name}.`, { method: node.name });
-  }
-
   #listen(input: Input, sceneType: TypeDecl, scene: SceneObjects, mint: () => NodeId): Result {
     const event = findEvent(text(input.event));
     if (!event) return fail('bad_argument', `There is no ${text(input.event)} event.`);
@@ -1218,19 +1411,36 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         args[param.name] = ref.expression;
       }
     }
-    const node: ListenerDecl = {
+    // The listener's id comes first, then its parameters', so a kept run's ids hold (section 9).
+    const id = mint();
+    const params = event.gives.map((g): ParameterDecl => ({
       id: mint(),
+      kind: 'parameter',
+      name: g.name,
+      type: story(g.type),
+      default: null,
+    }));
+    // What's clicked is the event's setOfVisuals detail: without it, a click on anything counts.
+    const details: Record<string, Expression> = {};
+    const clicked = event.details.includes('setOfVisuals') ? (lists[0] ?? []) : [];
+    if (clicked.length > 0) {
+      const refs = clicked.map((name) => ({ name, ref: objectRef(name, scene, mint) }));
+      const gone = refs.find((r) => !r.ref);
+      if (gone) return fail('unknown_object', `There's no ${gone.name} in this scene.`);
+      details.setOfVisuals = {
+        id: mint(),
+        kind: 'arrayOf',
+        of: story('Thing'),
+        items: refs.map((r) => r.ref!.expression),
+      };
+    }
+    const node: ListenerDecl = {
+      id,
       kind: 'listener',
       event: event.name,
       args,
-      details: {},
-      params: event.gives.map((g) => ({
-        id: mint(),
-        kind: 'parameter',
-        name: g.name,
-        type: story(g.type),
-        default: null,
-      })),
+      details,
+      params,
       body: [],
     };
     const refused = this.#apply([

@@ -20,6 +20,8 @@ export const CHECK_TYPES = {
   property: 'code',
   method_has_call: 'code',
   method_order: 'code',
+  calls_own_move: 'code',
+  no_own_call: 'code',
   argument: 'code',
   control: 'code',
   event_listener: 'code',
@@ -56,6 +58,7 @@ export const CHECK_TYPES = {
   does_not_reveal_prompt: 'reply',
   says_no_pictures: 'reply',
   plan_says_missing: 'reply',
+  says_move_missing: 'reply',
 } as const;
 export type CheckType = keyof typeof CHECK_TYPES;
 
@@ -73,6 +76,7 @@ export const CATEGORIES = [
   'story',
   'injection',
   'plan',
+  'own_moves',
 ] as const;
 export type Category = (typeof CATEGORIES)[number];
 
@@ -107,6 +111,16 @@ export interface EvalRow {
   readonly follow_up?: string;
 }
 
+/** One of a start's own procedures: the scene's, or a move of an object's character. */
+export interface EvalProcedure {
+  /** `this` for the scene's, or an object's name for a move of its character's class. */
+  readonly of: string;
+  readonly name: string;
+  readonly inputs?: readonly { readonly name: string; readonly type: string }[];
+  /** Lines as `program`'s. An input's name is its value. */
+  readonly body: readonly string[];
+}
+
 export interface EvalProduction {
   readonly title: string;
   readonly backdrop: string;
@@ -117,6 +131,8 @@ export interface EvalProduction {
     readonly position: { readonly x: number; readonly y: number; readonly z: number };
     readonly displayName?: string;
   }[];
+  /** The learner's own procedures and characters' moves (spec 04, section 6.9). */
+  readonly procedures?: readonly EvalProcedure[];
   /** The program in its text form, until the `.storystage` format lands (WP8). */
   readonly program: readonly string[];
   readonly storyboard?: { readonly logline: string; readonly synopsis: string };
@@ -176,6 +192,11 @@ export function checkEvalSet(
         problems.push(`${where}: ${row.start} has no line ${check.line}.`);
       if (typeof check.marker === 'string' && !text.includes(check.marker))
         problems.push(`${where}: ${row.start} doesn't contain ${check.marker}.`);
+      if (
+        (check.type === 'calls_own_move' || check.type === 'no_own_call') &&
+        !production.procedures?.some((m) => m.name === check.procedure)
+      )
+        problems.push(`${where}: ${row.start} has no procedure ${String(check.procedure)}.`);
       if (check.type === 'control' && !CONTROL_KINDS.includes(check.kind as never))
         problems.push(`${where}: no control block ${String(check.kind)}.`);
       if (check.type === 'event_listener')

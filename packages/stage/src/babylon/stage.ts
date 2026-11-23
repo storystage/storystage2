@@ -7,6 +7,7 @@
  * the contract has everything facing +Z, so the camera's node is turned half a turn (see `show`).
  * That puts +X on the left of the screen, which is what spec 02 calls left.
  */
+import { Logger } from '@babylonjs/core/Misc/logger.js';
 import { FreeCamera } from '@babylonjs/core/Cameras/freeCamera.js';
 import '@babylonjs/core/Culling/ray.js';
 import '@babylonjs/core/Engines/Extensions/engine.readTexture.js';
@@ -1346,9 +1347,12 @@ function place(
   };
   if (typeof object.model !== 'string') return standIn(object.model.standIn, object.model.size);
   const model = object.model;
-  // A model that can't be had shows as a stand-in with its name, and the scene plays on.
+  // A model that can't be had, or can't be placed, shows as a stand-in with its name, and the
+  // scene plays on: one model never takes the rest of the scene with it.
   return library.place(object.id, model, object.class).catch((e: unknown) => {
-    if (!(e instanceof StageError) || e.code !== 'unknown_model') throw e;
+    // Not having a model is ordinary. Anything else is a fault in the file or in the stage.
+    if (!(e instanceof StageError && e.code === 'unknown_model'))
+      Logger.Error(`The stage couldn't place ${model}: ${e instanceof Error ? e.message : e}`);
     missing.push({ kind: 'model', object: object.id, model });
     return standIn(model.split('/').pop() || model);
   });

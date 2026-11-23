@@ -11,7 +11,9 @@ import {
   newProgram,
   type EditOperation,
   type Expression,
+  type MethodDecl,
   type NodeId,
+  type Program,
   type Statement,
   type TypeDecl,
 } from '@storystage/ast';
@@ -29,17 +31,17 @@ import {
   type SceneId,
 } from '@storystage/production';
 import { toValue, type Json, type SceneObjects } from '@storystage/prompter';
+import { modelFields } from '@storystage/staging';
 import {
   backstageId,
-  classOfType,
   findEntry,
-  type ApiClass,
   type BackstageId,
   type SceneSetup,
   type StandIn,
   type StoryClass,
 } from '@storystage/story-api';
-import type { EvalProduction } from '../eval.ts';
+import { classFor, describer } from '@storystage/story-api/editing';
+import type { EvalProcedure, EvalProduction } from '../eval.ts';
 
 /** The film, the scene the request is made in, and each frame's saved check (11.6). */
 export interface OpenedStart {
@@ -157,27 +159,31 @@ function splitArgs(text: string): string[] {
   return out;
 }
 
-/** One line of a start's program: `// a comment`, or `object.procedure(arg, …)`. */
+/**
+ * One line of a start's program, or of a procedure's: `// a comment`, or
+ * `object.procedure(arg, …)`, where the object may be `this` and an argument one of `inputs`.
+ */
 function statementFor(
   line: string,
   type: TypeDecl,
-  classOf: (name: string) => ApiClass | null,
+  program: Program,
   mint: () => NodeId,
+  inputs: ReadonlyMap<string, NodeId> = new Map(),
 ): Statement {
   const comment = /^\/\/\s?(.*)$/.exec(line);
   if (comment) return { id: mint(), kind: 'comment', text: comment[1]! };
   const call = /^(\w+)\.(\w+)\((.*)\)$/.exec(line);
   if (!call) throw new Error(`Can't read this start's line: ${line}`);
   const [, target, procedure, rest] = call as unknown as [string, string, string, string];
-  const cls = classOf(target);
+  const { types } = describer(program);
+  const field = type.fields.find((f) => f.name === target);
+  const cls = types.classOf(
+    target === 'this' ? { kind: 'user', type: type.id } : (field?.type ?? null),
+  );
   const entry = cls ? findEntry(cls, procedure) : undefined;
   if (!cls || !entry || entry.kind !== 'procedure')
     throw new Error(`${target}.${procedure} isn't in the Story API.`);
-  const scene: SceneObjects = {
-    type,
-    classOf: (field) => (field.type.kind === 'story' ? classOfType(field.type.name) : null),
-  };
-  const field = type.fields.find((f) => f.name === target)!;
+  const scene: SceneObjects = { type, classOf: (f) => types.classOf(f.type) };
   const args: Record<string, Expression> = {};
   splitArgs(rest).forEach((raw, i) => {
     const param = entry.params[i];
@@ -185,6 +191,11 @@ function statementFor(
     const text = /^"(.*)"$/.exec(raw)?.[1] ?? raw;
     // Enum constants are written as Alice wrote them (`LEFT`); the Story API's are lower case.
     const value = /^[A-Z_]+$/.test(text) ? text.toLowerCase() : text;
+    const variable = inputs.get(raw);
+    if (variable) {
+      args[param.name] = { id: mint(), kind: 'variableRef', variable };
+      return;
+    }
     const converted = toValue(value, param.type, scene, mint);
     if (!converted.ok) throw new Error(`${line}: ${converted.message}`);
     args[param.name] = converted.expression;
@@ -192,16 +203,71 @@ function statementFor(
   return {
     id: mint(),
     kind: 'call',
-    target: {
-      id: mint(),
-      kind: 'fieldRef',
-      target: { id: mint(), kind: 'this' },
-      field: field.id,
-    },
+    target: field
+      ? { id: mint(), kind: 'fieldRef', target: { id: mint(), kind: 'this' }, field: field.id }
+      : { id: mint(), kind: 'this' },
     callee: { kind: 'story', name: procedure },
     args,
     details: {},
   };
+}
+
+/**
+ * Declares a start's procedures (spec 04, section 6.9): the scene's own, or a move of an object's
+ * character, whose class every object of that model becomes, as the editors make it (0074).
+ */
+function withProcedures(
+  production: Production,
+  scene: SceneId,
+  procedures: readonly EvalProcedure[],
+  random: () => number,
+): Production {
+  let p = production;
+  for (const { of, name, inputs = [], body } of procedures) {
+    const setUp = p.scenes.find((s) => s.id === scene)!;
+    let owner = indexProgram(p.program).get(setUp.method)!.parent!;
+    if (of !== 'this') {
+      const object = setUp.setup.objects.find((o) => o.id === of);
+      if (!object || typeof object.model !== 'string')
+        throw new Error(`${name}: no model called ${of}.`);
+      const made = classFor(
+        p.program,
+        { name: object.model.split('/').at(-1)!, storyClass: object.class },
+        modelFields(p, object.model),
+        'Start',
+        idMinter(p.program, random),
+      );
+      if (!made) throw new Error(`${name}: ${of} can't have a class.`);
+      owner = made.type;
+      const applied = applyProgramEdits(p, [...made.edits]);
+      if ('code' in applied) throw new Error(`${name}: no class: ${applied.code}.`);
+      p = { ...p, program: applied.program };
+    }
+    const mint = idMinter(p.program, random);
+    const type = indexProgram(p.program).get(owner)!.node as TypeDecl;
+    const params = inputs.map((i) => ({
+      id: mint(),
+      kind: 'parameter' as const,
+      name: i.name,
+      type: { kind: 'story' as const, name: i.type },
+      default: null,
+    }));
+    const named = new Map(params.map((i) => [i.name, i.id] as const));
+    const node: MethodDecl = {
+      id: mint(),
+      kind: 'method',
+      name,
+      returns: null,
+      params,
+      body: body.map((line) => statementFor(line, type, p.program, mint, named)),
+    };
+    const applied = applyProgramEdits(p, [
+      { kind: 'declare', label: 'Start', parent: owner, index: type.methods.length, node },
+    ]);
+    if ('code' in applied) throw new Error(`${name} can't be declared: ${applied.code}.`);
+    p = { ...p, program: applied.program };
+  }
+  return p;
 }
 
 /** The scene a request is made in: the scene of a frame it names, else the first with frames. */
@@ -285,14 +351,11 @@ export function openStart(start: EvalProduction, request = ''): OpenedStart {
 
   // The program's lines go in the request's scene's method.
   const current = ids.get(sceneFor(start, request) ?? '') ?? p.scenes[0]?.id ?? ('' as SceneId);
+  if (start.procedures?.length) p = withProcedures(p, current, start.procedures, random);
   if (start.program.length > 0) {
     const scene = p.scenes.find((s) => s.id === current)!;
     const index = indexProgram(p.program);
     const type = index.get(index.get(scene.method)!.parent!)!.node as TypeDecl;
-    const classOf = (name: string) => {
-      const field = type.fields.find((f) => f.name === name);
-      return field?.type.kind === 'story' ? classOfType(field.type.name) : null;
-    };
     const mint = idMinter(p.program, random);
     const edits: EditOperation[] = start.program.map((line, i) => ({
       kind: 'insert',
@@ -300,7 +363,7 @@ export function openStart(start: EvalProduction, request = ''): OpenedStart {
       parent: scene.method,
       slot: 'body',
       index: i,
-      node: statementFor(line, type, classOf, mint),
+      node: statementFor(line, type, p.program, mint),
     }));
     const applied = applyProgramEdits(p, edits);
     if ('code' in applied) throw new Error(`The start's program can't be built: ${applied.code}.`);
