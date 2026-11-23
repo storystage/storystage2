@@ -14,6 +14,8 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
+import { typeOfClass } from '../catalog/catalog.ts';
+import type { ApiClass } from '../catalog/types.ts';
 import { indexOf } from './cache.ts';
 import { freshName } from './names.ts';
 import { fill, word } from './words.ts';
@@ -25,6 +27,17 @@ export interface CharacterModel {
   /** Its Story API class: "Animal", "Biped", "Prop". */
   readonly storyClass: string;
 }
+
+/**
+ * A model's Story API class as a type, as a class extends it and an object is of it: 3D text's
+ * is `TextModel`, as `Text` is words (spec 02, section 1, rule 3; format 1.10.0).
+ */
+const storyType = (model: CharacterModel): TypeRef => ({
+  kind: 'story',
+  name: typeOfClass(model.storyClass as ApiClass),
+});
+const isStoryType = (t: TypeRef, model: CharacterModel): boolean =>
+  t.kind === 'story' && t.name === typeOfClass(model.storyClass as ApiClass);
 
 /** "Emperor penguin" → "EmperorPenguin": a model's name as a class's. */
 export function classNameFor(model: CharacterModel): string {
@@ -51,7 +64,7 @@ export function classOf(
     if (f?.kind !== 'field' || f.type.kind !== 'user') continue;
     const type = (f.type as { readonly type: NodeId }).type;
     const cls = program.types.find((t) => t.id === type);
-    if (cls?.extends.kind === 'story' && cls.extends.name === model.storyClass) return cls;
+    if (cls && isStoryType(cls.extends, model)) return cls;
   }
   const name = classNameFor(model);
   return (
@@ -59,8 +72,7 @@ export function classOf(
       (t) =>
         t.name.startsWith(name) &&
         /^\d*$/.test(t.name.slice(name.length)) &&
-        t.extends.kind === 'story' &&
-        t.extends.name === model.storyClass,
+        isStoryType(t.extends, model),
     ) ?? null
   );
 }
@@ -75,7 +87,7 @@ export function fieldTypeFor(
   fields: readonly NodeId[] = [],
 ): TypeRef {
   const cls = classOf(program, model, fields);
-  return cls ? { kind: 'user', type: cls.id } : { kind: 'story', name: model.storyClass };
+  return cls ? { kind: 'user', type: cls.id } : storyType(model);
 }
 
 export interface CharacterClass {
@@ -110,7 +122,7 @@ export function classFor(
         classNameFor(model),
         program.types.map((t) => t.name),
       ),
-      extends: { kind: 'story', name: model.storyClass },
+      extends: storyType(model),
       fields: [],
       methods: [],
       listeners: [],
@@ -125,7 +137,7 @@ export function classFor(
   }
   const type: TypeRef = { kind: 'user', type: cls.id };
   for (const f of found)
-    if (f?.kind === 'field' && f.type.kind === 'story' && f.type.name === model.storyClass)
+    if (f?.kind === 'field' && isStoryType(f.type, model))
       edits.push({ kind: 'retype', node: f.id, type, label: said });
   return { edits, type: cls.id };
 }

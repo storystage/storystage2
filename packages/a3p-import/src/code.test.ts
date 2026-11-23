@@ -473,3 +473,48 @@ describe('a procedure’s inputs (found reviewing #642)', () => {
     expect(built.gaps).toEqual([]);
   });
 });
+
+describe('3D text (format 1.10.0)', () => {
+  // The class is Text, and as a type it's TextModel, as Text is words (spec 02, section 1, rule 3).
+  const title = field('title', javaType('STextModel'));
+
+  it('types a 3D text object TextModel, so its own blocks fit it', () => {
+    const { built, scene } = build(
+      [statement(invoke(on(title), javaMethod('STextModel', 'setValue'), [text('Hello')]))],
+      { fields: [title] },
+    );
+    expect(scene.fields.find((f) => f.name === 'title')!.type).toEqual({
+      kind: 'story',
+      name: 'TextModel',
+    });
+    expect(built.gaps).toEqual([]);
+    expect(valid(built)).toEqual([]);
+  });
+
+  it('types an input of 3D text TextModel, and one of words Text', () => {
+    const show = method('show', [], {
+      params: [param('sign', javaType('STextModel')), param('words', javaType('java.lang.String'))],
+    });
+    const { built, scene } = build([], { methods: [show] });
+    expect(scene.methods.find((m) => m.name === 'show')!.params.map((p) => p.type)).toEqual([
+      { kind: 'story', name: 'TextModel' },
+      { kind: 'story', name: 'Text' },
+    ]);
+    expect(valid(built)).toEqual([]);
+  });
+
+  it('has a learner’s class of 3D text extend TextModel', () => {
+    // A class is kept when the learner wrote in it (spec 19, 3.4), so this one has a move.
+    const own = userType('Sign', javaType('STextModel'), { methods: [method('flash', [])] });
+    const sign = field('sign', own);
+    const alice = world([camera, sign], [], [method('myFirstMethod', [])]);
+    const built = buildProgram(alice, importSetUp(alice));
+    const [scene, kept] = built.program.types;
+    expect(kept).toMatchObject({ name: 'Sign', extends: { kind: 'story', name: 'TextModel' } });
+    expect(scene!.fields.find((f) => f.name === 'sign')!.type).toEqual({
+      kind: 'user',
+      type: kept!.id,
+    });
+    expect(valid(built)).toEqual([]);
+  });
+});

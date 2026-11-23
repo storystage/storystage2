@@ -59,6 +59,41 @@ const wave = (type: ReturnType<typeof nodeId>): EditOperation => ({
   } satisfies MethodDecl,
 });
 
+describe('a class of 3D text (format 1.10.0)', () => {
+  // The class is Text, and as a type it's TextModel, as Text is words (spec 02, section 1, rule 3).
+  const SIGN = { name: 'sign', storyClass: 'Text' } as const;
+  const TITLE = nodeId('titlef');
+  const withTitle = (): Program => {
+    const p = scene();
+    const [own, ...rest] = p.types;
+    const title = {
+      id: TITLE,
+      kind: 'field',
+      name: 'title',
+      type: { kind: 'story', name: 'TextModel' },
+      initial: null,
+    } as const;
+    return { ...p, types: [{ ...own!, fields: [...own!.fields, title] }, ...rest] };
+  };
+  const titleType = (p: Program) => p.types[0]!.fields.find((f) => f.id === TITLE)!.type;
+
+  it('gives a new 3D text TextModel, before there is a class', () => {
+    expect(fieldTypeFor(withTitle(), SIGN, [TITLE])).toEqual({ kind: 'story', name: 'TextModel' });
+  });
+
+  it('extends TextModel, with the 3D text of it, and passes the Story API’s check', () => {
+    const made = classFor(withTitle(), SIGN, [TITLE])!;
+    const { program } = apply(withTitle(), made.edits);
+    const cls = program.types.find((t) => t.id === made.type)!;
+    expect(cls).toMatchObject({ name: 'Sign', extends: { kind: 'story', name: 'TextModel' } });
+    expect(titleType(program)).toEqual({ kind: 'user', type: made.type });
+    expect(classOf(program, SIGN)?.id).toBe(made.type);
+    expect(classOf(program, SIGN, [TITLE])?.id).toBe(made.type);
+    expect(fieldTypeFor(program, SIGN)).toEqual({ kind: 'user', type: made.type });
+    expect(check(program)).toEqual([]);
+  });
+});
+
 describe('a class found by its objects (S5’s #623)', () => {
   it('keeps the class its objects are of when the model’s name changes', () => {
     // Made while the model was a stand-in called "kitty"; Backstage names it "cat" now.
