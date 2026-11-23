@@ -456,6 +456,8 @@ describe('opacity and paint', () => {
       ],
     });
     expect(body(ann).visibility).toBe(0.25);
+    // Drawn as one shape: its nearer parts hide its farther ones (draw-order.ts).
+    expect(body(ann).material!.needDepthPrePass).toBe(true);
     expect((body(ann).material as StandardMaterial).diffuseColor.r).toBe(1);
     expect((body(ann).material as StandardMaterial).diffuseColor.b).toBe(0);
     expect(root(bob).isEnabled()).toBe(false);
@@ -485,6 +487,7 @@ describe('opacity and paint', () => {
         .getChildMeshes()
         .find((m) => m.name === 'Body')!;
     expect(body(ann).material!.transparencyMode).toBe(Material.MATERIAL_ALPHATEST);
+    expect(body(ann).material!.needDepthPrePass).toBe(false);
     expect(body(ann).visibility).toBe(1);
     expect(root(ann).isEnabled()).toBe(true);
     expect(body(bob).visibility).toBe(0);

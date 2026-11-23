@@ -478,6 +478,11 @@ export class ObjectView {
     setRotation(node, localAfter(turn, world, parentTurn(node)));
   }
 
+  /** Where it stands, to draw it see-through before the objects in front of it. */
+  get origin(): Vector3 {
+    return this.root.getAbsolutePosition();
+  }
+
   /** Whether it has faces to show. */
   get hasFaces(): boolean {
     return this.faces.size > 0 || this.faceTextures.size > 0;
@@ -560,8 +565,11 @@ export class ObjectView {
     for (const mesh of this.meshes) mesh.visibility = opacity;
     // Babylon.js takes a surface's transparency mode over its meshes' visibility, and glTF gives
     // every surface one (nearly always opaque), so part faded it must be told to blend.
-    for (const { material, mode } of this.surfaces)
+    for (const { material, mode } of this.surfaces) {
       if (mode !== null) material.transparencyMode = opacity < 1 ? blending(mode) : mode;
+      // Its nearer parts hide its farther ones, so it fades as one shape (`drawObjectsWhole`).
+      material.needDepthPrePass = opacity < 1;
+    }
   }
 
   /** A paint tints each surface; part-way through a blend, the old tint and the new are mixed. */

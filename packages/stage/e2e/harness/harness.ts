@@ -26,6 +26,7 @@ import {
   tinyCutOutUrl,
   tinyGroundTileUrl,
   tinyHumanUrl,
+  tinyLayersUrl,
   tinyModelUrl,
   tinySkyDomeUrl,
 } from '../../src/babylon/tiny-model.ts';
@@ -256,9 +257,10 @@ async function picture(name: string, seconds: number, still = false) {
  * it covers, how many there are, the least alpha any was drawn with, and how far (0 to 255, on
  * average) they are from 0.35 of the model over 0.65 of what's behind it.
  */
-async function fadedModel() {
+/** A model drawn solid, gone and part faded; `layers` is two panels, one behind the other. */
+async function fadedModel(layers = false) {
   const id = backstageId('test/Prop/panel');
-  const url = tinyModelUrl(['hips']);
+  const url = layers ? tinyLayersUrl() : tinyModelUrl(['hips']);
   const at = (x: number, y: number, z: number, turned = false) => ({
     position: { x, y, z },
     rotation: turned ? { x: 0, y: 1, z: 0, w: 0 } : { x: 0, y: 0, z: 0, w: 1 },

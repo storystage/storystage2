@@ -445,6 +445,16 @@ test('a part-faded glTF model is blended with what is behind it', async ({ page 
   expect(problems).toEqual([]);
 });
 
+test('a part-faded model fades as one shape: its farther parts stay hidden', async ({ page }) => {
+  const problems = await open(page);
+  // A red panel in front of a green one. Faded, only the red is blended with what's behind it:
+  // the green showed through it before (S3, 23 Nov).
+  const got = await call<{ covered: number; alpha: number; off: number }>(page, 'fadedModel', true);
+  expect(got.covered).toBeGreaterThan(500);
+  expect(got.off).toBeLessThan(6);
+  expect(problems).toEqual([]);
+});
+
 test("a cut-out's first faded draws in the live loop are already blended", async ({ page }) => {
   const problems = await open(page);
   // Pixels apart from the settled draw, in each of the first four (S4's review of #649). Only a
