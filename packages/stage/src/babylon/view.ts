@@ -478,27 +478,51 @@ export class ObjectView {
     setRotation(node, localAfter(turn, world, parentTurn(node)));
   }
 
-  /** Sets the morph targets of the expression shown and the blink; the rest go back to none. */
   /** Whether it has faces to show. */
   get hasFaces(): boolean {
     return this.faces.size > 0 || this.faceTextures.size > 0;
   }
 
   /**
-   * Shows every face shape a very little (`true`), or none (`false`), for the stage to draw
-   * unseen as a scene loads (`BabylonStage.warmFaces`); then (`null`) as it was. An unseen drawing
-   * leaves out a model that's switched off, as one hidden until it enters is, so it's switched on
-   * meanwhile (S4's review). The next `show` puts its own face back.
+   * Whether part faded it's drawn with shaders it isn't drawn with solid: a cut-out surface's.
+   * The live loop draws a surface the old way while its new shader compiles, so a cut-out's
+   * first two or three faded draws had hard edges (S4's review of #649).
    */
-  warmFaces(warm: boolean | null): void {
-    this.root.setEnabled(warm !== null || this.opacity > 0);
-    if (warm === null) return;
+  get fadesCutOut(): boolean {
+    return this.surfaces.some(
+      ({ mode }) => mode !== null && blending(mode) === Material.MATERIAL_ALPHATESTANDBLEND,
+    );
+  }
+
+  /** Whether loading draws it unseen first (`warm`). */
+  get needsWarming(): boolean {
+    return this.hasFaces || this.fadesCutOut;
+  }
+
+  /**
+   * Shows every face shape a very little (`true`), or none (`false`), and a cut-out part faded,
+   * for the stage to draw unseen as a scene loads (`BabylonStage.warm`); then (`null`) as it was.
+   * An unseen drawing leaves out a model that's switched off, as one hidden until it enters is, so
+   * it's switched on meanwhile (S4's review). The next `show` puts its own face back.
+   */
+  warm(warm: boolean | null): void {
+    if (warm === null) {
+      this.fade(this.opacity);
+      return;
+    }
+    this.root.setEnabled(true);
+    if (this.fadesCutOut) {
+      for (const mesh of this.meshes) mesh.visibility = 0.5;
+      for (const { material, mode } of this.surfaces)
+        if (mode !== null) material.transparencyMode = blending(mode);
+    }
     for (const list of this.faces.values())
       for (const { target } of list) target.influence = warm ? 1e-3 : 0;
     for (const manager of this.faceManagers) void manager.numInfluencers;
     this.faceShown = '';
   }
 
+  /** Sets the morph targets of the expression shown and the blink; the rest go back to none. */
   private showFace(face: Motion['face'], fading: Motion['fading'], blink: number): void {
     if (this.faces.size === 0 && this.faceTextures.size === 0) return;
     const key = `${face?.expression ?? ''}|${face?.amount ?? 0}|${fading?.expression ?? ''}|${fading?.amount ?? 0}|${blink}`;

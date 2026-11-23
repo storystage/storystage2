@@ -148,6 +148,16 @@ describe('importModel (spec 17, section 5)', () => {
     expect(r.report.skeleton).toMatchObject({ status: 'mapped' });
   });
 
+  it("lists a VRM 0.x avatar's thumb by VRM 1.0's names, one bone along from its own", async () => {
+    const r = await imported(
+      { 'pip.vrm': await vrmFromMesh(figure({ thumbs: true }), '0') },
+      person,
+    );
+    expect(r.item.joints).toEqual(
+      expect.arrayContaining(['leftThumbMetacarpal', 'leftThumbProximal', 'leftThumbDistal']),
+    );
+  });
+
   it('reads a VRM 1.0 avatar without turning it', async () => {
     const r = await imported({ 'pip.vrm': await vrmFromMesh(figure(), '1') }, person);
     expect(r.report.lines.join(' ')).not.toMatch(/Turned round/);
