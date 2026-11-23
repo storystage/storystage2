@@ -134,8 +134,9 @@ describe('checkPlan (spec 04, section 6.3)', () => {
         step({ kind: 'add', actor: 'dragon', action: 'Dragon/Red', target: '' }),
         step({ kind: 'add', actor: 'cat', action: 'Quadruped/Fox/RedFox', target: '' }),
         step({ kind: 'change', actor: 'cat', action: 'logline', target: '' }),
-        step({ kind: 'when', actor: 'cat', action: 'mouse_click_on_object', target: '' }),
+        // Set-up steps go before any when step (section 6.10).
         step({ kind: 'stage', actor: 'scene', action: 's9', target: '' }),
+        step({ kind: 'when', actor: 'cat', action: 'mouse_click_on_object', target: '' }),
       ],
       world,
     );
@@ -143,8 +144,8 @@ describe('checkPlan (spec 04, section 6.3)', () => {
       "Dragon/Red isn't in Backstage.",
       "There's already something called cat here.",
       "logline isn't something a step can set.",
-      "There's no mouse_click_on_object event.",
       "There's no scene s9.",
+      "There's no mouse_click_on_object event.",
     ]);
   });
 

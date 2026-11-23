@@ -6,11 +6,15 @@
  *
  * Messages for a step are shown to the learner on that step, so they are in plain words (rule 9).
  */
+import type { Expression, ListenerDecl } from '@storystage/ast';
 import type { PlanStep } from '@storystage/production';
 import {
+  DETAILS,
   classOfType,
+  enumValues,
   findEntry,
   findEvent,
+  isEnumName,
   type ApiClass,
   type ParamDef,
 } from '@storystage/story-api';
@@ -109,7 +113,7 @@ function eventObjects(event: NonNullable<ReturnType<typeof findEvent>>) {
  * The objects a when step names: its actor, its target, and a detail's values that are objects
  * (so a setting's own value, such as "combine", isn't taken for one).
  */
-function eventNames(step: PlanStep, isObject: (name: string) => boolean): string[] {
+export function eventNames(step: PlanStep, isObject: (name: string) => boolean): string[] {
   const listed = step.details.flatMap((d) => listItems(d.value)).filter(isObject);
   const names = [step.actor, targetOf(step), ...listed];
   return [...new Set(names.filter((n) => n !== '' && n !== 'scene' && n !== 'this'))];
@@ -126,6 +130,8 @@ function whenProblem(
 ): string | null {
   const event = LISTENER_EVENTS.includes(step.action) ? findEvent(step.action) : null;
   if (!event) return `There's no ${step.action} event.`;
+  const detail = eventDetailProblem(step, event);
+  if (detail) return detail;
   const { lists, needed } = eventObjects(event);
   if (lists > 0) {
     const { actor } = step;
@@ -142,9 +148,38 @@ function whenProblem(
 }
 
 /** The number a when step gives: the seconds of a timer, or the metres of a nearness. */
-function stepNumber(step: PlanStep): number | null {
+export function stepNumber(step: PlanStep): number | null {
   const found = step.details.find((d) => d.value.trim() !== '' && Number.isFinite(Number(d.value)));
   return found ? Number(found.value) : null;
+}
+
+/**
+ * An event's own settings, as the catalogue lists them for it (spec 02, section 6): its details
+ * without setOfVisuals, which is its objects (6.4).
+ */
+export function eventSettings(event: NonNullable<ReturnType<typeof findEvent>>): string[] {
+  return event.details.filter((d) => d !== 'setOfVisuals');
+}
+
+const KEY_EVENTS: ReadonlySet<string> = new Set(['keyPress', 'arrowKeyPress', 'numberKeyPress']);
+
+/** Why a when step's detail isn't one its event takes, or null (section 6.10). */
+function eventDetailProblem(
+  step: PlanStep,
+  event: NonNullable<ReturnType<typeof findEvent>>,
+): string | null {
+  const settings = eventSettings(event);
+  const numbers = event.args.filter((a) => a.type === 'Number').map((a) => a.name);
+  for (const { name, value } of step.details) {
+    if (numbers.includes(name)) continue;
+    // Which key, until spec 02 section 6a is built: it passes, and builds nothing.
+    if ((name === 'key' || name === 'keys') && KEY_EVENTS.has(step.action)) continue;
+    if (!settings.includes(name)) return `A ${step.action} event has no ${name} setting.`;
+    const type = DETAILS[name]?.type;
+    if (type && isEnumName(type) && !enumValues(type).includes(value))
+      return `A ${step.action} event's ${name} can't be ${value}.`;
+  }
+  return null;
 }
 
 /** Whether a step's value fits an input of a learner's procedure (section 6.9). */
@@ -262,8 +297,15 @@ function stepProblem(step: PlanStep, stage: Stage, world: PlanWorld): string | n
 export function checkPlan(steps: readonly PlanStep[], world: PlanWorld): PlanProblem[] {
   const stage = stageNow(world);
   const repeats = repeatProblems(steps);
+  const firstWhen = steps.findIndex((s) => s.kind === 'when');
   return steps.flatMap((step, i) => {
-    const message = repeats.get(i) ?? stepProblem(step, stage, world);
+    // A set-up step sets how the scene starts, so inside an event it would read as something the
+    // event does, and not be (section 6.10).
+    const late =
+      firstWhen >= 0 && i > firstWhen && ['add', 'change', 'stage'].includes(step.kind)
+        ? 'Steps that set up the scene go before any when step.'
+        : null;
+    const message = repeats.get(i) ?? late ?? stepProblem(step, stage, world);
     return message === null ? [] : [{ step: i + 1, message }];
   });
 }
@@ -358,12 +400,13 @@ export function mismatch(
     }
     case 'insert_control': {
       // `next` is the step after this one at its own level: after a repeat, after all it holds.
+      // A step's own blocks are a do together and a count, and no other (section 6.10).
       const kind = text(input.kind);
       const grouped = step.together || next?.together === true;
       if (kind === 'doTogether' && grouped) return null;
       if (kind === 'count' && step.repeat > 1 && input.count === step.repeat) return null;
-      if (kind === 'doInOrder' && (grouped || step.repeat > 1)) return null;
       if (kind === 'count' && step.repeat > 1) return differs(`repeats ${step.repeat} times`);
+      if (kind === 'doInOrder') return differs('needs no do in order: its blocks go side by side');
       return differs(
         grouped || step.repeat > 1
           ? `needs a ${step.repeat > 1 ? 'count' : 'doTogether'} block`
@@ -491,4 +534,51 @@ function eventDiffers(
     if (named.some((name) => !built.includes(name))) return differs(about);
   }
   return null;
+}
+
+/**
+ * Whether a listener is the event a when step describes, for Plan only's ticks (sections 6.6 and
+ * 6.10): its objects are the ones the step names, its number is the step's, and each setting the
+ * step gives is the listener's, or its default. `names` reads a field's name by its id.
+ */
+export function listenerFits(
+  step: PlanStep,
+  listener: ListenerDecl,
+  names: ReadonlyMap<string, string>,
+  isObject: (name: string) => boolean,
+): boolean {
+  if (listener.event !== step.action) return false;
+  const event = findEvent(step.action);
+  if (!event) return false;
+  const objectsIn = (e: Expression | undefined): string[] => {
+    if (!e) return [];
+    if (e.kind === 'arrayOf') return e.items.flatMap(objectsIn);
+    if (e.kind === 'fieldRef') return [names.get(e.field) ?? ''];
+    return [];
+  };
+  const { lists, needed } = eventObjects(event);
+  if (lists > 0) {
+    const named = eventNames(step, isObject);
+    const built = [
+      ...event.args
+        .filter((a) => a.type !== 'Number')
+        .flatMap((a) => objectsIn(listener.args[a.name])),
+      ...objectsIn(listener.details.setOfVisuals),
+    ];
+    if (built.some((name) => !named.includes(name))) return false;
+    if (named.length > 0 && built.length === 0) return false;
+    if (needed === 2 && named.some((name) => !built.includes(name))) return false;
+  }
+  for (const arg of event.args.filter((a) => a.type === 'Number')) {
+    const given = listener.args[arg.name];
+    const value = given && 'value' in given ? Number(given.value) : NaN;
+    if (value !== stepNumber(step)) return false;
+  }
+  for (const d of step.details) {
+    if (!eventSettings(event).includes(d.name)) continue;
+    const set = listener.details[d.name];
+    const value = set?.kind === 'enum' ? set.value : String(DETAILS[d.name]?.default ?? '');
+    if (value !== d.value) return false;
+  }
+  return true;
 }

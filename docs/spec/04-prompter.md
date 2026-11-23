@@ -609,9 +609,7 @@ Code, not trust, keeps the build to the plan. During a build the executor holds 
 
 A setting is given once. A step or a call that gives one twice is refused: before 22 Nov 2026 a call matched its step on the first value and built the last.
 
-**Not built yet: the build's shape** (probed on 22 Nov 2026). Each call is checked against its step, but nothing holds the build as a whole. A step can be built twice, out of order, in another method, outside its event, together when it runs after, after when it runs together, or once when it repeats. And a build that leaves a step out ends as built. A repeat step's held steps are the exception, kept inside their count (6.8). Section 6.10 proposes the rule.
-
-When the loop ends, every agreed step must have landed, and a step that didn't is reported by number (section 7). Section 6.10 builds that check. So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
+**The build's shape** is held too (section 6.10): each step lands once, in order, side by side in its place. When the loop ends, every agreed step must have landed, and a step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 
 **After the first pilot (21 Nov 2026),** three things the owner's run showed:
 - **A step's target that is its own actor means none** (`targetOf`). Claude wrote "the penguin moves" with target "penguin", and the rule wanted "penguin" among the block's values, so no build of such a step could land. The plan check, the build rule, Plan only's ticks and a step's words all read it as none, and the `target` field's description now says "never the actor itself".
@@ -860,9 +858,9 @@ The step editor reads them for "who", "which block" and each setting, in place o
 | S8 | Reviews the pins' change, one tool fewer |
 | Owner | Approves this section, then runs the rerun |
 
-### 6.10 The build's shape (proposed)
+### 6.10 The build's shape
 
-**Proposed on 23 Nov 2026; none of it is built.** Section 6.4 holds each call's values to its step, but not the build as a whole (the probes of 22 Nov, in 6.4). The owner chose on 22 Nov to fix that in its own pull request, before the paid rerun.
+**Approved by the owner on 23 Nov 2026 (#661), and built.** No live run has tried it yet. Section 6.4 holds each call's values to its step, but not the build as a whole (the probes of 22 Nov, in 6.4). The owner chose on 22 Nov to fix that in its own pull request, before the paid rerun.
 
 **The owner's choices (22 and 23 Nov):**
 
@@ -952,6 +950,13 @@ Section 6.4 holds an event's objects and number to its step. Three more things:
 3. The kept runs replay on the new rule, and every one it would refuse is listed in the pull request, with why.
 4. S5's panel says what a build that didn't finish should, tested in the studio.
 5. The owner's paid rerun passes, with no failures where none are allowed.
+
+#### As built (23 Nov)
+
+- `shape.ts` says each step's chain of blocks (`chainOf`), what holds it (`holderOf`) and the step it follows (`stepBefore`). The runner keeps what has landed, refuses a call for a step built already or out of order, and works out the one place each block may go (`#placeFor`), naming it when a call is elsewhere.
+- The runner's `unfinished()` gives the first step not landed, and the session ends a build `step_failed` with it.
+- A group of three that run together has one do together, its first step's. A later step in the group starts none, which the first full run's board-07 showed.
+- **Replays:** every kept run, replayed on this rule, refuses what main refuses and no more. All 47 kept builds of two or more blocks stay side by side.
 
 #### Who does what
 
