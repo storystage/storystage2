@@ -299,6 +299,7 @@
   "production.name.long": "Use 60 letters or fewer.",
   "production.name.taken": "Scene {n} already has something called {name}.",
   "production.name.takenBy": "{model} already has something called {name}.",
+  "production.name.builtIn": "Scenes already have a block called {name}. Choose another name.",
   "production.name.builtInBy": "{model} already has a block called {name}. Choose another name.",
   "production.gives": "Gives back",
   "production.gives.Number": "A number",
