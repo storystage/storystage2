@@ -919,7 +919,7 @@ When the build's last turn ends, every agreed step must have landed. If one hasn
 
 Section 6.4 holds an event's objects and number to its step. Two more:
 
-- **An event's settings are kept.** A when step's details that are the event's own (`multipleEventPolicy`, `heldKeyPolicy`) are built as the listener's details, checked against their values. One the event doesn't take is refused at the plan: "A clickOnObject event has no heldKeyPolicy setting." Before, they were dropped without a word (S6, 23 Nov).
+- **An event's settings are kept.** A when step's details that are the event's own (`multipleEventPolicy`, `heldKeyPolicy`) are built as the listener's details, checked against their values. A detail that is none of the event's settings, its number (event-04 gives `distance`) or its key (event-03 gives `key`) is refused at the plan: "A clickOnObject event has no heldKeyPolicy setting." The 11 kept plans with a when step give only a number and a key. Before, they were dropped without a word (S6, 23 Nov).
 - **Which keys,** once spec 02 section 6a is approved: a when step's `keys` (or `key`) detail is built as the listener's `keys`, and an empty one is refused at the plan.
 
 #### Plan only (6.6)
