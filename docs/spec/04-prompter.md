@@ -892,7 +892,9 @@ Steps 1 and 2 go side by side in "When the scene starts". Step 3 is a listener, 
 
 A plan that puts an `add`, `change` or `stage` step after a when step isn't shown: "Steps that set up the scene go before any when step." Each sets how the scene starts, so inside an event it would read as something that happens on the event, and not be.
 
-**No other method.** Blocks go only in the scene's script method and the plan's listeners, never in another of the scene's methods or a learner's procedure: the body of a learner's procedure is theirs (6.9).
+**No other method.** Blocks go only in the scene's script method and the plan's listeners: never in another of the scene's methods, a learner's procedure or a character's move (7.14). Their bodies are the learner's (6.9).
+
+**A frame's listener.** `code_frame`'s place is always in the script method, so in a frame's plan, the steps after a when step go in that step's listener, not at that place. Each block built there is linked to the frame, as a block the frame built (10.8), though it's inside a listener the build made. The listener itself isn't linked, as links are blocks in a statement list. Until this is built, a block in a new listener isn't linked: the runner counts the new listener as covering it.
 
 #### One build of each step, in the plan's order
 
@@ -917,14 +919,30 @@ When the build's last turn ends, every agreed step must have landed. If one hasn
 
 #### Events, finished
 
-Section 6.4 holds an event's objects and number to its step. Two more:
+Section 6.4 holds an event's objects and number to its step. Three more things:
 
-- **An event's settings are kept.** A when step's details that are the event's own (`multipleEventPolicy`, `heldKeyPolicy`) are built as the listener's details, checked against their values. A detail that is none of the event's settings, its number (event-04 gives `distance`) or its key (event-03 gives `key`) is refused at the plan: "A clickOnObject event has no heldKeyPolicy setting." The 11 kept plans with a when step give only a number and a key. Before, they were dropped without a word (S6, 23 Nov).
-- **Which keys,** once spec 02 section 6a is approved: a when step's `keys` (or `key`) detail is built as the listener's `keys`, and an empty one is refused at the plan.
+- **An event's settings are its own, as the catalogue lists them for it** (spec 02, section 6): its `details` without `setOfVisuals`, which is its objects (6.4).
+  - `sceneStart` and `moveWithArrowKeys` take none.
+  - The three key events take `heldKeyPolicy` and `multipleEventPolicy`.
+  - Every other event takes only `multipleEventPolicy`.
+
+  A when step's setting is built as the listener's detail, its value checked against the setting's own choices (`HeldKeyPolicy`, `MultipleEventPolicy`). One the step doesn't give is left out, so it's the default: `fireMultiple` and `ignore`. Before, they were dropped without a word (S6, 23 Nov).
+- **An event's number is one of its inputs, not a setting:** `distance` on `proximityEnter` and `proximityExit`, and `seconds` on `timer`. A step gives it as a detail of that name (event-04 gives `distance`), and it's built as the listener's argument, as now.
+- **Anything else on a when step is refused at the plan:** a detail that is none of the event's settings, its number or its key. "A clickOnObject event has no heldKeyPolicy setting." The 11 kept plans with a when step give only a number and a key.
+- **Which keys,** once spec 02 section 6a is built (S6 in the catalogue, S2 in the runtime):
+  - a when step's `keys` (or `key`) detail is built as the listener's `keys`, and an empty one is refused at the plan;
+  - for `numberKeyPress`, "number 3" or "3" is `digit3`;
+  - `arrowKeyPress` takes only `up`, `down`, `left` and `right`, and any other key is refused at the plan, as 6a rule 2 says.
+
+  **Until then,** a when step's `key` passes the plan and builds nothing: "When I press space" runs for every key, as it does today, and the plan's why can say so (event-03 did). None of the paid rerun's rows has a key, so whether the rerun waits for `keys` is the owner's choice.
 
 #### Plan only (6.6)
 
 - **A `when` step** ticks for a listener of its event that is about the objects it names, with its number, settings and keys, by the 6.4 and 6.10 rules. Before, any listener of that kind ticked it.
+  - A setting or keys the step doesn't give aren't asked for, so any value ticks.
+  - A setting the step gives is matched by value, and a listener without it counts as having the default: `multipleEventPolicy: ignore` ticks a listener that doesn't set it.
+  - `keys` is matched as one set, in any order. A listener without `keys` runs for every key, so it doesn't tick a step that gives `space`.
+  - If two listeners match, either ticks the step, and each listener ticks one step.
 - **A step in a when step's event** ticks only for a block in that listener, and a step before the first when step only for one in the script method. Side by side and order aren't asked of the learner's own building: the learner places their blocks.
 
 #### Done when
