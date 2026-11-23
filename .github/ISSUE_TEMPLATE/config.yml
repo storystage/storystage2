@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Teachers, parents and schools
+    url: https://storystage.org/feedback
+    about: Email us instead of opening an issue. We file it here without your name or school.
+  - name: A security problem
+    url: https://github.com/storystage/storystage2/security/advisories/new
+    about: Report a way to leak a Claude key or learners' data privately, never in a public issue.

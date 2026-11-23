@@ -1,0 +1,47 @@
+name: A lesson or the curriculum
+description: A use case, story template or curriculum mapping that needs changing.
+labels: [wp-16]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. **Don't include anyone's name, a school, or pupils.**
+        The curriculum material is in `docs/curriculum/`.
+  - type: dropdown
+    id: what
+    attributes:
+      label: What it's about
+      options:
+        - A classroom use case
+        - A story template
+        - The curriculum mapping
+        - The teacher guide
+        - Something else
+    validations:
+      required: true
+  - type: input
+    id: which
+    attributes:
+      label: Which one
+      placeholder: For example "Use case 3, Myths and legends"
+  - type: dropdown
+    id: nation
+    attributes:
+      label: Nation
+      options:
+        - England
+        - Scotland
+        - Wales
+        - Northern Ireland
+        - More than one
+  - type: input
+    id: ages
+    attributes:
+      label: Age group
+      placeholder: For example Year 4, P5, ages 8 to 9
+  - type: textarea
+    id: change
+    attributes:
+      label: What worked, and what should change
+    validations:
+      required: true

@@ -1,0 +1,26 @@
+name: An idea
+description: Something StoryStage could do, and why it would help.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. **Don't include anyone's name, a school, or pupils.**
+        Check the workplan's roadmap (`docs/WORKPLAN.md` §6b) first: it may already be planned.
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+    validations:
+      required: true
+  - type: textarea
+    id: who
+    attributes:
+      label: Who it helps, and why
+      description: Learners of what age, teachers, clubs? What would they do with it?
+    validations:
+      required: true
+  - type: textarea
+    id: now
+    attributes:
+      label: What they do today instead

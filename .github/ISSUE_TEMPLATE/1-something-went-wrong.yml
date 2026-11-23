@@ -1,0 +1,53 @@
+name: Something went wrong
+description: A problem in StoryStage 2, the browser version or the website.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. **Don't include anyone's name, a school, pupils, photos of people, or a Claude key.**
+        Add the owning session's label (`lane:…`), the work package (`wp-N`) and a severity (`docs/feedback.md` §4).
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you were doing, and what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to make it happen again
+      placeholder: |
+        1. Open the Storyboard
+        2. …
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Windows app
+        - Mac app
+        - iPad app
+        - Android or Chromebook app
+        - Browser version
+        - Website
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: From Settings › About.
+  - type: textarea
+    id: report
+    attributes:
+      label: From the Report a problem file
+      description: Paste only the relevant lines, after checking they hold nothing personal.
+      render: text

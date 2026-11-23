@@ -1,0 +1,45 @@
+name: Something gets in a learner's way
+description: An accessibility barrier, in the app, the browser version or the website.
+labels: [accessibility]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. **Don't include anyone's name, a school, pupils, or photos of people.**
+        Accessibility barriers are never lower than severity S3 (`docs/feedback.md` §4).
+  - type: textarea
+    id: task
+    attributes:
+      label: What the learner was trying to do
+    validations:
+      required: true
+  - type: textarea
+    id: barrier
+    attributes:
+      label: What stopped them
+      description: For example the keyboard, reading, hearing, colours or contrast, the size of things on screen, timing, or dragging.
+    validations:
+      required: true
+  - type: input
+    id: assistive
+    attributes:
+      label: Assistive technology, if any
+      placeholder: For example a screen reader, switch access, a magnifier, voice control
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options:
+        - Windows app
+        - Mac app
+        - iPad app
+        - Android or Chromebook app
+        - Browser version
+        - Website
+    validations:
+      required: true
+  - type: input
+    id: wcag
+    attributes:
+      label: WCAG 2.2 success criterion, if known
+      placeholder: For example 2.1.1 Keyboard
