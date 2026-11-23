@@ -609,9 +609,9 @@ Code, not trust, keeps the build to the plan. During a build the executor holds 
 
 A setting is given once. A step or a call that gives one twice is refused: before 22 Nov 2026 a call matched its step on the first value and built the last.
 
-**Not built yet: the build's shape** (probed on 22 Nov 2026). Each call is checked against its step, but nothing holds the build as a whole. A step can be built twice, out of order, in another method, outside its event, together when it runs after, after when it runs together, or once when it repeats. The check below isn't built either: a build that leaves a step out ends as built. A repeat step's held steps are the exception, kept inside their count (6.8).
+**Not built yet: the build's shape** (probed on 22 Nov 2026). Each call is checked against its step, but nothing holds the build as a whole. A step can be built twice, out of order, in another method, outside its event, together when it runs after, after when it runs together, or once when it repeats. And a build that leaves a step out ends as built. A repeat step's held steps are the exception, kept inside their count (6.8). Section 6.10 proposes the rule.
 
-When the loop ends, every agreed step must have landed. A step that didn't is reported by number (section 7). So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
+When the loop ends, every agreed step must have landed, and a step that didn't is reported by number (section 7). Section 6.10 builds that check. So if the learner changed "2 metres" to "3 metres", "2 metres" can't reach the program.
 
 **After the first pilot (21 Nov 2026),** three things the owner's run showed:
 - **A step's target that is its own actor means none** (`targetOf`). Claude wrote "the penguin moves" with target "penguin", and the rule wanted "penguin" among the block's values, so no build of such a step could land. The plan check, the build rule, Plan only's ticks and a step's words all read it as none, and the `target` field's description now says "never the actor itself".
@@ -858,6 +858,90 @@ The step editor reads them for "who", "which block" and each setting, in place o
 | S5 | The step editor on `stepBlocks` |
 | S6 | Reviews that names resolve, and calls read, as in the editors |
 | S8 | Reviews the pins' change, one tool fewer |
+| Owner | Approves this section, then runs the rerun |
+
+### 6.10 The build's shape (proposed)
+
+**Proposed on 23 Nov 2026; none of it is built.** Section 6.4 holds each call's values to its step, but not the build as a whole (the probes of 22 Nov, in 6.4). The owner chose on 22 Nov to fix that in its own pull request, before the paid rerun.
+
+**The owner's choices (22 and 23 Nov):**
+
+1. **A when step's event holds every step after it, up to the next when step.** That's how every kept run built one, and it needs no format change. So a plan's "When the scene starts" steps come before its first when step.
+2. **Side by side.** Each step's block goes straight after the previous step's, in the same list, or inside its group's do together or its repeat's count. Only the first block's place is the Prompter's to choose. The owner measured this first: in the kept runs, all 47 builds of two blocks or more were side by side already, and none was apart or out of order. StoryStage 1 had no such rule (Claude chose each block's method, parent and index, unchecked), and Alice leaves placement to the learner's drag.
+
+The learner reads, and the build is held to:
+
+> 1. The penguin waves.
+> 2. The penguin says "Hello!"
+> 3. When you click the penguin…
+> 4. &nbsp;&nbsp;&nbsp;The penguin jumps.
+
+Steps 1 and 2 go side by side in "When the scene starts". Step 3 is a listener, and step 4 goes in it.
+
+#### Where a step goes
+
+| Step | Where |
+|---|---|
+| A `do` step before the plan's first when step | The scene's script method ("When the scene starts"). For a frame, the first goes where `code_frame` said |
+| A `do` step after a when step | That step's listener |
+| A `repeat` step | As a `do` step, as its count block. The steps it holds go inside the count (6.8) |
+| A step that runs `together` | Inside the do together its group's first step built |
+| A step that repeats on its own | Inside a count of its times, built for it, where the step itself would go |
+| `add`, `change`, `stage` | The scene's set-up, with no block. They come before the plan's first when step |
+| `when` | A listener of the scene |
+
+A plan that puts an `add`, `change` or `stage` step after a when step isn't shown: "Steps that set up the scene go before any when step." Each sets how the scene starts, so inside an event it would read as something that happens on the event, and not be.
+
+**No other method.** Blocks go only in the scene's script method and the plan's listeners, never in another of the scene's methods or a learner's procedure: the body of a learner's procedure is theirs (6.9).
+
+#### One build of each step, in the plan's order
+
+- **Each step lands once.** A `do` step is one block, with the do together, count or do in order it needs. A `repeat` step is one count. An `add`, `change`, `stage` or `when` step is one call. A second call for a step that has landed answers `not_in_plan`: "Step 2 is built already."
+- **In order.** A step's call is taken only once every step before it has landed. A supporting block for a step (its do together or its count) comes before that step's block, and after the steps before it. Out of order, the call answers `not_in_plan` and names the next step to build.
+- **Side by side.** A block step's first node goes at the place the step before it leaves free:
+  - straight after the previous block step's node, in the same list;
+  - for the first step inside a do together or a count, first in that block;
+  - for the first block step in a when step's event, first in its listener;
+  - for the plan's first block step in the script method, anywhere in it, or, for a frame, at `code_frame`'s place.
+
+  A step's node is its comment, then its block or the do together or count it built: the comment and the block are side by side too. A step's place is worked out by code, so the call's `method`, `parent_block` and `position` must name it, and a call that names another answers `not_in_plan` and says the place: "Build step 3 at position 4 in When the scene starts."
+- **Together and not.** A step that runs together goes in its group's do together, and a step that doesn't, after the group, never in it.
+
+#### A build that doesn't finish
+
+When the build's last turn ends, every agreed step must have landed. If one hasn't, the build ends as a problem, not as built:
+
+- **The outcome** is `step_failed`, with `failedStep` the first step that didn't land, as for a step whose call failed (section 7). The panel says the Prompter couldn't finish, and offers Undo this request, as it does for a failed step now.
+- **What did land stays,** in the request's one undo step, so Undo takes all of it back.
+- **What the panel announces** is S5's to review with this section: a problem in place of "built".
+
+#### Events, finished
+
+Section 6.4 holds an event's objects and number to its step. Two more:
+
+- **An event's settings are kept.** A when step's details that are the event's own (`multipleEventPolicy`, `heldKeyPolicy`) are built as the listener's details, checked against their values. One the event doesn't take is refused at the plan: "A clickOnObject event has no heldKeyPolicy setting." Before, they were dropped without a word (S6, 23 Nov).
+- **Which keys,** once spec 02 section 6a is approved: a when step's `keys` (or `key`) detail is built as the listener's `keys`, and an empty one is refused at the plan.
+
+#### Plan only (6.6)
+
+- **A `when` step** ticks for a listener of its event that is about the objects it names, with its number, settings and keys, by the 6.4 and 6.10 rules. Before, any listener of that kind ticked it.
+- **A step in a when step's event** ticks only for a block in that listener, and a step before the first when step only for one in the script method. Side by side and order aren't asked of the learner's own building: the learner places their blocks.
+
+#### Done when
+
+1. Unit tests cover each rule, with each of the nine cases the probes of 22 Nov let through refused: a step built twice, out of order, put above the step it follows, put in a do together it doesn't run in, built apart when it runs together, built once when it repeats, built outside its event, and a listener or a model added twice.
+2. A build that leaves a step out ends as `step_failed`, naming the step.
+3. The kept runs replay on the new rule, and every one it would refuse is listed in the pull request, with why.
+4. S5's panel says what a build that didn't finish should, tested in the studio.
+5. The owner's paid rerun passes, with no failures where none are allowed.
+
+#### Who does what
+
+| Who | What |
+|---|---|
+| S7 | The rule in the runner, the end-of-build check, the plan check's two refusals, events' settings and keys, Plan only's ticks, the prompt and tool words, and the pins |
+| S5 | Reviews the panel's ending, and says what it announces |
+| S6 | Reviews the events' settings and keys against spec 02 |
 | Owner | Approves this section, then runs the rerun |
 
 ## 7. Errors
