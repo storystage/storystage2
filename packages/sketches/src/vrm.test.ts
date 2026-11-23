@@ -49,6 +49,20 @@ describe('readModel', () => {
       expect(names).not.toContain('Bone3');
     }
   });
+
+  it("names a VRM 0.x thumb by VRM 1.0's names, one bone along from its own", async () => {
+    for (const version of ['0', '1'] as const) {
+      const model = await readModel(await vrmFromMesh(figure({ thumbs: true }), version));
+      const hand = model.doc
+        .getRoot()
+        .listNodes()
+        .find((n) => n.getName() === 'leftHand')!;
+      // The thumb's bones from the hand out, whatever the file's version calls them.
+      const chain: string[] = [];
+      for (let n = hand.listChildren()[0]; n; n = n.listChildren()[0]) chain.push(n.getName());
+      expect(chain).toEqual(['leftThumbMetacarpal', 'leftThumbProximal', 'leftThumbDistal']);
+    }
+  });
 });
 
 describe('meshFromModel', () => {

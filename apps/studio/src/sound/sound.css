@@ -1,0 +1,186 @@
+/* The Sound view and the trim dialog (07-ux 7.7). */
+
+.sd-trim {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sd-note,
+.sd-kept {
+  margin: 0;
+  color: var(--ss-muted);
+}
+
+/* The waveform, with its two handles over it. */
+.sd-wave-box {
+  position: relative;
+  height: 120px;
+  margin: 0 22px;
+  border-radius: 12px;
+  background: var(--ss-field);
+}
+
+.sd-wave {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sd-bar {
+  fill: var(--ss-block-sound);
+}
+
+/* The part left out: dimmed and hatched, so it never shows by colour alone. */
+.sd-left-out {
+  fill: url(#sd-hatch);
+  stroke: none;
+}
+
+/* The pattern's ground dims the bars under it; its lines hatch them. */
+.sd-hatch-dim {
+  fill: var(--ss-field);
+  fill-opacity: 0.6;
+}
+
+.sd-hatch-line {
+  stroke: var(--ss-muted);
+  stroke-width: 1.5;
+}
+
+.sd-handle {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 44px;
+  margin-left: -22px;
+  cursor: ew-resize;
+  touch-action: none;
+  border-radius: 8px;
+}
+
+/* The handle's line and grip, drawn inside its 44 px target. */
+.sd-handle::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 20px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--ss-text);
+}
+
+.sd-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  width: 20px;
+  height: 32px;
+  margin-top: -16px;
+  border-radius: 6px;
+  background: var(--ss-text);
+}
+
+.sd-handle:focus-visible {
+  outline: 3px solid var(--ss-focus);
+  outline-offset: 2px;
+}
+
+.sd-trim-times {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.sd-seconds {
+  width: 120px;
+}
+
+.sd-kept {
+  padding-bottom: 10px;
+}
+
+.sd-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* The Sound view, over the Code editor. */
+.sd-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 0;
+}
+
+.sd-heading {
+  margin: 0;
+  font-family: var(--ss-font-display);
+  font-size: 1.125rem;
+}
+
+/* Sounds in this film: each its name, the length it plays, then Play and Remove…. */
+.sd-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 760px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sd-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 4px 8px 4px 16px;
+  border-radius: 12px;
+  background: var(--ss-panel-2);
+}
+
+.sd-name {
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.sd-length {
+  color: var(--ss-muted);
+  white-space: nowrap;
+}
+
+.sd-row-actions {
+  display: flex;
+  gap: 4px;
+}
+
+/* Why it can't be removed yet, under its row. */
+.sd-held {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 8px 16px;
+  align-items: center;
+  padding-bottom: 8px;
+}
+
+.sd-held p {
+  margin: 0;
+}
+
+.sd-import {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.sd-refusal {
+  margin: 0;
+  font-weight: 700;
+}

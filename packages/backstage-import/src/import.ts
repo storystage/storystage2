@@ -35,6 +35,7 @@ import {
   mayDistribute,
   skeletonOf,
   validateManifest,
+  vrmBoneTable,
   type BackstageItem,
   type Section,
 } from '@storystage/backstage';
@@ -172,34 +173,6 @@ async function reader(): Promise<WebIO> {
     .registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
 }
 
-interface VrmJson {
-  readonly extensions?: {
-    readonly VRM?: {
-      readonly humanoid?: { readonly humanBones?: readonly { bone: string; node: number }[] };
-    };
-    readonly VRMC_vrm?: {
-      readonly humanoid?: { readonly humanBones?: Readonly<Record<string, { node: number }>> };
-    };
-  };
-}
-
-/** A VRM's bones by node, and its version, from its JSON. */
-function vrmBones(json: unknown): { version: '0' | '1' | null; bones: Map<number, string> } {
-  const ext = (json as VrmJson).extensions;
-  const bones = new Map<number, string>();
-  if (ext?.VRMC_vrm) {
-    for (const [bone, value] of Object.entries(ext.VRMC_vrm.humanoid?.humanBones ?? {}))
-      if (typeof value?.node === 'number') bones.set(value.node, bone);
-    return { version: '1', bones };
-  }
-  if (ext?.VRM) {
-    for (const b of ext.VRM.humanoid?.humanBones ?? [])
-      if (typeof b?.node === 'number' && typeof b.bone === 'string') bones.set(b.node, b.bone);
-    return { version: '0', bones };
-  }
-  return { version: null, bones };
-}
-
 /** Turns a VRM 0.x avatar to face +Z, in the file itself, under one new root node. */
 function faceFront(doc: Document): void {
   const root = doc.getRoot();
@@ -281,7 +254,7 @@ export async function readPicked(
     }
   }
 
-  const { version, bones } = vrmBones(json);
+  const { version, bones } = vrmBoneTable(json);
   const io = await reader();
   let doc: Document;
   try {
