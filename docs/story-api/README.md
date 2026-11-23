@@ -1,7 +1,7 @@
 # The StoryStage Story API
 
 <!-- reference:version -->
-**Version 0.11.0, a draft for comment.** 99 blocks, 14 events, 19 details and 19 value types.
+**Version 0.12.0, a draft for comment.** 99 blocks, 14 events, 20 details and 19 value types.
 <!-- /reference:version -->
 
 The Story API is the vocabulary young people use to make 3D animated films in code: the characters and things in a scene, what they can do ("move forward 1", "say Hello", "walk to the tree"), what can be asked about them, and the events a film can react to. It keeps the vocabulary of [Alice 3](https://www.alice.org/), made at Carnegie Mellon University, and adds what film-making needs. StoryStage 2 implements it; anyone may implement it too.
@@ -132,6 +132,7 @@ A whole number fits where a number is wanted, a colour where paint is, and a cla
 | `bubbleOutlineColor` | `Color` | `white` | — | bubble outline |
 | `bubblePosition` | `BubblePosition` | `automatic` | — | bubble position |
 | `heldKeyPolicy` | `HeldKeyPolicy` | `fireMultiple` | — | when the key is held |
+| `keys` | `Key[]` | every key the event is for | — | which keys |
 | `multipleEventPolicy` | `MultipleEventPolicy` | `ignore` | — | if it happens again while running |
 | `setOfVisuals` | `Thing[]` | every object | — | which objects |
 | `line` | `LineId` | words the script doesn’t have | — | script line |
@@ -266,9 +267,9 @@ Joint names are those of the StoryStage joint map. Humanoids use the VRM 1.0 bon
 | `sceneStart` | — | — | — | when the scene starts |
 | `clickOnScreen` | — | `x: Number`, `y: Number` | `multipleEventPolicy` | when the screen is clicked |
 | `clickOnObject` | — | `model: Model`, `x: Number`, `y: Number` | `setOfVisuals`, `multipleEventPolicy` | when an object is clicked |
-| `keyPress` | — | `key: Key` | `heldKeyPolicy`, `multipleEventPolicy` | when a key is pressed |
-| `arrowKeyPress` | — | `moveDirection: MoveDirection`, `turnDirection: TurnDirection` | `heldKeyPolicy`, `multipleEventPolicy` | when an arrow key is pressed |
-| `numberKeyPress` | — | `number: WholeNumber` | `heldKeyPolicy`, `multipleEventPolicy` | when a number key is pressed |
+| `keyPress` | — | `key: Key` | `keys`, `heldKeyPolicy`, `multipleEventPolicy` | when a key is pressed |
+| `arrowKeyPress` | — | `moveDirection: MoveDirection`, `turnDirection: TurnDirection` | `keys`, `heldKeyPolicy`, `multipleEventPolicy` | when an arrow key is pressed |
+| `numberKeyPress` | — | `number: WholeNumber` | `keys`, `heldKeyPolicy`, `multipleEventPolicy` | when a number key is pressed |
 | `moveWithArrowKeys` | `object: MovableTurnable` | — | — | move {object} with the arrow keys |
 | `timer` | `seconds: Number` | `seconds: Number` | `multipleEventPolicy` | every {seconds} seconds |
 | `collisionStart` | `setA: Thing[]`, `setB: Thing[]` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | when {setA} touches {setB} |

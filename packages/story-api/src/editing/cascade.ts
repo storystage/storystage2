@@ -190,6 +190,20 @@ export function scopeAt(
   return found;
 }
 
+/**
+ * The keys a key listener's `keys` takes, when `node` is that list: an arrow listener's are the
+ * arrows (spec 02, section 6a, rule 2). Undefined for any other node, and for `keyPress`.
+ */
+function keysOf(program: Program, node: AstNode): readonly string[] | undefined {
+  if (node.kind !== 'arrayOf') return undefined;
+  const index = indexOf(program);
+  const at = index.get(node.id);
+  const holder = at?.parent ? index.get(at.parent)?.node : undefined;
+  return holder?.kind === 'listener' && at?.slot === 'details' && at.key === 'keys'
+    ? findEvent(holder.event)?.keys
+    : undefined;
+}
+
 /** The menu for one value slot. Every value in it fits the slot. */
 export function cascadeFor(
   program: Program,
@@ -249,8 +263,9 @@ export function cascadeFor(
   }
   if (name && isEnumName(name)) {
     const suggested = SUGGESTED_VALUES[name];
+    const values = (name === 'Key' && keysOf(program, node)) || ENUMS[name];
     return [
-      ...ENUMS[name].map((v): Choice => ({
+      ...values.map((v): Choice => ({
         words: word(`value.${name}.${v}`),
         ...withArrow(arrowOf(name, v)),
         value: { id: mint(), kind: 'enum', type: name, value: v },

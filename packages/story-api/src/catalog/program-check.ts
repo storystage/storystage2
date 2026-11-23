@@ -190,6 +190,12 @@ export function checkProgram(
       checkValues(event.args, event.details, named(node.args, self), named(node.details, self)),
       node.event,
     );
+    // Each key event takes only its own keys: an arrow listener can't be for A (spec 02, 6a).
+    const keys = Object.hasOwn(node.details, 'keys') ? node.details['keys'] : undefined;
+    if (event.keys && keys?.kind === 'arrayOf')
+      for (const item of keys.items)
+        if (item.kind === 'enum' && !event.keys.includes(item.value))
+          add(item.id, 'notThisEventsKey', `${node.event} isn't for ${item.value}.`, 'keys');
     for (const parameter of node.params) {
       const given = event.gives.find((g) => g.name === parameter.name);
       const type = given ? story(given.type) : null;
