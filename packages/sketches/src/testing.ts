@@ -5,6 +5,10 @@
 import { Document, WebIO, type Node } from '@gltf-transform/core';
 import { invert, multiply, translation, type Mat4, type Vec3 } from './math.ts';
 import type { SketchMesh, SketchNode } from './mesh.ts';
+import { VRM0_THUMBS } from '@storystage/backstage';
+
+/** VRM 0.x's name for each of VRM 1.0's thumb bones. */
+const VRM1_THUMBS = new Map([...VRM0_THUMBS].map(([v0, v1]) => [v1, v0]));
 
 export interface Part {
   readonly min: Vec3;
@@ -90,9 +94,10 @@ export const box = (min: Vec3, max: Vec3): SketchMesh => boxes([{ min, max }]);
 
 /**
  * A figure about 1.8 m tall in a T-pose, facing +Z, with a nose on its head and toes pointing
- * forward, so its facing shows in a sketch. Joints use VRM names.
+ * forward, so its facing shows in a sketch. Joints use VRM 1.0 names. With `thumbs`, its left
+ * hand has a thumb's three bones.
  */
-export function figure(): SketchMesh {
+export function figure({ thumbs = false }: { readonly thumbs?: boolean } = {}): SketchMesh {
   const at: Record<string, [Vec3, string | null]> = {
     hips: [[0, 1, 0], null],
     spine: [[0, 1.1, 0], 'hips'],
@@ -109,6 +114,13 @@ export function figure(): SketchMesh {
     rightUpperLeg: [[-0.1, 0.95, 0], 'hips'],
     rightLowerLeg: [[-0.1, 0.52, 0], 'rightUpperLeg'],
     rightFoot: [[-0.1, 0.08, 0], 'rightLowerLeg'],
+    ...(thumbs
+      ? {
+          leftThumbMetacarpal: [[0.76, 1.42, 0.03], 'leftHand'],
+          leftThumbProximal: [[0.79, 1.42, 0.05], 'leftThumbMetacarpal'],
+          leftThumbDistal: [[0.82, 1.42, 0.06], 'leftThumbProximal'],
+        }
+      : {}),
   };
   const names = Object.keys(at);
   const nodes: SketchNode[] = names.map((name) => {
@@ -218,7 +230,8 @@ export function glbFromJSON(json: object, bin: Uint8Array): Uint8Array {
 
 /**
  * A mesh as a VRM file: its bones renamed `Bone<n>`, with the VRM humanoid table (version 0.x
- * or 1.0) saying which node is which bone, as real VRM files do.
+ * or 1.0) saying which node is which bone, as real VRM files do. The mesh's bones have VRM 1.0
+ * names, so a 0.x table names its thumbs one bone back, as 0.x does.
  */
 export async function vrmFromMesh(mesh: SketchMesh, version: '0' | '1'): Promise<Uint8Array> {
   const { json, resources } = await new WebIO().writeJSON(documentFromMesh(mesh));
@@ -243,7 +256,12 @@ export async function vrmFromMesh(mesh: SketchMesh, version: '0' | '1'): Promise
         }
       : {
           VRM: {
-            humanoid: { humanBones: Object.entries(bones).map(([bone, node]) => ({ bone, node })) },
+            humanoid: {
+              humanBones: Object.entries(bones).map(([bone, node]) => ({
+                bone: VRM1_THUMBS.get(bone) ?? bone,
+                node,
+              })),
+            },
           },
         };
   json.extensionsUsed = [version === '1' ? 'VRMC_vrm' : 'VRM'];

@@ -23,6 +23,7 @@ import snowFog from '../../../../tests/scenes/snow-fog.json';
 import { BACKDROP_TEMPLATES, resolveBackdrop } from '../../src/backdrops.ts';
 import { createBabylonStage, type ModelSource } from '../../src/babylon/index.ts';
 import {
+  tinyCutOutUrl,
   tinyGroundTileUrl,
   tinyHumanUrl,
   tinyModelUrl,
@@ -302,6 +303,82 @@ async function fadedModel() {
       off += Math.abs(faded[p + c]! - (0.35 * solid[p + c]! + 0.65 * gone[p + c]!)) / 3;
   }
   return { covered, alpha, off: covered ? off / covered : 0 };
+}
+
+/**
+ * A cut-out model's first faded draws in the live loop, each against the draw once settled: the
+ * pixels more than a little apart. Drawn before its shader compiled, a cut-out showed solid for
+ * two or three draws (S4's review of #649: Cool Waffle, the African penguin, the bee).
+ */
+async function firstCutOutFade() {
+  // Stripes, every other one cut away.
+  const picture = await png(8, 8, (x) => (x % 2 ? 'rgba(0, 0, 0, 0)' : 'rgb(200, 80, 40)'));
+  const url = tinyCutOutUrl(picture);
+  const canvas = document.createElement('canvas');
+  canvas.width = W;
+  canvas.height = H;
+  const stage = await createBabylonStage({
+    canvas,
+    models: { find: () => ({ url, joints: 'prop-only' }) },
+    offscreen: true,
+    renderer: 'webgl2',
+  });
+  const panel = objectId('panel');
+  const turned = { x: 0, y: 1, z: 0, w: 0 };
+  await stage.load({
+    backdrop: BACKDROP_TEMPLATES.find((b) => b.id === 'grass')!.backdrop,
+    objects: [
+      {
+        id: panel,
+        model: backstageId('test/Prop/panel'),
+        class: 'Prop',
+        transform: { ...IDENTITY, rotation: turned },
+      },
+    ],
+    camera: { transform: { ...IDENTITY, position: { x: 0, y: 1, z: -4 } } },
+    markers: [],
+  });
+  stage.seek(micros(0));
+  await stage.renderFrame();
+  stage.schedule([
+    {
+      seq: 1,
+      object: panel,
+      start: micros(0),
+      duration: micros(1),
+      style: 'beginAndEndAbruptly',
+      kind: 'opacity',
+      to: 0.35,
+    },
+  ]);
+  stage.seek(micros(1.5));
+  const inside = stage as unknown as {
+    scene: { render(): void };
+    engine: {
+      readPixels(x: number, y: number, w: number, h: number): Promise<ArrayBufferView>;
+    };
+  };
+  const draw = async () => {
+    inside.scene.render();
+    const { buffer, byteOffset, byteLength } = await inside.engine.readPixels(0, 0, W, H);
+    return new Uint8Array(buffer.slice(byteOffset, byteOffset + byteLength));
+  };
+  const draws: Uint8Array[] = [];
+  for (let i = 0; i < 4; i++) {
+    draws.push(await draw());
+    await new Promise((r) => setTimeout(r, 20));
+  }
+  await stage.renderFrame();
+  const settled = await draw();
+  stage.dispose();
+  return draws.map((d) => {
+    let n = 0;
+    for (let p = 0; p < d.length; p += 4) {
+      const apart = [0, 1, 2].reduce((sum, c) => sum + Math.abs(d[p + c]! - settled[p + c]!), 0);
+      if (apart > 12) n++;
+    }
+    return n;
+  });
 }
 
 /**
@@ -1124,6 +1201,7 @@ Object.assign(window, {
     humanPicture,
     scenePictures,
     fadedModel,
+    firstCutOutFade,
     crossfadeSky,
     goLive,
     sceneView,

@@ -444,3 +444,11 @@ test('a part-faded glTF model is blended with what is behind it', async ({ page 
   expect(got.off).toBeLessThan(6);
   expect(problems).toEqual([]);
 });
+
+test("a cut-out's first faded draws in the live loop are already blended", async ({ page }) => {
+  const problems = await open(page);
+  // Pixels apart from the settled draw, in each of the first four (S4's review of #649). Only a
+  // GPU shows the fault: SwiftShader, as CI has, compiles before it draws.
+  expect(await call<number[]>(page, 'firstCutOutFade')).toEqual([0, 0, 0, 0]);
+  expect(problems).toEqual([]);
+});
