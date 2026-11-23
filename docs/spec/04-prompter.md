@@ -911,7 +911,7 @@ A plan that puts an `add`, `change` or `stage` step after a when step isn't show
 
 When the build's last turn ends, every agreed step must have landed. If one hasn't, the build ends as a problem, not as built:
 
-- **The outcome** is `step_failed`, with `failedStep` the first step that didn't land, as for a step whose call failed (section 7). The panel says the Prompter couldn't finish, and offers Undo this request, as it does for a failed step now.
+- **The outcome** is `step_failed`, with `failedStep` the first step that didn't land, as for a step whose call failed (section 7). The panel says "The Prompter couldn't finish step 3 of the plan.", by the number it shows, and offers Undo this request (S5's review, 23 Nov).
 - **What did land stays,** in the request's one undo step, so Undo takes all of it back.
 - **What the panel announces** is S5's to review with this section: a problem in place of "built".
 
@@ -987,9 +987,9 @@ Errors say what happened and what to do next, with no apologies (rule 9). The na
 | Anything else | `internal` | "The Prompter couldn't finish this step." | **Try again** |
 | `stop_reason: "refusal"` | | "The Prompter can't help with that one. Try a different idea." | |
 | `stop_reason: "max_tokens"` or `pause_turn` | | "The Prompter couldn't finish this step." plus the steps that did work | **Undo this request** |
-| The same step failed three times | | "The Prompter couldn't finish this step." plus the steps that did work | **Undo this request** |
+| The same step failed three times | | "The Prompter couldn't finish step 2 of the plan.", naming the plan step by the number the panel shows, or "The Prompter couldn't finish this step." for a call that names no step, plus the steps that did work | **Undo this request** |
 | 25 tool calls | | "The Prompter stopped after 25 steps. Ask again for the next part." | **Undo this request** |
-| An agreed step didn't land | | "Step 3 wasn't built." plus the steps that did work | **Undo this build** |
+| An agreed step didn't land (section 6.10) | | "The Prompter couldn't finish step 3 of the plan." plus the steps that did work (S5's words, 23 Nov 2026) | **Undo this request** |
 
 `TransportErrorCode` has no code for a bad request (400). That means a bug in the client, and it's `internal`.
 

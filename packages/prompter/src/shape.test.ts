@@ -398,7 +398,7 @@ describe('a build that leaves a step out (spec 04, section 6.10)', () => {
     await panel.ask('move twice');
     await panel.build();
     expect(panel.state.phase).toBe('problem');
-    expect(panel.state.message?.text).toBe("The Prompter couldn't finish this step.");
+    expect(panel.state.message?.text).toBe("The Prompter couldn't finish step 2 of the plan.");
     expect(panel.state.canUndo).toBe(true);
     expect(runner.unfinished()).toBe(2);
   });

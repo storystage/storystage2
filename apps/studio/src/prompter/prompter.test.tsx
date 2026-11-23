@@ -380,6 +380,10 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(kept.agreed).toMatchObject([{ actor: 'penguin', repeat: 2 }]);
     expect(Number.isNaN(Date.parse(kept.agreedAt))).toBe(false);
     expect(production.history().filter((h) => h.done)).toHaveLength(before + 1);
+    // The build ends short, and says which step, beside Undo (spec 04 section 6.10; S5).
+    expect(
+      await screen.findByText("The Prompter couldn't finish step 1 of the plan."),
+    ).toBeTruthy();
     // Undo takes the plan back with what it built.
     await user.click(screen.getByRole('button', { name: 'Undo this request' }));
     expect(production.production().frames.find((f) => f.id === 'f2')?.plan).toBeUndefined();
