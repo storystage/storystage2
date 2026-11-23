@@ -8,7 +8,7 @@ import { DETAILS, findEntry } from '@storystage/story-api';
 import {
   arrowFor,
   isSceneScriptIn,
-  listenerWords,
+  listenerPhrase,
   word,
   type Describer,
   type ValuePlace,
@@ -45,15 +45,19 @@ export type Part =
 
 const PLACEHOLDER = /\{(\w+)\}/g;
 
-/** A phrase split at its `{placeholders}`, each filled by `fill`. */
-function phraseParts(phrase: string, fill: (name: string) => Part | null): Part[] {
+/** A phrase split at its `{placeholders}`, each filled by `fill` with a part or several. */
+function phraseParts(
+  phrase: string,
+  fill: (name: string) => Part | readonly Part[] | null,
+): Part[] {
   const parts: Part[] = [];
   let at = 0;
   for (const m of phrase.matchAll(PLACEHOLDER)) {
     const text = phrase.slice(at, m.index).trim();
     if (text) parts.push({ kind: 'text', text });
     const filled = fill(m[1]!);
-    if (filled) parts.push(filled);
+    if (Array.isArray(filled)) parts.push(...(filled as readonly Part[]));
+    else if (filled) parts.push(filled as Part);
     at = m.index + m[0].length;
   }
   const rest = phrase.slice(at).trim();
@@ -259,9 +263,27 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
     case 'comment':
       return [{ kind: 'text', text: node.text }];
     case 'listener':
-      return phraseParts(listenerWords(node.event), (name) =>
-        value(node.args[name], at('args', name), word(`param.${name}`)),
-      );
+      return phraseParts(listenerPhrase(node), (name) => {
+        const detail = Object.hasOwn(node.details, name) ? node.details[name] : undefined;
+        if (!detail) return value(node.args[name], at('args', name), word(`param.${name}`));
+        if (detail.kind !== 'arrayOf' || detail.items.length === 0)
+          return value(detail, at('details', name), word(`detail.${name}`));
+        // What's clicked: a pill for each object, "cat or chair" (the owner, 23 Nov 2026).
+        const or = word('words.or')
+          .replace(/\{\w+\}/g, '')
+          .trim();
+        return detail.items.flatMap((item, i): Part[] => {
+          const pill = valuePart(
+            item,
+            placeIn(detail.id, 'items', String(i)),
+            t('slot.item'),
+            describe,
+            self,
+          );
+          if (!pill) return [];
+          return i === 0 ? [pill] : [{ kind: 'text', text: or }, pill];
+        });
+      });
     case 'return':
       return node.value
         ? phraseParts(word('control.return'), () =>
