@@ -29,6 +29,7 @@ export const ICON_NAMES = [
   'close',
   'cloud_upload', // what is sent to Claude (10b)
   'construction', // the Prompter's Build these steps
+  'content_cut', // the Sound view's trim dialog (07-ux 7.7)
   'deck',
   'delete',
   'description',
@@ -66,6 +67,7 @@ export const ICON_NAMES = [
   'lock',
   'mic',
   'movie',
+  'music_note', // the Code | Sound switch and Import a sound… (07-ux 7.7)
   'pause',
   'person',
   'person_add',

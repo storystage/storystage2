@@ -646,7 +646,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 7.16 **The Pose panel's drag (0073):** the hand and foot handles of 5.9 in the scene view's Pose panel; one drag is one undo step. S5. (C)
 - [ ] 7.17 **Sound in the studio (0076):**
     - **the Sound view:** a scene's music on a timeline: where it starts, its trim, fades, loop and volume, on the Music track; a clip can carry on over a scene cut until another starts (S5);
-    - **the trim dialog on import:** a waveform with start and end handles, set once (S5);
+    - **the trim dialog on import:** a waveform with start and end handles, set once (S5). **Built (23 Nov), with Sounds in this film to reach it;**
     - **`playAudio`'s choice of sound:** in Blocks (S5), and in Tiles (S6).
 
     (C)

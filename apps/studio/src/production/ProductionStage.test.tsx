@@ -1,12 +1,13 @@
 import type { EditorHost, ViewState } from '@storystage/editor-contract';
 import { BROWSER_POLICY, browserHost, type HostInterface } from '@storystage/host';
-import { exampleProduction, type Production } from '@storystage/production';
+import { exampleProduction, withSound, type Production } from '@storystage/production';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { App } from '../App.tsx';
 import { newProduction } from '../storyboard/edits.ts';
 import { NEW_EVENTS, eventWords } from './newMethodEdits.ts';
+import { playedInScene2, RAIN } from '../sound/testing.ts';
 
 // Blockly can't draw in a test DOM: a stand-in Blocks editor records what it is given. The real
 // one is checked in a browser (e2e/production.e2e.ts).
@@ -475,5 +476,59 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
         .host.program()
         .types.some((t) => t.name === 'Penguin'),
     ).toBe(false);
+  });
+});
+
+describe('Code | Sound (07-ux 7.7)', () => {
+  const choose = async (user: ReturnType<typeof userEvent.setup>, view: 'Code' | 'Sound') =>
+    user.click(
+      within(screen.getByRole('radiogroup', { name: 'Code or Sound' })).getByRole('radio', {
+        name: view,
+      }),
+    );
+
+  it('lays Sound over the code, which keeps its place, and holds the choice', async () => {
+    const user = userEvent.setup();
+    render(<App start={exampleProduction()} />);
+    await openStage(user);
+    await screen.findByText('blocks', {}, LOADED);
+    await choose(user, 'Sound');
+    expect(await screen.findByRole('region', { name: 'Sound' }, LOADED)).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Sounds in this film' })).toBeTruthy();
+    expect(screen.getByText('blocks').closest('[inert]')).not.toBeNull();
+    await user.click(screen.getByRole('tab', { name: /Storyboard/ }));
+    await openStage(user);
+    expect(await screen.findByRole('region', { name: 'Sound' }, LOADED)).toBeTruthy();
+    await screen.findByText('blocks', {}, LOADED);
+    const mounts = mounted.length;
+    await choose(user, 'Code');
+    expect(screen.queryByRole('region', { name: 'Sound' })).toBeNull();
+    expect(screen.getByText('blocks').closest('[inert]')).toBeNull();
+    expect(mounted.length).toBe(mounts);
+  });
+
+  it('waits, as the code does, until the scene is storyboarded', async () => {
+    const user = userEvent.setup();
+    render(<App start={unplanned()} />);
+    await openStage(user);
+    expect(screen.getByRole('heading', { name: 'Storyboard scene 1 first' })).toBeTruthy();
+    expect(screen.queryByRole('radiogroup', { name: 'Code or Sound' })).toBeNull();
+  });
+
+  it("goes to the block that plays a sound, in that block's scene", async () => {
+    const user = userEvent.setup();
+    render(<App start={playedInScene2(withSound(exampleProduction(), RAIN), 'sn1')} />);
+    await openStage(user);
+    await choose(user, 'Sound');
+    await user.click(await screen.findByRole('button', { name: 'Remove Rain…' }, LOADED));
+    expect(
+      within(screen.getByRole('region', { name: 'Sound' })).getByText(
+        'Rain is played in scene 2’s code. Change that block first.',
+      ),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Go to the block' }));
+    expect(screen.getByRole('radio', { name: 'Code' }).closest('[data-selected]')).not.toBeNull();
+    expect(await screen.findByRole('tablist', { name: 'Methods in scene 2' }, LOADED)).toBeTruthy();
+    expect(screen.queryByRole('region', { name: 'Sound' })).toBeNull();
   });
 });
