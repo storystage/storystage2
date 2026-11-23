@@ -284,6 +284,59 @@ An event kind is the `event` of a `listener` in the AST.
 4. **`multipleEventPolicy`** says what happens if the event fires again while its handler is running. The default, as in Alice, is to ignore it.
 5. **`viewEnter` and `viewExit`** fire when a model comes into or leaves the camera's view. They're additions to workplan 6.2 (decision 0051). Like `isVisible`, they use the stage's view test, and their cost isn't measured yet, so rule 6 applies.
 
+### 6a. Which keys (proposed, 23 Nov 2026)
+
+**Proposed; none of it is built.** The owner asked for this spec on 22 Nov 2026, after S7 found that a plan step "When I press space" builds a listener that runs for every key. `keyPress`, `arrowKeyPress` and `numberKeyPress` have nothing that says which key. Today only an `if` on the handler's `key` narrows one, as in Alice (`if event.isKey(Key.SPACE)`), and a plan can't build that.
+
+**The proposal:** a detail, `keys`, as `setOfVisuals` says which objects a click is about.
+
+| Detail | Type | Default | On | On screen |
+| --- | --- | --- | --- | --- |
+| `keys` | `Key[]` | every key the event is for | `keyPress`, `arrowKeyPress`, `numberKeyPress` | which keys |
+
+1. **The listener runs only for a key in the list.** Without the detail it runs for every key the event is for, as now, so no film changes. An empty list holds no key, so the listener never runs, as an empty `setOfVisuals` never matches.
+2. **Each event takes only its own keys.** `arrowKeyPress` takes `up`, `down`, `left` and `right`, and `numberKeyPress` takes `digit0` to `digit9`. `keyPress` takes any `Key`. The program check (section 9a) refuses another, such as `a` on an arrow listener: "That key isn't one this event is for. Choose another."
+3. **`heldKeyPolicy` and `multipleEventPolicy` work as now,** for each key in the list. A key held down repeats, a release fires on release, and so on.
+4. **The handler is given what it's given now:** `key`, the directions, or `number`. With several keys, it can still tell which was pressed.
+5. **The words** follow a click's (spec 14, section 3a):
+
+    | Listener | Reads |
+    | --- | --- |
+    | `keyPress` with `keys` [`space`] | when space bar is pressed |
+    | `keyPress` with `keys` [`w`, `up`] | when W or up arrow is pressed |
+    | `arrowKeyPress` with `keys` [`left`] | when left arrow is pressed |
+    | `numberKeyPress` with `keys` [`digit3`] | when number key 3 is pressed |
+    | any of the three without `keys` | as now: "when a key is pressed" |
+
+    Each key reads by its `value.Key.*` words. In Tiles, each key is a pill of its own.
+6. **The text views** write the detail as any other: `when keyPress(keys=[Key.space]):`.
+
+**Why a detail, and why a list:**
+- **A detail rather than a value it needs:** a listener for any key stays possible and is still the default, and every film already made means what it did.
+- **One name on all three events:** the runtime, the check, the words and the Prompter each handle `keys` once.
+- **A list rather than one key:** "W or up arrow" is common in games, and a list costs nothing more.
+- **Alice has no such setting.** It's StoryStage's own, as `viewEnter` is (section 6, rule 5).
+
+**What doesn't change:** the AST, since `details` already holds any catalogue detail; the production format; and the stage contract, which already reports each key by name.
+
+**Not in this proposal:**
+- **Alice import** keeps a handler's `if event.isKey(…)` as it is. Lifting a handler whose whole body is such an `if` into `keys` could come later.
+- **Export to Alice** (`.a3c`, the next version) would write `keys` back as that `if`.
+
+**Who does what, once approved:**
+
+| Who | What |
+| --- | --- |
+| S6 | The detail in the catalogue, the check (rule 2), the words and Tiles' pills, this section's tables made from the catalogue, and the Story API's version |
+| S2 | The runtime: `keyed` in `packages/runtime/src/events.ts` fires only for listed keys |
+| S5 | Blocks shows the detail as it shows `setOfVisuals`, with the Key choices for that event |
+| S7 | The Prompter writes `keys` from a when step's key, and Plan only ticks by it (spec 04) |
+
+**Done when:**
+1. Unit tests cover each rule: the default, a list, an empty list, the check's refusal, each event's own keys, and the words.
+2. The runtime runs a `keys` listener for a listed key and not for another, under each `heldKeyPolicy`.
+3. A plan step "When I press space" builds a listener that runs for space only.
+
 ## 7. New StoryStage blocks
 
 Added by the workplan. S3 builds them (4.4 to 4.6, 4.10), so their parameters may be refined with S3 when the machinery exists. Their names are settled now so that the Prompter's catalog and the editors can rely on them.
