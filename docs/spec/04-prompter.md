@@ -934,7 +934,7 @@ Section 6.4 holds an event's objects and number to its step. Three more things:
   - for `numberKeyPress`, "number 3" or "3" is `digit3`;
   - `arrowKeyPress` takes only `up`, `down`, `left` and `right`, and any other key is refused at the plan, as 6a rule 2 says.
 
-  **Until then,** a when step's `key` passes the plan and builds nothing: "When I press space" runs for every key, as it does today, and the plan's why can say so (event-03 did). None of the paid rerun's rows has a key, so whether the rerun waits for `keys` is the owner's choice.
+  **Until then,** a when step's `key` passes the plan and builds nothing: "When I press space" runs for every key, as it does today, and the plan's why can say so (event-03 did). None of the paid rerun's rows has a key, so the owner chose (23 Nov) not to wait for `keys`: it runs once this section is built, and event-03 gets a rerun of its own once `keys` is.
 
 #### Plan only (6.6)
 
