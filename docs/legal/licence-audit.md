@@ -68,6 +68,7 @@ Since then:
 - **21 Nov:** plants and habitats: 33 Poly Haven models and 28 of KayKit's Forest Nature Pack ship (section 1).
 - **21 Nov:** history: 48 Sketchfab models, 24 CC0 museum scans and 24 CC BY models, the owner having left out three swords and a shield, downloaded in the owner's Chrome (section 1).
 - **21 Nov:** space: the Sun, the Moon and the planets from Solar System Scope's textures (CC BY 4.0), 16 of NASA's own models with their insignia painted out, and seven Poly Haven moon rocks ship (section 1).
+- **22 Nov:** all of Alice's own models (340, in 910 variants; none of The Sims 2's art) may be used for testing, **subject to CMU's permission before any distribution**. They are converted privately and opened as model packs with licence "not sure", each saying so. They stay out of both public repositories, releases, the websites and the shipped Backstage until CMU agrees in writing.
 
 Still to do:
 
