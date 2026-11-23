@@ -25,3 +25,12 @@
 - **S8:** bundle the fetched folder in the Tauri apps and give the app its address.
 - **S1:** serve it with the browser version, and fetch it in the release workflows.
 - **S3:** find models through the loader, which also says which VRM avatars to turn.
+
+## Update, 23 Nov 2026: still bundled, at today's size
+
+The owner revisited this on 23 Nov, on S1's cards, as this record allowed. **Everything stays installed with the app, so Backstage still works offline from the first launch.** There's no download pack.
+
+- **The size now.** At backstage-assets `acd9415` the shipped Backstage is 624 MB on disk: models 583 MB, sketches 37 MB, thumbnails 4 MB. It's 346 MB compressed in the Android package. Each MB of Backstage adds about 0.7 MB to each installer. The Open Source Avatars are 321 MB of the 624, mostly 1024 px PNG textures and face shapes stored in full. None of Alice's models are in it.
+- **Smaller avatar textures.** S4's build changes those PNG textures to WebP at the same 1024 px, which saves about 100 MB. The owner sees before-and-after sheets first. S3 has checked that the stage draws them on WebGL2 and WebGPU. Storing face shapes sparse, meshopt, fewer avatars and an optional download pack are not chosen.
+- **Android:** Google Play limits an app bundle's base module to 500 MB compressed, and a plain APK to 100 MB. Install-time asset packs (up to 1.5 GB each, 4 GB in all) are installed with the app. So on Android the Backstage goes in an install-time asset pack of a Play app bundle (S8, workplan 15.8).
+- **iPad and desktop:** the App Store allows 4 GB installed, and the desktop installers are StoryStage's own, so neither needs a change.
