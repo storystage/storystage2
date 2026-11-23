@@ -16,36 +16,16 @@ import { headlessEngine } from './headless.ts';
 import { ModelLibrary } from './models.ts';
 
 /**
- * Found on 22 Nov 2026, for S3 to fix. The lists must match exactly, reasons included, so a new
- * fault fails the test, and so does a fixed one still listed: take it out with the fix.
+ * The lists must match exactly, reasons included, so a new fault fails the test, and so does a
+ * fixed one still listed: take it out with the fix.
  */
-// One mesh on several nodes: an instance's material has already been made plain.
-const INSTANCED = "Cannot read properties of undefined (reading 'toGammaSpace')";
-const CANT_BE_PLACED: Readonly<Record<string, string>> = {
-  'nasa/Prop/robonaut-2': INSTANCED,
-  'sketchfab-history/Prop/roman-temple': INSTANCED,
-  'sketchfab-history/Prop/roundhouse-simple': INSTANCED,
-  'storybook/Biped/anansi': INSTANCED,
-  'storybook/Biped/medusa': INSTANCED,
-  'storybook/Biped/sherlock-holmes': INSTANCED,
-};
-/** Listed joints the stage doesn't find, and how many: their bones have names it doesn't know. */
+const CANT_BE_PLACED: Readonly<Record<string, string>> = {};
+/**
+ * Listed joints the stage doesn't find, and how many. Leaf Boy's are the build's fault (S4): VRM
+ * 0.x's thumb names were read as 1.0's, so its metacarpals are listed as proximals.
+ */
 const JOINTS_NOT_FOUND: Readonly<Record<string, number>> = {
-  'osa/Biped/ajo-majo': 2,
-  'osa/Biped/chester': 2,
-  'osa/Biped/cool-snake': 2,
-  'osa/Biped/cool-tiger': 18,
-  'osa/Biped/crowley': 2,
-  'osa/Biped/evil-book': 1,
-  'osa/Biped/frog-enjoyer': 1,
-  'osa/Biped/lady-fawn': 1,
   'osa/Biped/leaf-boy': 2,
-  'osa/Biped/lil-shark': 1,
-  'osa/Biped/lord-piggington': 1,
-  'osa/Biped/megan-the-fox': 5,
-  'osa/Biped/polybot': 4,
-  'osa/Biped/snail-kid': 2,
-  'vrmc/Biped/seed-san': 24,
 };
 
 const folder = process.env.BACKSTAGE_DIR;
