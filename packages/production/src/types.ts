@@ -21,10 +21,18 @@ import {
 } from '@storystage/ast';
 import type { BackstageItem, Facing } from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
-import type { BackstageId, Micros, SceneSetup, ShotType, StandIn } from '@storystage/story-api';
+import {
+  classOfType,
+  type ApiClass,
+  type BackstageId,
+  type Micros,
+  type SceneSetup,
+  type ShotType,
+  type StandIn,
+} from '@storystage/story-api';
 import { SOUND_LIMITS, SOUND_TYPES } from './sound.ts';
 
-export const FORMAT_VERSION = '1.9.0';
+export const FORMAT_VERSION = '1.10.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -393,15 +401,16 @@ function checkSceneTypes(p: Production, problems: string[]): void {
 }
 
 /**
- * The Story API class a field's type comes down from: its own name for a story type, or for a
- * learner's class (`Penguin extends Animal`, decision 0074) the story type its `extends` reach,
- * by node id. Null when a type it names is missing or the chain goes round, which the program's
- * own check reports; undefined for a list, which no set-up object is.
+ * The story type a field's type comes down from: its own, or for a learner's class (`Penguin
+ * extends Animal`, decision 0074) the one its `extends` reach, by node id. With it, the Story API
+ * class that type is (`classOfType`): `TextModel` is the `Text` class, and `Text` is words, no
+ * class (spec 02, section 1, rule 3). Null when a type it names is missing or the chain goes
+ * round, which the program's own check reports; undefined for a list, which no set-up object is.
  */
 export function storyAncestor(
   ref: TypeRef,
   types: ReadonlyMap<NodeId, TypeDecl>,
-): string | null | undefined {
+): { readonly type: string; readonly class: ApiClass | null } | null | undefined {
   const seen = new Set<NodeId>();
   let at: TypeRef = ref;
   while (at.kind === 'user') {
@@ -410,7 +419,7 @@ export function storyAncestor(
     seen.add(at.type);
     at = type.extends;
   }
-  return at.kind === 'story' ? at.name : undefined;
+  return at.kind === 'story' ? { type: at.name, class: classOfType(at.name) } : undefined;
 }
 
 /** The scene's objects and its fields with no value of their own have to match. */
@@ -436,9 +445,12 @@ function checkObjects(
       problems.push(
         `Scene ${scene.id}: ${object.id}'s type in code doesn't come down from a Story API class.`,
       );
-    else if (ancestor !== undefined && ancestor !== object.class)
+    else if (ancestor !== undefined && ancestor.class !== object.class)
       problems.push(
-        `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${ancestor} in code.`,
+        // 3D text is `TextModel` in code: a field of words can't be it (format 1.10.0).
+        ancestor.type === 'Text' && object.class === 'Text'
+          ? `Scene ${scene.id}: ${object.id} is 3D text in the set-up, but words in code: 3D text is TextModel, and Text is words.`
+          : `Scene ${scene.id}: ${object.id} is a ${object.class} in the set-up and a ${ancestor.type} in code.`,
       );
   }
   for (const name of fields.keys())

@@ -2,6 +2,15 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.10.0
+
+3D text is `TextModel` in code, as `Text` is words (spec 02 section 1, rule 3; the owner's choice of 22 Nov 2026, from S6's review of #642, with S6 and S7; spec 03 sections 1.2 and 2.1). An older file opens, is migrated, and keeps its original.
+
+- **The first migration that changes the program:** `FormatMigration` gains an optional `program` step, given the opened program and the scenes once every part's shape is checked, before `checkReferences`. 1.9.0 to 1.10.0 retypes the field of each set-up object of class `Text` that was typed `Text`, and the `extends` of each class that extends `Text`, as `TextModel`. Every other field, variable and input of type `Text` stays words.
+- `storyAncestor` gives the story type a field's type reaches and the class that is (`classOfType`), so the set-up is checked class against class. A set-up object of class `Text` whose field is words is damaged, in its own words.
+- `addObject`'s field is of `typeOfClass(class)` (S6's, `@storystage/story-api`): `TextModel` for 3D text.
+- Older builds call a 1.10.0 film with 3D text damaged rather than opening it read-only, as they read `TextModel` as no class. The owner accepted this.
+
 ## 1.9.0
 
 Sound in a film (decision 0076, the owner's choices of 21 Nov 2026; spec 03 sections 1.7 and 2.3). Optional, so an older file opens, is migrated, and keeps its original.

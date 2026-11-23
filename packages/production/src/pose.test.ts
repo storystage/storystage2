@@ -11,7 +11,7 @@ import {
   isPoseTurn,
   keptJoints,
 } from './pose.ts';
-import type { Production } from './types.ts';
+import { FORMAT_VERSION, type Production } from './types.ts';
 
 const p = exampleProduction();
 const AT_REST = { x: 0, y: 0, z: 0, w: 1 };
@@ -186,7 +186,7 @@ describe('posing joints (format 1.5.0, spec 03 section 2.2)', () => {
     const opened = open(old);
     expect(opened.status).toBe('migrated');
     expect(opened.original).toBe(old);
-    expect(opened.production.manifest.formatVersion).toBe('1.9.0');
+    expect(opened.production.manifest.formatVersion).toBe(FORMAT_VERSION);
     expect(saveProduction(opened.production, opened.files)).toEqual(saveProduction(p));
   });
 });
