@@ -8,7 +8,11 @@ import type { EventDef, ParamDef, TypeName } from './types.ts';
 const arg = (name: string, type: TypeName): ParamDef => ({ name, type });
 
 const POLICY = ['multipleEventPolicy'];
-const KEYS = ['heldKeyPolicy', 'multipleEventPolicy'];
+// Which keys (spec 02, section 6a), then how a held key and a second press are handled.
+const KEYS = ['keys', 'heldKeyPolicy', 'multipleEventPolicy'];
+/** Each key event's own keys: `keyPress` takes any. */
+const ARROWS = ['up', 'down', 'left', 'right'];
+const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => `digit${n}`);
 
 const position = [
   { name: 'x', type: 'Number', alice: ['MouseClickEvent.getScreenDistanceFromLeft'] },
@@ -74,6 +78,7 @@ export const EVENTS: readonly EventDef[] = [
       { name: 'turnDirection', type: 'TurnDirection', alice: ['ArrowKeyEvent.getTurnDirection'] },
     ],
     details: KEYS,
+    keys: ARROWS,
     from: 'key',
     alice: ['SScene.addArrowKeyPressListener'],
     unreal: 'Input actions',
@@ -83,6 +88,7 @@ export const EVENTS: readonly EventDef[] = [
     args: [],
     gives: [{ name: 'number', type: 'WholeNumber', alice: ['NumberKeyEvent.getNumber'] }],
     details: KEYS,
+    keys: DIGITS,
     from: 'key',
     alice: ['SScene.addNumberKeyPressListener'],
     unreal: 'Input actions',

@@ -235,6 +235,7 @@ Details are Alice's optional keyword arguments, the "add detail" of both editors
 | `bubbleOutlineColor` | `Color` | `white` | — | bubble outline |
 | `bubblePosition` | `BubblePosition` | `automatic` | — | bubble position |
 | `heldKeyPolicy` | `HeldKeyPolicy` | `fireMultiple` | — | when the key is held |
+| `keys` | `Key[]` | every key the event is for | — | which keys |
 | `multipleEventPolicy` | `MultipleEventPolicy` | `ignore` | — | if it happens again while running |
 | `setOfVisuals` | `Thing[]` | every object | — | which objects |
 | `line` | `LineId` | words the script doesn’t have | — | script line |
@@ -265,9 +266,9 @@ An event kind is the `event` of a `listener` in the AST.
 | `sceneStart` | — | — | — | `runtime` | when the scene starts |
 | `clickOnScreen` | — | `x: Number`, `y: Number` | `multipleEventPolicy` | `click` | when the screen is clicked |
 | `clickOnObject` | — | `model: Model`, `x: Number`, `y: Number` | `setOfVisuals`, `multipleEventPolicy` | `click` | when an object is clicked |
-| `keyPress` | — | `key: Key` | `heldKeyPolicy`, `multipleEventPolicy` | `key` | when a key is pressed |
-| `arrowKeyPress` | — | `moveDirection: MoveDirection`, `turnDirection: TurnDirection` | `heldKeyPolicy`, `multipleEventPolicy` | `key` | when an arrow key is pressed |
-| `numberKeyPress` | — | `number: WholeNumber` | `heldKeyPolicy`, `multipleEventPolicy` | `key` | when a number key is pressed |
+| `keyPress` | — | `key: Key` | `keys`, `heldKeyPolicy`, `multipleEventPolicy` | `key` | when a key is pressed |
+| `arrowKeyPress` | — | `moveDirection: MoveDirection`, `turnDirection: TurnDirection` | `keys`, `heldKeyPolicy`, `multipleEventPolicy` | `key` | when an arrow key is pressed |
+| `numberKeyPress` | — | `number: WholeNumber` | `keys`, `heldKeyPolicy`, `multipleEventPolicy` | `key` | when a number key is pressed |
 | `moveWithArrowKeys` | `object: MovableTurnable` | — | — | `key` | move {object} with the arrow keys |
 | `timer` | `seconds: Number` | `seconds: Number` | `multipleEventPolicy` | `runtime` | every {seconds} seconds |
 | `collisionStart` | `setA: Thing[]`, `setB: Thing[]` | `a: Thing`, `b: Thing` | `multipleEventPolicy` | `collisionStart` | when {setA} touches {setB} |
@@ -284,9 +285,9 @@ An event kind is the `event` of a `listener` in the AST.
 4. **`multipleEventPolicy`** says what happens if the event fires again while its handler is running. The default, as in Alice, is to ignore it.
 5. **`viewEnter` and `viewExit`** fire when a model comes into or leaves the camera's view. They're additions to workplan 6.2 (decision 0051). Like `isVisible`, they use the stage's view test, and their cost isn't measured yet, so rule 6 applies.
 
-### 6a. Which keys (proposed, 23 Nov 2026)
+### 6a. Which keys (approved, 23 Nov 2026)
 
-**Proposed; none of it is built.** The owner asked for this spec on 22 Nov 2026, after S7 found that a plan step "When I press space" builds a listener that runs for every key. `keyPress`, `arrowKeyPress` and `numberKeyPress` have nothing that says which key. Today only an `if` on the handler's `key` narrows one, as in Alice (`if event.isKey(Key.SPACE)`), and a plan can't build that.
+**The owner approved this in #659. The Story API's part is built (Story API 0.12.0):** the detail, each event's own keys (`EventDef.keys`), the check, the words, and Tiles' pills and choices. **Still to build:** the runtime (S2), Blocks (S5) and the Prompter (S7). Until the runtime is built, a listener with `keys` still runs for every key. The owner asked for this spec on 22 Nov 2026, after S7 found that a plan step "When I press space" builds a listener that runs for every key. `keyPress`, `arrowKeyPress` and `numberKeyPress` have nothing that says which key. Today only an `if` on the handler's `key` narrows one, as in Alice (`if event.isKey(Key.SPACE)`), and a plan can't build that.
 
 **The proposal:** a detail, `keys`, as `setOfVisuals` says which objects a click is about.
 
@@ -295,7 +296,7 @@ An event kind is the `event` of a `listener` in the AST.
 | `keys` | `Key[]` | every key the event is for | `keyPress`, `arrowKeyPress`, `numberKeyPress` | which keys |
 
 1. **The listener runs only for a key in the list.** Without the detail it runs for every key the event is for, as now, so no film changes. An empty list holds no key, so the listener never runs, as an empty `setOfVisuals` never matches.
-2. **Each event takes only its own keys.** `arrowKeyPress` takes `up`, `down`, `left` and `right`, and `numberKeyPress` takes `digit0` to `digit9`. `keyPress` takes any `Key`. The program check (section 9a) refuses another, such as `a` on an arrow listener: "That key isn't one this event is for. Choose another."
+2. **Each event takes only its own keys.** `arrowKeyPress` takes `up`, `down`, `left` and `right`, and `numberKeyPress` takes `digit0` to `digit9`. `keyPress` takes any `Key`. The catalogue lists them on the event (`keys`), the program check (section 9a) refuses another, such as `a` on an arrow listener ("That key isn’t one this event is for. Choose another one."), and Tiles offers only the event's own.
 3. **`heldKeyPolicy` and `multipleEventPolicy` work as now,** for each key in the list. A key held down repeats, a release fires on release, and so on.
 4. **The handler is given what it's given now:** `key`, the directions, or `number`. With several keys, it can still tell which was pressed.
 5. **The words** follow a click's (spec 14, section 3a):

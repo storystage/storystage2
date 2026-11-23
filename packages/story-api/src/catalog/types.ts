@@ -196,6 +196,8 @@ export interface DetailDef {
    * under "add detail" (the speak line's `line`, spec 06 section 4.1).
    */
   readonly fromScript?: true;
+  /** StoryStage's own, which Alice hasn't got (`keys`, spec 02 section 6a). */
+  readonly storystage?: true;
 }
 
 /** Workplan tasks that implement entries. 4.3 is Alice's own; the others are additions. */
@@ -240,6 +242,8 @@ export interface EventDef {
   /** What the handler receives. */
   readonly gives: readonly EventValue[];
   readonly details: readonly string[];
+  /** The keys its `keys` detail takes, when not every `Key` (spec 02, section 6a, rule 2). */
+  readonly keys?: readonly string[];
   /** The stage event that fires it, or what the contract doesn't have yet. */
   readonly from: StageEvent['kind'] | 'runtime' | `needs:${string}`;
   readonly alice: readonly string[];
