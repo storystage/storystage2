@@ -135,7 +135,8 @@ export function NewMethod({
         host.program(),
         owner ?? ('' as NodeId),
         chosen,
-        forCharacter ? character?.model.storyClass : undefined,
+        // Not one of its built-in blocks' names, which would hide it (spec 04 section 6.9).
+        forCharacter ? character?.model.storyClass : 'Scene',
       )
     : null;
   // A character's name problems say whose: "penguin already has a block called say."

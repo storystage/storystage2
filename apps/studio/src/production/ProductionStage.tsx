@@ -2,7 +2,7 @@ import type { NodeId } from '@storystage/ast';
 import type { EditorHost, EditorId } from '@storystage/editor-contract';
 import type { CheckItem, FrameId, Production, SceneId } from '@storystage/production';
 import type { RuntimeWorker } from '@storystage/playback';
-import { Button, Icon, NeutralNote, messages as uiMessages } from '@storystage/ui';
+import { Button, Icon, NeutralNote, Segmented, messages as uiMessages } from '@storystage/ui';
 import {
   Suspense,
   lazy,
@@ -69,9 +69,14 @@ import type { Place } from '../storyboard/place.ts';
 import type { PanelPhase, PrompterPanel } from '@storystage/prompter';
 import { PrompterAside } from '../prompter/PrompterAside.tsx';
 import type { StepWorld } from '../prompter/StepEditor.tsx';
-import type { ApiClass } from '@storystage/story-api';
+import type { FilmSounds } from '../sound/filmSounds.ts';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
+// The Sound view loads when it's first chosen (07-ux 7.7).
+const SoundView = lazy(() => import('../sound/SoundView.tsx'));
+
+/** What's under the scene view: the Code editor, or the Sound view over it (07-ux 7.7). */
+export type CodeView = 'code' | 'sound';
 
 export interface ProductionStageProps {
   production: Production;
@@ -126,6 +131,16 @@ export interface ProductionStageProps {
   taskCard?: ReactNode;
   /** A study task holds the class's editor, with these words beside the switch (6.5). */
   heldEditor?: string | null;
+  /**
+   * The open film's imported sounds, for the Sound view (07-ux 7.7). With the studio, the Code
+   * editor's area has the Code | Sound switch; without them, only the Code editor.
+   */
+  sounds?: FilmSounds;
+  /** Code or Sound, kept by the App while the studio is open; the stage keeps its own without. */
+  view?: CodeView;
+  onViewChange?: (view: CodeView) => void;
+  /** Sound's Go to the block: the Code editor, in `scene`, at `node`. */
+  onGoToBlock?: (scene: SceneId, node: NodeId) => void;
 }
 
 /** The current frame's check, with its own run, which stops when the learner leaves the tab. */
@@ -363,6 +378,10 @@ export function ProductionStage({
   onSetUp,
   taskCard,
   heldEditor = null,
+  sounds,
+  view,
+  onViewChange,
+  onGoToBlock,
 }: ProductionStageProps) {
   const voicesState = useSyncExternalStore(
     (l) => voices?.subscribe(l) ?? (() => {}),
@@ -381,6 +400,14 @@ export function ProductionStage({
   // An imported Alice world arrives with code and no storyboard; a school may let it be coded as it is.
   const relaxed = allowImportedWithoutStoryboard && p.manifest.origin === 'alice';
   const open = scene !== null && (relaxed || checks.every((c) => c.done));
+  // Code or Sound: the App's choice, or the stage's own in tests that give none.
+  const [ownView, setOwnView] = useState<CodeView>('code');
+  const soundHere = studio !== undefined && sounds !== undefined;
+  const shownView: CodeView = soundHere ? (view ?? ownView) : 'code';
+  const changeView = (next: CodeView) => {
+    setOwnView(next);
+    onViewChange?.(next);
+  };
   // The Prompter panel, open or folded to its rail: asking from the frame card opens it.
   const [prompterOpen, setPrompterOpen] = useState(true);
   const prompterState = useSyncExternalStore(
@@ -484,15 +511,10 @@ export function ProductionStage({
       ? `${numberOfScene(p, scene)}.${sceneFrames(p, scene).findIndex((f) => f.id === current.id) + 1}`
       : '';
   const linked = current ? liveLinks(p, current).join(' ') : '';
-  // What plan steps are changed against: the scene's objects (`this` is the scene) and lines.
+  // What plan steps are changed against beyond the panel's own choices: the scene's lines.
   const stepWorld = useMemo<StepWorld | null>(() => {
     if (scene === null) return null;
-    const setup = p.scenes.find((s) => s.id === scene)?.setup;
     return {
-      objects: new Map<string, ApiClass>([
-        ['this', 'Scene'],
-        ...(setup?.objects ?? []).map((o): [string, ApiClass] => [o.id, o.class]),
-      ]),
       lines: p.script
         .filter((l) => l.scene === scene)
         .map((l) => ({ id: l.id, words: l.character ? `${l.character}: ${l.text}` : l.text })),
@@ -745,44 +767,82 @@ export function ProductionStage({
             </div>
           ) : open ? (
             <>
-              {studio && current && (
-                <FrameLinks
-                  production={p}
-                  frame={current}
-                  number={frameNumber}
-                  readOnly={studio.readOnly !== null}
-                  chosen={chosenBlock}
-                  onLink={(block, link) => {
-                    const next = withLink(studio.production, current.id, block, link);
-                    if (next === studio.production) return;
-                    const n = frameNumber;
-                    studio.commit(
-                      words.t(link ? 'production.links.linkStep' : 'production.links.unlinkStep', {
-                        n,
-                      }),
-                      next,
-                    );
-                    onAnnounce(
-                      words.t(link ? 'production.links.linked' : 'production.links.unlinked', {
-                        n,
-                      }),
-                    );
-                  }}
-                />
+              {soundHere && (
+                <div className="pr-view-switch">
+                  <Segmented
+                    label={words.t('production.view')}
+                    options={(['code', 'sound'] as const).map((id) => ({
+                      id,
+                      label: words.t(`production.view.${id}`),
+                      icon: id === 'code' ? 'extension' : 'music_note',
+                    }))}
+                    value={shownView}
+                    onChange={changeView}
+                  />
+                </div>
               )}
-              <CodeEditor
-                production={p}
-                scene={scene}
-                host={host}
-                key={reveal ? `reveal-${reveal.n}` : 'code'}
-                reveal={reveal?.node ?? null}
-                highlights={highlights}
-                editorRef={editorRef}
-                {...(editorDefault ? { editorDefault } : {})}
-                held={heldEditor}
-                modelName={(id) => models?.item(id)?.displayName ?? null}
-                {...(onReveal ? { onReveal } : {})}
-              />
+              {/* Sound lies over the Code editor, which keeps its place, and its size, behind it. */}
+              <div className="pr-code-area">
+                <div className="pr-code-layer" inert={shownView === 'sound'}>
+                  {studio && current && (
+                    <FrameLinks
+                      production={p}
+                      frame={current}
+                      number={frameNumber}
+                      readOnly={studio.readOnly !== null}
+                      chosen={chosenBlock}
+                      onLink={(block, link) => {
+                        const next = withLink(studio.production, current.id, block, link);
+                        if (next === studio.production) return;
+                        const n = frameNumber;
+                        studio.commit(
+                          words.t(
+                            link ? 'production.links.linkStep' : 'production.links.unlinkStep',
+                            {
+                              n,
+                            },
+                          ),
+                          next,
+                        );
+                        onAnnounce(
+                          words.t(link ? 'production.links.linked' : 'production.links.unlinked', {
+                            n,
+                          }),
+                        );
+                      }}
+                    />
+                  )}
+                  <CodeEditor
+                    production={p}
+                    scene={scene}
+                    host={host}
+                    key={reveal ? `reveal-${reveal.n}` : 'code'}
+                    reveal={reveal?.node ?? null}
+                    highlights={highlights}
+                    editorRef={editorRef}
+                    {...(editorDefault ? { editorDefault } : {})}
+                    held={heldEditor}
+                    modelName={(id) => models?.item(id)?.displayName ?? null}
+                    {...(onReveal ? { onReveal } : {})}
+                  />
+                </div>
+                {shownView === 'sound' && studio && sounds && (
+                  <div className="pr-sound-layer">
+                    <Suspense fallback={null}>
+                      <SoundView
+                        studio={studio}
+                        readOnly={studio.readOnly !== null}
+                        sounds={sounds}
+                        onAnnounce={onAnnounce}
+                        onGoToBlock={(at, node) => {
+                          changeView('code');
+                          onGoToBlock?.(at, node);
+                        }}
+                      />
+                    </Suspense>
+                  </div>
+                )}
+              </div>
             </>
           ) : (
             <section className="pr-closed" aria-labelledby="pr-closed-title">
