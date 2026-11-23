@@ -30,7 +30,8 @@ import { classPacking } from './lesson/packing.ts';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { useStorageKept } from './lesson/useStorageKept.ts';
 import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
-import { ProductionStage } from './production/ProductionStage.tsx';
+import { ProductionStage, type CodeView } from './production/ProductionStage.tsx';
+import { FilmSounds, packingSounds } from './sound/filmSounds.ts';
 import { usePrompter } from './prompter/usePrompter.ts';
 import { usePrompterSetup } from './prompter/usePrompterSetup.tsx';
 import { StudyBar, StudyQuestion } from './study/StudyBar.tsx';
@@ -253,8 +254,13 @@ export function App({
   const editors = useEditorHost(studio.session, setSaid, host.policy.editor.locked);
   // The frames Rehearse has played since they last changed (07-ux 2.3), for this session only.
   const [rehearsed, setRehearsed] = useState<Rehearsed>(NONE_REHEARSED);
+  // The open film's imported sounds' bytes, kept while it's open so Undo and Redo work across a
+  // save (07-ux 7.7); each save gives them to the packer, and writes those the film names.
+  const filmSounds = useMemo(() => new FilmSounds(), []);
+  // Code or Sound under the scene view, for as long as the studio is open (07-ux 7.7).
+  const [codeView, setCodeView] = useState<CodeView>('code');
   // One packer for the host: a new one each render would make every save look new to useSaving.
-  const pack = useMemo(() => classPacking(host), [host]);
+  const pack = useMemo(() => packingSounds(classPacking(host), filmSounds), [host, filmSounds]);
   // The shipped Backstage's Alice models, read when the first world is opened, then kept.
   const aliceModels = useMemo(() => aliceModelSource(host), [host]);
   // Nothing of a study task is saved: saving waits while one is open (spec 14 6.4).
@@ -292,6 +298,7 @@ export function App({
     readOnly: string | null,
     message: string | null,
   ) => {
+    filmSounds.reset(files.sounds, production);
     studio.open(production, readOnly);
     setFilm({ saver, files });
     setPlace(NOWHERE);
@@ -684,6 +691,13 @@ export function App({
                   {...(setup.openSetUp ? { onSetUp: setup.openSetUp } : {})}
                   {...(tasks.open ? { taskCard: <TaskCard tasks={tasks} /> } : {})}
                   heldEditor={tasks.heldNote}
+                  sounds={filmSounds}
+                  view={codeView}
+                  onViewChange={setCodeView}
+                  onGoToBlock={(scene, node) => {
+                    setPlace({ scene, frame: null });
+                    setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }));
+                  }}
                 />
               ),
               screening: (

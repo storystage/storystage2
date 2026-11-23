@@ -99,6 +99,32 @@
   box-shadow: inset 0 0 0 1px var(--ss-line-2);
 }
 
+/* Code | Sound, at the head of the Code editor's area (07-ux 7.7). */
+.pr-view-switch {
+  display: flex;
+}
+/* Sound lies over the Code editor, which keeps its place and its size behind it. */
+.pr-code-area {
+  position: relative;
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+.pr-code-layer {
+  display: flex;
+  flex: 1 0 auto;
+  flex-direction: column;
+  gap: 12px;
+}
+.pr-code-layer[inert] {
+  visibility: hidden;
+}
+.pr-sound-layer {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  background: var(--ss-surface);
+}
 /* The Code editor: one tab per method, then the method's blocks. */
 .pr-code {
   display: flex;
