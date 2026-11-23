@@ -3,7 +3,15 @@
  * phrases ("cat move forward 1"). The tile editor's rows, both editors' screen-reader names and
  * the undo labels all read from here, so they say the same thing.
  */
-import type { AstNode, Expression, NodeId, Program, Statement, TypeRef } from '@storystage/ast';
+import type {
+  AstNode,
+  Expression,
+  ListenerDecl,
+  NodeId,
+  Program,
+  Statement,
+  TypeRef,
+} from '@storystage/ast';
 import { findEntry } from '../catalog/catalog.ts';
 import type { ProgramTypes } from '../catalog/program-types.ts';
 import { indexOf, perProgram, typesOf } from './cache.ts';
@@ -22,6 +30,18 @@ export const word = (key: string): string => all[key] ?? key;
  */
 export const listenerWords = (event: string): string =>
   all[`listener.${event}`] ?? word(`event.${event}`);
+
+/**
+ * A listener's own words: its event's, or its own phrase when it has a detail that says what it
+ * waits for, as a click's objects do ("when {setOfVisuals} is clicked", the owner, 23 Nov 2026).
+ */
+export function listenerPhrase(listener: Pick<ListenerDecl, 'event' | 'details'>): string {
+  for (const detail of Object.keys(listener.details)) {
+    const phrase = all[`listener.${listener.event}.${detail}`];
+    if (phrase) return phrase;
+  }
+  return listenerWords(listener.event);
+}
 
 /** `{name}` in a phrase filled from `values`; a missing value is "???". */
 export const fill = (phrase: string, values: Readonly<Record<string, string>>): string =>
@@ -298,8 +318,18 @@ function describe(program: Program, options: WordsOptions): Describer {
         return s.value
           ? fill(word('control.return'), { value: v(s.value) })
           : word('control.returnNothing');
-      case 'listener':
-        return fill(listenerWords(s.event), given(s.args, self));
+      case 'listener': {
+        // A list of what's clicked reads as its objects: "cat or chair".
+        const values = given(s.args, self);
+        for (const [name, e] of Object.entries(s.details))
+          values[name] =
+            e.kind === 'arrayOf' && e.items.length > 0
+              ? e.items
+                  .map((x) => value(x, self, e.of))
+                  .reduce((left, right) => fill(word('words.or'), { left, right }))
+              : value(e, self);
+        return fill(listenerPhrase(s), values);
+      }
       case 'type':
       case 'field':
       case 'method':

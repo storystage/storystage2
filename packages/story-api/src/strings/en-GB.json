@@ -309,6 +309,7 @@
   "character.class": "Teach {model} its own moves",
   "event.clickOnScreen": "when the screen is clicked",
   "event.clickOnObject": "when an object is clicked",
+  "listener.clickOnObject.setOfVisuals": "when {setOfVisuals} is clicked",
   "event.keyPress": "when a key is pressed",
   "event.arrowKeyPress": "when an arrow key is pressed",
   "event.numberKeyPress": "when a number key is pressed",
