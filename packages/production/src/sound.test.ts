@@ -176,6 +176,22 @@ describe('sound in a film (format 1.9.0)', () => {
     );
   });
 
+  it('writes only the sounds its manifest names, whatever else it’s given', () => {
+    // The studio gives every sound the open film has had, so an undone one comes back with
+    // its bytes on Redo (07-ux 7.7): sn2 is one of those, named by no clip now.
+    const given = {
+      ...files,
+      sounds: new Map([...files.sounds, ['sounds/sn2.mp3', mp3Id3]]),
+    };
+    const soundsIn = (film: Production) => {
+      const read = readArchive(saveProduction(film, given), { wanted: () => true });
+      if (!read.ok) throw new Error(read.problem.code);
+      return read.names.filter((name) => name.startsWith('sounds/'));
+    };
+    expect(soundsIn(withSound(p, clip))).toEqual(['sounds/sn1.wav']);
+    expect(soundsIn(p)).toEqual([]);
+  });
+
   it('refuses to open a sound that isn’t what its manifest says', () => {
     const saved = saveProduction(withSound(p, clip), files);
     const read = readArchive(saved, { wanted: () => true });

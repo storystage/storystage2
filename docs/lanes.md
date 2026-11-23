@@ -145,6 +145,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S4 Backstage and Productions
 - In review:
+  - 23 Nov (this PR; from S4's review of S5's #655): **a save writes only the sounds its manifest names**: a test that `saveProduction` leaves out a sound it's given but no clip names, as the studio now gives it every sound the open film has had, so Undo and Redo keep their bytes. A test only; the behaviour was already so.
   - 22 Nov (this PR, by S5 at the owner's choice; **S4:** for you to know): **packing keeps imported sounds**: `packModels` passes the film's other files through and changes only the models'. It dropped `files.sounds` (1.9.0), so every save of a film with an imported sound was refused.
   - 22 Nov (#628; S5's ask, decision 0074): **an object added after its learner's class is of the class**: `addObject`'s `NewObject` takes an optional `type`, the field's type in the code (S6's `fieldTypeFor`, `{ kind: 'user' }` once `Penguin extends Flyer` exists), which must come down from its `class` (`storyAncestor`, #618); the set-up keeps the Story API class. **S5:** ProductionStage's `use()` can pass it, with the model's objects' fields (S6's #624).
 - Merged:
