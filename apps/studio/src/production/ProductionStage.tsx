@@ -70,7 +70,6 @@ import type { PanelPhase, PrompterPanel } from '@storystage/prompter';
 import { PrompterAside } from '../prompter/PrompterAside.tsx';
 import type { StepWorld } from '../prompter/StepEditor.tsx';
 import type { FilmSounds } from '../sound/filmSounds.ts';
-import type { ApiClass } from '@storystage/story-api';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
 // The Sound view loads when it's first chosen (07-ux 7.7).
@@ -512,15 +511,10 @@ export function ProductionStage({
       ? `${numberOfScene(p, scene)}.${sceneFrames(p, scene).findIndex((f) => f.id === current.id) + 1}`
       : '';
   const linked = current ? liveLinks(p, current).join(' ') : '';
-  // What plan steps are changed against: the scene's objects (`this` is the scene) and lines.
+  // What plan steps are changed against beyond the panel's own choices: the scene's lines.
   const stepWorld = useMemo<StepWorld | null>(() => {
     if (scene === null) return null;
-    const setup = p.scenes.find((s) => s.id === scene)?.setup;
     return {
-      objects: new Map<string, ApiClass>([
-        ['this', 'Scene'],
-        ...(setup?.objects ?? []).map((o): [string, ApiClass] => [o.id, o.class]),
-      ]),
       lines: p.script
         .filter((l) => l.scene === scene)
         .map((l) => ({ id: l.id, words: l.character ? `${l.character}: ${l.text}` : l.text })),

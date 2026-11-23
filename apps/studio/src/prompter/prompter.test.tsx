@@ -1,5 +1,11 @@
 import { browserHost } from '@storystage/host';
-import { ProductionSession, exampleProduction, frameId, sceneId } from '@storystage/production';
+import {
+  ProductionSession,
+  exampleProduction,
+  frameId,
+  sceneId,
+  type Production,
+} from '@storystage/production';
 import {
   createPrompterPanel,
   offTransport,
@@ -16,11 +22,10 @@ import { ThemeRoot } from '@storystage/ui';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { nodeId, type Statement } from '@storystage/ast';
+import { nodeId, type MethodDecl, type Statement, type TypeRef } from '@storystage/ast';
 import type { StudioSource } from '../studio.ts';
 import { PrompterAside, oneMove, repeatMove } from './PrompterAside.tsx';
 import type { StepWorld } from './StepEditor.tsx';
-import type { ApiClass } from '@storystage/story-api';
 import { keepFramePlan, levelNow, prompterInBuild } from './usePrompter.ts';
 
 // The Prompter panel as the studio draws it (07-ux section 2.4; spec 04 section 4.5, WP13c), on
@@ -72,15 +77,51 @@ const moves = testReply([
   }),
 ]);
 
-/** The example's scene 2, as the Production stage gives it for changing steps. */
-const WORLD: StepWorld = {
-  objects: new Map<string, ApiClass>([
-    ['this', 'Scene'],
-    ['penguin', 'Flyer'],
-    ['fox', 'Quadruped'],
-  ]),
-  lines: [],
-};
+/** The example's scene 2's lines, as the Production stage gives them for changing steps. */
+const WORLD: StepWorld = { lines: [] };
+
+/**
+ * The example with the learner's own moves (spec 04 section 6.9): scene 2's penguin is a Penguin,
+ * a Flyer that can waddle some steps and hug another penguin.
+ */
+function ownMoves(): Production {
+  const p = exampleProduction();
+  const penguinClass = nodeId('pengclass');
+  const penguin: TypeRef = { kind: 'user', type: penguinClass };
+  const input = (id: string, name: string, type: TypeRef) => ({
+    id: nodeId(id),
+    kind: 'parameter' as const,
+    name,
+    type,
+    default: null,
+  });
+  const move = (id: string, name: string, params: MethodDecl['params']): MethodDecl => ({
+    id: nodeId(id),
+    kind: 'method',
+    name,
+    returns: null,
+    params,
+    body: [],
+  });
+  const types = p.program.types.map((t) =>
+    t.name !== 'Scene2'
+      ? t
+      : { ...t, fields: t.fields.map((f) => (f.name === 'penguin' ? { ...f, type: penguin } : f)) },
+  );
+  const own = {
+    id: penguinClass,
+    kind: 'type' as const,
+    name: 'Penguin',
+    extends: { kind: 'story' as const, name: 'Flyer' },
+    fields: [],
+    methods: [
+      move('waddlemov', 'waddle', [input('waddlestp', 'steps', { kind: 'story', name: 'Number' })]),
+      move('hugmoves', 'hug', [input('hugwhooo', 'who', penguin)]),
+    ],
+    listeners: [],
+  };
+  return { ...p, program: { ...p.program, types: [...types, own] } };
+}
 
 interface Options {
   readonly level?: PrompterLevel;
@@ -88,12 +129,14 @@ interface Options {
   readonly readOnly?: boolean;
   readonly world?: StepWorld;
   readonly onSetUp?: () => void;
+  readonly production?: Production;
 }
 
 function setUp(replies: PrompterEvent[][], options: Options = {}) {
   let next = 0;
   const scripted = scriptedTransport(() => replies[next++] ?? say('No more.'));
-  const production = new ProductionSession<StudioSource>(exampleProduction(), {
+  const film = options.production ?? exampleProduction();
+  const production = new ProductionSession<StudioSource>(film, {
     check: (p) => checkProgram(p),
   });
   const panel: PrompterPanel<StudioSource> = createPrompterPanel({
@@ -444,6 +487,118 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
       line: 'l3',
     });
     expect(panel.state.plan!.steps[0]!.details.map((d) => d.name)).not.toContain('text');
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
+  /** Shows a plan of these steps, in a film with this program. */
+  async function planned(steps: PlanStep[], production?: Production) {
+    const set = setUp([proposes(steps), say("Here's the plan.")], {
+      world: WORLD,
+      ...(production ? { production } : {}),
+    });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('radio', { name: 'Show me how' }));
+    await ask('Make the penguin move.');
+    const plan = await screen.findByRole('grid', { name: 'Plan before change' });
+    /** Opens Change step 1. */
+    const open = async () => {
+      await user.click(within(plan).getByRole('button', { name: 'Change step 1' }));
+      return screen.findByRole('dialog', { name: 'Change step 1' });
+    };
+    return { ...set, user, plan, open };
+  }
+  const optionsOf = (select: HTMLElement) =>
+    [...(select as HTMLSelectElement).options].map((o) => o.textContent);
+
+  it('offers the learner’s own moves first, and changes a step to one (6.9)', async () => {
+    const { user, plan, panel, open } = await planned([step()], ownMoves());
+    const editor = await open();
+    const what = within(editor).getByLabelText('Does what');
+    const groups = [...what.querySelectorAll('optgroup')].map((g) => g.label);
+    expect(groups).toEqual(['Your own', 'Built in']);
+    expect(optionsOf(what).slice(0, 2)).toEqual(['waddle', 'hug']);
+    await user.selectOptions(what, 'waddle');
+    // The input by its own name, never a built-in's word, and move's settings gone.
+    const steps = within(editor).getByLabelText('steps');
+    expect(within(editor).queryByLabelText('amount')).toBeNull();
+    await user.clear(steps);
+    await user.type(steps, '3');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]).toMatchObject({
+      actor: 'penguin',
+      action: 'waddle',
+      target: '',
+      details: [{ name: 'steps', value: '3' }],
+    });
+    expect(panel.state.plan!.problems).toEqual([]);
+    // Its words are the editors' own for the call, as Blocks and Tiles both word it (6.9).
+    expect(panel.state.plan!.steps[0]!.words).toBe('Penguin waddle steps 3.');
+    expect(within(plan).getByText('Penguin waddle steps 3.')).toBeTruthy();
+  });
+
+  it('chooses a move’s object as the step’s target, and drops it for a block with none', async () => {
+    const { user, panel, open } = await planned([step()], ownMoves());
+    // A hug of the fox, which isn't a Penguin.
+    act(() => panel.changeStep(0, { action: 'hug', target: 'fox', details: [] }));
+    expect(panel.state.plan!.problems).toHaveLength(1);
+    let editor = await open();
+    const who = within(editor).getByLabelText('who');
+    // Only what fits the input, with the step's own kept in sight until it's changed.
+    expect(optionsOf(who)).toEqual(['fox', 'penguin']);
+    await user.selectOptions(who, 'penguin');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]).toMatchObject({ action: 'hug', target: 'penguin' });
+    // A block that acts on nothing: the target goes with the old block.
+    editor = await open();
+    await user.selectOptions(within(editor).getByLabelText('Does what'), 'waddle');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]).toMatchObject({ action: 'waddle', target: '' });
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
+  it('shows a block that no longer resolves as not found, until it is changed', async () => {
+    const { user, panel, open } = await planned([step()]);
+    act(() => panel.changeStep(0, { action: 'waddle', details: [] }));
+    expect(panel.state.plan!.problems).toHaveLength(1);
+    const editor = await open();
+    const what = within(editor).getByLabelText('Does what') as HTMLSelectElement;
+    expect(what.value).toBe('waddle');
+    expect(what.selectedOptions[0]!.textContent).toBe('waddle, not found');
+    await user.selectOptions(what, 'move');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
+  it('gives a change step its new value, to put right one with none', async () => {
+    const { user, panel, open } = await planned([step()]);
+    act(() => panel.changeStep(0, { kind: 'change', action: 'opacity', details: [] }));
+    expect(panel.state.plan!.problems[0]!.message).toMatch(/needs the value/);
+    const editor = await open();
+    expect(within(editor).queryByLabelText('Does what')).toBeNull();
+    await user.type(within(editor).getByLabelText('New opacity'), '0.5');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]!.details).toEqual([{ name: 'opacity', value: '0.5' }]);
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
+  it('gives a when step what it meets and its number, to put either right', async () => {
+    const { user, panel, open } = await planned([step()]);
+    act(() =>
+      panel.changeStep(0, { kind: 'when', action: 'proximityEnter', target: '', details: [] }),
+    );
+    expect(panel.state.plan!.problems[0]!.message).toMatch(/two objects/);
+    let editor = await open();
+    expect((within(editor).getByLabelText('Who') as HTMLSelectElement).value).toBe('penguin');
+    await user.selectOptions(within(editor).getByLabelText('And what it meets'), 'fox');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.problems[0]!.message).toMatch(/needs a value for distance/);
+    editor = await open();
+    await user.type(within(editor).getByLabelText('distance'), '2');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]).toMatchObject({
+      target: 'fox',
+      details: [{ name: 'distance', value: '2' }],
+    });
     expect(panel.state.plan!.problems).toEqual([]);
   });
 
