@@ -23,6 +23,7 @@ import {
   jointsOf,
   mapSkeleton,
   skeletonOf,
+  vrmBoneTable,
   type BackstageItem,
   type BackstageManifest,
 } from '@storystage/backstage';
@@ -294,13 +295,10 @@ function gaitsOf(
   return Object.keys(gaits).length > 0 ? gaits : undefined;
 }
 
-/** What the stage reads from a model's glTF itself: a VRM's own extension. */
+/** What the stage reads from a model's glTF itself: a VRM's nodes, and whether it's VRM 0.x. */
 interface GltfJson {
   readonly nodes?: { name?: string }[];
-  readonly extensions?: {
-    readonly VRM?: { readonly humanoid?: { readonly humanBones?: unknown } };
-    readonly VRMC_vrm?: { readonly humanoid?: { readonly humanBones?: unknown } };
-  };
+  readonly extensions?: { readonly VRM?: unknown };
 }
 
 /** A VRM's bone table, as `useBoneTable` left its nodes. Empty for any other model. */
@@ -314,37 +312,15 @@ interface BoneTable {
 const NO_TABLE: BoneTable = { bones: new Set(), madeAs: new Map() };
 
 /**
- * VRM 0.x's thumb is named one bone along from VRM 1.0's, whose names are the joint map's (spec
- * 17 section 2): its Proximal is the Metacarpal, and its Intermediate the Proximal.
- */
-const VRM0_THUMBS: ReadonlyMap<string, string> = new Map([
-  ['leftThumbProximal', 'leftThumbMetacarpal'],
-  ['leftThumbIntermediate', 'leftThumbProximal'],
-  ['rightThumbProximal', 'rightThumbMetacarpal'],
-  ['rightThumbIntermediate', 'rightThumbProximal'],
-]);
-
-/**
  * Names a VRM's nodes by its own bone table (`humanBones`), in VRM 1.0's names, whatever its
  * maker called them. Another node that had a bone's name gives it up: Seed-san has a mesh called
  * `head` beside its head bone, `head 1`.
  */
-function useBoneTable({ nodes, extensions }: GltfJson): BoneTable {
-  if (!Array.isArray(nodes)) return NO_TABLE;
-  const vrm1 = extensions?.VRMC_vrm;
-  const table = (vrm1 ?? extensions?.VRM)?.humanoid?.humanBones;
-  if (typeof table !== 'object' || table === null) return NO_TABLE;
-  // VRM 0.x lists its bones; VRM 1.0 keys them by name. Imports come here too, so check each.
-  const entries: [unknown, unknown][] = Array.isArray(table)
-    ? table.map((b: { bone?: unknown; node?: unknown } | null) => [b?.bone, b?.node])
-    : Object.entries(table).map(([bone, b]: [string, { node?: unknown } | null]) => [
-        bone,
-        b?.node,
-      ]);
-  const boneAt = new Map<number, string>();
-  for (const [bone, node] of entries)
-    if (typeof bone === 'string' && typeof node === 'number' && nodes[node])
-      boneAt.set(node, vrm1 ? bone : (VRM0_THUMBS.get(bone) ?? bone));
+function useBoneTable(json: GltfJson): BoneTable {
+  const { nodes } = json;
+  // Read as the Backstage build and imports read it (S4's #653): VRM 0.x thumbs one bone along.
+  const { bones: boneAt } = vrmBoneTable(json);
+  if (!Array.isArray(nodes) || boneAt.size === 0) return NO_TABLE;
   const bones = new Set(boneAt.values());
   const madeAs = new Map<string, string>();
   nodes.forEach((node, i) => {
