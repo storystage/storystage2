@@ -17,3 +17,4 @@ export * from './credits.ts';
 export * from './loader.ts';
 export * from './alice-grounds.ts';
 export * from './blob-backstage.ts';
+export * from './vrm-bones.ts';

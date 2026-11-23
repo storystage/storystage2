@@ -4,7 +4,8 @@
  * expressions and look-at serve later blocks; this only reads them.
  *
  * - **Bone names.** A VRM says which node is which bone (`humanBones`), whatever the nodes are
- *   called. The nodes are renamed to those VRM bone names in memory, so the joint map
+ *   called. The nodes are renamed to those bones' VRM 1.0 names in memory (`vrmBoneTable`: a
+ *   VRM 0.x thumb is named one bone along), so the joint map
  *   (`mapSkeleton`, StoryStage convention) and posing read every VRM the same way.
  * - **Facing.** VRM 0.x avatars face -Z; VRM 1.0 avatars and glTF models face +Z. A VRM 0.x
  *   model is turned half a turn about Y in memory (`meshFromModel`), so its sketches face the
@@ -12,6 +13,7 @@
  */
 import { WebIO, type Document } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
+import { vrmBoneTable } from '@storystage/backstage';
 import { meshFromDocument } from './gltf.ts';
 import type { SketchMesh } from './mesh.ts';
 
@@ -21,32 +23,11 @@ export interface Model {
   readonly vrm: '0' | '1' | null;
 }
 
-interface VrmJson {
-  readonly extensions?: {
-    readonly VRM?: {
-      readonly humanoid?: { readonly humanBones?: readonly { bone: string; node: number }[] };
-    };
-    readonly VRMC_vrm?: {
-      readonly humanoid?: { readonly humanBones?: Readonly<Record<string, { node: number }>> };
-    };
-  };
-}
-
 export async function readModel(bytes: Uint8Array): Promise<Model> {
   // Every standard extension, so a reduced model's WebP textures and the like are read too.
   const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const { json } = await io.binaryToJSON(bytes);
-  const ext = (json as VrmJson).extensions;
-  const bones = new Map<number, string>();
-  let vrm: Model['vrm'] = null;
-  if (ext?.VRMC_vrm) {
-    vrm = '1';
-    for (const [bone, { node }] of Object.entries(ext.VRMC_vrm.humanoid?.humanBones ?? {}))
-      bones.set(node, bone);
-  } else if (ext?.VRM) {
-    vrm = '0';
-    for (const { bone, node } of ext.VRM.humanoid?.humanBones ?? []) bones.set(node, bone);
-  }
+  const { version: vrm, bones } = vrmBoneTable(json);
   const doc = await io.readBinary(bytes);
   if (bones.size) {
     const nodes = doc.getRoot().listNodes();
