@@ -31,7 +31,9 @@ export class FilmSounds {
     let n = 1;
     while (taken.has(`sn${n}`)) n++;
     const id = `sn${n}`;
-    return { ...clip, id, file: clip.file.replace(/^[^.]+/, id) };
+    // A file with no name of its own was named by its id (S4's review of #655).
+    const label = clip.label === clip.id ? id : clip.label;
+    return { ...clip, id, label, file: clip.file.replace(/^[^.]+/, id) };
   }
 
   /** Keeps `bytes` as `clip`'s file. */

@@ -163,6 +163,16 @@ describe('SoundView: importing', () => {
     expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'Rain 2');
   });
 
+  it('names a file with no name by the id it is given, not one it was going to have', async () => {
+    const user = userEvent.setup();
+    const { sounds } = open(exampleProduction());
+    // An earlier sn1, undone: its bytes are kept for Redo, so the next import is sn2.
+    sounds.add(RAIN, new Uint8Array([7]));
+    await user.upload(fileInput(), wavFile('.wav'));
+    const dialog = await screen.findByRole('dialog', { name: 'Trim your sound' });
+    expect(within(dialog).getByRole('textbox', { name: 'Name' })).toHaveProperty('value', 'sn2');
+  });
+
   it('stops a sound playing in the list when the trim dialog opens', async () => {
     const user = userEvent.setup();
     const { player } = open(withSound(exampleProduction(), RAIN));
