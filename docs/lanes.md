@@ -266,6 +266,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 
 ## S5 Studio interface
 - In review:
+  - 23 Nov (#655; decision 0076, workplan 7.17, on #644's 07-ux §7.7): **the trim dialog, and Sounds in this film to reach it**: Code | Sound over the Code editor, which keeps its place behind it; Import a sound… reads a file's length before decoding it and opens **Trim your sound** (the waveform, Start and End handles by keys and pointer, the same as numbers, Play this part); Add sound and Remove… are one undo step each, Remove… refused where code plays the sound, with Go to the block. The bytes stay with the studio while the film is open, and every save writes those it names.
   - 23 Nov (#651; spec 04 §6.9, the studio's half, on S7's #646): **Change step picks the learner's own procedures and moves**: Who and Does what come from the panel's `stepActors` and `stepBlocks` at the step's place, with **Your own** before **Built in**; each input has its own name and only the objects that fit it; an object input chooses the step's target, dropped on Save for a block with none; a block or who that has gone stays shown ("waddle, not found"). A change step gets its value and a when step what it meets and its number, so every problem the plan check marks can be put right in the dialog. `StepWorld` holds only the script lines.
   - 22 Nov (#650; found by S6 reviewing #642): **New refuses a built-in block's name** for a scene's procedure or function, as it does for a character's move: "Scenes already have a block called delay. Choose another name." A film that already has one keeps it. 07-ux §7.3.
 - Merged:
@@ -387,7 +388,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - 25 Oct (#58): **WP12a, mock-ups at three sizes (12.1)**: the screens 12.1 names at laptop (1536 × 864) and iPad (1180 × 820) in `docs/design/direction-a/sizes/`, a new screen 02c (Code editor closed until the scene is storyboarded, 10.8), the handoff README reconciled with `docs/decisions/`, `docs/spec/07-ux.md` §1 (screen sizes), and decisions 0032 (light theme) and 0033 (narrow windows). 12.1 stays unticked until the owner approves it.
 - Blocked on:
   - Owner: approving the mock-ups (12.1), which waits for the teacher interviews (16.7) and the first use cases (16.6).
-- Next: 7.17's code, in 07-ux §7.7: the trim dialog, then `playAudio`'s sound in Blocks, then the Sound view. 7.16's IK drag when S3's handles come. WP7c's 7.8 screen-reader pass waits for a person, on S6's script (#521).
+- Next: 7.17's code, in 07-ux §7.7: after the trim dialog (#655), `playAudio`'s sound in Blocks, then the Sound view's timeline. 7.16's IK drag when S3's handles come. WP7c's 7.8 screen-reader pass waits for a person, on S6's script (#521).
 
 ## S6 Story API spec, Tile editor and Alice import
 - Merged:
