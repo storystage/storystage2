@@ -490,10 +490,6 @@ function jointNodes(
         if ((listed as readonly string[]).includes(joint)) take(joint, nodes.get(bone));
   }
   // A prop's moving parts are its own joints, under their own names.
-  if (listed !== 'prop-only')
-    for (const joint of listed) {
-      const node = nodes.get(joint);
-      if (node && !out.has(joint)) out.set(joint, node);
-    }
+  if (listed !== 'prop-only') for (const joint of listed) take(joint, nodes.get(joint));
   return out;
 }

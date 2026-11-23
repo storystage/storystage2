@@ -1,3 +1,4 @@
+import { Material } from '@babylonjs/core/Materials/material.js';
 import { Color3 } from '@babylonjs/core/Maths/math.color.js';
 import { PBRMaterial } from '@babylonjs/core/Materials/PBR/pbrMaterial.js';
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
@@ -22,6 +23,7 @@ import { headlessEngine } from './headless.ts';
 import { Body } from '../humanoid/body.ts';
 import { glow, ModelLibrary, modelsFromManifest, type ModelSource } from './models.ts';
 import { BabylonStage } from './stage.ts';
+import { ObjectView } from './view.ts';
 import { tinyHumanUrl, tinyModelUrl, tinySkeletonUrl, tinyTwinsUrl } from './tiny-model.ts';
 
 const head = jointName('head');
@@ -383,6 +385,16 @@ describe("a VRM's own bone table", () => {
   });
 });
 
+describe('a joint listed under its own name', () => {
+  it("is never a node that is already another joint (S4's review of #648)", async () => {
+    const library = new ModelLibrary(new Scene(headlessEngine()), {
+      find: () => ({ url: tinySkeletonUrl([{ name: 'Hips' }]), joints: [jointName('Hips')] }),
+    });
+    const { jointPlaces } = (await library.place(ann, robot, 'Biped')).shape;
+    expect([...jointPlaces.keys()]).toEqual(['hips']);
+  });
+});
+
 describe('a model that fails unexpectedly', () => {
   it('is a stand-in, leaves nothing half placed, and says why in the log', async () => {
     const log = vi.spyOn(Logger, 'Error').mockImplementation(() => {});
@@ -446,6 +458,36 @@ describe('opacity and paint', () => {
     expect(body(ann).visibility).toBe(0.25);
     expect((body(ann).material as StandardMaterial).diffuseColor.r).toBe(1);
     expect((body(ann).material as StandardMaterial).diffuseColor.b).toBe(0);
+    expect(root(bob).isEnabled()).toBe(false);
+  });
+
+  it("are as set up after loading draws a cut-out part faded, unseen (S4's review of #649)", async () => {
+    const warm = vi.spyOn(ObjectView.prototype, 'warm');
+    const cutOut = backstageId('test/Prop/cut-out');
+    const stage = new BabylonStage(headlessEngine(), {
+      models: {
+        find: () => ({ url: tinySkeletonUrl([{ name: 'hips' }], { cutOut: true }), joints: [] }),
+      },
+    });
+    await stage.load({
+      ...setup,
+      objects: [
+        { ...place(ann, -2, cutOut), class: 'Prop' },
+        { ...place(bob, 2, cutOut), class: 'Prop', opacity: 0 },
+      ],
+    });
+    expect(warm).toHaveBeenCalledWith(true);
+    warm.mockRestore();
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    const root = (id: ObjectId) => inside.getTransformNodeByName(id)!;
+    const body = (id: ObjectId) =>
+      root(id)
+        .getChildMeshes()
+        .find((m) => m.name === 'Body')!;
+    expect(body(ann).material!.transparencyMode).toBe(Material.MATERIAL_ALPHATEST);
+    expect(body(ann).visibility).toBe(1);
+    expect(root(ann).isEnabled()).toBe(true);
+    expect(body(bob).visibility).toBe(0);
     expect(root(bob).isEnabled()).toBe(false);
   });
 

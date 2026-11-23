@@ -92,10 +92,13 @@ export function tinySkeletonUrl(
     clips = [],
     extensions,
     emissive,
+    cutOut = false,
   }: {
     clips?: readonly TinyClip[];
     extensions?: object;
     emissive?: readonly [number, number, number];
+    /** Whether the surface is a cut-out, glTF's `alphaMode: 'MASK'`. */
+    cutOut?: boolean;
   } = {},
 ): string {
   const bones = skeleton.map((b) => b.name);
@@ -149,6 +152,7 @@ export function tinySkeletonUrl(
       {
         pbrMetallicRoughness: { baseColorFactor: [0.2, 0.4, 0.6, 1] },
         ...(emissive ? { emissiveFactor: [...emissive] } : {}),
+        ...(cutOut ? { alphaMode: 'MASK' } : {}),
       },
     ],
     skins: [{ joints: bones.map((_, i) => i), inverseBindMatrices: 4 }],
@@ -345,6 +349,7 @@ function texturedUrl(
   indices: readonly number[],
   png: Uint8Array,
   unlit: boolean,
+  cutOut = false,
 ): string {
   const floats = (a: readonly number[]) => new Uint8Array(new Float32Array(a).buffer);
   const parts = [
@@ -369,7 +374,7 @@ function texturedUrl(
     ...(unlit ? { extensionsUsed: ['KHR_materials_unlit'] } : {}),
     scene: 0,
     scenes: [{ nodes: [0] }],
-    nodes: [{ name: unlit ? 'Sky' : 'Tile', mesh: 0 }],
+    nodes: [{ name: unlit ? 'Sky' : cutOut ? 'Panel' : 'Tile', mesh: 0 }],
     meshes: [
       { primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: 1 }, indices: 2, material: 0 }] },
     ],
@@ -377,6 +382,7 @@ function texturedUrl(
       {
         pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicFactor: 0 },
         ...(unlit ? { extensions: { KHR_materials_unlit: {} } } : {}),
+        ...(cutOut ? { alphaMode: 'MASK' } : {}),
       },
     ],
     textures: [{ source: 0, sampler: 0 }],
@@ -409,6 +415,15 @@ export function tinyGroundTileUrl(tile: number, png: Uint8Array): string {
   const h = tile / 2;
   const positions = [-h, 0, -h, h, 0, -h, h, 0, h, -h, 0, h];
   return texturedUrl(positions, [0, 0, 1, 0, 1, 1, 0, 1], [0, 2, 1, 0, 3, 2], png, false);
+}
+
+/**
+ * A cut-out: a panel a metre wide and two tall, facing +Z like the tiny model, whose picture's
+ * see-through pixels are cut away (glTF's `alphaMode: 'MASK'`).
+ */
+export function tinyCutOutUrl(png: Uint8Array): string {
+  const uvs = [0, 1, 1, 1, 1, 0, 0, 0];
+  return texturedUrl(POSITIONS, uvs, INDICES, png, false, true);
 }
 
 /**
