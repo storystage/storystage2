@@ -1,7 +1,7 @@
 import { jointName, type Quat } from '@storystage/story-api';
 import { describe, expect, it } from 'vitest';
 import { axisTurns, rotate, v } from '../math.ts';
-import { Body } from './body.ts';
+import { ARMS_HELD, Body } from './body.ts';
 import { loadHumanLibrary } from './library.ts';
 import { pack, unpack } from './packed.ts';
 import {
@@ -207,5 +207,72 @@ describe('a body resting in an A-pose', () => {
       .get(jointName('leftHand'))!;
     expect(down.x).toBeCloseTo(0.2, 9);
     expect(down.y).toBeCloseTo(0.9, 9);
+  });
+});
+
+describe("arms let hang as low as a body has room for (owner's choice, 24 Nov)", () => {
+  const places = new Map(
+    (
+      [
+        ['hips', 0, 1, 0],
+        ['spine', 0, 1.1, 0],
+        ['head', 0, 1.6, 0],
+        ['leftUpperArm', 0.2, 1.45, 0],
+        ['leftLowerArm', 0.5, 1.45, 0],
+        ['leftHand', 0.75, 1.45, 0],
+        ['rightUpperArm', -0.2, 1.45, 0],
+        ['rightLowerArm', -0.5, 1.45, 0],
+        ['rightHand', -0.75, 1.45, 0],
+        ['leftUpperLeg', 0.1, 0.95, 0],
+        ['leftFoot', 0.1, 0.08, 0],
+        ['rightUpperLeg', -0.1, 0.95, 0],
+        ['rightFoot', -0.1, 0.08, 0],
+      ] as const
+    ).map(([j, x, y, z]) => [jointName(j), v(x, y, z)]),
+  );
+  const deg = (d: number) => (d * Math.PI) / 180;
+  /** Both arms `d` degrees below level, as a clip holds them. */
+  const held = (d: number) =>
+    pose({
+      leftUpperArm: axisTurns(v(0, 0, 1), -d / 360),
+      rightUpperArm: axisTurns(v(0, 0, 1), d / 360),
+    });
+  /** How far below level each arm hangs in a pose, in degrees. */
+  const drops = (body: Body, p: HumanPose) =>
+    (['left', 'right'] as const).map((side) => {
+      const at = body.places(p);
+      const from = at.get(jointName(`${side}UpperArm`))!;
+      const to = at.get(jointName(`${side}LowerArm`))!;
+      return (
+        (Math.asin((from.y - to.y) / Math.hypot(to.x - from.x, to.y - from.y)) * 180) / Math.PI
+      );
+    });
+
+  it('lowers arms held as KayKit holds them by the room there is', () => {
+    const body = Body.of(places, deg(70))!;
+    for (const d of drops(body, body.settleArms(held(29)))) expect(d).toBeCloseTo(70, 6);
+    // Swinging higher, as in a walk, they're lowered as much, keeping the swing.
+    for (const d of drops(body, body.settleArms(held(12)))) expect(d).toBeCloseTo(53, 6);
+  });
+
+  it('no lower than the body has room for', () => {
+    const body = Body.of(places, deg(70))!;
+    for (const d of drops(body, body.settleArms(held(60)))) expect(d).toBeCloseTo(70, 6);
+    for (const d of drops(body, body.settleArms(held(75)))) expect(d).toBeCloseTo(75, 6);
+  });
+
+  it('leaves a raised arm raised, and lowers one nearly level part of the way', () => {
+    const body = Body.of(places, deg(70))!;
+    for (const d of drops(body, body.settleArms(held(-30)))) expect(d).toBeCloseTo(-30, 6);
+    const [left] = drops(body, body.settleArms(held(-5)));
+    expect(left).toBeGreaterThan(-5);
+    expect(left).toBeLessThan(-5 + 41);
+  });
+
+  it('leaves a body without room, or without a measure, as KayKit holds it', () => {
+    for (const body of [Body.of(places)!, Body.of(places, deg(20))!]) {
+      expect(body.armHang).toBe(ARMS_HELD);
+      for (const d of drops(body, body.settleArms(held(29)))) expect(d).toBeCloseTo(29, 6);
+    }
   });
 });

@@ -7,6 +7,7 @@ import { applyAll, copyNode, EditRefused, idMinter, isStatement } from '@storyst
 import type { EditOperation, Expression, NodeId, Program, Statement } from '@storystage/ast';
 import {
   canDrop,
+  itemChange,
   labelFor,
   type StatementPlace,
   type ValuePlace,
@@ -120,26 +121,20 @@ export function setValue(program: Program, at: ValuePlace, value: Expression): C
 }
 
 /**
- * One of a list's items (`at.param` is its index): the AST sets a list as a whole, so the list
- * is made again with that item changed and put where it is, in one step.
+ * One of a list's items (`at.param` is its index), or another past the last ("or ▾"): the
+ * shared `itemChange`, as the AST sets a list as a whole.
  */
 function setItem(program: Program, at: ValuePlace, value: Expression): Change {
-  const where = indexOf(program).get(at.node);
-  const list = where?.node;
-  const i = Number(at.param);
-  if (!where?.parent || list?.kind !== 'arrayOf' || !(i >= 0 && i < list.items.length))
-    return refused(t('gone'));
-  const items = list.items.map((x, j) => (j === i ? value : x));
-  const holder: ValuePlace = {
-    kind: 'value',
-    node: where.parent,
-    slot: where.slot,
-    ...(typeof where.key === 'string' ? { param: where.key } : {}),
-  };
-  const result = canDrop(program, holder, { ...list, items });
-  if (!result.ok) return refused(result.reason);
-  return { ok: true, edits: result.edits, label: result.label, focus: list.id };
+  const change = itemChange(program, at.node, Number(at.param), value);
+  return change.ok ? { ...change, focus: at.node } : change;
 }
+
+/**
+ * Takes one of a list's items out (an item pill's Remove). The last of a listener's keys or
+ * objects takes the detail out with it (the owner, 24 Nov 2026).
+ */
+export const removeItem = (program: Program, at: ValuePlace): Change =>
+  itemChange(program, at.node, Number(at.param), null);
 
 /** Takes a detail out of a block ("add detail" in reverse). */
 export const removeDetail = (program: Program, node: NodeId, detail: string): Change =>

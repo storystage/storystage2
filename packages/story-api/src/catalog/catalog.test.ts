@@ -5,12 +5,14 @@ import {
   catalogText,
   checkCall,
   classChain,
+  classOfType,
   entriesOf,
   findEntry,
   findEvent,
   fits,
   inRange,
   isKindOf,
+  typeOfClass,
 } from './catalog.ts';
 import { MOVE_AXES, ROLL_AXES, TURN_AXES } from './axes.ts';
 import { DETAILS, IGNORED_DETAILS } from './details.ts';
@@ -132,6 +134,8 @@ describe('entries match Alice', () => {
 
   it('offers every detail of every event, and no others', () => {
     const wrong: string[] = [];
+    // StoryStage's own details aren't Alice's: `keys` (spec 02, section 6a).
+    const alices = (details: readonly string[]) => details.filter((d) => !DETAILS[d]?.storystage);
     for (const e of EVENTS) {
       const keywords = e.alice.flatMap((a) => {
         const keyword = aliceMember(a).details;
@@ -139,7 +143,7 @@ describe('entries match Alice', () => {
           ? Object.keys(palette.keywords[keyword as keyof typeof palette.keywords])
           : [];
       });
-      if ([...keywords].sort().join() !== [...e.details].sort().join()) wrong.push(e.name);
+      if ([...keywords].sort().join() !== alices(e.details).sort().join()) wrong.push(e.name);
     }
     expect(wrong).toEqual([]);
   });
@@ -297,6 +301,17 @@ describe('classes', () => {
   it('knows kinds', () => {
     expect(isKindOf('Biped', 'Model')).toBe(true);
     expect(isKindOf('Camera', 'Model')).toBe(false);
+  });
+});
+
+describe('a class as a type (spec 02, section 1, rule 3)', () => {
+  it('is TextModel for 3D text, as Text is words', () => {
+    expect(typeOfClass('Text')).toBe('TextModel');
+    expect(fits(typeOfClass('Text'), 'Thing')).toBe(true);
+  });
+
+  it.each(API_CLASSES)('gives %s back through classOfType', (cls) => {
+    expect(classOfType(typeOfClass(cls))).toBe(cls);
   });
 });
 

@@ -597,6 +597,22 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(panel.state.plan!.problems).toEqual([]);
   });
 
+  it('offers the scene as a change step’s vehicle by the name the build takes', async () => {
+    // The build's set_property takes "scene" for riding on nothing, and refuses "this" (S7's
+    // review of #651).
+    const { user, panel, open } = await planned([step()]);
+    act(() => panel.changeStep(0, { kind: 'change', action: 'vehicle', details: [] }));
+    const editor = await open();
+    const vehicle = within(editor).getByLabelText('New vehicle') as HTMLSelectElement;
+    const values = [...vehicle.options].map((o) => o.value);
+    expect(values).toContain('scene');
+    expect(values).not.toContain('this');
+    await user.selectOptions(vehicle, 'scene');
+    await user.click(within(editor).getByRole('button', { name: 'Save' }));
+    expect(panel.state.plan!.steps[0]!.details).toEqual([{ name: 'vehicle', value: 'scene' }]);
+    expect(panel.state.plan!.problems).toEqual([]);
+  });
+
   it('gives a when step what it meets and its number, to put either right', async () => {
     const { user, panel, open } = await planned([step()]);
     act(() =>

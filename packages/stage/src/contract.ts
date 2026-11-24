@@ -154,6 +154,29 @@ export interface Stage {
 /** What the scene view can choose and move: an object (the camera included) or a marker. */
 export type EditTarget = { readonly object: ObjectId } | { readonly marker: string };
 
+/**
+ * One step of Look around's camera, for the scene view's buttons (owner, 24 Nov; 07-ux section
+ * 7.2). Each is the same size as its key: circling and tilting a 24th of a turn (arrows),
+ * zooming 1.25 times nearer or further (+ and -), and panning a sixth of the way to what it
+ * looks at (Shift and an arrow).
+ * - `circleLeft`, `circleRight`: the camera goes round what it looks at, to its left or right.
+ * - `riseAndLookDown`, `dropAndLookUp`: it tilts round what it looks at.
+ * - `zoomIn`, `zoomOut`: nearer to it or further away.
+ * - `panLeft`, `panRight`, `panUp`, `panDown`: it slides without turning, so the scene moves the
+ *   other way in the picture.
+ */
+export type ViewStep =
+  | 'circleLeft'
+  | 'circleRight'
+  | 'riseAndLookDown'
+  | 'dropAndLookUp'
+  | 'zoomIn'
+  | 'zoomOut'
+  | 'panLeft'
+  | 'panRight'
+  | 'panUp'
+  | 'panDown';
+
 /** What's at a point of the view. */
 export interface Picked {
   /** The object or marker there, nearest first; null for the ground, the sky or nothing. */
@@ -240,9 +263,31 @@ export interface EditableStage extends Stage {
   /**
    * Look around: on, the view is an orbit camera of its own (the pointer, touch, and the arrow
    * keys while the canvas has focus), starting where the scene's camera is; it never changes the
-   * set-up. Off is Camera view again. It never takes focus.
+   * set-up. Dragging circles and tilts it; a Shift-drag, a right-drag or a two-finger drag pans
+   * it; the wheel or a pinch zooms. Off is Camera view again. It never takes focus.
    */
   lookAround(on: boolean): void;
+
+  /**
+   * Moves Look around's camera one step (`ViewStep`), as its key does; the scene view's buttons
+   * call it. False, and nothing moves, while Look around is off.
+   */
+  viewStep(step: ViewStep): boolean;
+
+  /**
+   * Where one step (`ViewStep`) would put the scene's own camera, for the scene view's buttons in
+   * Camera view (owner, 24 Nov): moved as the same step moves Look around's camera, round the
+   * same point (as far ahead as what's in its shot, or where its line of sight meets the ground,
+   * or a few metres ahead). It changes nothing: the studio writes it, as one undo step, with
+   * `setObject`. The camera keeps its size. Zooming and panning keep its turn, roll and all;
+   * circling and tilting straighten a roll, as Look around has none.
+   *
+   * `around` is the point to turn round, as the last step gave it back: the studio carries it
+   * through steps one after another, so a held Circle round keeps going round the same point when
+   * something leaves the shot (S5, 24 Nov). Without it, or if it's behind the camera, the point
+   * is found again. It gives back the point it used, moved with the camera by a pan.
+   */
+  steppedCamera(step: ViewStep, around?: Vec3): { transform: Transform; around: Vec3 };
 
   /** Where the view is: Look around's camera while it's on, otherwise the scene's camera. */
   viewTransform(): Transform;

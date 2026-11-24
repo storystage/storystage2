@@ -17,7 +17,9 @@ import {
   serializeProgram,
   type OpenOptions,
   type Program,
+  type TypeRef,
 } from '@storystage/ast';
+import type { ObjectId } from '@storystage/story-api';
 import { readArchive, readJson, writeArchive, type ArchiveEntry } from './archive.ts';
 import { readFountain, writeFountain, type FountainProblem } from './fountain.ts';
 import {
@@ -153,12 +155,15 @@ const NEWER =
  * One step up the format's versions: from the version it's keyed by, `to` the next. `manifest`
  * changes the manifest as read, before its shape is checked; `formatVersion` is set to `to` after.
  * `frame`, where a step has one, changes each frame file as read, before its shape is checked.
+ * `program`, where a step has one, changes the opened program, with the scenes beside it, once
+ * every part's shape has been checked and before the references between them are.
  * Each version that adds only optional fields has a step that changes nothing else.
  */
 export interface FormatMigration {
   readonly to: string;
   readonly manifest: (m: Partial<ProductionManifest>) => Partial<ProductionManifest>;
   readonly frame?: (f: Readonly<Record<string, unknown>>) => Record<string, unknown>;
+  readonly program?: (program: Program, scenes: readonly Scene[]) => Program;
 }
 
 const isRecord = (v: unknown): v is Readonly<Record<string, unknown>> =>
@@ -176,6 +181,38 @@ function planStepsHoldNothing(f: Readonly<Record<string, unknown>>): Record<stri
       ? list.map((step) => (isRecord(step) && !('holds' in step) ? { ...step, holds: 0 } : step))
       : list;
   return { ...f, plan: { ...plan, shown: steps(plan['shown']), agreed: steps(plan['agreed']) } };
+}
+
+const TEXT_MODEL: TypeRef = { kind: 'story', name: 'TextModel' };
+const isWords = (t: TypeRef) => t.kind === 'story' && t.name === 'Text';
+
+/**
+ * 1.9.0 to 1.10.0: 3D text is `TextModel` in code, as `Text` is words (spec 02, section 1, rule 3;
+ * the owner's choice of 22 Nov 2026). Before, a 3D text object's field, and a learner's class of
+ * 3D text, were typed `Text`. Now the field of each set-up object of class `Text` that was typed
+ * `Text`, and each class that extends `Text`, is `TextModel`. Words stay words: every other
+ * field, variable and input of type `Text` is left as it is.
+ */
+function textIsTextModel(program: Program, scenes: readonly Scene[]): Program {
+  let changed = false;
+  const types = program.types.map((type) => {
+    const texts = new Set(
+      scenes
+        .filter((s) => type.methods.some((m) => m.id === s.method))
+        .flatMap((s) => s.setup.objects.filter((o) => o.class === 'Text').map((o) => o.id)),
+    );
+    let mine = false;
+    const fields = type.fields.map((f) => {
+      if (f.initial !== null || !texts.has(f.name as ObjectId) || !isWords(f.type)) return f;
+      mine = true;
+      return { ...f, type: TEXT_MODEL };
+    });
+    if (isWords(type.extends)) mine = true;
+    if (!mine) return type;
+    changed = true;
+    return { ...type, extends: isWords(type.extends) ? TEXT_MODEL : type.extends, fields };
+  });
+  return changed ? { ...program, types } : program;
 }
 
 export type FormatMigrations = Readonly<Record<string, FormatMigration>>;
@@ -206,6 +243,9 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.9.0 lets a film keep imported sounds, its tracks' volumes and each scene's music (decision
   // 0076, `sounds/`, `manifest.sounds`, `manifest.mix`, `Scene.music`): nothing else changes.
   '1.8.0': { to: '1.9.0', manifest: (m) => m },
+  // 1.10.0 types 3D text as `TextModel` in code, where it was `Text`, which is words: the first
+  // migration that changes the program.
+  '1.9.0': { to: '1.10.0', manifest: (m) => m, program: textIsTextModel },
 };
 
 /**
@@ -360,6 +400,7 @@ export function openProduction(
   let upgraded: Partial<ProductionManifest> = m;
   let formatMigrated = false;
   const frameSteps: NonNullable<FormatMigration['frame']>[] = [];
+  const programSteps: NonNullable<FormatMigration['program']>[] = [];
   const migrations = options.migrations ?? FORMAT_MIGRATIONS;
   while (order < 0) {
     const from = upgraded.formatVersion!;
@@ -370,6 +411,7 @@ export function openProduction(
       return broken(TOO_OLD, [`The migration from format ${from} doesn't go to a newer one.`]);
     upgraded = { ...step.manifest(upgraded), formatVersion: step.to };
     if (step.frame) frameSteps.push(step.frame);
+    if (step.program) programSteps.push(step.program);
     formatMigrated = true;
     order = compareVersions(step.to, current);
   }
@@ -446,6 +488,9 @@ export function openProduction(
   }
 
   if (problems.length > 0 || program === null) return broken(DAMAGED, problems);
+  // The program of an older file is brought up to date as its frames were, with its scenes
+  // beside it, before the references between them are checked.
+  program = programSteps.reduce((prog, up) => up(prog, scenes), program);
 
   // Voices are a cache of the learner's choices: one that doesn't fit, or whose character no
   // scene has, is dropped rather than refusing the file (spec 03 section 1.6).

@@ -31,6 +31,8 @@ export type Part =
   | { readonly kind: 'statements'; readonly input: string }
   | { readonly kind: 'number'; readonly field: string; readonly whole: boolean }
   | { readonly kind: 'text'; readonly field: string }
+  /** A block's sound, chosen from the film's sounds by label (`sounds.ts`). */
+  | { readonly kind: 'sound'; readonly field: string }
   /**
    * A choice: each option's words, its value, and, where the words carry a drawn arrow
    * ("left ↺"), the plain words a screen reader says ("left").
@@ -64,6 +66,8 @@ export const USER_CALL = 'ss_usercall';
 export const USER_FUNCTION = 'ss_userfn';
 /** A detail only the script sets (a speak line's `line`): fixed words, carrying the line's id. */
 export const FROM_SCRIPT = 'ss_fromscript';
+/** A sound written as text (Story API section 8), shown by its label (7.17). */
+export const SOUND = 'ss_sound';
 export const METHOD = 'ss_method';
 export const LISTENER = 'ss_listener';
 
@@ -94,6 +98,9 @@ export function partsFrom(template: string, slot: (name: string) => Part): Part[
 const controlWord = (key: string): string =>
   STORY[`control.${key.slice('block.'.length)}`] ?? word(key);
 
+/** "or", between a listener's keys or objects: the shared words' ("{left} or {right}"). */
+const OR = (STORY['words.or'] ?? 'or').replace(/\{\w+\}/g, '').trim();
+
 const word = (key: string): string => {
   const text = WORDS[key];
   if (text === undefined) throw new Error(`No block words for "${key}"`);
@@ -112,12 +119,16 @@ export const ENTRY_NAMES: readonly string[] = [...BY_NAME.keys()];
 export const entryNamed = (name: string): ApiEntry | undefined => BY_NAME.get(name);
 
 /** The words for a detail and its slot: "how long {value}". */
-function detailParts(detail: string): Part[] {
+function detailCheck(detail: string): string[] | null {
   const def = DETAILS[detail as keyof typeof DETAILS];
+  return def ? inputCheck(def.type) : null;
+}
+
+function detailParts(detail: string): Part[] {
   return partsFrom(word('block.detail'), (name) =>
     name === 'detail'
       ? { kind: 'words', text: STORY[`detail.${detail}`] ?? detail }
-      : { kind: 'value', input: detailInput(detail), check: def ? inputCheck(def.type) : null },
+      : { kind: 'value', input: detailInput(detail), check: detailCheck(detail) },
   );
 }
 
@@ -178,21 +189,35 @@ export const methodShape = (): Shape => ({
 });
 
 /** A listener: the event's words, with a slot for each argument and detail, then its body. */
-export function listenerShape(event: string, details: readonly string[] = []): Shape {
+export function listenerShape(
+  event: string,
+  details: readonly string[] = [],
+  phrase?: string,
+): Shape {
   const def = findEvent(event);
   // A scene's own `sceneStart` listener reads "also when the scene starts" (spec 14, 2).
   const template = STORY[`listener.${event}`] ?? STORY[`event.${event}`] ?? event;
+  // A detail with a phrase of its own goes in it: "when {keys} is pressed" (24 Nov 2026).
+  const named = details.filter((d) => phrase?.includes(`{${d}}`));
+  const opening: Part[] =
+    phrase && named.length > 0
+      ? partsFrom(phrase, (name) =>
+          named.includes(name)
+            ? { kind: 'value', input: detailInput(name), check: detailCheck(name) }
+            : { kind: 'words', text: `{${name}}` },
+        )
+      : [{ kind: 'words', text: template }];
   return {
     type: LISTENER,
     role: 'header',
     parts: [
-      { kind: 'words', text: template },
+      ...opening,
       ...(def?.args ?? []).map((a): Part => ({
         kind: 'value',
         input: argInput(a.name),
         check: inputCheck(a.type),
       })),
-      ...details.flatMap(detailParts),
+      ...details.filter((d) => !named.includes(d)).flatMap(detailParts),
       { kind: 'statements', input: 'BODY' },
     ],
   };
@@ -290,7 +315,7 @@ const options = (ops: readonly string[]): [string, string][] =>
 /** The block for an expression kind other than a function call or an enum value. */
 export function expressionShape(
   kind: string,
-  extra: { count?: number; of?: TypeName | null } = {},
+  extra: { count?: number; of?: TypeName | null; oneOf?: true } = {},
 ): Shape {
   const type = nodeType(kind);
   const value = (input: string, check: string[] | null = null): Part => ({
@@ -359,6 +384,12 @@ export function expressionShape(
       const items = Array.from({ length: extra.count ?? 0 }, (_, i) =>
         value(itemInput(i), of ? inputCheck(of) : null),
       );
+      // A listener's keys or objects read "W or up arrow" (24 Nov 2026).
+      if (extra.oneOf)
+        return v(
+          of ? (`${of}[]` as TypeName) : null,
+          items.flatMap((item, i) => (i === 0 ? [item] : [{ kind: 'words', text: OR }, item])),
+        );
       return v(of ? (`${of}[]` as TypeName) : null, [
         { kind: 'words', text: word('block.arrayOf') },
         ...items,
@@ -423,6 +454,19 @@ export function fromScriptShape(): Shape {
     role: 'value',
     output: outputCheck('LineId'),
     parts: [{ kind: 'words', text: STORY['words.fromScript'] ?? 'from the script' }],
+  };
+}
+
+/**
+ * The block for a sound, where a block plays one (`playAudio`, workplan 7.17): its label, with ▾
+ * for the film's other sounds. The code holds the sound's id as text.
+ */
+export function soundShape(): Shape {
+  return {
+    type: SOUND,
+    role: 'value',
+    output: outputCheck('Audio'),
+    parts: [{ kind: 'sound', field: 'VALUE' }],
   };
 }
 

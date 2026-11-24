@@ -14,13 +14,14 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
-import type {
-  BackstageId,
-  ObjectId,
-  SceneObjectSetup,
-  StandIn,
-  StoryClass,
-  Transform,
+import {
+  typeOfClass,
+  type BackstageId,
+  type ObjectId,
+  type SceneObjectSetup,
+  type StandIn,
+  type StoryClass,
+  type Transform,
 } from '@storystage/story-api';
 import { skeletonOf } from '@storystage/backstage';
 import { keptJoints } from './pose.ts';
@@ -106,10 +107,11 @@ export function addObject(
   if (!found) return refuse({ code: 'noSuchScene' });
   if (found.scene.setup.objects.length >= OBJECT_LIMIT)
     return refuse({ code: 'tooManyObjects', limit: OBJECT_LIMIT });
-  const type: TypeRef = object.type ?? { kind: 'story', name: object.class };
+  // A class as a type: 3D text's is `TextModel`, as `Text` is words (format 1.10.0).
+  const type: TypeRef = object.type ?? { kind: 'story', name: typeOfClass(object.class) };
   const types = new Map(p.program.types.map((t) => [t.id, t] as const));
   // The caller's mistake, not the learner's: `checkReferences` would find the two disagreeing.
-  if (storyAncestor(type, types) !== object.class)
+  if (storyAncestor(type, types)?.class !== object.class)
     throw new Error(`addObject: the field's type doesn't come down from ${object.class}.`);
   const name = objectName(p, scene, object.name)!;
   const field: FieldDecl = {

@@ -36,6 +36,7 @@ import {
 } from '@storystage/story-api';
 import { gaitClipNames, strideSpeed, type Gaits } from '../gaits.ts';
 import { Body } from '../humanoid/body.ts';
+import { armHang } from './arm-room.ts';
 import type { Box } from '../hull.ts';
 import type { Shape } from '../timeline.ts';
 import { plainMaterial } from './materials.ts';
@@ -230,7 +231,10 @@ export class ModelLibrary {
       }),
     );
     // A humanoid walks with the shared clips (WP4.6); anything else with its own, if it has them.
-    const gaits = Body.of(jointPlaces) ? undefined : gaitsOf(view, cls, clips, joints);
+    const human = Body.of(jointPlaces);
+    const gaits = human ? undefined : gaitsOf(view, cls, clips, joints);
+    // How low its arms can hang beside its body (owner's choice, 24 Nov).
+    const hang = human ? armHang(meshes, joints, jointPlaces) : undefined;
     return {
       view,
       shape: {
@@ -240,6 +244,7 @@ export class ModelLibrary {
         clips,
         ...(gaits ? { gaits } : {}),
         ...(file.gait === 'hop' ? { hop: true } : {}),
+        ...(hang !== undefined ? { armHang: hang } : {}),
       },
     };
   }

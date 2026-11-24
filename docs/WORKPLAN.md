@@ -647,7 +647,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 7.17 **Sound in the studio (0076):**
     - **the Sound view:** a scene's music on a timeline: where it starts, its trim, fades, loop and volume, on the Music track; a clip can carry on over a scene cut until another starts (S5);
     - **the trim dialog on import:** a waveform with start and end handles, set once (S5). **Built (23 Nov), with Sounds in this film to reach it;**
-    - **`playAudio`'s choice of sound:** in Blocks (S5), and in Tiles (S6).
+    - **`playAudio`'s choice of sound:** in Blocks (S5), and in Tiles (S6). **Built in both (24 Nov): the studio gives both editors and the shared cascade the film's imported sounds by name; in Blocks a sound is a chip with ▾.**
 
     (C)
 
@@ -856,6 +856,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [ ] 15.5 Apple developer account and App Store listing; Google Play listing with managed Play for schools. (U; C prepares listings and privacy labels)
 - [ ] 15.6 **Browser version:** the same `apps/studio` build, hosted as static files at `app.storystage.org` (decision 0046), with the Prompter, key and speech-input features hidden. No server code. Built: the `browser` workflow's zip and its `.htaccess` (#427); waits for the owner to upload it. (C; U hosts)
 - [ ] 15.7 **Updates and rollback:** a pilot channel and a stable channel, chosen by policy (`update.channel`), with version pinning (`update.pin`) so a school can hold a version through a term; staged rollout; desktop auto-update only within the chosen channel; version shown in About. A rollback drill: push a broken build to the pilot channel and roll it back. Built: channels, pins, staged rollout, rollback and the `Release` and `Channel` workflows (#88, #98 to #103); the drill waits for the owner's updater key (0047). (C)
+- [ ] 15.8 **The Android app as a Play app bundle, with the Backstage in an install-time asset pack** (decision 0062, update of 23 Nov 2026): Play allows 500 MB for an app bundle's base module and 100 MB for a plain APK, and the Backstage alone is 346 MB compressed. An install-time pack is installed with the app, so it still works offline from the first launch. The app finds the Backstage in the pack. CI builds the bundle, and checks each part against Play's limits. S8. (C)
 
 **Done when:** signed builds install on each target, the key survives restart, with the policy lock set the Prompter can't be switched on, a request with an unlisted model or system prompt is refused, 30 simulated clients hitting rate limits back off without a retry storm, and the rollback drill passes.
 

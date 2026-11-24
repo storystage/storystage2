@@ -20,6 +20,8 @@
   "tiles.bottom": "That’s already at the bottom.",
   "tiles.partsOf": "{name}’s joints",
   "tiles.removeDetail": "Take {detail} out",
+  "tiles.removeItem": "Take {item} out",
+  "tiles.addItem": "add another to {detail}",
   "tiles.noSounds": "No sounds in this film yet. Add one in Sound, from the shelf or your own.",
   "tiles.noChoices": "Nothing to choose here yet.",
   "tiles.use": "Use it",

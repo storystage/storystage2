@@ -24,6 +24,7 @@ import {
   readyFor,
   type Place,
   type ValuePlace,
+  type WordsOptions,
 } from '@storystage/story-api/editing';
 import { STORY_WORDS } from '@storystage/story-api';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
@@ -127,6 +128,7 @@ export async function dropFromPalette(
   program: Program,
   fresh: Fresh,
   ask: Ask | null,
+  words: WordsOptions = {},
 ): Promise<DropOutcome> {
   const taken = idsOf(program);
   const mint = () => {
@@ -139,7 +141,7 @@ export async function dropFromPalette(
   // rather than being refused for two `item`s.
   if (fresh.place.kind === 'statement' && isStatement(node))
     node = readyFor(program, fresh.place, node);
-  let drop = canDrop(program, fresh.place, node);
+  let drop = canDrop(program, fresh.place, node, words);
   if (!drop.ok) return { kind: 'refused', reason: drop.reason };
   if (ask) {
     for (const place of emptySlots(node)) {
@@ -147,7 +149,7 @@ export async function dropFromPalette(
       if (value === null) return { kind: 'cancelled' };
       // The answer takes the program's own ids too, whoever made it.
       node = filled(node, place, withNewIds(value, mint));
-      drop = canDrop(program, fresh.place, node);
+      drop = canDrop(program, fresh.place, node, words);
       if (!drop.ok) return { kind: 'refused', reason: drop.reason };
     }
   }

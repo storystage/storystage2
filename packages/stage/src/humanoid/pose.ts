@@ -37,6 +37,8 @@ export interface HumanClip {
   readonly loop: boolean;
   /** For a walk or a run: how fast its feet carry it, in hips' heights a second. */
   readonly speed?: number;
+  /** KayKit's: the arms held out from the body, and let hang lower on a body with room. */
+  readonly armsHeld?: boolean;
 }
 
 const dotQ = (a: Quat, b: Quat) => a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;

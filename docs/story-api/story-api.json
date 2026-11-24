@@ -1,7 +1,7 @@
 {
-  "$schema": "https://storystage.org/spec/story-api/0.11/story-api.schema.json",
-  "$id": "https://storystage.org/spec/story-api/0.11/story-api.json",
-  "version": "0.11.0",
+  "$schema": "https://storystage.org/spec/story-api/0.12/story-api.schema.json",
+  "$id": "https://storystage.org/spec/story-api/0.12/story-api.json",
+  "version": "0.12.0",
   "status": "draft",
   "language": "en-GB",
   "space": {
@@ -1057,6 +1057,13 @@
       "type": "HeldKeyPolicy",
       "default": "fireMultiple",
       "words": "when the key is held"
+    },
+    {
+      "name": "keys",
+      "type": "Key[]",
+      "default": null,
+      "defaultMeans": "every key the event is for",
+      "words": "which keys"
     },
     {
       "name": "multipleEventPolicy",
@@ -3322,6 +3329,7 @@
         }
       ],
       "details": [
+        "keys",
         "heldKeyPolicy",
         "multipleEventPolicy"
       ],
@@ -3355,8 +3363,15 @@
         }
       ],
       "details": [
+        "keys",
         "heldKeyPolicy",
         "multipleEventPolicy"
+      ],
+      "keys": [
+        "up",
+        "down",
+        "left",
+        "right"
       ],
       "words": "when an arrow key is pressed",
       "fromAlice": [
@@ -3380,8 +3395,21 @@
         }
       ],
       "details": [
+        "keys",
         "heldKeyPolicy",
         "multipleEventPolicy"
+      ],
+      "keys": [
+        "digit0",
+        "digit1",
+        "digit2",
+        "digit3",
+        "digit4",
+        "digit5",
+        "digit6",
+        "digit7",
+        "digit8",
+        "digit9"
       ],
       "words": "when a number key is pressed",
       "fromAlice": [
