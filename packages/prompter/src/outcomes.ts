@@ -66,8 +66,12 @@ export function outcomeMessage(outcome: AskOutcome): OutcomeMessage | null {
         ...undo,
       };
     case 'cut_short':
-    case 'step_failed':
       return { text: COULDNT_FINISH, ...undo };
+    case 'step_failed':
+      // A plan step by the number the panel shows, so the learner can find it (S5, 23 Nov 2026).
+      return typeof outcome.failedStep === 'number'
+        ? { text: `The Prompter couldn't finish step ${outcome.failedStep} of the plan.`, ...undo }
+        : { text: COULDNT_FINISH, ...undo };
     case 'error': {
       const message = ERRORS[outcome.code ?? 'internal'];
       if (message && outcome.code === 'rate_limited' && outcome.retryAfterSeconds)

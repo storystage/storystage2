@@ -115,7 +115,7 @@ const PARENT = text(
   'The id of a control block, or of a listener from add_event_listener, to add inside, from an earlier result. Leave it out to add to the method itself.',
 );
 const POSITION = text(
-  '"end", or a whole number as text for the place among the blocks there, from 0.',
+  "\"end\", or a whole number as text for the place among the blocks there, from 0. Each step's block goes straight after the previous step's; only the plan's first block may go anywhere.",
 );
 
 const PLAN_STEP = object({

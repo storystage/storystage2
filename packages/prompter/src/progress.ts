@@ -9,6 +9,7 @@ import { classOfType, findEntry, type ApiClass } from '@storystage/story-api';
 import { defaultText, onlyInput, type OwnMove } from './own-moves.ts';
 import { targetOf, type PlanStep } from './plans.ts';
 import { heldBy } from './repeats.ts';
+import { eventOf } from './shape.ts';
 import { listText, plainText } from './values.ts';
 
 /** What the ticks are worked out against: the scene now, and what counts as the learner's. */
@@ -32,6 +33,10 @@ export interface ProgressWorld {
   readonly move?: (id: NodeId) => OwnMove | null;
   /** For each step, the learner's procedure it means, fixed when it was shown or changed. */
   readonly meant?: readonly (NodeId | null)[];
+  /** The scene's script method, where a step before the plan's first when step goes (6.10). */
+  readonly script?: NodeId;
+  /** Whether a listener is the event a when step describes (6.10). Without it, any of its kind. */
+  readonly listenerFits?: (step: PlanStep, listener: ListenerDecl) => boolean;
 }
 
 /** A call in the scene, with what a step is matched by. */
@@ -45,6 +50,8 @@ interface Found {
   readonly counts: readonly number[];
   readonly together: boolean;
   readonly mine: boolean;
+  /** The method or listener it's in. */
+  readonly root: NodeId;
 }
 
 /**
@@ -63,6 +70,7 @@ interface Loop {
   readonly id: NodeId;
   readonly times: number;
   readonly mine: boolean;
+  readonly root: NodeId;
 }
 
 function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
@@ -114,6 +122,7 @@ function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
             counts,
             together,
             mine: world.counts(s.id, around),
+            root: around[0]!,
           });
           break;
         }
@@ -124,6 +133,7 @@ function calls(world: ProgressWorld, loops: Loop[] = []): Found[] {
               id: s.id,
               times: (s.times as { value: number }).value,
               mine: world.counts(s.id, around),
+              root: around[0]!,
             });
           visit(
             s.body,
@@ -247,7 +257,12 @@ function listens(
   world: ProgressWorld,
 ): NodeId[] {
   return listeners
-    .filter((l) => l.event === step.action && world.counts(l.id, []))
+    .filter(
+      (l) =>
+        l.event === step.action &&
+        world.counts(l.id, []) &&
+        (world.listenerFits?.(step, l) ?? true),
+    )
     .map((l) => l.id);
 }
 
@@ -260,11 +275,20 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
   const mine = calls(world, loops).filter((c) => c.mine);
   const held = heldBy(steps);
   const used = new Set<NodeId>();
-  const take = (ids: readonly NodeId[]): boolean => {
+  const chosen = new Map<number, NodeId>();
+  const take = (ids: readonly NodeId[], at?: number): boolean => {
     const id = ids.find((i) => !used.has(i));
     if (id === undefined) return false;
     used.add(id);
+    if (at !== undefined) chosen.set(at, id);
     return true;
+  };
+  // A step is ticked by a block in its own place: the script before the first when step, and a
+  // when step's listener after it (6.10). Without the script's id, anywhere, as before.
+  const inPlace = (i: number, root: NodeId) => {
+    const event = eventOf(steps, i);
+    if (event < 0) return world.script === undefined || root === world.script;
+    return chosen.get(event) === root;
   };
   return steps.map((step, i) => {
     const holder = held[i];
@@ -273,6 +297,7 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
       case 'do':
         return take(
           mine
+            .filter((c) => inPlace(i, c.root))
             .filter((c) => matches(step, world.meant?.[i] ?? null, c, world, within))
             .map((c) => c.id),
         );
@@ -283,12 +308,16 @@ export function stepsDone(steps: readonly PlanStep[], world: ProgressWorld): boo
       case 'change':
         return starts(step, world);
       case 'when':
-        return take(listens(step, world.type.listeners, world));
+        return take(listens(step, world.type.listeners, world), i);
       case 'stage':
         return world.staged;
       case 'repeat':
         // A count of the learner's with the repeat's times (6.8); each count ticks one repeat.
-        return take(loops.filter((l) => l.mine && l.times === step.repeat).map((l) => l.id));
+        return take(
+          loops
+            .filter((l) => l.mine && l.times === step.repeat && inPlace(i, l.root))
+            .map((l) => l.id),
+        );
     }
   });
 }

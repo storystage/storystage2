@@ -78,6 +78,8 @@ import {
 import { stageAfter, stepMoves } from './plan-stage.ts';
 import {
   checkPlan,
+  eventSettings,
+  listenerFits,
   mismatch,
   targetOf,
   unplanned,
@@ -88,6 +90,7 @@ import {
 } from './plans.ts';
 import { stepsDone } from './progress.ts';
 import { heldBy } from './repeats.ts';
+import { chainOf, firstUnlanded, holderOf, stepBefore, type Link } from './shape.ts';
 import { scriptFacts } from './script-check.ts';
 import { SHIPPED_CATALOGUE } from './shipped-catalogue.ts';
 import { sideProblems } from './sides.ts';
@@ -335,6 +338,14 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   #builds: readonly (Meant | null)[] = [];
   /** Why the agreed plan can't be built: a procedure changed since the plan was shown. */
   #stale: PlanProblem | null = null;
+  /** The build's shape (section 6.10): each step's blocks as built, by index, outermost first. */
+  #chains = new Map<number, NodeId[]>();
+  /** The steps that have landed, by index. */
+  #landed = new Set<number>();
+  /** Each when step's listener, by the step's index. */
+  #listeners = new Map<number, NodeId>();
+  /** Where `code_frame` put a frame's first block, if it was called. */
+  #frameStart: { readonly parent: NodeId; readonly position: string } | null = null;
 
   constructor(setup: RunnerSetup<S>) {
     this.#setup = setup;
@@ -355,6 +366,10 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     this.#coding = null;
     this.#builds = [];
     this.#stale = null;
+    this.#chains = new Map();
+    this.#landed = new Set();
+    this.#listeners = new Map();
+    this.#frameStart = null;
     if (this.#agreed) {
       const { steps, frame } = this.#agreed;
       this.#stale = this.#changedMoves(steps, this.#world(frame))[0] ?? null;
@@ -365,6 +380,13 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
   end(): void {
     if (this.#open) this.#setup.session.commit();
     this.#open = false;
+  }
+
+  /** The first agreed step that hasn't landed, by number, or null (section 6.10). */
+  unfinished(): number | null {
+    if (!this.#agreed) return null;
+    const left = firstUnlanded(this.#agreed.steps, this.#landed);
+    return left === null ? null : left + 1;
   }
 
   /** The plans shown in this conversation, for the panel and for keeping with the frame (6.7). */
@@ -468,6 +490,14 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       staged,
       move: (id) => this.#moveById(program, id),
       meant: steps.map((step) => this.#meant.get(step)?.id ?? null),
+      script: scene.method,
+      listenerFits: (step, listener) =>
+        listenerFits(
+          step,
+          listener,
+          new Map(type.fields.map((f) => [f.id as string, f.name] as const)),
+          (name) => fields.has(name),
+        ),
     });
   }
 
@@ -677,6 +707,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     if (!method) return fail('unknown_method', "This scene's method can't be found.");
     this.#coding = frame as FrameId;
     const where = this.#frameSlot(frame as FrameId, method);
+    this.#frameStart = { parent: (where.block ?? method.id) as NodeId, position: where.position };
     const inside = where.block ? `, inside ${where.block}` : '';
     return ok(
       `Build frame ${frame} in ${method.name}${inside}, from position ${where.position}. Blocks you build now are linked to the frame.`,
@@ -739,7 +770,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const fresh = [...index.keys()].filter((id) => !before.has(id));
     const covered = (id: NodeId) => {
       for (let at = index.get(id)?.parent ?? null; at !== null; at = index.get(at)?.parent ?? null)
-        if (linked.has(at) || !before.has(at)) return true;
+        if (linked.has(at) || (!before.has(at) && STATEMENT_SLOTS.has(index.get(at)!.slot)))
+          return true;
       return false;
     };
     const blocks = fresh.filter((id) => STATEMENT_SLOTS.has(index.get(id)!.slot) && !covered(id));
@@ -772,6 +804,10 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       fields.some((f) => f.name === who),
     );
     if (wrong) return fail('not_in_plan', wrong);
+    if (name !== 'insert_statement' && name !== 'insert_control' && name !== 'code_frame') {
+      const shape = this.#inOrder(number - 1);
+      if (shape) return shape;
+    }
 
     const program = this.#setup.session.program();
     const type = this.#sceneType(program);
@@ -792,14 +828,143 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         return built.ok && serves !== number ? { ...built, step: serves } : built;
       }
       case 'add_model':
-        return this.#addModel(input);
+        return this.#landing(number, this.#addModel(input));
       case 'set_property':
-        return this.#setProperty(input);
+        return this.#landing(number, this.#setProperty(input));
       case 'stage_scene':
-        return this.#stageScene(input);
-      default:
-        return this.#listen(input, type, scene, mint);
+        return this.#landing(number, this.#stageScene(input));
+      default: {
+        const listened = this.#listen(input, type, scene, mint, step);
+        if (listened.ok && listened.ids.block)
+          this.#listeners.set(number - 1, listened.ids.block as NodeId);
+        return this.#landing(number, listened);
+      }
     }
+  }
+
+  /** A step's one call, landed if it worked. */
+  #landing(number: number, result: Result): Result {
+    if (result.ok) this.#landed.add(number - 1);
+    return result;
+  }
+
+  /**
+   * Why step `i` can't be built now (section 6.10): it has landed already, or a step before it
+   * hasn't. Null if it can.
+   */
+  #inOrder(i: number): Result | null {
+    const steps = this.#agreed?.steps ?? [];
+    if (this.#landed.has(i)) return fail('not_in_plan', `Step ${i + 1} is built already.`);
+    const left = firstUnlanded(steps.slice(0, i), this.#landed);
+    return left === null
+      ? null
+      : fail(
+          'not_in_plan',
+          `Build the steps in order: step ${left + 1} comes before step ${i + 1}, and isn't built yet.`,
+        );
+  }
+
+  /**
+   * Why a block for step `i` can't go at this place, or null (section 6.10): it's the step's next
+   * block, after every step before it, and side by side with the one before it.
+   */
+  #placed(i: number, link: Link, parent: NodeId, at: number): Result | null {
+    const steps = this.#agreed?.steps ?? [];
+    const chain = chainOf(steps, i);
+    const built = this.#chains.get(i) ?? [];
+    if (built.length >= chain.length) return fail('not_in_plan', `Step ${i + 1} is built already.`);
+    const left = firstUnlanded(steps.slice(0, i), this.#landed);
+    if (left !== null)
+      return fail(
+        'not_in_plan',
+        `Build the steps in order: step ${left + 1} comes before step ${i + 1}, and isn't built yet.`,
+      );
+    const wanted = chain[built.length]!;
+    if (link !== wanted)
+      return fail(
+        'not_in_plan',
+        `Step ${i + 1}'s next block is its ${wanted === 'block' ? 'own block' : wanted === 'count' ? 'count block' : 'doTogether block'}.`,
+      );
+    const place = this.#placeFor(i, built);
+    if ('ok' in place) return place;
+    const index = indexProgram(this.#setup.session.program());
+    const name = (id: NodeId) => {
+      const node = index.get(id)?.node;
+      return node?.kind === 'method' ? node.name : id;
+    };
+    const here =
+      place.at === null
+        ? `in ${name(place.parent)}`
+        : `at position ${place.at} in ${name(place.parent)}`;
+    if (parent !== place.parent || (place.at !== null && at !== place.at))
+      return fail(
+        'not_in_plan',
+        `Step ${i + 1}'s block goes side by side with the step before it: build it ${here}.`,
+      );
+    return null;
+  }
+
+  /**
+   * Where step `i`'s next block goes, given the blocks of it already built: first in the last of
+   * them; else in what holds the step, straight after the step before it, or first. `at` is null
+   * for the plan's first block in the script, which may go anywhere there.
+   */
+  #placeFor(
+    i: number,
+    built: readonly NodeId[],
+  ): { readonly parent: NodeId; readonly at: number | null } | Result {
+    const steps = this.#agreed!.steps;
+    if (built.length > 0) return { parent: built.at(-1)!, at: 0 };
+    const holder = holderOf(steps, i);
+    let parent: NodeId | undefined;
+    switch (holder.kind) {
+      case 'script': {
+        const scene = this.#setup.session
+          .production()
+          .scenes.find((s) => s.id === this.#setup.scene());
+        parent = scene?.method;
+        break;
+      }
+      case 'event':
+        parent = this.#listeners.get(holder.of);
+        break;
+      case 'repeat':
+        // The steps a repeat holds go in its count, inside any do together it starts.
+        parent = this.#chains.get(holder.of)?.at(-1);
+        break;
+      default:
+        parent = this.#chains.get(holder.of)?.[0];
+    }
+    if (!parent)
+      return fail(
+        'not_in_plan',
+        `Build step ${holder.kind === 'script' ? 1 : (holder as { of: number }).of + 1} first.`,
+      );
+    const before = stepBefore(steps, i);
+    const list = this.#listOf(parent);
+    if (before === null) {
+      if (holder.kind !== 'script') return { parent, at: 0 };
+      // The plan's first block in the script: where `code_frame` said, for a frame.
+      const start = this.#frameStart;
+      if (!start) return { parent, at: null };
+      return {
+        parent: start.parent,
+        at: start.position === 'end' ? this.#listOf(start.parent).length : Number(start.position),
+      };
+    }
+    // In a group, its own first step's block is first in the do together, after any count of its.
+    const chain = this.#chains.get(before) ?? [];
+    const node = holder.kind === 'group' && before === holder.of ? chain[1] : chain[0];
+    const at = node === undefined ? -1 : list.indexOf(node);
+    if (at < 0) return fail('not_in_plan', `Build step ${before + 1} first.`);
+    return { parent, at: at + 1 };
+  }
+
+  /** The ids of the statements in a method's, listener's or block's body. */
+  #listOf(parent: NodeId): NodeId[] {
+    const node = indexProgram(this.#setup.session.program()).get(parent)?.node as
+      { readonly body?: readonly { readonly id: NodeId }[] } | undefined;
+    return (node?.body ?? []).map((s) => s.id);
   }
 
   /** Opens the request's undo group, named after its first change. */
@@ -886,6 +1051,18 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         'bad_argument',
         `position ${position} is past the end; there are ${where.length} blocks there.`,
       );
+    const link: Link | null =
+      input.kind === undefined
+        ? 'block'
+        : text(input.kind) === 'doTogether'
+          ? 'doTogether'
+          : text(input.kind) === 'count'
+            ? 'count'
+            : null;
+    if (link === null)
+      return fail('not_in_plan', `A ${text(input.kind)} block isn't part of the plan.`);
+    const placed = this.#placed(number - 1, link, where.parent, at);
+    if (placed) return placed;
     const node = build(where.parent);
     if ('ok' in node) return node;
 
@@ -914,6 +1091,10 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     if (refused) return refused;
     this.#commented.add(number);
     if (step.kind === 'repeat' && node.kind === 'count') this.#repeatBlocks.set(number, node.id);
+    const chain = [...(this.#chains.get(number - 1) ?? []), node.id];
+    this.#chains.set(number - 1, chain);
+    const steps = this.#agreed?.steps ?? [];
+    if (chain.length === chainOf(steps, number - 1).length) this.#landed.add(number - 1);
     const ids: Record<string, string> = { block: node.id };
     if (node.kind === 'if')
       Object.assign(ids, { then: `${node.id}:then`, else: `${node.id}:else` });
@@ -1382,7 +1563,13 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     return result.ok ? null : fail('would_break_program', result.reason);
   }
 
-  #listen(input: Input, sceneType: TypeDecl, scene: SceneObjects, mint: () => NodeId): Result {
+  #listen(
+    input: Input,
+    sceneType: TypeDecl,
+    scene: SceneObjects,
+    mint: () => NodeId,
+    step?: PlanStep,
+  ): Result {
     const event = findEvent(text(input.event));
     if (!event) return fail('bad_argument', `There is no ${text(input.event)} event.`);
     const lists = [input.objects, input.other_objects].map((l) =>
@@ -1424,6 +1611,13 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     }));
     // What's clicked is the event's setOfVisuals detail: without it, a click on anything counts.
     const details: Record<string, Expression> = {};
+    // The event's own settings, as its step gives them (section 6.10). One it leaves out is the
+    // default. The plan check has read each value.
+    for (const d of step?.details ?? []) {
+      const type = DETAILS[d.name]?.type;
+      if (eventSettings(event).includes(d.name) && type)
+        details[d.name] = { id: mint(), kind: 'enum', type, value: d.value };
+    }
     const clicked = event.details.includes('setOfVisuals') ? (lists[0] ?? []) : [];
     if (clicked.length > 0) {
       const refs = clicked.map((name) => ({ name, ref: objectRef(name, scene, mint) }));

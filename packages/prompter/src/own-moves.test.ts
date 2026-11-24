@@ -51,6 +51,7 @@ const ID = {
   dance: nodeId('dancemove'),
   round: nodeId('roundmove'),
   answer: nodeId('answerfun'),
+  again: nodeId('againmove'),
   mirror: nodeId('mirrormov'),
 };
 const THIS = (): Expression => ({ id: mint(), kind: 'this' });
@@ -137,7 +138,7 @@ function film(): Production {
     [],
     [
       // Switched off, so it can be switched on again.
-      { ...callOwn(ID.dance), enabled: false } as Statement,
+      { ...callOwn(ID.again), enabled: false } as Statement,
       { id: mint(), kind: 'return', value: { id: mint(), kind: 'boolean', value: true } },
     ],
     story('Boolean'),
@@ -176,7 +177,14 @@ function film(): Production {
         field('owl', story('Flyer')),
         field('sign', story('TextModel')),
       ],
-      methods: [...t.methods, method('dance', ID.dance), round, answer],
+      methods: [
+        ...t.methods,
+        method('dance', ID.dance),
+        round,
+        answer,
+        // It runs the scene's script again, so a call to it from the script never ends.
+        method('again', ID.again, [], [callOwn(t.methods[0]!.id)]),
+      ],
     };
   });
   return { ...p, program: { ...p.program, types: [...types, ...classes()] } };
@@ -577,23 +585,26 @@ describe("the learner's own in a plan (spec 04, section 6.9): building", () => {
       });
   });
 
+  // A build adds only to the script and its listeners (section 6.10), so a new loop is one that
+  // comes back to the script.
   describe('no new loop by calling', () => {
-    it("refuses a call inside what it reaches, through a function's value and a switched-off block", () => {
+    it("refuses a call that comes back, through a function's value and a switched-off block", () => {
       const { agree, run, session } = setUp();
       const before = session.program();
       agree([step({ actor: 'this', action: 'round' })]);
-      expect(
-        run('insert_statement', call('round', {}, { target: 'this', method: 'dance' })),
-      ).toMatchObject({ ok: false, error: 'would_break_program' });
+      expect(run('insert_statement', call('round', {}, { target: 'this' }))).toMatchObject({
+        ok: false,
+        error: 'would_break_program',
+      });
       expect(session.program()).toBe(before);
     });
 
-    it('refuses a procedure calling itself', () => {
+    it('refuses a call of a procedure that runs the script again', () => {
       const { agree, run } = setUp();
-      agree([step({ actor: 'this', action: 'dance' })]);
-      expect(
-        run('insert_statement', call('dance', {}, { target: 'this', method: 'dance' })),
-      ).toMatchObject({ error: 'would_break_program' });
+      agree([step({ actor: 'this', action: 'again' })]);
+      expect(run('insert_statement', call('again', {}, { target: 'this' }))).toMatchObject({
+        error: 'would_break_program',
+      });
     });
 
     it("follows an input's default", () => {
@@ -605,6 +616,7 @@ describe("the learner's own in a plan (spec 04, section 6.9): building", () => {
             id: mint(),
             kind: 'functionCall',
             target: THIS(),
+            // answer's switched-off block runs the script again.
             callee: { kind: 'user', method: ID.answer },
             args: {},
             details: {},
@@ -614,7 +626,7 @@ describe("the learner's own in a plan (spec 04, section 6.9): building", () => {
       const { agree, run } = setUp(p);
       const values = { steps: '3', sure: 'true' };
       agree([step({ details: pairs(values) })]);
-      expect(run('insert_statement', call('waddle', values, { method: 'dance' }))).toMatchObject({
+      expect(run('insert_statement', call('waddle', values))).toMatchObject({
         error: 'would_break_program',
       });
     });
@@ -622,9 +634,7 @@ describe("the learner's own in a plan (spec 04, section 6.9): building", () => {
     it('allows a call that reaches back to nothing', () => {
       const { agree, run } = setUp();
       agree([step()]);
-      expect(
-        run('insert_statement', call('waddle', { steps: '3' }, { method: 'round' })),
-      ).toMatchObject({ ok: true });
+      expect(run('insert_statement', call('waddle', { steps: '3' }))).toMatchObject({ ok: true });
     });
   });
 });
@@ -825,7 +835,7 @@ describe("the learner's own: a step's words, Plan only and stepBlocks", () => {
         .stepBlocks(actor, [], frame)
         .filter((b) => b.own)
         .map((b) => b.name);
-    expect(own('this', null)).toEqual(['dance', 'round']);
+    expect(own('this', null)).toEqual(['dance', 'round', 'again']);
     expect(own('penguin', 'f2')).not.toContain('chat');
   });
 

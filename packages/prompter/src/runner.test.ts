@@ -223,25 +223,30 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
     expect(run('insert_statement', move('1'))).toMatchObject({ error: 'not_in_plan' });
   });
 
-  it('puts blocks inside a control block, and inside an if', () => {
+  it('puts blocks inside a control block', () => {
     const { runner, run, now } = setUp();
-    runner.begin('go', agreed([step({ together: true })]));
+    // A do together is for two steps or more (section 6.10).
+    runner.begin('go', agreed([step({}), step({ together: true })]));
     const together = run('insert_control', {
       method: 'myFirstMethod',
       position: 'end',
       kind: 'doTogether',
       narration: 'These happen at the same time.',
-      plan_step: 1,
+      plan_step: 2,
     });
-    expect(together).toMatchObject({ ok: true });
+    expect(together).toMatchObject({ ok: true, step: 1 });
     const block = (together.ok && together.ids.block) || '';
     expect(
       run('insert_statement', move('1', { parent_block: block, position: '0' })),
     ).toMatchObject({ ok: true });
+    expect(
+      run('insert_statement', move('1', { parent_block: block, position: '1', plan_step: 2 })),
+    ).toMatchObject({ ok: true });
     runner.end();
     const last = methodBody(now()).at(-1)!;
     expect(last.kind).toBe('doTogether');
-    expect('body' in last && last.body.map((s) => s.kind)).toEqual(['call']);
+    // Each step's words go above its first block, a step in a group's too (section 6.1).
+    expect('body' in last && last.body.map((s) => s.kind)).toEqual(['call', 'comment', 'call']);
   });
 
   it('builds the do together with the first of two steps that run together (the first pilot)', () => {
@@ -384,26 +389,19 @@ describe('PrompterRunner: building (spec 04, sections 1.7, 6.4)', () => {
         { name: 'amount', value: 'far' },
       ],
     });
-    runner.begin('go', agreed([step({}), step({ actor: 'owl' }), step({ action: 'fly' }), far]));
-    expect(run('insert_statement', move('far', { plan_step: 4 }))).toMatchObject({
-      error: 'bad_argument',
-    });
-    expect(run('insert_statement', move('1', { method: 'nope' }))).toMatchObject({
-      error: 'unknown_method',
-    });
-    expect(run('insert_statement', move('1', { position: '99' }))).toMatchObject({
-      error: 'bad_argument',
-    });
-    expect(run('insert_statement', move('1', { target: 'owl', plan_step: 2 }))).toMatchObject({
-      error: 'unknown_object',
-    });
-    expect(run('insert_statement', move('1', { procedure: 'fly', plan_step: 3 }))).toMatchObject({
-      error: 'unknown_method',
-    });
-    expect(run('insert_statement', move('1', { parent_block: 'nowhere1' }))).toMatchObject({
-      error: 'unknown_block',
-    });
-    runner.end();
+    // Each case its own one-step plan: a step after one that failed would be refused for its
+    // order first (section 6.10).
+    const fails = (s: PlanStep, call: JsonObject, error: string) => {
+      runner.begin('go', agreed([s]));
+      expect(run('insert_statement', call)).toMatchObject({ error });
+      runner.end();
+    };
+    fails(far, move('far'), 'bad_argument');
+    fails(step({}), move('1', { method: 'nope' }), 'unknown_method');
+    fails(step({}), move('1', { position: '99' }), 'bad_argument');
+    fails(step({ actor: 'owl' }), move('1', { target: 'owl' }), 'unknown_object');
+    fails(step({ action: 'fly' }), move('1', { procedure: 'fly' }), 'unknown_method');
+    fails(step({}), move('1', { parent_block: 'nowhere1' }), 'unknown_block');
     expect(now()).toEqual(original);
   });
 
@@ -540,18 +538,14 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
   it("refuses a model that isn't in Backstage, and a bad scale, changing nothing", () => {
     const { runner, run, session } = setUp();
     const before = session.production();
-    runner.begin(
-      'add',
-      agreed([
-        step({ ...addOwl, action: 'example/Quadruped/dragon' }),
-        step({ ...addOwl, details: [{ name: 'scale', value: '50' }] }),
-      ]),
-    );
+    runner.begin('add', agreed([step({ ...addOwl, action: 'example/Quadruped/dragon' })]));
     expect(run('add_model', owl({ backstage_item: 'example/Quadruped/dragon' }))).toMatchObject({
       ok: false,
       error: 'unknown_object',
     });
-    expect(run('add_model', owl({ plan_step: 2, scale: 50 }))).toMatchObject({
+    runner.end();
+    runner.begin('add', agreed([step({ ...addOwl, details: [{ name: 'scale', value: '50' }] })]));
+    expect(run('add_model', owl({ scale: 50 }))).toMatchObject({
       ok: false,
       error: 'bad_argument',
     });
@@ -646,26 +640,19 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
 
   it('refuses what an object or the camera cannot have, and a vehicle that carries itself', () => {
     const { runner, run } = setUp();
-    runner.begin(
-      'set',
-      agreed([
-        change('owl', 'scale', '2'),
-        change('camera', 'paint', 'red'),
-        change('fox', 'paint', 'tartan'),
-        change('fox', 'opacity', '2'),
-        change('penguin', 'vehicle', 'fox'),
-        change('fox', 'vehicle', 'penguin'),
-      ]),
-    );
-    const set = (object: string, property: string, value: string, n: number) =>
-      run('set_property', { object, property, value, narration: 'x', plan_step: n });
-    expect(set('owl', 'scale', '2', 1)).toMatchObject({ error: 'unknown_object' });
-    expect(set('camera', 'paint', 'red', 2)).toMatchObject({ error: 'bad_argument' });
-    expect(set('fox', 'paint', 'tartan', 3)).toMatchObject({ error: 'bad_argument' });
-    expect(set('fox', 'opacity', '2', 4)).toMatchObject({ error: 'bad_argument' });
-    expect(set('penguin', 'vehicle', 'fox', 5)).toMatchObject({ ok: true });
-    expect(set('fox', 'vehicle', 'penguin', 6)).toMatchObject({ error: 'bad_argument' });
-    runner.end();
+    // Each refusal its own plan, as a step after one that failed is refused for its order first.
+    const set = (object: string, property: string, value: string) => {
+      runner.begin('set', agreed([change(object, property, value)]));
+      const result = run('set_property', { object, property, value, narration: 'x', plan_step: 1 });
+      runner.end();
+      return result;
+    };
+    expect(set('owl', 'scale', '2')).toMatchObject({ error: 'unknown_object' });
+    expect(set('camera', 'paint', 'red')).toMatchObject({ error: 'bad_argument' });
+    expect(set('fox', 'paint', 'tartan')).toMatchObject({ error: 'bad_argument' });
+    expect(set('fox', 'opacity', '2')).toMatchObject({ error: 'bad_argument' });
+    expect(set('penguin', 'vehicle', 'fox')).toMatchObject({ ok: true });
+    expect(set('fox', 'vehicle', 'penguin')).toMatchObject({ error: 'bad_argument' });
   });
 
   it('answers not_allowed_here for stage_scene when the studio gives no staging step', () => {
@@ -747,9 +734,11 @@ describe('PrompterRunner: stage_scene (spec 04, section 3.2)', () => {
     const { runner, run } = setUp('s2', exampleProduction(), {
       stageFromStoryboard: () => ({ ok: false, refusal: { code: 'tooManyObjects', limit: 100 } }),
     });
-    runner.begin('set the stage', agreed([stageStep, step({ kind: 'stage', action: 's9' })]));
+    runner.begin('set the stage', agreed([stageStep]));
     expect(run('stage_scene', stage())).toMatchObject({ ok: false, error: 'limit_reached' });
-    expect(run('stage_scene', { ...stage(2), scene: 's9' })).toMatchObject({
+    runner.end();
+    runner.begin('set the stage', agreed([step({ kind: 'stage', action: 's9' })]));
+    expect(run('stage_scene', { ...stage(), scene: 's9' })).toMatchObject({
       ok: false,
       error: 'unknown_object',
     });
@@ -781,14 +770,16 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
   it('refuses other words, or none of the script, in a frame', () => {
     const { runner, run } = setUp();
     const said = [{ name: 'text', value: 'Hello, friend.' }];
-    runner.begin(
-      'code frame f2',
-      agreed([line, step({ actor: 'fox', action: 'say', details: said })], 'f2'),
-    );
+    runner.begin('code frame f2', agreed([line], 'f2'));
     expect(run('insert_statement', say('Hello, friend.', { line: 'l3' }))).toMatchObject({
       error: 'not_in_script',
     });
-    expect(run('insert_statement', say('Hello, friend.', { plan_step: 2 }))).toMatchObject({
+    runner.end();
+    runner.begin(
+      'code frame f2',
+      agreed([step({ actor: 'fox', action: 'say', details: said })], 'f2'),
+    );
+    expect(run('insert_statement', say('Hello, friend.'))).toMatchObject({
       error: 'not_in_script',
     });
     expect(run('insert_statement', say('Hi.', { line: 'l99' }))).toMatchObject({
@@ -837,12 +828,11 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
       action: 'say',
       details: [{ name: 'text', value: 'Good morning' }],
     });
-    runner.begin('Build these steps.', agreed([shown, added]));
-    expect(run('insert_statement', say('Good morning', { plan_step: 2 }))).toMatchObject({
-      ok: true,
-    });
+    // The learner's step first, so the Prompter's can be tried after it (section 6.10).
+    runner.begin('Build these steps.', agreed([added, shown]));
+    expect(run('insert_statement', say('Good morning'))).toMatchObject({ ok: true });
     // What the Prompter wrote in its own steps isn't the learner's.
-    expect(run('insert_statement', say('The fox waves.'))).toMatchObject({
+    expect(run('insert_statement', say('The fox waves.', { plan_step: 2 }))).toMatchObject({
       error: 'not_in_script',
     });
   });
@@ -1078,19 +1068,27 @@ describe('PrompterRunner: coding a frame (spec 04, section 3.2; 10.8)', () => {
   it('links the blocks built after it to the frame, in the one undo step', () => {
     const { runner, run, session } = setUp();
     const original = session.production();
-    runner.begin('code frame f2', agreed([{ ...line(), together: true }], 'f2'));
+    // A do together is for two steps or more (section 6.10): the line, said with a wave.
+    const wave = step({ words: 'The fox waves.', actor: 'fox', action: 'move', together: true });
+    runner.begin('code frame f2', agreed([line(), wave], 'f2'));
     run('code_frame', { frame: 'f2' });
     const together = run('insert_control', {
       method: 'myFirstMethod',
       position: 'end',
       kind: 'doTogether',
       narration: 'These happen at the same time.',
-      plan_step: 1,
+      plan_step: 2,
     });
     const block = (together.ok && together.ids.block) || '';
     expect(run('insert_statement', say({ parent_block: block, position: '0' }))).toMatchObject({
       ok: true,
     });
+    expect(
+      run('insert_statement', {
+        ...move('1', { target: 'fox', parent_block: block, position: '1' }),
+        plan_step: 2,
+      }),
+    ).toMatchObject({ ok: true });
     runner.end();
     const body = methodBody(session.program());
     const [comment, control] = body.slice(-2);

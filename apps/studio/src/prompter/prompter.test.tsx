@@ -344,8 +344,20 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
   });
 
   it('keeps the plan as shown and as agreed with its frame, in the build’s one step', async () => {
+    // A step that repeats twice is built as a count first (spec 04 section 6.10). The scripted
+    // build stops after it, as it can't know the count's id: the plan is kept with the first change.
+    const counts = testReply([
+      toolUse('t2', 'insert_control', {
+        method: 'myFirstMethod',
+        position: 'end',
+        kind: 'count',
+        count: 2,
+        narration: 'A count block will repeat the waddle twice.',
+        plan_step: 1,
+      }),
+    ]);
     const { production } = setUp(
-      [proposes([step()], 'f2'), say("Here's the plan."), moves, say('Done.')],
+      [proposes([step()], 'f2'), say("Here's the plan."), counts, say('Done.')],
       { world: WORLD },
     );
     const user = userEvent.setup();
@@ -368,6 +380,10 @@ describe('the Prompter panel: plan before change (spec 04 section 6)', () => {
     expect(kept.agreed).toMatchObject([{ actor: 'penguin', repeat: 2 }]);
     expect(Number.isNaN(Date.parse(kept.agreedAt))).toBe(false);
     expect(production.history().filter((h) => h.done)).toHaveLength(before + 1);
+    // The build ends short, and says which step, beside Undo (spec 04 section 6.10; S5).
+    expect(
+      await screen.findByText("The Prompter couldn't finish step 1 of the plan."),
+    ).toBeTruthy();
     // Undo takes the plan back with what it built.
     await user.click(screen.getByRole('button', { name: 'Undo this request' }));
     expect(production.production().frames.find((f) => f.id === 'f2')?.plan).toBeUndefined();

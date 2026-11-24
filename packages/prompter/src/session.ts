@@ -38,6 +38,11 @@ export interface ToolRunner {
   run(name: ToolName, input: JsonObject): Promise<ToolOutcome> | ToolOutcome;
   /** When the request ends, however it ends. */
   end?(): void;
+  /**
+   * For a build: the first agreed step that hasn't landed, by number, or null when every one has
+   * (section 6.10). A build that leaves one out ends as `step_failed`, not as done.
+   */
+  unfinished?(): number | null;
 }
 
 /** What the runner needs to know about the request it is running. */
@@ -169,6 +174,9 @@ export class PrompterSession {
     try {
       const outcome = await this.#loop(options, fresh);
       if (!outcome.kept) this.#restore(before);
+      const left = options.agreedPlan === undefined ? null : this.#setup.runner.unfinished?.();
+      if (outcome.result.status === 'done' && left !== null && left !== undefined)
+        return { ...outcome.result, status: 'step_failed', failedStep: left };
       return outcome.result;
     } finally {
       this.#setup.runner.end?.();

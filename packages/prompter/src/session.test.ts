@@ -509,6 +509,16 @@ describe('outcomeMessage (spec 04, section 7)', () => {
     expect(outcomeMessage({ ...base, status: 'cut_short', changes: 2 })?.action).toBe('undo');
   });
 
+  it('names a plan step the build stopped at, and keeps the general words for a tool', () => {
+    expect(outcomeMessage({ ...base, status: 'step_failed', failedStep: 2, changes: 1 })).toEqual({
+      text: "The Prompter couldn't finish step 2 of the plan.",
+      action: 'undo',
+    });
+    expect(outcomeMessage({ ...base, status: 'step_failed', failedStep: 'code_frame' })).toEqual({
+      text: "The Prompter couldn't finish this step.",
+    });
+  });
+
   it('never apologises, and never uses the words rule 9 keeps from learners', () => {
     const statuses = ['refused', 'stopped', 'limit', 'cut_short', 'step_failed'] as const;
     const codes = [
