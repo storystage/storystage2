@@ -494,6 +494,31 @@ describe('opacity and paint', () => {
     expect(root(bob).isEnabled()).toBe(false);
   });
 
+  it("are drawn part faded, unseen, as a scene loads, the pre-pass's shader too (S4's review of #667)", async () => {
+    const original = ObjectView.prototype.warm;
+    const prePassed: boolean[] = [];
+    const warm = vi.spyOn(ObjectView.prototype, 'warm').mockImplementation(function (
+      this: ObjectView,
+      on: boolean | null,
+    ) {
+      original.call(this, on);
+      if (on) prePassed.push(this.meshes.every((m) => m.material?.needDepthPrePass === true));
+    });
+    const stage = new BabylonStage(headlessEngine(), {
+      models: { find: () => ({ url: tinySkeletonUrl([{ name: 'hips' }]), joints: [] }) },
+    });
+    await stage.load({ ...setup, objects: [{ ...place(ann, -2, robot), class: 'Prop' }] });
+    warm.mockRestore();
+    expect(prePassed).toEqual([true]);
+    const inside = (stage as unknown as { scene: Scene }).scene;
+    const body = inside
+      .getTransformNodeByName(ann)!
+      .getChildMeshes()
+      .find((m) => m.name === 'Body')!;
+    expect(body.material!.needDepthPrePass).toBe(false);
+    expect(body.visibility).toBe(1);
+  });
+
   it('paint a name or a colour, and go back to the model on the way back', async () => {
     const { stage, body } = await loaded();
     const colour = () => (body(ann).material as StandardMaterial).diffuseColor;

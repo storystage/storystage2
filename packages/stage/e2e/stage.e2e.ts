@@ -461,9 +461,11 @@ test("a part-faded object's see-through surfaces still show what's behind them",
   const problems = await open(page);
   // Faded, a hair card's clear stripes hid the panel behind it, so the backdrop showed through
   // the object (S4's review of #667, MakeHuman's hair).
-  const got = await call<{ covered: number; holes: number }>(page, 'fadedHair');
+  const got = await call<{ covered: number; holes: number; under: number }>(page, 'fadedHair');
   expect(got.covered).toBeGreaterThan(500);
   expect(got.holes).toBe(0);
+  // And the card stayed over the panel: the panel was drawn over it (p04's braids).
+  expect(got.under).toBe(0);
   expect(problems).toEqual([]);
 });
 

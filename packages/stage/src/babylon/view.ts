@@ -499,13 +499,21 @@ export class ObjectView {
     );
   }
 
+  /**
+   * Whether part faded it's drawn with a depth pre-pass, which has a shader of its own to compile:
+   * until it had, a model's first faded draw was wrong (S4's review of #667).
+   */
+  get fadesWithDepth(): boolean {
+    return this.surfaces.some(({ mode, material }) => solidOrCutOut(mode, material));
+  }
+
   /** Whether loading draws it unseen first (`warm`). */
   get needsWarming(): boolean {
-    return this.hasFaces || this.fadesCutOut;
+    return this.hasFaces || this.fadesCutOut || this.fadesWithDepth;
   }
 
   /**
-   * Shows every face shape a very little (`true`), or none (`false`), and a cut-out part faded,
+   * Shows every face shape a very little (`true`), or none (`false`), and the model part faded,
    * for the stage to draw unseen as a scene loads (`BabylonStage.warm`); then (`null`) as it was.
    * An unseen drawing leaves out a model that's switched off, as one hidden until it enters is, so
    * it's switched on meanwhile (S4's review). The next `show` puts its own face back.
@@ -516,10 +524,12 @@ export class ObjectView {
       return;
     }
     this.root.setEnabled(true);
-    if (this.fadesCutOut) {
+    if (this.fadesCutOut || this.fadesWithDepth) {
       for (const mesh of this.meshes) mesh.visibility = 0.5;
-      for (const { material, mode } of this.surfaces)
+      for (const { material, mode } of this.surfaces) {
         if (mode !== null) material.transparencyMode = blending(mode);
+        material.needDepthPrePass = solidOrCutOut(mode, material);
+      }
     }
     for (const list of this.faces.values())
       for (const { target } of list) target.influence = warm ? 1e-3 : 0;

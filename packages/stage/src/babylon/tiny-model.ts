@@ -377,7 +377,7 @@ function texturedUrl(
   png: Uint8Array,
   unlit: boolean,
   alphaMode: 'OPAQUE' | 'MASK' | 'BLEND' = 'OPAQUE',
-  /** A plain green panel of the same shape 0.2 m behind it (along -Z), its own mesh. */
+  /** A plain blue panel of the same shape 0.2 m behind it (along -Z), its own mesh. */
   behind = false,
 ): string {
   const floats = (a: readonly number[]) => new Uint8Array(new Float32Array(a).buffer);
@@ -423,7 +423,7 @@ function texturedUrl(
         ...(unlit ? { extensions: { KHR_materials_unlit: {} } } : {}),
         ...(alphaMode !== 'OPAQUE' ? { alphaMode } : {}),
       },
-      ...(behind ? [{ pbrMetallicRoughness: { baseColorFactor: [0.1, 0.8, 0.1, 1] } }] : []),
+      ...(behind ? [{ pbrMetallicRoughness: { baseColorFactor: [0, 0.1, 0.8, 1] } }] : []),
     ],
     textures: [{ source: 0, sampler: 0 }],
     samplers: [{ wrapS: 10497, wrapT: 10497 }],
@@ -467,7 +467,7 @@ export function tinyCutOutUrl(png: Uint8Array): string {
 }
 
 /**
- * A see-through card in front of a green panel, as hair is over a head: `png` on a blended
+ * A see-through card in front of a blue panel, as hair is over a head: `png` on a blended
  * surface (glTF's `alphaMode: 'BLEND'`), 0.2 m in front of (along +Z) a plain panel, each its
  * own mesh.
  */

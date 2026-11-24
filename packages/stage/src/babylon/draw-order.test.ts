@@ -1,4 +1,5 @@
 import { Vector3 } from '@babylonjs/core/Maths/math.vector.js';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial.js';
 import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder.js';
 import type { AbstractMesh } from '@babylonjs/core/Meshes/abstractMesh.js';
 import { Scene } from '@babylonjs/core/scene.js';
@@ -22,6 +23,10 @@ describe('see-through surfaces are drawn', () => {
   const bobFront = box('bobFront', 9.8);
   const bobBack = box('bobBack', 10.2);
   const glass = box('glass', 7);
+  // Objects' parts drawn solid when they are, so with a depth pre-pass while faded.
+  const solid = new StandardMaterial('solid', scene);
+  solid.needDepthPrePass = true;
+  for (const m of [annFront, annBack, bobFront, bobBack]) m.material = solid;
   const owners = new Map<AbstractMesh, Standing>([
     [annFront, ann],
     [annBack, ann],
@@ -46,6 +51,19 @@ describe('see-through surfaces are drawn', () => {
       'annFront',
       'annBack',
     ]);
+  });
+
+  it("its own see-through parts after the rest of it, back to front (S4's review of #667)", () => {
+    // Bob's hair is his nearest part, and his back part blends too.
+    const hair = box('hair', 9.6);
+    owners.set(hair, bob);
+    const blended = new StandardMaterial('blended', scene);
+    hair.material = blended;
+    bobBack.material = blended;
+    expect(drawn(hair, bobBack, bobFront)).toEqual(['bobFront', 'bobBack', 'hair']);
+    bobBack.material = solid;
+    owners.delete(hair);
+    hair.dispose();
   });
 
   it('by where an object stands, not where its parts are', () => {

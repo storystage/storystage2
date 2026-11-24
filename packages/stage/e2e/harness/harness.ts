@@ -314,9 +314,10 @@ async function fadedModel(layers = false) {
  * two or three draws (S4's review of #649: Cool Waffle, the African penguin, the bee).
  */
 /**
- * A see-through card (stripes, every other one clear) in front of a green panel, drawn solid,
+ * A see-through card (stripes, every other one clear) in front of a blue panel, drawn solid,
  * gone and at 0.5: how many pixels it covers drawn solid, and how many of those show what's
- * behind the whole object as if it weren't there when faded. As hair over a head (S4, on #667).
+ * behind the whole object as if it weren't there when faded, and how many of the card's stripes
+ * the panel behind covers when faded. As hair over a head (S4's reviews of #667).
  */
 async function fadedHair() {
   const picture = await png(8, 8, (x) => (x % 2 ? 'rgba(0, 0, 0, 0)' : 'rgb(200, 80, 40)'));
@@ -359,12 +360,16 @@ async function fadedHair() {
     [0, 1, 2].reduce((sum, c) => sum + Math.abs(a[p + c]! - b[p + c]!), 0);
   let covered = 0;
   let holes = 0;
+  let under = 0;
   for (let p = 0; p < solid.length; p += 4) {
     if (apart(solid, gone, p) < 30) continue;
     covered++;
     if (apart(faded, gone, p) < 6) holes++;
+    // A red stripe of the card: faded to half over the panel, it keeps at least half its red;
+    // under the blue panel, it keeps a quarter.
+    if (solid[p]! > solid[p + 2]! + 40 && faded[p]! < 0.6 * solid[p]!) under++;
   }
-  return { covered, holes };
+  return { covered, holes, under };
 }
 
 async function firstCutOutFade() {
