@@ -478,6 +478,11 @@ export class ObjectView {
     setRotation(node, localAfter(turn, world, parentTurn(node)));
   }
 
+  /** Where it stands, to draw it see-through before the objects in front of it. */
+  get origin(): Vector3 {
+    return this.root.getAbsolutePosition();
+  }
+
   /** Whether it has faces to show. */
   get hasFaces(): boolean {
     return this.faces.size > 0 || this.faceTextures.size > 0;
@@ -494,13 +499,21 @@ export class ObjectView {
     );
   }
 
+  /**
+   * Whether part faded it's drawn with a depth pre-pass, which has a shader of its own to compile:
+   * until it had, a model's first faded draw was wrong (S4's review of #667).
+   */
+  get fadesWithDepth(): boolean {
+    return this.surfaces.some(({ mode, material }) => solidOrCutOut(mode, material));
+  }
+
   /** Whether loading draws it unseen first (`warm`). */
   get needsWarming(): boolean {
-    return this.hasFaces || this.fadesCutOut;
+    return this.hasFaces || this.fadesCutOut || this.fadesWithDepth;
   }
 
   /**
-   * Shows every face shape a very little (`true`), or none (`false`), and a cut-out part faded,
+   * Shows every face shape a very little (`true`), or none (`false`), and the model part faded,
    * for the stage to draw unseen as a scene loads (`BabylonStage.warm`); then (`null`) as it was.
    * An unseen drawing leaves out a model that's switched off, as one hidden until it enters is, so
    * it's switched on meanwhile (S4's review). The next `show` puts its own face back.
@@ -511,10 +524,12 @@ export class ObjectView {
       return;
     }
     this.root.setEnabled(true);
-    if (this.fadesCutOut) {
+    if (this.fadesCutOut || this.fadesWithDepth) {
       for (const mesh of this.meshes) mesh.visibility = 0.5;
-      for (const { material, mode } of this.surfaces)
+      for (const { material, mode } of this.surfaces) {
         if (mode !== null) material.transparencyMode = blending(mode);
+        material.needDepthPrePass = solidOrCutOut(mode, material);
+      }
     }
     for (const list of this.faces.values())
       for (const { target } of list) target.influence = warm ? 1e-3 : 0;
@@ -560,8 +575,13 @@ export class ObjectView {
     for (const mesh of this.meshes) mesh.visibility = opacity;
     // Babylon.js takes a surface's transparency mode over its meshes' visibility, and glTF gives
     // every surface one (nearly always opaque), so part faded it must be told to blend.
-    for (const { material, mode } of this.surfaces)
+    for (const { material, mode } of this.surfaces) {
       if (mode !== null) material.transparencyMode = opacity < 1 ? blending(mode) : mode;
+      // Its nearer parts hide its farther ones, so it fades as one shape (`drawObjectsWhole`).
+      // Not a surface that blends anyway, as hair cards do: its clear parts would hide what's
+      // behind them (S4's review of #667).
+      material.needDepthPrePass = opacity < 1 && solidOrCutOut(mode, material);
+    }
   }
 
   /** A paint tints each surface; part-way through a blend, the old tint and the new are mixed. */
@@ -577,6 +597,13 @@ export class ObjectView {
         : to;
     }
   }
+}
+
+/** Whether a surface is drawn solid or cut out, rather than blended, when its object is solid. */
+function solidOrCutOut(mode: number | null, material: StandardMaterial): boolean {
+  if (mode === Material.MATERIAL_OPAQUE || mode === Material.MATERIAL_ALPHATEST) return true;
+  // Without a mode of its own, Babylon.js blends it if its colour or picture is see-through.
+  return mode === null && material.alpha >= 1 && !material.useAlphaFromDiffuseTexture;
 }
 
 /** A surface's transparency mode while it's part faded: a cut-out stays cut out. */

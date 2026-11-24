@@ -143,7 +143,8 @@ Each session keeps its own section current. Newest entries first. One line each.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README. The scene view's Babylon.js half is in (#394): `createBabylonStage` wires the canvas's pointer, wheel and keys itself; choose on `onTap`, and write the set-up on `onEdit`'s `final`.
 - Blocked on:
   - Owner: a run of `stage/device.html` (about five minutes, checklist row 3a) on the Chromebook, which is here, and later on the reference iPad (#6, not yet chosen). Its results give WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), the cost of view and occlusion events (decision 0051), and of a crossfade's two scenes. Spike 1.2's go is S1's.
-- Open: none.
+- Open:
+  - 23 Nov (PR open; owner's choice, 23 Nov): **a part-faded object fades as one solid shape**: its far side, insides and parts behind its others no longer show through it. Its surfaces get Babylon.js's depth pre-pass while faded, and see-through surfaces are drawn object by object, back to front, each object's nearest part first (`draw-order.ts`). Clothes over a body can still show the body a little where the body part's middle is nearer (MakeHuman's knees).
 - Next: spike 23.2 has its go (owner, 21 Nov), so WP23a is finished. **WP23b** (the projection stage) waits for the release candidate and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
 
 ## S4 Backstage and Productions
