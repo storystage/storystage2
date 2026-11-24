@@ -279,7 +279,8 @@ export interface EditableStage extends Stage {
    * Camera view (owner, 24 Nov): moved as the same step moves Look around's camera, round the
    * same point (as far ahead as what's in its shot, or where its line of sight meets the ground,
    * or a few metres ahead). It changes nothing: the studio writes it, as one undo step, with
-   * `setObject`. The camera keeps its size; a roll it had is straightened, as Look around has none.
+   * `setObject`. The camera keeps its size. Zooming and panning keep its turn, roll and all;
+   * circling and tilting straighten a roll, as Look around has none.
    */
   steppedCamera(step: ViewStep): Transform;
 

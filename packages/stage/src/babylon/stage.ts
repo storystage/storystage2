@@ -77,6 +77,7 @@ import {
   orbitPanDrag,
   orbitStep,
   orbitView,
+  stepCamera,
   type Orbit,
 } from '../orbit.ts';
 import { hullOf, within, type Box } from '../hull.ts';
@@ -1021,7 +1022,7 @@ export class BabylonStage implements EditableStage {
 
   steppedCamera(step: ViewStep): Transform {
     const camera = this.timeline.transform(CAMERA);
-    return orbitView(orbitStep(orbitFrom(camera, this.timeline.ground(), this.subjects()), step));
+    return stepCamera(camera, this.timeline.ground(), this.subjects(), step);
   }
 
   /** What the scene view draws over the scene, for a test: none of it is in a frame. */

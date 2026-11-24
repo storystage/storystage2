@@ -41,7 +41,7 @@ import type {
 import { MARKER_BOX, boxPoints, groundPoint, inViewOf, rayHitsBox, viewRay } from '../editing.ts';
 import type { Box } from '../hull.ts';
 import { length, sub, v } from '../math.ts';
-import { orbitFrom, orbitStep, orbitView } from '../orbit.ts';
+import { orbitFrom, orbitStep, orbitView, stepCamera } from '../orbit.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
 import { humanoidsFor } from '../humanoid/library.ts';
@@ -332,8 +332,7 @@ export class FakeStage implements EditableStage {
   }
 
   steppedCamera(step: ViewStep): Transform {
-    const camera = this.timeline.transform(CAMERA);
-    return orbitView(orbitStep(orbitFrom(camera, this.timeline.ground()), step));
+    return stepCamera(this.timeline.transform(CAMERA), this.timeline.ground(), [], step);
   }
 
   inShot(): readonly ObjectId[] {

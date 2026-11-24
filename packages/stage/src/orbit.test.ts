@@ -12,6 +12,7 @@ import {
   orbitPanDrag,
   orbitStep,
   orbitView,
+  stepCamera,
 } from './orbit.ts';
 import type { ViewStep } from './contract.ts';
 
@@ -123,6 +124,30 @@ describe("Look around's camera", () => {
     expect(step('panRight')).toEqual(orbitPan(o, KEY_PAN, 0));
     expect(step('panUp')).toEqual(orbitPan(o, 0, KEY_PAN));
     expect(step('panDown')).toEqual(orbitPan(o, 0, -KEY_PAN));
+  });
+
+  it("steps a scene's camera: zoom and pan keep a tilted shot tilted (S5's review of #676)", () => {
+    // Rolled a 16th of a turn, as a dutch angle.
+    const dutch = { ...CAMERA, rotation: mul(CAMERA.rotation, axisTurns(v(0, 0, 1), 1 / 16)) };
+    const o = orbitFrom(dutch, 0);
+    for (const step of ['zoomIn', 'zoomOut', 'panLeft', 'panRight', 'panUp', 'panDown'] as const) {
+      const after = stepCamera(dutch, 0, [], step);
+      expect(after.rotation).toEqual(dutch.rotation);
+      expect(after.position).not.toEqual(dutch.position);
+    }
+    // Zooming moves it along its line of sight by as much as Look around's step would.
+    const nearer = stepCamera(dutch, 0, [], 'zoomIn');
+    expect(length(sub(nearer.position, dutch.position))).toBeCloseTo(
+      o.radius - o.radius / KEY_NEARER,
+      9,
+    );
+    // Panning goes a sixth of the way to the point, along its own right.
+    const right = stepCamera(dutch, 0, [], 'panRight');
+    expect(length(sub(right.position, dutch.position))).toBeCloseTo(KEY_PAN * o.radius, 9);
+    // Circling goes round the point, as Look around does, upright.
+    const round = stepCamera(dutch, 0, [], 'circleLeft');
+    expect(round).toEqual(orbitView(orbitStep(o, 'circleLeft')));
+    expect(rotate(round.rotation, v(1, 0, 0)).y).toBeCloseTo(0, 9);
   });
 
   it('keeps the camera upright', () => {

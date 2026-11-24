@@ -150,6 +150,38 @@ export function orbitDrag(o: Orbit, dx: number, dy: number, width: number, heigh
   return orbitBy(o, -(dx / width) * Math.PI, (dy / height) * (Math.PI / 2));
 }
 
+/**
+ * Where one step puts a camera at `view` (the scene's own, for Camera view's buttons), round the
+ * point `orbitFrom` finds for it. Circling and tilting go round that point as Look around does,
+ * so a roll is straightened; zooming and panning only move it, keeping its turn as it was, roll
+ * and all, so a tilted (dutch) shot stays tilted (S5's review of #676).
+ */
+export function stepCamera(
+  view: Transform,
+  ground: number,
+  subjects: readonly Vec3[],
+  step: ViewStep,
+): Transform {
+  const o = orbitFrom(view, ground, subjects);
+  const own = (x: number, y: number, z: number) => rotate(view.rotation, v(x, y, z));
+  const moved = (by: Vec3): Transform => ({ ...view, position: add(view.position, by) });
+  switch (step) {
+    case 'zoomIn':
+    case 'zoomOut': {
+      const nearer = step === 'zoomIn' ? KEY_NEARER : 1 / KEY_NEARER;
+      return moved(scale(own(0, 0, 1), o.radius - orbitBy(o, 0, 0, nearer).radius));
+    }
+    case 'panLeft':
+    case 'panRight':
+      return moved(scale(own(-1, 0, 0), (step === 'panRight' ? 1 : -1) * KEY_PAN * o.radius));
+    case 'panUp':
+    case 'panDown':
+      return moved(scale(own(0, 1, 0), (step === 'panUp' ? 1 : -1) * KEY_PAN * o.radius));
+    default:
+      return orbitView(orbitStep(o, step));
+  }
+}
+
 function clamp(n: number, least: number, most: number): number {
   return Math.min(Math.max(n, least), most);
 }
