@@ -14,9 +14,16 @@ import { playedInScene2, RAIN } from '../sound/testing.ts';
 const mounted: { method: string | null; host: EditorHost }[] = [];
 const palettes: { target: unknown; tab: string }[] = [];
 let ask: ((request: unknown) => Promise<unknown>) | undefined;
+/** The film's sound words the stand-in was given (7.17). */
+let soundWords: {
+  references?: (type: string) => readonly { value: string; words: string }[];
+  referenceWord?: (type: string, value: string) => string | undefined;
+} = {};
 vi.mock('@storystage/blocks', () => ({
-  createBlocksEditor: (options: { ask?: (request: unknown) => Promise<unknown> } = {}) => ({
-    ...((ask = options.ask), {}),
+  createBlocksEditor: (
+    options: { ask?: (request: unknown) => Promise<unknown> } & typeof soundWords = {},
+  ) => ({
+    ...((ask = options.ask), (soundWords = options), {}),
     id: 'blocks',
     displayName: 'Blocks',
     mount: (element: HTMLElement, host: EditorHost, view?: ViewState) => {
@@ -37,6 +44,7 @@ beforeEach(() => {
   mounted.length = 0;
   palettes.length = 0;
   ask = undefined;
+  soundWords = {};
 });
 
 /** The Blocks editor loads on demand: under a full run's load that can take a few seconds. */
@@ -200,6 +208,29 @@ describe('the Production stage’s Code editor (7.2, 07-ux 7.3)', () => {
     const field = await screen.findByRole('textbox');
     await user.type(field, 'Hello there{Enter}');
     await waitFor(() => expect(answer).toMatchObject({ kind: 'text', value: 'Hello there' }));
+  });
+
+  it('offers the film’s sounds by name for a block’s sound, and gives Blocks their names (7.17)', async () => {
+    const user = userEvent.setup();
+    const p = playedInScene2(withSound(exampleProduction(), RAIN), 'sn1');
+    render(<App start={p} />);
+    await openStage(user);
+    await screen.findByText('blocks', {}, LOADED);
+    expect(soundWords.references?.('Audio')).toEqual([{ value: 'sn1', words: 'Rain' }]);
+    expect(soundWords.referenceWord?.('Audio', 'sn1')).toBe('Rain');
+    expect(soundWords.referenceWord?.('SceneId', 'sn1')).toBeUndefined();
+    let answer: unknown = 'none yet';
+    act(() => {
+      void ask!({
+        program: p.program,
+        place: { kind: 'value', node: 'playsd', slot: 'args', param: 'audioSource' },
+        label: 'sound',
+        anchor: screen.getByText('blocks'),
+      }).then((value) => (answer = value));
+    });
+    const menu = await screen.findByRole('menu');
+    await user.click(within(menu).getByRole('menuitem', { name: 'Rain' }));
+    await waitFor(() => expect(answer).toMatchObject({ kind: 'text', value: 'sn1' }));
   });
 
   it('cancels the drop when the learner presses Escape at a question', async () => {
