@@ -56,11 +56,16 @@ describe('the keys detail (spec 02, 6a)', () => {
 });
 
 describe('the check (6a, rule 2)', () => {
-  it('passes each event’s own keys, and an empty list', () => {
+  it('passes each event’s own keys', () => {
     expect(problems(listening('keyPress', { keys: keys('space', 'w', 'up') }))).toEqual([]);
     expect(problems(listening('arrowKeyPress', { keys: keys('left') }))).toEqual([]);
     expect(problems(listening('numberKeyPress', { keys: keys('digit3') }))).toEqual([]);
-    expect(problems(listening('keyPress', { keys: keys() }))).toEqual([]);
+  });
+
+  it('marks an empty list, which never runs (the owner, 24 Nov 2026)', () => {
+    expect(problems(listening('keyPress', { keys: keys() }))).toEqual([
+      'No keys chosen, so this never runs. Choose one, or take the setting out.',
+    ]);
   });
 
   it('refuses a key that isn’t one the event is for', () => {

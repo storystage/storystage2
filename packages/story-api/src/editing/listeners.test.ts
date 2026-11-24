@@ -38,8 +38,8 @@ describe('a click listener’s words', () => {
     expect(words(clicked({}))).toBe('when an object is clicked');
   });
 
-  it('says what an empty list is, as it means nothing can be clicked', () => {
-    expect(words(clicked({ setOfVisuals: list() }))).toBe('when an empty list is clicked');
+  it('reads an empty list as the event, which the check marks (the owner, 24 Nov 2026)', () => {
+    expect(words(clicked({ setOfVisuals: list() }))).toBe('when an object is clicked');
   });
 
   it('reads a list that isn’t written out by its own words', () => {
