@@ -270,7 +270,7 @@ describe('editing the set-up on the scene view (07-ux 7.2)', () => {
     const user = userEvent.setup();
     const { fake, studio } = await stage();
     const camera = setupOf(studio()).camera.transform;
-    const zoomed = fake().steppedCamera('zoomIn');
+    const zoomed = fake().steppedCamera('zoomIn').transform;
     await user.click(screen.getByRole('button', { name: 'Zoom in' }));
     expect(setupOf(studio()).camera.transform).toEqual(zoomed);
     expect(studio().undoLabel).toBe('Zoom the camera in');
@@ -279,6 +279,23 @@ describe('editing the set-up on the scene view (07-ux 7.2)', () => {
     act(() => studio().undo());
     act(() => studio().undo());
     expect(setupOf(studio()).camera.transform).toEqual(camera);
+  });
+
+  it('keeps circling round the same point through presses one after another, until the camera moves otherwise', async () => {
+    // S3's note 1 on #676, and #678: a run of steps carries `around`, so the camera doesn't
+    // swing off round something far away when what was in shot leaves it.
+    const user = userEvent.setup();
+    const { fake, studio } = await stage();
+    const stepped = vi.spyOn(fake(), 'steppedCamera');
+    const circle = screen.getByRole('button', { name: 'Circle round to the left' });
+    await user.click(circle);
+    await user.click(circle);
+    expect(stepped.mock.calls[0]![1]).toBeUndefined();
+    expect(stepped.mock.calls[1]![1]).toEqual(stepped.mock.results[0]!.value.around);
+    // An undo moves the camera some other way: the next step finds its point afresh.
+    act(() => studio().undo());
+    await user.click(circle);
+    expect(stepped.mock.calls[2]![1]).toBeUndefined();
   });
 
   it('rehearses in Camera view, with no handles, and edits again after Stop', async () => {

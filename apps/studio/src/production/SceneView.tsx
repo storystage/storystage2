@@ -121,6 +121,9 @@ export default function SceneView(props: SceneViewProps) {
   const canvasRef = useRef<HTMLDivElement>(null);
   // A press or hold of Camera view's buttons: its first step, and where the camera is now.
   const held = useRef<{ step: ViewStep; transform: Transform } | null>(null);
+  // The point the last step turned round, and where it left the camera: the next step keeps it
+  // while the camera is still there, so a run of steps circles one point (S3's #678).
+  const carried = useRef<{ transform: Transform; around: Vec3 } | null>(null);
   const [stage, setStage] = useState<ShownStage | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -461,8 +464,14 @@ export default function SceneView(props: SceneViewProps) {
           if (!editable) return;
           if (looking) return void editable.viewStep(step);
           // Camera view: the scene's camera moves live while held, and is written once let go.
-          const transform = editable.steppedCamera(step);
+          const last = carried.current;
+          const still = last && sameTransform(last.transform, editable.viewTransform());
+          const { transform, around } = editable.steppedCamera(
+            step,
+            still ? last.around : undefined,
+          );
           editable.setObject(CAMERA, { transform });
+          carried.current = { transform: editable.viewTransform(), around };
           held.current = { step: held.current?.step ?? step, transform };
         }}
         onMoveEnd={() => {
@@ -487,5 +496,24 @@ export default function SceneView(props: SceneViewProps) {
         <NeutralNote>{words.t('production.rehearse.missing')}</NeutralNote>
       )}
     </section>
+  );
+}
+
+/** Whether two places for the camera are the same, to a hair (the stage may round them). */
+function sameTransform(a: Transform, b: Transform): boolean {
+  const near = (p: number, q: number) => Math.abs(p - q) < 1e-6;
+  const { position: ap, rotation: ar, scale: as } = a;
+  const { position: bp, rotation: br, scale: bs } = b;
+  return (
+    near(ap.x, bp.x) &&
+    near(ap.y, bp.y) &&
+    near(ap.z, bp.z) &&
+    near(ar.x, br.x) &&
+    near(ar.y, br.y) &&
+    near(ar.z, br.z) &&
+    near(ar.w, br.w) &&
+    near(as.x, bs.x) &&
+    near(as.y, bs.y) &&
+    near(as.z, bs.z)
   );
 }
