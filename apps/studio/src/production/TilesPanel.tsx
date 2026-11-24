@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from 'react';
 import { words } from '../strings.ts';
 import type { Highlights } from './BlocksPanel.tsx';
 import type { Handoff } from './handoff.ts';
+import type { SoundWords } from '../sound/codeWords.ts';
 
 export interface TilesPanelProps {
   method: NodeId;
@@ -25,6 +26,8 @@ export interface TilesPanelProps {
   editorRef?: { current: { selection(): readonly NodeId[] } | null };
   /** Where the learner was in Blocks, after a switch (section 4.2). */
   handoff?: Handoff;
+  /** The film's sounds and their names, for a block's sound (7.17; `soundWords`). */
+  sounds?: SoundWords;
 }
 
 const NO_MARKS: readonly HighlightMark[] = [];
@@ -39,6 +42,7 @@ export default function TilesPanel({
   highlights = NO_HIGHLIGHTS,
   editorRef,
   handoff,
+  sounds,
 }: TilesPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<TileEditor | null>(null);
@@ -46,7 +50,7 @@ export default function TilesPanel({
 
   useEffect(() => {
     if (!box.current) return;
-    const tiles = new TileEditor({ studio: true });
+    const tiles = new TileEditor({ studio: true, ...sounds });
     const given = handoff?.take();
     tiles.mount(
       box.current,
@@ -69,7 +73,7 @@ export default function TilesPanel({
       if (editorRef?.current === tiles) editorRef.current = null;
       handoff?.leave(tiles.unmount());
     };
-    // `focus` is for opening only, as in Blocks.
+    // `focus` is for opening only, as in Blocks; `sounds` reads the film's sounds as it's asked.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, host]);
 

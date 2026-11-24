@@ -8,6 +8,7 @@ import type { TypeRef } from '@storystage/ast';
 import type { EnumName, TypeName } from '@storystage/story-api';
 import type { Extra } from './mapping.ts';
 import { styleOf } from './renderer.ts';
+import { soundChoices } from './sounds.ts';
 import {
   ENTRY_NAMES,
   ENUM_NAMES,
@@ -18,11 +19,13 @@ import {
   USER_CALL,
   USER_FUNCTION,
   FROM_SCRIPT,
+  SOUND,
   entryNamed,
   enumShape,
   enumType,
   expressionShape,
   fromScriptShape,
+  soundShape,
   listenerShape,
   methodShape,
   nodeType,
@@ -49,6 +52,7 @@ const typeName = (ref: TypeRef | undefined): TypeName | null => {
 export function shapeOf(type: string, extra: Extra = {}): Shape {
   if (type === METHOD) return methodShape();
   if (type === FROM_SCRIPT) return fromScriptShape();
+  if (type === SOUND) return soundShape();
   if (type === LISTENER) return listenerShape(extra.event ?? '', extra.details ?? [], extra.phrase);
   if (type === USER_CALL || type === USER_FUNCTION)
     return userCallShape(
@@ -82,6 +86,7 @@ export function blockTypes(): string[] {
     USER_CALL,
     USER_FUNCTION,
     FROM_SCRIPT,
+    SOUND,
     ...ENTRY_NAMES.map((name) =>
       entryNamed(name)!.kind === 'procedure' ? storyStatementType(name) : storyValueType(name),
     ),
@@ -120,6 +125,12 @@ function build(block: StoryBlock, shape: Shape) {
       }
       case 'text': {
         const f = new Blockly.FieldTextInput('');
+        f.name = part.field;
+        pending.push(f);
+        break;
+      }
+      case 'sound': {
+        const f = new Blockly.FieldDropdown(soundChoices(block.ssExtra.sound ?? ''));
         f.name = part.field;
         pending.push(f);
         break;
