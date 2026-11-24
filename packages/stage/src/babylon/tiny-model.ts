@@ -376,7 +376,9 @@ function texturedUrl(
   indices: readonly number[],
   png: Uint8Array,
   unlit: boolean,
-  cutOut = false,
+  alphaMode: 'OPAQUE' | 'MASK' | 'BLEND' = 'OPAQUE',
+  /** A plain green panel of the same shape 0.2 m behind it (along -Z), its own mesh. */
+  behind = false,
 ): string {
   const floats = (a: readonly number[]) => new Uint8Array(new Float32Array(a).buffer);
   const parts = [
@@ -400,17 +402,28 @@ function texturedUrl(
     asset: { version: '2.0' },
     ...(unlit ? { extensionsUsed: ['KHR_materials_unlit'] } : {}),
     scene: 0,
-    scenes: [{ nodes: [0] }],
-    nodes: [{ name: unlit ? 'Sky' : cutOut ? 'Panel' : 'Tile', mesh: 0 }],
+    scenes: [{ nodes: behind ? [0, 1] : [0] }],
+    nodes: [
+      {
+        name: unlit ? 'Sky' : alphaMode !== 'OPAQUE' ? 'Panel' : 'Tile',
+        mesh: 0,
+        ...(behind ? { translation: [0, 0, 0.1] } : {}),
+      },
+      ...(behind ? [{ name: 'Behind', mesh: 1, translation: [0, 0, -0.1] }] : []),
+    ],
     meshes: [
       { primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: 1 }, indices: 2, material: 0 }] },
+      ...(behind
+        ? [{ primitives: [{ attributes: { POSITION: 0 }, indices: 2, material: 1 }] }]
+        : []),
     ],
     materials: [
       {
         pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicFactor: 0 },
         ...(unlit ? { extensions: { KHR_materials_unlit: {} } } : {}),
-        ...(cutOut ? { alphaMode: 'MASK' } : {}),
+        ...(alphaMode !== 'OPAQUE' ? { alphaMode } : {}),
       },
+      ...(behind ? [{ pbrMetallicRoughness: { baseColorFactor: [0.1, 0.8, 0.1, 1] } }] : []),
     ],
     textures: [{ source: 0, sampler: 0 }],
     samplers: [{ wrapS: 10497, wrapT: 10497 }],
@@ -450,7 +463,17 @@ export function tinyGroundTileUrl(tile: number, png: Uint8Array): string {
  */
 export function tinyCutOutUrl(png: Uint8Array): string {
   const uvs = [0, 1, 1, 1, 1, 0, 0, 0];
-  return texturedUrl(POSITIONS, uvs, INDICES, png, false, true);
+  return texturedUrl(POSITIONS, uvs, INDICES, png, false, 'MASK');
+}
+
+/**
+ * A see-through card in front of a green panel, as hair is over a head: `png` on a blended
+ * surface (glTF's `alphaMode: 'BLEND'`), 0.2 m in front of (along +Z) a plain panel, each its
+ * own mesh.
+ */
+export function tinyHairUrl(png: Uint8Array): string {
+  const uvs = [0, 1, 1, 1, 1, 0, 0, 0];
+  return texturedUrl(POSITIONS, uvs, INDICES, png, false, 'BLEND', true);
 }
 
 /**

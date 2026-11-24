@@ -568,7 +568,9 @@ export class ObjectView {
     for (const { material, mode } of this.surfaces) {
       if (mode !== null) material.transparencyMode = opacity < 1 ? blending(mode) : mode;
       // Its nearer parts hide its farther ones, so it fades as one shape (`drawObjectsWhole`).
-      material.needDepthPrePass = opacity < 1;
+      // Not a surface that blends anyway, as hair cards do: its clear parts would hide what's
+      // behind them (S4's review of #667).
+      material.needDepthPrePass = opacity < 1 && solidOrCutOut(mode, material);
     }
   }
 
@@ -585,6 +587,13 @@ export class ObjectView {
         : to;
     }
   }
+}
+
+/** Whether a surface is drawn solid or cut out, rather than blended, when its object is solid. */
+function solidOrCutOut(mode: number | null, material: StandardMaterial): boolean {
+  if (mode === Material.MATERIAL_OPAQUE || mode === Material.MATERIAL_ALPHATEST) return true;
+  // Without a mode of its own, Babylon.js blends it if its colour or picture is see-through.
+  return mode === null && material.alpha >= 1 && !material.useAlphaFromDiffuseTexture;
 }
 
 /** A surface's transparency mode while it's part faded: a cut-out stays cut out. */

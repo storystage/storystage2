@@ -26,6 +26,7 @@ import {
   tinyCutOutUrl,
   tinyGroundTileUrl,
   tinyHumanUrl,
+  tinyHairUrl,
   tinyLayersUrl,
   tinyModelUrl,
   tinySkyDomeUrl,
@@ -312,6 +313,60 @@ async function fadedModel(layers = false) {
  * pixels more than a little apart. Drawn before its shader compiled, a cut-out showed solid for
  * two or three draws (S4's review of #649: Cool Waffle, the African penguin, the bee).
  */
+/**
+ * A see-through card (stripes, every other one clear) in front of a green panel, drawn solid,
+ * gone and at 0.5: how many pixels it covers drawn solid, and how many of those show what's
+ * behind the whole object as if it weren't there when faded. As hair over a head (S4, on #667).
+ */
+async function fadedHair() {
+  const picture = await png(8, 8, (x) => (x % 2 ? 'rgba(0, 0, 0, 0)' : 'rgb(200, 80, 40)'));
+  const url = tinyHairUrl(picture);
+  const frame = async (opacity: number) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const stage = await createBabylonStage({
+      canvas,
+      models: { find: () => ({ url, joints: 'prop-only' }) },
+      offscreen: true,
+      renderer: 'webgl2',
+    });
+    await stage.load({
+      backdrop: BACKDROP_TEMPLATES.find((b) => b.id === 'grass')!.backdrop,
+      objects: [
+        {
+          id: objectId('hair'),
+          model: backstageId('test/Prop/hair'),
+          class: 'Prop',
+          transform: { ...IDENTITY, rotation: { x: 0, y: 1, z: 0, w: 0 } },
+          opacity,
+        },
+      ],
+      camera: { transform: { ...IDENTITY, position: { x: 0, y: 1, z: -4 } } },
+      markers: [],
+    });
+    stage.seek(micros(0));
+    await stage.renderFrame();
+    const { data } = await stage.renderFrame();
+    const copy = data.slice();
+    stage.dispose();
+    return copy;
+  };
+  const solid = await frame(1);
+  const gone = await frame(0);
+  const faded = await frame(0.5);
+  const apart = (a: Uint8ClampedArray, b: Uint8ClampedArray, p: number) =>
+    [0, 1, 2].reduce((sum, c) => sum + Math.abs(a[p + c]! - b[p + c]!), 0);
+  let covered = 0;
+  let holes = 0;
+  for (let p = 0; p < solid.length; p += 4) {
+    if (apart(solid, gone, p) < 30) continue;
+    covered++;
+    if (apart(faded, gone, p) < 6) holes++;
+  }
+  return { covered, holes };
+}
+
 async function firstCutOutFade() {
   // Stripes, every other one cut away.
   const picture = await png(8, 8, (x) => (x % 2 ? 'rgba(0, 0, 0, 0)' : 'rgb(200, 80, 40)'));
@@ -1203,6 +1258,7 @@ Object.assign(window, {
     humanPicture,
     scenePictures,
     fadedModel,
+    fadedHair,
     firstCutOutFade,
     crossfadeSky,
     goLive,

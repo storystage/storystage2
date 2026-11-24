@@ -455,6 +455,18 @@ test('a part-faded model fades as one shape: its farther parts stay hidden', asy
   expect(problems).toEqual([]);
 });
 
+test("a part-faded object's see-through surfaces still show what's behind them", async ({
+  page,
+}) => {
+  const problems = await open(page);
+  // Faded, a hair card's clear stripes hid the panel behind it, so the backdrop showed through
+  // the object (S4's review of #667, MakeHuman's hair).
+  const got = await call<{ covered: number; holes: number }>(page, 'fadedHair');
+  expect(got.covered).toBeGreaterThan(500);
+  expect(got.holes).toBe(0);
+  expect(problems).toEqual([]);
+});
+
 test("a cut-out's first faded draws in the live loop are already blended", async ({ page }) => {
   const problems = await open(page);
   // Pixels apart from the settled draw, in each of the first four (S4's review of #649). Only a
