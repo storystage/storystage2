@@ -7,7 +7,7 @@
 import sharp from 'sharp';
 import type { TextureEncoder } from '@storystage/backstage/optimize';
 import type { ImageDecoder, Picture } from '@storystage/sketches';
-import type { PictureShrinker } from './vrm-textures.ts';
+import type { PicturePacker } from './vrm-textures.ts';
 import type { Painter } from './cover.ts';
 
 /** Always WebP, so it gives the bytes alone. */
@@ -87,16 +87,29 @@ export const sharpPainter: Painter = async (image, mimeType, boxes) => {
 };
 
 /**
- * A VRM's picture made to fit `maxPx`, in its own format (PNG, or JPEG), since VRM readers may not
- * take WebP; null when it already fits.
+ * A VRM's picture fitted to `maxPx`, and WebP where that's smaller (owner, 23 Nov 2026), at the
+ * quality models' textures have. `exact` keeps the colour under clear pixels, which filtering
+ * reads at a cut-out's edge: without it, libwebp makes it up, and edges change (S3, 23 Nov). Null
+ * when the picture fits and WebP wouldn't make it smaller.
  */
-export const sharpShrinker: PictureShrinker = async (bytes, mimeType, maxPx) => {
+export const sharpPicturePacker: PicturePacker = async (bytes, mimeType, maxPx) => {
   const { width = 0, height = 0 } = await sharp(bytes).metadata();
-  if (width <= maxPx && height <= maxPx) return null;
-  const resized = sharp(bytes).resize({ width: maxPx, height: maxPx, fit: 'inside' });
-  return new Uint8Array(
-    mimeType === 'image/jpeg'
-      ? await resized.jpeg({ quality: 90 }).toBuffer()
-      : await resized.png({ compressionLevel: 9 }).toBuffer(),
+  const fits = width <= maxPx && height <= maxPx;
+  const fitted = () =>
+    fits ? sharp(bytes) : sharp(bytes).resize({ width: maxPx, height: maxPx, fit: 'inside' });
+  const webp = new Uint8Array(
+    await fitted().webp({ quality: 85, alphaQuality: 90, exact: true }).toBuffer(),
   );
+  if (fits)
+    return mimeType !== 'image/webp' && webp.length < bytes.length
+      ? { bytes: webp, mimeType: 'image/webp' }
+      : null;
+  const own = new Uint8Array(
+    mimeType === 'image/jpeg'
+      ? await fitted().jpeg({ quality: 90 }).toBuffer()
+      : await fitted().png({ compressionLevel: 9 }).toBuffer(),
+  );
+  return webp.length < own.length
+    ? { bytes: webp, mimeType: 'image/webp' }
+    : { bytes: own, mimeType: mimeType === 'image/jpeg' ? 'image/jpeg' : 'image/png' };
 };

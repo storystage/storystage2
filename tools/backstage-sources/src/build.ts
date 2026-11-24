@@ -65,13 +65,13 @@ import {
   sharpDecoder,
   sharpEncoder,
   sharpPainter,
-  sharpShrinker,
+  sharpPicturePacker,
   thumbnailWebp,
 } from './sharp-encoder.ts';
 import { undraco } from './draco.ts';
 import { coverTextures } from './cover.ts';
 import { makeGlobe } from './globe.ts';
-import { shrinkVrmTextures, type PictureShrinker } from './vrm-textures.ts';
+import { packVrmTextures, type PicturePacker } from './vrm-textures.ts';
 import { excludesFor, stageLook, validateSources, type SourceItem } from './sources.ts';
 
 export interface Provenance {
@@ -121,14 +121,14 @@ export async function buildSources(
     readonly today?: string;
     readonly only?: string;
     readonly encodeTexture?: TextureEncoder;
-    /** Fits a VRM's pictures to the budget, in their own format (sharp by default). */
-    readonly shrinkPicture?: PictureShrinker;
+    /** Fits a VRM's pictures to the budget, as WebP where smaller (sharp by default). */
+    readonly packPicture?: PicturePacker;
     readonly decodeImage?: ImageDecoder;
   } = {},
 ): Promise<BuildReport> {
   const fetcher = options.fetcher ?? httpFetch;
   const encodeTexture = options.encodeTexture ?? sharpEncoder;
-  const shrinkPicture = options.shrinkPicture ?? sharpShrinker;
+  const packPicture = options.packPicture ?? sharpPicturePacker;
   const decodeImage = options.decodeImage ?? sharpDecoder;
   const io = new WebIO().registerExtensions(ALL_EXTENSIONS);
   const today = options.today ?? new Date().toISOString().slice(0, 10);
@@ -179,8 +179,8 @@ export async function buildSources(
     const budget = budgetFor(item);
     let bytes = trimmed.bytes;
     let fetchedSize: Budget;
-    // A VRM whose pictures were shrunk to the budget is changed, so a licence asking it says so.
-    let vrmShrunk = false;
+    // A VRM whose pictures were packed is changed, so a licence asking it says so.
+    let vrmChanged = false;
     if (ext === 'glb') {
       const doc = await io.readBinary(bytes);
       stripExtras(doc);
@@ -213,10 +213,11 @@ export async function buildSources(
     } else {
       const { doc } = await readModel(bytes);
       fetchedSize = { triangles: countTriangles(doc), textureMaxPx: largestTexture(doc) };
-      // Kept as it is but for its pictures, shrunk to the budget (owner, 19 Nov 2026).
-      const shrunk = await shrinkVrmTextures(bytes, budget.textureMaxPx, shrinkPicture);
-      bytes = shrunk.bytes;
-      vrmShrunk = shrunk.shrunk > 0;
+      // Kept as it is but for its pictures, fitted to the budget (owner, 19 Nov 2026) and WebP
+      // where that's smaller (owner, 23 Nov 2026).
+      const packed = await packVrmTextures(bytes, budget.textureMaxPx, packPicture);
+      bytes = packed.bytes;
+      vrmChanged = packed.changed > 0;
     }
     const model = `models/${item.id}.${ext}`;
     await mkdir(dirname(join(dir, model)), { recursive: true });
@@ -277,7 +278,7 @@ export async function buildSources(
       licence: item.licence,
       ...(item.publicDomain ? { publicDomain: item.publicDomain } : {}),
       // A changed CC BY model says so (owner, 8 Nov 2026); VRM files are kept as they are.
-      credit: creditFor(item, ext === 'glb' || vrmShrunk),
+      credit: creditFor(item, ext === 'glb' || vrmChanged),
       source: { url: item.page, retrieved },
       origin: 'shipped',
       sketches: [],

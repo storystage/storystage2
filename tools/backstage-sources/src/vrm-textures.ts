@@ -1,18 +1,25 @@
 /**
- * Shrinks a VRM's pictures to the section's texture budget (owner, 19 Nov 2026: 100Avatars'
- * round 3 comes with 2,048 px textures, twice the cast budget). A VRM is otherwise shipped as it
- * is fetched, so this works on the file's bytes: each picture larger than `maxPx` is resized,
- * keeping its format (PNG or JPEG, which every VRM reader takes), and the binary chunk is laid out
- * again with the new pictures. The JSON changes only in the pictures' byte ranges and the buffer's
- * length; the skeleton, expressions, materials and licence settings stay exactly as they were.
+ * Packs a VRM's pictures: each is fitted to the section's texture budget (owner, 19 Nov 2026:
+ * 100Avatars' round 3 comes with 2,048 px textures, twice the cast budget) and made WebP where
+ * that is smaller (owner, 23 Nov 2026: the shipped Backstage's size, option a; the avatars' PNGs
+ * were 114 of its 197 MB of pictures). A VRM is otherwise shipped as it is fetched, so this works
+ * on the file's bytes: the binary chunk is laid out again with the new pictures. A WebP picture
+ * is marked as glTF's `EXT_texture_webp` asks, required, with no PNG beside it, which the stage
+ * reads (S3, 23 Nov). The VRM's own thumbnail is left in its format, for VRM tools that show it.
+ * The skeleton, expressions, materials and licence settings stay exactly as they were.
  */
 
-/** Resizes a picture to fit `maxPx` on its longer side, in the same format; null to keep it. */
-export type PictureShrinker = (
+/**
+ * A picture fitted to `maxPx` on its longer side, and as WebP where that is smaller, with its
+ * type; null to keep it as it is.
+ */
+export type PicturePacker = (
   bytes: Uint8Array,
   mimeType: string,
   maxPx: number,
-) => Promise<Uint8Array | null>;
+) => Promise<{ readonly bytes: Uint8Array; readonly mimeType: string } | null>;
+
+const WEBP = 'EXT_texture_webp';
 
 const MAGIC = 0x46546c67;
 const JSON_CHUNK = 0x4e4f534a;
@@ -21,8 +28,15 @@ const BIN_CHUNK = 0x004e4942;
 interface Glb {
   json: {
     images?: { bufferView?: number; mimeType?: string }[];
+    textures?: { source?: number; extensions?: Record<string, { source?: number }> }[];
     bufferViews?: { buffer: number; byteOffset?: number; byteLength: number }[];
     buffers?: { byteLength: number; uri?: string }[];
+    extensionsUsed?: string[];
+    extensionsRequired?: string[];
+    extensions?: {
+      VRM?: { meta?: { texture?: number } };
+      VRMC_vrm?: { meta?: { thumbnailImage?: number } };
+    };
   };
   bin: Uint8Array;
 }
@@ -61,31 +75,59 @@ function writeGlb(json: unknown, bin: Uint8Array): Uint8Array {
 }
 
 /**
- * The VRM with every picture over `maxPx` shrunk, and how many were; the bytes as they were when
- * none needed it, or the file isn't a single-buffer binary glTF.
+ * The VRM with its pictures packed (`PicturePacker`), and how many changed; the bytes as they
+ * were when none did, or the file isn't a single-buffer binary glTF.
  */
-export async function shrinkVrmTextures(
+export async function packVrmTextures(
   bytes: Uint8Array,
   maxPx: number,
-  shrink: PictureShrinker,
-): Promise<{ bytes: Uint8Array; shrunk: number }> {
+  pack: PicturePacker,
+): Promise<{ bytes: Uint8Array; changed: number }> {
   const glb = readGlb(bytes);
   const views = glb?.json.bufferViews ?? [];
   if (!glb || (glb.json.buffers?.length ?? 0) !== 1 || views.some((b) => b.buffer !== 0))
-    return { bytes, shrunk: 0 };
+    return { bytes, changed: 0 };
+  const { json } = glb;
+  const images = json.images ?? [];
+  const textures = json.textures ?? [];
+  // The VRM's thumbnail: 0.x names a texture, 1.0 an image.
+  const kept = new Set<number>();
+  const thumbTexture = json.extensions?.VRM?.meta?.texture;
+  const thumbSource = thumbTexture === undefined ? undefined : textures[thumbTexture]?.source;
+  if (thumbSource !== undefined) kept.add(thumbSource);
+  const thumbImage = json.extensions?.VRMC_vrm?.meta?.thumbnailImage;
+  if (thumbImage !== undefined) kept.add(thumbImage);
+  // A picture's bytes, by its buffer view, and the image each view's picture is now.
   const replaced = new Map<number, Uint8Array>();
-  for (const image of glb.json.images ?? []) {
-    if (image.bufferView === undefined || replaced.has(image.bufferView)) continue;
+  const madeWebp = new Set<number>();
+  for (const [i, image] of images.entries()) {
+    if (image.bufferView === undefined || kept.has(i)) continue;
+    // Two images on one view would be packed once and could disagree: leave them both.
+    if (images.some((other, k) => k !== i && other.bufferView === image.bufferView)) continue;
     const view = views[image.bufferView]!;
     const start = view.byteOffset ?? 0;
-    const smaller = await shrink(
+    const packed = await pack(
       glb.bin.subarray(start, start + view.byteLength),
       image.mimeType ?? 'image/png',
       maxPx,
     );
-    if (smaller) replaced.set(image.bufferView, smaller);
+    if (!packed) continue;
+    replaced.set(image.bufferView, packed.bytes);
+    if (packed.mimeType === 'image/webp' && image.mimeType !== 'image/webp') madeWebp.add(i);
+    image.mimeType = packed.mimeType;
   }
-  if (replaced.size === 0) return { bytes, shrunk: 0 };
+  if (replaced.size === 0) return { bytes, changed: 0 };
+  if (madeWebp.size > 0) {
+    // Each texture of a WebP picture finds it through the extension, as glTF's core takes only
+    // PNG and JPEG; with no fallback, the extension is required.
+    for (const texture of textures) {
+      if (texture.source === undefined || !madeWebp.has(texture.source)) continue;
+      texture.extensions = { ...texture.extensions, [WEBP]: { source: texture.source } };
+      delete texture.source;
+    }
+    for (const list of ['extensionsUsed', 'extensionsRequired'] as const)
+      if (!(json[list] ?? []).includes(WEBP)) json[list] = [...(json[list] ?? []), WEBP];
+  }
   // Lay the views out again in their old order, each 4-byte aligned, with the new pictures.
   const order = views
     .map((_, i) => i)
@@ -111,5 +153,5 @@ export async function shrinkVrmTextures(
     k += p.length;
   }
   glb.json.buffers![0]!.byteLength = bin.length;
-  return { bytes: writeGlb(glb.json, bin), shrunk: replaced.size };
+  return { bytes: writeGlb(glb.json, bin), changed: replaced.size };
 }
