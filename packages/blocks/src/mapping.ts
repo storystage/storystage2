@@ -23,6 +23,7 @@ import type {
 import { DETAILS } from '@storystage/story-api';
 import {
   isSceneScript,
+  listenerPhrase,
   methodTitle,
   parameterWords,
   referenceTypeAt,
@@ -85,6 +86,10 @@ export interface Extra {
   count?: number;
   listener?: string;
   event?: string;
+  /** A listener's phrase, with a slot for each detail it names ("when {keys} is pressed"). */
+  phrase?: string;
+  /** A listener's keys or objects: its items joined by "or", not "list". */
+  oneOf?: true;
   /** A sound block's sound as it was drawn, kept among its choices if the film hasn't it. */
   sound?: string;
   /** A `fromScript` detail's value: the script line's id. */
@@ -156,8 +161,13 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
           x: 16,
           y: 16,
           deletable: false,
-          extraState: { event: owner.event, details: Object.keys(owner.details) },
-          inputs: { ...args(owner.args), ...details(owner.details), ...chain(owner.body) },
+          // The listener's own phrase where a detail has one: "when {keys} is pressed" (24 Nov).
+          extraState: {
+            event: owner.event,
+            details: Object.keys(owner.details),
+            phrase: listenerPhrase(owner),
+          },
+          inputs: { ...args(owner.args), ...details(owner.details, true), ...chain(owner.body) },
         };
   return { blocks: { languageVersion: 0, blocks: [header] } };
 
@@ -182,7 +192,7 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
     );
   }
 
-  function details(values: Args): Record<string, { block: BlockState }> {
+  function details(values: Args, listener = false): Record<string, { block: BlockState }> {
     return Object.fromEntries(
       Object.entries(values).map(([d, e]) => [
         detailInput(d),
@@ -190,10 +200,17 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
           block:
             DETAILS[d]?.fromScript && e.kind === 'text'
               ? base(e, FROM_SCRIPT, { line: e.value })
-              : expression(e),
+              : listener && e.kind === 'arrayOf'
+                ? oneOf(expression(e))
+                : expression(e),
         },
       ]),
     );
+  }
+
+  /** A listener's keys or objects: one item, or another ("W or up arrow"). */
+  function oneOf(block: BlockState): BlockState {
+    return { ...block, extraState: { ...block.extraState, oneOf: true } };
   }
 
   function base(
