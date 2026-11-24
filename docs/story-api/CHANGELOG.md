@@ -2,6 +2,14 @@
 
 Part of [the StoryStage Story API](README.md). CC BY 4.0. Newest first.
 
+## 0.12.0
+
+23 November 2026. A detail added, so a minor version.
+
+- `keys` ("which keys"), a list of `Key`, on `keyPress`, `arrowKeyPress` and `numberKeyPress`: the listener runs only for a key in the list. Without it, it runs for every key the event is for, as before, so no program changes meaning. An empty list never runs.
+- Each key event takes only its own keys, now listed on the event as `keys`: `arrowKeyPress` the four arrows, `numberKeyPress` `digit0` to `digit9`. `keyPress` takes any key. A program check refuses another.
+- Alice has no such setting: it's StoryStage's own, as `viewEnter` is.
+
 ## 0.11.0
 
 21 November 2026. A value type and a detail added, so a minor version.

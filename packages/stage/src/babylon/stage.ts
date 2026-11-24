@@ -38,6 +38,7 @@ import {
   type Vec3,
 } from '@storystage/story-api';
 import { resolveBackdropKnown } from '../backdrops.ts';
+import { drawObjectsWhole } from './draw-order.ts';
 import type {
   EditEvent,
   EditTarget,
@@ -349,6 +350,10 @@ export class BabylonStage implements EditableStage {
       this.owners = new Map(
         [...this.views].flatMap(([id, view]) => view.meshes.map((m) => [m, id] as const)),
       );
+      const viewOf = new Map(
+        [...objects.values()].flatMap(({ view }) => view.meshes.map((m) => [m, view] as const)),
+      );
+      drawObjectsWhole(scene, (mesh) => viewOf.get(mesh));
       this.shapes = new Map([...objects].map(([id, { shape }]) => [id, shape]));
       this.placedAs = placedAs;
       // The scene view's camera and drawing belonged to the scene before.

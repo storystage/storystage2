@@ -134,6 +134,8 @@ describe('entries match Alice', () => {
 
   it('offers every detail of every event, and no others', () => {
     const wrong: string[] = [];
+    // StoryStage's own details aren't Alice's: `keys` (spec 02, section 6a).
+    const alices = (details: readonly string[]) => details.filter((d) => !DETAILS[d]?.storystage);
     for (const e of EVENTS) {
       const keywords = e.alice.flatMap((a) => {
         const keyword = aliceMember(a).details;
@@ -141,7 +143,7 @@ describe('entries match Alice', () => {
           ? Object.keys(palette.keywords[keyword as keyof typeof palette.keywords])
           : [];
       });
-      if ([...keywords].sort().join() !== [...e.details].sort().join()) wrong.push(e.name);
+      if ([...keywords].sort().join() !== alices(e.details).sort().join()) wrong.push(e.name);
     }
     expect(wrong).toEqual([]);
   });

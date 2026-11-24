@@ -446,7 +446,11 @@ export function StepEditor({
                   setting: settingWords(draft.action === 'turn_degrees' ? 'turn' : draft.action),
                 }),
                 type: null,
-                objects: draft.action === 'vehicle' ? choices.actors : null,
+                // Riding on nothing is "scene" to the build's set_property, which refuses "this".
+                objects:
+                  draft.action === 'vehicle'
+                    ? choices.actors.map((n) => (n === 'this' ? 'scene' : n))
+                    : null,
               }}
               value={draft.details.find((d) => d.name === changeDetail(draft))?.value ?? ''}
               onChange={(value) =>
