@@ -21,7 +21,13 @@ import type {
   TypeRef,
 } from '@storystage/ast';
 import { DETAILS } from '@storystage/story-api';
-import { isSceneScript, methodTitle, parameterWords, word } from '@storystage/story-api/editing';
+import {
+  isSceneScript,
+  methodTitle,
+  parameterWords,
+  referenceTypeAt,
+  word,
+} from '@storystage/story-api/editing';
 import {
   LISTENER,
   METHOD,
@@ -29,6 +35,7 @@ import {
   USER_CALL,
   USER_FUNCTION,
   FROM_SCRIPT,
+  SOUND,
   argInput,
   detailInput,
   enumType,
@@ -78,6 +85,8 @@ export interface Extra {
   count?: number;
   listener?: string;
   event?: string;
+  /** A sound block's sound as it was drawn, kept among its choices if the film hasn't it. */
+  sound?: string;
   /** A `fromScript` detail's value: the script line's id. */
   line?: string;
 }
@@ -301,6 +310,9 @@ export function toBlocks(program: Program, owner: MethodDecl | ListenerDecl): Wo
       case 'boolean':
         return { ...base(e, nodeType(e.kind)), fields: { BOOL: String(e.value) } };
       case 'text':
+        // A sound a block plays is chosen by its label (7.17); other words are typed.
+        if (referenceTypeAt(program, e.id) === 'Audio')
+          return { ...base(e, SOUND, { sound: e.value }), fields: { VALUE: e.value } };
         return { ...base(e, nodeType(e.kind)), fields: { TEXT: e.value } };
       case 'enum':
         return { ...base(e, enumType(e.type)), fields: { VALUE: e.value } };
@@ -505,6 +517,7 @@ function statementNode(b: BlockState): Statement {
 function expressionOf(b: BlockState): Expression {
   const x = b.extraState ?? {};
   if (b.type === FROM_SCRIPT) return { ...own(b), kind: 'text', value: String(x.line ?? '') };
+  if (b.type === SOUND) return { ...own(b), kind: 'text', value: String(field(b, 'VALUE')) };
   if (b.type.startsWith('ss_storyfn_')) {
     return {
       ...own(b),

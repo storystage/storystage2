@@ -25,6 +25,7 @@ import { useThemeStyle } from '@storystage/ui';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { words } from '../strings.ts';
 import type { Handoff } from './handoff.ts';
+import type { SoundWords } from '../sound/codeWords.ts';
 
 export interface BlocksPanelProps {
   method: NodeId;
@@ -40,6 +41,8 @@ export interface BlocksPanelProps {
   editorRef?: { current: { selection(): readonly NodeId[] } | null };
   /** Where the learner was in Tiles, after a switch (`14-editors.md` section 4.2). */
   handoff?: Handoff;
+  /** The film's sounds and their names, for a block's sound (7.17; `soundWords`). */
+  sounds?: SoundWords;
 }
 
 /** What Rehearse highlights in the editor (`07-ux.md` section 7.4), and the frame's links. */
@@ -95,6 +98,7 @@ export default function BlocksPanel({
   highlights = NO_HIGHLIGHTS,
   editorRef,
   handoff,
+  sounds,
 }: BlocksPanelProps) {
   const box = useRef<HTMLDivElement>(null);
   const editor = useRef<BlocksEditor | null>(null);
@@ -115,6 +119,7 @@ export default function BlocksPanel({
     if (!box.current) return;
     const blocks = createBlocksEditor({
       scale,
+      ...sounds,
       // Each question opens Tiles' menu at the dropped block; Escape cancels the drop.
       ask: (request) =>
         new Promise((resolve) => {
@@ -190,6 +195,7 @@ export default function BlocksPanel({
       handoff?.leave(blocks.unmount());
     };
     // `focus` is for opening only: the Code editor opens afresh for each block it's asked to show.
+    // `sounds` reads the film's sounds each time it's asked, so it needn't make the editor again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method, host, scale]);
 
@@ -222,6 +228,7 @@ export default function BlocksPanel({
           place={question.request.place}
           label={question.request.label}
           anchor={question.request.anchor}
+          {...(sounds ? { options: sounds } : {})}
           onChoose={(value) => question.answer(value)}
           onAsk={(typing) => {
             toTyping.current = true;
