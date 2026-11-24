@@ -1020,9 +1020,9 @@ export class BabylonStage implements EditableStage {
     return true;
   }
 
-  steppedCamera(step: ViewStep): Transform {
+  steppedCamera(step: ViewStep, around?: Vec3): { transform: Transform; around: Vec3 } {
     const camera = this.timeline.transform(CAMERA);
-    return stepCamera(camera, this.timeline.ground(), this.subjects(), step);
+    return stepCamera(camera, this.timeline.ground(), around ? [] : this.subjects(), step, around);
   }
 
   /** What the scene view draws over the scene, for a test: none of it is in a frame. */

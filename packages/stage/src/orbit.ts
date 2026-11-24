@@ -161,25 +161,51 @@ export function stepCamera(
   ground: number,
   subjects: readonly Vec3[],
   step: ViewStep,
-): Transform {
-  const o = orbitFrom(view, ground, subjects);
+  around?: Vec3,
+): { transform: Transform; around: Vec3 } {
+  const o = (around && orbitAround(view, around)) || orbitFrom(view, ground, subjects);
   const own = (x: number, y: number, z: number) => rotate(view.rotation, v(x, y, z));
-  const moved = (by: Vec3): Transform => ({ ...view, position: add(view.position, by) });
+  // Zooming and panning move it; the point moves with a pan, and stays for a zoom.
+  const moved = (by: Vec3, pan: boolean) => ({
+    transform: { ...view, position: add(view.position, by) },
+    around: pan ? add(o.target, by) : o.target,
+  });
   switch (step) {
     case 'zoomIn':
     case 'zoomOut': {
       const nearer = step === 'zoomIn' ? KEY_NEARER : 1 / KEY_NEARER;
-      return moved(scale(own(0, 0, 1), o.radius - orbitBy(o, 0, 0, nearer).radius));
+      return moved(scale(own(0, 0, 1), o.radius - orbitBy(o, 0, 0, nearer).radius), false);
     }
     case 'panLeft':
     case 'panRight':
-      return moved(scale(own(-1, 0, 0), (step === 'panRight' ? 1 : -1) * KEY_PAN * o.radius));
+      return moved(scale(own(-1, 0, 0), (step === 'panRight' ? 1 : -1) * KEY_PAN * o.radius), true);
     case 'panUp':
     case 'panDown':
-      return moved(scale(own(0, 1, 0), (step === 'panUp' ? 1 : -1) * KEY_PAN * o.radius));
-    default:
-      return orbitView(orbitStep(o, step));
+      return moved(scale(own(0, 1, 0), (step === 'panUp' ? 1 : -1) * KEY_PAN * o.radius), true);
+    default: {
+      const next = orbitStep(o, step);
+      return { transform: orbitView(next), around: next.target };
+    }
   }
+}
+
+/**
+ * The orbit of a camera at `view` round a point it was told: as far along its line of sight as
+ * the point is ahead of it (so the camera doesn't jump if the point is a little off the line),
+ * or null if the point isn't ahead.
+ */
+export function orbitAround(view: Transform, around: Vec3): Orbit | null {
+  const forward = rotate(view.rotation, v(0, 0, 1));
+  const ahead = dot(sub(around, view.position), forward);
+  if (!(ahead > 0)) return null;
+  const radius = clamp(ahead, NEAREST, FURTHEST);
+  return {
+    target: add(view.position, scale(forward, radius)),
+    radius,
+    heading: Math.atan2(forward.x, forward.z),
+    pitch: clamp(-Math.asin(clamp(forward.y, -1, 1)), -STEEPEST, STEEPEST),
+    size: view.scale,
+  };
 }
 
 function clamp(n: number, least: number, most: number): number {
