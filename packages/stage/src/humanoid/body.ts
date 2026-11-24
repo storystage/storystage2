@@ -16,6 +16,15 @@ const J = (name: string) => name as JointName;
 const HIPS = J('hips');
 const FORWARD = v(0, 0, 1);
 const EYES = [J('leftEye'), J('rightEye')];
+/**
+ * How low KayKit's clips hold the arms, in radians below level: about 29 degrees, as their idle
+ * does. Out from the body, as KayKit's wide, short-armed characters need (S3, 24 Nov).
+ */
+export const ARMS_HELD = (29 * Math.PI) / 180;
+/** An arm is lowered fully once it's this far below level, and not at all once raised this high. */
+const DOWN = (10 * Math.PI) / 180;
+const RAISED = (-20 * Math.PI) / 180;
+
 /** How far eyes turn in their head, in turns: about 25 degrees. */
 const EYE_LIMIT = 0.07;
 
@@ -40,9 +49,12 @@ export class Body {
   readonly hipsHeight: number;
   /** How high the lowest joint rests: about an ankle's height. */
   readonly clearance: number;
+  /** The lowest its arms can hang beside its body, in radians below level (`Shape.armHang`). */
+  readonly armHang: number;
   private readonly rest: ReadonlyMap<JointName, Vec3>;
 
-  private constructor(rest: ReadonlyMap<JointName, Vec3>) {
+  private constructor(rest: ReadonlyMap<JointName, Vec3>, armHang: number) {
+    this.armHang = armHang;
     // Posed from a T-pose, as the rig poses it, whatever pose the model rests in (`rest.ts`).
     this.rest = tPosePlaces(rest, restCorrections(rest));
     this.hipsHeight = rest.get(HIPS)!.y;
@@ -50,13 +62,13 @@ export class Body {
   }
 
   /** A body for a model with humanoid joints where they should be, or null (a stand-in has none). */
-  static of(rest: ReadonlyMap<JointName, Vec3>): Body | null {
+  static of(rest: ReadonlyMap<JointName, Vec3>, armHang = ARMS_HELD): Body | null {
     if (!NEEDED.every((j) => rest.has(j))) return null;
     const hips = rest.get(HIPS)!;
     const head = rest.get(J('head'))!;
     // A stand-in puts every joint in one place.
     if (!(head.y - hips.y > 0.05 && hips.y > 0.05)) return null;
-    return new Body(rest);
+    return new Body(rest, Math.max(armHang, ARMS_HELD));
   }
 
   /** Each joint the model has, where it is in a pose. */
@@ -76,6 +88,33 @@ export class Body {
       out.set(joint, add(out.get(above)!, rotate(turns.get(PARENT.get(joint)!)!, offset)));
     }
     return out;
+  }
+
+  /**
+   * A KayKit clip's pose with the arms let hang as low as this body has room for (owner's choice,
+   * 24 Nov): each arm lowered, about its shoulder's forward axis, by the room there is below where
+   * KayKit holds them, but no lower than `armHang`. An arm the clip raises (a cheer) stays raised.
+   */
+  settleArms(pose: HumanPose): HumanPose {
+    const room = this.armHang - ARMS_HELD;
+    if (!(room > 0)) return pose;
+    const turns = modelTurns(pose);
+    const next = new Map(pose.turns);
+    for (const side of ['left', 'right'] as const) {
+      const upper = J(`${side}UpperArm`);
+      const above = turns.get(PARENT.get(upper)!) ?? IDENTITY_Q;
+      // Which way the arm points in its shoulder's axes; in a T-pose, straight out.
+      const out = v(side === 'left' ? 1 : -1, 0, 0);
+      const way = rotate(conjugate(above), rotate(turns.get(upper)!, out));
+      const drop = Math.asin(Math.max(-1, Math.min(1, -way.y)));
+      const t = Math.max(0, Math.min(1, (drop - RAISED) / (DOWN - RAISED)));
+      const by = Math.min(room * t * t * (3 - 2 * t), Math.max(0, this.armHang - drop));
+      if (by <= 0) continue;
+      // A model faces +Z with +X on its left: the left arm hangs by a negative turn about Z.
+      const lower = axisTurns(v(0, 0, 1), ((side === 'left' ? -1 : 1) * by) / (2 * Math.PI));
+      next.set(upper, mul(lower, pose.turns.get(upper) ?? IDENTITY_Q));
+    }
+    return { turns: next, hips: pose.hips };
   }
 
   /** The pose lowered until its lowest joint is no higher than the lowest rests, as on the ground. */

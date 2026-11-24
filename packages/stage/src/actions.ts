@@ -28,7 +28,7 @@ import type { Gait, GaitName } from './gaits.ts';
 import type { Box } from './hull.ts';
 import type { Body, Hand } from './humanoid/body.ts';
 import type { HumanLibrary } from './humanoid/library.ts';
-import { overlay, sample, slerp, type HumanPose } from './humanoid/pose.ts';
+import { overlay, sample, slerp, type HumanClip, type HumanPose } from './humanoid/pose.ts';
 import { add, axisTurns, conjugate, heading, mul, rotate, scale, sub, v } from './math.ts';
 import type { Navigation } from './navigation.ts';
 
@@ -1046,12 +1046,17 @@ export function bodyPose(
     const turns = coded && steps.length > 0 ? codedTurns(coded, steps) : null;
     return { human: null, own, turns, face: b.face, fading: b.fading, blink: b.blink };
   }
+  // KayKit's arms, held out for its wide characters, hang as low as this body has room for.
+  const posed = (clip: HumanClip, time: number, loop: boolean) => {
+    const p = sample(clip, time, loop);
+    return clip.armsHeld ? shape.settleArms(p) : p;
+  };
   const rest = library.get(REST_CLIP[b.rest])!;
-  let pose = sample(rest, (t - b.restSince) / SECOND, true);
+  let pose = posed(rest, (t - b.restSince) / SECOND, true);
   for (const layer of b.layers) {
     if (layer.own || layer.coded) continue;
     const clip = library.get(layer.clip);
-    if (clip) pose = overlay(pose, sample(clip, layer.time, clip.loop), layer.weight, layer.whole);
+    if (clip) pose = overlay(pose, posed(clip, layer.time, clip.loop), layer.weight, layer.whole);
   }
   if (!b.seated) pose = shape.ground(pose);
   const here = world.pose(state, object);
