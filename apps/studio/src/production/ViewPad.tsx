@@ -13,14 +13,14 @@ import { words } from '../strings.ts';
 
 /** One step of the view, as a button or a key takes it. */
 export type ViewStep =
-  | 'slideLeft'
-  | 'slideUp'
-  | 'slideDown'
-  | 'slideRight'
+  | 'panLeft'
+  | 'panUp'
+  | 'panDown'
+  | 'panRight'
   | 'circleLeft'
   | 'circleRight'
-  | 'riseLookDown'
-  | 'dropLookUp'
+  | 'riseAndLookDown'
+  | 'dropAndLookUp'
   | 'zoomIn'
   | 'zoomOut';
 
@@ -36,10 +36,10 @@ const GROUPS: readonly { readonly group: Group; readonly steps: readonly StepBut
   {
     group: 'slide',
     steps: [
-      { step: 'slideLeft', icon: 'arrow_back' },
-      { step: 'slideUp', icon: 'arrow_upward' },
-      { step: 'slideDown', icon: 'arrow_downward' },
-      { step: 'slideRight', icon: 'arrow_forward' },
+      { step: 'panLeft', icon: 'arrow_back' },
+      { step: 'panUp', icon: 'arrow_upward' },
+      { step: 'panDown', icon: 'arrow_downward' },
+      { step: 'panRight', icon: 'arrow_forward' },
     ],
   },
   {
@@ -52,8 +52,8 @@ const GROUPS: readonly { readonly group: Group; readonly steps: readonly StepBut
   {
     group: 'tilt',
     steps: [
-      { step: 'riseLookDown', icon: 'expand_circle_up' },
-      { step: 'dropLookUp', icon: 'expand_circle_down' },
+      { step: 'riseAndLookDown', icon: 'expand_circle_up' },
+      { step: 'dropAndLookUp', icon: 'expand_circle_down' },
     ],
   },
   {

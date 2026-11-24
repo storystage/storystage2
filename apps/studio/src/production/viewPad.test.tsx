@@ -79,7 +79,7 @@ describe('ViewPad', () => {
     await user.keyboard('[Space>]');
     await wait(200);
     expect(onMove.mock.calls.length).toBeGreaterThan(3);
-    expect(onMove.mock.calls.every(([s]) => s === 'riseLookDown')).toBe(true);
+    expect(onMove.mock.calls.every(([s]) => s === 'riseAndLookDown')).toBe(true);
     await user.keyboard('[/Space]');
     expect(onMoveEnd).toHaveBeenCalledTimes(1);
   });
