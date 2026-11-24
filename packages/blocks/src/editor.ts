@@ -543,12 +543,11 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         });
       // One of a listener's keys or objects: "Take up arrow out" (24 Nov 2026).
       const out = takeOutItem(host.program(), block.id as NodeId);
-      const list = block.getParent();
-      if (out && list)
+      if (out)
         offered.push({
           text: out.words,
           enabled: true,
-          callback: () => applyChange(out.change, list.id as NodeId),
+          callback: () => applyChange(out.change, out.then),
         });
       if (offered.length > 0) quietMenu(block.getSvgRoot().ownerDocument);
     };

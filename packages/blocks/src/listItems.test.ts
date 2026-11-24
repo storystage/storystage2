@@ -107,12 +107,15 @@ describe('a listener’s keys in Blocks, one at a time', () => {
     const { program } = listening('keyPress', [key('keyw01', 'w'), key('keyup1', 'up')]);
     const out = takeOutItem(program, UP)!;
     expect(out.words).toBe('Take up arrow out');
+    // Focus stays on the list while it's there, and goes to the listener with the last (S6).
+    expect(out.then).toBe(LIST);
     expect(out.change.ok).toBe(true);
     if (!out.change.ok) return;
     const after = applyEdits(program, out.change.edits);
     const held = after.types[0]!.listeners.find((l) => l.id === nodeId('keysl1'))!;
     expect(held.details.keys).toMatchObject({ items: [{ value: 'w' }] });
     const last = takeOutItem(after, W)!;
+    expect(last.then).toBe(nodeId('keysl1'));
     expect(last.change.ok).toBe(true);
     if (!last.change.ok) return;
     const none = applyEdits(after, last.change.edits).types[0]!.listeners.find(

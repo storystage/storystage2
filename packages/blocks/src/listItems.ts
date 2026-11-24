@@ -42,18 +42,23 @@ export function addItemName(program: Program, list: NodeId): string | null {
 }
 
 /**
- * The item menu's "Take up arrow out" for `item`, with its change, when `item` is one of a
- * listener's keys or objects; else null.
+ * The item menu's "Take up arrow out" for `item`, with its change and where focus goes after it,
+ * when `item` is one of a listener's keys or objects; else null. Focus stays on the list, or goes
+ * to the listener when the last item takes the list with it (S6's review of #675).
  */
 export function takeOutItem(
   program: Program,
   item: NodeId,
   options: WordsOptions = {},
-): { readonly words: string; readonly change: MenuChange } | null {
+): { readonly words: string; readonly change: MenuChange; readonly then: NodeId } | null {
   const at = indexProgram(program).get(item);
   if (!at?.parent || at.slot !== 'items' || typeof at.key !== 'number') return null;
-  if (!listDetailOf(program, at.parent)) return null;
+  const detail = listDetailOf(program, at.parent);
+  if (!detail) return null;
+  const list = indexProgram(program).get(at.parent)?.node;
+  const last = list?.kind === 'arrayOf' && list.items.length === 1;
   return {
+    then: last ? detail.listener.id : at.parent,
     words: fill(WORDS['block.removeItem']!, {
       item: describer(program, options)(at.node as never),
     }),

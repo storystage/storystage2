@@ -578,4 +578,6 @@ test('an arrow key listener’s keys are chosen one at a time, added with “or 
   }
   await expect(page.getByRole('tab', { name: 'when an arrow key is pressed' })).toBeVisible();
   await expect(header()).toHaveAccessibleName(/^Begin stack, when an arrow key is pressed,/);
+  // Focus goes to the listener, not lost with the list (S6's review).
+  await expect.poll(() => focusedBlock(page)).toBeTruthy();
 });
