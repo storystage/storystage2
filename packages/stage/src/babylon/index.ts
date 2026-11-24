@@ -45,7 +45,7 @@ function listenTo(canvas: HTMLCanvasElement, stage: BabylonStage) {
   });
   canvas.addEventListener('keydown', (e) => {
     // Look around's keys, while it's on; a scene's own keys otherwise.
-    if (stage.viewKey(e.key)) {
+    if (stage.viewKey(e.key, { shift: e.shiftKey })) {
       e.preventDefault();
       return;
     }
@@ -54,10 +54,22 @@ function listenTo(canvas: HTMLCanvasElement, stage: BabylonStage) {
     if (SCROLLING_KEYS.includes(e.key)) e.preventDefault();
   });
   // The scene view (07-ux section 7.2): handles, taps and Look around, in CSS pixels.
+  // A right-drag pans Look around, so its menu doesn't open when the stage took the press.
+  let rightTaken = false;
   canvas.addEventListener('pointerdown', (e) => {
-    if (!stage.pointerDown(e.offsetX, e.offsetY, { id: e.pointerId, shift: e.shiftKey })) return;
+    const taken = stage.pointerDown(e.offsetX, e.offsetY, {
+      id: e.pointerId,
+      shift: e.shiftKey,
+      button: e.button,
+    });
+    rightTaken = taken && e.button === 2;
+    if (!taken) return;
     canvas.setPointerCapture(e.pointerId);
     e.preventDefault();
+  });
+  canvas.addEventListener('contextmenu', (e) => {
+    if (rightTaken) e.preventDefault();
+    rightTaken = false;
   });
   canvas.addEventListener('pointermove', (e) =>
     stage.pointerMove(e.offsetX, e.offsetY, { id: e.pointerId, shift: e.shiftKey }),

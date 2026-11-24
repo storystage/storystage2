@@ -344,6 +344,40 @@ test('draws the scene view on the live canvas, and moves things with the mouse (
   await page.mouse.wheel(0, -200);
   expect(await view<unknown>('view')).not.toEqual(before);
   await amberOnPage('scene-view-look-around.png');
+
+  // Panning (owner, 24 Nov): a right-drag, a Shift-drag and Shift and an arrow slide the view
+  // without turning it, and the right button's menu doesn't open over it.
+  type View = { position: { x: number; y: number; z: number }; rotation: unknown };
+  await page.evaluate(() => {
+    const w = window as unknown as { menus: boolean[] };
+    w.menus = [];
+    document.addEventListener('contextmenu', (e) => w.menus.push(e.defaultPrevented));
+  });
+  const turned = await view<View>('view');
+  await page.mouse.move(box.x + 320, box.y + 180);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(box.x + 220, box.y + 180, { steps: 5 });
+  await page.mouse.up({ button: 'right' });
+  const right = await view<View>('view');
+  expect(right.rotation).toEqual(turned.rotation);
+  expect(right.position).not.toEqual(turned.position);
+  expect(
+    await page.evaluate(() => (window as unknown as { menus: boolean[] }).menus),
+  ).not.toContain(false);
+  await page.keyboard.down('Shift');
+  await page.mouse.move(box.x + 320, box.y + 180);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 320, box.y + 260, { steps: 5 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+  const shifted = await view<View>('view');
+  expect(shifted.rotation).toEqual(turned.rotation);
+  expect(shifted.position.y).toBeGreaterThan(right.position.y);
+  await canvas.focus();
+  await page.keyboard.press('Shift+ArrowLeft');
+  const keyed = await view<View>('view');
+  expect(keyed.rotation).toEqual(turned.rotation);
+  expect(keyed.position).not.toEqual(shifted.position);
   await view('stop');
   expect(problems).toEqual([]);
 });
