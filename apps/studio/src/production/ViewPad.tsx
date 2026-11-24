@@ -9,7 +9,7 @@
 import type { ViewStep } from '@storystage/stage';
 import { Button, type IconName } from '@storystage/ui';
 import { useEffect, useRef } from 'react';
-import { Tooltip, TooltipTrigger } from 'react-aria-components';
+import { Toolbar, Tooltip, TooltipTrigger } from 'react-aria-components';
 import { words } from '../strings.ts';
 
 interface StepButton {
@@ -102,7 +102,8 @@ export function ViewPad({
   };
 
   return (
-    <div className="pr-view-pad" role="toolbar" aria-label={words.t('production.view.pad')}>
+    // React Aria's toolbar: one Tab stop, and the arrow keys between its buttons.
+    <Toolbar className="pr-view-pad" aria-label={words.t('production.view.pad')}>
       {GROUPS.map(({ group, steps }) => (
         <div
           key={group}
@@ -138,6 +139,6 @@ export function ViewPad({
           </div>
         </div>
       ))}
-    </div>
+    </Toolbar>
   );
 }

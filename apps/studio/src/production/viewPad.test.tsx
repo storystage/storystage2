@@ -15,12 +15,13 @@ const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
 function open(props: { isDisabled?: boolean } = {}) {
   const onMove = vi.fn<(step: ViewStep) => void>();
   const onMoveEnd = vi.fn();
-  render(
+  const pad = (more: { isDisabled?: boolean }) => (
     <ThemeRoot>
-      <ViewPad onMove={onMove} onMoveEnd={onMoveEnd} repeat={QUICK} {...props} />
-    </ThemeRoot>,
+      <ViewPad onMove={onMove} onMoveEnd={onMoveEnd} repeat={QUICK} {...props} {...more} />
+    </ThemeRoot>
   );
-  return { onMove, onMoveEnd };
+  const { rerender } = render(pad({}));
+  return { onMove, onMoveEnd, disable: () => rerender(pad({ isDisabled: true })) };
 }
 
 const pad = () => screen.getByRole('toolbar', { name: 'Move the view' });
@@ -89,9 +90,33 @@ describe('ViewPad', () => {
     const user = userEvent.setup();
     open();
     await user.tab();
-    await user.tab();
+    await user.keyboard('{ArrowRight}');
     const tip = await screen.findByRole('tooltip');
     expect(tip.textContent).toBe(document.activeElement?.getAttribute('aria-label'));
+  });
+
+  it('ends a hold when the buttons turn off in the middle of it, as a run starts', async () => {
+    const user = userEvent.setup();
+    const { onMove, onMoveEnd, disable } = open();
+    await user.pointer({
+      keys: '[MouseLeft>]',
+      target: screen.getByRole('button', { name: 'Zoom in' }),
+    });
+    await wait(150);
+    disable();
+    const moves = onMove.mock.calls.length;
+    expect(onMoveEnd).toHaveBeenCalledTimes(1);
+    await wait(150);
+    expect(onMove).toHaveBeenCalledTimes(moves);
+  });
+
+  it('moves between its buttons by the arrow keys, as a toolbar', async () => {
+    const user = userEvent.setup();
+    open();
+    await user.tab();
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Slide left');
+    await user.keyboard('{ArrowRight}');
+    expect(document.activeElement?.getAttribute('aria-label')).toBe('Slide up');
   });
 
   it('switches every button off while the view can’t move', async () => {
