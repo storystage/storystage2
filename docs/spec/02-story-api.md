@@ -295,7 +295,7 @@ An event kind is the `event` of a `listener` in the AST.
 | --- | --- | --- | --- | --- |
 | `keys` | `Key[]` | every key the event is for | `keyPress`, `arrowKeyPress`, `numberKeyPress` | which keys |
 
-1. **The listener runs only for a key in the list.** Without the detail it runs for every key the event is for, as now, so no film changes. An empty list holds no key, so the listener never runs, as an empty `setOfVisuals` never matches.
+1. **The listener runs only for a key in the list.** Without the detail it runs for every key the event is for, as now, so no film changes. An empty list holds no key, so the listener never runs, as an empty `setOfVisuals` never matches. The editors never make one: keys are chosen one at a time, and taking the last out takes the detail out (spec 14, section 2.3, item 5; the owner, 24 Nov 2026). One from elsewhere reads as the event, "when an arrow key is pressed", and the program check marks it: "No keys chosen, so this never runs. Choose one, or take the setting out." (`noKeysChosen`).
 2. **Each event takes only its own keys.** `arrowKeyPress` takes `up`, `down`, `left` and `right`, and `numberKeyPress` takes `digit0` to `digit9`. `keyPress` takes any `Key`. The catalogue lists them on the event (`keys`), the program check (section 9a) refuses another, such as `a` on an arrow listener ("That key isn’t one this event is for. Choose another one."), and Tiles offers only the event's own.
 3. **`heldKeyPolicy` and `multipleEventPolicy` work as now,** for each key in the list. A key held down repeats, a release fires on release, and so on.
 4. **The handler is given what it's given now:** `key`, the directions, or `number`. With several keys, it can still tell which was pressed.
@@ -308,8 +308,9 @@ An event kind is the `event` of a `listener` in the AST.
     | `arrowKeyPress` with `keys` [`left`] | when left arrow is pressed |
     | `numberKeyPress` with `keys` [`digit3`] | when number key 3 is pressed |
     | any of the three without `keys` | as now: "when a key is pressed" |
+    | any of the three with an empty list | as without it, and marked by the check (rule 1) |
 
-    Each key reads by its `value.Key.*` words. In Tiles, each key is a pill of its own.
+    Each key reads by its `value.Key.*` words. In Tiles, each key is a pill of its own, with "or ▾" after the last to add another.
 6. **The text views** write the detail as any other: `when keyPress(keys=[Key.space]):`.
 
 **Why a detail, and why a list:**

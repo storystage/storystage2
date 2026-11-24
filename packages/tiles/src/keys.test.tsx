@@ -32,10 +32,12 @@ describe('a key listener’s row in Tiles', () => {
       { kind: 'declare', parent: IDS.scene, index: 0, node: listener, label: '' },
     ]);
     const parts = partsOf(listener, describer(program));
-    expect(parts.map((p) => p.text).join(' ')).toBe('when W or up arrow is pressed');
+    expect(parts.map((p) => p.text).join(' ')).toBe('when W or up arrow or is pressed');
     expect(parts.filter((p) => p.kind === 'value').map((p) => p.node)).toEqual([
       nodeId('keyw01'),
       nodeId('keyup1'),
+      nodeId('keyset'),
     ]);
+    expect(parts.at(-2)).toMatchObject({ label: 'add another to which keys', arrow: '▾' });
   });
 });

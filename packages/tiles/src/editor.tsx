@@ -50,6 +50,7 @@ import {
   moveBy,
   putAt,
   removeDetail,
+  removeItem,
   removeStatement,
   setValue,
   toggleEnabled,
@@ -125,6 +126,8 @@ type Menu =
       readonly label: string;
       readonly anchor: Element;
       readonly detail?: string;
+      /** One of a list's items, which its menu can take out. */
+      readonly item?: true;
       /** The words of the value there now, for the menu to mark. */
       readonly current?: string;
       /** It asks for a value of a block being put in (`pending`). */
@@ -735,12 +738,15 @@ export class TileEditor implements CodeEditor {
 
   private openValue(pill: ValuePill, anchor: Element): void {
     const detail = pill.place.slot === 'details' ? pill.place.param : undefined;
+    // An item there now, not "or ▾" past the last.
+    const item = pill.place.slot === 'items' && !pill.empty;
     this.menu = {
       kind: 'value',
       place: pill.place,
       label: pill.label,
       anchor,
       ...(detail ? { detail } : {}),
+      ...(item ? { item: true as const } : {}),
       ...(pill.empty ? {} : { current: pill.text }),
     };
     this.render();
@@ -864,6 +870,14 @@ export class TileEditor implements CodeEditor {
           };
           this.render();
         }}
+        {...(menu.item
+          ? {
+              onRemoveItem: () => {
+                this.menu = null;
+                this.apply(removeItem(program, menu.place));
+              },
+            }
+          : {})}
         {...(menu.detail
           ? {
               detail: menu.detail,

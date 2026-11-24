@@ -96,6 +96,8 @@ export interface ValueMenuProps extends Anchored {
   readonly onChoose: (value: Expression) => void;
   readonly onAsk: (ask: Ask) => void;
   readonly onRemoveDetail?: () => void;
+  /** For one of a list's items: offers taking it out (the owner, 24 Nov 2026). */
+  readonly onRemoveItem?: () => void;
 }
 
 /** The menu of values that fit a slot. */
@@ -115,7 +117,7 @@ export function ValueMenu(props: ValueMenuProps) {
   const close = useCloseUnlessActed(props.onClose);
   const pick = (key: string) => {
     close.acted();
-    if (key === REMOVE) return props.onRemoveDetail?.();
+    if (key === REMOVE) return (props.onRemoveItem ?? props.onRemoveDetail)?.();
     let list: readonly Choice[] = choices;
     let choice: Choice | undefined;
     for (const i of key.split('.').map(Number)) {
@@ -175,9 +177,11 @@ export function ValueMenu(props: ValueMenuProps) {
             {nothingWords(program, place)}
           </MenuItem>
         ) : null}
-        {props.detail ? (
+        {props.onRemoveItem || props.detail ? (
           <MenuItem id={REMOVE} className="tl-menu-item tl-menu-remove">
-            {t('removeDetail', { detail: props.label })}
+            {props.onRemoveItem
+              ? t('removeItem', { item: props.current ?? props.label })
+              : t('removeDetail', { detail: props.label })}
           </MenuItem>
         ) : null}
       </Menu>
