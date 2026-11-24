@@ -25,9 +25,11 @@ import {
   canDrop,
   describer,
   fill,
+  itemChange,
   namesAt,
   newAssign,
   newLocal,
+  type MenuChange,
   type NameInScope,
   type PaletteTab,
   type VARIABLE_TYPES,
@@ -47,9 +49,12 @@ import { dropFromPalette, freshIn, holdsKnown, type AskRequest, type Fresh } fro
 import { ADD_DETAIL_INPUT, AddDetailField } from './addDetail.ts';
 import { dragsAlone } from './drag.ts';
 import { editsFor } from './gestures.ts';
+import { addItemAsk, addItemName, takeOutItem } from './listItems.ts';
+import { soundsFor, type FilmSoundWords } from './sounds.ts';
 import { RENDERER, registerRenderer, storyTheme } from './renderer.ts';
 import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
+import { nodeType } from './shapes.ts';
 import { toolboxFor, withNewIds } from './toolbox.ts';
 
 const WORDS = blockWords as Readonly<Record<string, string>>;
@@ -150,7 +155,11 @@ function typeOf(program: Program, id: NodeId | null): NodeId | null {
   return null;
 }
 
-export interface BlocksEditorOptions {
+/**
+ * `references` and `referenceWord` are the film's sounds and their labels (7.17): a sound block's
+ * ▾ offers them, and the block, its undo labels and what's said show a sound by its label.
+ */
+export interface BlocksEditorOptions extends FilmSoundWords {
   /**
    * How big the blocks are drawn: Settings › Accessibility's text size (1, 1.25 or 1.5; decision
    * 0035). Blockly lays blocks out from its own text, so the whole workspace scales. Default 1.
@@ -300,6 +309,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         for (const block of ws.getAllBlocks(false)) {
           block.customContextMenu = menuOn(block);
           addDetailOn(block);
+          addItemOn(block);
           dragsAlone(block);
         }
       }
@@ -370,7 +380,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       putBack();
       return;
     }
-    const result = editsFor(host.program(), read);
+    const result = editsFor(host.program(), read, options);
     if (result.kind === 'none') return;
     if (result.kind === 'putBack') return putBack();
     const applied = host.apply(result.edits, result.label, 'blocks');
@@ -431,6 +441,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         host.program(),
         fresh,
         ask ? (request) => ask({ ...request, anchor }) : null,
+        options,
       );
       if (!host) return;
       if (outcome.kind === 'refused') host.announce(outcome.reason);
@@ -460,6 +471,57 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       .appendField(new AddDetailField((b) => void chooseDetail(b.id as NodeId)));
   }
 
+  /**
+   * "or ▾" after a listener's last key or object, or "choose ▾" in an empty list (24 Nov 2026):
+   * it asks for another through the cascade, which offers only those not chosen yet.
+   */
+  function addItemOn(block: Blockly.BlockSvg) {
+    if (!host || !options.ask || block.type !== nodeType('arrayOf')) return;
+    const name = addItemName(host.program(), block.id as NodeId);
+    if (!name) return;
+    const empty = block.inputList.every((i) => !i.connection);
+    block
+      .appendDummyInput(ADD_DETAIL_INPUT)
+      .appendField(
+        new AddDetailField(
+          (b) => void addItem(b.id as NodeId),
+          WORDS[empty ? 'block.chooseItem' : 'block.addItem']!,
+          name,
+        ),
+      );
+  }
+
+  /** Another key or object, asked for, as one step ("Add up arrow to when W is pressed"). */
+  async function addItem(list: NodeId) {
+    const anchor = ws?.getBlockById(list)?.getSvgRoot() ?? null;
+    if (!host || !options.ask || asking) return;
+    const asks = addItemAsk(host.program(), list);
+    if (!asks) return;
+    asking = true;
+    let answer: Expression | null;
+    try {
+      answer = await options.ask({ program: host.program(), ...asks, anchor });
+    } finally {
+      asking = false;
+    }
+    if (!answer || !host) return;
+    const program = host.program();
+    const at = indexProgram(program).get(list)?.node;
+    if (at?.kind !== 'arrayOf') return;
+    const value = withNewIds(answer, idMinter(program));
+    applyChange(itemChange(program, list, at.items.length, value, options), list);
+  }
+
+  /** A shared change, applied as one step and said aloud, then the method drawn again. */
+  function applyChange(change: MenuChange, then: NodeId) {
+    if (!host) return;
+    if (!change.ok) return void host.announce(change.reason);
+    const applied = host.apply(change.edits, change.label, 'blocks');
+    host.announce(applied.ok ? change.label : applied.reason);
+    rebuild();
+    focusOn(then);
+  }
+
   /** Which detail, from the shared menu, then its value, as one step. */
   async function chooseDetail(node: NodeId) {
     const anchor = ws?.getBlockById(node)?.getSvgRoot();
@@ -484,6 +546,14 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           text: item.words,
           enabled: true,
           callback: () => void act(block.id as NodeId, item.action),
+        });
+      // One of a listener's keys or objects: "Take up arrow out" (24 Nov 2026).
+      const out = takeOutItem(host.program(), block.id as NodeId, options);
+      if (out)
+        offered.push({
+          text: out.words,
+          enabled: true,
+          callback: () => applyChange(out.change, out.then),
         });
       if (offered.length > 0) quietMenu(block.getSvgRoot().ownerDocument);
     };
@@ -541,7 +611,9 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
     if (kind === 'copy') {
       if (!statement) return false;
       clipboard = statement.node as Statement;
-      host.announce(fill(WORDS['editor.copied']!, { what: describer(program)(clipboard) }));
+      host.announce(
+        fill(WORDS['editor.copied']!, { what: describer(program, options)(clipboard) }),
+      );
       return true;
     }
     if (!clipboard) {
@@ -557,7 +629,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           ? { parent: owner, slot: 'body', index: 0 }
           : { parent: owner, slot: 'body', index: method.body.length };
     const copy = copyNode(clipboard, idMinter(program));
-    const drop = canDrop(program, { kind: 'statement', ...place } as never, copy);
+    const drop = canDrop(program, { kind: 'statement', ...place } as never, copy, options);
     if (!drop.ok) {
       host.announce(drop.reason);
       return false;
@@ -652,6 +724,8 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       // The studio keeps the one history (07-ux section 7.5): Blockly keeps none of its own, so
       // its Ctrl+Z does nothing here and the studio's undoes the step, and its menu has no Undo.
       ws.MAX_UNDO = 0;
+      // Before any block is drawn: a sound block's ▾ and label read the film's sounds.
+      soundsFor(ws, options);
       for (const id of BLOCKLY_MENU)
         if (Blockly.ContextMenuRegistry.registry.getItem(id))
           Blockly.ContextMenuRegistry.registry.unregister(id);

@@ -190,6 +190,37 @@ export function scopeAt(
   return found;
 }
 
+/**
+ * The keys a key listener's `keys` takes, when `node` is that list: an arrow listener's are the
+ * arrows (spec 02, section 6a, rule 2). Undefined for any other node, and for `keyPress`.
+ */
+function keysOf(program: Program, node: AstNode): readonly string[] | undefined {
+  if (node.kind !== 'arrayOf') return undefined;
+  const index = indexOf(program);
+  const at = index.get(node.id);
+  const holder = at?.parent ? index.get(at.parent)?.node : undefined;
+  return holder?.kind === 'listener' && at?.slot === 'details' && at.key === 'keys'
+    ? findEvent(holder.event)?.keys
+    : undefined;
+}
+
+/** The other items of a listener's keys or objects, when `place` is one of them or past them. */
+function takenIn(program: Program, node: AstNode, place: ValuePlace): readonly Expression[] {
+  if (node.kind !== 'arrayOf' || place.slot !== 'items') return [];
+  const index = indexOf(program);
+  const at = index.get(node.id);
+  if (at?.slot !== 'details' || index.get(at.parent ?? ('' as NodeId))?.node.kind !== 'listener')
+    return [];
+  return node.items.filter((_, i) => String(i) !== place.param);
+}
+
+/** Whether two values are the same key or the same object. */
+function sameValue(a: Expression, b: Expression): boolean {
+  if (a.kind === 'enum' && b.kind === 'enum') return a.type === b.type && a.value === b.value;
+  if (a.kind === 'fieldRef' && b.kind === 'fieldRef') return a.field === b.field;
+  return a.kind === 'this' && b.kind === 'this';
+}
+
 /** The menu for one value slot. Every value in it fits the slot. */
 export function cascadeFor(
   program: Program,
@@ -212,12 +243,13 @@ export function cascadeFor(
     field,
   });
 
-  const variables = scopeAt(program, place.node)
-    .filter((v) => types.typeFits(v.type, wanted))
-    .map((v): Choice => ({
-      words: v.name,
-      value: { id: mint(), kind: 'variableRef', variable: v.id },
-    }));
+  const variablesFor = (type: TypeRef) =>
+    scopeAt(program, place.node)
+      .filter((v) => types.typeFits(v.type, type))
+      .map((v): Choice => ({
+        words: v.name,
+        value: { id: mint(), kind: 'variableRef', variable: v.id },
+      }));
 
   const suggestedNumber = () => {
     const turning =
@@ -227,9 +259,152 @@ export function cascadeFor(
     return turning && place.param === 'amount' ? 0.25 : 1;
   };
 
+  /** The values of `wanted` (not a list), with `keys` in place of every Key when given. */
+  const valuesFor = (wanted: TypeRef, keys: readonly string[] | undefined): Choice[] => {
+    const variables = variablesFor(wanted);
+    const name = wanted.kind === 'story' ? wanted.name : null;
+    if (name === 'JointId') {
+      const target = (node.kind === 'call' || node.kind === 'functionCall') && node.target;
+      const joints =
+        target && target.kind === 'fieldRef' ? (options.jointsOf?.(target.field) ?? []) : [];
+      return joints.map((j) => ({
+        words: j.words,
+        value: { id: mint(), kind: 'enum', type: 'JointId', value: j.id },
+      }));
+    }
+    if (name && isEnumName(name)) {
+      const suggested = SUGGESTED_VALUES[name];
+      const values = (name === 'Key' && keys) || ENUMS[name];
+      return [
+        ...values.map((v): Choice => ({
+          words: word(`value.${name}.${v}`),
+          ...withArrow(arrowOf(name, v)),
+          value: { id: mint(), kind: 'enum', type: name, value: v },
+          ...(v === suggested ? { suggested: true as const } : {}),
+        })),
+        ...variables,
+      ];
+    }
+    if (name === 'Number' || name === 'WholeNumber') {
+      const whole = name === 'WholeNumber';
+      const start = whole ? 1 : suggestedNumber();
+      return [
+        ...(whole ? WHOLE_NUMBERS : NUMBERS).map((n): Choice => ({
+          words: String(n),
+          value: { id: mint(), kind: whole ? 'wholeNumber' : 'number', value: n },
+          ...(n === start ? { suggested: true as const } : {}),
+        })),
+        {
+          words: word(whole ? 'cascade.otherWholeNumber' : 'cascade.otherNumber'),
+          ask: whole ? 'wholeNumber' : 'number',
+        },
+        ...variables,
+      ];
+    }
+    if (name === 'Text') return [{ words: word('cascade.otherWords'), ask: 'text' }, ...variables];
+    if (name === 'Boolean') {
+      const objects: Choice[] = [];
+      for (const field of scene?.fields ?? []) {
+        const cls = types.classOf(field.type);
+        if (!cls) continue;
+        const questions = entriesOf(cls)
+          .filter((e) => e.kind === 'function' && e.returns === 'Boolean')
+          .map((e): Choice => {
+            const value: Expression = {
+              id: mint(),
+              kind: 'functionCall',
+              target: fieldValue(field.id),
+              callee: { kind: 'story', name: e.name },
+              args: Object.fromEntries(
+                e.params.map((p) => [p.name, { id: mint(), kind: 'none' } as Expression]),
+              ),
+              details: {},
+            };
+            return { words: describe.inside(value, selfId!), value };
+          });
+        if (questions.length > 0) objects.push({ words: field.name, choices: questions });
+      }
+      return [
+        {
+          words: word('words.true'),
+          value: { id: mint(), kind: 'boolean', value: true },
+          suggested: true,
+        },
+        { words: word('words.false'), value: { id: mint(), kind: 'boolean', value: false } },
+        ...objects,
+        ...variables,
+      ];
+    }
+    if (name === 'Paint' || name === 'Audio' || name === 'SceneId' || name === 'AnimationClip') {
+      const colours =
+        name === 'Paint'
+          ? ENUMS.Color.map((c): Choice => ({
+              words: word(`value.Color.${c}`),
+              value: { id: mint(), kind: 'enum', type: 'Color', value: c },
+            }))
+          : [];
+      const references = (options.references?.(name) ?? []).map((r): Choice => ({
+        words: r.words,
+        value: { id: mint(), kind: 'text', value: r.value },
+      }));
+      return [...colours, ...references, ...variables];
+    }
+
+    const wantedClass = types.classOf(wanted);
+    if (!wantedClass) return variables;
+    const objects: Choice[] = [];
+    for (const field of scene?.fields ?? []) {
+      const fieldClass = types.classOf(field.type);
+      const fitsWhole = types.typeFits(field.type, wanted);
+      const joints =
+        fieldClass && isKindOf(fieldClass, 'JointedModel') && isKindOf('Joint', wantedClass)
+          ? (options.jointsOf?.(field.id) ?? []).map((j): Choice => ({
+              words: j.words,
+              value: {
+                id: mint(),
+                kind: 'functionCall',
+                target: fieldValue(field.id),
+                callee: { kind: 'story', name: 'getJoint' },
+                args: { joint: { id: mint(), kind: 'enum', type: 'JointId', value: j.id } },
+                details: {},
+              },
+            }))
+          : [];
+      if (!fitsWhole && joints.length === 0) continue;
+      objects.push({
+        words: field.name,
+        ...(fitsWhole ? { value: fieldValue(field.id) } : {}),
+        ...(joints.length > 0 ? { choices: joints } : {}),
+      });
+    }
+    const self_ =
+      scene && types.typeFits(self, wanted)
+        ? [{ words: describe.inside(thisValue(), scene.id), value: thisValue() }]
+        : [];
+    return [...objects, ...self_, ...variables];
+  };
+
   if (wanted.kind === 'array') {
+    // A listener's keys or objects: each is offered, making a list of one, and "or ▾" adds more
+    // (`addItemPlace`; the owner, 24 Nov 2026). An empty list would never run.
+    if (node.kind === 'listener' && place.slot === 'details' && place.param) {
+      const keys = place.param === 'keys' ? findEvent(node.event)?.keys : undefined;
+      const asList = (c: Choice): Choice => ({
+        ...c,
+        ...(c.value
+          ? { value: { id: mint(), kind: 'arrayOf', of: wanted.of, items: [c.value] } }
+          : {}),
+        ...(c.choices ? { choices: c.choices.map(asList) } : {}),
+      });
+      return [
+        ...valuesFor(wanted.of, keys)
+          .filter((c) => !c.ask && c.value?.kind !== 'variableRef')
+          .map(asList),
+        ...variablesFor(wanted),
+      ];
+    }
     return [
-      ...variables,
+      ...variablesFor(wanted),
       {
         words: word('cascade.newList'),
         value: { id: mint(), kind: 'arrayOf', of: wanted.of, items: [] },
@@ -237,125 +412,11 @@ export function cascadeFor(
     ];
   }
 
-  const name = wanted.kind === 'story' ? wanted.name : null;
-  if (name === 'JointId') {
-    const target = (node.kind === 'call' || node.kind === 'functionCall') && node.target;
-    const joints =
-      target && target.kind === 'fieldRef' ? (options.jointsOf?.(target.field) ?? []) : [];
-    return joints.map((j) => ({
-      words: j.words,
-      value: { id: mint(), kind: 'enum', type: 'JointId', value: j.id },
-    }));
-  }
-  if (name && isEnumName(name)) {
-    const suggested = SUGGESTED_VALUES[name];
-    return [
-      ...ENUMS[name].map((v): Choice => ({
-        words: word(`value.${name}.${v}`),
-        ...withArrow(arrowOf(name, v)),
-        value: { id: mint(), kind: 'enum', type: name, value: v },
-        ...(v === suggested ? { suggested: true as const } : {}),
-      })),
-      ...variables,
-    ];
-  }
-  if (name === 'Number' || name === 'WholeNumber') {
-    const whole = name === 'WholeNumber';
-    const start = whole ? 1 : suggestedNumber();
-    return [
-      ...(whole ? WHOLE_NUMBERS : NUMBERS).map((n): Choice => ({
-        words: String(n),
-        value: { id: mint(), kind: whole ? 'wholeNumber' : 'number', value: n },
-        ...(n === start ? { suggested: true as const } : {}),
-      })),
-      {
-        words: word(whole ? 'cascade.otherWholeNumber' : 'cascade.otherNumber'),
-        ask: whole ? 'wholeNumber' : 'number',
-      },
-      ...variables,
-    ];
-  }
-  if (name === 'Text') return [{ words: word('cascade.otherWords'), ask: 'text' }, ...variables];
-  if (name === 'Boolean') {
-    const objects: Choice[] = [];
-    for (const field of scene?.fields ?? []) {
-      const cls = types.classOf(field.type);
-      if (!cls) continue;
-      const questions = entriesOf(cls)
-        .filter((e) => e.kind === 'function' && e.returns === 'Boolean')
-        .map((e): Choice => {
-          const value: Expression = {
-            id: mint(),
-            kind: 'functionCall',
-            target: fieldValue(field.id),
-            callee: { kind: 'story', name: e.name },
-            args: Object.fromEntries(
-              e.params.map((p) => [p.name, { id: mint(), kind: 'none' } as Expression]),
-            ),
-            details: {},
-          };
-          return { words: describe.inside(value, selfId!), value };
-        });
-      if (questions.length > 0) objects.push({ words: field.name, choices: questions });
-    }
-    return [
-      {
-        words: word('words.true'),
-        value: { id: mint(), kind: 'boolean', value: true },
-        suggested: true,
-      },
-      { words: word('words.false'), value: { id: mint(), kind: 'boolean', value: false } },
-      ...objects,
-      ...variables,
-    ];
-  }
-  if (name === 'Paint' || name === 'Audio' || name === 'SceneId' || name === 'AnimationClip') {
-    const colours =
-      name === 'Paint'
-        ? ENUMS.Color.map((c): Choice => ({
-            words: word(`value.Color.${c}`),
-            value: { id: mint(), kind: 'enum', type: 'Color', value: c },
-          }))
-        : [];
-    const references = (options.references?.(name) ?? []).map((r): Choice => ({
-      words: r.words,
-      value: { id: mint(), kind: 'text', value: r.value },
-    }));
-    return [...colours, ...references, ...variables];
-  }
-
-  const wantedClass = types.classOf(wanted);
-  if (!wantedClass) return variables;
-  const objects: Choice[] = [];
-  for (const field of scene?.fields ?? []) {
-    const fieldClass = types.classOf(field.type);
-    const fitsWhole = types.typeFits(field.type, wanted);
-    const joints =
-      fieldClass && isKindOf(fieldClass, 'JointedModel') && isKindOf('Joint', wantedClass)
-        ? (options.jointsOf?.(field.id) ?? []).map((j): Choice => ({
-            words: j.words,
-            value: {
-              id: mint(),
-              kind: 'functionCall',
-              target: fieldValue(field.id),
-              callee: { kind: 'story', name: 'getJoint' },
-              args: { joint: { id: mint(), kind: 'enum', type: 'JointId', value: j.id } },
-              details: {},
-            },
-          }))
-        : [];
-    if (!fitsWhole && joints.length === 0) continue;
-    objects.push({
-      words: field.name,
-      ...(fitsWhole ? { value: fieldValue(field.id) } : {}),
-      ...(joints.length > 0 ? { choices: joints } : {}),
-    });
-  }
-  const self_ =
-    scene && types.typeFits(self, wanted)
-      ? [{ words: describe.inside(thisValue(), scene.id), value: thisValue() }]
-      : [];
-  return [...objects, ...self_, ...variables];
+  // In a listener's keys or objects, those it has already aren't offered again ("W or W").
+  const taken = takenIn(program, node, place);
+  return valuesFor(wanted, keysOf(program, node)).filter(
+    (c) => !c.value || !taken.some((x) => sameValue(x, c.value!)),
+  );
 }
 
 /** The value slots of a new block still waiting for a value, in the order to ask them. */

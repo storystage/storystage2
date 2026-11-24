@@ -21,6 +21,13 @@ export const DETAILS: Readonly<Record<string, DetailDef>> = {
   bubbleOutlineColor: { type: 'Color', default: 'white' },
   bubblePosition: { type: 'BubblePosition', default: 'automatic' },
   heldKeyPolicy: { type: 'HeldKeyPolicy', default: 'fireMultiple' },
+  // Spec 02, 6a (the owner approved it in #659): which keys a key listener is for.
+  keys: {
+    type: 'Key[]',
+    default: null,
+    defaultMeans: 'every key the event is for',
+    storystage: true,
+  },
   multipleEventPolicy: { type: 'MultipleEventPolicy', default: 'ignore' },
   setOfVisuals: { type: 'Thing[]', default: null, defaultMeans: 'every object' },
   // Spec 06, 4.1: the script line a speak line came from, as the production's `LineId`.

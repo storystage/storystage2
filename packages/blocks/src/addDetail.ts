@@ -3,7 +3,8 @@
  * Tiles has it: pressed, or Enter with focus on it, it asks which detail to add, then its value.
  * A field of our own, built as Blockly's guide to custom fields says (a subclass of `Field`,
  * through its public and protected hooks only, 3i.12). It holds no value and isn't saved, so the
- * program never sees it: the editor adds it when it draws a block that can take a detail.
+ * program never sees it: the editor adds it when it draws a block that can take a detail. The same
+ * field, with other words, is "or ▾" after a listener's last key or object (24 Nov 2026).
  */
 import * as Blockly from 'blockly/core';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
@@ -18,10 +19,16 @@ export class AddDetailField extends Blockly.Field<string> {
   override EDITABLE = true;
 
   private readonly onPress: (block: Blockly.BlockSvg) => void;
+  private readonly ariaName: string;
 
-  constructor(onPress: (block: Blockly.BlockSvg) => void) {
-    super(WORDS['block.addDetail']!);
+  constructor(
+    onPress: (block: Blockly.BlockSvg) => void,
+    text = WORDS['block.addDetail']!,
+    name = WORDS['block.addDetailName']!,
+  ) {
+    super(text);
     this.onPress = onPress;
+    this.ariaName = name;
   }
 
   protected override initView() {
@@ -32,12 +39,12 @@ export class AddDetailField extends Blockly.Field<string> {
     const button = this.getFocusableElement();
     button.setAttribute('role', 'button');
     button.setAttribute('aria-haspopup', 'menu');
-    button.setAttribute('aria-label', WORDS['block.addDetailName']!);
+    button.setAttribute('aria-label', this.ariaName);
   }
 
   /** Read as what it does, not as the arrow it shows. */
   override getAriaValue() {
-    return WORDS['block.addDetailName']!;
+    return this.ariaName;
   }
 
   override getAriaTypeName() {

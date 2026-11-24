@@ -188,8 +188,8 @@ export function tinySkeletonUrl(
   return `data:model/gltf-binary;base64,${btoa(text)}`;
 }
 
-/** A prop of one mesh on two nodes a metre apart, as Anansi's and the Roman temple's parts are. */
-export function tinyTwinsUrl(): string {
+/** Panels 1 m wide and 2 m tall, a mesh of each colour, on the nodes given. */
+function panelsUrl(nodes: readonly object[], colours: readonly (readonly number[])[]): string {
   const positions = new Uint8Array(new Float32Array(POSITIONS).buffer);
   const indices = new Uint8Array(new Uint16Array(INDICES).buffer);
   const start = pad4(positions.length);
@@ -199,13 +199,12 @@ export function tinyTwinsUrl(): string {
   const json = {
     asset: { version: '2.0' },
     scene: 0,
-    scenes: [{ nodes: [0, 1] }],
-    nodes: [
-      { name: 'Left', mesh: 0, translation: [-0.5, 0, 0] },
-      { name: 'Right', mesh: 0, translation: [0.5, 0, 0] },
-    ],
-    meshes: [{ primitives: [{ attributes: { POSITION: 0 }, indices: 1, material: 0 }] }],
-    materials: [{ pbrMetallicRoughness: { baseColorFactor: [0.2, 0.4, 0.6, 1] } }],
+    scenes: [{ nodes: nodes.map((_, i) => i) }],
+    nodes,
+    meshes: colours.map((_, material) => ({
+      primitives: [{ attributes: { POSITION: 0 }, indices: 1, material }],
+    })),
+    materials: colours.map((c) => ({ pbrMetallicRoughness: { baseColorFactor: [...c, 1] } })),
     buffers: [{ byteLength: bin.length }],
     bufferViews: [
       { buffer: 0, byteOffset: 0, byteLength: positions.length },
@@ -225,6 +224,34 @@ export function tinyTwinsUrl(): string {
   };
   const text = glb(json, bin).reduce((s, b) => s + String.fromCharCode(b), '');
   return `data:model/gltf-binary;base64,${btoa(text)}`;
+}
+
+/** A prop of one mesh on two nodes a metre apart, as Anansi's and the Roman temple's parts are. */
+export function tinyTwinsUrl(): string {
+  return panelsUrl(
+    [
+      { name: 'Left', mesh: 0, translation: [-0.5, 0, 0] },
+      { name: 'Right', mesh: 0, translation: [0.5, 0, 0] },
+    ],
+    [[0.2, 0.4, 0.6]],
+  );
+}
+
+/**
+ * A prop of two panels, a red one 0.2 m in front of a green one (along +Z), each its own mesh,
+ * as clothes are over a body.
+ */
+export function tinyLayersUrl(): string {
+  return panelsUrl(
+    [
+      { name: 'Front', mesh: 0, translation: [0, 0, 0.1] },
+      { name: 'Back', mesh: 1, translation: [0, 0, -0.1] },
+    ],
+    [
+      [0.8, 0.1, 0.1],
+      [0.1, 0.8, 0.1],
+    ],
+  );
 }
 
 /** Where each bone of a small humanoid is, in a T-pose facing +Z (+X on its left), in metres. */
@@ -349,7 +376,9 @@ function texturedUrl(
   indices: readonly number[],
   png: Uint8Array,
   unlit: boolean,
-  cutOut = false,
+  alphaMode: 'OPAQUE' | 'MASK' | 'BLEND' = 'OPAQUE',
+  /** A plain blue panel of the same shape 0.2 m behind it (along -Z), its own mesh. */
+  behind = false,
 ): string {
   const floats = (a: readonly number[]) => new Uint8Array(new Float32Array(a).buffer);
   const parts = [
@@ -373,17 +402,28 @@ function texturedUrl(
     asset: { version: '2.0' },
     ...(unlit ? { extensionsUsed: ['KHR_materials_unlit'] } : {}),
     scene: 0,
-    scenes: [{ nodes: [0] }],
-    nodes: [{ name: unlit ? 'Sky' : cutOut ? 'Panel' : 'Tile', mesh: 0 }],
+    scenes: [{ nodes: behind ? [0, 1] : [0] }],
+    nodes: [
+      {
+        name: unlit ? 'Sky' : alphaMode !== 'OPAQUE' ? 'Panel' : 'Tile',
+        mesh: 0,
+        ...(behind ? { translation: [0, 0, 0.1] } : {}),
+      },
+      ...(behind ? [{ name: 'Behind', mesh: 1, translation: [0, 0, -0.1] }] : []),
+    ],
     meshes: [
       { primitives: [{ attributes: { POSITION: 0, TEXCOORD_0: 1 }, indices: 2, material: 0 }] },
+      ...(behind
+        ? [{ primitives: [{ attributes: { POSITION: 0 }, indices: 2, material: 1 }] }]
+        : []),
     ],
     materials: [
       {
         pbrMetallicRoughness: { baseColorTexture: { index: 0 }, metallicFactor: 0 },
         ...(unlit ? { extensions: { KHR_materials_unlit: {} } } : {}),
-        ...(cutOut ? { alphaMode: 'MASK' } : {}),
+        ...(alphaMode !== 'OPAQUE' ? { alphaMode } : {}),
       },
+      ...(behind ? [{ pbrMetallicRoughness: { baseColorFactor: [0, 0.1, 0.8, 1] } }] : []),
     ],
     textures: [{ source: 0, sampler: 0 }],
     samplers: [{ wrapS: 10497, wrapT: 10497 }],
@@ -423,7 +463,17 @@ export function tinyGroundTileUrl(tile: number, png: Uint8Array): string {
  */
 export function tinyCutOutUrl(png: Uint8Array): string {
   const uvs = [0, 1, 1, 1, 1, 0, 0, 0];
-  return texturedUrl(POSITIONS, uvs, INDICES, png, false, true);
+  return texturedUrl(POSITIONS, uvs, INDICES, png, false, 'MASK');
+}
+
+/**
+ * A see-through card in front of a blue panel, as hair is over a head: `png` on a blended
+ * surface (glTF's `alphaMode: 'BLEND'`), 0.2 m in front of (along +Z) a plain panel, each its
+ * own mesh.
+ */
+export function tinyHairUrl(png: Uint8Array): string {
+  const uvs = [0, 1, 1, 1, 1, 0, 0, 0];
+  return texturedUrl(POSITIONS, uvs, INDICES, png, false, 'BLEND', true);
 }
 
 /**

@@ -1287,3 +1287,67 @@ describe("S6's recheck: an event's objects are read by the list the listener use
     expect(runner.checkSteps([add, when('clickOnObject', { actor: 'rock' })], null)).toEqual([]);
   });
 });
+
+describe('3D text the Prompter adds (format 1.10.0; spec 04, section 6.5)', () => {
+  const title = (extra: Partial<PlanStep> = {}) =>
+    step({
+      kind: 'add',
+      actor: 'title',
+      action: 'example/Text/title',
+      details: pairs({ position: '0, 2, 0' }),
+      ...extra,
+    });
+  const shows = (words: string) =>
+    step({ actor: 'title', action: 'setValue', details: pairs({ text: words }) });
+  const setUpText = () =>
+    setUp(film(), {
+      backstageClass: (id) => (id === 'example/Text/title' ? 'Text' : null),
+    });
+  const add = (run: ReturnType<typeof setUp>['run']) =>
+    run('add_model', {
+      backstage_item: 'example/Text/title',
+      name: 'title',
+      position: { x: 0, y: 2, z: 0 },
+      narration: 'A title appears.',
+      plan_step: 1,
+    });
+  const put = (words: string): JsonObject =>
+    call('setValue', { text: words }, { target: 'title', plan_step: 2 });
+
+  it('types it TextModel in code, and gives it its blocks', () => {
+    const { agree, run, scene, session } = setUpText();
+    agree([title(), shows('The End')], 'make a title that says The End');
+    expect(add(run)).toMatchObject({ ok: true });
+    expect(scene().fields.find((f) => f.name === 'title')!.type).toEqual({
+      kind: 'story',
+      name: 'TextModel',
+    });
+    expect(run('insert_statement', put('The End'))).toMatchObject({ ok: true });
+    expect(checkProgram(session.program())).toEqual([]);
+  });
+
+  it('reads a title the plan adds as 3D text, for an input that takes it', () => {
+    // The scene's dance takes 3D text. Until the title is added, the plan check reads its type
+    // from the class, which must be TextModel, not Text, which is words.
+    const p = changed(film(), ID.dance, (m) => ({
+      ...m,
+      params: [input('sign', story('TextModel'))],
+    }));
+    const { runner } = setUp(p, {
+      backstageClass: (id) => (id === 'example/Text/title' ? 'Text' : null),
+    });
+    const dance = step({ actor: 'this', action: 'dance', target: 'title', details: [] });
+    expect(runner.checkSteps([title(), dance], null)).toEqual([]);
+  });
+
+  it("refuses words of the Prompter's on it", () => {
+    const { agree, run, session } = setUpText();
+    agree([title(), shows('The Great Adventure')], 'make a title');
+    expect(add(run)).toMatchObject({ ok: true });
+    const before = session.program();
+    expect(run('insert_statement', put('The Great Adventure'))).toMatchObject({
+      error: 'not_in_script',
+    });
+    expect(session.program()).toBe(before);
+  });
+});

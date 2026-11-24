@@ -344,6 +344,40 @@ test('draws the scene view on the live canvas, and moves things with the mouse (
   await page.mouse.wheel(0, -200);
   expect(await view<unknown>('view')).not.toEqual(before);
   await amberOnPage('scene-view-look-around.png');
+
+  // Panning (owner, 24 Nov): a right-drag, a Shift-drag and Shift and an arrow slide the view
+  // without turning it, and the right button's menu doesn't open over it.
+  type View = { position: { x: number; y: number; z: number }; rotation: unknown };
+  await page.evaluate(() => {
+    const w = window as unknown as { menus: boolean[] };
+    w.menus = [];
+    document.addEventListener('contextmenu', (e) => w.menus.push(e.defaultPrevented));
+  });
+  const turned = await view<View>('view');
+  await page.mouse.move(box.x + 320, box.y + 180);
+  await page.mouse.down({ button: 'right' });
+  await page.mouse.move(box.x + 220, box.y + 180, { steps: 5 });
+  await page.mouse.up({ button: 'right' });
+  const right = await view<View>('view');
+  expect(right.rotation).toEqual(turned.rotation);
+  expect(right.position).not.toEqual(turned.position);
+  expect(
+    await page.evaluate(() => (window as unknown as { menus: boolean[] }).menus),
+  ).not.toContain(false);
+  await page.keyboard.down('Shift');
+  await page.mouse.move(box.x + 320, box.y + 180);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 320, box.y + 260, { steps: 5 });
+  await page.mouse.up();
+  await page.keyboard.up('Shift');
+  const shifted = await view<View>('view');
+  expect(shifted.rotation).toEqual(turned.rotation);
+  expect(shifted.position.y).toBeGreaterThan(right.position.y);
+  await canvas.focus();
+  await page.keyboard.press('Shift+ArrowLeft');
+  const keyed = await view<View>('view');
+  expect(keyed.rotation).toEqual(turned.rotation);
+  expect(keyed.position).not.toEqual(shifted.position);
   await view('stop');
   expect(problems).toEqual([]);
 });
@@ -442,6 +476,30 @@ test('a part-faded glTF model is blended with what is behind it', async ({ page 
   // Unblended, the frame is the solid model with a see-through alpha (#117 to 22 Nov).
   expect(got.alpha).toBe(255);
   expect(got.off).toBeLessThan(6);
+  expect(problems).toEqual([]);
+});
+
+test('a part-faded model fades as one shape: its farther parts stay hidden', async ({ page }) => {
+  const problems = await open(page);
+  // A red panel in front of a green one. Faded, only the red is blended with what's behind it:
+  // the green showed through it before (S3, 23 Nov).
+  const got = await call<{ covered: number; alpha: number; off: number }>(page, 'fadedModel', true);
+  expect(got.covered).toBeGreaterThan(500);
+  expect(got.off).toBeLessThan(6);
+  expect(problems).toEqual([]);
+});
+
+test("a part-faded object's see-through surfaces still show what's behind them", async ({
+  page,
+}) => {
+  const problems = await open(page);
+  // Faded, a hair card's clear stripes hid the panel behind it, so the backdrop showed through
+  // the object (S4's review of #667, MakeHuman's hair).
+  const got = await call<{ covered: number; holes: number; under: number }>(page, 'fadedHair');
+  expect(got.covered).toBeGreaterThan(500);
+  expect(got.holes).toBe(0);
+  // And the card stayed over the panel: the panel was drawn over it (p04's braids).
+  expect(got.under).toBe(0);
   expect(problems).toEqual([]);
 });
 

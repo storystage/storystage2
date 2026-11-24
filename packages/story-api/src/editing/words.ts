@@ -36,7 +36,9 @@ export const listenerWords = (event: string): string =>
  * waits for, as a click's objects do ("when {setOfVisuals} is clicked", the owner, 23 Nov 2026).
  */
 export function listenerPhrase(listener: Pick<ListenerDecl, 'event' | 'details'>): string {
-  for (const detail of Object.keys(listener.details)) {
+  for (const [detail, value] of Object.entries(listener.details)) {
+    // An empty list chooses nothing: it reads as the event, and the check marks it (24 Nov 2026).
+    if (value.kind === 'arrayOf' && value.items.length === 0) continue;
     const phrase = all[`listener.${listener.event}.${detail}`];
     if (phrase) return phrase;
   }

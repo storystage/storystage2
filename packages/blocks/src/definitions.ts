@@ -8,6 +8,8 @@ import type { TypeRef } from '@storystage/ast';
 import type { EnumName, TypeName } from '@storystage/story-api';
 import type { Extra } from './mapping.ts';
 import { styleOf } from './renderer.ts';
+import { keyChoices } from './keys.ts';
+import { soundChoices } from './sounds.ts';
 import {
   ENTRY_NAMES,
   ENUM_NAMES,
@@ -18,11 +20,13 @@ import {
   USER_CALL,
   USER_FUNCTION,
   FROM_SCRIPT,
+  SOUND,
   entryNamed,
   enumShape,
   enumType,
   expressionShape,
   fromScriptShape,
+  soundShape,
   listenerShape,
   methodShape,
   nodeType,
@@ -49,7 +53,8 @@ const typeName = (ref: TypeRef | undefined): TypeName | null => {
 export function shapeOf(type: string, extra: Extra = {}): Shape {
   if (type === METHOD) return methodShape();
   if (type === FROM_SCRIPT) return fromScriptShape();
-  if (type === LISTENER) return listenerShape(extra.event ?? '', extra.details ?? []);
+  if (type === SOUND) return soundShape();
+  if (type === LISTENER) return listenerShape(extra.event ?? '', extra.details ?? [], extra.phrase);
   if (type === USER_CALL || type === USER_FUNCTION)
     return userCallShape(
       type === USER_CALL ? 'statement' : 'value',
@@ -67,7 +72,11 @@ export function shapeOf(type: string, extra: Extra = {}): Shape {
       hasValue: extra.hasValue,
       constant: extra.constant,
     });
-  return expressionShape(kind, { count: extra.count, of: typeName(extra.of) });
+  return expressionShape(kind, {
+    count: extra.count,
+    of: typeName(extra.of),
+    ...(extra.oneOf ? { oneOf: true } : {}),
+  });
 }
 
 /** Every block type this package defines. */
@@ -78,6 +87,7 @@ export function blockTypes(): string[] {
     USER_CALL,
     USER_FUNCTION,
     FROM_SCRIPT,
+    SOUND,
     ...ENTRY_NAMES.map((name) =>
       entryNamed(name)!.kind === 'procedure' ? storyStatementType(name) : storyValueType(name),
     ),
@@ -120,8 +130,17 @@ function build(block: StoryBlock, shape: Shape) {
         pending.push(f);
         break;
       }
+      case 'sound': {
+        const f = new Blockly.FieldDropdown(soundChoices(block.ssExtra.sound ?? ''));
+        f.name = part.field;
+        pending.push(f);
+        break;
+      }
       case 'choice': {
-        const f = new Blockly.FieldDropdown(part.options);
+        // A key offers only the keys its listener is for (spec 02, 6a).
+        const f = new Blockly.FieldDropdown(
+          block.type === enumType('Key') ? keyChoices(part.options) : part.options,
+        );
         f.name = part.field;
         pending.push(f);
         break;

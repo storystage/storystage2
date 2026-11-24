@@ -50,6 +50,7 @@ import {
   enumValues,
   findEntry,
   findEvent,
+  typeOfClass,
   type ApiClass,
   type SceneObjectSetup,
   type SceneSetup,
@@ -624,7 +625,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
           this.#setup.objectType?.(this.#setup.session.production(), {
             model: item as SceneObjectSetup['model'],
             class: cls,
-          }) ?? story(cls);
+          }) ?? story(typeOfClass(cls)); // 3D text is TextModel in code, as Text is words
         // `cls` is a class already: read as a type, Text would be words.
         return { cls, type };
       },
@@ -1135,7 +1136,8 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         const refs = names.map((n) => ({ name: n, ref: objectRef(n, scene, mint) }));
         const gone = refs.find((r) => !r.ref);
         if (gone) return fail('unknown_object', `There's no ${gone.name} in this scene.`);
-        const of = story(refs[0]!.ref!.class);
+        // A list of 3D text is of TextModel, as Text is words (format 1.10.0).
+        const of = story(typeOfClass(refs[0]!.ref!.class));
         return {
           id,
           kind,

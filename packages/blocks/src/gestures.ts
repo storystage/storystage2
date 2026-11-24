@@ -23,7 +23,7 @@ import {
   type Statement,
   type StatementSlot,
 } from '@storystage/ast';
-import { labelFor } from '@storystage/story-api/editing';
+import { labelFor, type WordsOptions } from '@storystage/story-api/editing';
 import type { FromBlocks } from './mapping.ts';
 
 export type GestureEdits =
@@ -186,8 +186,15 @@ function longestRun(seq: readonly number[]): Set<number> {
   return run;
 }
 
-/** The edits that make `program`'s method what the blocks say (`after`). */
-export function editsFor(program: Program, read: FromBlocks): GestureEdits {
+/**
+ * The edits that make `program`'s method what the blocks say (`after`), named with `words` (a
+ * sound by its label, 7.17).
+ */
+export function editsFor(
+  program: Program,
+  read: FromBlocks,
+  words: WordsOptions = {},
+): GestureEdits {
   let sim = program;
   const known = indexProgram(program);
   const taken = new Set<string>(known.keys());
@@ -207,7 +214,7 @@ export function editsFor(program: Program, read: FromBlocks): GestureEdits {
     const labelled = {
       ...edit,
       // Named as Tiles names it (spec 14, section 2.4).
-      label: labelFor(sim, { ...edit, label: '' } as EditOperation),
+      label: labelFor(sim, { ...edit, label: '' } as EditOperation, words),
     } as EditOperation;
     sim = applyEdit(sim, labelled).program;
     edits.push(labelled);

@@ -10,6 +10,7 @@ import * as Blockly from 'blockly/core';
 import { CATEGORIES } from '@storystage/story-api/editing';
 import {
   FROM_SCRIPT,
+  SOUND,
   LISTENER,
   METHOD,
   STATEMENT_KINDS,
@@ -74,7 +75,7 @@ export function familyOf(type: string): Family {
   if (type === USER_CALL) return 'yours';
   if (type === USER_FUNCTION || type.startsWith('ss_storyfn_')) return 'question';
   if (type.startsWith('ss_story_')) return ACTIONS.get(type.slice('ss_story_'.length)) ?? 'move';
-  if (type === FROM_SCRIPT || type.startsWith('ss_enum_')) return 'value';
+  if (type === FROM_SCRIPT || type === SOUND || type.startsWith('ss_enum_')) return 'value';
   const kind = type.slice('ss_'.length);
   if ((LOOPS as readonly string[]).includes(kind)) return 'loop';
   return (STATEMENT_KINDS as readonly string[]).includes(kind) ? 'control' : 'value';

@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import { exampleProduction } from '@storystage/production';
 
 // The Sound view's first part in a browser (07-ux 7.7; workplan 7.17): Code | Sound, a real WAV
 // read and decoded by the browser, the trim dialog by keys and by pointer, Add sound as one undo
@@ -32,6 +33,11 @@ function toneWav(seconds: number): Buffer {
   }
   return wav;
 }
+
+const example = exampleProduction();
+const main = example.program.types
+  .flatMap((t) => t.methods)
+  .find((m) => m.id === example.scenes[0]!.method)!;
 
 const undoButton = (page: Page) => page.getByRole('button', { name: /^Undo/ });
 const redoButton = (page: Page) => page.getByRole('button', { name: /^Redo/ });
@@ -137,4 +143,78 @@ test('a file that is no sound is refused beside the button', async ({ page }) =>
   });
   await expect(sound.getByText("That file isn't an MP3, WAV or M4A sound.")).toBeVisible();
   await expect(page.getByRole('dialog')).toBeHidden();
+});
+
+test('a block plays a sound chosen by its name, which the Sound view then keeps', async ({
+  page,
+}) => {
+  // Workplan 7.17, spec 14 section 3a: the film's sounds in the shared cascade and on the block.
+  const sound = await openSound(page);
+  await sound.locator('input[type="file"]').setInputFiles({
+    name: 'rain.wav',
+    mimeType: 'audio/wav',
+    buffer: toneWav(2),
+  });
+  await page
+    .getByRole('dialog', { name: 'Trim your sound' })
+    .getByRole('button', { name: 'Add sound' })
+    .click();
+  await page
+    .getByRole('radiogroup', { name: 'Code or Sound' })
+    .getByText('Code', { exact: true })
+    .click();
+  await expect(sound).toBeHidden();
+  await page.locator('.pr-workspace').scrollIntoViewIfNeeded();
+
+  // Blocks for the penguin, whose Sound blocks include "play".
+  await page.getByRole('button', { name: /Blocks for/ }).click();
+  await page.locator('.sb-menu-item', { hasText: 'penguin' }).click();
+  const play = page
+    .locator('.blocklyFlyout')
+    .getByRole('option', { name: /^this, penguin, play, / });
+  await expect(play).toBeAttached();
+  // The palette scrolls inside Blockly: wheel over it until "play" is in the window.
+  const flyout = (await page.locator('.blocklyFlyout').first().boundingBox())!;
+  await page.mouse.move(flyout.x + flyout.width / 2, flyout.y + 100);
+  for (let i = 0; i < 40; i++) {
+    const at = (await play.boundingBox())!;
+    if (at.y > flyout.y + 40 && at.y + 40 < page.viewportSize()!.height) break;
+    await page.mouse.wheel(0, 200);
+    await page.waitForTimeout(50);
+  }
+  // Below the scene script's last statement, as production.e2e drops one.
+  const lastId = main.body.at(-1)!.id;
+  const last = (await page
+    .locator(`.blocklyDraggable[data-id="${lastId}"]`)
+    .first()
+    .boundingBox())!;
+  const from = (await play.boundingBox())!;
+  expect(from.y + 8, 'the play block is in the window').toBeLessThan(page.viewportSize()!.height);
+  expect(last.y + last.height + 6, 'the drop is in the window').toBeLessThan(
+    page.viewportSize()!.height,
+  );
+  await page.mouse.move(from.x + 8, from.y + 8);
+  await page.mouse.down();
+  await page.mouse.move(from.x + 40, from.y + 40, { steps: 5 });
+  await page.mouse.move(last.x + 8, last.y + last.height + 6, { steps: 10 });
+  await page.mouse.up();
+
+  // The cascade offers the film's sound by its name; the block shows the name, not its id.
+  const menu = page.getByRole('menu');
+  await expect(menu).toBeVisible();
+  await menu.getByRole('menuitem', { name: 'rain' }).click();
+  await expect(undoButton(page)).toHaveText(/^Undo: .*play rain/);
+  const workspace = page.locator('.pr-workspace');
+  await expect(workspace).toContainText('rain');
+  await expect(workspace).not.toContainText('sn1');
+
+  // The Sound view won't remove a sound the code plays.
+  await page
+    .getByRole('radiogroup', { name: 'Code or Sound' })
+    .getByText('Sound', { exact: true })
+    .click();
+  await sound.getByRole('button', { name: 'Remove rain…' }).click();
+  await expect(
+    sound.getByText('rain is played in scene 1’s code. Change that block first.'),
+  ).toBeVisible();
 });

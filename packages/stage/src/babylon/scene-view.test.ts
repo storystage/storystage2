@@ -132,6 +132,105 @@ describe("the Babylon.js stage's scene view", () => {
     expect(stage.viewTransform()).toEqual(camera);
   });
 
+  it('steps for the buttons, as the keys do, only while looking around (owner, 24 Nov)', async () => {
+    const stage = new BabylonStage(headlessEngine());
+    await stage.load(SETUP);
+    const camera = stage.transform(CAMERA);
+    expect(stage.viewStep('circleLeft')).toBe(false);
+    stage.lookAround(true);
+    const steps = [
+      'circleLeft',
+      'circleRight',
+      'riseAndLookDown',
+      'dropAndLookUp',
+      'zoomIn',
+      'zoomOut',
+      'panLeft',
+      'panRight',
+      'panUp',
+      'panDown',
+    ] as const;
+    for (const step of steps) {
+      const before = stage.viewTransform();
+      expect(stage.viewStep(step)).toBe(true);
+      expect(stage.viewTransform()).not.toEqual(before);
+    }
+    // A step and its key go the same way.
+    const keyed = new BabylonStage(headlessEngine());
+    await keyed.load(SETUP);
+    keyed.lookAround(true);
+    stage.lookAround(false);
+    stage.lookAround(true);
+    stage.viewStep('panLeft');
+    keyed.viewKey('ArrowLeft', { shift: true });
+    expect(keyed.viewTransform()).toEqual(stage.viewTransform());
+    expect(stage.transform(CAMERA)).toEqual(camera);
+  });
+
+  it('pans by Shift and the arrows, a Shift-drag, a right-drag and two fingers', async () => {
+    const stage = new BabylonStage(headlessEngine());
+    await stage.load(SETUP);
+    stage.lookAround(true);
+    const start = stage.viewTransform();
+    const turnedLike = (a: typeof start, b: typeof start) => expect(a.rotation).toEqual(b.rotation);
+    expect(stage.viewKey('ArrowUp', { shift: true })).toBe(true);
+    const keyed = stage.viewTransform();
+    turnedLike(keyed, start);
+    expect(keyed.position.y).toBeGreaterThan(start.position.y);
+    // Dragged right with Shift, the camera slides to its left, which is +X, without turning.
+    expect(stage.pointerDown(320, 180, { shift: true })).toBe(true);
+    stage.pointerMove(420, 180, { shift: true });
+    stage.pointerUp(420, 180);
+    const shifted = stage.viewTransform();
+    turnedLike(shifted, start);
+    expect(shifted.position.x).toBeGreaterThan(keyed.position.x);
+    expect(stage.pointerDown(320, 180, { button: 2 })).toBe(true);
+    stage.pointerMove(220, 180);
+    stage.pointerUp(220, 180);
+    const right = stage.viewTransform();
+    turnedLike(right, start);
+    expect(right.position.x).toBeLessThan(shifted.position.x);
+    // Two fingers moving together pan; they don't turn it.
+    stage.pointerDown(300, 180, { id: 1 });
+    stage.pointerDown(340, 180, { id: 2 });
+    stage.pointerMove(300, 230, { id: 1 });
+    stage.pointerMove(340, 230, { id: 2 });
+    stage.pointerUp(300, 230, { id: 1 });
+    stage.pointerUp(340, 230, { id: 2 });
+    const fingers = stage.viewTransform();
+    turnedLike(fingers, start);
+    expect(fingers.position.y).toBeGreaterThan(right.position.y);
+  });
+
+  it('takes a right press only while looking around, and a press to pan chooses nothing', async () => {
+    const { stage, taps } = await editing();
+    expect(stage.pointerDown(CAT.x, CAT.y, { button: 2 })).toBe(false);
+    stage.lookAround(true);
+    expect(stage.pointerDown(CAT.x, CAT.y, { shift: true })).toBe(true);
+    stage.pointerUp(CAT.x, CAT.y);
+    expect(taps).toEqual([]);
+  });
+
+  it("says where a step would put the scene's camera, and changes nothing (Camera view)", async () => {
+    const stage = new BabylonStage(headlessEngine());
+    await stage.load(SETUP);
+    const camera = stage.transform(CAMERA);
+    // With no change, the camera is where it was: the orbit starts exactly at it.
+    const { transform: left, around: pivot } = stage.steppedCamera('circleLeft');
+    expect(left.position).not.toEqual(camera.position);
+    expect(stage.transform(CAMERA)).toEqual(camera);
+    // It's where the same step takes Look around's camera from the scene's camera.
+    stage.lookAround(true);
+    stage.viewStep('circleLeft');
+    const around = stage.viewTransform();
+    for (const k of ['x', 'y', 'z'] as const)
+      expect(left.position[k]).toBeCloseTo(around.position[k], 9);
+    expect(left.scale).toEqual(camera.scale);
+    // Given back the point it went round, the next step goes round it again.
+    const again = stage.steppedCamera('circleLeft', pivot).around;
+    for (const k of ['x', 'y', 'z'] as const) expect(again[k]).toBeCloseTo(pivot[k], 9);
+  });
+
   it('draws the outline, the handles and the markers only while editing', async () => {
     const withMarker = { ...SETUP, markers: [{ id: 'door', transform: at(0, 1, 0) }] };
     const stage = new BabylonStage(headlessEngine());

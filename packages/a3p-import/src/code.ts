@@ -31,6 +31,7 @@ import {
   ENTRIES,
   ENUMS,
   EVENTS,
+  typeOfClass,
   type ApiEntry,
   type ColorName,
   type EventDef,
@@ -152,7 +153,8 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
       const id = ids.get(t);
       if (id) return { kind: 'user', type: id };
       const cls = aliceClassOf(t);
-      return { kind: 'story', name: (cls && CLASS_MAP[cls]) || 'Thing' };
+      const api = cls && CLASS_MAP[cls];
+      return { kind: 'story', name: api ? typeOfClass(api) : 'Thing' };
     }
     const name = t.java?.kind === 'type' ? t.java.name : '';
     if (name.startsWith('[')) {
@@ -178,8 +180,9 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
         return { kind: 'story', name: 'Text' };
     }
     const simple = name.slice(name.lastIndexOf('.') + 1).replace(/^.*\$/, '');
+    // A class as a type: 3D text is TextModel, as Text is words (format 1.10.0).
     const cls = CLASS_MAP[simple];
-    if (cls) return { kind: 'story', name: cls };
+    if (cls) return { kind: 'story', name: typeOfClass(cls) };
     const reference = REFERENCE_OF_ALICE.get(simple);
     if (reference) return { kind: 'story', name: reference };
     if (simple in ENUMS) return { kind: 'story', name: simple };
@@ -207,7 +210,7 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
       name: f.name,
       type: f.keptClass
         ? { kind: 'user', type: ids.get(f.keptClass)! }
-        : { kind: 'story', name: f.storyClass },
+        : { kind: 'story', name: typeOfClass(f.storyClass) },
       initial: null,
     });
   }
@@ -892,11 +895,12 @@ export function buildProgram(aliceProgram: AliceNode, world: WorldSetUp): BuiltP
         };
       });
     const cls = aliceClassOf(t);
+    const api = cls && CLASS_MAP[cls];
     return {
       id: ids.get(t)!,
       kind: 'type',
       name: textProp(t, 'name') ?? 'Class',
-      extends: { kind: 'story', name: (cls && CLASS_MAP[cls]) || 'Thing' },
+      extends: { kind: 'story', name: api ? typeOfClass(api) : 'Thing' },
       fields,
       methods: (methodsOf.get(t) ?? []).map((m) =>
         methodDecl(m, ids.get(m)!, textProp(t, 'name') ?? 'a class'),
