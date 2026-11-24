@@ -26,6 +26,8 @@ import {
   tinyCutOutUrl,
   tinyGroundTileUrl,
   tinyHumanUrl,
+  tinyHairUrl,
+  tinyLayersUrl,
   tinyModelUrl,
   tinySkyDomeUrl,
 } from '../../src/babylon/tiny-model.ts';
@@ -256,9 +258,10 @@ async function picture(name: string, seconds: number, still = false) {
  * it covers, how many there are, the least alpha any was drawn with, and how far (0 to 255, on
  * average) they are from 0.35 of the model over 0.65 of what's behind it.
  */
-async function fadedModel() {
+/** A model drawn solid, gone and part faded; `layers` is two panels, one behind the other. */
+async function fadedModel(layers = false) {
   const id = backstageId('test/Prop/panel');
-  const url = tinyModelUrl(['hips']);
+  const url = layers ? tinyLayersUrl() : tinyModelUrl(['hips']);
   const at = (x: number, y: number, z: number, turned = false) => ({
     position: { x, y, z },
     rotation: turned ? { x: 0, y: 1, z: 0, w: 0 } : { x: 0, y: 0, z: 0, w: 1 },
@@ -310,6 +313,65 @@ async function fadedModel() {
  * pixels more than a little apart. Drawn before its shader compiled, a cut-out showed solid for
  * two or three draws (S4's review of #649: Cool Waffle, the African penguin, the bee).
  */
+/**
+ * A see-through card (stripes, every other one clear) in front of a blue panel, drawn solid,
+ * gone and at 0.5: how many pixels it covers drawn solid, and how many of those show what's
+ * behind the whole object as if it weren't there when faded, and how many of the card's stripes
+ * the panel behind covers when faded. As hair over a head (S4's reviews of #667).
+ */
+async function fadedHair() {
+  const picture = await png(8, 8, (x) => (x % 2 ? 'rgba(0, 0, 0, 0)' : 'rgb(200, 80, 40)'));
+  const url = tinyHairUrl(picture);
+  const frame = async (opacity: number) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = W;
+    canvas.height = H;
+    const stage = await createBabylonStage({
+      canvas,
+      models: { find: () => ({ url, joints: 'prop-only' }) },
+      offscreen: true,
+      renderer: 'webgl2',
+    });
+    await stage.load({
+      backdrop: BACKDROP_TEMPLATES.find((b) => b.id === 'grass')!.backdrop,
+      objects: [
+        {
+          id: objectId('hair'),
+          model: backstageId('test/Prop/hair'),
+          class: 'Prop',
+          transform: { ...IDENTITY, rotation: { x: 0, y: 1, z: 0, w: 0 } },
+          opacity,
+        },
+      ],
+      camera: { transform: { ...IDENTITY, position: { x: 0, y: 1, z: -4 } } },
+      markers: [],
+    });
+    stage.seek(micros(0));
+    await stage.renderFrame();
+    const { data } = await stage.renderFrame();
+    const copy = data.slice();
+    stage.dispose();
+    return copy;
+  };
+  const solid = await frame(1);
+  const gone = await frame(0);
+  const faded = await frame(0.5);
+  const apart = (a: Uint8ClampedArray, b: Uint8ClampedArray, p: number) =>
+    [0, 1, 2].reduce((sum, c) => sum + Math.abs(a[p + c]! - b[p + c]!), 0);
+  let covered = 0;
+  let holes = 0;
+  let under = 0;
+  for (let p = 0; p < solid.length; p += 4) {
+    if (apart(solid, gone, p) < 30) continue;
+    covered++;
+    if (apart(faded, gone, p) < 6) holes++;
+    // A red stripe of the card: faded to half over the panel, it keeps at least half its red;
+    // under the blue panel, it keeps a quarter.
+    if (solid[p]! > solid[p + 2]! + 40 && faded[p]! < 0.6 * solid[p]!) under++;
+  }
+  return { covered, holes, under };
+}
+
 async function firstCutOutFade() {
   // Stripes, every other one cut away.
   const picture = await png(8, 8, (x) => (x % 2 ? 'rgba(0, 0, 0, 0)' : 'rgb(200, 80, 40)'));
@@ -1201,6 +1263,7 @@ Object.assign(window, {
     humanPicture,
     scenePictures,
     fadedModel,
+    fadedHair,
     firstCutOutFade,
     crossfadeSky,
     goLive,

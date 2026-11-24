@@ -31,6 +31,8 @@ export type Part =
   | { readonly kind: 'statements'; readonly input: string }
   | { readonly kind: 'number'; readonly field: string; readonly whole: boolean }
   | { readonly kind: 'text'; readonly field: string }
+  /** A block's sound, chosen from the film's sounds by label (`sounds.ts`). */
+  | { readonly kind: 'sound'; readonly field: string }
   /**
    * A choice: each option's words, its value, and, where the words carry a drawn arrow
    * ("left ↺"), the plain words a screen reader says ("left").
@@ -64,6 +66,8 @@ export const USER_CALL = 'ss_usercall';
 export const USER_FUNCTION = 'ss_userfn';
 /** A detail only the script sets (a speak line's `line`): fixed words, carrying the line's id. */
 export const FROM_SCRIPT = 'ss_fromscript';
+/** A sound written as text (Story API section 8), shown by its label (7.17). */
+export const SOUND = 'ss_sound';
 export const METHOD = 'ss_method';
 export const LISTENER = 'ss_listener';
 
@@ -423,6 +427,19 @@ export function fromScriptShape(): Shape {
     role: 'value',
     output: outputCheck('LineId'),
     parts: [{ kind: 'words', text: STORY['words.fromScript'] ?? 'from the script' }],
+  };
+}
+
+/**
+ * The block for a sound, where a block plays one (`playAudio`, workplan 7.17): its label, with ▾
+ * for the film's other sounds. The code holds the sound's id as text.
+ */
+export function soundShape(): Shape {
+  return {
+    type: SOUND,
+    role: 'value',
+    output: outputCheck('Audio'),
+    parts: [{ kind: 'sound', field: 'VALUE' }],
   };
 }
 

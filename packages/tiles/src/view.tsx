@@ -1008,22 +1008,43 @@ export function TilesView(props: ViewProps) {
         <span key={i}>{part.text}</span>
       ),
     ]);
+  // A listener's details, such as which keys, are added after its words, as at the end of a row,
+  // outside what names the code (24 Nov 2026).
+  const listener = 'listener' in found ? found.listener : undefined;
+  const addListenerDetail =
+    listener && detailsToAdd(program, listener.id).length > 0 ? (
+      <>
+        {' '}
+        <button
+          type="button"
+          aria-haspopup="menu"
+          className="tl-add-detail"
+          onClick={(e) => props.onOpenDetails(listener.id, e.currentTarget)}
+        >
+          {t('addDetail')}
+          <span aria-hidden="true"> ▾</span>
+        </button>
+      </>
+    ) : null;
   const titleId = `tl-title-${method}`;
   return (
     <div className="tl-code" ref={code}>
-      <div className="tl-title" id={titleId}>
-        {'listener' in found && found.listener ? header(found.listener) : found.title}
-        {found.params && found.params.length > 0 ? (
-          // A method's inputs (0074): "height: number", in the learner's word (7.14).
-          <span className="tl-inputs">
-            <span className="tl-visually-hidden">, {word('parameter.words')}: </span>
-            {found.params.map((p) => (
-              <span key={p.id} className="tl-input">
-                {parameterWords(program, p)}
-              </span>
-            ))}
-          </span>
-        ) : null}
+      <div className="tl-title">
+        <span id={titleId}>
+          {listener ? header(listener) : found.title}
+          {found.params && found.params.length > 0 ? (
+            // A method's inputs (0074): "height: number", in the learner's word (7.14).
+            <span className="tl-inputs">
+              <span className="tl-visually-hidden">, {word('parameter.words')}: </span>
+              {found.params.map((p) => (
+                <span key={p.id} className="tl-input">
+                  {parameterWords(program, p)}
+                </span>
+              ))}
+            </span>
+          ) : null}
+        </span>
+        {addListenerDetail}
       </div>
       <ul
         ref={tree}

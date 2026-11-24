@@ -262,17 +262,17 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
       );
     case 'comment':
       return [{ kind: 'text', text: node.text }];
-    case 'listener':
-      return phraseParts(listenerPhrase(node), (name) => {
+    case 'listener': {
+      const or = word('words.or')
+        .replace(/\{\w+\}/g, '')
+        .trim();
+      const parts = phraseParts(listenerPhrase(node), (name) => {
         const detail = Object.hasOwn(node.details, name) ? node.details[name] : undefined;
         if (!detail) return value(node.args[name], at('args', name), word(`param.${name}`));
         if (detail.kind !== 'arrayOf' || detail.items.length === 0)
           return value(detail, at('details', name), word(`detail.${name}`));
         // What's clicked: a pill for each object, "cat or chair" (the owner, 23 Nov 2026).
-        const or = word('words.or')
-          .replace(/\{\w+\}/g, '')
-          .trim();
-        return detail.items.flatMap((item, i): Part[] => {
+        const items = detail.items.flatMap((item, i): Part[] => {
           const pill = valuePart(
             item,
             placeIn(detail.id, 'items', String(i)),
@@ -283,7 +283,34 @@ export function partsOf(node: AstNode, describe: Describer): readonly Part[] {
           if (!pill) return [];
           return i === 0 ? [pill] : [{ kind: 'text', text: or }, pill];
         });
+        // "or ▾" after the last adds another (the owner, 24 Nov 2026).
+        const add: Part = {
+          kind: 'value',
+          text: or,
+          arrow: '▾',
+          label: t('addItem', { detail: word(`detail.${name}`) }),
+          node: detail.id,
+          place: placeIn(detail.id, 'items', String(detail.items.length)),
+          empty: true,
+          question: false,
+          inner: null,
+        };
+        return [...items, add];
       });
+      // An empty list reads as the event, with its pill after, to choose one (24 Nov 2026).
+      const empty = Object.entries(node.details).flatMap(([name, detail]): Part[] => {
+        if (detail.kind !== 'arrayOf' || detail.items.length > 0) return [];
+        const label = word(`detail.${name}`);
+        const pill = value(detail, at('details', name), label);
+        return pill?.kind === 'value'
+          ? [
+              { kind: 'text', text: label },
+              { ...pill, empty: true },
+            ]
+          : [];
+      });
+      return [...parts, ...empty];
+    }
     case 'return':
       return node.value
         ? phraseParts(word('control.return'), () =>

@@ -15,7 +15,9 @@ let loading: Promise<HumanLibrary> | null = null;
 
 export function loadHumanLibrary(): Promise<HumanLibrary> {
   loading ??= import('./kaykit-clips.ts').then(({ KAYKIT_CLIPS }) => {
-    const clips = new Map(KAYKIT_CLIPS.map((p) => [p.name, unpack(p)]));
+    const clips = new Map<string, HumanClip>(
+      KAYKIT_CLIPS.map((p) => [p.name, { ...unpack(p), armsHeld: true }]),
+    );
     const coded = codedClips(clips.get('idle')!.keys[0]!.pose, clips.get('lying')!.keys[0]!.pose);
     for (const c of coded) clips.set(c.name, c);
     return clips;

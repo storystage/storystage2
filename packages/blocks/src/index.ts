@@ -55,3 +55,4 @@ export {
   type Part,
   type Shape,
 } from './shapes.ts';
+export { soundsFor, type FilmSoundWords } from './sounds.ts';

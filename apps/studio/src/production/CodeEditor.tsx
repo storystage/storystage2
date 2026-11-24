@@ -6,7 +6,7 @@ import {
   type NodeId,
 } from '@storystage/ast';
 import type { EditorHost, EditorId } from '@storystage/editor-contract';
-import type { Production, SceneId } from '@storystage/production';
+import type { Production, SceneId, SoundClip } from '@storystage/production';
 import { STORY_WORDS } from '@storystage/story-api';
 import {
   PALETTE_TABS,
@@ -18,7 +18,7 @@ import {
 } from '@storystage/story-api/editing';
 import { TEXT_STYLES, TextView, textViewWord } from '@storystage/text-view';
 import { Icon, Segmented, Toggle, useTabPanel, useThemeStyle } from '@storystage/ui';
-import { Suspense, lazy, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import {
   Button as AriaButton,
   Label,
@@ -49,6 +49,7 @@ import { useTextViewSetting } from './textViewSetting.ts';
 import { EditorSwitch, editorName } from './EditorSwitch.tsx';
 import { editorShown, useEditorSetting } from './editorSetting.ts';
 import { useHandoff } from './handoff.ts';
+import { shownSoundWords } from '../sound/codeWords.ts';
 
 export interface CodeEditorProps {
   production: Production;
@@ -136,6 +137,7 @@ function paletteTarget(key: Key): Expression {
     : { id: 'palobj' as NodeId, kind: 'fieldRef', target: self, field: key as NodeId };
 }
 const SCENE = 'scene';
+const NO_SOUNDS: readonly SoundClip[] = [];
 
 /**
  * The Code editor (`07-ux.md` section 7.3; WP7): the palette's object and tab, then one tab per
@@ -162,6 +164,11 @@ export function CodeEditor({
   const [editorChoice, setEditorChoice] = useEditorSetting();
   const shown = editorShown(editorChoice, { default: editorDefault, locked });
   const handoff = useHandoff();
+  // The film's sounds, for a block's sound (7.17): read as the editors ask, so they aren't made
+  // again when one is imported.
+  const [film] = useState(() => shownSoundWords(p.manifest.sounds ?? NO_SOUNDS));
+  useEffect(() => film.show(p.manifest.sounds ?? NO_SOUNDS));
+  const sounds = film.words;
   const methods = codeTabs(p, scene);
   // Opened to show a block: its method first. Each reveal opens the editor afresh (a new key).
   const [chosen, setChosen] = useState<Key | null>(() =>
@@ -326,6 +333,7 @@ export function CodeEditor({
                 tab={tab}
                 focus={reveal && m.id === chosen ? reveal : null}
                 handoff={handoff}
+                sounds={sounds}
                 {...(highlights ? { highlights } : {})}
                 {...(editorRef ? { editorRef } : {})}
               />
@@ -337,6 +345,7 @@ export function CodeEditor({
                 tab={tab}
                 focus={reveal && m.id === chosen ? reveal : null}
                 handoff={handoff}
+                sounds={sounds}
                 {...(highlights ? { highlights } : {})}
                 {...(editorRef ? { editorRef } : {})}
               />

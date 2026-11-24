@@ -46,14 +46,38 @@ describe('a click listener’s row in Tiles', () => {
   it('names each object clicked, as a pill of its own', () => {
     const { program, listener } = withClick([ref('vcat01', IDS.cat), ref('vchr01', IDS.chair)]);
     const parts = row(program, listener);
-    expect(parts.map((p) => p.text).join(' ')).toBe('when cat or chair is clicked');
+    // "or ▾" after the last adds another (the owner, 24 Nov 2026).
+    expect(parts.map((p) => p.text).join(' ')).toBe('when cat or chair or is clicked');
     const pills = parts.filter((p) => p.kind === 'value');
-    expect(pills.map((p) => p.node)).toEqual([nodeId('vcat01'), nodeId('vchr01')]);
+    expect(pills.map((p) => p.node)).toEqual([
+      nodeId('vcat01'),
+      nodeId('vchr01'),
+      nodeId('visset'),
+    ]);
     expect(pills[1]).toMatchObject({
       place: { kind: 'value', node: nodeId('visset'), slot: 'items', param: '1' },
     });
+    expect(pills[2]).toMatchObject({
+      arrow: '▾',
+      label: 'add another to which objects',
+      empty: true,
+      place: { kind: 'value', node: nodeId('visset'), slot: 'items', param: '2' },
+    });
     // Its name is the describer's words, as every row's is.
     expect(describer(program)(listener)).toBe('when cat or chair is clicked');
+  });
+
+  it('reads an empty list as the event, with a pill to choose one (24 Nov 2026)', () => {
+    const { program, listener } = withClick([]);
+    const parts = row(program, listener);
+    expect(parts.map((p) => p.text).join(' ')).toBe(
+      'when an object is clicked which objects an empty list',
+    );
+    expect(parts.at(-1)).toMatchObject({
+      kind: 'value',
+      empty: true,
+      place: { kind: 'value', node: nodeId('clickl'), slot: 'details', param: 'setOfVisuals' },
+    });
   });
 
   it('says an object, with none chosen', () => {

@@ -88,6 +88,11 @@ export interface Shape {
   readonly gaits?: Gaits;
   /** It hops when it walks (its Backstage entry's `gait: 'hop'`), as S4's frog does. */
   readonly hop?: boolean;
+  /**
+   * For a humanoid: the lowest its arms can hang beside its body, in radians below level, from
+   * its mesh (`babylon/arm-room.ts`). Without it, its arms are held as KayKit's clips hold them.
+   */
+  readonly armHang?: number;
 }
 
 /** A stand-in's block: half a metre square and a metre tall, standing on its origin. */
@@ -341,7 +346,9 @@ export class Timeline {
     this.shapes = shapes;
     this.classes = new Map(setup.objects.map((o) => [o.id, o.class]));
     this.bodies = new Map(
-      [...this.shapes].map(([id, shape]) => [id, Body.of(shape.jointPlaces)] as const),
+      [...this.shapes].map(
+        ([id, shape]) => [id, Body.of(shape.jointPlaces, shape.armHang)] as const,
+      ),
     );
     this.codedGaits = new Map(
       [...this.shapes].map(([id, shape]) => {
