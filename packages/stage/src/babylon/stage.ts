@@ -49,6 +49,7 @@ import type {
   ObjectChange,
   Picked,
   Speech,
+  ViewStep,
 } from '../contract.ts';
 import {
   FAR as VIEW_FAR,
@@ -69,7 +70,15 @@ import {
   type HandlePlaces,
   type Viewing,
 } from '../handles.ts';
-import { KEY_TURN, orbitBy, orbitDrag, orbitFrom, orbitView, type Orbit } from '../orbit.ts';
+import {
+  orbitBy,
+  orbitDrag,
+  orbitFrom,
+  orbitPanDrag,
+  orbitStep,
+  orbitView,
+  type Orbit,
+} from '../orbit.ts';
 import { hullOf, within, type Box } from '../hull.ts';
 import { inOrder } from '../missing.ts';
 import { add, mul, rotate, scale, sub, v } from '../math.ts';
@@ -870,16 +879,36 @@ export class BabylonStage implements EditableStage {
    * A pointer pressed on the view, in CSS pixels from its top left: the canvas's listeners call
    * these, and so can a test. True if the stage takes the pointer (the canvas then captures it).
    */
-  pointerDown(x: number, y: number, { id = 1, shift = false } = {}): boolean {
+  pointerDown(
+    x: number,
+    y: number,
+    { id = 1, shift = false, button = 0 }: { id?: number; shift?: boolean; button?: number } = {},
+  ): boolean {
     if (!this.scene || !(this.isEditing || this.around)) return false;
+    // The right button pans Look around's camera, and does nothing else.
+    if (button === 2 && !this.around) return false;
     this.pointers.set(id, { x, y });
     if (this.pointers.size === 2 && this.around) {
       const [a, b] = [...this.pointers.values()];
-      this.gesture = { kind: 'pinch', apart: Math.hypot(a!.x - b!.x, a!.y - b!.y) };
+      this.gesture = {
+        kind: 'pinch',
+        apart: Math.hypot(a!.x - b!.x, a!.y - b!.y),
+        middle: { x: (a!.x + b!.x) / 2, y: (a!.y + b!.y) / 2 },
+      };
       return true;
     }
     if (this.pointers.size > 1) return true;
-    this.gesture = this.grab(x, y, id, shift) ?? { kind: 'press', id, x0: x, y0: y, x, y };
+    // A Shift-drag or a right-drag on Look around pans it, rather than grabbing what's there.
+    const pan = !!this.around && (shift || button === 2);
+    this.gesture = (pan ? null : this.grab(x, y, id, shift)) ?? {
+      kind: 'press',
+      id,
+      x0: x,
+      y0: y,
+      x,
+      y,
+      pan,
+    };
     return true;
   }
 
@@ -889,24 +918,43 @@ export class BabylonStage implements EditableStage {
     const g = this.gesture;
     if (!g) return;
     if (g.kind === 'pinch') {
+      // Two fingers: apart or together zooms, and moving together pans.
       const [a, b] = [...this.pointers.values()];
       if (!a || !b) return;
       const apart = Math.hypot(a.x - b.x, a.y - b.y);
-      if (g.apart > 0 && apart > 0) this.orbit((o) => orbitBy(o, 0, 0, apart / g.apart));
+      const middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+      const { height } = this.viewSize();
+      const fov = this.viewFov();
+      const from = g.middle;
+      this.orbit((o) => {
+        const zoomed = g.apart > 0 && apart > 0 ? orbitBy(o, 0, 0, apart / g.apart) : o;
+        return orbitPanDrag(zoomed, middle.x - from.x, middle.y - from.y, height, fov);
+      });
       g.apart = apart;
+      g.middle = middle;
       return;
     }
     if (g.id !== id) return;
     if (g.kind === 'press') {
       if (Math.hypot(x - g.x0, y - g.y0) < TAP_SLOP) return;
       if (!this.around) return;
-      this.gesture = { kind: 'orbit', id, x: g.x, y: g.y };
+      this.gesture = g.pan
+        ? { kind: 'pan', id, x: g.x, y: g.y }
+        : { kind: 'orbit', id, x: g.x, y: g.y };
       this.pointerMove(x, y, { id, shift });
       return;
     }
     if (g.kind === 'orbit') {
       const { width, height } = this.viewSize();
       this.orbit((o) => orbitDrag(o, x - g.x, y - g.y, width, height));
+      g.x = x;
+      g.y = y;
+      return;
+    }
+    if (g.kind === 'pan') {
+      const { height } = this.viewSize();
+      const fov = this.viewFov();
+      this.orbit((o) => orbitPanDrag(o, x - g.x, y - g.y, height, fov));
       g.x = x;
       g.y = y;
       return;
@@ -931,7 +979,8 @@ export class BabylonStage implements EditableStage {
       return;
     }
     // A press that never became a drag is a tap; so is a press on the chosen object itself.
-    const tapped = g.kind === 'press' || (g.kind === 'drag' && g.handle === 'move');
+    // A press to pan (Shift or the right button) chooses nothing.
+    const tapped = (g.kind === 'press' && !g.pan) || (g.kind === 'drag' && g.handle === 'move');
     if (tapped && this.isEditing) {
       const picked = this.pick(x, y);
       for (const l of [...this.tapListeners]) l(picked);
@@ -955,13 +1004,24 @@ export class BabylonStage implements EditableStage {
     return true;
   }
 
-  /** Look around's keys, while the canvas has focus. True if the stage used the key. */
-  viewKey(key: string): boolean {
+  /**
+   * Look around's keys, while the canvas has focus: the arrows circle and tilt it, Shift and the
+   * arrows pan it, + and - zoom. True if the stage used the key.
+   */
+  viewKey(key: string, { shift = false }: { shift?: boolean } = {}): boolean {
+    const step = (shift ? PAN_KEYS[key] : undefined) ?? VIEW_KEYS[key];
+    return step ? this.viewStep(step) : false;
+  }
+
+  viewStep(step: ViewStep): boolean {
     if (!this.around || !this.scene) return false;
-    const by = VIEW_KEYS[key];
-    if (!by) return false;
-    this.orbit((o) => orbitBy(o, by[0] * KEY_TURN, by[1] * KEY_TURN, by[2]));
+    this.orbit((o) => orbitStep(o, step));
     return true;
+  }
+
+  steppedCamera(step: ViewStep): Transform {
+    const camera = this.timeline.transform(CAMERA);
+    return orbitView(orbitStep(orbitFrom(camera, this.timeline.ground(), this.subjects()), step));
   }
 
   /** What the scene view draws over the scene, for a test: none of it is in a frame. */
@@ -1114,6 +1174,11 @@ export class BabylonStage implements EditableStage {
     this.fireEdit({ target: g.target, transform: next, final: false });
   }
 
+  /** How much of the scene Look around shows, top to bottom, in radians. */
+  private viewFov(): number {
+    return this.timeline.lens() * 2 * Math.PI;
+  }
+
   /** Turns Look around's camera, which starts from wherever it is. */
   private orbit(change: (o: Orbit) => Orbit): void {
     const around = this.around;
@@ -1199,15 +1264,22 @@ function grown(box: Box): Box {
 const TAP_SLOP = 6;
 /** How much one notch of the wheel (100) brings Look around nearer: about a tenth. */
 const WHEEL = 0.001;
-/** Look around's keys: across, down, and how many times nearer. */
-const VIEW_KEYS: Record<string, readonly [number, number, number]> = {
-  ArrowLeft: [-1, 0, 1],
-  ArrowRight: [1, 0, 1],
-  ArrowUp: [0, 1, 1],
-  ArrowDown: [0, -1, 1],
-  '+': [0, 0, 1.25],
-  '=': [0, 0, 1.25],
-  '-': [0, 0, 0.8],
+/** Look around's keys, and the steps they take. */
+const VIEW_KEYS: Readonly<Record<string, ViewStep>> = {
+  ArrowLeft: 'circleLeft',
+  ArrowRight: 'circleRight',
+  ArrowUp: 'riseAndLookDown',
+  ArrowDown: 'dropAndLookUp',
+  '+': 'zoomIn',
+  '=': 'zoomIn',
+  '-': 'zoomOut',
+};
+/** With Shift held, the arrows pan. */
+const PAN_KEYS: Readonly<Record<string, ViewStep>> = {
+  ArrowLeft: 'panLeft',
+  ArrowRight: 'panRight',
+  ArrowUp: 'panUp',
+  ArrowDown: 'panDown',
 };
 
 /** A handle being dragged. */
@@ -1240,9 +1312,12 @@ type Gesture =
       readonly y0: number;
       x: number;
       y: number;
+      /** It pans once it moves (Shift or the right button), rather than circling. */
+      readonly pan: boolean;
     }
   | { readonly kind: 'orbit'; readonly id: number; x: number; y: number }
-  | { readonly kind: 'pinch'; apart: number }
+  | { readonly kind: 'pan'; readonly id: number; x: number; y: number }
+  | { readonly kind: 'pinch'; apart: number; middle: { x: number; y: number } }
   | Drag;
 
 const sameTarget = (a: EditTarget, b: EditTarget) =>
