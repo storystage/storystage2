@@ -131,23 +131,50 @@ describe("Look around's camera", () => {
     const dutch = { ...CAMERA, rotation: mul(CAMERA.rotation, axisTurns(v(0, 0, 1), 1 / 16)) };
     const o = orbitFrom(dutch, 0);
     for (const step of ['zoomIn', 'zoomOut', 'panLeft', 'panRight', 'panUp', 'panDown'] as const) {
-      const after = stepCamera(dutch, 0, [], step);
+      const after = stepCamera(dutch, 0, [], step).transform;
       expect(after.rotation).toEqual(dutch.rotation);
       expect(after.position).not.toEqual(dutch.position);
     }
     // Zooming moves it along its line of sight by as much as Look around's step would.
-    const nearer = stepCamera(dutch, 0, [], 'zoomIn');
+    const nearer = stepCamera(dutch, 0, [], 'zoomIn').transform;
     expect(length(sub(nearer.position, dutch.position))).toBeCloseTo(
       o.radius - o.radius / KEY_NEARER,
       9,
     );
     // Panning goes a sixth of the way to the point, along its own right.
-    const right = stepCamera(dutch, 0, [], 'panRight');
+    const right = stepCamera(dutch, 0, [], 'panRight').transform;
     expect(length(sub(right.position, dutch.position))).toBeCloseTo(KEY_PAN * o.radius, 9);
     // Circling goes round the point, as Look around does, upright.
-    const round = stepCamera(dutch, 0, [], 'circleLeft');
+    const round = stepCamera(dutch, 0, [], 'circleLeft').transform;
     expect(round).toEqual(orbitView(orbitStep(o, 'circleLeft')));
     expect(rotate(round.rotation, v(1, 0, 0)).y).toBeCloseTo(0, 9);
+  });
+
+  it("goes on round the point it's given, as a held button carries it (S5, 24 Nov)", () => {
+    const o = orbitFrom(CAMERA, 0);
+    const first = stepCamera(CAMERA, 0, [], 'circleLeft');
+    expect(first.around).toEqual(o.target);
+    // Held: each step from where the last put it, round the point it gave back.
+    let at = first;
+    for (let i = 0; i < 5; i++) {
+      at = stepCamera(at.transform, 0, [], 'circleLeft', at.around);
+      expect(length(sub(at.around, o.target))).toBeLessThan(1e-9);
+      expect(length(sub(at.transform.position, o.target))).toBeCloseTo(o.radius, 9);
+    }
+    // A zoom keeps the point; a pan moves it as far as the camera.
+    const zoomed = stepCamera(CAMERA, 0, [], 'zoomIn', o.target);
+    expect(length(sub(zoomed.around, o.target))).toBeLessThan(1e-9);
+    const panned = stepCamera(CAMERA, 0, [], 'panRight', o.target);
+    const slid = sub(panned.transform.position, CAMERA.position);
+    expect(length(sub(sub(panned.around, o.target), slid))).toBeLessThan(1e-9);
+    // Things in the shot don't move a point it was given.
+    const told = stepCamera(CAMERA, 0, [v(0, 0, 40)], 'circleLeft', o.target);
+    expect(length(sub(told.around, o.target))).toBeLessThan(1e-9);
+  });
+
+  it("finds the point again if the one it's given is behind it", () => {
+    const behind = stepCamera(CAMERA, 0, [], 'circleLeft', v(0, 2, -20));
+    expect(behind).toEqual(stepCamera(CAMERA, 0, [], 'circleLeft'));
   });
 
   it('keeps the camera upright', () => {

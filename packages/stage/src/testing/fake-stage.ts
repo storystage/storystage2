@@ -23,6 +23,7 @@ import {
   type StageQueryResult,
   type StoryClass,
   type Transform,
+  type Vec3,
   type Watch,
   jointName,
 } from '@storystage/story-api';
@@ -331,8 +332,8 @@ export class FakeStage implements EditableStage {
     return true;
   }
 
-  steppedCamera(step: ViewStep): Transform {
-    return stepCamera(this.timeline.transform(CAMERA), this.timeline.ground(), [], step);
+  steppedCamera(step: ViewStep, around?: Vec3): { transform: Transform; around: Vec3 } {
+    return stepCamera(this.timeline.transform(CAMERA), this.timeline.ground(), [], step, around);
   }
 
   inShot(): readonly ObjectId[] {

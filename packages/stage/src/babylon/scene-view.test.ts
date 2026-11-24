@@ -216,7 +216,7 @@ describe("the Babylon.js stage's scene view", () => {
     await stage.load(SETUP);
     const camera = stage.transform(CAMERA);
     // With no change, the camera is where it was: the orbit starts exactly at it.
-    const left = stage.steppedCamera('circleLeft');
+    const { transform: left, around: pivot } = stage.steppedCamera('circleLeft');
     expect(left.position).not.toEqual(camera.position);
     expect(stage.transform(CAMERA)).toEqual(camera);
     // It's where the same step takes Look around's camera from the scene's camera.
@@ -226,6 +226,9 @@ describe("the Babylon.js stage's scene view", () => {
     for (const k of ['x', 'y', 'z'] as const)
       expect(left.position[k]).toBeCloseTo(around.position[k], 9);
     expect(left.scale).toEqual(camera.scale);
+    // Given back the point it went round, the next step goes round it again.
+    const again = stage.steppedCamera('circleLeft', pivot).around;
+    for (const k of ['x', 'y', 'z'] as const) expect(again[k]).toBeCloseTo(pivot[k], 9);
   });
 
   it('draws the outline, the handles and the markers only while editing', async () => {
