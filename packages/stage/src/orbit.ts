@@ -2,9 +2,11 @@
  * Look around's camera (07-ux section 7.2), pure: it orbits a point on the scene camera's line of
  * sight, as far ahead as what's in the shot is (so turning keeps it in view), or else where the
  * line of sight meets the ground, or a few metres ahead. Dragging turns it round that point and
- * tilts it; the wheel or a pinch brings it nearer or further.
+ * tilts it; the wheel or a pinch brings it nearer or further; panning slides it, and the point,
+ * without turning it (owner, 24 Nov).
  */
-import type { Transform, Vec3 } from '@storystage/story-api';
+import type { Quat, Transform, Vec3 } from '@storystage/story-api';
+import type { ViewStep } from './contract.ts';
 import { groundPoint } from './editing.ts';
 import { add, axisTurns, dot, mul, rotate, scale, sub, v } from './math.ts';
 
@@ -32,6 +34,10 @@ const REACH = 40;
 
 /** One press of an arrow key: a 24th of a turn. */
 export const KEY_TURN = Math.PI / 12;
+/** One press of + (or -): 1.25 times nearer (or further). */
+export const KEY_NEARER = 1.25;
+/** One press of Shift and an arrow: a sixth of the way to what it looks at, across or up. */
+export const KEY_PAN = 1 / 6;
 
 /**
  * The orbit that starts where a camera is, looking where it looks. `subjects` are the middles of
@@ -58,14 +64,67 @@ export function orbitFrom(view: Transform, ground: number, subjects: readonly Ve
   };
 }
 
-/** Where the orbit's camera is, and which way it looks. */
-export function orbitView(o: Orbit): Transform {
-  const rotation = mul(
+/** Which way the orbit's camera is turned. */
+function turnOf(o: Orbit): Quat {
+  return mul(
     axisTurns(v(0, 1, 0), o.heading / (2 * Math.PI)),
     axisTurns(v(1, 0, 0), o.pitch / (2 * Math.PI)),
   );
+}
+
+/** Where the orbit's camera is, and which way it looks. */
+export function orbitView(o: Orbit): Transform {
+  const rotation = turnOf(o);
   const forward = rotate(rotation, v(0, 0, 1));
   return { position: add(o.target, scale(forward, -o.radius)), rotation, scale: o.size };
+}
+
+/**
+ * Slides the orbit without turning it: the camera and the point it turns round go `right` and
+ * `up` along the camera's own right and up, in lengths of the radius, so a step moves the scene
+ * the same share of the picture near and far. A camera looking along +Z has +X on its left.
+ */
+export function orbitPan(o: Orbit, right: number, up: number): Orbit {
+  const turn = turnOf(o);
+  const across = scale(rotate(turn, v(-1, 0, 0)), right * o.radius);
+  const lift = scale(rotate(turn, v(0, 1, 0)), up * o.radius);
+  return { ...o, target: add(o.target, add(across, lift)) };
+}
+
+/**
+ * A pointer dragged `dx` by `dy` pixels to pan, on a view `height` pixels tall seen through
+ * `fov` radians (top to bottom): what was under the pointer at the orbit's distance stays under
+ * it, as if sliding the scene by hand.
+ */
+export function orbitPanDrag(o: Orbit, dx: number, dy: number, height: number, fov: number): Orbit {
+  const perPixel = (2 * Math.tan(fov / 2)) / height;
+  return orbitPan(o, -dx * perPixel, dy * perPixel);
+}
+
+/** One step of the orbit (`ViewStep`), the same size as its key. */
+export function orbitStep(o: Orbit, step: ViewStep): Orbit {
+  switch (step) {
+    case 'circleLeft':
+      return orbitBy(o, -KEY_TURN, 0);
+    case 'circleRight':
+      return orbitBy(o, KEY_TURN, 0);
+    case 'riseAndLookDown':
+      return orbitBy(o, 0, KEY_TURN);
+    case 'dropAndLookUp':
+      return orbitBy(o, 0, -KEY_TURN);
+    case 'zoomIn':
+      return orbitBy(o, 0, 0, KEY_NEARER);
+    case 'zoomOut':
+      return orbitBy(o, 0, 0, 1 / KEY_NEARER);
+    case 'panLeft':
+      return orbitPan(o, -KEY_PAN, 0);
+    case 'panRight':
+      return orbitPan(o, KEY_PAN, 0);
+    case 'panUp':
+      return orbitPan(o, 0, KEY_PAN);
+    case 'panDown':
+      return orbitPan(o, 0, -KEY_PAN);
+  }
 }
 
 /**
@@ -89,6 +148,38 @@ export function orbitBy(o: Orbit, across: number, down: number, nearer = 1): Orb
  */
 export function orbitDrag(o: Orbit, dx: number, dy: number, width: number, height: number): Orbit {
   return orbitBy(o, -(dx / width) * Math.PI, (dy / height) * (Math.PI / 2));
+}
+
+/**
+ * Where one step puts a camera at `view` (the scene's own, for Camera view's buttons), round the
+ * point `orbitFrom` finds for it. Circling and tilting go round that point as Look around does,
+ * so a roll is straightened; zooming and panning only move it, keeping its turn as it was, roll
+ * and all, so a tilted (dutch) shot stays tilted (S5's review of #676).
+ */
+export function stepCamera(
+  view: Transform,
+  ground: number,
+  subjects: readonly Vec3[],
+  step: ViewStep,
+): Transform {
+  const o = orbitFrom(view, ground, subjects);
+  const own = (x: number, y: number, z: number) => rotate(view.rotation, v(x, y, z));
+  const moved = (by: Vec3): Transform => ({ ...view, position: add(view.position, by) });
+  switch (step) {
+    case 'zoomIn':
+    case 'zoomOut': {
+      const nearer = step === 'zoomIn' ? KEY_NEARER : 1 / KEY_NEARER;
+      return moved(scale(own(0, 0, 1), o.radius - orbitBy(o, 0, 0, nearer).radius));
+    }
+    case 'panLeft':
+    case 'panRight':
+      return moved(scale(own(-1, 0, 0), (step === 'panRight' ? 1 : -1) * KEY_PAN * o.radius));
+    case 'panUp':
+    case 'panDown':
+      return moved(scale(own(0, 1, 0), (step === 'panUp' ? 1 : -1) * KEY_PAN * o.radius));
+    default:
+      return orbitView(orbitStep(o, step));
+  }
 }
 
 function clamp(n: number, least: number, most: number): number {

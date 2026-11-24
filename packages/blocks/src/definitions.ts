@@ -8,6 +8,7 @@ import type { TypeRef } from '@storystage/ast';
 import type { EnumName, TypeName } from '@storystage/story-api';
 import type { Extra } from './mapping.ts';
 import { styleOf } from './renderer.ts';
+import { keyChoices } from './keys.ts';
 import { soundChoices } from './sounds.ts';
 import {
   ENTRY_NAMES,
@@ -136,7 +137,10 @@ function build(block: StoryBlock, shape: Shape) {
         break;
       }
       case 'choice': {
-        const f = new Blockly.FieldDropdown(part.options);
+        // A key offers only the keys its listener is for (spec 02, 6a).
+        const f = new Blockly.FieldDropdown(
+          block.type === enumType('Key') ? keyChoices(part.options) : part.options,
+        );
         f.name = part.field;
         pending.push(f);
         break;
