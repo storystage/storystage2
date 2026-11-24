@@ -25,9 +25,11 @@ import {
   canDrop,
   describer,
   fill,
+  itemChange,
   namesAt,
   newAssign,
   newLocal,
+  type MenuChange,
   type NameInScope,
   type PaletteTab,
   type VARIABLE_TYPES,
@@ -47,9 +49,11 @@ import { dropFromPalette, freshIn, holdsKnown, type AskRequest, type Fresh } fro
 import { ADD_DETAIL_INPUT, AddDetailField } from './addDetail.ts';
 import { dragsAlone } from './drag.ts';
 import { editsFor } from './gestures.ts';
+import { addItemAsk, addItemName, takeOutItem } from './listItems.ts';
 import { RENDERER, registerRenderer, storyTheme } from './renderer.ts';
 import { BlocksMismatch, fromBlocks, toBlocks, type WorkspaceState } from './mapping.ts';
 import blockWords from './strings/en-GB.json' with { type: 'json' };
+import { nodeType } from './shapes.ts';
 import { toolboxFor, withNewIds } from './toolbox.ts';
 
 const WORDS = blockWords as Readonly<Record<string, string>>;
@@ -300,6 +304,7 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
         for (const block of ws.getAllBlocks(false)) {
           block.customContextMenu = menuOn(block);
           addDetailOn(block);
+          addItemOn(block);
           dragsAlone(block);
         }
       }
@@ -460,6 +465,57 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
       .appendField(new AddDetailField((b) => void chooseDetail(b.id as NodeId)));
   }
 
+  /**
+   * "or ▾" after a listener's last key or object, or "choose ▾" in an empty list (24 Nov 2026):
+   * it asks for another through the cascade, which offers only those not chosen yet.
+   */
+  function addItemOn(block: Blockly.BlockSvg) {
+    if (!host || !options.ask || block.type !== nodeType('arrayOf')) return;
+    const name = addItemName(host.program(), block.id as NodeId);
+    if (!name) return;
+    const empty = block.inputList.every((i) => !i.connection);
+    block
+      .appendDummyInput(ADD_DETAIL_INPUT)
+      .appendField(
+        new AddDetailField(
+          (b) => void addItem(b.id as NodeId),
+          WORDS[empty ? 'block.chooseItem' : 'block.addItem']!,
+          name,
+        ),
+      );
+  }
+
+  /** Another key or object, asked for, as one step ("Add up arrow to when W is pressed"). */
+  async function addItem(list: NodeId) {
+    const anchor = ws?.getBlockById(list)?.getSvgRoot() ?? null;
+    if (!host || !options.ask || asking) return;
+    const asks = addItemAsk(host.program(), list);
+    if (!asks) return;
+    asking = true;
+    let answer: Expression | null;
+    try {
+      answer = await options.ask({ program: host.program(), ...asks, anchor });
+    } finally {
+      asking = false;
+    }
+    if (!answer || !host) return;
+    const program = host.program();
+    const at = indexProgram(program).get(list)?.node;
+    if (at?.kind !== 'arrayOf') return;
+    const value = withNewIds(answer, idMinter(program));
+    applyChange(itemChange(program, list, at.items.length, value), list);
+  }
+
+  /** A shared change, applied as one step and said aloud, then the method drawn again. */
+  function applyChange(change: MenuChange, then: NodeId) {
+    if (!host) return;
+    if (!change.ok) return void host.announce(change.reason);
+    const applied = host.apply(change.edits, change.label, 'blocks');
+    host.announce(applied.ok ? change.label : applied.reason);
+    rebuild();
+    focusOn(then);
+  }
+
   /** Which detail, from the shared menu, then its value, as one step. */
   async function chooseDetail(node: NodeId) {
     const anchor = ws?.getBlockById(node)?.getSvgRoot();
@@ -484,6 +540,15 @@ export function createBlocksEditor(options: BlocksEditorOptions = {}): BlocksEdi
           text: item.words,
           enabled: true,
           callback: () => void act(block.id as NodeId, item.action),
+        });
+      // One of a listener's keys or objects: "Take up arrow out" (24 Nov 2026).
+      const out = takeOutItem(host.program(), block.id as NodeId);
+      const list = block.getParent();
+      if (out && list)
+        offered.push({
+          text: out.words,
+          enabled: true,
+          callback: () => applyChange(out.change, list.id as NodeId),
         });
       if (offered.length > 0) quietMenu(block.getSvgRoot().ownerDocument);
     };

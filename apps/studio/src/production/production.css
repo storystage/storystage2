@@ -382,6 +382,20 @@
 }
 
 /*
+ * A chip that is only a choice (a key, a direction, a sound): zelos draws it as a "full block
+ * field", its words and ▾ white on the block's own colour, which is our white chip. So they take
+ * the chip's words colour, as every other value's words do. (Blockly's own rule is !important.)
+ */
+.pr-workspace [class*='ss_enum_'] > .blocklyDropdownField > .blocklyDropdownText,
+.pr-workspace .ss_sound > .blocklyDropdownField > .blocklyDropdownText {
+  fill: var(--on-block) !important;
+}
+.pr-workspace [class*='ss_enum_'] > .blocklyDropdownField > image,
+.pr-workspace .ss_sound > .blocklyDropdownField > image {
+  filter: brightness(0.3);
+}
+
+/*
  * "add detail ▾" at the end of a row (14-editors 3i.5): in the block's own words' colour, with a
  * dashed outline, not a white value chip. (Specific enough to outrank Blockly's field rules.)
  */
