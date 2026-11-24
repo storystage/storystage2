@@ -688,6 +688,13 @@ export function ProductionStage({
                     choose({ marker: id });
                     onAnnounce(words.t('production.view.markerAdded', { name: id }));
                   }}
+                  onCameraStepped={(transform, step) => {
+                    if (!studio) return;
+                    studio.commit(
+                      words.t(`production.view.cameraStepped.${step}`),
+                      withCamera(studio.production, scene, transform),
+                    );
+                  }}
                   onMoveCamera={(transform) => {
                     if (!studio) return;
                     studio.commit(

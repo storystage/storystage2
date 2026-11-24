@@ -6,23 +6,11 @@
  * its tooltip, and repeats while held, as a held key does. In Look around they move its own view;
  * in Camera view, the scene's camera, as one undo step for each press or hold (`onMoveEnd`).
  */
+import type { ViewStep } from '@storystage/stage';
 import { Button, type IconName } from '@storystage/ui';
 import { useEffect, useRef } from 'react';
 import { Tooltip, TooltipTrigger } from 'react-aria-components';
 import { words } from '../strings.ts';
-
-/** One step of the view, as a button or a key takes it. */
-export type ViewStep =
-  | 'panLeft'
-  | 'panUp'
-  | 'panDown'
-  | 'panRight'
-  | 'circleLeft'
-  | 'circleRight'
-  | 'riseAndLookDown'
-  | 'dropAndLookUp'
-  | 'zoomIn'
-  | 'zoomOut';
 
 interface StepButton {
   readonly step: ViewStep;
@@ -76,8 +64,6 @@ export interface ViewPadProps {
   onMove(step: ViewStep): void;
   /** The press or hold is over: in Camera view, its steps become one undo step. */
   onMoveEnd(): void;
-  /** Whether the stage can slide the view yet (S3's stage step); the rest work without it. */
-  canSlide?: boolean;
   /** Nothing can move the view now (a run, or the stage not ready). */
   isDisabled?: boolean;
   /** A held button's rhythm, in ms: its first repeat, then each after it. For tests. */
@@ -87,7 +73,6 @@ export interface ViewPadProps {
 export function ViewPad({
   onMove,
   onMoveEnd,
-  canSlide = false,
   isDisabled = false,
   repeat = { first: FIRST_REPEAT_MS, every: REPEAT_MS },
 }: ViewPadProps) {
@@ -140,7 +125,7 @@ export function ViewPad({
                     icon={icon}
                     aria-label={name}
                     data-step={step}
-                    isDisabled={isDisabled || (group === 'slide' && !canSlide)}
+                    isDisabled={isDisabled}
                     onPressStart={() => start(step)}
                     onPressEnd={end}
                   />

@@ -9,8 +9,8 @@
 import type { NodeId } from '@storystage/ast';
 import { SPEEDS, startRuntimeWorker, type RuntimeWorker } from '@storystage/playback';
 import type { Production, SceneId } from '@storystage/production';
-import type { EditTarget, EditableStage, Stage } from '@storystage/stage';
-import type { SceneSetup, Transform, Vec3 } from '@storystage/story-api';
+import type { EditTarget, EditableStage, Stage, ViewStep } from '@storystage/stage';
+import { CAMERA, type SceneSetup, type Transform, type Vec3 } from '@storystage/story-api';
 import { DropZone } from 'react-aria-components';
 import { MODEL_DRAG_TYPE } from './BackstageRail.tsx';
 import { Button, NeutralNote, Segmented } from '@storystage/ui';
@@ -18,6 +18,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
+import { ViewPad } from './ViewPad.tsx';
 import { IDLE, Rehearsal, type RehearsalState, type Speaker } from './rehearsal.ts';
 
 export interface SceneViewProps {
@@ -52,6 +53,11 @@ export interface SceneViewProps {
   onMoved?(target: EditTarget, transform: Transform): void;
   /** Move the camera here: Look around's view, for the scene's camera. */
   onMoveCamera?(transform: Transform): void;
+  /**
+   * Camera view's buttons moved the scene's camera: where it is after a press or a hold, and the
+   * hold's step, for one undo step named for it (07-ux 7.2).
+   */
+  onCameraStepped?(transform: Transform, step: ViewStep): void;
   /** Add a marker: where the view is, Look around's or the scene camera's. */
   onAddMarker?(transform: Transform): void;
   /** False on a film that can't be changed: no handles and no Move the camera here. */
@@ -113,6 +119,8 @@ export default function SceneView(props: SceneViewProps) {
   const make = props.makeStage ?? makeStage;
   const startWorker = props.startWorker ?? startRuntimeWorker;
   const canvasRef = useRef<HTMLDivElement>(null);
+  // A press or hold of Camera view's buttons: its first step, and where the camera is now.
+  const held = useRef<{ step: ViewStep; transform: Transform } | null>(null);
   const [stage, setStage] = useState<ShownStage | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
@@ -446,6 +454,23 @@ export default function SceneView(props: SceneViewProps) {
           </p>
         )}
       </div>
+      {/* Move the view: always there, so nothing below moves as the stage gets ready. */}
+      <ViewPad
+        isDisabled={!editable || !idle || (!looking && !(canEdit && props.onCameraStepped))}
+        onMove={(step) => {
+          if (!editable) return;
+          if (looking) return void editable.viewStep(step);
+          // Camera view: the scene's camera moves live while held, and is written once let go.
+          const transform = editable.steppedCamera(step);
+          editable.setObject(CAMERA, { transform });
+          held.current = { step: held.current?.step ?? step, transform };
+        }}
+        onMoveEnd={() => {
+          const hold = held.current;
+          held.current = null;
+          if (hold) props.onCameraStepped?.(hold.transform, hold.step);
+        }}
+      />
       {problem && <NeutralNote>{problem}</NeutralNote>}
       {props.silentLines && <NeutralNote>{props.silentLines}</NeutralNote>}
       {hint && <NeutralNote>{hint}</NeutralNote>}

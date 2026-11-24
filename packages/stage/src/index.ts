@@ -16,6 +16,7 @@ export type {
   Picked,
   Speech,
   Stage,
+  ViewStep,
 } from './contract.ts';
 export {
   BACKDROP_TEMPLATES,

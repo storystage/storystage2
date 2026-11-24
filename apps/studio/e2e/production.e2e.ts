@@ -526,3 +526,34 @@ test('Check this frame plays the scene on a hidden stage and lists what it found
     (await new AxeBuilder({ page }).include('.pr-check').analyze()).violations.map((v) => v.id),
   ).toEqual([]);
 });
+
+test('the view moves by its buttons: Look around’s own, and the scene’s camera as undo steps', async ({
+  page,
+}) => {
+  // 07-ux 7.2 (the owner, 24 Nov 2026): slide, circle round, tilt and zoom, as buttons.
+  await openCode(page);
+  const pad = page.getByRole('toolbar', { name: 'Move the view' });
+  await expect(pad.getByRole('button')).toHaveCount(10);
+  const { violations } = await new AxeBuilder({ page }).include('.pr-view-pad').analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Camera view: a click is one undo step, named for it.
+  await pad.getByRole('button', { name: 'Zoom in' }).click();
+  await expect(undoButton(page)).toHaveText('Undo: Zoom the camera in');
+  // A hold is one step too, however many times it repeats.
+  const circle = pad.getByRole('button', { name: 'Circle round to the left' });
+  const at = (await circle.boundingBox())!;
+  await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2);
+  await page.mouse.down();
+  await page.waitForTimeout(1200);
+  await page.mouse.up();
+  await expect(undoButton(page)).toHaveText('Undo: Circle the camera round to the left');
+  await undoButton(page).click();
+  await expect(undoButton(page)).toHaveText('Undo: Zoom the camera in');
+
+  // Look around: the buttons move its view, and nothing is written.
+  await page.getByRole('radiogroup', { name: 'View' }).getByText('Look around').click();
+  for (const name of ['Slide left', 'Rise and look down', 'Zoom out'])
+    await pad.getByRole('button', { name }).click();
+  await expect(undoButton(page)).toHaveText('Undo: Zoom the camera in');
+});

@@ -2,7 +2,8 @@ import { ThemeRoot } from '@storystage/ui';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
-import { VIEW_STEPS, ViewPad, type ViewStep } from './ViewPad.tsx';
+import type { ViewStep } from '@storystage/stage';
+import { VIEW_STEPS, ViewPad } from './ViewPad.tsx';
 
 // The scene view's buttons for moving the view (the owner, 24 Nov 2026, through S2): slide, circle
 // round, tilt and zoom, each named in plain words, repeating while held.
@@ -11,7 +12,7 @@ import { VIEW_STEPS, ViewPad, type ViewStep } from './ViewPad.tsx';
 const QUICK = { first: 60, every: 15 };
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
 
-function open(props: { canSlide?: boolean; isDisabled?: boolean } = {}) {
+function open(props: { isDisabled?: boolean } = {}) {
   const onMove = vi.fn<(step: ViewStep) => void>();
   const onMoveEnd = vi.fn();
   render(
@@ -26,7 +27,7 @@ const pad = () => screen.getByRole('toolbar', { name: 'Move the view' });
 
 describe('ViewPad', () => {
   it('names every button in plain words, in four groups', () => {
-    open({ canSlide: true });
+    open();
     const names = within(pad())
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
@@ -93,15 +94,9 @@ describe('ViewPad', () => {
     expect(tip.textContent).toBe(document.activeElement?.getAttribute('aria-label'));
   });
 
-  it('keeps the slides switched off until the stage can slide', () => {
-    open({ canSlide: false });
-    expect(screen.getByRole('button', { name: 'Slide left' })).toHaveProperty('disabled', true);
-    expect(screen.getByRole('button', { name: 'Zoom in' })).toHaveProperty('disabled', false);
-  });
-
   it('switches every button off while the view can’t move', async () => {
     const user = userEvent.setup({ pointerEventsCheck: 0 });
-    const { onMove } = open({ canSlide: true, isDisabled: true });
+    const { onMove } = open({ isDisabled: true });
     const zoom = screen.getByRole('button', { name: 'Zoom out' });
     expect(zoom).toHaveProperty('disabled', true);
     await user.click(zoom);
