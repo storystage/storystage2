@@ -39,5 +39,9 @@
   "palette.variableName": "name",
   "editor.switchedOff": "switched off",
   "block.addDetail": "add detail ▾",
-  "block.addDetailName": "add detail"
+  "block.addDetailName": "add detail",
+  "block.addItem": "or ▾",
+  "block.chooseItem": "choose ▾",
+  "block.addItemName": "or, add another to {detail}",
+  "block.removeItem": "Take {item} out"
 }

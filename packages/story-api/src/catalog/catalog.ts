@@ -9,6 +9,7 @@ import { BASIC_TYPES, CLASS_PARENTS, ENUMS, REFERENCE_TYPES, TEXT_REFERENCES } f
 import type {
   ApiClass,
   ApiEntry,
+  ClassType,
   EnumName,
   EventDef,
   ParamDef,
@@ -73,6 +74,12 @@ export const isEnumName = (name: string): name is EnumName => name in ENUMS;
 export function enumValues(name: EnumName): readonly string[] {
   return ENUMS[name];
 }
+
+/**
+ * A class as a type, for a field, an input or an `extends`: the `Text` class is `TextModel`,
+ * as `Text` is words (spec 02, section 1, rule 3). `classOfType` turns it back.
+ */
+export const typeOfClass = (cls: ApiClass): ClassType => (cls === 'Text' ? 'TextModel' : cls);
 
 /** The class a type names, or `null`: `TextModel` is the `Text` class, and `Text` is words. */
 export const classOfType = (type: string): ApiClass | null => {

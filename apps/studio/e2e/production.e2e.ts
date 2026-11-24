@@ -557,3 +557,58 @@ test('the view moves by its buttons: Look around’s own, and the scene’s came
     await pad.getByRole('button', { name }).click();
   await expect(undoButton(page)).toHaveText('Undo: Zoom the camera in');
 });
+
+test('an arrow key listener’s keys are chosen one at a time, added with “or ▾” and taken out', async ({
+  page,
+}) => {
+  // The owner's choice of 24 Nov 2026, as Tiles has it (spec 14, 2.3 item 5).
+  await openCode(page);
+  await page.getByRole('button', { name: 'New in scene 1' }).press('Enter');
+  await page.getByRole('menuitem', { name: 'when an arrow key is pressed' }).click();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  // The listener's own block, which Blockly names "Begin stack, …".
+  const header = () => page.getByRole('figure', { name: /^Begin stack, when/ });
+
+  // The listener's own menu: which keys, then the key itself, making a list of one.
+  const box = (await header().boundingBox())!;
+  await page.mouse.click(box.x + 40, box.y + 12, { button: 'right' });
+  await page.getByRole('menuitem', { name: /which keys/ }).click();
+  let menu = page.getByRole('menu').last();
+  await expect(menu.getByRole('menuitem', { name: 'A new, empty list' })).toHaveCount(0);
+  await menu.getByRole('menuitem', { name: 'up arrow' }).click();
+  await expect(header()).toHaveAccessibleName(/^Begin stack, when, up arrow, .*is pressed/);
+  await expect(page.getByRole('tab', { name: 'when up arrow is pressed' })).toBeVisible();
+
+  // "or ▾" adds another, offering only the arrow keys not chosen yet.
+  await page.getByRole('button', { name: 'or, add another to which keys' }).click();
+  menu = page.getByRole('menu').last();
+  await expect(menu.getByRole('menuitem', { name: 'up arrow' })).toHaveCount(0);
+  await menu.getByRole('menuitem', { name: 'left arrow' }).click();
+  await expect(undoButton(page)).toHaveText(/^Undo: Add left arrow to /);
+  await expect(
+    page.getByRole('tab', { name: 'when up arrow or left arrow is pressed' }),
+  ).toBeVisible();
+  // A key's words are in the chip's words colour, not zelos's white on our white chip.
+  const colours = await page
+    .locator('.pr-workspace .blocklyBlockCanvas [class*="ss_enum_Key"]')
+    .first()
+    .evaluate((chip) => ({
+      words: getComputedStyle(chip.querySelector('.blocklyDropdownText')!).fill,
+      chip: getComputedStyle(chip.querySelector(':scope > .blocklyPath')!).fill,
+    }));
+  expect(colours.words).not.toBe(colours.chip);
+
+  // Each key's menu takes it out; the last one takes "which keys" out with it.
+  const chip = (words: string) =>
+    page.locator('.pr-workspace .blocklyBlockCanvas .blocklyDraggable', { hasText: words }).last();
+  for (const key of ['up arrow', 'left arrow']) {
+    const at = (await chip(key).boundingBox())!;
+    await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2, { button: 'right' });
+    await page.getByRole('menuitem', { name: `Take ${key} out` }).click();
+    await expect(undoButton(page)).toHaveText(new RegExp(`^Undo: Take ${key} out of `));
+  }
+  await expect(page.getByRole('tab', { name: 'when an arrow key is pressed' })).toBeVisible();
+  await expect(header()).toHaveAccessibleName(/^Begin stack, when an arrow key is pressed,/);
+  // Focus goes to the listener, not lost with the list (S6's review).
+  await expect.poll(() => focusedBlock(page)).toBeTruthy();
+});

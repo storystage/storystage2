@@ -281,8 +281,13 @@ export interface EditableStage extends Stage {
    * or a few metres ahead). It changes nothing: the studio writes it, as one undo step, with
    * `setObject`. The camera keeps its size. Zooming and panning keep its turn, roll and all;
    * circling and tilting straighten a roll, as Look around has none.
+   *
+   * `around` is the point to turn round, as the last step gave it back: the studio carries it
+   * through steps one after another, so a held Circle round keeps going round the same point when
+   * something leaves the shot (S5, 24 Nov). Without it, or if it's behind the camera, the point
+   * is found again. It gives back the point it used, moved with the camera by a pan.
    */
-  steppedCamera(step: ViewStep): Transform;
+  steppedCamera(step: ViewStep, around?: Vec3): { transform: Transform; around: Vec3 };
 
   /** Where the view is: Look around's camera while it's on, otherwise the scene's camera. */
   viewTransform(): Transform;

@@ -54,7 +54,7 @@ export function shapeOf(type: string, extra: Extra = {}): Shape {
   if (type === METHOD) return methodShape();
   if (type === FROM_SCRIPT) return fromScriptShape();
   if (type === SOUND) return soundShape();
-  if (type === LISTENER) return listenerShape(extra.event ?? '', extra.details ?? []);
+  if (type === LISTENER) return listenerShape(extra.event ?? '', extra.details ?? [], extra.phrase);
   if (type === USER_CALL || type === USER_FUNCTION)
     return userCallShape(
       type === USER_CALL ? 'statement' : 'value',
@@ -72,7 +72,11 @@ export function shapeOf(type: string, extra: Extra = {}): Shape {
       hasValue: extra.hasValue,
       constant: extra.constant,
     });
-  return expressionShape(kind, { count: extra.count, of: typeName(extra.of) });
+  return expressionShape(kind, {
+    count: extra.count,
+    of: typeName(extra.of),
+    ...(extra.oneOf ? { oneOf: true } : {}),
+  });
 }
 
 /** Every block type this package defines. */
