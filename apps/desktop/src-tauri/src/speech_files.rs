@@ -12,9 +12,12 @@ use std::sync::OnceLock;
 
 use sha2::{Digest, Sha256};
 use storystage_classes::backstage_files::is_served;
+#[cfg(not(target_os = "android"))]
 use tauri::path::BaseDirectory;
 use tauri::utils::assets::{AssetKey, AssetsIter, CspHash};
-use tauri::{App, AppHandle, Assets, Context, Manager, Runtime};
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
+use tauri::{App, AppHandle, Assets, Context, Runtime};
 
 // `SPEECH_PINS`: every file `.speech/` had when this app was built, with its SHA-256, from the
 // fetch scripts' own checked lists (`build.rs`).
@@ -51,16 +54,13 @@ impl<R: Runtime> SpeechAssets<R> {
 
     fn read(&self, path: &str) -> Option<Vec<u8>> {
         let (_, pin) = SPEECH_PINS.iter().find(|(pinned, _)| *pinned == path)?;
-        let app = self.app.get()?;
-        let resolved = app.path().resolve(format!("speech/{path}"), BaseDirectory::Resource).ok()?;
-        // Inside the APK on Android, so only the fs plugin can read it, from Rust.
+        // Inside the app's package on Android, read in place from Rust (src/android_assets.rs).
         #[cfg(target_os = "android")]
-        let bytes = {
-            use tauri_plugin_fs::FsExt;
-            app.fs().read(resolved).ok()?
-        };
+        let bytes = crate::android_assets::read(&format!("speech/{path}"))?;
         #[cfg(not(target_os = "android"))]
         let bytes = {
+            let app = self.app.get()?;
+            let resolved = app.path().resolve(format!("speech/{path}"), BaseDirectory::Resource).ok()?;
             let meta = std::fs::symlink_metadata(&resolved).ok()?;
             if !meta.is_file() {
                 return None;
