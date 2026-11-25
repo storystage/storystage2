@@ -241,6 +241,15 @@ export class ProductionSession<Source extends string = string> {
     this.open = { label, source, edits: [], inverses: [], before: rest, after: rest };
   }
 
+  /**
+   * Renames the open step for its latest change: a run of key presses on one slider is one step,
+   * named for where it ended ("Set Music to 60%", 07-ux section 7.7).
+   */
+  relabel(label: string): void {
+    if (!this.open) throw new Error('No group is open.');
+    this.open = { ...this.open, label };
+  }
+
   commit(): void {
     const step = this.closeGroup();
     if (step.edits.length > 0 || step.after !== step.before) this.done.push(step);

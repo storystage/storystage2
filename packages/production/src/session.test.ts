@@ -140,6 +140,18 @@ describe('ProductionSession', () => {
     expect(s.production().scenes).toHaveLength(4);
   });
 
+  it('names an open step for its latest change, so a slider’s run of keys reads as where it ended', () => {
+    // 07-ux 7.7 (S5): a run of key presses on one slider is one step, "Set Music to 60%".
+    const s = session();
+    s.begin('Set Music to 75%', 'storyboard');
+    s.change('Set Music to 75%', 'storyboard', movePenguin);
+    s.relabel('Set Music to 60%');
+    s.commit();
+    expect(s.history()).toEqual([{ label: 'Set Music to 60%', source: 'storyboard', done: true }]);
+    expect(s.undoLabel()).toBe('Set Music to 60%');
+    expect(() => s.relabel('Nothing open')).toThrow();
+  });
+
   it('takes a cancelled group back, and leaves no step', () => {
     const s = session();
     s.begin('Build it', 'prompter');

@@ -32,6 +32,31 @@ describe('one production, one undo history (07-ux 6.8, 7.5)', () => {
     expect(result.current.undoLabel).toBeNull();
   });
 
+  it('names a run of changes to one value for the last of them, as a slider’s keys (07-ux 7.7)', () => {
+    const { result } = renderHook(() => useStudio(p));
+    act(() =>
+      result.current.commit(
+        'Set title to A',
+        setTitle(result.current.production, 'A'),
+        'title',
+        'last',
+      ),
+    );
+    act(() =>
+      result.current.commit(
+        'Set title to AB',
+        setTitle(result.current.production, 'AB'),
+        'title',
+        'last',
+      ),
+    );
+    expect(result.current.undoLabel).toBe('Set title to AB');
+    act(() => result.current.seal());
+    expect(result.current.undoLabel).toBe('Set title to AB');
+    act(() => result.current.undo());
+    expect(result.current.production.manifest.title).toBe(p.manifest.title);
+  });
+
   it('closes the typing step when something else changes', () => {
     const { result } = renderHook(() => useStudio(p));
     act(() =>
