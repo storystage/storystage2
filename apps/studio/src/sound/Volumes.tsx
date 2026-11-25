@@ -6,14 +6,12 @@
  */
 import { mixOf, withMix, type SoundMix } from '@storystage/production';
 import { useEffect, useRef } from 'react';
-import { Input, Label, NumberField, Slider, SliderThumb, SliderTrack } from 'react-aria-components';
 import { words } from '../strings.ts';
 import type { Studio } from '../studio.ts';
+import { PercentControl } from './PercentControl.tsx';
 import './sound.css';
 
 const TRACKS: readonly (keyof SoundMix)[] = ['speech', 'music', 'effects'];
-
-const PERCENT = { style: 'unit', unit: 'percent' } as const;
 
 export interface VolumesProps {
   readonly studio: Studio;
@@ -28,8 +26,6 @@ export function Volumes({ studio, readOnly }: VolumesProps) {
   useEffect(() => {
     latest.current = studio.production;
   });
-  // A pointer is dragging a slider: letting go ends its step.
-  const dragging = useRef(false);
 
   const set = (track: keyof SoundMix, percent: number) => {
     const value = Math.round(Math.min(100, Math.max(0, percent)));
@@ -53,57 +49,17 @@ export function Volumes({ studio, readOnly }: VolumesProps) {
       <p className="sd-note">{words.t('sound.volumes.film')}</p>
       {TRACKS.map((track) => {
         const name = words.t(`sound.track.${track}`);
-        const value = Math.round(mix[track] * 100);
         return (
           // Leaving a track's controls ends its step; so does letting go of a drag.
           <div key={track} className="sd-volume" data-track={track} onBlur={() => studio.seal()}>
-            <Slider
-              className="sd-volume-slider"
-              value={value}
-              minValue={0}
-              maxValue={100}
-              step={1}
-              formatOptions={PERCENT}
+            <PercentControl
+              name={name}
+              percentName={words.t('sound.volumes.percent', { track: name })}
+              value={Math.round(mix[track] * 100)}
               isDisabled={readOnly}
               onChange={(percent) => set(track, percent)}
-              onChangeEnd={() => {
-                if (dragging.current) studio.seal();
-                dragging.current = false;
-              }}
-            >
-              <Label className="sd-volume-name">{name}</Label>
-              <SliderTrack
-                className="sd-volume-track"
-                onPointerDown={() => {
-                  dragging.current = true;
-                }}
-              >
-                {({ state }) => (
-                  <>
-                    <div
-                      className="sd-volume-fill"
-                      style={{ width: `${state.getThumbPercent(0) * 100}%` }}
-                    />
-                    <SliderThumb className="sd-volume-thumb" />
-                  </>
-                )}
-              </SliderTrack>
-            </Slider>
-            <NumberField
-              className="sd-volume-percent"
-              aria-label={words.t('sound.volumes.percent', { track: name })}
-              value={value}
-              minValue={0}
-              maxValue={100}
-              step={1}
-              formatOptions={PERCENT}
-              isDisabled={readOnly}
-              onChange={(percent) => {
-                if (Number.isFinite(percent)) set(track, percent);
-              }}
-            >
-              <Input className="ss-input pr-number-input" />
-            </NumberField>
+              onDragEnd={() => studio.seal()}
+            />
             {track === 'music' && (
               <p className="sd-note sd-volume-note">{words.t('sound.volumes.ducking')}</p>
             )}

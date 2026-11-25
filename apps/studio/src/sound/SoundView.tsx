@@ -1,8 +1,8 @@
 /**
  * The Sound view (`07-ux.md` section 7.7; decision 0076, workplan 7.17), behind the Code | Sound
- * switch: the tracks' **Volumes**, for the whole film, and **Sounds in this film**, the learner's
- * imported sounds, each with the length it plays, Play and Remove…, and Import a sound…, which
- * opens the trim dialog. The music timeline joins them next.
+ * switch: the tracks' **Volumes**, for the whole film; the scene's **music** on its timeline
+ * (`Music.tsx`); and **Sounds in this film**, the learner's imported sounds, each with the length
+ * it plays, Play and Remove…, and Import a sound…, which opens the trim dialog.
  */
 import type { NodeId } from '@storystage/ast';
 import {
@@ -26,6 +26,8 @@ import { freeLabel, type FilmSounds } from './filmSounds.ts';
 import { devicePlayer, typeOfFile, type SoundPlayer } from './player.ts';
 import { DEVICE_READING, readSound, type SoundReading } from './readSound.ts';
 import { secondsWords, TrimDialog } from './TrimDialog.tsx';
+import { addCue } from './music.ts';
+import { Music } from './Music.tsx';
 import { Volumes } from './Volumes.tsx';
 import './sound.css';
 
@@ -41,6 +43,10 @@ export interface SoundViewProps {
   readonly onAnnounce: (text: string) => void;
   /** Go to the block: Code, in `scene`, open at `node`. */
   readonly onGoToBlock: (scene: SceneId, node: NodeId) => void;
+  /** The scene open on the stage: its music is on the timeline. */
+  readonly scene: SceneId;
+  /** Go to another scene: where music carried in from it is changed. */
+  readonly onGoToScene?: ((scene: SceneId) => void) | undefined;
   /** The device's own, unless a test gives others. */
   readonly player?: SoundPlayer;
   readonly reading?: SoundReading;
@@ -67,6 +73,8 @@ export function SoundView({
   sounds,
   onAnnounce,
   onGoToBlock,
+  scene,
+  onGoToScene,
   player: given,
   reading = DEVICE_READING,
 }: SoundViewProps) {
@@ -80,6 +88,8 @@ export function SoundView({
   const [playing, setPlaying] = useState<string | null>(null);
   const [held, setHeld] = useState<Held | null>(null);
   const [asking, setAsking] = useState<{ clip: SoundClip; scenes: number[] } | null>(null);
+  // Where a sound imported from Add music… starts, in the step that adds it.
+  const placeAt = useRef<number | null>(null);
   // The production as the last change left it, for a pick read after the learner moved on.
   const latest = useRef(p);
   useEffect(() => {
@@ -124,9 +134,25 @@ export function SoundView({
     const now = latest.current;
     const clip = { ...chosen, label: freeLabel(chosen.label, now, SOUND_LIMITS.label) };
     sounds.add(clip, bytes);
-    studio.commit(words.t('sound.step.add', { name: clip.label }), withSound(now, clip));
+    const withClip = withSound(now, clip);
+    const at = placeAt.current;
+    placeAt.current = null;
+    // From Add music…, the sound is placed at the playhead in the same step.
+    const placed = at !== null ? addCue(withClip, scene, clip, at) : null;
+    if (placed?.ok) {
+      const label = words.t('sound.step.addMusic', { name: clip.label });
+      studio.commit(label, placed.production);
+      onAnnounce(label);
+    } else {
+      studio.commit(words.t('sound.step.add', { name: clip.label }), withClip);
+      onAnnounce(words.t('sound.added', { name: clip.label }));
+    }
     setTrimming(null);
-    onAnnounce(words.t('sound.added', { name: clip.label }));
+  };
+
+  const importFile = (start: number | null) => {
+    placeAt.current = start;
+    input.current?.click();
   };
 
   const remove = (clip: SoundClip) => {
@@ -176,6 +202,17 @@ export function SoundView({
   return (
     <section className="sd-view" aria-label={words.t('sound.region')}>
       <Volumes studio={studio} readOnly={readOnly} />
+      <Music
+        key={scene}
+        studio={studio}
+        scene={scene}
+        readOnly={readOnly}
+        sounds={sounds}
+        player={player}
+        onAnnounce={onAnnounce}
+        onGoToScene={onGoToScene}
+        onImport={(start) => importFile(start)}
+      />
       <h3 className="sd-heading" id="sd-film-title">
         {words.t('sound.film.title')}
       </h3>
@@ -265,7 +302,7 @@ export function SoundView({
             variant="secondary"
             icon="music_note"
             isDisabled={picked !== null}
-            onPress={() => input.current?.click()}
+            onPress={() => importFile(null)}
           >
             {words.t('sound.import')}
           </Button>
@@ -293,7 +330,10 @@ export function SoundView({
           peaks={trimming.peaks}
           player={player}
           onAdd={(clip) => add(clip, trimming.bytes)}
-          onCancel={() => setTrimming(null)}
+          onCancel={() => {
+            placeAt.current = null;
+            setTrimming(null);
+          }}
         />
       )}
       {asking && (
