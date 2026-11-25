@@ -140,7 +140,7 @@ export function forecastSummary(s: Schedule): string {
     `- **Later strands done:** week ${weekDate(s.plan, f.end)}. The plan says week ${weekDate(s.plan, s.end)}.`,
     `- **What now sets the pilot's end:** ${f.critical.join(' → ')}.`,
     '',
-    "Finished items keep their actual dates; started ones run for their estimate from their start, but end no sooner than half a week after the as-of date; the rest start when what they wait for has finished. The estimates themselves are still the first plan's: they're recalibrated at M1 (WP1.12), and dates the sessions haven't recorded aren't counted.",
+    "Finished items keep their actual dates; started ones run for their estimate from their start, but end no sooner than half a week after the as-of date; the rest start when what they wait for has finished. The estimates themselves are still the first plan's, apart from items added since (their basis in `tools/plan/schedule.yaml` says whose): they're recalibrated at M1 (WP1.12), and dates the sessions haven't recorded aren't counted.",
   ].join('\n');
 }
 

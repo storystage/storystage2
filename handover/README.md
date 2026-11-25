@@ -29,7 +29,7 @@ Everything Claude Code needs to build StoryStage 2, split so that parallel sessi
 
 Eight code sessions plus one documents session. Each owns its own packages, so sessions rarely touch the same files.
 <!-- schedule:roster-summary -->
-With this split the schedule matches the workplan: **release candidate week 18.5 (26 Feb 2027), pilot ends week 24.5 (9 Apr 2027)**, later strands done by week 29.5 (13 May 2027).
+With this split the schedule is later than the workplan: **release candidate week 22 (22 Mar 2027), pilot ends week 28 (3 May 2027)**, later strands done by week 33 (7 Jun 2027).
 <!-- /schedule:roster-summary -->
 
 <!-- schedule:roster -->
@@ -37,13 +37,13 @@ With this split the schedule matches the workplan: **release candidate week 18.5
 | Session | Area | Starts | Items before the release candidate | After it | Critical-path items |
 |---|---|---|---|---|---|
 | [S1](S1-platform-quality.md) | Platform and quality | wk 0 | WP0 → WP1 → WP18a → WP11a → WP23a → WP14b → WP18b | WP21, WP22b, WP22c | WP0, WP1, WP18b |
-| [S2](S2-language-runtime-screening.md) | Language, runtime and Screening room | wk 1.5 | WP2 → WP8f → WP6 → WP11b → WP11c | WP20 | WP11c |
-| [S3](S3-stage-story-api.md) | Stage and Story API procedures | wk 4.5 | WP5a → WP4b → WP5b → WP4c | WP23b, WP23d | WP5a, WP4b |
-| [S4](S4-backstage-productions.md) | Backstage and Productions | wk 0 | WP3a → WP10s → WP3b → WP3c → WP8 → WP3i | WP22a | — |
-| [S5](S5-studio-interface.md) | Studio interface | wk 0 | WP12a → WP12b → WP10a → WP7 → WP10b → WP10c | WP23c | WP7, WP10b |
+| [S2](S2-language-runtime-screening.md) | Language, runtime and Screening room | wk 1.5 | WP2 → WP8f → WP6 → WP11b → WP11c → WP11m | WP20 | WP11c |
+| [S3](S3-stage-story-api.md) | Stage and Story API procedures | wk 4.5 | WP5a → WP4b → WP5b → WP4c → WP5d | WP23b, WP23d | WP5a, WP4b |
+| [S4](S4-backstage-productions.md) | Backstage and Productions | wk 0 | WP3a → WP10s → WP3b → WP3c → WP8 → WP3i → WP11s | WP22a | — |
+| [S5](S5-studio-interface.md) | Studio interface | wk 0 | WP12a → WP12b → WP10a → WP7 → WP10b → WP10c → WP7p → WP7v → WP7s → WP7d | WP23c | WP7, WP10b |
 | [S6](S6-story-api-spec-tiles-import.md) | Story API spec, Tile editor and Alice import | wk 1.5 | WP4a → WP4d → WP7c → WP9a → WP9b → WP7t | — | — |
 | [S7](S7-prompter-speech.md) | Prompter and speech | wk 1.5 | WP13a → WP14a → WP13b → WP13c | — | WP13c |
-| [S8](S8-apps-security-class-setup.md) | Apps, security and class set-up | wk 1.5 | WP15a → WP0s → WP15k → WP24a → WP15b → WP24b | — | — |
+| [S8](S8-apps-security-class-setup.md) | Apps, security and class set-up | wk 1.5 | WP15a → WP0s → WP15k → WP24a → WP15b → WP24b → WP15c | — | — |
 | [D](D-documents.md) | Documents: curriculum, legal, privacy, website | wk 0 | WP17a → WP16a → WP16b → WP19a → WP17b | — | — |
 
 <!-- /schedule:roster -->
