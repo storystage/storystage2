@@ -257,3 +257,62 @@ test('the tracks’ volumes change by a drag and by keys, each one undo step', a
   await undoButton(page).click();
   await expect(music).toHaveAttribute('aria-valuetext', '70%');
 });
+
+test('music is added at the playhead, drawn on the timeline and changed by its controls', async ({
+  page,
+}) => {
+  // 07-ux 7.7: Add music…, the music bar, Zoom, the cue's controls and its keys, each one step.
+  const sound = await openSound(page);
+  await sound.locator('input[type="file"]').setInputFiles({
+    name: 'rain.wav',
+    mimeType: 'audio/wav',
+    buffer: toneWav(2),
+  });
+  await page
+    .getByRole('dialog', { name: 'Trim your sound' })
+    .getByRole('button', { name: 'Add sound' })
+    .click();
+
+  const timeline = sound.getByRole('region', { name: 'Scene 1’s music' });
+  await expect(timeline.getByText(/^About \d+ seconds?, from your storyboard\.$/)).toBeVisible();
+  await timeline.getByRole('textbox', { name: 'Time' }).fill('1');
+  await timeline.getByRole('textbox', { name: 'Time' }).press('Enter');
+  await timeline.getByRole('button', { name: 'Add music…' }).click();
+  const add = page.getByRole('dialog', { name: 'Add music' });
+  await expect(add.getByText('It starts at 1 second, where the playhead is.')).toBeVisible();
+  await add.getByRole('button', { name: 'Add rain' }).click();
+  await expect(add).toBeHidden();
+  await expect(undoButton(page)).toHaveText('Undo: Add music rain');
+
+  const track = timeline.getByRole('list', { name: 'Music', exact: true });
+  const bar = track.getByRole('button', { name: /^rain, 1 to 3 seconds/ });
+  await expect(bar).toBeVisible();
+  const before = (await bar.boundingBox())!;
+  await timeline.getByRole('button', { name: 'Zoom out' }).click();
+  await expect.poll(async () => (await bar.boundingBox())!.width).toBeLessThan(before.width);
+  await timeline.getByRole('button', { name: 'Zoom in' }).click();
+  await timeline.getByRole('button', { name: 'Fit' }).click();
+  await expect.poll(async () => (await bar.boundingBox())!.width).toBeCloseTo(before.width, 0);
+
+  // Chosen, its controls: a fade and a loop, each a step, drawn on the bar.
+  await bar.click();
+  const controls = sound.getByRole('region', { name: 'rain' });
+  await controls.getByRole('textbox', { name: 'Fade in' }).fill('0.5');
+  await controls.getByRole('textbox', { name: 'Fade in' }).press('Enter');
+  await expect(undoButton(page)).toHaveText('Undo: Fade rain in over 0.5 seconds');
+  await controls.getByText('Loop', { exact: true }).click();
+  await expect(undoButton(page)).toHaveText('Undo: Loop rain');
+  await expect(track.getByRole('button', { name: /loops, fades in$/ })).toBeVisible();
+  const { violations } = await new AxeBuilder({ page }).include('.sd-music').analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Keys on the bar move it, as one step.
+  await track.getByRole('button').focus();
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowRight');
+  await expect(undoButton(page)).toHaveText('Undo: Move rain to 1.3 seconds');
+  await expect(
+    sound.getByRole('list', { name: 'Music in this scene' }).getByRole('button'),
+  ).toHaveText('rain, from 1.3 seconds');
+  await undoButton(page).click();
+  await expect(undoButton(page)).toHaveText('Undo: Loop rain');
+});

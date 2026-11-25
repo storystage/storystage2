@@ -1,13 +1,17 @@
 import {
   exampleProduction,
+  SOUND_LIMITS,
   withSceneMusic,
   withSound,
+  type MusicCue,
   type Production,
+  type SceneId,
 } from '@storystage/production';
 import { ThemeRoot } from '@storystage/ui';
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { sceneSeconds } from '../storyboard/edits.ts';
 import { useStudio, type Studio } from '../studio.ts';
 import { FilmSounds } from './filmSounds.ts';
 import type { SoundPlayer } from './player.ts';
@@ -44,9 +48,13 @@ interface Opened {
   player: SoundPlayer;
   onAnnounce: ReturnType<typeof vi.fn>;
   onGoToBlock: ReturnType<typeof vi.fn>;
+  onGoToScene: ReturnType<typeof vi.fn>;
 }
 
-function open(start: Production, options: { readOnly?: boolean; bytes?: boolean } = {}): Opened {
+function open(
+  start: Production,
+  options: { readOnly?: boolean; bytes?: boolean; scene?: SceneId } = {},
+): Opened {
   const sounds = new FilmSounds();
   sounds.reset(
     options.bytes === false
@@ -59,6 +67,8 @@ function open(start: Production, options: { readOnly?: boolean; bytes?: boolean 
   const player: SoundPlayer = { play: vi.fn(), stop: vi.fn() };
   const onAnnounce = vi.fn();
   const onGoToBlock = vi.fn();
+  const onGoToScene = vi.fn();
+  const scene = options.scene ?? start.manifest.runningOrder[0]!.scene;
   let studio: Studio | null = null;
   function Harness() {
     const s = useStudio(start);
@@ -72,6 +82,8 @@ function open(start: Production, options: { readOnly?: boolean; bytes?: boolean 
         reading={READING}
         onAnnounce={onAnnounce}
         onGoToBlock={onGoToBlock}
+        scene={scene}
+        onGoToScene={onGoToScene}
       />
     );
   }
@@ -80,7 +92,7 @@ function open(start: Production, options: { readOnly?: boolean; bytes?: boolean 
       <Harness />
     </ThemeRoot>,
   );
-  return { studio: () => studio!, sounds, player, onAnnounce, onGoToBlock };
+  return { studio: () => studio!, sounds, player, onAnnounce, onGoToBlock, onGoToScene };
 }
 
 const list = () => screen.getByRole('list', { name: 'Sounds in this film' });
@@ -269,5 +281,230 @@ describe('SoundView: removing', () => {
     expect(studio().production.manifest.sounds).toBeUndefined();
     expect(studio().production.scenes.every((s) => s.music === undefined)).toBe(true);
     expect(studio().undoLabel).toBe('Remove sound Rain');
+  });
+});
+
+const timeline = () => screen.getByRole('region', { name: 'Scene 1’s music' });
+const musicTrack = () => within(timeline()).getByRole('list', { name: 'Music' });
+const sceneMusic = () => screen.getByRole('list', { name: 'Music in this scene' });
+const rainAt = (start: number, more: Partial<MusicCue> = {}): MusicCue => ({
+  sound: 'sn1',
+  start,
+  from: 0,
+  to: 3.5,
+  fadeIn: 0,
+  fadeOut: 0,
+  loop: false,
+  volume: 1,
+  carriesOn: false,
+  ...more,
+});
+const withRain = (cues: MusicCue[], scene = 0) => {
+  const p = withSound(exampleProduction(), RAIN);
+  return withSceneMusic(p, p.manifest.runningOrder[scene]!.scene, cues);
+};
+const firstMusic = (s: Studio) =>
+  s.production.scenes.find((x) => x.id === s.production.manifest.runningOrder[0]!.scene)!.music;
+
+describe('SoundView: the timeline', () => {
+  it('has a ruler from the storyboard’s plan over the three tracks', () => {
+    const p = exampleProduction();
+    open(p);
+    const planned = sceneSeconds(p, p.manifest.runningOrder[0]!.scene);
+    expect(
+      within(timeline()).getByText(`About ${planned} seconds, from your storyboard.`),
+    ).toBeTruthy();
+    expect(musicTrack()).toBeTruthy();
+    expect(within(timeline()).getAllByText('Rehearse can’t time these yet.')).toHaveLength(2);
+    expect(within(timeline()).getByText('Speech')).toBeTruthy();
+    expect(within(timeline()).getByText('Sound FX')).toBeTruthy();
+    expect(screen.getByText('No music in this scene yet.')).toBeTruthy();
+  });
+
+  it('names each cue’s bar for when it’s heard and what it does', () => {
+    open(withRain([rainAt(1, { loop: true, to: 2, fadeIn: 0.5 }), rainAt(6)]));
+    const bars = within(musicTrack()).getAllByRole('button');
+    expect(bars.map((b) => b.getAttribute('aria-label'))).toEqual([
+      'Rain, 1 to 6 seconds, loops, fades in, crossfades into the next',
+      'Rain, 6 to 9.5 seconds',
+    ]);
+  });
+
+  it('reads Missing sound for a cue whose sound the film hasn’t got', () => {
+    const p = withRain([rainAt(0)]);
+    open({ ...p, manifest: { ...p.manifest, sounds: [] } } as Production);
+    expect(within(musicTrack()).getByRole('button').getAttribute('aria-label')).toBe(
+      'Missing sound, 0 to 3.5 seconds',
+    );
+  });
+
+  it('says Missing sound on a cue whose sound’s file the film hasn’t got', () => {
+    open(withRain([rainAt(0)]), { bytes: false });
+    expect(within(musicTrack()).getByRole('button').getAttribute('aria-label')).toBe(
+      'Rain, 0 to 3.5 seconds, Missing sound',
+    );
+  });
+
+  it('draws music carried on from an earlier scene, and goes there', async () => {
+    const user = userEvent.setup();
+    const p = withRain([rainAt(0, { carriesOn: true })]);
+    const { onGoToScene } = open(p, { scene: p.manifest.runningOrder[1]!.scene });
+    expect(screen.getAllByText('Rain, carried on from scene 1').length).toBeGreaterThanOrEqual(1);
+    await user.click(screen.getByRole('button', { name: 'Go to scene 1' }));
+    expect(onGoToScene).toHaveBeenCalledWith(p.manifest.runningOrder[0]!.scene);
+  });
+});
+
+describe('SoundView: adding music', () => {
+  it('adds a film sound at the playhead, as one step, and says so', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = open(withSound(exampleProduction(), RAIN));
+    const time = screen.getByRole('textbox', { name: 'Time' });
+    await user.tripleClick(time);
+    await user.keyboard('4{Enter}');
+    await user.click(screen.getByRole('button', { name: 'Add music…' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add music' });
+    expect(within(dialog).getByText('It starts at 4 seconds, where the playhead is.')).toBeTruthy();
+    await user.click(within(dialog).getByRole('button', { name: 'Add Rain' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(firstMusic(studio())).toEqual([rainAt(4)]);
+    expect(studio().undoLabel).toBe('Add music Rain');
+    expect(onAnnounce).toHaveBeenCalledWith('Add music Rain');
+    expect(within(sceneMusic()).getByRole('button').textContent).toBe('Rain, from 4 seconds');
+  });
+
+  it('refuses a second cue at the same time', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(0)]));
+    await user.click(screen.getByRole('button', { name: 'Add music…' }));
+    await user.click(screen.getByRole('button', { name: 'Add Rain' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add music' });
+    expect(
+      within(dialog).getByText('Music already starts at 0 seconds. Choose another time.'),
+    ).toBeTruthy();
+    expect(firstMusic(studio())).toHaveLength(1);
+  });
+
+  it('says so at the scene’s limit', async () => {
+    const user = userEvent.setup();
+    open(withRain(Array.from({ length: SOUND_LIMITS.cues }, (_, i) => rainAt(i))));
+    await user.click(screen.getByRole('button', { name: 'Add music…' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add music' });
+    expect(
+      within(dialog).getByText('This scene has all the music it can hold. Remove a piece first.'),
+    ).toBeTruthy();
+    expect(within(dialog).getByRole('button', { name: 'Add Rain' })).toHaveProperty(
+      'disabled',
+      true,
+    );
+  });
+
+  it('places a sound imported from Add music… in the step that adds it', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(exampleProduction());
+    await user.click(screen.getByRole('button', { name: 'Add music…' }));
+    const dialog = screen.getByRole('dialog', { name: 'Add music' });
+    expect(
+      within(dialog).getByText('No sounds in this film yet. Import one to use it as music.'),
+    ).toBeTruthy();
+    await user.click(within(dialog).getByRole('button', { name: 'Import a sound…' }));
+    await user.upload(fileInput(), wavFile('rain.wav'));
+    await user.click(await screen.findByRole('button', { name: 'Add sound' }));
+    expect(studio().production.manifest.sounds).toHaveLength(1);
+    expect(firstMusic(studio())).toEqual([rainAt(0, { to: 4 })]);
+    expect(studio().undoLabel).toBe('Add music rain');
+    act(() => studio().undo());
+    expect(studio().production.manifest.sounds).toBeUndefined();
+    expect(firstMusic(studio())).toBeUndefined();
+  });
+});
+
+describe('SoundView: a cue’s controls', () => {
+  it('chooses a cue from Music in this scene and moves it by a number typed', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(1)]));
+    await user.click(within(sceneMusic()).getByRole('button', { name: 'Rain, from 1 second' }));
+    const controls = screen.getByRole('region', { name: 'Rain' });
+    await user.tripleClick(within(controls).getByRole('textbox', { name: 'Starts at' }));
+    await user.keyboard('6{Enter}');
+    expect(firstMusic(studio())![0]!.start).toBe(6);
+    expect(studio().undoLabel).toBe('Move Rain to 6 seconds');
+  });
+
+  it('trims, fades, loops and carries on, each one step', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(0)]));
+    await user.click(within(musicTrack()).getByRole('button'));
+    const controls = screen.getByRole('region', { name: 'Rain' });
+    await user.tripleClick(within(controls).getByRole('textbox', { name: 'Play to' }));
+    await user.keyboard('3{Enter}');
+    expect(studio().undoLabel).toBe('Trim Rain in scene 1');
+    await user.tripleClick(within(controls).getByRole('textbox', { name: 'Fade out' }));
+    await user.keyboard('1{Enter}');
+    expect(studio().undoLabel).toBe('Fade Rain out over 1 second');
+    await user.click(within(controls).getByRole('switch', { name: 'Loop' }));
+    expect(studio().undoLabel).toBe('Loop Rain');
+    await user.click(
+      within(controls).getByRole('switch', {
+        name: 'Carry on into the next scene until other music starts',
+      }),
+    );
+    expect(studio().undoLabel).toBe('Carry Rain on into the next scene');
+    expect(firstMusic(studio())).toEqual([
+      rainAt(0, { to: 3, fadeOut: 1, loop: true, carriesOn: true }),
+    ]);
+  });
+
+  it('moves a cue by keys on its bar as one step, and Delete removes it', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = open(withRain([rainAt(1)]));
+    within(musicTrack()).getByRole('button').focus();
+    await user.keyboard('{ArrowRight}{ArrowRight}{Shift>}{ArrowRight}{/Shift}');
+    expect(firstMusic(studio())![0]!.start).toBe(2.2);
+    expect(studio().undoLabel).toBe('Move Rain to 2.2 seconds');
+    expect(onAnnounce).toHaveBeenLastCalledWith('Move Rain to 2.2 seconds');
+    await user.keyboard('{Home}');
+    expect(firstMusic(studio())![0]!.start).toBe(0);
+    act(() => studio().undo());
+    expect(firstMusic(studio())![0]!.start).toBe(1);
+    within(musicTrack()).getByRole('button').focus();
+    await user.keyboard('{Delete}');
+    expect(firstMusic(studio())).toBeUndefined();
+    expect(studio().undoLabel).toBe('Remove music Rain');
+  });
+
+  it('moves a bar by keys past another cue’s start, focus following it, as one step', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(1), rainAt(1.2)]));
+    within(musicTrack()).getAllByRole('button')[0]!.focus();
+    await user.keyboard('{ArrowRight}{ArrowRight}');
+    expect(firstMusic(studio())!.map((c) => c.start)).toEqual([1.2, 1.3]);
+    expect(document.activeElement?.getAttribute('aria-label')).toMatch(/^Rain, 1\.3 to/);
+    await user.keyboard('{ArrowRight}');
+    expect(firstMusic(studio())!.map((c) => c.start)).toEqual([1.2, 1.4]);
+    expect(studio().undoLabel).toBe('Move Rain to 1.4 seconds');
+    act(() => studio().undo());
+    expect(firstMusic(studio())!.map((c) => c.start)).toEqual([1, 1.2]);
+  });
+
+  it('refuses a move onto another cue’s start', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = open(withRain([rainAt(1), rainAt(5)]));
+    await user.click(within(sceneMusic()).getByRole('button', { name: 'Rain, from 1 second' }));
+    await user.tripleClick(screen.getByRole('textbox', { name: 'Starts at' }));
+    await user.keyboard('5{Enter}');
+    const why = 'Music already starts at 5 seconds. Choose another time.';
+    expect(screen.getByText(why)).toBeTruthy();
+    expect(onAnnounce).toHaveBeenCalledWith(why);
+    expect(firstMusic(studio())!.map((c) => c.start)).toEqual([1, 5]);
+  });
+
+  it('shows a film that can’t be changed, with nothing to change it', async () => {
+    const user = userEvent.setup();
+    open(withRain([rainAt(1)]), { readOnly: true });
+    expect(screen.queryByRole('button', { name: 'Add music…' })).toBeNull();
+    await user.click(within(sceneMusic()).getByRole('button'));
+    expect(screen.getByRole('textbox', { name: 'Starts at' })).toHaveProperty('disabled', true);
+    expect(screen.queryByRole('button', { name: 'Remove Rain from the music' })).toBeNull();
   });
 });

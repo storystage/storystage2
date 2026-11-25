@@ -841,6 +841,10 @@ export function ProductionStage({
                         readOnly={studio.readOnly !== null}
                         sounds={sounds}
                         onAnnounce={onAnnounce}
+                        scene={scene}
+                        onGoToScene={
+                          onPlaceChange && ((at) => onPlaceChange({ scene: at, frame: null }))
+                        }
                         onGoToBlock={(at, node) => {
                           changeView('code');
                           onGoToBlock?.(at, node);
