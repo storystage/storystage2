@@ -191,6 +191,43 @@ export function changeCue(
   );
 }
 
+/** What a drag on the timeline holds: the bar, its two handles or one of its fades' corners. */
+export type CueGrip = 'move' | 'from' | 'to' | 'fadeIn' | 'fadeOut';
+
+/**
+ * Cue `index` as a drag of `seconds` (right is later) on `grip` leaves it, from where it was when
+ * the drag began: the bar moves the start; the left handle moves the start with Play from, so the
+ * part that's left is heard where it was; the right handle moves Play to; a fade's corner lengthens
+ * or shortens its fade. Kept as `changeCue` keeps a change.
+ */
+export function dragCue(
+  p: Production,
+  scene: SceneId,
+  index: number,
+  grip: CueGrip,
+  seconds: number,
+): CueChange {
+  const old = musicOf(p, scene)[index];
+  if (!old) return { ok: false, reason: 'gone' };
+  const by = tenth(seconds);
+  switch (grip) {
+    case 'move':
+      return changeCue(p, scene, index, { start: old.start + by });
+    case 'from': {
+      const d = round(
+        between(by, -Math.min(old.from, old.start), old.to - SHORTEST_CUE - old.from),
+      );
+      return changeCue(p, scene, index, { start: old.start + d, from: old.from + d });
+    }
+    case 'to':
+      return changeCue(p, scene, index, { to: old.to + by });
+    case 'fadeIn':
+      return changeCue(p, scene, index, { fadeIn: old.fadeIn + by });
+    case 'fadeOut':
+      return changeCue(p, scene, index, { fadeOut: old.fadeOut - by });
+  }
+}
+
 /** The scene without cue `index`; with its last gone, the scene has no music. */
 export const removeCue = (p: Production, scene: SceneId, index: number): Production =>
   withSceneMusic(

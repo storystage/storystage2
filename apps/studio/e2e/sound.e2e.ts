@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
 
 // The Sound view's first part in a browser (07-ux 7.7; workplan 7.17): Code | Sound, a real WAV
@@ -315,4 +315,74 @@ test('music is added at the playhead, drawn on the timeline and changed by its c
   ).toHaveText('rain, from 1.3 seconds');
   await undoButton(page).click();
   await expect(undoButton(page)).toHaveText('Undo: Loop rain');
+});
+
+test('a cue is dragged by its bar, its handles and its corners, and Esc puts one back', async ({
+  page,
+}) => {
+  // 07-ux 7.7: a drag is drawn as it goes, one step when let go; Esc during one puts it back.
+  const sound = await openSound(page);
+  await sound.locator('input[type="file"]').setInputFiles({
+    name: 'rain.wav',
+    mimeType: 'audio/wav',
+    buffer: toneWav(2),
+  });
+  await page
+    .getByRole('dialog', { name: 'Trim your sound' })
+    .getByRole('button', { name: 'Add sound' })
+    .click();
+  const timeline = sound.getByRole('region', { name: 'Scene 1’s music' });
+  await timeline.getByRole('textbox', { name: 'Time' }).fill('1');
+  await timeline.getByRole('textbox', { name: 'Time' }).press('Enter');
+  await timeline.getByRole('button', { name: 'Add music…' }).click();
+  await page
+    .getByRole('dialog', { name: 'Add music' })
+    .getByRole('button', { name: 'Add rain' })
+    .click();
+
+  const track = timeline.getByRole('list', { name: 'Music', exact: true });
+  const bar = track.getByRole('button', { name: /^rain, / });
+  const box = (await bar.boundingBox())!;
+  const perSecond = box.width / 2;
+  /** A mouse drag of `seconds` from the middle of `target`, let go unless Esc comes first. */
+  const drag = async (target: Locator, seconds: number, escape = false) => {
+    await target.scrollIntoViewIfNeeded();
+    const b = (await target.boundingBox())!;
+    const x = b.x + b.width / 2;
+    const y = b.y + b.height / 2;
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    for (let i = 1; i <= 5; i++) await page.mouse.move(x + (seconds * perSecond * i) / 5, y);
+    if (escape) await page.keyboard.press('Escape');
+    await page.mouse.up();
+  };
+
+  await drag(bar, 1);
+  await expect(undoButton(page)).toHaveText('Undo: Move rain to 2 seconds');
+  await expect(bar).toHaveAccessibleName(/^rain, 2 to 4 seconds/);
+  await expect(bar).toHaveAttribute('aria-pressed', 'true');
+
+  // The chosen bar's handles: Play to, back half a second.
+  const to = track.getByRole('slider', { name: 'Play to' });
+  await expect(to).toHaveAttribute('aria-valuetext', '2 seconds');
+  expect((await to.boundingBox())!.width).toBeGreaterThanOrEqual(44);
+  await drag(to, -0.5);
+  await expect(undoButton(page)).toHaveText('Undo: Trim rain in scene 1');
+  await expect(to).toHaveAttribute('aria-valuetext', '1.5 seconds');
+  const controls = sound.getByRole('region', { name: 'rain' });
+  await expect(controls.getByRole('textbox', { name: 'Play to' })).toHaveValue('1.5 seconds');
+
+  // A fade's corner, and keys on it.
+  await drag(track.getByRole('slider', { name: 'Fade in' }), 0.5);
+  await expect(undoButton(page)).toHaveText('Undo: Fade rain in over 0.5 seconds');
+  await track.getByRole('slider', { name: 'Fade in' }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(undoButton(page)).toHaveText('Undo: Fade rain in over 0.6 seconds');
+  const { violations } = await new AxeBuilder({ page }).include('.sd-music').analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // Esc during a drag puts it back.
+  await drag(bar, 1, true);
+  await expect(bar).toHaveAccessibleName(/^rain, 2 to 3\.5 seconds/);
+  await expect(undoButton(page)).toHaveText('Undo: Fade rain in over 0.6 seconds');
 });

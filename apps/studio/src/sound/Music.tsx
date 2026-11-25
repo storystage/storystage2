@@ -5,18 +5,29 @@
  * this scene**, which chooses a cue without the timeline; and the chosen cue's controls.
  *
  * Until Rehearse reports how long a scene ran and when its sounds played (S3 and S2), the ruler is
- * the storyboard's planned length and Speech and Sound FX say so. Dragging on the timeline comes
- * next; every change here has its keys and its control already.
+ * the storyboard's planned length and Speech and Sound FX say so.
+ *
+ * A bar drags to move its cue; the chosen bar has a handle at each end of the part it plays and a
+ * corner for each fade, each a slider by keys. A drag is drawn as it goes and written as one step
+ * when it's let go; Esc during one puts it back.
  */
 import {
   mixOf,
   SOUND_LIMITS,
   type MusicCue,
+  type Production,
   type SceneId,
   type SoundClip,
 } from '@storystage/production';
 import { Button } from '@storystage/ui';
-import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
 import { Input, Label, NumberField } from 'react-aria-components';
 import { sceneNumber, sceneSeconds } from '../storyboard/edits.ts';
 import { words } from '../strings.ts';
@@ -28,13 +39,17 @@ import {
   addCue,
   changeCue,
   clipOf,
+  dragCue,
   heardMusic,
   LATEST_START,
   musicOf,
+  partOf,
   removeCue,
   rulerStep,
+  SHORTEST_CUE,
   tenth,
   type CueChange,
+  type CueGrip,
   type HeardCue,
   type SceneLength,
 } from './music.ts';
@@ -46,6 +61,27 @@ import './sound.css';
 const ZOOMS = [5, 10, 20, 40, 80, 160, 320];
 /** The track heads' width, in px, beside the lanes. */
 const HEAD = 128;
+/** How far a pointer goes before a press on a bar is a drag. */
+const DRAG_AFTER = 4;
+
+/** A drag under way: what's held, and the production and zoom when it began. */
+interface Drag {
+  readonly grip: CueGrip;
+  readonly index: number;
+  readonly x0: number;
+  readonly px: number;
+  readonly base: Production;
+  moved: boolean;
+  /** The last place it could be, which pointer-up writes before React has drawn it. */
+  last: Draft | null;
+}
+
+/** What a drag shows until it's let go. */
+interface Draft {
+  readonly production: Production;
+  readonly index: number;
+  readonly px: number;
+}
 
 export interface MusicProps {
   readonly studio: Studio;
@@ -65,7 +101,10 @@ export function Music(props: MusicProps) {
   const p = studio.production;
   const n = sceneNumber(p, scene);
   const length: SceneLength = { seconds: sceneSeconds(p, scene), from: 'plan' };
-  const heard = heardMusic(p, scene, length);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  // While a drag goes on, the timeline draws it; it's written when let go.
+  const shown = draft?.production ?? p;
+  const heard = heardMusic(shown, scene, length);
   const [playhead, setPlayhead] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
@@ -91,9 +130,11 @@ export function Music(props: MusicProps) {
   // The timeline shows the playhead too, wherever it's put for music to come.
   const span = Math.max(heard.span, playhead);
   const fit = width > HEAD ? (width - HEAD - 24) / span : 20;
-  const px = zoom ?? Math.min(ZOOMS.at(-1)!, Math.max(ZOOMS[0]!, fit));
-  const music = musicOf(p, scene);
-  const cue = chosen !== null ? (music[chosen] ?? null) : null;
+  // A drag keeps the zoom it began with, so Fit doesn't move the timeline under it.
+  const px = draft?.px ?? zoom ?? Math.min(ZOOMS.at(-1)!, Math.max(ZOOMS[0]!, fit));
+  const music = musicOf(shown, scene);
+  const at = draft ? draft.index : chosen;
+  const cue = at !== null ? (music[at] ?? null) : null;
 
   const nameOf = (c: MusicCue) => clipOf(p, c)?.label ?? words.t('sound.missing');
   const missing = (c: MusicCue) => {
@@ -177,17 +218,109 @@ export function Music(props: MusicProps) {
     if (apply(label, moved, 'cue:bar')) {
       onAnnounce(label);
       // Past another cue, its bar is another in start order: focus follows it.
-      if (moved.ok && moved.index !== h.index) refocus.current = moved.index;
+      if (moved.ok && moved.index !== h.index)
+        refocus.current = `.sd-cue[data-index="${moved.index}"]`;
     }
   };
-  // The bar to focus once it's drawn, after a move put its cue in another place.
-  const refocus = useRef<number | null>(null);
+  /** A handle's or a corner's keys: Left and Right 0.1 s, with Shift 1 s, Home and End as far as it goes. */
+  const onGripKey = (e: KeyboardEvent<HTMLElement>, grip: CueGrip, index: number) => {
+    if (readOnly) return;
+    const step = e.shiftKey ? 1 : 0.1;
+    const moves: Record<string, number> = {
+      ArrowLeft: -step,
+      ArrowRight: step,
+      Home: -LATEST_START,
+      End: LATEST_START,
+    };
+    if (!(e.key in moves)) return;
+    e.preventDefault();
+    const result = dragCue(latest.current, scene, index, grip, moves[e.key]!);
+    if (!result.ok) {
+      apply('', result);
+      return;
+    }
+    const after = musicOf(result.production, scene)[result.index]!;
+    const before = musicOf(latest.current, scene)[index];
+    if (before && sameCue(before, after)) return;
+    const label = gripLabel(grip, after, nameOf(after), n);
+    if (apply(label, result, `grip:${grip}`)) {
+      onAnnounce(label);
+      if (result.index !== index)
+        refocus.current = `[data-for="${result.index}"][data-grip="${grip}"]`;
+    }
+  };
+
+  // What to focus once it's drawn, after a change put its cue in another place.
+  const refocus = useRef<string | null>(null);
   const musicList = useRef<HTMLUListElement>(null);
   useEffect(() => {
     if (refocus.current === null) return;
-    musicList.current?.querySelector<HTMLElement>(`[data-index="${refocus.current}"]`)?.focus();
+    musicList.current?.querySelector<HTMLElement>(refocus.current)?.focus();
     refocus.current = null;
   });
+
+  // A drag, by the bar or a handle or a corner.
+  const drag = useRef<Drag | null>(null);
+  // A bar let go after a drag is clicked too; that click doesn't choose again.
+  const dragged = useRef(false);
+  const startDrag = (e: PointerEvent<HTMLElement>, grip: CueGrip, index: number) => {
+    dragged.current = false;
+    if (readOnly || e.button !== 0) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    drag.current = {
+      grip,
+      index,
+      x0: e.clientX,
+      px,
+      base: latest.current,
+      moved: false,
+      last: null,
+    };
+  };
+  const moveDrag = (e: PointerEvent<HTMLElement>) => {
+    const d = drag.current;
+    if (!d) return;
+    const dx = e.clientX - d.x0;
+    if (!d.moved && Math.abs(dx) < DRAG_AFTER) return;
+    d.moved = true;
+    const result = dragCue(d.base, scene, d.index, d.grip, dx / d.px);
+    // Onto another cue's start, the drag stays where it last could be.
+    if (!result.ok) return;
+    d.last = { production: result.production, index: result.index, px: d.px };
+    setDraft(d.last);
+  };
+  const endDrag = (e: PointerEvent<HTMLElement>) => {
+    const d = drag.current;
+    drag.current = null;
+    if (e.currentTarget.hasPointerCapture?.(e.pointerId))
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    if (!d?.moved) return;
+    if (d.grip === 'move') dragged.current = true;
+    setDraft(null);
+    const draft = d.last;
+    if (!draft) return;
+    const before = musicOf(d.base, scene)[d.index];
+    const after = musicOf(draft.production, scene)[draft.index]!;
+    if (before && sameCue(before, after)) return;
+    apply(gripLabel(d.grip, after, nameOf(after), n), { ok: true, ...draft });
+  };
+  const cancelDrag = () => {
+    drag.current = null;
+    setDraft(null);
+  };
+  // Esc during a drag puts it back.
+  const dragging = draft !== null;
+  useEffect(() => {
+    if (!dragging) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      cancelDrag();
+    };
+    window.addEventListener('keydown', onKey, true);
+    return () => window.removeEventListener('keydown', onKey, true);
+  }, [dragging]);
 
   const onRuler = (e: MouseEvent<HTMLDivElement>) => {
     const r = e.currentTarget.getBoundingClientRect();
@@ -205,6 +338,7 @@ export function Music(props: MusicProps) {
   const ticks: number[] = [];
   for (let t = 0; t <= span + 1e-9; t += step) ticks.push(t);
   const mix = mixOf(p);
+  const widthOf = (h: HeardCue) => Math.max(24, (h.end - h.start) * px);
   const percent = (v: number) => `${Math.round(v * 100)}%`;
   const carriedName = heard.carried ? nameOf(heard.carried.cue) : '';
   const carriedFrom = heard.carried ? sceneNumber(p, heard.carried.scene) : 0;
@@ -318,12 +452,13 @@ export function Music(props: MusicProps) {
                       <li
                         key={h.index}
                         className="sd-cue-slot"
-                        style={{ left: h.start * px, width: Math.max(24, (h.end - h.start) * px) }}
+                        data-dragging={(draft && draft.index === h.index) || undefined}
+                        style={{ left: h.start * px, width: widthOf(h) }}
                       >
                         <button
                           type="button"
                           className="sd-cue"
-                          aria-pressed={chosen === h.index}
+                          aria-pressed={at === h.index}
                           data-index={h.index}
                           data-past={h.past || undefined}
                           data-missing={missing(h.cue) || undefined}
@@ -332,8 +467,15 @@ export function Music(props: MusicProps) {
                             nameOf(h.cue),
                             missing(h.cue) && clipOf(p, h.cue) !== null,
                           )}
-                          onClick={() => setChosen(h.index)}
+                          onClick={() => {
+                            if (dragged.current) dragged.current = false;
+                            else setChosen(h.index);
+                          }}
                           onKeyDown={(e) => onBarKey(e, h)}
+                          onPointerDown={(e) => startDrag(e, 'move', h.index)}
+                          onPointerMove={moveDrag}
+                          onPointerUp={endDrag}
+                          onPointerCancel={cancelDrag}
                           onBlur={(e) => {
                             // Focus following a moved cue to its bar keeps the step open.
                             if (!(
@@ -351,6 +493,37 @@ export function Music(props: MusicProps) {
                               : ''}
                           </span>
                         </button>
+                        {at === h.index &&
+                          !readOnly &&
+                          gripsOf(h, widthOf(h), px, clipOf(shown, h.cue)).map((g) => (
+                            <div
+                              key={g.grip}
+                              className="sd-grip"
+                              role="slider"
+                              tabIndex={0}
+                              data-grip={g.grip}
+                              data-for={h.index}
+                              aria-label={words.t(`sound.cue.${g.grip}`)}
+                              aria-orientation="horizontal"
+                              aria-valuemin={g.min}
+                              aria-valuemax={g.max}
+                              aria-valuenow={tenth(g.value)}
+                              aria-valuetext={secondsWords(tenth(g.value))}
+                              style={{ left: g.left }}
+                              onKeyDown={(e) => onGripKey(e, g.grip, h.index)}
+                              onBlur={(e) => {
+                                if (!(
+                                  e.relatedTarget instanceof HTMLElement &&
+                                  e.relatedTarget.dataset['grip'] === g.grip
+                                ))
+                                  studio.seal();
+                              }}
+                              onPointerDown={(e) => startDrag(e, g.grip, h.index)}
+                              onPointerMove={moveDrag}
+                              onPointerUp={endDrag}
+                              onPointerCancel={cancelDrag}
+                            />
+                          ))}
                       </li>
                     ))}
                   </ul>
@@ -387,7 +560,7 @@ export function Music(props: MusicProps) {
               <button
                 type="button"
                 className="sd-music-item"
-                aria-pressed={chosen === i}
+                aria-pressed={at === i}
                 onClick={() => setChosen(i)}
               >
                 {words.t('sound.music.item', { name: nameOf(c), time: secondsWords(c.start) })}
@@ -396,17 +569,17 @@ export function Music(props: MusicProps) {
           ))}
         </ul>
       )}
-      {cue && chosen !== null && (
+      {cue && at !== null && (
         <CueControls
-          key={chosen}
+          key={at}
           cue={cue}
           name={nameOf(cue)}
           scene={n}
           clip={clipOf(p, cue)}
           readOnly={readOnly}
-          onChange={(patch, label, key) => change(chosen, patch, label, key)}
+          onChange={(patch, label, key) => change(at, patch, label, key)}
           onSeal={() => studio.seal()}
-          onRemove={() => remove(chosen)}
+          onRemove={() => remove(at)}
         />
       )}
       {adding && (
@@ -427,6 +600,63 @@ export function Music(props: MusicProps) {
       )}
     </section>
   );
+}
+
+/** Where the chosen bar's handles and corners are, and the times each can say. */
+function gripsOf(h: HeardCue, width: number, px: number, clip: SoundClip | null) {
+  const c = h.cue;
+  const part = partOf(c);
+  const x = (seconds: number) => Math.min(width, Math.max(0, seconds * px));
+  const all: {
+    grip: Exclude<CueGrip, 'move'>;
+    left: number;
+    value: number;
+    min: number;
+    max: number;
+  }[] = [
+    { grip: 'from', left: 0, value: c.from, min: 0, max: tenth(c.to - SHORTEST_CUE) },
+    {
+      grip: 'to',
+      left: x(part),
+      value: c.to,
+      min: tenth(c.from + SHORTEST_CUE),
+      max: clip ? tenth(clip.trim.end - clip.trim.start) : c.to,
+    },
+    { grip: 'fadeIn', left: x(c.fadeIn), value: c.fadeIn, min: 0, max: tenth(part) },
+  ];
+  // A fade out is heard only when the cue ends by itself.
+  if (h.until === 'own')
+    all.push({
+      grip: 'fadeOut',
+      left: x(part - c.fadeOut),
+      value: c.fadeOut,
+      min: 0,
+      max: tenth(part),
+    });
+  return all;
+}
+
+/** Whether two cues play the same part at the same time, as loud and faded the same way. */
+const sameCue = (a: MusicCue, b: MusicCue) =>
+  a.start === b.start &&
+  a.from === b.from &&
+  a.to === b.to &&
+  a.fadeIn === b.fadeIn &&
+  a.fadeOut === b.fadeOut;
+
+/** A drag's step, named for what it changed. */
+function gripLabel(grip: CueGrip, cue: MusicCue, name: string, scene: number): string {
+  switch (grip) {
+    case 'move':
+      return words.t('sound.step.moveCue', { name, time: secondsWords(cue.start) });
+    case 'from':
+    case 'to':
+      return words.t('sound.step.trimCue', { name, n: String(scene) });
+    case 'fadeIn':
+      return words.t('sound.step.fadeIn', { name, time: secondsWords(cue.fadeIn) });
+    case 'fadeOut':
+      return words.t('sound.step.fadeOut', { name, time: secondsWords(cue.fadeOut) });
+  }
 }
 
 /** A bar's name: the sound, when it's heard, and what it does. */
