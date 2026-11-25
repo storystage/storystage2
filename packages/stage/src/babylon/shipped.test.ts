@@ -20,13 +20,8 @@ import { ModelLibrary } from './models.ts';
  * fixed one still listed: take it out with the fix.
  */
 const CANT_BE_PLACED: Readonly<Record<string, string>> = {};
-/**
- * Listed joints the stage doesn't find, and how many. Leaf Boy's are the build's fault (S4): VRM
- * 0.x's thumb names were read as 1.0's, so its metacarpals are listed as proximals.
- */
-const JOINTS_NOT_FOUND: Readonly<Record<string, number>> = {
-  'osa/Biped/leaf-boy': 2,
-};
+/** Listed joints the stage doesn't find, and how many. */
+const JOINTS_NOT_FOUND: Readonly<Record<string, number>> = {};
 
 const folder = process.env.BACKSTAGE_DIR;
 

@@ -81,7 +81,7 @@ What the shipped Backstage holds, source by source. Signing off this audit signs
 
 <!-- shipped -->
 
-Generated from `backstage.json` at storystage/backstage-assets acd9415 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
+Generated from `backstage.json` at storystage/backstage-assets 4273996 (the commit `backstage.lock.json` pins) by `tools/backstage-sources/src/audit-cli.ts`, which also checks every item against section 2. Each item's own licence, credit line, page and date are in `backstage.json`.
 
 | Source | Licence | Models | For example |
 |---|---|---|---|
@@ -105,7 +105,7 @@ Generated from `backstage.json` at storystage/backstage-assets acd9415 (the comm
 | Storybook cast, KayKit models and characters made from their parts | CC0-1.0 | 12 | Anansi, made from Barbarian by Kay Lousberg, KayKit (CC0) |
 | Styloo, Animals Asset Pack | CC0-1.0 | 7 | Butterfly by styloo, Animals Asset Pack (CC0) |
 | The Sun, the Moon and the planets, from Solar System Scope's textures | CC-BY-4.0 | 10 | Earth from a texture by Solar System Scope, CC BY 4.0, changed for StoryStage |
-| VRM Consortium (Seed-san) | VRM-PL-1.0 | 1 | Seed-san by VirtualCast, Inc. (VRM Public License 1.0) |
+| VRM Consortium (Seed-san) | VRM-PL-1.0 | 1 | Seed-san by VirtualCast, Inc. (VRM Public License 1.0), changed for StoryStage |
 | Vuena, Free Low-Poly Animals | CC0-1.0 | 3 | Owl by Popyca (Vuena), Free Low-Poly Animals (CC0) |
 | **All** | | **553** | |
 
