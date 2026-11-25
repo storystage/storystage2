@@ -218,7 +218,7 @@ describe('rendering', () => {
   it('cites each section’s items and what they wait for', () => {
     const s = schedule(plan(real));
     expect(blocks(s)['docs/WORKPLAN.md']!.wp11).toBe(
-      '\n**Schedule items** (`tools/plan/schedule.yaml`): WP11a after WP1; WP11b after WP8, WP11a, WP12b; WP11c after WP10b, WP11b.\n',
+      '\n**Schedule items** (`tools/plan/schedule.yaml`): WP11a after WP1; WP11b after WP8, WP11a, WP12b; WP11c after WP10b, WP11b; WP11s after WP3c, WP8; WP11m after WP11s, WP11b, WP6.\n',
     );
   });
 });
