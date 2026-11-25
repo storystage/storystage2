@@ -23,9 +23,10 @@ export interface Studio {
   readonly session: ProductionSession<StudioSource>;
   /**
    * A Storyboard change to anything but the program, named `label`. With `key`, changes with the
-   * same key join one step until `seal`.
+   * same key join one step until `seal`, named for the first of them, or with `named: 'last'` for
+   * the latest (a slider's run of keys: "Set Music to 60%", where they stopped).
    */
-  commit(label: string, next: Production, key?: string): void;
+  commit(label: string, next: Production, key?: string, named?: 'first' | 'last'): void;
   /** A scene step (`addScene`, `deleteScene`, `moveScene`…): the program and the rest together. */
   step(step: SceneStep): { ok: true } | { ok: false; reason: string };
   /** Opens another film: a new session and history, read-only with the reason when it is. */
@@ -94,13 +95,16 @@ export function useStudio(start: Production): Studio {
     return {
       production,
       session,
-      commit(label, next, key) {
+      commit(label, next, key, named = 'first') {
         if (next.program !== session.program())
           throw new Error('A change to the program goes through step() or the editors.');
         if (key === undefined || key !== open.current) close();
         if (key !== undefined && open.current === null) {
           session.begin(label, 'storyboard');
           open.current = key;
+          setOpenLabel(label);
+        } else if (key !== undefined && named === 'last') {
+          session.relabel(label);
           setOpenLabel(label);
         }
         session.change(label, 'storyboard', () => restOf(next));

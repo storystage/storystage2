@@ -1,8 +1,8 @@
 /**
  * The Sound view (`07-ux.md` section 7.7; decision 0076, workplan 7.17), behind the Code | Sound
- * switch. This first part is **Sounds in this film**: the learner's imported sounds, each with
- * the length it plays, Play and Remove…, and Import a sound…, which opens the trim dialog. The
- * music timeline and the tracks' volumes join it next.
+ * switch: the tracks' **Volumes**, for the whole film, and **Sounds in this film**, the learner's
+ * imported sounds, each with the length it plays, Play and Remove…, and Import a sound…, which
+ * opens the trim dialog. The music timeline joins them next.
  */
 import type { NodeId } from '@storystage/ast';
 import {
@@ -26,6 +26,7 @@ import { freeLabel, type FilmSounds } from './filmSounds.ts';
 import { devicePlayer, typeOfFile, type SoundPlayer } from './player.ts';
 import { DEVICE_READING, readSound, type SoundReading } from './readSound.ts';
 import { secondsWords, TrimDialog } from './TrimDialog.tsx';
+import { Volumes } from './Volumes.tsx';
 import './sound.css';
 
 /** Bars in the trim dialog's waveform. */
@@ -174,6 +175,7 @@ export function SoundView({
 
   return (
     <section className="sd-view" aria-label={words.t('sound.region')}>
+      <Volumes studio={studio} readOnly={readOnly} />
       <h3 className="sd-heading" id="sd-film-title">
         {words.t('sound.film.title')}
       </h3>

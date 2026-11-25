@@ -218,3 +218,42 @@ test('a block plays a sound chosen by its name, which the Sound view then keeps'
     sound.getByText('rain is played in scene 1’s code. Change that block first.'),
   ).toBeVisible();
 });
+
+test('the tracks’ volumes change by a drag and by keys, each one undo step', async ({ page }) => {
+  // 07-ux 7.7: Speech, Music and Sound FX for the whole film, 100%, 70% and 90% until changed.
+  const sound = await openSound(page);
+  const volumes = sound.getByRole('region', { name: 'Volumes' });
+  const music = volumes.getByRole('slider', { name: 'Music' });
+  await expect(music).toHaveAttribute('aria-valuetext', '70%');
+  const { violations } = await new AxeBuilder({ page }).include('.sd-volumes').analyze();
+  expect(violations.map((v) => `${v.id}: ${v.help}`)).toEqual([]);
+
+  // A drag to about 40% along is one step, written as it's let go.
+  await volumes.scrollIntoViewIfNeeded();
+  const track = (await volumes.locator('[data-track="music"] .sd-volume-track').boundingBox())!;
+  const thumb = (await volumes.locator('[data-track="music"] .sd-volume-thumb').boundingBox())!;
+  await page.mouse.move(thumb.x + thumb.width / 2, thumb.y + thumb.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(track.x + track.width * 0.4, track.y + track.height / 2, { steps: 10 });
+  await page.mouse.up();
+  const dragged = Number(await music.inputValue());
+  expect(dragged).toBeGreaterThan(30);
+  expect(dragged).toBeLessThan(50);
+  await expect(undoButton(page)).toHaveText(`Undo: Set Music to ${dragged}%`);
+  await expect(volumes.getByRole('textbox', { name: 'Music as a percentage' })).toHaveValue(
+    `${dragged}%`,
+  );
+
+  // Three presses on Speech are one more step, named where they stopped.
+  await volumes.getByRole('slider', { name: 'Speech' }).focus();
+  for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowLeft');
+  await expect(undoButton(page)).toHaveText('Undo: Set Speech to 97%');
+  await undoButton(page).click();
+  await expect(volumes.getByRole('slider', { name: 'Speech' })).toHaveAttribute(
+    'aria-valuetext',
+    '100%',
+  );
+  await expect(undoButton(page)).toHaveText(`Undo: Set Music to ${dragged}%`);
+  await undoButton(page).click();
+  await expect(music).toHaveAttribute('aria-valuetext', '70%');
+});
