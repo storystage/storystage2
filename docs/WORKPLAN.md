@@ -174,9 +174,9 @@ The same dependencies, scheduled with a cap on parallel Claude Code sessions. Ow
 |---|---|---|
 | Unlimited (13 at the peak, in weeks 1.5–3) | week 18.5 (26 Feb 2027) | week 24.5 (9 Apr 2027) |
 | **8 (recommended)** | **week 18.5** | **week 24.5** |
-| 6 | week 23.5 | week 29.5 |
-| 5 | week 27.5 | week 33.5 |
-| 4 | week 32.5 | week 38.5 |
+| 6 | week 24.5 | week 30.5 |
+| 5 | week 28 | week 34 |
+| 4 | week 35.5 | week 41.5 |
 
 <!-- /schedule:lanes -->
 
@@ -190,14 +190,14 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 8 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 27 of 61 items finished and 18 more started:
+**As of 25 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 37 of 69 items finished and 18 more started:
 
-- **Release candidate:** week 8 (14 Dec 2026). The plan above says week 18.5 (26 Feb 2027).
-- **Pilot ends:** week 16.5 (12 Feb 2027). The plan says week 24.5 (9 Apr 2027).
-- **Later strands done:** week 19 (1 Mar 2027). The plan says week 29.5 (13 May 2027).
-- **What now sets the pilot's end:** WP13b → WP17b → WP19.
+- **Release candidate:** week 8.5 (18 Dec 2026). The plan above says week 18.5 (26 Feb 2027).
+- **Pilot ends:** week 14.5 (29 Jan 2027). The plan says week 24.5 (9 Apr 2027).
+- **Later strands done:** week 19.5 (4 Mar 2027). The plan says week 29.5 (13 May 2027).
+- **What now sets the pilot's end:** WP11s → WP11m → RC → WP19.
 
-Finished items keep their actual dates; started ones run for their estimate from their start, but end no sooner than half a week after the as-of date; the rest start when what they wait for has finished. The estimates themselves are still the first plan's: they're recalibrated at M1 (WP1.12), and dates the sessions haven't recorded aren't counted.
+Finished items keep their actual dates; started ones run for their estimate from their start, but end no sooner than half a week after the as-of date; the rest start when what they wait for has finished. The estimates themselves are still the first plan's, apart from items added since (their basis in `tools/plan/schedule.yaml` says whose): they're recalibrated at M1 (WP1.12), and dates the sessions haven't recorded aren't counted.
 
 <!-- /schedule:forecast -->
 
@@ -238,22 +238,22 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP16a | Curriculum mapping, four nations (16.1–16.5) | Curriculum and legal | — | 5 | wk 0 (19 Oct 2026) | 9.5 | 2.1 (25 Oct–8 Nov) |
 | WP17a | CMU/EA letters, rights checks, contract (17.1, 17.5–17.9) | Curriculum and legal | — | 3 | wk 0 (19 Oct 2026) | 11.5 | 2.1 (25 Oct–8 Nov) |
 | WP0 | Repo, CI, specs, interface contracts (0.1–0.8) | Foundations | — | 1.5 | wk 0 (19 Oct 2026) | **0 (critical)** | 0.3 (20–21 Oct) |
-| WP12a | Interface mock-ups (12.1) | Interface | — | 2 | wk 0 (19 Oct 2026) | 3 | started 23 Oct; ends about 12 Nov |
-| WP1.1 | Choose reference devices (1.1) | Spikes | — | 1 | wk 0 (19 Oct 2026) | 0.5 | started 21 Oct; ends about 12 Nov |
-| WP1g | Classroom ground truth: TR1 lessons, school IT managers (1.11) | Spikes | — | 2 | wk 0 (19 Oct 2026) | 9.5 | started 21 Oct; ends about 12 Nov |
+| WP12a | Interface mock-ups (12.1) | Interface | — | 2 | wk 0 (19 Oct 2026) | 3 | started 23 Oct; ends about 30 Nov |
+| WP1.1 | Choose reference devices (1.1) | Spikes | — | 1 | wk 0 (19 Oct 2026) | 0.5 | started 21 Oct; ends about 30 Nov |
+| WP1g | Classroom ground truth: TR1 lessons, school IT managers (1.11) | Spikes | — | 2 | wk 0 (19 Oct 2026) | 9.5 | started 21 Oct; ends about 30 Nov |
 | WP15a | Tauri targets, policy, release channels (15.1, 15.3, 15.7) | Apps | WP0 | 2 | wk 1.5 (29 Oct 2026) | 2.5 | 1.1 (31 Oct–7 Nov) |
 | WP10s | Sketch library tool (10.5) | Backstage | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 7 | 2 (25 Oct–7 Nov) |
-| WP3b | Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7) | Backstage | WP0, WP3a | 4 | wk 1.5 (29 Oct 2026) | 5 | started 25 Oct; ends about 23 Nov |
+| WP3b | Model pipelines: Alice converter, MakeHuman, Kenney, museum (3.2, 3.5, 3.7) | Backstage | WP0, WP3a | 4 | wk 1.5 (29 Oct 2026) | 5 | started 25 Oct; ends about 30 Nov |
 | WP0s | Threat model and security spec (0.9) | Foundations | WP0 | 1.5 | wk 1.5 (29 Oct 2026) | 3 | 0.1 (1 Nov) |
 | WP18a | Test harness, fake stage, self-test skeleton (18.1, 18.4) | Foundations | WP0 | 2 | wk 1.5 (29 Oct 2026) | 21 | 0.1 (21 Oct) |
 | WP2 | AST and edit operations | Language | WP0 | 3 | wk 1.5 (29 Oct 2026) | 2 | 0.3 (31 Oct–1 Nov) |
 | WP4a | Story API spec, types, crosswalk fields (4.1, 4.2, 4.7) | Language | WP0, WP3a | 2 | wk 1.5 (29 Oct 2026) | 3 | 1 (1–7 Nov) |
 | WP13a | Prompter spec, fake Claude, system prompt, eval set (13.1, 13.7, 13.8) | Prompter and speech | WP0 | 3 | wk 1.5 (29 Oct 2026) | 4.5 | 1.3 (31 Oct–8 Nov) |
-| WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct; ends about 12 Nov |
+| WP1 | Spikes 1.2–1.9, go/no-go per spike (1.10) | Spikes | WP0, WP1.1 | 3 | wk 1.5 (29 Oct 2026) | **0 (critical)** | started 21 Oct; ends about 30 Nov |
 | WP19a | Website and teacher guide drafts (19.1, 19.2) | Curriculum and legal | WP12a | 3 | wk 2 (2 Nov 2026) | 13.5 | 2.1 (25 Oct–8 Nov) |
-| WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 | started 25 Oct; ends about 16 Nov |
+| WP12b | Design system and components (12.2–12.5) | Interface | WP0, WP12a | 3 | wk 2 (2 Nov 2026) | 3 | 2.1 (25 Oct–8 Nov) |
 | WP9a | .a3p reader (9.1) | Productions | WP0, WP0s | 1 | wk 3 (9 Nov 2026) | 10.5 | 0.1 (8 Nov) |
-| WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 | forecast: 9 Nov to 30 Nov |
+| WP15b | Signing, stores, browser hosting (15.4–15.6) | Apps | WP15a | 3 | wk 3.5 (12 Nov 2026) | 10 | started 15 Nov; ends about 7 Dec |
 | WP4d | Publish Story API open specification (4.8) | Language | WP4a | 1 | wk 3.5 (12 Nov 2026) | 20 | 0.1 (8 Nov) |
 | WP15k | Key store, transport and policy enforcement point (15.2) | Apps | WP15a, WP1, WP0s | 3 | wk 4.5 (20 Nov 2026) | 1.5 | 1.1 (1–8 Nov) |
 | WP6 | Runtime interpreter | Language | WP2, WP4a, WP1 | 4 | wk 4.5 (20 Nov 2026) | 2 | 1.1 (1–8 Nov) |
@@ -261,40 +261,48 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP14a | Speech engines: whisper WASM, voices (14.1, 14.2) | Prompter and speech | WP1 | 3 | wk 4.5 (20 Nov 2026) | 6 | started 8 Nov; ends about 30 Nov |
 | WP11a | MP4 encoder module (11.3, 11.5) | Screening room | WP1 | 2 | wk 4.5 (20 Nov 2026) | 7 | 0.3 (21–22 Oct) |
 | WP5a | Stage core: scene, models, camera, picking, offscreen (5.1–5.5) | Stage | WP0, WP1 | 3 | wk 4.5 (20 Nov 2026) | **0 (critical)** | 1 (1–7 Nov) |
-| WP3d | Storybook cast commissioned and delivered (3.6) | Backstage | WP16a, WP17a | 10 | wk 5 (23 Nov 2026) | 9.5 | forecast: 9 Nov to 18 Jan |
+| WP3d | Storybook cast commissioned and delivered (3.6) | Backstage | WP16a, WP17a | 10 | wk 5 (23 Nov 2026) | 9.5 | forecast: 26 Nov to 4 Feb |
 | WP16b | Curriculum templates and use cases (16.6) | Curriculum and legal | WP16a | 3 | wk 5 (23 Nov 2026) | 10.5 | 2.1 (25 Oct–8 Nov) |
 | WP7c | Alice-style tile editor, full (option C) | Tile editor | WP2, WP4a, WP12b | 7 | wk 5 (23 Nov 2026) | 3 | started 8 Nov; ends about 28 Dec |
 | WP3c | Manifest, budgets, lazy loading (3.4, 3.9) | Backstage | WP1, WP3b | 2 | wk 5.5 (26 Nov 2026) | 5 | 0.3 (7–8 Nov) |
-| WP24a | Teacher journey, Prompter access model, relay spike (24.1–24.3) | Apps | WP1g, WP15a, WP8f | 2 | wk 6 (30 Nov 2026) | 5.5 | started 8 Nov; ends about 23 Nov |
-| WP10a | Storyboard: script, arcs, cards, frame canvas, PDF | Interface | WP8f, WP12b, WP10s | 4 | wk 6 (30 Nov 2026) | 4.5 | started 7 Nov; ends about 4 Dec |
+| WP24a | Teacher journey, Prompter access model, relay spike (24.1–24.3) | Apps | WP1g, WP15a, WP8f | 2 | wk 6 (30 Nov 2026) | 5.5 | started 8 Nov; ends about 30 Nov |
+| WP10a | Storyboard: script, arcs, cards, frame canvas, PDF | Interface | WP8f, WP12b, WP10s | 4 | wk 6 (30 Nov 2026) | 4.5 | 1.3 (7–15 Nov) |
+| WP15c | The Android app as a Play app bundle, with the Backstage in an install-time pack (15.8) | Apps | WP15a, WP3c | 1.5 | wk 7.5 (10 Dec 2026) | 9.5 | forecast: 26 Nov to 7 Dec |
 | WP4b | Story API procedures, new blocks, shot types (4.3, 4.4, 4.10) | Language | WP4a, WP5a | 3 | wk 7.5 (10 Dec 2026) | **0 (critical)** | 1.3 (7–15 Nov) |
 | WP9b | Map Alice worlds onto the AST (9.2, 9.3) | Productions | WP9a, WP2, WP4a, WP3c | 2 | wk 7.5 (10 Dec 2026) | 7 | 0.3 (8–9 Nov) |
-| WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | started 8 Nov; ends about 10 Dec |
-| WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 23 Nov |
+| WP13b | Prompter core: transport, context, AST tools, modes, plan before change, wizard | Prompter and speech | WP13a, WP2, WP4a, WP15k | 4.5 | wk 7.5 (10 Dec 2026) | 1.5 | 2 (8–21 Nov) |
+| WP5b | Stage extras: WebGPU, quality, scene picture, character machinery (5.6–5.8) | Stage | WP5a | 2 | wk 7.5 (10 Dec 2026) | 3 | started 8 Nov; ends about 30 Nov |
 | WP8 | Scenes, running order, save and open (8.2–8.5) | Productions | WP8f, WP5a, WP6, WP0s | 3 | wk 8.5 (18 Dec 2026) | 2 | 0.1 (8 Nov) |
 | WP23a | Projection spike: surface bake renderer, Pixera build script (23.1, 23.2) | Projection | WP5a, WP6 | 2 | wk 8.5 (18 Dec 2026) | 13 | 2 (8–21 Nov) |
-| WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | started 8 Nov; ends about 7 Dec |
+| WP7 | Production stage and Code editor, Blockly option B | Interface | WP5a, WP6, WP12b, WP4b | 4 | wk 10.5 (1 Jan 2027) | **0 (critical)** | 1.4 (8–17 Nov) |
 | WP14b | Speak line and narration (14.3) | Prompter and speech | WP14a, WP4b | 3 | wk 10.5 (1 Jan 2027) | 3 | started 8 Nov; ends about 30 Nov |
 | WP4c | Character actions, animation, faces (4.5, 4.6) | Stage | WP4b, WP5b, WP3c | 4 | wk 10.5 (1 Jan 2027) | 2 | 1 (8–14 Nov) |
+| WP11s | Sound: the Backstage shelf and importing sound files (11.7) | Backstage | WP3c, WP8 | 2 | wk 11.5 (7 Jan 2027) | 3 | started 21 Nov; ends about 4 Dec |
 | WP3i | Import into Backstage, in-app sketches, licence capture (3.11, 3.12) | Backstage | WP3c, WP10s, WP8 | 3 | wk 11.5 (7 Jan 2027) | 2.5 | started 8 Nov; ends about 30 Nov |
-| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | started 8 Nov; ends about 30 Nov |
+| WP11b | Screening room: rough cut, compare, titles, credits, captions | Screening room | WP8, WP11a, WP12b | 3 | wk 11.5 (7 Jan 2027) | 2 | 0.4 (8–10 Nov) |
 | WP24b | Class set-up: pupil folders, class caps, log export (24.4–24.7) | Apps | WP24a, WP8, WP15k, WP13b | 3 | wk 12 (11 Jan 2027) | 1.5 | started 8 Nov; ends about 30 Nov |
-| WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | forecast: 10 Dec to 1 Jan |
-| WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 7 Dec to 21 Dec |
-| WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 4 Dec to 14 Dec |
-| WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | forecast: 10 Dec to 24 Dec |
-| WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 | forecast: 28 Dec to 7 Jan |
-| WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | started 12 Nov; ends about 26 Nov |
+| WP17b | DPIA and privacy notice (17.3, 17.4) | Curriculum and legal | WP13b, WP14a | 3 | wk 12 (11 Jan 2027) | 3.5 | started 8 Nov; ends about 30 Nov |
+| WP10b | Frames to code links, storyboard rule | Interface | WP10a, WP7, WP8 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | 0.9 (14–19 Nov) |
+| WP10c | Backstage from the Storyboard, set the stage from the storyboard (10.9, 10.10) | Interface | WP10a, WP3i, WP8, WP5b | 1.5 | wk 14.5 (29 Jan 2027) | 2.5 | 0.1 (15 Nov) |
+| WP7p | Parameters and a character's own moves (7.14) | Interface | WP7, WP7c, WP6 | 1 | wk 14.5 (29 Jan 2027) | 3 | 0.3 (21–22 Nov) |
+| WP7s | Sound in the studio: the Sound view, the trim dialog, choosing a sound (7.17) | Interface | WP11s, WP7, WP7c | 2 | wk 14.5 (29 Jan 2027) | 2 | started 21 Nov; ends about 4 Dec |
+| WP7v | Copy and paste of blocks (7.15) | Interface | WP7, WP7c | 0.5 | wk 14.5 (29 Jan 2027) | 3.5 | 0.3 (21–22 Nov) |
+| WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | started 17 Nov; ends about 30 Nov |
+| WP11m | Sound: three tracks, playing, and the export's mix (11.7) | Screening room | WP11s, WP11b, WP6 | 2 | wk 14.5 (29 Jan 2027) | 2 | forecast: 4 Dec to 18 Dec |
+| WP5d | Drag posing: hand and foot handles, by inverse kinematics (5.9) | Stage | WP4c | 1 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 26 Nov to 4 Dec |
+| WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 | 0.1 (17 Nov) |
+| WP7d | The Pose panel's drag (7.16) | Interface | WP5d, WP7 | 0.5 | wk 15.5 (4 Feb 2027) | 2.5 | forecast: 4 Dec to 7 Dec |
+| WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | started 12 Nov; ends about 30 Nov |
 | WP11c | Automatic check against the storyboard (11.6) | Screening room | WP10b, WP11b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | 1.9 (10–22 Nov) |
-| WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 14 Dec to 25 Jan |
-| WP22a | AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4) | AR | WP6, WP8, WP11a, RC | 4 | wk 18.5 (26 Feb 2027) | 2 | forecast: 14 Dec to 11 Jan |
-| WP20 | Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial | Beyond | WP4a, WP8, RC | 6 | wk 18.5 (26 Feb 2027) | 5 | forecast: 14 Dec to 25 Jan |
-| WP19 | Pilot in schools (19.3, 19.4) | Curriculum and legal | RC, WP16b, WP17b, WP19a | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 1 Jan to 12 Feb |
-| WP23b | Projection stage: surfaces, virtual projectors, preview (23.3, 23.4) | Projection | WP23a, WP8, WP12b, RC | 3 | wk 18.5 (26 Feb 2027) | 5 | forecast: 14 Dec to 4 Jan |
-| WP23c | Classroom projection: full-screen warped output (23.5) | Projection | WP23b, WP15a | 1.5 | wk 21.5 (18 Mar 2027) | 6.5 | forecast: 4 Jan to 15 Jan |
-| WP23d | Export for projection and Export to Pixera, flash check, guide (23.6–23.9) | Projection | WP23b, WP11a, WP11b | 3 | wk 21.5 (18 Mar 2027) | 5 | forecast: 4 Jan to 25 Jan |
-| WP22b | AR player, AR staging, Export for AR (22.5–22.7) | AR | WP22a, WP21, WP11b, WP10a | 3 | wk 24.5 (9 Apr 2027) | **0 (critical)** | forecast: 25 Jan to 15 Feb |
-| WP22c | Mixed-reality film and safeguards (22.8, 22.9) | AR | WP22b | 2 | wk 27.5 (29 Apr 2027) | **0 (critical)** | forecast: 15 Feb to 1 Mar |
+| WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 18 Dec to 29 Jan |
+| WP22a | AR baker and AR pack export: GLB, USDZ, page, QR (22.1–22.4) | AR | WP6, WP8, WP11a, RC | 4 | wk 18.5 (26 Feb 2027) | 2 | forecast: 18 Dec to 15 Jan |
+| WP20 | Pathway: Unreal, Unity, Godot export; guide; MetaHuman trial | Beyond | WP4a, WP8, RC | 6 | wk 18.5 (26 Feb 2027) | 5 | forecast: 18 Dec to 29 Jan |
+| WP19 | Pilot in schools (19.3, 19.4) | Curriculum and legal | RC, WP16b, WP17b, WP19a | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 18 Dec to 29 Jan |
+| WP23b | Projection stage: surfaces, virtual projectors, preview (23.3, 23.4) | Projection | WP23a, WP8, WP12b, RC | 3 | wk 18.5 (26 Feb 2027) | 5 | forecast: 18 Dec to 7 Jan |
+| WP23c | Classroom projection: full-screen warped output (23.5) | Projection | WP23b, WP15a | 1.5 | wk 21.5 (18 Mar 2027) | 6.5 | forecast: 7 Jan to 18 Jan |
+| WP23d | Export for projection and Export to Pixera, flash check, guide (23.6–23.9) | Projection | WP23b, WP11a, WP11b | 3 | wk 21.5 (18 Mar 2027) | 5 | forecast: 7 Jan to 29 Jan |
+| WP22b | AR player, AR staging, Export for AR (22.5–22.7) | AR | WP22a, WP21, WP11b, WP10a | 3 | wk 24.5 (9 Apr 2027) | **0 (critical)** | forecast: 29 Jan to 18 Feb |
+| WP22c | Mixed-reality film and safeguards (22.8, 22.9) | AR | WP22b | 2 | wk 27.5 (29 Apr 2027) | **0 (critical)** | forecast: 18 Feb to 4 Mar |
 
 <!-- /schedule:dependency-table -->
 
@@ -315,6 +323,7 @@ gantt
     WP3b Model pipelines - Alice converter, MakeHuman, Kenney, museum :WP3b, 2026-10-29, 28d
     WP3d Storybook cast commissioned and delivered :WP3d, 2026-11-23, 70d
     WP3c Manifest, budgets, lazy loading :WP3c, 2026-11-26, 14d
+    WP11s Sound - the Backstage shelf and importing sound files :WP11s, 2027-01-07, 14d
     WP3i Import into Backstage, in-app sketches, licence capture :WP3i, 2027-01-07, 21d
     section Curriculum and legal
     WP16a Curriculum mapping, four nations :WP16a, 2026-10-19, 35d
@@ -336,6 +345,10 @@ gantt
     WP7 Production stage and Code editor, Blockly option B :crit, WP7, 2027-01-01, 28d
     WP10b Frames to code links, storyboard rule :crit, WP10b, 2027-01-29, 14d
     WP10c Backstage from the Storyboard, set the stage from the storyboard :WP10c, 2027-01-29, 10d
+    WP7p Parameters and a character's own moves :WP7p, 2027-01-29, 7d
+    WP7s Sound in the studio - the Sound view, the trim dialog, choosing a sound :WP7s, 2027-01-29, 14d
+    WP7v Copy and paste of blocks :WP7v, 2027-01-29, 4d
+    WP7d The Pose panel's drag :WP7d, 2027-02-04, 4d
     section Spikes
     WP1.1 Choose reference devices :WP1_1, 2026-10-19, 7d
     WP1g Classroom ground truth - TR1 lessons, school IT managers :WP1g, 2026-10-19, 14d
@@ -345,6 +358,7 @@ gantt
     WP15b Signing, stores, browser hosting :WP15b, 2026-11-12, 21d
     WP15k Key store, transport and policy enforcement point :WP15k, 2026-11-20, 21d
     WP24a Teacher journey, Prompter access model, relay spike :WP24a, 2026-11-30, 14d
+    WP15c The Android app as a Play app bundle, with the Backstage in an install-time pack :WP15c, 2026-12-10, 10d
     WP24b Class set-up - pupil folders, class caps, log export :WP24b, 2027-01-11, 21d
     section Language
     WP2 AST and edit operations :WP2, 2026-10-29, 21d
@@ -366,11 +380,13 @@ gantt
     section Screening room
     WP11a MP4 encoder module :WP11a, 2026-11-20, 14d
     WP11b Screening room - rough cut, compare, titles, credits, captions :WP11b, 2027-01-07, 21d
+    WP11m Sound - three tracks, playing, and the export's mix :WP11m, 2027-01-29, 14d
     WP11c Automatic check against the storyboard :crit, WP11c, 2027-02-12, 14d
     section Stage
     WP5a Stage core - scene, models, camera, picking, offscreen :crit, WP5a, 2026-11-20, 21d
     WP5b Stage extras - WebGPU, quality, scene picture, character machinery :WP5b, 2026-12-10, 14d
     WP4c Character actions, animation, faces :WP4c, 2027-01-01, 28d
+    WP5d Drag posing - hand and foot handles, by inverse kinematics :WP5d, 2027-01-29, 7d
     section Tile editor
     WP7c Alice-style tile editor, full :WP7c, 2026-11-23, 49d
     WP7t Editor switch, parity tests, study build :WP7t, 2027-01-29, 10d
@@ -588,7 +604,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Objective:** the 3D stage: scene, models, camera, picking and rendering, for both live play and offscreen export.
 **Depends on:** WP0.8 (stage interface), WP1.2 (go). Kenney's CC0 models are enough to build against; the rest of WP3 isn't needed to start. Planned in two parts: **5a** core (5.1–5.5), which unblocks WP4.3, WP7, WP8 and WP21; **5b** extras (5.6–5.8), which unblock WP4.5–4.6.
 <!-- schedule:wp5 -->
-**Schedule items** (`tools/plan/schedule.yaml`): WP5a after WP0, WP1; WP5b after WP5a.
+**Schedule items** (`tools/plan/schedule.yaml`): WP5a after WP0, WP1; WP5b after WP5a; WP5d after WP4c.
 <!-- /schedule:wp5 -->
 - [x] 5.1 Stage interface (`packages/stage`), so the runtime and story API never touch Babylon.js directly. (C)
 - [x] 5.2 Scene with backdrops (ground types, sky, lighting, fog) matching Alice's starting templates; these are Backstage's **Backdrops** section. (C)
@@ -625,7 +641,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Objective:** the second tab: set the scene and code it.
 **Depends on:** WP2, WP5, WP6; WP12.1 for the visual design.
 <!-- schedule:wp7 -->
-**Schedule items** (`tools/plan/schedule.yaml`): WP7c after WP2, WP4a, WP12b; WP7t after WP7, WP7c; WP7 after WP5a, WP6, WP12b, WP4b.
+**Schedule items** (`tools/plan/schedule.yaml`): WP7c after WP2, WP4a, WP12b; WP7t after WP7, WP7c; WP7 after WP5a, WP6, WP12b, WP4b; WP7p after WP7, WP7c, WP6; WP7v after WP7, WP7c; WP7d after WP5d, WP7; WP7s after WP11s, WP7, WP7c.
 <!-- /schedule:wp7 -->
 - [x] 7.1 Scene view: the **Backstage** panel with Cast, Props, Set and Backdrops tabs (searchable across all four by class, theme and name; drag onto the stage), add, move, rotate and resize handles, x/y/z entry, joint posing, camera and markers. (C)
 - [x] 7.2 Code editor, **option B**: Blockly with typed StoryStage blocks generated from the Story API metadata. One method per tab, procedures and functions, events, the read-only text view beside it, and block highlighting during Rehearse. **New adds a procedure, a function or a listener to the scene (16 Nov); parameters, and adding to a class of the learner's own, are still to come.** (C)
@@ -727,7 +743,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Objective:** the third tab: watch the rough cut and export the finished film.
 **Depends on:** WP1.8 (go) for the encoder (11.3, 11.5), tested with synthetic frames first; WP5.5, WP6.5, WP8 and WP12 for the Screening room (11.1, 11.2, 11.4); WP10.8 (frame-to-block links) for the automatic check (11.6).
 <!-- schedule:wp11 -->
-**Schedule items** (`tools/plan/schedule.yaml`): WP11a after WP1; WP11b after WP8, WP11a, WP12b; WP11c after WP10b, WP11b.
+**Schedule items** (`tools/plan/schedule.yaml`): WP11a after WP1; WP11b after WP8, WP11a, WP12b; WP11c after WP10b, WP11b; WP11s after WP3c, WP8; WP11m after WP11s, WP11b, WP6.
 <!-- /schedule:wp11 -->
 - [x] 11.1 Rough-cut playback of the whole running order with transitions; jump between scenes; frame strip alongside showing the current frame. (C)
 - [x] 11.2 **Compare:** a frame's sketch layout beside a still from the rough cut; notes per scene for retakes. (C)
@@ -832,7 +848,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 **Objective:** StoryStage 2 installed on every target, with the key safe and the school lock working.
 **Depends on:** WP0.3 for the targets and policy (15.1, 15.3, 15.7); WP1.6 and WP1.7 (go) for the key store and transport (15.2). Signing and store accounts (15.4, 15.5) start early, because purchases and reviews take time; submissions wait for the release candidate.
 <!-- schedule:wp15 -->
-**Schedule items** (`tools/plan/schedule.yaml`): WP15a after WP0; WP15k after WP15a, WP1, WP0s; WP15b after WP15a.
+**Schedule items** (`tools/plan/schedule.yaml`): WP15a after WP0; WP15k after WP15a, WP1, WP0s; WP15b after WP15a; WP15c after WP15a, WP3c.
 <!-- /schedule:wp15 -->
 - [ ] 15.1 Tauri 2 targets: Windows, macOS, iOS and Android, from `apps/desktop`. (C)
 - [ ] 15.2 **Key store, Claude transport and the policy enforcement point, in Rust:**
