@@ -597,6 +597,42 @@
   color: var(--ss-text-2);
 }
 
+/*
+ * Move the view (07-ux 7.2): four groups of 44 px icon buttons, each under its own word, in a row
+ * that wraps on a narrow window. Under the view, so it never covers a handle.
+ */
+.pr-view-pad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 20px;
+}
+.pr-view-pad-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pr-view-pad-label {
+  font-size: 0.8125rem;
+  color: var(--ss-text-2);
+}
+.pr-view-pad-buttons {
+  display: flex;
+  gap: 4px;
+}
+.pr-view-pad .ss-button {
+  padding: 0 10px;
+}
+/* A button's words, as it's hovered or focused. */
+.pr-tooltip {
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: var(--ss-surface);
+  background: var(--ss-text);
+  pointer-events: none;
+}
+
 /* Waiting for the scene view: as tall as its buttons. */
 .pr-scene-controls-waiting {
   min-height: 44px;

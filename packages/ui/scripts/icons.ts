@@ -17,8 +17,10 @@ export const ICON_NAMES = [
   'add_comment', // the Prompter's New conversation
   'add_photo_alternate',
   'arrow_back',
+  'arrow_downward',
   'arrow_drop_down',
   'arrow_forward', // the set-up wizard's Next (screens 10a to 10c)
+  'arrow_upward',
   'block', // what the Prompter is never sent (10b)
   'category',
   'check', // the set-up wizard's Done (10d)
@@ -40,6 +42,8 @@ export const ICON_NAMES = [
   'edit_off', // the Prompter never writes the story (10b)
   'edit_note',
   'error', // a plan step that can't be built
+  'expand_circle_down',
+  'expand_circle_up',
   'extension',
   'flag',
   'flip',
@@ -81,6 +85,8 @@ export const ICON_NAMES = [
   'replay',
   'right_panel_close', // hide the Prompter
   'right_panel_open', // show the Prompter
+  'rotate_left', // the scene view's Circle round (07-ux 7.2)
+  'rotate_right',
   'restore_from_trash',
   'school',
   'send', // ask the Prompter
