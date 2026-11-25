@@ -84,6 +84,10 @@ jobs:
           sdk="$ANDROID_HOME/cmdline-tools/latest/bin"
           yes | "$sdk/sdkmanager" --licenses > /dev/null
           "$sdk/sdkmanager" "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
+          # The emulator is whatever is latest, so a run broken by a new release, or a full disk, says so.
+          emulator -version | head -1
+          "$sdk/sdkmanager" --list_installed 2>/dev/null | grep -E 'system-images|emulator' || true
+          df -h /
           emulator -accel-check
           # avdmanager and the emulator must agree where virtual devices live.
           export ANDROID_AVD_HOME="$HOME/.android/avd"
@@ -104,6 +108,8 @@ jobs:
       - name: Bundled files are read in place, not copied to the cache (spec 05, 5.2 and 7; WP15c)
         timeout-minutes: 20
         run: |
+          # The screen and the whole logcat, however the step ends.
+          trap 'adb exec-out screencap -p > "$RUNNER_TEMP/android/screen.png"; adb logcat -d > "$RUNNER_TEMP/android/logcat.txt"' EXIT
           app=org.storystage.storystage2
           apk=$(find apps/desktop/src-tauri/gen/android/app/build/outputs/apk -name '*universal*debug*.apk' | head -1)
           [ -n "$apk" ] || { echo "No universal debug APK."; exit 1; }
@@ -120,19 +126,17 @@ jobs:
             [ -n "$socket" ] && break
             sleep 5
           done
-          [ -n "$socket" ] || { echo "The app's webview never opened its DevTools socket."; adb logcat -d | tail -80; exit 1; }
+          [ -n "$socket" ] || { echo "The app's webview never opened its DevTools socket."; exit 1; }
           adb forward tcp:9222 "localabstract:$socket"
           status=0
           node apps/desktop/scripts/android-assets-check.mjs 9222 . || status=1
+          # The stand-ins are gone and nothing was copied: cache/_assets is empty, or not there.
           left=$(adb shell run-as "$app" ls -A cache/_assets 2>/dev/null | tr -d '\r')
-          echo "cache/_assets now holds: ${left:-nothing}"
-          if echo "$left" | grep -qE '^(backstage|speech)$'; then
-            echo "FAIL  bundled files are in the cache"; status=1
+          if [ -n "$left" ]; then
+            echo "FAIL  cache/_assets isn't empty:"; echo "$left"; status=1
           else
-            echo "PASS  nothing of the Backstage or speech is in the cache"
+            echo "PASS  cache/_assets is empty"
           fi
-          adb exec-out screencap -p > "$RUNNER_TEMP/android/screen.png"
-          adb logcat -d > "$RUNNER_TEMP/android/logcat.txt"
           exit $status
       - if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
