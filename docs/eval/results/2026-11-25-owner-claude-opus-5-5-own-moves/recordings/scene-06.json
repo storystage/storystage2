@@ -1,0 +1,1457 @@
+{
+  "id": "scene-06",
+  "source": "recorded",
+  "note": "Live run of scene-06, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChRMxL9x2EpURwqHpKf8M",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 30585,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 30585,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 7,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "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"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_015bidJN5XthTyzr16F9XQWw",
+            "name": "propose_plan",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"steps\": [{\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "words\":\"Add a horse"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " on the right, stand"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ing s"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ideways."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\",\"kind\":\"add\",\"act"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "or\":\"horse\",\"action\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"sketchfab/"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "Quadruped/horse\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "target\":\"\",\"details\":[{"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"name\":\"position"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\",\"value\":\"-1.2"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", 0, 0\"},"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"name\":\"turn_"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "degrees\",\"value\":\"90"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"}],\"line\":\"\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "s"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ketch\":\"\",\"together\":false"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ",\"repeat\":1,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"holds\":0,\"why"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "Turning the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " horse sideways l"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ets the camera see its whole"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " body, with its head p"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ointing towards the person.\"},"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"words\":\"Add a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " person on"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the left, next"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " to the horse, facing the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " camera.\",\"kind\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "add\",\"actor\":\"person\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "action\":\"makehuman/"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "Biped/p01\",\"target"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":\"\",\"details\":[{\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "name\":\"position\",\"value\":\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "0"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ".8, 0, 0"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"},{\"name\":\"tur"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "n_degrees\",\"value\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"180\"}],\"line\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\"\",\"sketch\":\"\",\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "together\":false,\"repeat"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\":1,\"holds\":0"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ",\"why\":\"Putting"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the person close be"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "side the horse and fac"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ing the camera means"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " we can see their face.\"}]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 30585,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 757,
+            "output_tokens_details": {
+              "thinking_tokens": 384
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 757,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 30585,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 30585,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChRMxxZD2VVguNg41FR1i",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 837,
+              "cache_read_input_tokens": 30585,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 837,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 109,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "text",
+            "text": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "I've made a plan with two"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " steps."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " Step 1 ad"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "ds the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " horse on the right side of your"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " picture, turned sideways"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " so we see"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " its whole body. Step "
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "2 adds a person called"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " Alfie on the left,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " close"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " to"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " the horse and facing the cam"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "era. You can change the person to"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " an"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "yone from"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " the C"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": "ast, or move either"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " of them. When it"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " looks right, press Build these"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "text_delta",
+            "text": " steps."
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 837,
+            "cache_read_input_tokens": 30585,
+            "output_tokens": 109,
+            "output_tokens_details": {
+              "thinking_tokens": 0
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 109,
+                "cache_read_input_tokens": 30585,
+                "cache_creation_input_tokens": 837,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 837,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChRMy5D3ta2vL9f6usSzT",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 4,
+              "cache_creation_input_tokens": 643,
+              "cache_read_input_tokens": 31422,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 643,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 6,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQSxgYKEAgUGAI4AUIIdGhpbmtpbmcSDBAtTcH9/+/uF4/LZRoM5F1oihB7wNnAYRgiIjAFHJRwOoa6KklKdBtMWdtic0I6LV043niw3cizNz3JzhI+EhowSSt4azvcu4RKY3gq4wV+gc9CZs5jIoccU+2uXr7ms6IOyut5CG8Qrf7yIdyVvF2h5wKUehpnKGpYiOikPOxpg3oqqT8yrRgXtrD1kFXdMv0ewuki2l3icN6mcNKrqok932x+LmUWu90mzj5pyldOi6bhKTw8lPQLYSvN8o23OwAQMsR7mT4js2pRUscwgshKHhW45F4r/KdAiwZOkzUZfKGSAxftCDn7k+sgjbsDhIVeW6lYRS8CYf1Cr1f0rkNDpqvbPBvf7HW7F7w2sGTcgpgU51RM1vJqnkXd7w7kRsPHlIa+iUPbSBmahMwlSaC+Tvh2CjhtCLgYXs0XbxrWGN+E8dZu7T8lzdf6VZD6737ge5+tHrcJ+9kJJPYdVzivA3qRIcqkB6o72w5q5KuA9EOE0ffe0DWCeIdJnXWpzRgdLeFNkmnKBN/hrvhu4HD74T0sKDpdXtTGxpHEbhrtMl3XMEsuGXpV8TzPHTX90HUNwYq2ldBS2ZVwKfIieFKqb5FoUS8blAtxF90rlqs9NPImqD5yT+hiVQy8OX3n9VbtSYYExyHORbiHyEOSHoDqFmxCDgiI/1Nlty62U3BKt9yjF66AxGRNEVheDbR6JQq7cXCbd3efQULAyET4ErSAFAWoHMr65dc/rmq+DXidUF08hf6hZeKhxFlv3NzGmGTIezbGNuUwPref0tef8wC994aLICmYMe46/v2nQ9DoyNT2e8QydE1+Up6G308olPKjrHG9IW7fcyt8U/9cilGu8NsRseF+liXOoikdN5cJrUAitlZHs6u7BLCv7DOQ8Uc1y/NfaByHNilAHagWMM+W1Xl481bPvdY40h4lx65aR3DwDSiy6wkj+gPE02qc4E5Zfxv5T5OjksUh6LyjY5lBcX5gUIScGtZpLZURVCHTNKEZJQaEAGlccWYM36wFriM+DWlwwmiikrtA+5UwXm+biLXSkLXuThgtw98aU7V1jchWqaOLq18DOKjqr+sSpon6GAE="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01D9JbmENZUN31AV766HmRRW",
+            "name": "add_model",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"backstage_item\": \"sketchf"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ab/Quadruped/"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "horse"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"name\": \"horse"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"position\": {\"x\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " -1.2, \"y\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " 0, \"z\": 0"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", \"turn_degrees\": 90"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", \"narration\": \"A horse appears on the right"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", turned sideways so the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " camera can see its whole body"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"plan_step\": 1"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "content_block_start",
+          "index": 2,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01AGGEeUPabdtXvk19KhiKXf",
+            "name": "add_model",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"backstage_item\": \"makehuman/Biped"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "/p01"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"name\": \"person"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"position\": {\"x\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " 0.8, \"y\":"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " 0, \"z\": 0"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", \"turn_degrees\": 180"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ", \"narration\": \"A"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " person appears on"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the left be"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "side the horse, turned round"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " to face the camera so"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " we see"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " their face."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"plan_step\": 2"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 2,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 2
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 4,
+            "cache_creation_input_tokens": 643,
+            "cache_read_input_tokens": 31422,
+            "output_tokens": 502,
+            "output_tokens_details": {
+              "thinking_tokens": 60
+            },
+            "iterations": [
+              {
+                "input_tokens": 4,
+                "output_tokens": 502,
+                "cache_read_input_tokens": 31422,
+                "cache_creation_input_tokens": 643,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 643,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    },
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChRMyNZ5pqeuB2uXasRet",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 620,
+              "cache_read_input_tokens": 32065,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 620,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 3,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQS1AYKEAgUGAI4AUIIdGhpbmtpbmcSDA3PdI7Z6twM3p/W5xoM7ikGdRVV8XABHQUgIjCzwAsLx+s5no2mgzOTp8XZ0ihp+IYefvDwa5tSjYbMo4DTTdg4T5/vOdMnrjqd1uQq8QW056pBOBcE+OdKM87fiK43K4jUQvcT8Puu6WErcnxhkYlqliCfVUV3inUMruNdxbvydfD70EIXTmU/+1Sjmhkry0QSDnuRVy5odPB+yWC7Qin8iLuHJ/mGZy3qa2O3jMZFzj31+/NUCL5jM3/BB65LoJiIlXpAS8T204EJEvzjIdKTJDWzbhjnsNSgsPDkbwS1rKKHB9A0VvFWG07Ju7SkSH7Xzi8KWnAn1aV86029uBZ/7Vla8diakCiSB8MkxecLBu2jw4eKJxw6NnlYzuVJFOwxTgnOXhnhQ6/45UElwYzksd1Lz/WwDUMUxFcVw9FIFEk8bPD2Ub3qknh7xgWJAzcO6xnSIp30g64h8MfAXMmi58l6E8HINRumgI6FW00fSvcvr+omalKWbQDW53xvcGUWcOtMiRv7nBAuFhRcFPtDfxGG6HIdzJnIPCssGD2r0w7VdTu8+XZSHdNsCzsJzqSYmC79TDL3is4Ra31OrGAP81kbwCZz2LLPBBRpIXJL+Ip7log+jOPohlYm54fet0H+CsMkAto3mKJI0cLnbA1wrBbcUuRAEkTXnqn5USqlct8bzC0RzLwCHOFTrYD2zJhqk+tHaWvEFQCsPmOaYDbWttpI2BQjRismPty3+YAhqWrEeKEuiB9K7UiQTWVSMSZKsPUnt9YXIFORbiS/LSO65jYB1Gg0ZjwMZ1z68/A/dNBlJjVZ9RwXMLfsX4W74sYr1mmYmgi/Ki73HWyNQ8IvTgoNM320TQWYK8si8BW9v3l9YFe5XhX/v7PHKHPxt7QRdg8nHDtwvRQyKyuCihfeDcawy+IXty3U/TUbNiPmVMDEnWqJBpfgaDIGej4ZPHkV66KYCui6RxR8l+ZMA1N5OXsZ3F+NyWHZEUgwjk+PFbsyrkcRSkRD8PYNukwbFRZFfg29uuhTJc3EJbR+JKYx4Iu5MgYZySo/Tc+mOOsfukABxAIZlq5R2DxG1OxRhKmjn0nGfTKi4XYn3NVFOKYYAQ=="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "text",
+            "text": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "Your"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " scene now has a horse on"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the right and a person standing next"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " to it on the left. The hor"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "se is turned sideways,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " so the camera sees its wh"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": "ole body and its head points at the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " person. The person is turned all"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " the way round to face the camera"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": ", so we can see their face."
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " To add"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " your own models"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": ", use Add"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " in Backstage,"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " then change"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " where"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " they stand and which"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " way they face. Who will"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " you"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "text_delta",
+            "text": " add next?"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "end_turn",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 620,
+            "cache_read_input_tokens": 32065,
+            "output_tokens": 155,
+            "output_tokens_details": {
+              "thinking_tokens": 45
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 155,
+                "cache_read_input_tokens": 32065,
+                "cache_creation_input_tokens": 620,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 620,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}
