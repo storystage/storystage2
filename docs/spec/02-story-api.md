@@ -85,7 +85,7 @@ Alice's procedures, with her names and parameter names. StoryStage's new blocks 
 | Class | Block | Parameters | Details | On screen | Runs |
 | --- | --- | --- | --- | --- | --- |
 | `Thing` | `delay` | `duration: Number` (positiveOrZero) | — | wait {duration} seconds | `runtime` |
-| `Thing` | `playAudio` | `audioSource: Audio` | — | play {audioSource} | `needs:audio` |
+| `Thing` | `playAudio` | `audioSource: Audio` | — | play {audioSource} | `command:sound` |
 | `Turnable` | `turn` | `direction: TurnDirection`, `amount: Number` | `duration`, `animationStyle`, `asSeenBy` | turn {direction} {amount} | `command:rotate` |
 | `Turnable` | `roll` | `direction: RollDirection`, `amount: Number` | `duration`, `animationStyle`, `asSeenBy` | roll {direction} {amount} | `command:rotate` |
 | `Turnable` | `turnToFace` | `target: Thing` | `duration`, `animationStyle` | turn to face {target} | `command:turnToFace` |
@@ -410,11 +410,11 @@ Each block's Runs column says what runs it: `command:` and `query:` are in the W
 6. **Faces are the model's own.** `expression` uses a VRM model's presets (VRM 0.x and 1.0). A model without that face shows no change, by the owner's decision of 8 Nov 2026.
 7. **Joints in a program** are values of their own, `{kind: 'joint', object, joint}`, the same in the Story API's `Value` and the runtime's. `getJoint` makes one from the object it's called on; `getJointChain` asks the stage `jointChain` for the model's joints in that chain, from the root out. On a joint, `turn`, `roll` and `pointAt` send the stage's `joint` command, in the joint's own axes, and anything that takes a target takes a joint; any other block given a joint is a `bad_value` fault (decision 0051: joints turn only).
 8. **A scene change ends the scene.** `goToScene(scene)` ends this scene and goes to the scene you choose; the film carries on from there. `crossfade(scene)` ends this scene and crossfades into the scene you choose. `fadeToBlack` fades to black and ends the scene; the next scene fades in. A transition's `duration` is the whole of it: a 1 s fade is half a second out, then half a second in. The runtime stops every strand at once (spec 18, 3.1), and the production's player makes the transition (spec 03, 3.1), which the stage draws: a fade to black with its `fade` command, and a crossfade with `load`'s `crossfade` option, the old scene fading out over the new one (`Stage.load`, WP8.3). A scene id is text, so `checkProgram` asks the production with `sceneExists` and names a scene that's gone.
+9. **A sound takes as long as it plays** (decision 0076, workplan 11.7; agreed with S2 and S5, 26 Nov 2026). `playAudio` sends the stage's `sound` command, naming the sound exactly as the block does (an imported clip's id, such as `sn1`, or a shelf sound's Backstage id), with the part the film uses as its `duration` and the block's own `node` (so the Sound view can go to it, even when two start at once), and waits for it, as Alice's does; to play one under the action, put it in a do together. Anything can play a sound, the scene too. The lengths come from the runtime's `load` message, as `StoryContext.sounds` (S2), so nothing is decoded while a program runs. A sound the film hasn't got (a clip that's gone, or a shelf id this Backstage lacks) is `missing`: it takes no time, plays as silence, and the stage's `missing()` lists it once, after what the load couldn't find, for the rough cut's and the automatic check's notes. The stage shows nothing for a sound and plays none: Rehearse's player does (`packages/sound`), and the export mixes each at its command's start, cut by its scene's end, from the measured timeline (spec 08 section 4).
 
 <!-- catalog:stage -->
 | Need | What it asks for | Blocks |
 | --- | --- | --- |
-| `audio` | Play a sound at a scene time, for the export to mix (with WP11) | `playAudio` |
 | `ask` | Ask the learner for a value while a program runs (the runtime, not the stage) | `getBooleanFromUser`, `getStringFromUser`, `getDoubleFromUser`, `getIntegerFromUser` |
 <!-- /catalog:stage -->
 

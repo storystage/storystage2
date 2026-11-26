@@ -280,7 +280,7 @@ export class BabylonStage implements EditableStage {
   }
 
   missing(): readonly Missing[] {
-    return this.lost;
+    return [...this.lost, ...this.timeline.missingSounds()];
   }
 
   /**

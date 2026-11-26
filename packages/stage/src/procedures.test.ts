@@ -71,6 +71,8 @@ function drive(
     },
     emit: (command) => stage.schedule([{ ...command, seq: seq++, start: now } as StageCommand]),
     random: () => 0,
+    // The film's sounds, as the runtime's load gives them: one imported clip, 1.5 s used.
+    sounds: { sn1: 1.5 },
   };
   const steps = STORY_LIBRARY[name]!(
     {
@@ -238,6 +240,15 @@ const MODEL_CASES: Readonly<Record<string, Case>> = {
       expect(s.speech(it_)).toEqual({ text: 'Hmm', bubble: 'think' });
     },
   },
+  // Decision 0076: the block takes its sound's used length, and the stage shows nothing for it.
+  playAudio: {
+    args: { audioSource: 'sn1' },
+    check: (s) => {
+      expect(s.time()).toBe(micros(1.5));
+      expect(s.speech(it_)).toBeNull();
+      expect(s.missing()).toEqual([]);
+    },
+  },
   speakLine: {
     args: { text: 'Here is the key.' },
     details: { line: 'l7' },
@@ -286,6 +297,14 @@ const MODEL_CASES: Readonly<Record<string, Case>> = {
 const NOT_YET = new Set(['foldWings', 'spreadWings']);
 
 const SCENE_CASES: Readonly<Record<string, Case>> = {
+  // The scene plays sounds too, as Alice's does; one the film hasn't got is missing, at once.
+  playAudio: {
+    args: { audioSource: 'kenney/gone' },
+    check: (s) => {
+      expect(s.time()).toBe(0);
+      expect(s.missing()).toEqual([{ kind: 'sound', sound: 'kenney/gone' }]);
+    },
+  },
   setAtmosphereColor: {
     args: { color: choice('Color', 'black') },
     check: (s) => expect(sky(s).atmosphere).toBe('#000000'),

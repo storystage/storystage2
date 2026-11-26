@@ -14,6 +14,7 @@
  * Colours are paints: a name from the Story API's `Color` list, or `#rrggbb`. The sky, light and
  * fog belong to the scene, so their commands and questions use the object `SCENE`.
  */
+import type { NodeId } from '@storystage/ast';
 import type { ENUMS } from './catalog/types.ts';
 import type {
   AnimationStyle,
@@ -240,7 +241,23 @@ export type StageCommand =
    * Turns the head, and the eyes where the model has them, to follow the target as far as a
    * neck turns, whatever the body is doing, until the next `lookAt`. `null` stops looking.
    */
-  | (Timed & { readonly kind: 'lookAt'; readonly target: Target | null });
+  | (Timed & { readonly kind: 'lookAt'; readonly target: Target | null })
+  /**
+   * Plays a sound (`playAudio`; decision 0076, workplan 11.7): `sound` names it exactly as the
+   * block does, an imported clip's id (`sn1`) or a shelf sound's Backstage id, and `duration` is
+   * the part the film uses, its trim, so the block takes as long as its sound does, as Alice's
+   * does. The stage shows nothing for it and doesn't play it: Rehearse's player does
+   * (`packages/sound`), and the export mixes it from the measured timeline (spec 08 section 4).
+   * A sound the production hasn't got is `missing`, with a `duration` of 0: silent, and listed by
+   * the stage's `missing()`. `object` is the thing whose `playAudio` it was, and `node` the block
+   * itself (its `NodeId`), so the studio's Sound view can go to it, even when two start at once.
+   */
+  | (Timed & {
+      readonly kind: 'sound';
+      readonly sound: string;
+      readonly missing?: true;
+      readonly node?: NodeId;
+    });
 
 export type StageCommandKind = StageCommand['kind'];
 

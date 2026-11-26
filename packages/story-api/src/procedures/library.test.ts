@@ -18,10 +18,16 @@ function run(
   answer: (q: StageQuery) => StageQueryResult = () => {
     throw new Error('No questions expected.');
   },
+  sounds?: Readonly<Record<string, number>>,
 ) {
   const sent: Sent[] = [];
   const waits: StoryWait[] = [];
-  const context = { now: micros(3), emit: (c: Sent) => sent.push(c), random: () => 0 };
+  const context = {
+    now: micros(3),
+    emit: (c: Sent) => sent.push(c),
+    random: () => 0,
+    ...(sounds ? { sounds } : {}),
+  };
   const block = STORY_LIBRARY[name];
   if (!block) throw new Error(`No block ${name}.`);
   const steps = block(
@@ -132,6 +138,73 @@ describe('procedures', () => {
     expect(timed.sent[0]).toMatchObject({ duration: micros(3), line: 'l7' });
     expect(() => run('speakLine', { args: { text: 'Hi' }, details: { duration: -1 } })).toThrow(
       StoryFault,
+    );
+  });
+
+  it('play audio: the sound for the part the film uses, waiting for it (decision 0076)', () => {
+    const none = () => {
+      throw new Error('No questions expected.');
+    };
+    const sounds = { sn1: 2.5, 'kenney/impact/door-knock': 0.75 };
+    const clip = run('playAudio', { args: { audioSource: 'sn1' } }, none, sounds);
+    expect(clip.sent).toEqual([
+      {
+        object: 'cat',
+        kind: 'sound',
+        sound: 'sn1',
+        node: 'n1',
+        duration: micros(2.5),
+        style: 'beginAndEndGently',
+      },
+    ]);
+    expect(clip.waits).toEqual([{ kind: 'sleep', duration: micros(2.5) }]);
+    const shelf = run(
+      'playAudio',
+      {
+        args: { audioSource: 'kenney/impact/door-knock' },
+        target: { kind: 'object', id: SCENE, type: null },
+      },
+      none,
+      sounds,
+    );
+    expect(shelf.sent[0]).toMatchObject({
+      object: SCENE,
+      sound: 'kenney/impact/door-knock',
+      duration: micros(0.75),
+    });
+    expect(() => run('playAudio', { args: { audioSource: 3 } }, none, sounds)).toThrow(StoryFault);
+  });
+
+  it('play audio: a sound the film hasn’t got is missing, silent and instant', () => {
+    const none = () => {
+      throw new Error('No questions expected.');
+    };
+    const cases: (Readonly<Record<string, number>> | undefined)[] = [
+      undefined,
+      { sn1: 2 },
+      { sn9: 0 },
+      { sn9: Number.NaN },
+    ];
+    for (const sounds of cases) {
+      const { sent, waits } = run('playAudio', { args: { audioSource: 'sn9' } }, none, sounds);
+      expect(sent).toEqual([
+        {
+          object: 'cat',
+          kind: 'sound',
+          sound: 'sn9',
+          missing: true,
+          node: 'n1',
+          duration: 0,
+          style: 'beginAndEndGently',
+        },
+      ]);
+      expect(waits).toEqual([]);
+    }
+    // Not a name from the object's own properties, either.
+    expect(run('playAudio', { args: { audioSource: 'toString' } }, none, {}).sent[0]).toMatchObject(
+      {
+        missing: true,
+      },
     );
   });
 
