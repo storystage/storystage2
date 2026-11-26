@@ -83,6 +83,7 @@ import {
   mismatch,
   targetOf,
   unplanned,
+  WORDED,
   type NameValue,
   type PlanProblem,
   type PlanStep,
@@ -184,11 +185,6 @@ export interface Plan {
 export const EXPLAINED =
   "Shown to the learner as your reply. End your turn now: don't repeat it, and don't say what you told them.";
 
-/**
- * The blocks whose `text` is words in the film, held to the script or the learner's own words
- * (section 6.5): what a character says or thinks, and on-screen text (the owner, 22 Nov 2026).
- */
-const WORDED: ReadonlySet<string> = new Set(['say', 'think', 'speakLine', 'setValue']);
 const CONTAINERS = new Set([
   'doInOrder',
   'doTogether',
@@ -404,7 +400,10 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
    * the learner's edits to a plan, before Build these steps. Messages are in plain words.
    */
   checkSteps(steps: readonly PlanStep[], frame: string | null): PlanProblem[] {
-    const world = this.#world(frame);
+    // A step the Prompter never showed is the learner's own, so its words are too (6.5).
+    const shown = [...this.#plans.values()].flatMap((p) => p.steps.map((s) => JSON.stringify(s)));
+    const theirs = steps.filter((s) => !shown.includes(JSON.stringify(s)));
+    const world = this.#world(frame, theirs);
     const changed = new Map(this.#changedMoves(steps, world).map((p) => [p.step, p] as const));
     const cant = checkPlan(steps, world);
     // A step that can't be built says why; the rest, whether their procedure has changed.
@@ -618,7 +617,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
 
   // ---- Plans -------------------------------------------------------------------------------------
 
-  #world(frame: string | null): PlanWorld {
+  #world(frame: string | null, theirs: readonly PlanStep[] = []): PlanWorld {
     const production = this.#setup.session.production();
     const program = this.#setup.session.program();
     const onFrame = production.frames.find((f) => f.id === frame);
@@ -639,7 +638,20 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
       scenes: new Set(production.scenes.map((s) => String(s.id))),
       isBackstageItem: (id) => this.#modelClass(id) !== null,
       ...(type ? { code: this.#code(program, type, onFrame !== undefined) } : {}),
+      words: {
+        forFrame: onFrame !== undefined,
+        learners: (words) => this.#learners(words, theirs),
+      },
     };
+  }
+
+  /** Whether words are the learner's own (section 6.5), with the steps they've written too. */
+  #learners(words: string, theirs: readonly PlanStep[] = []): boolean {
+    const own = [
+      ...this.#learnerWords,
+      ...theirs.flatMap((s) => [s.words, ...s.details.map((d) => d.value)]),
+    ];
+    return words.trim() !== '' && own.some((w) => squash(w).includes(squash(words)));
   }
 
   /** The code a plan is checked against (section 6.9). */
@@ -1283,7 +1295,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
         'not_in_script',
         'In a frame, words in the film are a script line: give its exact words and its id in line.',
       );
-    return words.trim() !== '' && this.#learnerWords.some((w) => squash(w).includes(squash(words)))
+    return this.#learners(words)
       ? null
       : fail(
           'not_in_script',
