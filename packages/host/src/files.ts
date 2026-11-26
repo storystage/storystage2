@@ -171,7 +171,10 @@ export interface PupilFolder {
    * `openProduction` (spec 03 1.4.1).
    */
   readBackup(key: ProductionKey, index: number): Promise<Uint8Array>;
-  /** The production's kept files: every one a version in `meta.json` uses. */
+  /**
+   * The production's kept files: every one a version in `meta.json` uses that the folder has. One
+   * deleted outside the save that stopped using it is left out, so the saver adds it again.
+   */
   kept(key: ProductionKey): Promise<readonly string[]>;
   /**
    * One kept file's bytes: `invalid` for a name that isn't a `KEPT_FILE`, `not_found` for one no

@@ -40,6 +40,9 @@ const VERSION_FILE = /^v-([a-z0-9]{1,12})-[a-z0-9]+\.storystage$/;
  * The folder's layout, in `meta.json`: 2 since sounds are kept once (spec 03 1.4.1). A missing
  * one is 1. A production in a layout this build doesn't know is `unreadable`: it's listed, but
  * never read or written, so a build that's been rolled back can't tidy away what it doesn't know.
+ * `isMeta` checks the version entries' shape before the layout is looked at, so layout 3 must keep
+ * that shape, or check `layout` first: otherwise its productions are dropped from the list as
+ * unfinished saves, not listed as unreadable (S4's review of #701).
  */
 const LAYOUT = 2;
 
@@ -327,9 +330,11 @@ export function storedClassFolders(
       const folder = checkPath(['pupils', pupil, key]);
       const names = await store.list(folder);
       if (names.includes(META)) continue;
+      // An empty folder goes too, as it always has. A folder of kept files alone, which no save
+      // leaves, has nothing to date it by, so it stays.
       const versions = names.filter((name) => !KEPT_FILE.test(name));
       const old =
-        versions.length > 0 &&
+        (names.length === 0 || versions.length > 0) &&
         versions.every((name) => {
           const time = VERSION_FILE.exec(name)?.[1];
           return time !== undefined && Number.parseInt(time, 36) < cutoff;
@@ -349,6 +354,16 @@ export function storedClassFolders(
   });
 
   const study = storeWithin(store, STUDY);
+
+  /**
+   * The kept files a listed version uses that the folder has (S4's review of #701). Another
+   * window's tidy, or something outside StoryStage, can delete one: it's then left out, so a save
+   * that names it is `not_found`, and the saver adds it again, which heals the current version.
+   */
+  const keptHere = async (folder: StorePath, meta: Meta): Promise<Map<string, number>> => {
+    const here = new Set(await store.list(folder));
+    return new Map([...keptIn(meta)].filter(([name]) => here.has(name)));
+  };
 
   /**
    * Checks a save's kept files before anything is written (spec 03 1.4.1): every name a
@@ -398,7 +413,7 @@ export function storedClassFolders(
       const previous = key === null ? null : await readUsable(folder);
       const { kept, missing } = await checkKept(
         keptOption,
-        previous === null ? new Map() : keptIn(previous),
+        previous === null ? new Map() : await keptHere(folder, previous),
       );
       const version: Version = {
         file: `v-${clock().getTime().toString(36)}-${random()}.storystage`,
@@ -430,7 +445,7 @@ export function storedClassFolders(
       await store.write(checkPath([...folder, META]), toJson(meta));
       // 3. Anything meta.json no longer lists.
       await tidy(folder, meta);
-      return { ...info(made, meta), kept: [...keptIn(meta).keys()].sort() };
+      return { ...info(made, meta), kept: [...(await keptHere(folder, meta)).keys()].sort() };
     };
 
     return {
@@ -467,8 +482,8 @@ export function storedClassFolders(
       },
       kept(key) {
         return queue(async () => {
-          const meta = await readUsable(home('pupils', pupil.id, key));
-          return [...keptIn(meta).keys()].sort();
+          const folder = home('pupils', pupil.id, key);
+          return [...(await keptHere(folder, await readUsable(folder))).keys()].sort();
         });
       },
       readKept(key, name) {

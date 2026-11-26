@@ -246,6 +246,48 @@ describe('sounds kept once, on disk (spec 03 1.4.1, spec 05 sections 6.2 and 6.3
     expect(restored.binnedAt).toBeUndefined();
   });
 
+  it('lists only the kept files it has, so one deleted outside a save is added again', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    const owl = await sound('hoot');
+    const { key } = await folder.write(null, 'Film', bytes('v1'), {
+      kept: { uses: [owl.name], add: [owl] },
+    });
+    // Another window's tidy, or something outside StoryStage, deletes it.
+    await store.remove(['pupils', pupil.id, key, owl.name]);
+    expect(await folder.kept(key)).toEqual([]);
+    await expect(
+      folder.write(key, 'Film', bytes('v2'), { kept: { uses: [owl.name] } }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+    const saved = await folder.write(key, 'Film', bytes('v2'), {
+      kept: { uses: [owl.name], add: [owl] },
+    });
+    expect(saved.kept).toEqual([owl.name]);
+    expect(text(await folder.readKept(key, owl.name))).toBe('hoot');
+  });
+
+  it('sweeps an empty folder with no meta.json, as it always has', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const removed: string[] = [];
+    const listing: FileStore = {
+      ...store,
+      list: async (path) =>
+        path.length === 2 && path[0] === 'pupils'
+          ? [...(await store.list(path)), 'production-empty']
+          : store.list(path),
+      remove: async (path) => {
+        removed.push(path.join('/'));
+        return store.remove(path);
+      },
+    };
+    await storedClassFolders(listing).open(pupil.id);
+    expect(removed).toEqual([`pupils/${pupil.id}/production-empty`]);
+  });
+
   it('refuses a sound larger than the limit, writing nothing', async () => {
     const store = memoryStore();
     const folders = storedClassFolders(store, { limit: 4 });
