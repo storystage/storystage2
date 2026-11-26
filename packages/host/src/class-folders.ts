@@ -491,7 +491,10 @@ export function storedClassFolders(
           if (!KEPT_FILE.test(name)) throw new FileError('invalid');
           const folder = home('pupils', pupil.id, key);
           if (!keptIn(await readUsable(folder)).has(name)) throw new FileError('not_found');
-          return readFile([...folder, name]);
+          // One listed but gone, as `kept` leaves it out: the version that uses it is damaged.
+          const bytes = await store.read(checkPath([...folder, name]));
+          if (bytes === null) throw new FileError('not_found');
+          return bytes;
         });
       },
       keepOriginal(key, bytes) {

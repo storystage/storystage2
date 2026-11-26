@@ -178,7 +178,8 @@ export interface PupilFolder {
   kept(key: ProductionKey): Promise<readonly string[]>;
   /**
    * One kept file's bytes: `invalid` for a name that isn't a `KEPT_FILE`, `not_found` for one no
-   * version uses.
+   * version uses or the folder doesn't have, as `kept` counts them. So a missing sound makes its
+   * version damaged, not the folder unreadable.
    */
   readKept(key: ProductionKey, name: string): Promise<Uint8Array>;
   /** Keeps the untouched original of a migrated production (spec 03 1.2). The first one stays. */
