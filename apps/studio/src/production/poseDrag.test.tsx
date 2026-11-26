@@ -87,7 +87,11 @@ const knightly = (): Production => {
   };
 };
 
-async function stage(production = knightly(), readOnly: string | null = null) {
+async function stage(
+  production = knightly(),
+  readOnly: string | null = null,
+  source: ModelSourceHandle = models,
+) {
   let fake: FakeStage | null = null;
   let latest: Studio | null = null;
   const onAnnounce = vi.fn<(text: string) => void>();
@@ -111,7 +115,7 @@ async function stage(production = knightly(), readOnly: string | null = null) {
           host={host}
           onGoToStoryboard={() => {}}
           announcement=""
-          models={models}
+          models={source}
           makeStage={makeStage}
           startWorker={startWorker}
           studio={studio}
@@ -252,6 +256,38 @@ describe('the Pose panel’s drag (7.16, decision 0073)', () => {
     expect(within(pose()).getByRole('button', { name: /Joint/ }).textContent).toMatch(/right/i);
     fireEvent.keyDown(within(hands).getByRole('button', { name: 'Right foot' }), { key: 'a' });
     expect(studio().undoLabel).toBeNull();
+  });
+
+  it('offers Pose on the stage for a character chosen before the stage has it, once it does (S3)', async () => {
+    const user = userEvent.setup();
+    // Models get ready when the test says so, as a drop from Backstage's do over the network.
+    let held: (() => void) | null = null;
+    let holding = false;
+    const slow: ModelSourceHandle = {
+      ...models,
+      prepare: () =>
+        holding
+          ? new Promise<undefined>((r) => (held = () => r(undefined)))
+          : Promise.resolve(undefined),
+    };
+    const { fake, studio } = await stage(knightly(), null, slow);
+    holding = true;
+    const p = studio().production;
+    const knight = { ...penguinOf(studio()), id: 'knight' as ObjectId };
+    act(() =>
+      studio().commit('Add knight', {
+        ...p,
+        scenes: p.scenes.map((s, i) =>
+          i === 0 ? { ...s, setup: { ...s.setup, objects: [...s.setup.objects, knight] } } : s,
+        ),
+      }),
+    );
+    await user.click(within(list()).getByRole('option', { name: /^knight/ }));
+    const panel = () => screen.getByRole('group', { name: 'Pose knight' });
+    expect(within(panel()).queryByRole('switch')).toBeNull();
+    await act(async () => held!());
+    await user.click(await within(panel()).findByRole('switch', { name: 'Pose on the stage' }));
+    expect(fake().posingNow()).toBe('knight');
   });
 
   it('has no Pose on the stage on a film that can’t be changed', async () => {

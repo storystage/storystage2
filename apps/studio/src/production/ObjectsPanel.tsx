@@ -70,10 +70,13 @@ export function ObjectsPanel({
   onAnnounce = () => {},
   poseJoints = () => [],
   poseStage = null,
+  poseShown = 0,
 }: {
   studio: Studio;
   /** The scene view's stage, for Pose on the stage (7.16): null until it shows the set-up. */
   poseStage?: EditableStage | null;
+  /** How many times that stage has shown the set-up: Pose asks it again after each. */
+  poseShown?: number;
   /** The joints an object can be posed by, from its model's joints and its class's joint map. */
   poseJoints?: (object: SceneObjectSetup) => readonly PoseJoint[];
   /** Says a pick-up and a put-down to a screen reader. */
@@ -290,6 +293,7 @@ export function ObjectsPanel({
           object={entry.object}
           joints={poseJoints(entry.object)}
           stage={poseStage}
+          shown={poseShown}
           onAnnounce={onAnnounce}
         />
       )}

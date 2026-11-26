@@ -50,9 +50,17 @@ const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 const handWord = (handle: PoseHandle) => words.t(`production.pose.${handle}`);
 const toCentimetre = (n: number) => Math.round(n * 100) / 100 + 0;
 
-/** The hands and feet the stage can pose an object by: none without a stage, or for a prop. */
-function handlesOf(stage: EditableStage | null, object: ObjectId): readonly PoseHandle[] {
+/**
+ * The hands and feet the stage can pose an object by: none without a stage, for a prop, or for
+ * one it hasn't loaded yet. `loads` is the stage's count of set-ups shown, so a load asks again.
+ */
+function handlesOf(
+  stage: EditableStage | null,
+  object: ObjectId,
+  loads: number,
+): readonly PoseHandle[] {
   try {
+    if (loads === 0) return [];
     return stage ? stage.poseHandles(object) : [];
   } catch {
     return [];
@@ -65,6 +73,7 @@ export function PosePanel({
   object,
   joints,
   stage = null,
+  shown: loads = 0,
   onAnnounce = () => {},
 }: {
   studio: Studio;
@@ -74,6 +83,11 @@ export function PosePanel({
   joints: readonly PoseJoint[];
   /** The scene view's stage, once it shows the set-up: Pose on the stage needs it. */
   stage?: EditableStage | null;
+  /**
+   * How many times the stage has shown the set-up: what it can pose is asked again after each,
+   * so a character it was still loading gets Pose on the stage once it has it (S3's review).
+   */
+  shown?: number;
   /** Says where a hand moved by keys went. */
   onAnnounce?: (words: string) => void;
 }) {
@@ -94,7 +108,7 @@ export function PosePanel({
   const atRest = sameTurn(turn, REST);
 
   // Pose on the stage: the hands and feet, while it's on, on a film that can be changed.
-  const handles = readOnly ? [] : handlesOf(stage, object.id);
+  const handles = readOnly ? [] : handlesOf(stage, object.id, loads);
   const [onStage, setOnStage] = useState(false);
   const posing = onStage && handles.length > 0;
 
@@ -110,7 +124,7 @@ export function PosePanel({
     try {
       stage.showPoseHandles(id);
     } catch {
-      // Not on the stage yet: it shows them when the set-up it's in is next shown.
+      // Not on the stage yet: asked again when the next set-up shows (`loads`).
       return;
     }
     // A drag is written when it's let go, as one undo step.
@@ -142,7 +156,8 @@ export function PosePanel({
         // The stage has gone.
       }
     };
-  }, [stage, posing, object.id]);
+    // Again after each load, since a request the stage refused isn't kept (S3's review).
+  }, [stage, posing, object.id, loads]);
 
   const pose = (turns: JointTurns, axis: string) => {
     setTyped({ key, turns });
