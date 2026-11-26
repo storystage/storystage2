@@ -118,6 +118,41 @@ export function withJoint(
   };
 }
 
+/**
+ * The production with an object's whole pose replaced, as a hand or foot drag gives it (0073;
+ * S3's `PoseEvent.joints`): the joints at rest are left out, and with none posed it has no
+ * `joints`, as `withJoint` leaves it.
+ */
+export function withPose(
+  p: Production,
+  scene: SceneId,
+  object: string,
+  joints: { readonly [joint: JointName]: Quat },
+): Production {
+  const kept: Record<JointName, Quat> = {};
+  for (const [joint, turn] of Object.entries(joints) as [JointName, Quat][])
+    if (!sameTurn(turn, REST)) kept[joint] = turn;
+  return {
+    ...p,
+    scenes: p.scenes.map((s) =>
+      s.id !== scene || !s.setup.objects.some((o) => o.id === object)
+        ? s
+        : {
+            ...s,
+            setup: {
+              ...s.setup,
+              objects: s.setup.objects.map((o) => {
+                if (o.id !== object) return o;
+                const posed = { ...o, joints: kept };
+                if (Object.keys(kept).length === 0) delete (posed as { joints?: unknown }).joints;
+                return posed;
+              }),
+            },
+          },
+    ),
+  };
+}
+
 /** A joint the Pose panel offers, with its word on the blocks ("left elbow"). */
 export interface PoseJoint {
   readonly id: JointName;

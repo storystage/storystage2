@@ -51,6 +51,11 @@ export interface SceneViewProps {
   onChoose?(target: EditTarget | null): void;
   /** A handle drag was let go: the target's whole new transform, for one undo step. */
   onMoved?(target: EditTarget, transform: Transform): void;
+  /**
+   * The stage's editing half once the set-up has first been shown, and null when it goes: the
+   * Pose panel shows the hands and feet on it and writes their drags (7.16, decision 0073).
+   */
+  onEditable?(stage: EditableStage | null): void;
   /** Move the camera here: Look around's view, for the scene's camera. */
   onMoveCamera?(transform: Transform): void;
   /**
@@ -135,12 +140,14 @@ export default function SceneView(props: SceneViewProps) {
   const speaker = useRef(props.speaker);
   const onChoose = useRef(props.onChoose);
   const onMoved = useRef(props.onMoved);
+  const onEditable = useRef(props.onEditable);
   useEffect(() => {
     announce.current = props.onAnnounce;
     onRehearsal.current = props.onRehearsal;
     speaker.current = props.speaker;
     onChoose.current = props.onChoose;
     onMoved.current = props.onMoved;
+    onEditable.current = props.onEditable;
   });
   // Counts each time the set-up has been shown, so what asks the stage about it asks again.
   const [shown, setShown] = useState(0);
@@ -260,11 +267,28 @@ export default function SceneView(props: SceneViewProps) {
     const offEdit = editable.onEdit((e) => {
       if (e.final) onMoved.current?.(e.target, e.transform);
     });
+    // Esc during a drag, a handle's or a hand's (0073), puts it back with no step; otherwise
+    // the key is left for whatever else uses it.
+    const onKey = (k: KeyboardEvent) => {
+      if (k.key !== 'Escape' || !editable.cancelDrag()) return;
+      k.preventDefault();
+      k.stopPropagation();
+    };
+    window.addEventListener('keydown', onKey, true);
     return () => {
       offTap();
       offEdit();
+      window.removeEventListener('keydown', onKey, true);
     };
   }, [editable]);
+
+  // The stage's editing half, for the Pose panel's hands and feet (7.16), once the set-up shows.
+  const ready = shown > 0;
+  useEffect(() => {
+    if (!editable || !ready) return;
+    onEditable.current?.(editable);
+    return () => onEditable.current?.(null);
+  }, [editable, ready]);
 
   // What's chosen in the list has the stage's outline and handles, once the set-up is shown.
   const chosen = props.chosen ?? null;

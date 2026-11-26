@@ -190,7 +190,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 25 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 37 of 69 items finished and 18 more started:
+**As of 25 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 38 of 69 items finished and 18 more started:
 
 - **Release candidate:** week 8.5 (18 Dec 2026). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 14.5 (29 Jan 2027). The plan says week 24.5 (9 Apr 2027).
@@ -291,7 +291,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP11m | Sound: three tracks, playing, and the export's mix (11.7) | Screening room | WP11s, WP11b, WP6 | 2 | wk 14.5 (29 Jan 2027) | 2 | forecast: 4 Dec to 18 Dec |
 | WP5d | Drag posing: hand and foot handles, by inverse kinematics (5.9) | Stage | WP4c | 1 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 26 Nov to 4 Dec |
 | WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 | 0.1 (17 Nov) |
-| WP7d | The Pose panel's drag (7.16) | Interface | WP5d, WP7 | 0.5 | wk 15.5 (4 Feb 2027) | 2.5 | forecast: 4 Dec to 7 Dec |
+| WP7d | The Pose panel's drag (7.16) | Interface | WP5d, WP7 | 0.5 | wk 15.5 (4 Feb 2027) | 2.5 | 0.1 (26 Nov) |
 | WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | started 12 Nov; ends about 30 Nov |
 | WP11c | Automatic check against the storyboard (11.6) | Screening room | WP10b, WP11b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | 1.9 (10–22 Nov) |
 | WP21 | AR design mode | AR | WP1, WP5a, WP8, WP15a, RC | 6 | wk 18.5 (26 Feb 2027) | **0 (critical)** | forecast: 18 Dec to 29 Jan |
@@ -659,7 +659,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
 - [x] 7.5 Keyboard paths for both views, and accessible names on every control. **Checked 17 Nov: axe finds nothing serious in eleven states of the Production stage at 1366 and 1180; the Blocks editor adds, answers, moves and deletes by keyboard alone, each said aloud, with focus kept.** (C)
 - [x] 7.14 **Parameters and a character's own moves (0074):** parameters on a learner's procedures and functions, and procedures and functions on a character's class that every scene can use, in both code editors (S5 and S6, as agreed). The runtime calls a class's procedures and functions with their arguments (S2, with 6.1). Class properties and `.a3c` export are for the next version. (C)
 - [x] 7.15 **Copy and paste of blocks (0075)** in both code editors, before the editor study (19.5). S5. **In Blocks (#611, 21 Nov) and in Tiles.** (C)
-- [ ] 7.16 **The Pose panel's drag (0073):** the hand and foot handles of 5.9 in the scene view's Pose panel; one drag is one undo step. S5. (C)
+- [x] 7.16 **The Pose panel's drag (0073):** the hand and foot handles of 5.9 in the scene view's Pose panel; one drag is one undo step. S5. **Built (26 Nov, this PR): Pose on the stage, a drag as one step, Esc, a tap choosing the joint, and Hands and feet by keys.** (C)
 - [ ] 7.17 **Sound in the studio (0076):**
     - **the Sound view:** a scene's music on a timeline: where it starts, its trim, fades, loop and volume, on the Music track; a clip can carry on over a scene cut until another starts (S5). **Built (25 Nov): the volumes (#686), the timeline with Add music… and the cue controls (#688), and dragging on it (#692); the timing from Rehearse waits on WP11m (S2) and the stage (S3).**
     - **the trim dialog on import:** a waveform with start and end handles, set once (S5). **Built (23 Nov), with Sounds in this film to reach it;**

@@ -10,6 +10,7 @@
  * saying where it is. One pick-up is one undo step, as one drag is.
  */
 import type { SceneId } from '@storystage/production';
+import type { EditableStage } from '@storystage/stage';
 import type { SceneObjectSetup, Transform } from '@storystage/story-api';
 import { useRef, useState, type KeyboardEvent } from 'react';
 import { Input, Label, ListBox, ListBoxItem, NumberField, type Key } from 'react-aria-components';
@@ -68,8 +69,11 @@ export function ObjectsPanel({
   onChoose,
   onAnnounce = () => {},
   poseJoints = () => [],
+  poseStage = null,
 }: {
   studio: Studio;
+  /** The scene view's stage, for Pose on the stage (7.16): null until it shows the set-up. */
+  poseStage?: EditableStage | null;
   /** The joints an object can be posed by, from its model's joints and its class's joint map. */
   poseJoints?: (object: SceneObjectSetup) => readonly PoseJoint[];
   /** Says a pick-up and a put-down to a screen reader. */
@@ -285,6 +289,8 @@ export function ObjectsPanel({
           scene={scene}
           object={entry.object}
           joints={poseJoints(entry.object)}
+          stage={poseStage}
+          onAnnounce={onAnnounce}
         />
       )}
       {refusal && (

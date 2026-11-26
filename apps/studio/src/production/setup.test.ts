@@ -13,6 +13,7 @@ import {
   withCamera,
   withMarker,
   nudgeObject,
+  nudgePlace,
   addMarker,
   removeMarker,
 } from './setup.ts';
@@ -165,6 +166,28 @@ describe('the keyboard pick-up in Objects in this scene (07-ux 7.2)', () => {
   it('does nothing for any other key', () => {
     for (const key of ['a', 'Home', 'Tab', 'Enter'])
       expect(nudgeObject(at, key, false, camera)).toBeNull();
+  });
+});
+
+describe('a hand or foot moved by keys in Pose (0073)', () => {
+  // The view as the example's camera: at z -5, looking along +Z, so its right is -X.
+  const view = { ...IDENTITY, position: { x: 0, y: 1.6, z: -5 } };
+  const hand = { x: 0.3, y: 1.2, z: 0.1 };
+
+  it('moves along the ground as the view sees it, and up and down: 10 cm, or 1 m with Shift', () => {
+    expect(nudgePlace(hand, 'ArrowUp', false, view)).toEqual({ x: 0.3, y: 1.2, z: 0.2 });
+    expect(nudgePlace(hand, 'ArrowDown', true, view)).toEqual({ x: 0.3, y: 1.2, z: -0.9 });
+    expect(nudgePlace(hand, 'ArrowRight', false, view)).toEqual({ x: 0.2, y: 1.2, z: 0.1 });
+    expect(nudgePlace(hand, 'ArrowLeft', false, view)).toEqual({ x: 0.4, y: 1.2, z: 0.1 });
+    expect(nudgePlace(hand, 'PageUp', false, view)).toEqual({ x: 0.3, y: 1.3, z: 0.1 });
+    expect(nudgePlace(hand, 'PageDown', true, view)).toEqual({ x: 0.3, y: 0.2, z: 0.1 });
+    const turned = { ...view, rotation: rotationOf(0.25) };
+    expect(nudgePlace(hand, 'ArrowUp', false, turned)).toEqual({ x: 0.4, y: 1.2, z: 0.1 });
+  });
+
+  it('does nothing for any other key', () => {
+    for (const key of ['a', ']', '+', 'Home', 'Enter'])
+      expect(nudgePlace(hand, key, false, view)).toBeNull();
   });
 });
 
