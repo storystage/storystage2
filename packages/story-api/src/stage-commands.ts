@@ -248,9 +248,15 @@ export type StageCommand =
    * does. The stage shows nothing for it and doesn't play it: Rehearse's player does
    * (`packages/sound`), and the export mixes it from the measured timeline (spec 08 section 4).
    * A sound the production hasn't got is `missing`, with a `duration` of 0: silent, and listed by
-   * the stage's `missing()`. `object` is the thing whose `playAudio` it was.
+   * the stage's `missing()`. `object` is the thing whose `playAudio` it was, and `node` the block
+   * itself (its `NodeId`), so the studio's Sound view can go to it, even when two start at once.
    */
-  | (Timed & { readonly kind: 'sound'; readonly sound: string; readonly missing?: true });
+  | (Timed & {
+      readonly kind: 'sound';
+      readonly sound: string;
+      readonly missing?: true;
+      readonly node?: string;
+    });
 
 export type StageCommandKind = StageCommand['kind'];
 

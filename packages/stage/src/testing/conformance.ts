@@ -177,7 +177,7 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       const still = stage.stateHash();
       stage.schedule([
         cmd(2, 0, { object: SCENE, kind: 'sound', sound: 'sn9', missing: true }),
-        cmd(0.5, 1.5, { object: cat, kind: 'sound', sound: 'sn1' }),
+        cmd(0.5, 1.5, { object: cat, kind: 'sound', sound: 'sn1', node: 'n4' }),
         cmd(1, 0, { object: dog, kind: 'sound', sound: 'kenney/gone', missing: true }),
         cmd(3, 0, { object: cat, kind: 'sound', sound: 'sn9', missing: true }),
       ]);

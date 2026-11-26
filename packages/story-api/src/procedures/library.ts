@@ -563,6 +563,7 @@ export const STORY_LIBRARY: StoryLibrary = {
       kind: 'sound',
       sound,
       ...(found ? {} : { missing: true as const }),
+      node: call.node,
       duration: found ? micros(seconds) : 0,
       style: 'beginAndEndGently',
     });
