@@ -822,11 +822,11 @@ describe('PrompterRunner: what characters say (spec 04, section 6.5)', () => {
       run('propose_plan', { frame: 'f2', steps: [step({ actor: 'fox', action: 'say', ...s })] });
     const free = words({ details: [{ name: 'text', value: 'code frame f2' }] });
     expect(free.ok || free.message).toContain(
-      'step 1: In a storyboard frame, the words come from the script: give this step a script line, or change the line in the script first.',
+      'step 1: In a storyboard frame, words come from the script. Choose a script line for this step, or change the line in the script first.',
     );
     const other = words({ line: 'l3', details: [{ name: 'text', value: 'Hello, friend.' }] });
     expect(other.ok || other.message).toContain(
-      "step 1: The words must be the script line's own: \"Don't be scared. I'm lost too.\"",
+      'step 1: These words must match the script line: "Don\'t be scared. I\'m lost too."',
     );
     expect(words({ line: 'l3' })).toMatchObject({ ok: true });
     expect(

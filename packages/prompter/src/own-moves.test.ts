@@ -657,7 +657,7 @@ describe("the learner's own in a plan (spec 04, section 6.9): building", () => {
 const NOT_THEIRS =
   "Words in the film come from the script or the learner's own words. Ask the learner what they should be.";
 const NOT_A_LINE =
-  'In a storyboard frame, the words come from the script: give this step a script line, or change the line in the script first.';
+  'In a storyboard frame, words come from the script. Choose a script line for this step, or change the line in the script first.';
 
 describe('words in the film (spec 04, sections 6.5 and 6.9)', () => {
   const greets = (message: string) => step({ action: 'greet', details: pairs({ message }) });
@@ -697,7 +697,7 @@ describe('words in the film (spec 04, sections 6.5 and 6.9)', () => {
         'f2',
       ),
     ).toContain(
-      "step 1: The words must be the script line's own: \"Don't be scared. I'm lost too.\"",
+      'step 1: These words must match the script line: "Don\'t be scared. I\'m lost too."',
     );
     expect(refused([step({ action: 'greet', line: 'l3' })], 'Code frame f2.', 'f2')).toBeNull();
   });

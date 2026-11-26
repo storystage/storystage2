@@ -212,10 +212,10 @@ function wordsProblem(
   if (line !== undefined)
     return value === undefined || value === line
       ? null
-      : `The words must be the script line's own: "${line}".`;
+      : `These words must match the script line: "${line}".`;
   if (value === undefined) return null;
   if (words.forFrame)
-    return 'In a storyboard frame, the words come from the script: give this step a script line, or change the line in the script first.';
+    return 'In a storyboard frame, words come from the script. Choose a script line for this step, or change the line in the script first.';
   return words.learners(value)
     ? null
     : "Words in the film come from the script or the learner's own words. Ask the learner what they should be.";

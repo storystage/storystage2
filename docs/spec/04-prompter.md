@@ -595,8 +595,8 @@ Before a plan is shown, and again when the learner presses **Build these steps**
 
 **A step's words in the film** keep section 6.5's rule, as the build does (the owner's choice of 26 Nov 2026). That covers say, think and speak line, on-screen text, and every text input of a learner's procedure. Each must be its script line's exact words, or, outside a frame, the learner's own. Before, only the build held them, so a plan with the Prompter's own words could be shown and agreed, and then the build was refused at its first such step (the rerun of 25 Nov, own-03). Now the plan isn't shown, and the Prompter is told why:
 
-- a step with a line, but with other words: "The words must be the script line's own: …";
-- in a frame, words without a line: "In a storyboard frame, the words come from the script: give this step a script line, or change the line in the script first.";
+- a step with a line, but with other words: "These words must match the script line: …";
+- in a frame, words without a line: "In a storyboard frame, words come from the script. Choose a script line for this step, or change the line in the script first.";
 - outside a frame, words that aren't the learner's: "Words in the film come from the script or the learner's own words. Ask the learner what they should be."
 
 When the learner edits a plan, a step they added or changed is theirs, so its words are theirs too, as at Build. The build still holds every call's words (6.5), so this check comes first, and doesn't replace it.
