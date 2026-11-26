@@ -29,6 +29,7 @@ export interface ProductionInfo {
   readonly name: string;
   /** When it was last written, as an ISO date and time. */
   readonly savedAt: string;
+  /** The whole film's size: the version and the kept files it uses (spec 03 1.4.1). */
   readonly bytes: number;
   /** How many earlier versions are kept (at most `BACKUPS_KEPT`). */
   readonly backups: number;
@@ -40,7 +41,27 @@ export interface BackupInfo {
   /** 0 is the most recent earlier version. */
   readonly index: number;
   readonly savedAt: string;
+  /** The whole film's size, as `ProductionInfo.bytes`. */
   readonly bytes: number;
+}
+
+/** What a save gives back: the production, and its kept files left after the save tidied. */
+export interface SavedProduction extends ProductionInfo {
+  /** Every kept file a listed version uses (spec 03 1.4.1): the saver's list from now on. */
+  readonly kept: readonly string[];
+}
+
+/**
+ * A kept sound's name (spec 03 1.4.1): `sound-`, the first 32 hex digits of its bytes' SHA-256 in
+ * lower case, then one of the types decision 0076 imports. `SOUND_TYPES` in
+ * `@storystage/production` lists the same types, and a test there is to keep them equal.
+ */
+export const KEPT_FILE = /^sound-[0-9a-f]{32}\.(mp3|wav|m4a)$/;
+
+/** One kept file a save adds: bytes the folder doesn't have yet, under the name of their hash. */
+export interface KeptFile {
+  readonly name: string;
+  readonly bytes: Uint8Array;
 }
 
 export interface BinnedProduction extends ProductionInfo {
@@ -48,13 +69,13 @@ export interface BinnedProduction extends ProductionInfo {
   readonly binnedAt: string;
 }
 
-/** How many earlier versions of each production are kept. */
 /** A pupil removed from the class, kept until the bin is emptied. */
 export interface BinnedPupil {
   readonly pupil: Pupil;
   readonly binnedAt: string;
 }
 
+/** How many earlier versions of each production are kept. */
 export const BACKUPS_KEPT = 5;
 
 /**
@@ -72,9 +93,12 @@ export const FILE_ERROR_CODES = [
   'unreadable',
   /** Another program has the file open. */
   'locked',
-  /** No such pupil or production. */
+  /** No such pupil, production, or kept file. */
   'not_found',
-  /** A name that can't be used: empty, too long, or the same as another in a Collect. */
+  /**
+   * A name that can't be used: empty, too long, the same as another in a Collect, or a kept file
+   * whose name isn't its bytes' hash.
+   */
   'invalid',
   /** Larger than `FILE_LIMIT`. Nothing is read or written. */
   'too_big',
@@ -101,6 +125,21 @@ export interface WriteOptions {
    * within a session, so the backups are of sessions, not of the last few minutes (S4, #191).
    */
   readonly backup?: boolean;
+  /**
+   * The kept files this version uses (spec 03 1.4.1); none if left out. `uses` names every one,
+   * and `add` gives the bytes of those the folder lacks. Nothing is written if:
+   * - a name isn't a `KEPT_FILE`, an add isn't among `uses`, or an add's SHA-256 doesn't match
+   *   its name (`invalid`);
+   * - an add is larger than `FILE_LIMIT` (`too_big`);
+   * - a use is neither kept already nor added (`not_found`): the saver's list is out of date, so
+   *   it asks `kept` again and retries once, with the bytes.
+   *
+   * An add the folder already keeps is skipped.
+   */
+  readonly kept?: {
+    readonly uses: readonly string[];
+    readonly add?: readonly KeptFile[];
+  };
 }
 
 /**
@@ -115,18 +154,33 @@ export interface PupilFolder {
    * Saves a production. `key` is `null` for a new one, which gets a key. The write is atomic: a
    * crash or power cut leaves the last whole version, never half a file (threat PS4). Unless
    * `backup` is false, the version it replaces becomes the newest backup, and only
-   * `BACKUPS_KEPT` are kept.
+   * `BACKUPS_KEPT` are kept. `bytes` is a version: since spec 03 1.4.1, a film without the
+   * sounds it keeps once beside it (`options.kept`). Kept files no listed version uses go.
    */
   write(
     key: ProductionKey | null,
     name: string,
     bytes: Uint8Array,
     options?: WriteOptions,
-  ): Promise<ProductionInfo>;
+  ): Promise<SavedProduction>;
   /** Newest first. */
   backups(key: ProductionKey): Promise<readonly BackupInfo[]>;
-  /** `index` is as of the last `backups()`: a save since then moves every backup along by one. */
+  /**
+   * `index` is as of the last `backups()`: a save since then moves every backup along by one.
+   * Like `read`, it gives a version, so its bytes go through `openFromFolder`, never straight to
+   * `openProduction` (spec 03 1.4.1).
+   */
   readBackup(key: ProductionKey, index: number): Promise<Uint8Array>;
+  /**
+   * The production's kept files: every one a version in `meta.json` uses that the folder has. One
+   * deleted outside the save that stopped using it is left out, so the saver adds it again.
+   */
+  kept(key: ProductionKey): Promise<readonly string[]>;
+  /**
+   * One kept file's bytes: `invalid` for a name that isn't a `KEPT_FILE`, `not_found` for one no
+   * version uses.
+   */
+  readKept(key: ProductionKey, name: string): Promise<Uint8Array>;
   /** Keeps the untouched original of a migrated production (spec 03 1.2). The first one stays. */
   keepOriginal(key: ProductionKey, bytes: Uint8Array): Promise<void>;
   readOriginal(key: ProductionKey): Promise<Uint8Array | null>;

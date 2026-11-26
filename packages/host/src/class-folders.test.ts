@@ -112,6 +112,227 @@ describe('first saves that never finished (S4’s review of #194)', () => {
   });
 });
 
+/** A sound to keep, named by its bytes' SHA-256 (spec 03 1.4.1). */
+const sound = async (content: string) => {
+  const data = bytes(content);
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', data));
+  const hex = [...digest.subarray(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return { name: `sound-${hex}.mp3`, bytes: data };
+};
+
+describe('sounds kept once, on disk (spec 03 1.4.1, spec 05 sections 6.2 and 6.3)', () => {
+  it('writes the version file first, then each sound, then meta.json', async () => {
+    const store = memoryStore();
+    const writes: string[] = [];
+    const counting: FileStore = {
+      ...store,
+      write: (path, data) => (writes.push(path[path.length - 1] ?? ''), store.write(path, data)),
+    };
+    const folders = storedClassFolders(counting);
+    const folder = await folders.open((await folders.addPupil('Ava')).id);
+    const owl = await sound('hoot');
+    const cat = await sound('miaow');
+    writes.length = 0;
+    await folder.write(null, 'Film', bytes('v1'), {
+      kept: { uses: [owl.name, cat.name], add: [owl, cat] },
+    });
+    expect(writes).toEqual([expect.stringMatching(/^v-/), owl.name, cat.name, 'meta.json']);
+  });
+
+  it('a first save that crashes among its sounds is swept away with them, a minute on', async () => {
+    let time = Date.parse('2026-11-26T10:00:00Z');
+    const store = failingStore();
+    const folders = storedClassFolders(store, { clock: () => new Date(time) });
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    const owl = await sound('hoot');
+    const cat = await sound('miaow');
+    // class.json, the version file and the first sound: the second sound fails.
+    store.failAt = 4;
+    await expect(
+      folder.write(null, 'Film', bytes('v1'), {
+        kept: { uses: [owl.name, cat.name], add: [owl, cat] },
+      }),
+    ).rejects.toMatchObject({ code: 'full' });
+    store.failAt = Infinity;
+    const left = () => [...store.files.keys()].filter((name) => name.startsWith('pupils/'));
+    expect(left()).toHaveLength(2);
+    time += 10_000;
+    await folders.open(pupil.id);
+    expect(left()).toHaveLength(2);
+    time += 61_000;
+    await folders.open(pupil.id);
+    expect(left()).toEqual([]);
+  });
+
+  it('a folder of sounds alone, which StoryStage never leaves, isn’t swept', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store, { clock: () => new Date(Date.now() + 3_600_000) });
+    const pupil = await folders.addPupil('Ava');
+    const owl = await sound('hoot');
+    await store.write(['pupils', pupil.id, 'production-strayed', owl.name], owl.bytes);
+    await folders.open(pupil.id);
+    expect(await store.read(['pupils', pupil.id, 'production-strayed', owl.name])).not.toBeNull();
+  });
+
+  it('lists each version’s sounds and their sizes in meta.json, at layout 2', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    const owl = await sound('hoot');
+    const { key } = await folder.write(null, 'Film', bytes('v1'), {
+      kept: { uses: [owl.name], add: [owl] },
+    });
+    await folder.write(key, 'Film', bytes('v2'));
+    const meta = JSON.parse(
+      text((await store.read(['pupils', pupil.id, key, 'meta.json'])) ?? bytes('')),
+    );
+    expect(meta.layout).toBe(2);
+    expect(meta.current.kept).toEqual([]);
+    expect(meta.backups[0].kept).toEqual([{ file: owl.name, bytes: 4 }]);
+    const names = [...store.files.keys()].filter((name) => name.includes(key));
+    expect(names).toHaveLength(4);
+    expect(names.every((name) => name.split('/').every(isSafePart))).toBe(true);
+  });
+
+  it('reads a folder from before layout 2, whose versions keep no sounds', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    const { key } = await folder.write(null, 'Film', bytes('old'));
+    const path = ['pupils', pupil.id, key, 'meta.json'];
+    const meta = JSON.parse(text((await store.read(path)) ?? bytes('')));
+    delete meta.layout;
+    meta.current = { file: meta.current.file, savedAt: meta.current.savedAt, bytes: 3 };
+    await store.write(path, bytes(JSON.stringify(meta)));
+    expect(await folder.kept(key)).toEqual([]);
+    expect((await folder.list())[0]?.bytes).toBe(3);
+    await folder.write(key, 'Film', bytes('new'));
+    expect(text(await folder.readBackup(key, 0))).toBe('old');
+  });
+
+  it('lists a production in a layout it doesn’t know, but never reads or writes it', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    const owl = await sound('hoot');
+    const { key } = await folder.write(null, 'Film', bytes('v1'), {
+      kept: { uses: [owl.name], add: [owl] },
+    });
+    const path = ['pupils', pupil.id, key, 'meta.json'];
+    const meta = JSON.parse(text((await store.read(path)) ?? bytes('')));
+    await store.write(path, bytes(JSON.stringify({ ...meta, layout: 3, future: true })));
+    expect((await folder.list()).map((info) => info.key)).toEqual([key]);
+    for (const action of [
+      () => folder.read(key),
+      () => folder.readBackup(key, 0),
+      () => folder.kept(key),
+      () => folder.readKept(key, owl.name),
+      () => folder.readOriginal(key),
+      () => folder.keepOriginal(key, bytes('x')),
+      () => folder.write(key, 'Film', bytes('v2')),
+    ]) {
+      await expect(action()).rejects.toMatchObject({ code: 'unreadable' });
+    }
+    // Nothing was tidied away, and the bin and back keep what this build doesn't know.
+    expect(await store.read(['pupils', pupil.id, key, owl.name])).not.toBeNull();
+    await folder.remove(key);
+    await folders.restore(pupil.id, key);
+    const restored = JSON.parse(text((await store.read(path)) ?? bytes('')));
+    expect(restored).toMatchObject({ layout: 3, future: true });
+    expect(restored.binnedAt).toBeUndefined();
+  });
+
+  it('lists only the kept files it has, so one deleted outside a save is added again', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const folder = await folders.open(pupil.id);
+    const owl = await sound('hoot');
+    const { key } = await folder.write(null, 'Film', bytes('v1'), {
+      kept: { uses: [owl.name], add: [owl] },
+    });
+    // Another window's tidy, or something outside StoryStage, deletes it.
+    await store.remove(['pupils', pupil.id, key, owl.name]);
+    expect(await folder.kept(key)).toEqual([]);
+    await expect(
+      folder.write(key, 'Film', bytes('v2'), { kept: { uses: [owl.name] } }),
+    ).rejects.toMatchObject({ code: 'not_found' });
+    const saved = await folder.write(key, 'Film', bytes('v2'), {
+      kept: { uses: [owl.name], add: [owl] },
+    });
+    expect(saved.kept).toEqual([owl.name]);
+    expect(text(await folder.readKept(key, owl.name))).toBe('hoot');
+  });
+
+  it('sweeps an empty folder with no meta.json, as it always has', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store);
+    const pupil = await folders.addPupil('Ava');
+    const removed: string[] = [];
+    const listing: FileStore = {
+      ...store,
+      list: async (path) =>
+        path.length === 2 && path[0] === 'pupils'
+          ? [...(await store.list(path)), 'production-empty']
+          : store.list(path),
+      remove: async (path) => {
+        removed.push(path.join('/'));
+        return store.remove(path);
+      },
+    };
+    await storedClassFolders(listing).open(pupil.id);
+    expect(removed).toEqual([`pupils/${pupil.id}/production-empty`]);
+  });
+
+  it('refuses a sound larger than the limit, writing nothing', async () => {
+    const store = memoryStore();
+    const folders = storedClassFolders(store, { limit: 4 });
+    const folder = await folders.open((await folders.addPupil('Ava')).id);
+    const big = await sound('miaow');
+    await expect(
+      folder.write(null, 'Film', bytes('v1'), { kept: { uses: [big.name], add: [big] } }),
+    ).rejects.toMatchObject({ code: 'too_big' });
+    expect([...store.files.keys()].filter((name) => name.startsWith('pupils/'))).toEqual([]);
+  });
+});
+
+describe('two windows saving the same production (spec 05 section 6.3, step 3)', () => {
+  it('a save’s tidying keeps what another window’s save, made meanwhile, lists', async () => {
+    const store = memoryStore();
+    const first = storedClassFolders(store);
+    const pupil = await first.addPupil('Ava');
+    const mine = await first.open(pupil.id);
+    const owl = await sound('hoot');
+    const { key } = await mine.write(null, 'Film', bytes('v1'));
+
+    // The other window saves between this window's steps 2 and 3.
+    const other = await storedClassFolders(store).open(pupil.id);
+    let raced = false;
+    const racing: FileStore = {
+      ...store,
+      async write(path, data) {
+        await store.write(path, data);
+        if (!raced && path[path.length - 1] === 'meta.json' && path.includes(key)) {
+          raced = true;
+          await other.write(key, 'Film', bytes('theirs'), {
+            kept: { uses: [owl.name], add: [owl] },
+          });
+        }
+      },
+    };
+    const racer = await storedClassFolders(racing).open(pupil.id);
+    await racer.write(key, 'Film', bytes('mine'), { backup: false });
+    expect(raced).toBe(true);
+    // The other window's save is the last, and nothing it lists was tidied away.
+    expect(text(await mine.read(key))).toBe('theirs');
+    expect(text(await mine.readKept(key, owl.name))).toBe('hoot');
+  });
+});
+
 describe('a read alongside a save (S4’s review of #194)', () => {
   it('waits for the save, so it never finds a file the save has just tidied away', async () => {
     const folders = storedClassFolders(memoryStore());

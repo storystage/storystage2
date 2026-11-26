@@ -434,8 +434,9 @@ The Tauri apps use the native store, not the browser's. WebKit deletes script-wr
 
 ```
 class.json                                    the class list: { "version": 1, "pupils": [...] }
-pupils/<pupil id>/<key>/meta.json             { "name", "current", "backups": [...], "original" }
+pupils/<pupil id>/<key>/meta.json             { "layout": 2, "name", "current", "backups": [...], "original" }
 pupils/<pupil id>/<key>/v-<time>-<random>.storystage  the current version, and each backup
+pupils/<pupil id>/<key>/sound-<32 hex>.<type>  each sound kept once, which versions use (spec 03 1.4.1)
 pupils/<pupil id>/<key>/original.storystage    the untouched original of a migrated production
 bin/<pupil id>/<key>/...                       the same, with "binnedAt" in meta.json
 binned-pupils.json                             removed pupils: [{ "pupil", "binnedAt" }], newest first
@@ -448,15 +449,21 @@ study/...                                      the study's own files (spec 14 se
 
 **The study's own store** is `ClassFolders.study()`, a `FileStore` over the `study/` folder (spec 14 section 6.7, S6's ask): the same store and the same safe parts, with every path put inside `study/` (`storeWithin`), so nothing through it reaches a pupil's folder, and `list([])` lists `study/` itself. It's beside the pupil folders, never in one, so Collect, Hand back and a production never carry it, and removing a pupil or emptying the bin leaves it. What it keeps of a pupil is pseudonymous and limited: no names anywhere, and a pupil id only in the teacher's ticks, which drop a removed pupil's id (spec 14 section 6.2). The session logs hold no pupil id at all, so a pupil who withdraws has their sessions deleted by code, from the school's private list, in Settings' Study card (spec 14 section 6.8). `packages/study` alone writes there: `sessions/<code>.json`, the teacher's ticks and the study's settings. In the Tauri apps it is `<local app data>/classes/study/`, through the same five commands: nothing new for the native layer.
 
-`current` and each backup are `{ "file", "savedAt", "bytes" }`. Pupil ids and keys are random (`pupil-` or `production-`, then 12 letters and digits), so two windows never pick the same one. Names are only ever in `class.json` and `meta.json`, never in a path. A name can't be unsafe on disk, and the class list stays on the device (threat PS3).
+`current` and each backup are `{ "file", "savedAt", "bytes", "kept" }`: `bytes` is the version file's own size, and `kept` lists the kept files it uses, `[{ "file", "bytes" }]`. A missing `kept` means none. A production's size, in `ProductionInfo.bytes` and `BackupInfo.bytes`, is the whole film's, the version and its kept files, worked out from `meta.json`.
+
+**Kept sounds** (spec 03 section 1.4.1): each sound a production imports is kept once in its own folder, named `sound-<the first 32 hex digits of its SHA-256>.<mp3, wav or m4a>` (`KEPT_FILE`), and every version that uses it lists it. `PupilFolder.kept(key)` gives every kept file a listed version uses that the folder has. One that another window's tidy or something outside StoryStage deleted is left out, so a save naming it is `not_found`, and the saver adds it again, which heals the current version (S4's review of #701). A save counts kept files the same way. `readKept(key, name)` gives one of them, and is `invalid` for a name that isn't a `KEPT_FILE`, `not_found` for one no version uses. A save gives `WriteOptions.kept`, `{ uses, add }`: the names this version uses, and the bytes of those the folder lacks. The folder checks every one before writing anything. A name that isn't a `KEPT_FILE`, an add that isn't among `uses`, or an add whose SHA-256 isn't its name is `invalid`; an add over `FILE_LIMIT` is `too_big`; a use that's neither kept nor added is `not_found`, and the saver asks `kept` again and retries once. An add it keeps already is skipped. The write returns `kept`, the kept files left after step 3. Films never share kept files, so removing, binning, restoring and moving a production (`moveDeviceFilms`) take its whole `<key>` folder, as they always have.
+
+**The layout** is 2 since kept sounds, and 1 when `meta.json` has none. A production in a layout this build doesn't know is listed, but reading or writing it is `unreadable`, so a build that has been rolled back never tidies away files it doesn't know. Binning and restoring it keep every field. Layout 2 doesn't protect against a build older than itself: the rollback drill (15.7) covers that (spec 03 1.4.1, point 8).
+
+Pupil ids and keys are random (`pupil-` or `production-`, then 12 letters and digits), so two windows never pick the same one. Names are only ever in `class.json` and `meta.json`, never in a path. A name can't be unsafe on disk, and the class list stays on the device (threat PS3).
 
 ### 6.3 A save is atomic
 
-1. The new version is written to a new `v-<time>-<random>.storystage`, where `<time>` is when, in milliseconds in base 36.
+1. The new version is written to a new `v-<time>-<random>.storystage`, where `<time>` is when, in milliseconds in base 36. Then each kept file the folder lacks is written, each atomically. The version file comes first, so a first save that crashes is dated by it.
 2. `meta.json` is replaced, atomically, to point at it. With `backup` (the default), the version it replaces is listed first among the backups and only `BACKUPS_KEPT` stay. Without it, the replaced version is dropped.
-3. Files the new `meta.json` doesn't list are deleted.
+3. Files the new `meta.json` doesn't list are deleted: versions, and kept files no listed version uses. It reads `meta.json` again first and keeps what that lists too, so a save another window made between steps 2 and 3 keeps its version and its sounds (S8's review of spec 03 1.4.1). If `meta.json` can't be read then, nothing is deleted.
 
-A crash before step 2 leaves the last whole version and a stray file, which the next save deletes. A first save that crashes there leaves a folder with no `meta.json`. It isn't listed, and opening the pupil's folder removes it once its files are a minute old, so a save still going on in another window is left alone. Reads wait for saves in progress, so a read never finds a file a save has just tidied away. A crash after step 2 leaves the new version. So a production is never half-written (threat PS4). A store's `write` is itself atomic: a temporary file then a rename on the native side, and `createWritable`, which commits on close, in the browser.
+A crash before step 2 leaves the last whole version and stray files, which the next save deletes, or adds again with the same bytes if it needs them. A first save that crashes there leaves a folder with no `meta.json`. It isn't listed, and opening the pupil's folder removes it once its version files are a minute old, with any kept files beside them, so a save still going on in another window is left alone. Reads wait for saves in progress, so a read never finds a file a save has just tidied away. A crash after step 2 leaves the new version. So a production is never half-written (threat PS4). A store's `write` is itself atomic: a temporary file then a rename on the native side, and `createWritable`, which commits on close, in the browser.
 
 ### 6.4 The native store's commands
 
