@@ -3,10 +3,25 @@
  * implementation runs it: the memory one here, and the Tauri and browser ones in WP24.4.
  */
 import { describe, expect, it } from 'vitest';
-import { BACKUPS_KEPT, DEVICE_PUPIL, FileError, type ClassFolders } from '../files.ts';
+import {
+  BACKUPS_KEPT,
+  DEVICE_PUPIL,
+  FileError,
+  type ClassFolders,
+  type KeptFile,
+  type WriteOptions,
+} from '../files.ts';
 
 const bytes = (text: string) => new TextEncoder().encode(text);
 const text = (data: Uint8Array) => new TextDecoder().decode(data);
+
+/** A sound to keep, named as spec 03 1.4.1 names it: by its bytes' SHA-256. */
+const sound = async (content: string, type = 'mp3'): Promise<KeptFile> => {
+  const data = bytes(content);
+  const digest = new Uint8Array(await globalThis.crypto.subtle.digest('SHA-256', data));
+  const hex = [...digest.subarray(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return { name: `sound-${hex}.${type}`, bytes: data };
+};
 
 const failsWith = async (code: string, action: () => Promise<unknown>) => {
   await expect(action()).rejects.toBeInstanceOf(FileError);
@@ -56,8 +71,9 @@ export function describeClassFoldersContract(
     it('saves a new production, gives it a key, and reads it back', async () => {
       const { folder } = await withPupil();
       expect(await folder.list()).toEqual([]);
-      const saved = await folder.write(null, 'The Owl', bytes('first'));
+      const { kept, ...saved } = await folder.write(null, 'The Owl', bytes('first'));
       expect(saved).toMatchObject({ name: 'The Owl', bytes: 5, backups: 0, hasOriginal: false });
+      expect(kept).toEqual([]);
       expect(typeof saved.key).toBe('string');
       expect(Number.isNaN(Date.parse(saved.savedAt))).toBe(false);
       expect(text(await folder.read(saved.key))).toBe('first');
@@ -288,6 +304,141 @@ export function describeClassFoldersContract(
       const { folders, pupil } = await withPupil();
       await folders.removePupil(pupil.id);
       expect(folders.current()).toBeNull();
+    });
+  });
+
+  describe(`${name} keeps each sound once (spec 03 1.4.1)`, () => {
+    const withFolder = async () => {
+      const folders = await make();
+      const pupil = await folders.addPupil('Ava');
+      return { folders, pupil, folder: await folders.open(pupil.id) };
+    };
+
+    it('keeps a sound once, with every version pointing at it', async () => {
+      const { folder } = await withFolder();
+      const owl = await sound('hoot');
+      const saved = await folder.write(null, 'Film', bytes('v1'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      expect(saved.kept).toEqual([owl.name]);
+      // The whole film: the version and its sound.
+      expect(saved.bytes).toBe(2 + 4);
+      expect(text(await folder.readKept(saved.key, owl.name))).toBe('hoot');
+
+      // A later save only names it.
+      const next = await folder.write(saved.key, 'Film', bytes('v22'), {
+        kept: { uses: [owl.name] },
+      });
+      expect(next.kept).toEqual([owl.name]);
+      expect(await folder.kept(saved.key)).toEqual([owl.name]);
+      expect((await folder.list())[0]?.bytes).toBe(3 + 4);
+      expect((await folder.backups(saved.key))[0]?.bytes).toBe(2 + 4);
+      expect(text(await folder.read(saved.key))).toBe('v22');
+    });
+
+    it('skips an add it already keeps, and keeps what was added, whatever the caller does', async () => {
+      const { folder } = await withFolder();
+      const owl = await sound('hoot');
+      const { key } = await folder.write(null, 'Film', bytes('v1'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      owl.bytes[0] = 0;
+      // Its bytes no longer match its name, but the folder has it already, so it isn't read.
+      await folder.write(key, 'Film', bytes('v2'), { kept: { uses: [owl.name], add: [owl] } });
+      const read = await folder.readKept(key, owl.name);
+      expect(text(read)).toBe('hoot');
+      read[0] = 0;
+      expect(text(await folder.readKept(key, owl.name))).toBe('hoot');
+    });
+
+    it('refuses kept files that aren’t right, and writes nothing', async () => {
+      const { folder } = await withFolder();
+      const owl = await sound('hoot');
+      const cat = await sound('miaow', 'wav');
+      const { key } = await folder.write(null, 'Film', bytes('whole'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      const tries: [string, WriteOptions['kept']][] = [
+        ['invalid', { uses: ['sound-1234.mp3'] }],
+        ['invalid', { uses: [owl.name.toUpperCase()] }],
+        ['invalid', { uses: [owl.name.replace('.mp3', '.ogg')] }],
+        ['invalid', { uses: [owl.name], add: [cat] }],
+        ['invalid', { uses: [cat.name], add: [{ name: cat.name, bytes: bytes('purr') }] }],
+        ['not_found', { uses: [owl.name, cat.name] }],
+      ];
+      for (const [code, kept] of tries) {
+        await failsWith(code, () => folder.write(key, 'Film', bytes('half'), { kept }));
+      }
+      expect(text(await folder.read(key))).toBe('whole');
+      expect(await folder.backups(key)).toEqual([]);
+      expect(await folder.kept(key)).toEqual([owl.name]);
+    });
+
+    it('deletes a sound once no version uses it, so the next save must add it again', async () => {
+      const { folder } = await withFolder();
+      const owl = await sound('hoot');
+      const { key } = await folder.write(null, 'Film', bytes('v1'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      // An autosave drops the version it replaces, so nothing uses the sound now.
+      const saved = await folder.write(key, 'Film', bytes('v2'), { backup: false });
+      expect(saved.kept).toEqual([]);
+      expect(await folder.kept(key)).toEqual([]);
+      await failsWith('not_found', () => folder.readKept(key, owl.name));
+      // An Undo brings the sound back: the saver's list says it's gone, so it adds it.
+      await failsWith('not_found', () =>
+        folder.write(key, 'Film', bytes('v3'), { kept: { uses: [owl.name] } }),
+      );
+      await folder.write(key, 'Film', bytes('v3'), { kept: { uses: [owl.name], add: [owl] } });
+      expect(text(await folder.readKept(key, owl.name))).toBe('hoot');
+    });
+
+    it('keeps a sound while a backup still uses it', async () => {
+      const { folder } = await withFolder();
+      const owl = await sound('hoot');
+      const { key } = await folder.write(null, 'Film', bytes('v1'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      const saved = await folder.write(key, 'Film', bytes('v2'));
+      expect(saved.kept).toEqual([owl.name]);
+      expect(saved.bytes).toBe(2);
+      expect((await folder.backups(key))[0]?.bytes).toBe(2 + 4);
+      expect(text(await folder.readKept(key, owl.name))).toBe('hoot');
+    });
+
+    it('reads only a kept file a version uses, and only from its own production', async () => {
+      const { folders, folder } = await withFolder();
+      const owl = await sound('hoot');
+      const { key } = await folder.write(null, 'Film', bytes('v1'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      const other = await folder.write(null, 'Other', bytes('x'));
+      await failsWith('invalid', () => folder.readKept(key, '../meta.json'));
+      await failsWith('invalid', () => folder.readKept(key, 'meta.json'));
+      await failsWith('not_found', () => folder.readKept(other.key, owl.name));
+      await failsWith('not_found', () => folder.kept('missing'));
+      const ben = await folders.open((await folders.addPupil('Ben')).id);
+      await failsWith('not_found', () => ben.readKept(key, owl.name));
+    });
+
+    it('takes a production’s sounds with it to the bin, back, and to a pupil’s folder', async () => {
+      const folders = await make();
+      const device = await folders.openDevice();
+      const owl = await sound('hoot');
+      const { key } = await device.write(null, 'At home', bytes('v1'), {
+        kept: { uses: [owl.name], add: [owl] },
+      });
+      await device.remove(key);
+      expect((await folders.bin())[0]?.bytes).toBe(2 + 4);
+      await folders.restore('device', key);
+      expect(text(await device.readKept(key, owl.name))).toBe('hoot');
+
+      await folders.close();
+      const ava = await folders.addPupil('Ava');
+      await folders.moveDeviceFilms(ava.id);
+      const moved = await folders.open(ava.id);
+      expect(await moved.kept(key)).toEqual([owl.name]);
+      expect(text(await moved.readKept(key, owl.name))).toBe('hoot');
     });
   });
 
