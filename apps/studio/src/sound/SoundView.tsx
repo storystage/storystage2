@@ -19,6 +19,7 @@ import { Button, Dialog } from '@storystage/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { acceptFor } from '../fileInputs.ts';
 import { codeTabs, methodHolding } from '../production/CodeEditor.tsx';
+import type { SceneTiming } from '../production/runTiming.ts';
 import { sceneNumber } from '../storyboard/edits.ts';
 import { words } from '../strings.ts';
 import type { Studio } from '../studio.ts';
@@ -45,6 +46,8 @@ export interface SoundViewProps {
   readonly onGoToBlock: (scene: SceneId, node: NodeId) => void;
   /** The scene open on the stage: its music is on the timeline. */
   readonly scene: SceneId;
+  /** Its last whole Rehearse run, if it has had one: the ruler's length and its sounds. */
+  readonly timing?: SceneTiming | null;
   /** Go to another scene: where music carried in from it is changed. */
   readonly onGoToScene?: ((scene: SceneId) => void) | undefined;
   /** The device's own, unless a test gives others. */
@@ -74,6 +77,7 @@ export function SoundView({
   onAnnounce,
   onGoToBlock,
   scene,
+  timing,
   onGoToScene,
   player: given,
   reading = DEVICE_READING,
@@ -211,6 +215,8 @@ export function SoundView({
         player={player}
         onAnnounce={onAnnounce}
         onGoToScene={onGoToScene}
+        onGoToBlock={(node) => onGoToBlock(scene, node)}
+        timing={timing ?? null}
         onImport={(start) => importFile(start)}
       />
       <h3 className="sd-heading" id="sd-film-title">

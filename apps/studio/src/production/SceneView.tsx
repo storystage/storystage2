@@ -520,7 +520,8 @@ export default function SceneView(props: SceneViewProps) {
         <NeutralNote>{words.t('production.rehearse.next', { heading: state.next })}</NeutralNote>
       )}
       {state.notReached && <NeutralNote>{words.t('production.rehearse.notReached')}</NeutralNote>}
-      {state.missing.length > 0 && (
+      {/* A sound the film hasn't got is its bar's "Missing sound", in the Sound view. */}
+      {state.missing.some((m) => m.kind !== 'sound') && (
         <NeutralNote>{words.t('production.rehearse.missing')}</NeutralNote>
       )}
     </section>

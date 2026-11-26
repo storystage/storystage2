@@ -274,7 +274,11 @@ test('music is added at the playhead, drawn on the timeline and changed by its c
     .click();
 
   const timeline = sound.getByRole('region', { name: 'Scene 1’s music' });
-  await expect(timeline.getByText(/^About \d+ seconds?, from your storyboard\.$/)).toBeVisible();
+  await expect(
+    timeline.getByText(
+      /^About \d+ seconds?, from your storyboard\. Rehearse to see the real timing\.$/,
+    ),
+  ).toBeVisible();
   await timeline.getByRole('textbox', { name: 'Time' }).fill('1');
   await timeline.getByRole('textbox', { name: 'Time' }).press('Enter');
   await timeline.getByRole('button', { name: 'Add music…' }).click();
@@ -385,4 +389,26 @@ test('a cue is dragged by its bar, its handles and its corners, and Esc puts one
   await drag(bar, 1, true);
   await expect(bar).toHaveAccessibleName(/^rain, 2 to 3\.5 seconds/);
   await expect(undoButton(page)).toHaveText('Undo: Fade rain in over 0.6 seconds');
+});
+
+test('a whole Rehearse run gives the timeline its length and its Speech and Sound FX', async ({
+  page,
+}) => {
+  // 07-ux 7.7: the scene's length comes from its last whole run, kept while the studio is open.
+  const sound = await openSound(page);
+  const timeline = sound.getByRole('region', { name: 'Scene 1’s music' });
+  await expect(timeline.getByText('Rehearse to see these.')).toHaveCount(2);
+  const view = page.getByRole('region', { name: 'Scene view' });
+  await view.getByRole('button', { name: 'Rehearse', exact: true }).click();
+  // The example scene is short: it ends, and its last picture stays until Stop.
+  await expect(view.getByRole('button', { name: 'Restart' })).toBeVisible({ timeout: 30_000 });
+  await expect(
+    timeline.getByText(/^\d+(\.\d)? seconds?, from your last Rehearse\.$/),
+  ).toBeVisible();
+  await expect(timeline.getByText('Rehearse to see these.')).toHaveCount(0);
+  // Stop puts the set-up back, and the run's timing stays.
+  await view.getByRole('button', { name: 'Stop' }).click();
+  await expect(
+    timeline.getByText(/^\d+(\.\d)? seconds?, from your last Rehearse\.$/),
+  ).toBeVisible();
 });

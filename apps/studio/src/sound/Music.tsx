@@ -4,8 +4,9 @@
  * the playhead and its Time box; **Add music…**, which starts a cue at the playhead; **Music in
  * this scene**, which chooses a cue without the timeline; and the chosen cue's controls.
  *
- * Until Rehearse reports how long a scene ran and when its sounds played (S3 and S2), the ruler is
- * the storyboard's planned length and Speech and Sound FX say so.
+ * The ruler is the scene's last whole Rehearse run, and Speech and Sound FX are where its speak
+ * lines and sounds played, each a bar that offers Go to the block. Before a run, the ruler is the
+ * storyboard's planned length and says so.
  *
  * A bar drags to move its cue; the chosen bar has a handle at each end of the part it plays and a
  * corner for each fade, each a slider by keys. A drag is drawn as it goes and written as one step
@@ -32,6 +33,8 @@ import { Input, Label, NumberField } from 'react-aria-components';
 import { sceneNumber, sceneSeconds } from '../storyboard/edits.ts';
 import { words } from '../strings.ts';
 import type { Studio } from '../studio.ts';
+import type { NodeId } from '@storystage/ast';
+import type { SceneTiming, TimedSound } from '../production/runTiming.ts';
 import { AddMusic } from './AddMusic.tsx';
 import { CueControls } from './CueControls.tsx';
 import type { FilmSounds } from './filmSounds.ts';
@@ -94,19 +97,32 @@ export interface MusicProps {
   readonly onGoToScene?: ((scene: SceneId) => void) | undefined;
   /** Import a sound…, from Add music…: added, it's placed at `start` in the same step. */
   readonly onImport: (start: number) => void;
+  /** The scene's last whole Rehearse run, if it has had one. */
+  readonly timing?: SceneTiming | null;
+  /** Go to the block: Code, open at the block that played a speak line or a sound. */
+  readonly onGoToBlock?: ((node: NodeId) => void) | undefined;
 }
 
 export function Music(props: MusicProps) {
   const { studio, scene, readOnly, sounds, player, onAnnounce, onGoToScene, onImport } = props;
+  const { timing = null, onGoToBlock } = props;
   const p = studio.production;
   const n = sceneNumber(p, scene);
-  const length: SceneLength = { seconds: sceneSeconds(p, scene), from: 'plan' };
+  const length: SceneLength = timing
+    ? { seconds: timing.timing.length, from: 'run' }
+    : { seconds: sceneSeconds(p, scene), from: 'plan' };
   const [draft, setDraft] = useState<Draft | null>(null);
   // While a drag goes on, the timeline draws it; it's written when let go.
   const shown = draft?.production ?? p;
   const heard = heardMusic(shown, scene, length);
   const [playhead, setPlayhead] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
+  // A speak line's or a sound's bar, chosen in this run's timing: it offers Go to the block. A
+  // cue chosen, or another run, ends it.
+  const played = timing?.timing.sounds ?? [];
+  const [heardChosen, setHeardChosen] = useState<{ sounds: unknown; index: number } | null>(null);
+  const heardIndex = chosen === null && heardChosen?.sounds === played ? heardChosen.index : null;
+  const chosenSound = heardIndex !== null ? (played[heardIndex] ?? null) : null;
   const [adding, setAdding] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [zoom, setZoom] = useState<number | null>(null);
@@ -348,7 +364,13 @@ export function Music(props: MusicProps) {
       <h3 className="sd-heading" id="sd-timeline-title">
         {words.t('sound.timeline.title', { n: String(n) })}
       </h3>
-      <p className="sd-note">{words.plural('sound.timeline.plan', length.seconds)}</p>
+      <p className="sd-note">
+        {words.plural(
+          length.from === 'run' ? 'sound.timeline.run' : 'sound.timeline.plan',
+          tenth(length.seconds),
+        )}
+      </p>
+      {timing?.changed && <p className="sd-note">{words.t('sound.timeline.changed')}</p>}
       <div className="sd-tl-tools">
         <Button
           variant="quiet"
@@ -425,9 +447,20 @@ export function Music(props: MusicProps) {
                   <span className="sd-length">{percent(mix[track])}</span>
                 </div>
                 {track !== 'music' ? (
-                  <div className="sd-tl-lane" style={{ width: lane }}>
-                    <p className="sd-note sd-tl-untimed">{words.t('sound.timeline.untimed')}</p>
-                  </div>
+                  <HeardTrack
+                    name={name}
+                    width={lane}
+                    px={px}
+                    timed={timing !== null}
+                    sounds={played}
+                    kind={track === 'speech' ? 'speech' : 'sound'}
+                    chosen={heardIndex}
+                    nameOf={(s) => heardName(p, s)}
+                    onChoose={(i) => {
+                      setChosen(null);
+                      setHeardChosen({ sounds: played, index: i });
+                    }}
+                  />
                 ) : (
                   <ul
                     ref={musicList}
@@ -534,6 +567,20 @@ export function Music(props: MusicProps) {
           <div className="sd-playhead" aria-hidden="true" style={{ left: HEAD + playhead * px }} />
         </div>
       </div>
+      {chosenSound && (
+        <div className="sd-heard-chosen">
+          <p>{heardWords(chosenSound, heardName(p, chosenSound))}</p>
+          {onGoToBlock && (
+            <Button
+              variant="secondary"
+              icon="arrow_forward"
+              onPress={() => onGoToBlock(chosenSound.node)}
+            >
+              {words.t('sound.goToBlock')}
+            </Button>
+          )}
+        </div>
+      )}
       {heard.carried && (
         <div className="sd-carried">
           <p>{words.t('sound.cue.carried', { name: carriedName, n: String(carriedFrom) })}</p>
@@ -660,6 +707,73 @@ function gripLabel(grip: CueGrip, cue: MusicCue, name: string, scene: number): s
 }
 
 /** A bar's name: the sound, when it's heard, and what it does. */
+/** A speak line by its words; a sound by its name, from the film or its own. */
+function heardName(p: Production, s: TimedSound): string {
+  if (s.kind === 'speech') return words.t('sound.heard.line', { text: s.text ?? '' });
+  if (s.missing) return words.t('sound.missing');
+  const clip = p.manifest.sounds?.find((c) => c.id === s.ref);
+  return clip?.label ?? (s.ref ?? '').split('/').at(-1)!.replaceAll('-', ' ');
+}
+
+/** A speak line's or sound's bar, said: what it is and when it played. */
+function heardWords(s: TimedSound, name: string): string {
+  return s.length > 0
+    ? words.t('sound.heard.bar', {
+        name,
+        start: String(tenth(s.start)),
+        end: String(tenth(s.start + s.length)),
+      })
+    : words.t('sound.heard.at', { name, start: String(tenth(s.start)) });
+}
+
+/** Speech or Sound FX: a bar for each that played in the last whole run, to choose. */
+function HeardTrack(props: {
+  readonly name: string;
+  readonly width: number;
+  readonly px: number;
+  readonly timed: boolean;
+  readonly sounds: readonly TimedSound[];
+  readonly kind: TimedSound['kind'];
+  readonly chosen: number | null;
+  readonly nameOf: (s: TimedSound) => string;
+  readonly onChoose: (index: number) => void;
+}) {
+  const { name, width, px, timed, sounds, kind, chosen, nameOf, onChoose } = props;
+  const here = sounds.flatMap((s, index) => (s.kind === kind ? [{ s, index }] : []));
+  if (!timed || here.length === 0)
+    return (
+      <div className="sd-tl-lane" style={{ width }}>
+        <p className="sd-note sd-tl-untimed">
+          {words.t(timed ? 'sound.timeline.noneRun' : 'sound.timeline.untimed')}
+        </p>
+      </div>
+    );
+  return (
+    <ul className="sd-tl-lane sd-tl-heard" aria-label={name} style={{ width }}>
+      {here.map(({ s, index }) => (
+        <li
+          key={index}
+          className="sd-heard-slot"
+          style={{ left: s.start * px, width: Math.max(8, s.length * px) }}
+        >
+          <button
+            type="button"
+            className="sd-heard"
+            aria-pressed={chosen === index}
+            data-missing={s.missing || undefined}
+            aria-label={heardWords(s, nameOf(s))}
+            onClick={() => onChoose(index)}
+          >
+            <span className="sd-cue-name" aria-hidden="true">
+              {nameOf(s)}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function barWords(h: HeardCue, name: string, missing: boolean): string {
   const parts = [
     words.t('sound.cue.bar', {
