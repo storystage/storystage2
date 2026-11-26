@@ -81,6 +81,7 @@ import {
   eventSettings,
   listenerFits,
   mismatch,
+  stepKeys,
   targetOf,
   unplanned,
   WORDED,
@@ -1627,7 +1628,20 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     // default. The plan check has read each value.
     for (const d of step?.details ?? []) {
       const type = DETAILS[d.name]?.type;
-      if (eventSettings(event).includes(d.name) && type)
+      if ((d.name === 'keys' || d.name === 'key') && step && event.details.includes('keys')) {
+        // Which keys, as a list of Key (spec 02, section 6a).
+        details.keys = {
+          id: mint(),
+          kind: 'arrayOf',
+          of: story('Key'),
+          items: (stepKeys(step) ?? []).map((value) => ({
+            id: mint(),
+            kind: 'enum',
+            type: 'Key',
+            value,
+          })),
+        };
+      } else if (eventSettings(event).includes(d.name) && type)
         details[d.name] = { id: mint(), kind: 'enum', type, value: d.value };
     }
     const clicked = event.details.includes('setOfVisuals') ? (lists[0] ?? []) : [];

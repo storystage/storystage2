@@ -289,10 +289,25 @@ function codeCheck(check: EvalCheck, run: RowRun): Result {
     }
     case 'event_listener': {
       const was = new Set(sceneType(before, scene)?.listeners.map((l) => l.id));
-      const has = (sceneType(after, scene)?.listeners ?? []).some(
+      // With `keys`, the listener is for exactly those keys (spec 02, section 6a).
+      const wanted = Array.isArray(check.keys) ? (check.keys as string[]) : null;
+      const keysOf = (l: { details: Record<string, Expression> }) => {
+        const set = l.details['keys'];
+        return set?.kind === 'arrayOf'
+          ? set.items.flatMap((k) => (k.kind === 'enum' ? [k.value] : []))
+          : null;
+      };
+      const fits = (l: { details: Record<string, Expression> }) => {
+        if (!wanted) return true;
+        const keys = keysOf(l);
+        return !!keys && keys.length === wanted.length && wanted.every((k) => keys.includes(k));
+      };
+      const found = (sceneType(after, scene)?.listeners ?? []).filter(
         (l) => !was.has(l.id) && eventKinds(check).includes(l.event),
       );
-      return result(has);
+      const has = found.some(fits);
+      const keys = found.map((l) => keysOf(l)?.join(', ') ?? 'any key');
+      return result(has, wanted ? `for ${keys.join('; ') || 'no listener'}` : '');
     }
     case 'narrated_steps': {
       const n = run.entries.filter((e) => e.kind === 'change' && e.text.trim() !== '').length;

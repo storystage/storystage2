@@ -929,18 +929,22 @@ Section 6.4 holds an event's objects and number to its step. Three more things:
 
 - **An event's settings are its own, as the catalogue lists them for it** (spec 02, section 6): its `details` without `setOfVisuals`, which is its objects (6.4).
   - `sceneStart` and `moveWithArrowKeys` take none.
-  - The three key events take `heldKeyPolicy` and `multipleEventPolicy`.
+  - The three key events take `keys`, `heldKeyPolicy` and `multipleEventPolicy` (Story API 0.12.0).
   - Every other event takes only `multipleEventPolicy`.
 
   A when step's setting is built as the listener's detail, its value checked against the setting's own choices (`HeldKeyPolicy`, `MultipleEventPolicy`). One the step doesn't give is left out, so it's the default: `fireMultiple` and `ignore`. Before, they were dropped without a word (S6, 23 Nov).
 - **An event's number is one of its inputs, not a setting:** `distance` on `proximityEnter` and `proximityExit`, and `seconds` on `timer`. A step gives it as a detail of that name (event-04 gives `distance`), and it's built as the listener's argument, as now.
 - **Anything else on a when step is refused at the plan:** a detail that is none of the event's settings, its number or its key. "A clickOnObject event has no heldKeyPolicy setting." The 11 kept plans with a when step give only a number and a key.
-- **Which keys,** once spec 02 section 6a is built (S6 in the catalogue, S2 in the runtime):
-  - a when step's `keys` (or `key`) detail is built as the listener's `keys`, and an empty one is refused at the plan;
+- **Which keys** (spec 02 section 6a; built on 26 Nov 2026, on S6's Story API 0.12.0):
+  - a when step's `keys` (or `key`) detail, a list of Key names such as "space" or "w, up", is built as the listener's `keys`: a list of `Key` in the step's order;
   - for `numberKeyPress`, "number 3" or "3" is `digit3`;
-  - `arrowKeyPress` takes only `up`, `down`, `left` and `right`, and any other key is refused at the plan, as 6a rule 2 says.
+  - a key is read by its name in any case ("Space", "W") or by its own words ("up arrow", "space bar"), so Claude needn't retry for those (S6's review);
+  - `arrowKeyPress` takes only `up`, `down`, `left` and `right`, and `numberKeyPress` only `digit0` to `digit9`, as the catalogue lists each event's keys (`EventDef.keys`), and any other is refused at the plan, as 6a rule 2 says;
+  - refused at the plan too: an empty list, which would never run, a name that isn't a `Key`, a key named twice, and both `key` and `keys` on one step;
+  - a step with neither builds a listener for any key, as before;
+  - the step's `details` description in the tools tells Claude so. The events in the catalogue text don't list their settings, which is S6's to change if wanted.
 
-  **Until then,** a when step's `key` passes the plan and builds nothing: "When I press space" runs for every key, as it does today, and the plan's why can say so (event-03 did). None of the paid rerun's rows has a key, so the owner chose (23 Nov) not to wait for `keys`: it runs once this section is built, and event-03 gets a rerun of its own once `keys` is.
+  **What the runtime does** is S2's (6a): until it's built, a listener with `keys` still runs for every key, though the program and its words say which. The owner chose (23 Nov) not to hold the paid rerun for keys. event-03, which now wants a listener for space alone, reruns with own-03 and own-06 once the runtime is built.
 
 #### Plan only (6.6)
 

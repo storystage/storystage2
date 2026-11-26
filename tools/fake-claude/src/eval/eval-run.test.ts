@@ -302,6 +302,41 @@ describe('running and scoring a row (docs/eval/README.md)', () => {
     });
   });
 
+  it("wants event-03's listener for space alone (spec 02, section 6a)", async () => {
+    const row = rowById('event-03');
+    const pressed = (keys: string | null) =>
+      run(row, [
+        testReply([
+          use('p1', 'propose_plan', {
+            steps: [
+              step({
+                words: 'When you press the space bar.',
+                kind: 'when',
+                actor: 'scene',
+                action: 'keyPress',
+                target: '',
+                details: keys === null ? [] : [{ name: 'keys', value: keys }],
+              }),
+            ],
+          }),
+        ]),
+        text("Here's my plan."),
+        testReply([
+          use('l1', 'add_event_listener', {
+            event: 'keyPress',
+            objects: [],
+            other_objects: [],
+            narration: 'A new block waits for the space bar.',
+            plan_step: 1,
+          }),
+        ]),
+        text('Done.'),
+      ]);
+    expect(byCheck((await pressed('space')).scores).event_listener).toBe(true);
+    expect(byCheck((await pressed(null)).scores).event_listener).toBe(false);
+    expect(byCheck((await pressed('space, enter')).scores).event_listener).toBe(false);
+  });
+
   it('wants a comment for each block step only: an add step puts no block in the method', async () => {
     const row = rowById('plan-02');
     const plan = [

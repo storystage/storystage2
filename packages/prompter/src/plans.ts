@@ -173,7 +173,51 @@ export function eventSettings(event: NonNullable<ReturnType<typeof findEvent>>):
   return event.details.filter((d) => d !== 'setOfVisuals');
 }
 
-const KEY_EVENTS: ReadonlySet<string> = new Set(['keyPress', 'arrowKeyPress', 'numberKeyPress']);
+/** Whether an event says which keys it's for, as the catalogue lists it (spec 02, section 6a). */
+const keyed = (event: NonNullable<ReturnType<typeof findEvent>>) => event.details.includes('keys');
+
+/**
+ * A key as a step names it, as its Key value: by its name in any case ("Space", "W"), or by its
+ * own words ("up arrow", "space bar"; S6's review). A digit is its number key, so "3" and
+ * "number 3" are digit3. One that is none of these is left as it's given, to be refused.
+ */
+function keyValue(given: string): string {
+  const digit = /^(?:number\s+)?([0-9])$/i.exec(given);
+  if (digit) return `digit${digit[1]}`;
+  const plain = given.toLowerCase().replace(/\s+/g, ' ');
+  return (
+    enumValues('Key').find(
+      (v) => v.toLowerCase() === plain || word(`value.Key.${v}`).toLowerCase() === plain,
+    ) ?? given
+  );
+}
+
+/**
+ * The keys a key event's when step is for, as Key values, or null for any key (spec 02, section
+ * 6a; spec 04, section 6.10): its `keys` setting, or `key`, a list such as "space" or "w, up".
+ */
+export function stepKeys(step: PlanStep): string[] | null {
+  const given = step.details.find((d) => d.name === 'keys' || d.name === 'key');
+  return given ? listItems(given.value).map(keyValue) : null;
+}
+
+/** Why a key event's keys can't be built, or null (spec 02, section 6a). */
+function keysProblem(
+  step: PlanStep,
+  event: NonNullable<ReturnType<typeof findEvent>>,
+): string | null {
+  const keys = stepKeys(step) ?? [];
+  if (keys.length === 0)
+    return `Say which keys a ${step.action} event is for, or leave keys out for any key.`;
+  const own = event.keys ?? enumValues('Key');
+  const other = keys.find((k) => !own.includes(k));
+  if (other !== undefined)
+    return event.keys
+      ? `A ${step.action} event isn't for ${other}: it's for ${event.keys.join(', ')}.`
+      : `${other} isn't a key. Use a Key name, such as space or w.`;
+  const twice = keys.find((k, i) => keys.indexOf(k) !== i);
+  return twice === undefined ? null : `A ${step.action} event names ${twice} twice.`;
+}
 
 /** Why a when step's detail isn't one its event takes, or null (section 6.10). */
 function eventDetailProblem(
@@ -184,9 +228,16 @@ function eventDetailProblem(
   const numbers = event.args.filter((a) => a.type === 'Number').map((a) => a.name);
   for (const { name, value } of step.details) {
     if (numbers.includes(name)) continue;
-    // Which key, until spec 02 section 6a is built: it passes, and builds nothing.
-    if ((name === 'key' || name === 'keys') && KEY_EVENTS.has(step.action)) continue;
-    if (!settings.includes(name)) return `A ${step.action} event has no ${name} setting.`;
+    // `key` is `keys` by another name, as Claude has written it (spec 04, section 6.10).
+    const keys = name === 'key' && keyed(event) ? 'keys' : name;
+    if (!settings.includes(keys)) return `A ${step.action} event has no ${name} setting.`;
+    if (keys === 'keys') {
+      if (step.details.filter((d) => d.name === 'key' || d.name === 'keys').length > 1)
+        return `A ${step.action} event says which keys once, as keys.`;
+      const keys = keysProblem(step, event);
+      if (keys) return keys;
+      continue;
+    }
     const type = DETAILS[name]?.type;
     if (type && isEnumName(type) && !enumValues(type).includes(value))
       return `A ${step.action} event's ${name} can't be ${value}.`;
@@ -625,8 +676,17 @@ export function listenerFits(
     const value = given && 'value' in given ? Number(given.value) : NaN;
     if (value !== stepNumber(step)) return false;
   }
+  // The keys a step gives are the listener's, as one set, in any order. A listener without keys
+  // runs for every key, so it isn't for space; keys a step doesn't give aren't asked for (6.10).
+  const keys = keyed(event) ? stepKeys(step) : null;
+  if (keys) {
+    const set = listener.details['keys'];
+    const built =
+      set?.kind === 'arrayOf' ? set.items.flatMap((k) => (k.kind === 'enum' ? [k.value] : [])) : [];
+    if (built.length !== keys.length || keys.some((k) => !built.includes(k))) return false;
+  }
   for (const d of step.details) {
-    if (!eventSettings(event).includes(d.name)) continue;
+    if (!eventSettings(event).includes(d.name) || d.name === 'keys') continue;
     const set = listener.details[d.name];
     const value = set?.kind === 'enum' ? set.value : String(DETAILS[d.name]?.default ?? '');
     if (value !== d.value) return false;

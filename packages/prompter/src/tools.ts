@@ -133,7 +133,7 @@ const PLAN_STEP = object({
   ),
   details: list(
     nameValue,
-    'For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words.',
+    'For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words. For when, the number an event needs, and its settings: a key event gives keys, the keys it is for by Key name ("space", or "w, up"), or none for any key.',
   ),
   line: text('The script line id this step says or follows, or "" for none.'),
   sketch: text('The placed sketch id this step comes from, or "" for none.'),
