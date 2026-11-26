@@ -113,12 +113,33 @@ A `ProductionSaver` holds one open production's saves:
 
 **Open** reads from the pupil's folder (`openFromFolder`) or from a file the learner picks (`openFromPicker`). Either way the bytes go through `openProduction` (section 1.0): a picked file is untrusted (threat PS5). **Save a copy** (`saveCopy`) suggests a name made from the title that works on every system.
 
+#### 1.4.1 Sounds kept once
+
+**Specced, not built yet** (the owner's choice of 25 Nov 2026, after S8's storage findings; S4 leads, S8 has the folder's side, S5 the studio's). Today each save writes the whole film and the folder keeps `BACKUPS_KEPT` earlier versions (spec 05 section 6.3), so a film with 150 MB of imported sound takes about 0.9 GB. Instead, **each imported sound is kept once in the film's own folder, and every version points at it.**
+
+1. **A kept sound is named by its bytes:** `sound-<the first 32 hex digits of its SHA-256>.<type>`, such as `sound-3f2a…c9.mp3`: 42 characters, a safe part (spec 05 section 6.1). Two clips with the same bytes are one file, and the same file imported again after an undo is the file already there. A kept file is never overwritten, because its name is its bytes.
+2. **A version in the folder is the film without its sounds.** It is the `.storystage` that `saveProduction` gives, but with no `sounds/` entries, and one more entry, `kept-sounds.json`: `{ "version": 1, "sounds": { "<clip file>": "<kept name>" } }` for each clip in `manifest.sounds`. So an autosave packs and writes a few hundred kilobytes, not the sounds again. The limits are the whole film's: a save that `ARCHIVE_LIMITS` or `FILE_LIMIT` would refuse as a whole film is refused here too, so Save a copy always fits.
+3. **A save writes only the sounds the folder doesn't have yet** (S5's question). The studio still keeps every imported sound's bytes in `FilmSounds` while the film is open, so Undo and Redo work across a save (07-ux section 7.7), and still hands them all to every save. `ProductionSaver` asks the folder once which kept files the production has, keeps that list up to date from each save, and passes bytes only for the ones missing. A sound no version uses any more is deleted by the save that stops listing it (spec 05 section 6.3, step 3), as a stray version file is.
+4. **Opening from the folder puts the sounds back.** `openFromFolder` reads the version, reads each kept file it names, checks each file's SHA-256 against its name, and opens the whole film as section 1.0 does, with every check the same. A backup is opened the same way, from its own list. A kept file that's missing or doesn't match makes that version damaged, in the same plain words. Only the folder deletes kept files, and never one a version lists, so that means something outside StoryStage changed the folder.
+5. **Whole films leave the folder.** Save a copy, Collect (section 1.5) and the export each get the whole film: the version's entries with its sounds put back as `sounds/<clip file>`, and `kept-sounds.json` left out. These are the same bytes that `saveProduction` gives for the same production. **Save a copy to another folder** writes one whole `.storystage`, which shares nothing and opens anywhere. A file someone picks is always checked as a whole film (threat PS5). If it holds `kept-sounds.json`, that entry is ignored as any unknown entry is, and its missing sounds make it damaged.
+6. **Films never share sounds with each other.** Kept files are in the production's own folder (`pupils/<pupil id>/<key>/`). So a new production writes all its sounds once into its own folder, whether it's a first save or a Hand back. Removing, binning, restoring or moving a film (`moveDeviceFilms`) takes its kept files with it, and never touches another film's.
+7. **A crash is safe.** Kept files are written, each atomically, before the version and `meta.json` (spec 05 section 6.3). A crash before `meta.json` is replaced leaves stray kept files, which the next save deletes. The original of a migrated production (section 1.2) is kept whole, as it was.
+8. **Whole films don't change, so the format version doesn't either.** `kept-sounds.json` is only ever in a pupil's folder. A version saved this way, opened by an older build on the same device, is damaged there, because its sounds are missing. A film saved as a copy opens in any build that reads its format.
+
+**What the folder needs** (`packages/host`, S8's; a `contract` change reviewed by S4 and S8):
+- `PupilFolder.kept(key)`: the names of the production's kept files.
+- `PupilFolder.readKept(key, name)`: one kept file's bytes.
+- `WriteOptions.kept`: `{ uses, add }`. `uses` gives the names this version points at, and `add` gives `{ name, bytes }` for those the folder lacks. A name that isn't a kept name, or one in `uses` that's neither there nor added, is `invalid`, and nothing is written.
+- **`meta.json` lists each version's kept files** (`current` and each backup gain `kept`). Step 3 keeps every file a listed version uses.
+- **`ProductionInfo.bytes` is the whole film's size,** the version and its kept files, so the list shows what Save a copy would write.
+- **Nothing new for the native layer:** kept files are ordinary files under the same five commands.
+
 ### 1.5 Collect and Hand back
 
 At the end of a unit, the teacher **collects** every pupil's productions into a folder they pick, one folder per pupil, and later **hands back** marked work from the same layout (decision 0065; `collect.ts`). They read each pupil's folder with `ClassFolders.folder(id)`, which doesn't change the current pupil, so autosave keeps writing where it was.
 
 1. **Names the teacher sees:** each pupil's folder is their name, made safe for every system (`plainName`, the host's `safeFileName` rules). Two pupils with the same name get "Sam" and "Sam (2)", in class-list order, ignoring case, so Hand back finds the same pupil again. Productions with the same title in one folder get "Pip" and "Pip (2)".
-2. **Collect copies each production as saved,** byte for byte.
+2. **Collect copies each production as saved,** byte for byte. Once sounds are kept once (section 1.4.1), Collect writes each as a whole film, with its sounds put back. These are the same bytes as a whole-film save of that version.
 3. **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5). It writes each good one into its pupil's folder as a new production called "<title> (handed back)", so it never overwrites the pupil's own work. The title is shortened to make room, so the whole name fits the host's 80 characters (`fitName`); so is any title a save writes. A file that fails, or whose folder names no pupil, is skipped, and the teacher sees why in plain words.
 
 ### 1.6 Voices
