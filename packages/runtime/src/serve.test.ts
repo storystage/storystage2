@@ -570,6 +570,102 @@ describe('events', () => {
     expect(await run([l], [key('a')])).toEqual([]);
   });
 
+  describe('which keys (spec 02 section 6a)', () => {
+    const keys = (...values: string[]): Args => ({
+      keys: {
+        id: id(),
+        kind: 'arrayOf',
+        of: { kind: 'story', name: 'Key' },
+        items: values.map((value) => ({ id: id(), kind: 'enum', type: 'Key', value })),
+      },
+    });
+    /** So a second key isn't ignored while the first one's handler runs. */
+    const combine: Args = {
+      multipleEventPolicy: {
+        id: id(),
+        kind: 'enum',
+        type: 'MultipleEventPolicy',
+        value: 'combine',
+      },
+    };
+
+    it('runs a keyPress listener only for a key in its list', async () => {
+      const k = param('key');
+      const l = listener('keyPress', [say(of(CAT), ref(k))], {
+        details: keys('space'),
+        params: [k],
+      });
+      expect(await run([l], [key('a'), key('space'), key('b')])).toEqual(['0:cat space']);
+    });
+
+    it('takes several keys, and tells the handler which was pressed', async () => {
+      const k = param('key');
+      const l = listener('keyPress', [say(of(CAT), ref(k), 0.1)], {
+        details: { ...keys('w', 'up'), ...combine },
+        params: [k],
+      });
+      expect(await run([l], [key('a'), key('w'), key('up'), key('s')])).toEqual([
+        '0:cat w',
+        '0:cat up',
+      ]);
+    });
+
+    it('keeps an arrow listener to its arrows', async () => {
+      const move = param('moveDirection');
+      const l = listener('arrowKeyPress', [say(of(CAT), ref(move))], {
+        details: keys('left'),
+        params: [move],
+      });
+      expect(await run([l], [key('up'), key('right'), key('left')])).toEqual(['0:cat left']);
+    });
+
+    it('keeps a number listener to its number keys', async () => {
+      const p = param('number');
+      const l = listener('numberKeyPress', [say(of(CAT), ref(p))], {
+        details: keys('digit3'),
+        params: [p],
+      });
+      expect(await run([l], [key('digit7'), key('digit3')])).toEqual(['0:cat 3']);
+    });
+
+    it('never runs a listener whose list is empty', async () => {
+      const press = listener('keyPress', [say(of(CAT), text('key'))], { details: keys() });
+      const arrow = listener('arrowKeyPress', [say(of(CAT), text('arrow'))], { details: keys() });
+      const number = listener('numberKeyPress', [say(of(CAT), text('number'))], {
+        details: keys(),
+      });
+      expect(
+        await run([press, arrow, number], [key('a'), key('space'), key('up'), key('digit1')]),
+      ).toEqual([]);
+    });
+
+    it('runs for every key the event is for without the detail, as before', async () => {
+      const l = listener('keyPress', [say(of(CAT), text('key'), 0.1)], { details: combine });
+      expect(await run([l], [key('a'), key('space')])).toHaveLength(2);
+    });
+
+    it('applies heldKeyPolicy to each key in the list', async () => {
+      const k = param('key');
+      const l = listener('keyPress', [say(of(CAT), ref(k), 0.1)], {
+        details: {
+          ...keys('w', 'up'),
+          ...combine,
+          heldKeyPolicy: {
+            id: id(),
+            kind: 'enum',
+            type: 'HeldKeyPolicy',
+            value: 'fireOnceOnPress',
+          },
+        },
+        params: [k],
+      });
+      // Each listed key fires once while held; the unlisted one never does.
+      expect(
+        await run([l], [key('w'), key('w'), key('a'), key('up'), key('up'), key('w')]),
+      ).toEqual(['0:cat w', '0:cat up']);
+    });
+  });
+
   it('moves an object with the arrow keys', async () => {
     const l = listener('moveWithArrowKeys', [], { args: { object: of(CAT) } });
     const w = await started(program([], [l]));
