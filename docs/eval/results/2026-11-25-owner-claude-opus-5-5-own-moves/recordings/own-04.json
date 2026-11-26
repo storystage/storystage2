@@ -1,0 +1,299 @@
+{
+  "id": "own-04",
+  "source": "recorded",
+  "note": "Live run of own-04, for replay. Valid only for the system prompt and tools that made it.",
+  "turns": [
+    {
+      "events": [
+        {
+          "type": "message_start",
+          "message": {
+            "model": "claude-opus-5-5",
+            "id": "msg_011ChRNCyB3ftRUmU4pH8VmH",
+            "type": "message",
+            "role": "assistant",
+            "content": [],
+            "container": null,
+            "stop_reason": null,
+            "stop_sequence": null,
+            "stop_details": null,
+            "usage": {
+              "input_tokens": 2,
+              "cache_creation_input_tokens": 33262,
+              "cache_read_input_tokens": 0,
+              "cache_creation": {
+                "ephemeral_5m_input_tokens": 33262,
+                "ephemeral_1h_input_tokens": 0
+              },
+              "output_tokens": 8,
+              "service_tier": "standard",
+              "inference_geo": "global",
+              "speed": "standard"
+            },
+            "diagnostics": null
+          }
+        },
+        {
+          "type": "content_block_start",
+          "index": 0,
+          "content_block": {
+            "type": "thinking",
+            "thinking": "",
+            "signature": ""
+          }
+        },
+        {
+          "type": "ping"
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "thinking_delta",
+            "thinking": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 0,
+          "delta": {
+            "type": "signature_delta",
+            "signature": "CAQSqAYKEAgUGAI4AUIIdGhpbmtpbmcSDLbb9A9Mh5lGEI2YpxoM+X3vbOtaCvATFBjZIjACUDQqSJ/aO6FsoSjU7qNhdzU2g1FGn+y4eRiuKfxfHLIFmRg2R1zKRC3eYxJMayYqxQWkFgfAED6E0Pxxkj94MfHv6WJrT1ZGdM2TCsFauIK3cM0xj0zJr99ViwMqLy4XiZCdEunYx5SC1koHgY7l0UdMt3ugggVoESBRCQ+KKFMKCaJrEF3dxbKpjoDa3svN7OfJVnw9QRlN1hXYcyTCBwwDYm+vf5w0rf3mMpEtBYl1tKySCRWWZ1fNW1u8cpFLj/4FFzY95lCPDMc7F2nfoTZ8Gl6Er6E4oirsIFHsKA/jWUtu/Ia8CBqav5fBdgmoGyGjMK+724rICluCT/dxx2rHbi3z3ef/PMMMmZJNySpDoMfQcMR6zBYJwFQSo8sjZPaems5Vj5f/68vTXjzcMIJELvp8vOAIBGOFxBhRQlJFZkbslow89jD6TtlQvJVaxZb2rltA2ShUZXnjCeXnYkb7v9xyxwuLPcOQPfk98zag5TQCm0Z/sn4/K+UExakBxwOadxET8ZQOkQJO+r4lFbl05CUYaDD5j3So+DKQV3lnRLzT7j9qog4Ji6gSERBF1j40SWwLx/1OM14eFxiN8oDdGGnhWaTUycbHhmyBJrhGK4J9JGMq54ye+Bktfiq8MaHlY/i5Smz8OPJiyH5socm2XRR7h7lb+Icp9OtMIaV0jTrD4zqEz0GyC+MsfIGDS0r6rz2iARghcEWUANalqGURHtcHJWhF/8KAm8x6T2cC8y6QGpVZi7RuYCbhip/LOhiuOh4zWi4XWq3hD9T3DApXDmc/YBpOFHM9RC84rU9GeifTFNMVKb0VnYsULEt+XaK3QakxjhbT1omM9nlm/II3C77rhPAuzNno3QWmVUnhLAbh3CkthNJUEYIdDoYNPYURYrw7x2fayzm55l/4+GB7xKcOv9SGVi2lR6vXeRZM6CxZh9aAD0iTIg7NK48zymOJtR1YvY7odffWrskzCuxhyGlpbBpPCCy6yQa6He0iyFOKkG8FGAE="
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 0
+        },
+        {
+          "type": "content_block_start",
+          "index": 1,
+          "content_block": {
+            "type": "tool_use",
+            "id": "toolu_01QRMYYBoAxjHrWHTnmRDqog",
+            "name": "explain",
+            "input": {},
+            "caller": {
+              "type": "direct"
+            }
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "{\"text\": \"I loo"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "ked for a moonwalk"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " move in your code, but"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " it isn't there y"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "et. Your fox has"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " a greet move. Your pen"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "guins have a waddle move"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": ". Your scene has a big"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " finish move. You can make a"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " moonwalk move for"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the fox in the Code edit"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "or. Then"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " I can help"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " you use it. Or"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " would you like the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " fox to do something with"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " the"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": " moves it already has?"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "\", \"highlight\": [\"fox\""
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "]"
+          }
+        },
+        {
+          "type": "content_block_delta",
+          "index": 1,
+          "delta": {
+            "type": "input_json_delta",
+            "partial_json": "}"
+          }
+        },
+        {
+          "type": "content_block_stop",
+          "index": 1
+        },
+        {
+          "type": "message_delta",
+          "delta": {
+            "stop_reason": "tool_use",
+            "stop_sequence": null,
+            "stop_details": null,
+            "container": null
+          },
+          "usage": {
+            "input_tokens": 2,
+            "cache_creation_input_tokens": 33262,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 266,
+            "output_tokens_details": {
+              "thinking_tokens": 87
+            },
+            "iterations": [
+              {
+                "input_tokens": 2,
+                "output_tokens": 266,
+                "cache_read_input_tokens": 0,
+                "cache_creation_input_tokens": 33262,
+                "cache_creation": {
+                  "ephemeral_5m_input_tokens": 33262,
+                  "ephemeral_1h_input_tokens": 0
+                },
+                "type": "message",
+                "model": null
+              }
+            ]
+          }
+        },
+        {
+          "type": "message_stop"
+        }
+      ]
+    }
+  ]
+}
