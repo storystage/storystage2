@@ -16,6 +16,7 @@ import {
   type JointName,
   type Micros,
   type ObjectId,
+  type Quat,
   type SceneSetup,
   type StageCommand,
   type StageEvent,
@@ -36,12 +37,16 @@ import type {
   Missing,
   ObjectChange,
   Picked,
+  PoseEvent,
+  PoseHandle,
   Speech,
   ViewStep,
 } from '../contract.ts';
+import { reachTurns } from '../ik.ts';
+import { POSE_HANDLES, limbOf, poleFor } from '../posing.ts';
 import { MARKER_BOX, boxPoints, groundPoint, inViewOf, rayHitsBox, viewRay } from '../editing.ts';
 import type { Box } from '../hull.ts';
-import { length, sub, v } from '../math.ts';
+import { conjugate, length, mul, sub, v } from '../math.ts';
 import { orbitFrom, orbitStep, orbitView, stepCamera } from '../orbit.ts';
 import { checkPictureSize } from '../picture.ts';
 import { Timeline, hashState, standInShape, type Touching } from '../timeline.ts';
@@ -85,6 +90,16 @@ export class FakeStage implements EditableStage {
   /** How many loads have been asked for: the newest wins. */
   private loads = 0;
   private chosenTarget: EditTarget | null = null;
+  private readonly poseListeners = new Set<(e: PoseEvent) => void>();
+  private posing: ObjectId | null = null;
+  /** A live `dragPose`'s object and its pose before the drag, for `cancelDrag`. */
+  private dragging: { object: ObjectId; start: { readonly [joint: JointName]: Quat } } | null =
+    null;
+  /** The last `posedReaching` for each object and handle: its target and the pose it gave. */
+  private readonly reached = new Map<
+    string,
+    { target: Vec3; joints: { readonly [joint: JointName]: Quat } }
+  >();
   /** Look around's camera while it's on. */
   private around: Transform | null = null;
   private editListeners = new Set<(e: EditEvent) => void>();
@@ -111,6 +126,7 @@ export class FakeStage implements EditableStage {
   /** Loads may overlap: the newest call wins, and an older one settles without taking over. */
   async load(setup: SceneSetup, options?: LoadOptions): Promise<void> {
     this.record('load', options ? [setup, options] : [setup]);
+    this.dragging = null;
     const ticket = ++this.loads;
     // What it can't find shows as a stand-in, and the scene plays on (spec 03 section 1.3).
     const known = this.options.knownModels;
@@ -222,6 +238,7 @@ export class FakeStage implements EditableStage {
     this.listeners.clear();
     this.editListeners.clear();
     this.tapListeners.clear();
+    this.poseListeners.clear();
   }
 
   editing(on: boolean): void {
@@ -268,6 +285,116 @@ export class FakeStage implements EditableStage {
     this.chosenTarget = target;
   }
 
+  poseHandles(object: ObjectId): readonly PoseHandle[] {
+    if (!this.objects().includes(object)) return [];
+    return POSE_HANDLES.filter((handle) => {
+      const { root, middle, end } = limbOf(handle);
+      return [root, middle, end].every((joint) => this.timeline.restPlace(object, joint));
+    });
+  }
+
+  showPoseHandles(object: ObjectId | null): void {
+    this.record('showPoseHandles', [object]);
+    if (object !== null && !this.has({ object }))
+      throw new StageError('unknown_object', `There is nothing called ${object} in this scene.`);
+    this.posing = object;
+  }
+
+  /** The object whose pose handles are shown, for a test. */
+  posingNow(): ObjectId | null {
+    return this.posing;
+  }
+
+  onPose(listener: (event: PoseEvent) => void): () => void {
+    this.poseListeners.add(listener);
+    return () => this.poseListeners.delete(listener);
+  }
+
+  /** Puts back a drag a test began with `dragPose(..., { final: false })`, as the pointer's would be. */
+  cancelDrag(): boolean {
+    this.record('cancelDrag', []);
+    const drag = this.dragging;
+    this.dragging = null;
+    if (!drag) return false;
+    this.timeline.setObject(drag.object, { joints: drag.start });
+    return true;
+  }
+
+  /**
+   * Test helper: a pose handle's drag reported with `joints`, as the pointer's would be, and the
+   * set-up following it. Until a `final` one, `cancelDrag` has a drag to put back.
+   */
+  dragPose(
+    object: ObjectId,
+    handle: PoseHandle,
+    joints: { readonly [joint: JointName]: Quat },
+    { final = true }: { final?: boolean } = {},
+  ): void {
+    // The pose before the first live step, for Esc.
+    const start = this.dragging?.object === object ? this.dragging.start : null;
+    if (!final) this.dragging = { object, start: start ?? this.timeline.setupJoints(object) };
+    else this.dragging = null;
+    this.timeline.setObject(object, { joints });
+    for (const l of [...this.poseListeners]) l({ object, handle, joints, final });
+  }
+
+  poseHandleJoints(object: ObjectId, handle: PoseHandle): readonly JointName[] {
+    this.limbPlaces(object, handle);
+    const { root, middle, end } = limbOf(handle);
+    return [root, middle, end];
+  }
+
+  /**
+   * The fake doesn't pose its stand-ins, so a hand or foot is where it rests, unless the set-up
+   * has the pose the last `posedReaching` for it gave: then it's where that was asked to reach,
+   * so keys that step from here add up (S5).
+   */
+  handlePlace(object: ObjectId, handle: PoseHandle): Vec3 {
+    const rest = this.limbPlaces(object, handle).end;
+    const last = this.reached.get(`${object} ${handle}`);
+    if (!last) return rest;
+    const now = this.timeline.setupJoints(object);
+    const { root, middle } = limbOf(handle);
+    const same = (j: JointName) => JSON.stringify(now[j]) === JSON.stringify(last.joints[j]);
+    return same(root) && same(middle) ? last.target : rest;
+  }
+
+  /**
+   * The fake's pose is approximate: each turn is the solver's, in the object's own axes, as if
+   * every joint rested unturned. Enough for the studio's tests to see a pose written.
+   */
+  posedReaching(
+    object: ObjectId,
+    handle: PoseHandle,
+    target: Vec3,
+  ): { readonly [joint: JointName]: Quat } {
+    const limb = limbOf(handle);
+    const places = this.limbPlaces(object, handle);
+    const facing = this.timeline.transform(object).rotation;
+    const turns = reachTurns(places, target, poleFor(handle, places, facing));
+    const own = (q: Quat) => mul(conjugate(facing), mul(q, facing));
+    const joints = {
+      ...this.timeline.setupJoints(object),
+      [limb.root]: own(turns.root),
+      [limb.middle]: own(turns.middle),
+    };
+    this.reached.set(`${object} ${handle}`, { target, joints });
+    return joints;
+  }
+
+  private limbPlaces(
+    object: ObjectId,
+    handle: PoseHandle,
+  ): { root: Vec3; middle: Vec3; end: Vec3 } {
+    if (!this.objects().includes(object))
+      throw new StageError('unknown_object', `There is nothing called ${object} in this scene.`);
+    const { root, middle, end } = limbOf(handle);
+    const at = [root, middle, end].map((joint) => this.timeline.restPlace(object, joint));
+    if (!at[0] || !at[1] || !at[2])
+      throw new StageError('unknown_joint', `${object} can't be posed by its ${handle}.`);
+    return { root: at[0], middle: at[1], end: at[2] };
+  }
+
   private has(target: EditTarget): boolean {
     return 'object' in target
       ? this.objects().includes(target.object)
@@ -299,6 +426,13 @@ export class FakeStage implements EditableStage {
     if (!this.isEditing) return;
     const picked = this.pick(x, y);
     for (const l of [...this.tapListeners]) l(picked);
+  }
+
+  /** Test helper: a tap on a shown pose handle, as the pointer's would be reported. */
+  tapPose(object: ObjectId, handle: PoseHandle): void {
+    if (!this.isEditing || this.posing !== object) return;
+    const ground = null;
+    for (const l of [...this.tapListeners]) l({ target: { object }, ground, pose: handle });
   }
 
   setObject(object: ObjectId, change: ObjectChange): void {

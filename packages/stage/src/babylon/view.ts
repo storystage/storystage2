@@ -125,6 +125,12 @@ interface Clip {
 const quat = (q: Quaternion): Quat => ({ x: q.x, y: q.y, z: q.z, w: q.w });
 const vec = (p: Vector3): Vec3 => ({ x: p.x, y: p.y, z: p.z });
 
+/** A turn made exactly one long, and with w not below 0, as a set-up keeps it. */
+function unitQuat(q: Quat): Quat {
+  const n = Math.hypot(q.x, q.y, q.z, q.w) * (q.w < 0 ? -1 : 1);
+  return { x: q.x / n, y: q.y / n, z: q.z / n, w: q.w / n };
+}
+
 /** Sets one of a node's properties to a clip's value. */
 function setTo(node: TransformNode, property: Property, value: unknown): void {
   if (property === 'rotationQuaternion')
@@ -196,6 +202,8 @@ export class ObjectView {
   /** The model's own clips moved its nodes last time. */
   private clipsPosed = false;
   private posed = false;
+  /** Each joint's turn under its parent before the set-up's own turn, as last posed. */
+  private readonly bases = new Map<JointName, Quat>();
   private opacity = 1;
   /** The paint and blend last shown, so an unchanged paint costs nothing. */
   private painted = '';
@@ -376,6 +384,8 @@ export class ObjectView {
         base = mul(base, mul(conjugate(r), mul(coded, r)));
       }
       const turn = state.joints.get(joint);
+      // What the set-up's turn goes on top of, for drag posing (`reachingTurns`).
+      this.bases.set(joint, base);
       setRotation(node, turn ? mul(base, turn) : base);
     }
     for (const r of motion.reach ?? []) this.reach(r);
@@ -447,6 +457,58 @@ export class ObjectView {
       turns.set(node, quat(rotation));
     }
     return turns;
+  }
+
+  /** Where a joint is in the scene now, or null if the model hasn't got it. */
+  jointPlace(joint: JointName): Vec3 | null {
+    const node = this.jointNodes.get(joint);
+    if (!node) return null;
+    refresh(node);
+    return vec(node.getAbsolutePosition());
+  }
+
+  /**
+   * Drag posing (5.9, decision 0073): the set-up turns for a limb's root and middle joints, each
+   * from rest under its parent as `SceneObjectSetup.joints` has it, that bend the limb as it is
+   * now so its end reaches `target` (or points at it, out of reach), its middle bending towards
+   * `pole`. It changes nothing; null if the model hasn't got all three joints.
+   */
+  reachingTurns(
+    limb: { readonly root: JointName; readonly middle: JointName; readonly end: JointName },
+    target: Vec3,
+    pole: Vec3,
+  ): Map<JointName, Quat> | null {
+    const a = this.jointNodes.get(limb.root);
+    const b = this.jointNodes.get(limb.middle);
+    const c = this.jointNodes.get(limb.end);
+    if (!a || !b || !c) return null;
+    refresh(c);
+    const places = {
+      root: vec(a.getAbsolutePosition()),
+      middle: vec(b.getAbsolutePosition()),
+      end: vec(c.getAbsolutePosition()),
+    };
+    const turns = reachTurns(places, target, pole);
+    // The root's turn carries the middle with it, as in the scene once it's set.
+    const rootLocal = localAfter(turns.root, worldTurn(a), parentTurn(a));
+    const middleLocal = localAfter(
+      turns.middle,
+      mul(turns.root, worldTurn(b)),
+      mul(turns.root, parentTurn(b)),
+    );
+    const fromBase = (joint: JointName, node: TransformNode, local: Quat) => {
+      const base = this.bases.get(joint) ?? this.restOf(node);
+      return unitQuat(mul(conjugate(base), local));
+    };
+    return new Map([
+      [limb.root, fromBase(limb.root, a, rootLocal)],
+      [limb.middle, fromBase(limb.middle, b, middleLocal)],
+    ]);
+  }
+
+  /** A joint's node's own turn at rest. */
+  private restOf(node: TransformNode): Quat {
+    return this.bones.find((b) => b.node === node)?.rest ?? NO_TURN;
   }
 
   /** Bends a limb to reach a point, if the model has all three joints. */

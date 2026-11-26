@@ -48,14 +48,18 @@ import type {
   Missing,
   ObjectChange,
   Picked,
+  PoseEvent,
+  PoseHandle,
   Speech,
   ViewStep,
 } from '../contract.ts';
+import { POSE_HANDLES, POSE_REACH, limbOf, onFacingPlane, poleFor } from '../posing.ts';
 import {
   FAR as VIEW_FAR,
   MARKER_BOX,
   groundPoint,
   rayHitsBox,
+  toView,
   viewRay,
   type Ray,
 } from '../editing.ts';
@@ -215,6 +219,9 @@ export class BabylonStage implements EditableStage {
   private editView: EditView | null = null;
   private readonly editListeners = new Set<(e: EditEvent) => void>();
   private readonly tapListeners = new Set<(p: Picked) => void>();
+  private readonly poseListeners = new Set<(e: PoseEvent) => void>();
+  /** The object whose pose handles are shown (the Pose panel's), or none. */
+  private posing: ObjectId | null = null;
   private readonly pointers = new Map<number, { x: number; y: number }>();
   private gesture: Gesture | null = null;
   /** How many loads have been asked for: the newest wins (`load`). */
@@ -818,10 +825,10 @@ export class BabylonStage implements EditableStage {
 
   pick(x: number, y: number): Picked {
     const ray = this.rayAt(x, y);
-    return {
-      target: this.hit(ray)?.target ?? null,
-      ground: groundPoint(ray, this.timeline.ground()),
-    };
+    const ground = groundPoint(ray, this.timeline.ground());
+    const pose = this.poseHandleAt(x, y);
+    if (pose) return { target: { object: pose.object }, ground, pose: pose.handle };
+    return { target: this.hit(ray)?.target ?? null, ground };
   }
 
   choose(target: EditTarget | null): void {
@@ -901,7 +908,7 @@ export class BabylonStage implements EditableStage {
     if (this.pointers.size > 1) return true;
     // A Shift-drag or a right-drag on Look around pans it, rather than grabbing what's there.
     const pan = !!this.around && (shift || button === 2);
-    this.gesture = (pan ? null : this.grab(x, y, id, shift)) ?? {
+    this.gesture = (pan ? null : (this.grabPose(x, y, id) ?? this.grab(x, y, id, shift))) ?? {
       kind: 'press',
       id,
       x0: x,
@@ -962,6 +969,10 @@ export class BabylonStage implements EditableStage {
     }
     if (!g.moved && Math.hypot(x - g.x0, y - g.y0) < TAP_SLOP) return;
     g.moved = true;
+    if (g.kind === 'pose') {
+      this.poseTo(g, x, y);
+      return;
+    }
     this.dragTo(g, x, y, shift);
   }
 
@@ -975,6 +986,15 @@ export class BabylonStage implements EditableStage {
     }
     if (g.id !== id) return;
     this.gesture = null;
+    if (g.kind === 'pose') {
+      if (g.moved) this.firePose(g, true);
+      else if (this.isEditing) {
+        // A press that never moved is a tap on the hand or foot.
+        const picked = this.pick(x, y);
+        for (const l of [...this.tapListeners]) l(picked);
+      }
+      return;
+    }
     if (g.kind === 'drag' && g.moved) {
       this.fireEdit({ target: g.target, transform: g.last, final: true });
       return;
@@ -995,7 +1015,73 @@ export class BabylonStage implements EditableStage {
     if (g && g.kind === 'drag' && g.id === id) {
       this.gesture = null;
       if (g.moved) this.fireEdit({ target: g.target, transform: g.last, final: true });
+    } else if (g && g.kind === 'pose' && g.id === id) {
+      this.gesture = null;
+      if (g.moved) this.firePose(g, true);
     } else if (this.pointers.size === 0) this.gesture = null;
+  }
+
+  poseHandles(object: ObjectId): readonly PoseHandle[] {
+    const view = this.views.get(object);
+    if (!view) return [];
+    return POSE_HANDLES.filter((handle) => {
+      const { root, middle, end } = limbOf(handle);
+      return [root, middle, end].every((joint) => view.jointPlace(joint));
+    });
+  }
+
+  showPoseHandles(object: ObjectId | null): void {
+    if (object !== null && !this.has({ object }))
+      throw new StageError('unknown_object', `There is nothing called ${object} in this scene.`);
+    this.posing = object;
+    if (this.gesture?.kind === 'pose' || this.gesture?.kind === 'drag') this.gesture = null;
+    this.showView();
+  }
+
+  onPose(listener: (event: PoseEvent) => void): () => void {
+    this.poseListeners.add(listener);
+    return () => this.poseListeners.delete(listener);
+  }
+
+  cancelDrag(): boolean {
+    const g = this.gesture;
+    if (g?.kind === 'pose') {
+      this.gesture = null;
+      this.timeline.setObject(g.object, { joints: g.start });
+      this.show();
+      return true;
+    }
+    if (g?.kind === 'drag') {
+      this.gesture = null;
+      const { target, start } = g;
+      if ('object' in target) this.timeline.setObject(target.object, { transform: start });
+      else this.timeline.setMarker(target.marker, start);
+      this.show();
+      return true;
+    }
+    return false;
+  }
+
+  poseHandleJoints(object: ObjectId, handle: PoseHandle): readonly JointName[] {
+    this.limbPlaces(object, handle);
+    const { root, middle, end } = limbOf(handle);
+    return [root, middle, end];
+  }
+
+  handlePlace(object: ObjectId, handle: PoseHandle): Vec3 {
+    return this.limbPlaces(object, handle).end;
+  }
+
+  posedReaching(
+    object: ObjectId,
+    handle: PoseHandle,
+    target: Vec3,
+  ): { readonly [joint: JointName]: Quat } {
+    const limb = limbOf(handle);
+    const places = this.limbPlaces(object, handle);
+    const pole = poleFor(handle, places, this.timeline.transform(object).rotation);
+    const turns = this.views.get(object)!.reachingTurns(limb, target, pole)!;
+    return { ...this.timeline.setupJoints(object), ...Object.fromEntries(turns) };
   }
 
   /** The wheel, while looking around: nearer or further. True if the stage used it. */
@@ -1054,6 +1140,80 @@ export class BabylonStage implements EditableStage {
     return 'object' in target
       ? this.objects().includes(target.object)
       : this.timeline.markerPlaces().has(target.marker);
+  }
+
+  /** Where a limb's three joints are now; throws if the object can't be posed by `handle`. */
+  private limbPlaces(
+    object: ObjectId,
+    handle: PoseHandle,
+  ): { root: Vec3; middle: Vec3; end: Vec3 } {
+    const view = this.views.get(object);
+    if (!view)
+      throw new StageError('unknown_object', `There is nothing called ${object} in this scene.`);
+    const limb = limbOf(handle);
+    const root = view.jointPlace(limb.root);
+    const middle = view.jointPlace(limb.middle);
+    const end = view.jointPlace(limb.end);
+    if (!root || !middle || !end)
+      throw new StageError('unknown_joint', `${object} can't be posed by its ${handle}.`);
+    return { root, middle, end };
+  }
+
+  /** The shown pose handle at a point of the view, the nearest within reach, or null. */
+  private poseHandleAt(
+    x: number,
+    y: number,
+  ): { object: ObjectId; handle: PoseHandle; at: Vec3 } | null {
+    const object = this.posing;
+    if (!this.isEditing || !object || !this.views.has(object)) return null;
+    const view = this.viewing();
+    let best: { handle: PoseHandle; at: Vec3; off: number } | null = null;
+    for (const handle of this.poseHandles(object)) {
+      const at = this.handlePlace(object, handle);
+      const seen = toView(view.pose, view.lens, view.width, view.height, at);
+      if (!seen) continue;
+      const off = Math.hypot(seen.x - x, seen.y - y);
+      if (off <= POSE_REACH && (!best || off < best.off)) best = { handle, at, off };
+    }
+    return best ? { object, handle: best.handle, at: best.at } : null;
+  }
+
+  /** A press on one of the shown pose handles, or null. */
+  private grabPose(x: number, y: number, id: number): Gesture | null {
+    const found = this.poseHandleAt(x, y);
+    if (!found) return null;
+    return {
+      kind: 'pose',
+      id,
+      object: found.object,
+      handle: found.handle,
+      start: this.timeline.setupJoints(found.object),
+      through: found.at,
+      x0: x,
+      y0: y,
+      moved: false,
+    };
+  }
+
+  /** A pose handle dragged to a point of the view: the limb follows it, and listeners hear. */
+  private poseTo(g: PoseDrag, x: number, y: number): void {
+    const forward = rotate(this.viewTransform().rotation, v(0, 0, 1));
+    const target = onFacingPlane(this.rayAt(x, y), g.through, forward);
+    if (!target) return;
+    const joints = this.posedReaching(g.object, g.handle, target);
+    this.timeline.setObject(g.object, { joints });
+    this.show();
+    this.firePose(g, false);
+  }
+
+  private firePose(g: PoseDrag, final: boolean): void {
+    const event: PoseEvent = {
+      object: g.object,
+      handle: g.handle,
+      joints: this.timeline.setupJoints(g.object),
+      final,
+    };
+    for (const l of [...this.poseListeners]) l(event);
   }
 
   private fireEdit(event: EditEvent): void {
@@ -1117,7 +1277,8 @@ export class BabylonStage implements EditableStage {
 
   /** A press on one of the chosen thing's handles, or on it, starts a drag. */
   private grab(x: number, y: number, id: number, shift: boolean): Gesture | null {
-    if (!this.isEditing || !this.chosenTarget) return null;
+    // While posing, only the hands and feet are taken hold of (`grabPose`).
+    if (!this.isEditing || !this.chosenTarget || this.posing) return null;
     const chosen = this.chosenPlace();
     if (!chosen) return null;
     const view = this.viewing();
@@ -1231,11 +1392,18 @@ export class BabylonStage implements EditableStage {
       return;
     }
     this.editView ??= new EditView(scene);
-    const chosen = this.chosenPlace();
+    // While posing, the hands and feet have handles; the chosen object keeps its outline, but its
+    // own handles are hidden (S5).
+    const posing = this.posing && this.views.has(this.posing) ? this.posing : null;
+    const place = this.chosenPlace();
+    const chosen = place && posing ? { ...place, handles: false } : place;
     const target = this.chosenTarget;
     const drawing: EditDrawing = {
       view: this.viewing(),
       chosen,
+      poseHandles: posing
+        ? this.poseHandles(posing).map((handle) => this.handlePlace(posing, handle))
+        : [],
       markers: [...this.timeline.markerPlaces()].map(([id, pose]) => ({
         id,
         position: pose.position,
@@ -1304,6 +1472,21 @@ interface Drag {
   moved: boolean;
 }
 
+/** A pose handle being dragged (5.9). */
+interface PoseDrag {
+  readonly kind: 'pose';
+  readonly id: number;
+  readonly object: ObjectId;
+  readonly handle: PoseHandle;
+  /** The pose when it began, for Esc. */
+  readonly start: { readonly [joint: JointName]: Quat };
+  /** Where the hand or foot was taken hold of: it moves in the plane through here facing the view. */
+  readonly through: Vec3;
+  readonly x0: number;
+  readonly y0: number;
+  moved: boolean;
+}
+
 /** What a pointer is doing on the view. */
 type Gesture =
   | {
@@ -1319,6 +1502,7 @@ type Gesture =
   | { readonly kind: 'orbit'; readonly id: number; x: number; y: number }
   | { readonly kind: 'pan'; readonly id: number; x: number; y: number }
   | { readonly kind: 'pinch'; apart: number; middle: { x: number; y: number } }
+  | PoseDrag
   | Drag;
 
 const sameTarget = (a: EditTarget, b: EditTarget) =>

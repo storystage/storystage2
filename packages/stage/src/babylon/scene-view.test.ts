@@ -104,6 +104,24 @@ describe("the Babylon.js stage's scene view", () => {
     expect(edits).toEqual([]);
   });
 
+  it("puts an object handle's drag back on Esc, and reports nothing more (5.9)", async () => {
+    const { stage, edits } = await editing();
+    stage.choose({ object: cat });
+    const start = stage.transform(cat);
+    stage.pointerDown(CAT.x, CAT.y);
+    stage.pointerMove(CAT.x - 60, CAT.y);
+    expect(stage.transform(cat)).not.toEqual(start);
+    const live = edits.length;
+    expect(stage.cancelDrag()).toBe(true);
+    expect(stage.transform(cat)).toEqual(start);
+    stage.pointerUp(CAT.x - 60, CAT.y);
+    expect(edits).toHaveLength(live);
+    expect(edits.some((e) => e.final)).toBe(false);
+    // With nothing being dragged, it does nothing, and says so.
+    expect(stage.cancelDrag()).toBe(false);
+    expect(stage.transform(cat)).toEqual(start);
+  });
+
   it('leaves the pointer alone while neither editing nor looking around', async () => {
     const stage = new BabylonStage(headlessEngine());
     await stage.load(SETUP);
