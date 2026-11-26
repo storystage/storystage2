@@ -10,14 +10,15 @@
  * - **Names the teacher sees.** Each pupil's folder is their name, made safe for every system;
  *   two pupils with the same name get "Sam" and "Sam (2)", in class-list order, so Hand back finds
  *   the same pupil again. Productions with the same title get "Pip" and "Pip (2)".
- * - **Collect copies the files as saved,** byte for byte.
+ * - **Collect copies the films as saved,** whole: a version with its kept sounds put back, the
+ *   same bytes `saveProduction` gave (spec 03, section 1.4.1, point 5).
  * - **Hand back checks every file** as any picked file is checked (`openProduction`, threat PS5),
  *   and writes each good one into its pupil's folder as a new production, "<title> (handed
- *   back)", so it never overwrites the pupil's own work. Anything else is skipped, with the
- *   reason in plain words.
+ *   back)", so it never overwrites the pupil's own work. Its sounds are kept once in its own
+ *   folder (point 6). Anything else is skipped, with the reason in plain words.
  */
-import { openProduction } from './file.ts';
-import { fitName, plainName, type SaveFolder } from './saving.ts';
+import { openProduction, packVersion } from './file.ts';
+import { fitName, nameSounds, plainName, readWholeFilm, type SaveFolder } from './saving.ts';
 
 /** A pupil's folder, as Collect and Hand back need it. The host's `PupilFolder` fits. */
 export interface CollectFolder extends SaveFolder {
@@ -86,7 +87,7 @@ export async function collectClass(
       const taken = new Set<string>();
       for (const { key, name } of await pupil.list()) {
         const file = unique(plainName(name, 'My film'), taken, EXTENSION);
-        files.push({ folder, file, bytes: await pupil.read(key) });
+        files.push({ folder, file, bytes: await readWholeFilm(pupil, key) });
       }
     }
     return { ok: true, count: await picker.collect(files) };
@@ -142,7 +143,23 @@ export async function handBackClass(
     try {
       // Shortened to make room for the ending, so a title of the full 80 characters fits too.
       const name = fitName(opened.production.manifest.title, ' (handed back)');
-      await (await classes.folder(pupil)).write(null, name, bytes);
+      const into = await classes.folder(pupil);
+      if (opened.status === 'ok' && (opened.production.manifest.sounds ?? []).length > 0) {
+        // A new production writes all its sounds once into its own folder (spec 03, 1.4.1).
+        const names = new Map<string, string>();
+        await nameSounds(opened.production, opened.files, names);
+        const packed = packVersion(opened.production, opened.files, names);
+        await into.write(null, name, packed.bytes, {
+          kept: {
+            uses: packed.uses,
+            add: [...packed.sounds].map(([n, b]) => ({ name: n, bytes: b })),
+          },
+        });
+      } else {
+        // As it was: a film without sounds is its own version. One that's older is migrated,
+        // and one that's newer kept whole, when it's opened, as any saved in the folder.
+        await into.write(null, name, bytes);
+      }
       written++;
     } catch (error) {
       const code = (error as { code?: unknown } | null)?.code;
