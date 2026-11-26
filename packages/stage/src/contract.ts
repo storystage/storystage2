@@ -289,7 +289,9 @@ export interface EditableStage extends Stage {
    * one that never moves is a tap, reported to `onTap` with `Picked.pose`. Each is a small amber
    * ball edged in ink, taken hold of within 22 CSS px (a 44 px target), drawn as the object
    * handles are: on the live canvas only, never in a frame. Throws `unknown_object` for
-   * something not in the scene.
+   * something not in the scene. A `load` keeps them shown while the object is still in the scene,
+   * as it keeps edit mode and what's chosen: the studio loads the set-up again after writing each
+   * final pose (S5).
    *
    * A pose's turns are any turn from rest, so each reads back within the Pose panel's fields
    * (heading and roll within half a turn, tilt within a quarter) without being clamped.

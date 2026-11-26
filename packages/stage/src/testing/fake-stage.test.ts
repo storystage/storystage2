@@ -121,6 +121,8 @@ describe('FakeStage', () => {
     );
     stage.showPoseHandles(cat);
     expect(stage.posingNow()).toBe(cat);
+    const inside = stage as unknown as { timeline: { setupJoints(o: unknown): unknown } };
+    const posed = () => inside.timeline.setupJoints(cat);
     expect(() => stage.showPoseHandles(objectId('nobody'))).toThrow(StageError);
     // A pose for the keyboard, the same each time, changing nothing.
     const target = { x: 1, y: 1, z: 1 };
@@ -134,7 +136,10 @@ describe('FakeStage', () => {
     stage.onTap((p) => taps.push(p));
     expect(stage.cancelDrag()).toBe(false);
     stage.dragPose(cat, 'leftHand', joints, { final: false });
+    expect(posed()).toEqual(joints);
+    // Esc puts back the pose from before the drag (S5).
     expect(stage.cancelDrag()).toBe(true);
+    expect(posed()).toEqual({});
     stage.dragPose(cat, 'leftHand', joints);
     expect(stage.cancelDrag()).toBe(false);
     expect(poses).toEqual([
@@ -143,6 +148,19 @@ describe('FakeStage', () => {
     ]);
     stage.tapPose(cat, 'rightFoot');
     expect(taps).toEqual([{ target: { object: cat }, ground: null, pose: 'rightFoot' }]);
+    // Only on the object whose handles are shown.
+    stage.tapPose(dog, 'rightFoot');
+    stage.showPoseHandles(null);
+    stage.tapPose(cat, 'rightFoot');
+    expect(taps).toHaveLength(1);
+    // Where a hand is follows the pose written, so keys that step from it add up (S5).
+    const rest = stage.handlePlace(cat, 'rightHand');
+    const first = { x: rest.x + 0.1, y: rest.y, z: rest.z };
+    stage.setObject(cat, { joints: stage.posedReaching(cat, 'rightHand', first) });
+    expect(stage.handlePlace(cat, 'rightHand')).toEqual(first);
+    const second = { x: first.x + 0.1, y: first.y, z: first.z };
+    stage.setObject(cat, { joints: stage.posedReaching(cat, 'rightHand', second) });
+    expect(stage.handlePlace(cat, 'rightHand')).toEqual(second);
   });
 
   it('reports a tap only while editing, and a drag as a test makes it', async () => {

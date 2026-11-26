@@ -67,7 +67,7 @@ async function posing(model: Parameters<typeof tinyHumanUrl>[0] = {}) {
   const onView = (p: Vec3) => toView(stage.viewTransform(), inside.timeline.lens(), 640, 360, p)!;
   /** Where one of Pat's joints is in the scene now. */
   const place = (joint: string) => inside.views.get(pat)!.jointPlace(joint)!;
-  return { stage, events, onView, place };
+  return { stage, events, onView, place, setup };
 }
 
 const near = (a: Vec3, b: Vec3, within = 1e-3) => expect(length(sub(a, b))).toBeLessThan(within);
@@ -166,7 +166,7 @@ describe('drag posing, by a hand or foot (5.9, decision 0073)', () => {
   });
 
   it('takes the pose handles only while shown, and draws them', async () => {
-    const { stage, events, onView } = await posing();
+    const { stage, events, onView, setup } = await posing();
     stage.choose({ object: pat });
     const hand = onView(stage.handlePlace(pat, 'leftHand'));
     const shown = stage.editMeshes();
@@ -179,6 +179,10 @@ describe('drag posing, by a hand or foot (5.9, decision 0073)', () => {
     stage.pointerUp(hand.x, hand.y + 50);
     expect(events).toEqual([]);
     expect(() => stage.showPoseHandles(objectId('nobody'))).toThrow(StageError);
+    // A load keeps them shown while the object is still there, as the studio's does after a pose.
+    stage.showPoseHandles(pat);
+    await stage.load(setup);
+    expect(stage.pick(hand.x, hand.y).pose).toBe('leftHand');
   });
 
   it("can't pose a stand-in, or a model without arms and legs", async () => {

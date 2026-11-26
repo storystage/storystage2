@@ -92,7 +92,14 @@ export class FakeStage implements EditableStage {
   private chosenTarget: EditTarget | null = null;
   private readonly poseListeners = new Set<(e: PoseEvent) => void>();
   private posing: ObjectId | null = null;
-  private dragging = false;
+  /** A live `dragPose`'s object and its pose before the drag, for `cancelDrag`. */
+  private dragging: { object: ObjectId; start: { readonly [joint: JointName]: Quat } } | null =
+    null;
+  /** The last `posedReaching` for each object and handle: its target and the pose it gave. */
+  private readonly reached = new Map<
+    string,
+    { target: Vec3; joints: { readonly [joint: JointName]: Quat } }
+  >();
   /** Look around's camera while it's on. */
   private around: Transform | null = null;
   private editListeners = new Set<(e: EditEvent) => void>();
@@ -119,6 +126,7 @@ export class FakeStage implements EditableStage {
   /** Loads may overlap: the newest call wins, and an older one settles without taking over. */
   async load(setup: SceneSetup, options?: LoadOptions): Promise<void> {
     this.record('load', options ? [setup, options] : [setup]);
+    this.dragging = null;
     const ticket = ++this.loads;
     // What it can't find shows as a stand-in, and the scene plays on (spec 03 section 1.3).
     const known = this.options.knownModels;
@@ -302,12 +310,14 @@ export class FakeStage implements EditableStage {
     return () => this.poseListeners.delete(listener);
   }
 
-  /** The fake has no drags of its own to put back: tests tell it whether there is one. */
+  /** Puts back a drag a test began with `dragPose(..., { final: false })`, as the pointer's would be. */
   cancelDrag(): boolean {
     this.record('cancelDrag', []);
-    const had = this.dragging;
-    this.dragging = false;
-    return had;
+    const drag = this.dragging;
+    this.dragging = null;
+    if (!drag) return false;
+    this.timeline.setObject(drag.object, { joints: drag.start });
+    return true;
   }
 
   /**
@@ -320,8 +330,11 @@ export class FakeStage implements EditableStage {
     joints: { readonly [joint: JointName]: Quat },
     { final = true }: { final?: boolean } = {},
   ): void {
+    // The pose before the first live step, for Esc.
+    const start = this.dragging?.object === object ? this.dragging.start : null;
+    if (!final) this.dragging = { object, start: start ?? this.timeline.setupJoints(object) };
+    else this.dragging = null;
     this.timeline.setObject(object, { joints });
-    this.dragging = !final;
     for (const l of [...this.poseListeners]) l({ object, handle, joints, final });
   }
 
@@ -331,9 +344,19 @@ export class FakeStage implements EditableStage {
     return [root, middle, end];
   }
 
-  /** At rest: the fake doesn't pose its stand-ins, so a hand or foot is where it rests. */
+  /**
+   * The fake doesn't pose its stand-ins, so a hand or foot is where it rests, unless the set-up
+   * has the pose the last `posedReaching` for it gave: then it's where that was asked to reach,
+   * so keys that step from here add up (S5).
+   */
   handlePlace(object: ObjectId, handle: PoseHandle): Vec3 {
-    return this.limbPlaces(object, handle).end;
+    const rest = this.limbPlaces(object, handle).end;
+    const last = this.reached.get(`${object} ${handle}`);
+    if (!last) return rest;
+    const now = this.timeline.setupJoints(object);
+    const { root, middle } = limbOf(handle);
+    const same = (j: JointName) => JSON.stringify(now[j]) === JSON.stringify(last.joints[j]);
+    return same(root) && same(middle) ? last.target : rest;
   }
 
   /**
@@ -350,11 +373,13 @@ export class FakeStage implements EditableStage {
     const facing = this.timeline.transform(object).rotation;
     const turns = reachTurns(places, target, poleFor(handle, places, facing));
     const own = (q: Quat) => mul(conjugate(facing), mul(q, facing));
-    return {
+    const joints = {
       ...this.timeline.setupJoints(object),
       [limb.root]: own(turns.root),
       [limb.middle]: own(turns.middle),
     };
+    this.reached.set(`${object} ${handle}`, { target, joints });
+    return joints;
   }
 
   private limbPlaces(
@@ -405,7 +430,7 @@ export class FakeStage implements EditableStage {
 
   /** Test helper: a tap on a shown pose handle, as the pointer's would be reported. */
   tapPose(object: ObjectId, handle: PoseHandle): void {
-    if (!this.isEditing) return;
+    if (!this.isEditing || this.posing !== object) return;
     const ground = null;
     for (const l of [...this.tapListeners]) l({ target: { object }, ground, pose: handle });
   }
