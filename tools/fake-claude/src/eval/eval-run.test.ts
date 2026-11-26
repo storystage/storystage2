@@ -581,14 +581,41 @@ describe("the learner's own procedures and moves (spec 04, section 6.9)", () => 
     );
   });
 
-  it("holds a text input to the learner's words", async () => {
-    const greet = (message: string) =>
-      builds(own({ actor: 'fox', action: 'greet', details: details({ message }) }), { message });
+  it("holds a text input to the script's line, or the learner's words", async () => {
+    const greet = (message: string, line = '') =>
+      builds(own({ actor: 'fox', action: 'greet', line, details: details({ message }) }), {
+        message,
+      });
     expect(
-      byCheck((await run(rowById('own-03'), greet('Good morning, everyone!'))).scores),
+      byCheck((await run(rowById('own-03'), greet('Hello, little penguins.', 'l1'))).scores),
     ).toEqual({ calls_own_move: true, no_invented_line: true, no_errors: true });
+    // The Prompter's own words: the plan is refused as it's shown, so nothing is built.
     const invented = byCheck((await run(rowById('own-03'), greet('Welcome, travellers!'))).scores);
-    expect(invented).toMatchObject({ calls_own_move: false, no_errors: false });
+    expect(invented).toMatchObject({ calls_own_move: false });
+  });
+
+  it("asks, and builds nothing, when the words clash with the frame's line", async () => {
+    const asks = await run(rowById('own-06'), [
+      text(
+        'Your script gives the fox "Hello, little penguins." in this frame. Would you like to change that line in your script first?',
+      ),
+    ]);
+    expect(byCheck(asks.scores)).toMatchObject({ no_change: true, no_invented_line: true });
+    // Words that aren't the frame's line can't be planned for it (spec 04, section 6.5).
+    const forced = await run(
+      rowById('own-06'),
+      builds(
+        own({
+          actor: 'fox',
+          action: 'greet',
+          details: details({ message: 'Good morning, everyone!' }),
+        }),
+        { message: 'Good morning, everyone!' },
+        { frame: 'f1-1' },
+      ),
+    );
+    expect(forced.done.shownPlan).toBeNull();
+    expect(byCheck(forced.scores)).toMatchObject({ no_change: true });
   });
 
   it('builds nothing for a move that is not there', async () => {

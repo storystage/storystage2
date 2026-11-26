@@ -593,6 +593,14 @@ Before a plan is shown, and again when the learner presses **Build these steps**
 
 **A step's words and its side.** A plan the Prompter proposes or revises is also refused, to the Prompter, when a step's words put a model on one side of the picture and its position is on the other ("Add a fox on the left", at x -1). The owner's rerun of 22 Nov showed a learner that step, and the learner agrees to the words. The check reads plain phrases only: "on the left" before a stop or a comma, "the left side", "to the left of the picture". A side of another object or of a row isn't read, and nor is any plan while the camera isn't at the start's middle with no turn, or a step moves it. On the 261 plan steps in that day's and earlier runs, it refused that step and no other. It doesn't check the learner's own edits, whose words code writes.
 
+**A step's words in the film** keep section 6.5's rule, as the build does (the owner's choice of 26 Nov 2026). That covers say, think and speak line, on-screen text, and every text input of a learner's procedure. Each must be its script line's exact words, or, outside a frame, the learner's own. Before, only the build held them, so a plan with the Prompter's own words could be shown and agreed, and then the build was refused at its first such step (the rerun of 25 Nov, own-03). Now the plan isn't shown, and the Prompter is told why:
+
+- a step with a line, but with other words: "The words must be the script line's own: …";
+- in a frame, words without a line: "In a storyboard frame, the words come from the script: give this step a script line, or change the line in the script first.";
+- outside a frame, words that aren't the learner's: "Words in the film come from the script or the learner's own words. Ask the learner what they should be."
+
+When the learner edits a plan, a step they added or changed is theirs, so its words are theirs too, as at Build. The build still holds every call's words (6.5), so this check comes first, and doesn't replace it.
+
 A step gives every setting so the learner can see and change each one with the dropdowns (6.1, step 5), and so the build is held to the values agreed (6.4): a setting left out would be the Prompter's to choose while building. The owner chose this on 18 Nov, and the system prompt asks for it.
 
 ### 6.4 The build matches the plan
@@ -619,7 +627,7 @@ A setting is given once. A step or a call that gives one twice is refused: befor
 
 ### 6.5 What characters say
 
-Code holds three kinds of words in the film: text in `say`, `think` and the speak line block, on-screen text (`Text.setValue`; the owner's choice, 22 Nov 2026), and every text input of a learner's procedure (6.9). Each is a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue.
+Code holds three kinds of words in the film: text in `say`, `think` and the speak line block, on-screen text (`Text.setValue`; the owner's choice, 22 Nov 2026), and every text input of a learner's procedure (6.9). Each is a script line (`line`), or, outside a frame, the learner's own words. Those are every request the learner has made since the film opened, and the words and details of steps they added or changed in the agreed plan, but not the steps as the Prompter wrote them. A build's own request is only "Build these steps.", so a plan's words come from the request that made it. For a frame, the words must match the line exactly, or the call answers `not_in_script`. The Prompter never makes up a line of dialogue. The plan check holds a step's words to the same rule before the plan is shown (6.3), so a learner never agrees to a plan the build would refuse for its words.
 
 ### 6.6 Plan only
 
