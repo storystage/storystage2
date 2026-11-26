@@ -25,6 +25,8 @@ import { dot, rotate, sub, v } from '../math.ts';
 const AMBER = Color3.FromHexString('#F4B740');
 /** Markers that aren't chosen: a quiet blue, so they don't look chosen. */
 const MARKER = Color3.FromHexString('#5B8DEF');
+/** The sketches' ink, round a pose handle, so it shows on the amber outline (07-ux 7.4). */
+const INK = Color3.FromHexString('#161412');
 /** Widths on the view, in CSS pixels. */
 const LINE = 2.5;
 const RING = 3.5;
@@ -39,7 +41,11 @@ export interface EditDrawing {
     readonly box: Box;
     readonly transform: Transform;
     readonly places: HandlePlaces;
+    /** False while posing: the outline alone, without the ring and the knob (S5). */
+    readonly handles?: boolean;
   } | null;
+  /** The pose handles shown: where each hand and foot is (5.9). */
+  readonly poseHandles?: readonly Vec3[];
   readonly markers: readonly {
     readonly id: string;
     readonly position: Vec3;
@@ -60,6 +66,8 @@ export class EditView {
   private ring: Mesh | null = null;
   private readonly knob: Mesh;
   private markers: Mesh[] = [];
+  private readonly poses: Mesh[] = [];
+  private readonly ink: StandardMaterial;
   private on = true;
 
   constructor(scene: Scene) {
@@ -68,6 +76,9 @@ export class EditView {
     this.scene.useRightHandedSystem = true;
     this.amber = glow('chosen', AMBER, this.scene);
     this.blue = glow('marker', MARKER, this.scene);
+    // Drawn from inside, larger, behind the amber ball: a rim of ink round it.
+    this.ink = glow('pose edge', INK, this.scene);
+    this.ink.cullBackFaces = false;
     for (let i = 0; i < 12; i++) {
       const edge = CreateCylinder(
         'outline',
@@ -101,10 +112,12 @@ export class EditView {
   /** Draws `drawing`, or nothing. */
   draw(drawing: EditDrawing | null): void {
     const chosen = drawing?.chosen ?? null;
+    const handles = !!chosen && chosen.handles !== false;
     for (const edge of this.edges) edge.setEnabled(!!chosen);
-    this.knob.setEnabled(!!chosen?.places.knob);
-    this.ring?.setEnabled(!!chosen);
+    this.knob.setEnabled(handles && !!chosen?.places.knob);
+    this.ring?.setEnabled(handles);
     this.drawMarkers(drawing);
+    this.drawPoseHandles(drawing);
     if (!drawing || !chosen) return;
     const { view } = drawing;
     const pixel = (p: Vec3) => metresPerPixel(view, p);
@@ -118,6 +131,7 @@ export class EditView {
           const middle = v((a.x + b.x) / 2, (a.y + b.y) / 2, (a.z + b.z) / 2);
           placeBar(this.edges[e++]!, a, b, LINE * pixel(middle));
         }
+    if (!handles) return;
     const { ring, knob } = chosen.places;
     const path = ringPoints(ring).map(toVector);
     const radius = (RING / 2) * pixel(ring.centre);
@@ -142,6 +156,27 @@ export class EditView {
 
   dispose(): void {
     this.layer.dispose();
+  }
+
+  /** An amber ball at each hand and foot that can be dragged, the knob's size on the view. */
+  private drawPoseHandles(drawing: EditDrawing | null): void {
+    const wanted = drawing?.poseHandles ?? [];
+    while (this.poses.length < wanted.length) {
+      const ball = CreateSphere('pose', { diameter: 1, segments: 12 }, this.scene);
+      ball.material = this.amber;
+      const edge = CreateSphere('pose edge', { diameter: 1.4, segments: 12 }, this.scene);
+      edge.material = this.ink;
+      edge.parent = ball;
+      this.poses.push(ball);
+    }
+    this.poses.forEach((ball, i) => {
+      const at = wanted[i];
+      ball.setEnabled(!!at);
+      for (const edge of ball.getChildMeshes()) edge.setEnabled(!!at);
+      if (!at || !drawing) return;
+      ball.position.copyFrom(toVector(at));
+      ball.scaling.setAll(KNOB * metresPerPixel(drawing.view, at));
+    });
   }
 
   private drawMarkers(drawing: EditDrawing | null): void {

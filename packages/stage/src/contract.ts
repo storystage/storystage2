@@ -177,12 +177,29 @@ export type ViewStep =
   | 'panUp'
   | 'panDown';
 
+/** A hand or foot a character can be posed by (5.9, decision 0073). */
+export type PoseHandle = 'leftHand' | 'rightHand' | 'leftFoot' | 'rightFoot';
+
+/** A pose handle dragged: live while it moves, then once more with `final` when it's let go. */
+export interface PoseEvent {
+  readonly object: ObjectId;
+  readonly handle: PoseHandle;
+  /** Its whole pose, as `ObjectChange.joints` and `SceneObjectSetup.joints` have it. */
+  readonly joints: { readonly [joint: JointName]: Quat };
+  readonly final: boolean;
+}
+
 /** What's at a point of the view. */
 export interface Picked {
   /** The object or marker there, nearest first; null for the ground, the sky or nothing. */
   readonly target: EditTarget | null;
   /** Where the point meets the ground (y = 0, or a room's floor) within 256 m; null above it. */
   readonly ground: Vec3 | null;
+  /**
+   * The pose handle there, while `showPoseHandles` shows them (its object is `target`): a tap on
+   * one reports it, so the Pose panel can choose that hand's or foot's joint (S5).
+   */
+  readonly pose?: PoseHandle;
 }
 
 /** A handle being dragged: live while it moves, then once more with `final` when it's let go. */
@@ -247,6 +264,64 @@ export interface EditableStage extends Stage {
    * what was there, as `pick` gives it. Returns a function that stops listening.
    */
   onTap(listener: (picked: Picked) => void): () => void;
+
+  /**
+   * Drag posing (5.9, decision 0073): the hands and feet an object can be posed by, those whose
+   * arm or leg has all three joints (upper, lower and the hand or foot). Empty for a prop or a
+   * stand-in.
+   */
+  poseHandles(object: ObjectId): readonly PoseHandle[];
+
+  /**
+   * The joints a pose handle turns, and the hand or foot itself: [upper, lower, end] (an upper
+   * arm, a lower arm and a hand). A drag's `joints` differ from the set-up's only in the first
+   * two. Throws `unknown_joint` for one the object can't be posed by.
+   */
+  poseHandleJoints(object: ObjectId, handle: PoseHandle): readonly JointName[];
+
+  /**
+   * Shows an object's pose handles (`poseHandles`) while editing, for the Pose panel, or none
+   * with null; its move, turn and resize handles hide meanwhile. Dragging one bends its arm or
+   * leg so the hand or foot follows the pointer, in the plane facing the view, by inverse
+   * kinematics: joints only turn (0051), the shoulder or hip stays put, an elbow bends out and
+   * back and a knee forwards, and past its reach the limb points at the pointer. It's reported
+   * to `onPose`, and the set-up follows it at once, as an object handle's drag does. A press on
+   * one that never moves is a tap, reported to `onTap` with `Picked.pose`. Each is a small amber
+   * ball edged in ink, taken hold of within 22 CSS px (a 44 px target), drawn as the object
+   * handles are: on the live canvas only, never in a frame. Throws `unknown_object` for
+   * something not in the scene.
+   *
+   * A pose's turns are any turn from rest, so each reads back within the Pose panel's fields
+   * (heading and roll within half a turn, tilt within a quarter) without being clamped.
+   */
+  showPoseHandles(object: ObjectId | null): void;
+
+  /** A pose handle's drag, live and then `final` when it's let go: the studio writes the final. */
+  onPose(listener: (event: PoseEvent) => void): () => void;
+
+  /**
+   * Esc: ends a drag in progress, a pose handle's or an object handle's, and puts what it moved
+   * back as it was when the drag began. It reports nothing. True if there was a drag to put back;
+   * false, and nothing happens, without one, so the studio can use the Esc for something else.
+   */
+  cancelDrag(): boolean;
+
+  /**
+   * For the keyboard: where a pose handle (the hand or foot itself) is in the scene now. Throws
+   * `unknown_joint` for one the object can't be posed by.
+   */
+  handlePlace(object: ObjectId, handle: PoseHandle): Vec3;
+
+  /**
+   * For the keyboard: the object's whole pose with that arm or leg bent so the hand or foot
+   * reaches `target` (a point in the scene), as a drag to it would. It changes nothing: the studio
+   * writes it, as one undo step, with `setObject`. Throws as `handlePlace` does.
+   */
+  posedReaching(
+    object: ObjectId,
+    handle: PoseHandle,
+    target: Vec3,
+  ): { readonly [joint: JointName]: Quat };
 
   /**
    * Changes one object's set-up, or the camera's (`CAMERA`, its transform only), without

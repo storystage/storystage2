@@ -406,6 +406,19 @@ export class Timeline {
     this.restate();
   }
 
+  /** Where a joint rests in the scene, carried by its object as it is now; null if it hasn't got it. */
+  restPlace(object: ObjectId, joint: JointName): Vec3 | null {
+    const rest = this.shapes.get(object)?.jointPlaces.get(joint);
+    if (!rest) return null;
+    const t = this.transform(object);
+    return add(t.position, rotate(t.rotation, times(rest, t.scale)));
+  }
+
+  /** An object's pose in the set-up: each posed joint's turn from rest. */
+  setupJoints(object: ObjectId): { readonly [joint: JointName]: Quat } {
+    return this.loaded().objects.find((o) => o.id === object)?.joints ?? {};
+  }
+
   /** Moves a marker in the set-up, keeping every command. */
   setMarker(id: string, transform: Transform): void {
     const setup = this.loaded();

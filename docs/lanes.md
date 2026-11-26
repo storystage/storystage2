@@ -152,8 +152,9 @@ Each session keeps its own section current. Newest entries first. One line each.
   - **S5:** the storyboard's shot types (WP10.6) should use the same framing as the camera's, in the stage README. The scene view's Babylon.js half is in (#394): `createBabylonStage` wires the canvas's pointer, wheel and keys itself; choose on `onTap`, and write the set-up on `onEdit`'s `final`.
 - Blocked on:
   - Owner: a run of `stage/device.html` (about five minutes, checklist row 3a) on the Chromebook, which is here, and later on the reference iPad (#6, not yet chosen). Its results give WP5's 30 fps check, 5.6's budget and 5.8's cost (5.6 and 5.8 stay unticked until then), the cost of view and occlusion events (decision 0051), and of a crossfade's two scenes. Spike 1.2's go is S1's.
-- Open: none.
-- Next: spike 23.2 has its go (owner, 21 Nov), so WP23a is finished. **WP23b** (the projection stage) waits for the release candidate and WP12b (S5). S3 has nothing to start until then, except answering other lanes.
+- Open:
+  - 26 Nov (PR open; contract, for S5's 7.16): **WP5d, drag posing by a hand or foot** (5.9, decision 0073): `EditableStage.poseHandles`, `showPoseHandles`, `onPose`, `cancelDrag`, `handlePlace` and `posedReaching`. A hand or foot dragged bends its arm or leg by `ik.ts`, joints only turning; 156 of 158 Bipeds can be posed, each hand and foot reaching where it's asked.
+- Next: after WP5d, **WP23b** (the projection stage) waits for the release candidate and WP12b (S5). Spike 23.2 has its go (owner, 21 Nov), so WP23a is finished.
 
 ## S4 Backstage and Productions
 - In review:

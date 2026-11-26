@@ -108,6 +108,43 @@ describe('FakeStage', () => {
     expect(stage.missing()).toEqual([{ kind: 'joint', object: SETUP.objects[0]!.id, joint: wing }]);
   });
 
+  it('poses by a hand or foot as a test makes it, for the Pose panel (5.9)', async () => {
+    const limbs = ['UpperArm', 'LowerArm', 'Hand', 'UpperLeg', 'LowerLeg', 'Foot'];
+    const stage = new FakeStage({
+      jointsFor: () => ['left', 'right'].flatMap((side) => limbs.map((l) => jointName(side + l))),
+    });
+    await stage.load(SETUP);
+    stage.editing(true);
+    expect(stage.poseHandles(cat)).toEqual(['leftHand', 'rightHand', 'leftFoot', 'rightFoot']);
+    expect(stage.poseHandleJoints(cat, 'leftHand')).toEqual(
+      ['leftUpperArm', 'leftLowerArm', 'leftHand'].map(jointName),
+    );
+    stage.showPoseHandles(cat);
+    expect(stage.posingNow()).toBe(cat);
+    expect(() => stage.showPoseHandles(objectId('nobody'))).toThrow(StageError);
+    // A pose for the keyboard, the same each time, changing nothing.
+    const target = { x: 1, y: 1, z: 1 };
+    const joints = stage.posedReaching(cat, 'leftHand', target);
+    expect(stage.posedReaching(cat, 'leftHand', target)).toEqual(joints);
+    expect(Object.keys(joints).sort()).toEqual(['leftLowerArm', 'leftUpperArm']);
+    // A drag as a test makes it: live, Esc has it to put back; then final.
+    const poses: unknown[] = [];
+    const taps: unknown[] = [];
+    stage.onPose((e) => poses.push(e));
+    stage.onTap((p) => taps.push(p));
+    expect(stage.cancelDrag()).toBe(false);
+    stage.dragPose(cat, 'leftHand', joints, { final: false });
+    expect(stage.cancelDrag()).toBe(true);
+    stage.dragPose(cat, 'leftHand', joints);
+    expect(stage.cancelDrag()).toBe(false);
+    expect(poses).toEqual([
+      { object: cat, handle: 'leftHand', joints, final: false },
+      { object: cat, handle: 'leftHand', joints, final: true },
+    ]);
+    stage.tapPose(cat, 'rightFoot');
+    expect(taps).toEqual([{ target: { object: cat }, ground: null, pose: 'rightFoot' }]);
+  });
+
   it('reports a tap only while editing, and a drag as a test makes it', async () => {
     const stage = new FakeStage();
     await stage.load(SETUP);
