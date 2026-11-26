@@ -370,10 +370,20 @@
   padding: 20px 12px;
 }
 
+/* Tall enough for a chosen bar's corners over its handles, each 44 px to touch. */
+.sd-tl-music {
+  min-height: 104px;
+}
+
 .sd-cue-slot {
   position: absolute;
   top: 6px;
   bottom: 6px;
+}
+
+/* Over the cues beside it while it's dragged. */
+.sd-cue-slot[data-dragging] {
+  z-index: 1;
 }
 
 /* A cue's bar: its loudness drawn in it, its name over that. */
@@ -390,7 +400,70 @@
   color: var(--ss-text);
   font: inherit;
   text-align: left;
-  cursor: pointer;
+  cursor: grab;
+  /* A sideways drag moves the bar; the timeline still scrolls up and down. */
+  touch-action: pan-y;
+}
+
+.sd-cue-slot[data-dragging] .sd-cue {
+  cursor: grabbing;
+}
+
+/*
+ * The chosen bar's handles, at each end of the part it plays, and its fades' corners above them:
+ * each 44 px to touch, drawn as a bar or a ring in the text colour, not a colour alone.
+ */
+.sd-grip {
+  position: absolute;
+  z-index: 1;
+  width: 44px;
+  height: 44px;
+  margin-left: -22px;
+  cursor: ew-resize;
+  touch-action: none;
+  border-radius: 8px;
+}
+
+.sd-grip[data-grip='from'],
+.sd-grip[data-grip='to'] {
+  bottom: 0;
+}
+
+.sd-grip[data-grip='fadeIn'],
+.sd-grip[data-grip='fadeOut'] {
+  top: 0;
+}
+
+.sd-grip::after {
+  content: '';
+  position: absolute;
+  background: var(--ss-text);
+}
+
+.sd-grip[data-grip='from']::after,
+.sd-grip[data-grip='to']::after {
+  top: 6px;
+  left: 16px;
+  width: 12px;
+  height: 32px;
+  border: 2px solid var(--ss-field);
+  border-radius: 6px;
+}
+
+.sd-grip[data-grip='fadeIn']::after,
+.sd-grip[data-grip='fadeOut']::after {
+  top: 2px;
+  left: 13px;
+  width: 18px;
+  height: 18px;
+  border: 3px solid var(--ss-text);
+  border-radius: 50%;
+  background: var(--ss-field);
+}
+
+.sd-grip:focus-visible {
+  outline: 3px solid var(--ss-focus);
+  outline-offset: 2px;
 }
 
 /* Chosen: a heavier edge, not a colour alone. */

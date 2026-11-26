@@ -8,7 +8,7 @@ import {
   type SceneId,
 } from '@storystage/production';
 import { ThemeRoot } from '@storystage/ui';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { sceneSeconds } from '../storyboard/edits.ts';
@@ -506,5 +506,111 @@ describe('SoundView: a cue’s controls', () => {
     await user.click(within(sceneMusic()).getByRole('button'));
     expect(screen.getByRole('textbox', { name: 'Starts at' })).toHaveProperty('disabled', true);
     expect(screen.queryByRole('button', { name: 'Remove Rain from the music' })).toBeNull();
+  });
+});
+
+/** A drag of `dx` px on `el`, let go or not; at 20 px a second, as Fit is with no width. */
+function dragBy(el: Element, dx: number, letGo = true) {
+  fireEvent.pointerDown(el, { clientX: 100, button: 0, pointerId: 1 });
+  fireEvent.pointerMove(el, { clientX: 100 + dx / 2, pointerId: 1 });
+  fireEvent.pointerMove(el, { clientX: 100 + dx, pointerId: 1 });
+  if (letGo) fireEvent.pointerUp(el, { clientX: 100 + dx, pointerId: 1 });
+}
+
+describe('SoundView: dragging on the timeline', () => {
+  it('moves a cue by dragging its bar, drawn as it goes and one step when let go', () => {
+    const { studio, onAnnounce } = open(withRain([rainAt(1)]));
+    const bar = within(musicTrack()).getByRole('button');
+    dragBy(bar, 40, false);
+    // Drawn where it's dragged; nothing written yet.
+    expect(bar.getAttribute('aria-label')).toMatch(/^Rain, 3 to/);
+    expect(firstMusic(studio())![0]!.start).toBe(1);
+    fireEvent.pointerUp(bar, { clientX: 140, pointerId: 1 });
+    expect(firstMusic(studio())![0]!.start).toBe(3);
+    expect(studio().undoLabel).toBe('Move Rain to 3 seconds');
+    expect(onAnnounce).toHaveBeenLastCalledWith('Move Rain to 3 seconds');
+    // The bar dragged is the one chosen.
+    expect(bar.getAttribute('aria-pressed')).toBe('true');
+    act(() => studio().undo());
+    expect(firstMusic(studio())![0]!.start).toBe(1);
+  });
+
+  it('puts a drag back with Esc', () => {
+    const { studio } = open(withRain([rainAt(1)]));
+    const bar = within(musicTrack()).getByRole('button');
+    dragBy(bar, 40, false);
+    fireEvent.keyDown(bar, { key: 'Escape' });
+    expect(bar.getAttribute('aria-label')).toMatch(/^Rain, 1 to/);
+    fireEvent.pointerUp(bar, { clientX: 140, pointerId: 1 });
+    expect(firstMusic(studio())![0]!.start).toBe(1);
+    expect(studio().undoLabel).toBeNull();
+  });
+
+  it('stops a bar dragged onto another cue’s start where it last could be', () => {
+    const { studio } = open(withRain([rainAt(1), rainAt(3)]));
+    const bar = within(musicTrack()).getAllByRole('button')[0]!;
+    fireEvent.pointerDown(bar, { clientX: 100, button: 0, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 138, pointerId: 1 });
+    fireEvent.pointerMove(bar, { clientX: 140, pointerId: 1 });
+    fireEvent.pointerUp(bar, { clientX: 140, pointerId: 1 });
+    expect(firstMusic(studio())!.map((c) => c.start)).toEqual([2.9, 3]);
+  });
+
+  it('a press on a bar without a drag only chooses it', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(1)]));
+    await user.click(within(musicTrack()).getByRole('button'));
+    expect(within(musicTrack()).getByRole('button').getAttribute('aria-pressed')).toBe('true');
+    expect(studio().undoLabel).toBeNull();
+  });
+
+  it('trims by the chosen bar’s handles, the left one moving the start with it', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(1)]));
+    expect(within(musicTrack()).queryByRole('slider')).toBeNull();
+    await user.click(within(musicTrack()).getByRole('button'));
+    dragBy(within(musicTrack()).getByRole('slider', { name: 'Play from' }), 10);
+    expect(firstMusic(studio())![0]).toMatchObject({ start: 1.5, from: 0.5, to: 3.5 });
+    expect(studio().undoLabel).toBe('Trim Rain in scene 1');
+    dragBy(within(musicTrack()).getByRole('slider', { name: 'Play to' }), -20);
+    expect(firstMusic(studio())![0]).toMatchObject({ start: 1.5, from: 0.5, to: 2.5 });
+  });
+
+  it('fades by the chosen bar’s corners', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(1)]));
+    await user.click(within(musicTrack()).getByRole('button'));
+    dragBy(within(musicTrack()).getByRole('slider', { name: 'Fade in' }), 20);
+    expect(studio().undoLabel).toBe('Fade Rain in over 1 second');
+    dragBy(within(musicTrack()).getByRole('slider', { name: 'Fade out' }), -30);
+    expect(studio().undoLabel).toBe('Fade Rain out over 1.5 seconds');
+    expect(firstMusic(studio())![0]).toMatchObject({ fadeIn: 1, fadeOut: 1.5 });
+  });
+
+  it('moves a handle by keys, saying its time, as one step', async () => {
+    const user = userEvent.setup();
+    const { studio, onAnnounce } = open(withRain([rainAt(1)]));
+    await user.click(within(musicTrack()).getByRole('button'));
+    const to = within(musicTrack()).getByRole('slider', { name: 'Play to' });
+    expect(to.getAttribute('aria-valuetext')).toBe('3.5 seconds');
+    to.focus();
+    await user.keyboard('{ArrowLeft}{ArrowLeft}{Shift>}{ArrowLeft}{/Shift}');
+    expect(firstMusic(studio())![0]!.to).toBe(2.3);
+    expect(
+      within(musicTrack()).getByRole('slider', { name: 'Play to' }).getAttribute('aria-valuetext'),
+    ).toBe('2.3 seconds');
+    expect(onAnnounce).toHaveBeenLastCalledWith('Trim Rain in scene 1');
+    act(() => studio().undo());
+    expect(firstMusic(studio())![0]!.to).toBe(3.5);
+  });
+
+  it('has no handles in a film that can’t be changed, and drags nothing', async () => {
+    const user = userEvent.setup();
+    const { studio } = open(withRain([rainAt(1)]), { readOnly: true });
+    const bar = within(musicTrack()).getByRole('button');
+    await user.click(bar);
+    expect(within(musicTrack()).queryByRole('slider')).toBeNull();
+    dragBy(bar, 40);
+    expect(firstMusic(studio())![0]!.start).toBe(1);
   });
 });

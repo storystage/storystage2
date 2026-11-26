@@ -12,6 +12,7 @@ import {
   addCue,
   changeCue,
   cueFor,
+  dragCue,
   heardMusic,
   removeCue,
   rulerStep,
@@ -145,6 +146,50 @@ describe('the cue changes', () => {
   it('removes a cue, and the scene’s music with its last', () => {
     const p = withCues(s1, [cue(1)]);
     expect(removeCue(p, s1, 0).scenes.find((s) => s.id === s1)!.music).toBeUndefined();
+  });
+});
+
+describe('dragCue', () => {
+  const music = (r: ReturnType<typeof dragCue>) =>
+    r.ok ? r.production.scenes.find((s) => s.id === s1)!.music![r.index]! : null;
+
+  it('moves a bar by the seconds dragged, to a tenth, never before 0', () => {
+    const p = withCues(s1, [cue(2)]);
+    expect(music(dragCue(p, s1, 0, 'move', 1.04))?.start).toBe(3);
+    expect(music(dragCue(p, s1, 0, 'move', -5))?.start).toBe(0);
+  });
+
+  it('refuses a bar dragged onto another cue’s start', () => {
+    const p = withCues(s1, [cue(2), cue(4)]);
+    expect(dragCue(p, s1, 0, 'move', 2)).toEqual({ ok: false, reason: 'taken', at: 4 });
+  });
+
+  it('moves the start with Play from, so what’s left is heard where it was', () => {
+    const p = withCues(s1, [cue(2, { from: 1 })]);
+    expect(music(dragCue(p, s1, 0, 'from', 0.5))).toMatchObject({ start: 2.5, from: 1.5 });
+    // Back, as far as the sound or the scene allows.
+    expect(music(dragCue(p, s1, 0, 'from', -3))).toMatchObject({ start: 1, from: 0 });
+    expect(music(dragCue(withCues(s1, [cue(0.5, { from: 1 })]), s1, 0, 'from', -3))).toMatchObject({
+      start: 0,
+      from: 0.5,
+    });
+    // Forward, leaving at least a tenth.
+    expect(music(dragCue(p, s1, 0, 'from', 9))).toMatchObject({ start: 4.4, from: 3.4 });
+  });
+
+  it('moves Play to alone, inside the trimmed sound', () => {
+    const p = withCues(s1, [cue(2)]);
+    expect(music(dragCue(p, s1, 0, 'to', -1))).toMatchObject({ start: 2, from: 0, to: 2.5 });
+    expect(music(dragCue(p, s1, 0, 'to', 4))?.to).toBe(3.5);
+  });
+
+  it('lengthens a fade in by a corner dragged right, and a fade out by one dragged left', () => {
+    const p = withCues(s1, [cue(0, { fadeIn: 1, fadeOut: 1 })]);
+    expect(music(dragCue(p, s1, 0, 'fadeIn', 0.5))?.fadeIn).toBe(1.5);
+    expect(music(dragCue(p, s1, 0, 'fadeOut', -0.5))?.fadeOut).toBe(1.5);
+    expect(music(dragCue(p, s1, 0, 'fadeIn', -3))?.fadeIn).toBe(0);
+    // The one dragged keeps its length; the other gives way.
+    expect(music(dragCue(p, s1, 0, 'fadeOut', -9))).toMatchObject({ fadeIn: 0, fadeOut: 3.5 });
   });
 });
 
