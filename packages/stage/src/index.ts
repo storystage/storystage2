@@ -14,6 +14,8 @@ export type {
   FrameImage,
   ObjectChange,
   Picked,
+  PoseEvent,
+  PoseHandle,
   Speech,
   Stage,
   ViewStep,
