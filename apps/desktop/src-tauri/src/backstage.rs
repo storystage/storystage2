@@ -6,8 +6,11 @@
 
 use storystage_classes::backstage_files::{content_type, is_served};
 use tauri::http::{header, Method, Request, Response, StatusCode};
+#[cfg(not(target_os = "android"))]
 use tauri::path::BaseDirectory;
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
+#[cfg(not(target_os = "android"))]
+use tauri::Manager;
 
 pub const SCHEME: &str = "backstage";
 
@@ -22,15 +25,15 @@ pub fn backstage_folder() -> &'static str {
 }
 
 fn read(app: &AppHandle, path: &str) -> Option<Vec<u8>> {
-    let resolved = app.path().resolve(format!("backstage/{path}"), BaseDirectory::Resource).ok()?;
-    // Inside the APK on Android, so only the fs plugin can read it, from Rust.
+    // Inside the app's package on Android, read in place from Rust (src/android_assets.rs).
     #[cfg(target_os = "android")]
     {
-        use tauri_plugin_fs::FsExt;
-        app.fs().read(resolved).ok()
+        let _ = app;
+        crate::android_assets::read(&format!("backstage/{path}"))
     }
     #[cfg(not(target_os = "android"))]
     {
+        let resolved = app.path().resolve(format!("backstage/{path}"), BaseDirectory::Resource).ok()?;
         let meta = std::fs::symlink_metadata(&resolved).ok()?;
         if !meta.is_file() {
             return None;
