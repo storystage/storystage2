@@ -54,6 +54,8 @@ export const cmd = (start: number, seconds: number, c: Partial): StageCommand =>
   }) as StageCommand;
 
 const close = (a: number, b: number) => expect(a).toBeCloseTo(b, 5);
+/** The program's `NodeId`, which the stage carries but never reads. */
+type SoundNode = NonNullable<Extract<StageCommand, { kind: 'sound' }>['node']>;
 
 export function describeStageContract(name: string, make: () => Stage | Promise<Stage>) {
   describe(`${name} meets the stage contract`, () => {
@@ -177,7 +179,7 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       const still = stage.stateHash();
       stage.schedule([
         cmd(2, 0, { object: SCENE, kind: 'sound', sound: 'sn9', missing: true }),
-        cmd(0.5, 1.5, { object: cat, kind: 'sound', sound: 'sn1', node: 'n4' }),
+        cmd(0.5, 1.5, { object: cat, kind: 'sound', sound: 'sn1', node: 'n4' as SoundNode }),
         cmd(1, 0, { object: dog, kind: 'sound', sound: 'kenney/gone', missing: true }),
         cmd(3, 0, { object: cat, kind: 'sound', sound: 'sn9', missing: true }),
       ]);

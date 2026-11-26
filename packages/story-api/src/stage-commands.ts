@@ -14,6 +14,7 @@
  * Colours are paints: a name from the Story API's `Color` list, or `#rrggbb`. The sky, light and
  * fog belong to the scene, so their commands and questions use the object `SCENE`.
  */
+import type { NodeId } from '@storystage/ast';
 import type { ENUMS } from './catalog/types.ts';
 import type {
   AnimationStyle,
@@ -255,7 +256,7 @@ export type StageCommand =
       readonly kind: 'sound';
       readonly sound: string;
       readonly missing?: true;
-      readonly node?: string;
+      readonly node?: NodeId;
     });
 
 export type StageCommandKind = StageCommand['kind'];
