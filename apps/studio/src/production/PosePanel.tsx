@@ -10,7 +10,7 @@
  * its joint here. Hands and feet has a button for each, whose keys move it as a drag would.
  */
 import type { SceneId } from '@storystage/production';
-import type { EditableStage } from '@storystage/stage';
+import type { EditableStage, PoseHandle } from '@storystage/stage';
 import type { ObjectId, SceneObjectSetup } from '@storystage/story-api';
 import { Button, Icon, Toggle, useThemeStyle } from '@storystage/ui';
 import { useEffect, useId, useRef, useState } from 'react';
@@ -42,9 +42,6 @@ import {
   type PoseJoint,
 } from './pose.ts';
 import { nudgePlace } from './setup.ts';
-
-/** A hand or foot (S3's `PoseHandle`, which the stage's index doesn't export yet). */
-type PoseHandle = ReturnType<EditableStage['poseHandles']>[number];
 
 const capital = (word: string) => word.charAt(0).toUpperCase() + word.slice(1);
 const handWord = (handle: PoseHandle) => words.t(`production.pose.${handle}`);
