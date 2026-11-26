@@ -39,8 +39,14 @@ tokio = { version = "1", features = ["sync"] }
 
 [target.'cfg(target_os = "android")'.dependencies]
 tauri-plugin-managed-config = { path = "plugins/managed-config" }
-# Reads the bundled speech model from the APK, from Rust only (spec 05 section 5.2).
+# Opens the files the system's dialog picks, from Rust only (spec 05 section 6.5).
 tauri-plugin-fs = "2"
+# Reads bundled files in place through Android's AssetManager (src/android_assets.rs, WP15c).
+# All four already come in through tao and wry, at these versions.
+jni = "0.21"
+ndk = { version = "0.9", default-features = false }
+ndk-context = "0.1"
+ndk-sys = "0.6"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"

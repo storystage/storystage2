@@ -9,6 +9,7 @@ use std::sync::Mutex;
 use serde::Serialize;
 use storystage_speech::{allowed, check_bundled, is_downloaded, load_downloaded, remove, Code, Model, Pins};
 use tauri::ipc::{Channel, Response};
+#[cfg(not(target_os = "android"))]
 use tauri::path::BaseDirectory;
 use tauri::{AppHandle, Manager, State};
 use tokio::sync::watch;
@@ -59,19 +60,21 @@ fn pinned<'a>(app: &AppHandle, speech: &'a Speech, name: &str) -> Result<&'a Mod
 
 /// The bundled model, from the app's resources (spec 05 section 5.2).
 fn read_bundled(app: &AppHandle, model: &Model) -> Result<Vec<u8>, Code> {
-    let path = app
-        .path()
-        .resolve(format!("speech/{}", model.file), BaseDirectory::Resource)
-        .map_err(|_| Code::Internal)?;
-    // Inside the APK on Android, so only the fs plugin can read it. Rust only: no window is
-    // given the plugin's permissions (threat M5).
+    // Inside the app's package on Android, read in place from Rust (src/android_assets.rs).
+    // The webview can't reach it (threat M5).
     #[cfg(target_os = "android")]
     let bytes = {
-        use tauri_plugin_fs::FsExt;
-        app.fs().read(path).map_err(|_| Code::Internal)?
+        let _ = app;
+        crate::android_assets::read(&format!("speech/{}", model.file)).ok_or(Code::Internal)?
     };
     #[cfg(not(target_os = "android"))]
-    let bytes = std::fs::read(path).map_err(|_| Code::Internal)?;
+    let bytes = {
+        let path = app
+            .path()
+            .resolve(format!("speech/{}", model.file), BaseDirectory::Resource)
+            .map_err(|_| Code::Internal)?;
+        std::fs::read(path).map_err(|_| Code::Internal)?
+    };
     check_bundled(bytes, model)
 }
 

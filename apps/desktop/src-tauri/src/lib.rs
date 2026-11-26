@@ -5,6 +5,8 @@
 //! section 4), hands speech input its checked model (section 5) and keeps pupils' folders
 //! (section 6). No API key ever crosses into the webview.
 
+#[cfg(target_os = "android")]
+mod android_assets;
 mod backstage;
 mod classes;
 mod key_dialog;
@@ -55,7 +57,8 @@ pub fn run() {
     let builder = builder
         .plugin(tauri_plugin_managed_config::init())
         .plugin(tauri_plugin_secure_key::init())
-        // For the bundled speech model inside the APK, from Rust only (spec 05 section 5.2).
+        // For the files the system's dialog picks (picker.rs), from Rust only. Bundled files are
+        // read through android_assets, never this plugin, which would copy them to the cache.
         .plugin(tauri_plugin_fs::init())
         // The file dialog, from Rust only (spec 05 section 6.5, decision 0070).
         .plugin(tauri_plugin_dialog::init());
@@ -81,6 +84,9 @@ pub fn run() {
             app.manage(speech::Speech::default());
             app.manage(classes::Classes::new(app.handle()));
             app.manage(picker::Picker::default());
+            // The cache copies of bundled files that builds before WP15c's reader left behind.
+            #[cfg(target_os = "android")]
+            android_assets::remove_old_copies(app.handle());
             #[cfg(desktop)]
             {
                 app.manage(updates::Pending::default());
