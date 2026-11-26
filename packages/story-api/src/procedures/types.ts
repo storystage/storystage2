@@ -53,6 +53,13 @@ export interface StoryContext {
   emit(command: WithoutTiming<StageCommand>): void;
   /** From the run's seed: 0 up to, but not including, 1. */
   random(): number;
+  /**
+   * Each sound the film can play, by the name a `playAudio` block gives it (an imported clip's
+   * id or a shelf sound's Backstage id), with the length of the part it uses, in seconds: what
+   * `playAudio` takes (decision 0076). The runtime gives it from its `load` message; a sound not
+   * in it is missing.
+   */
+  readonly sounds?: Readonly<Record<string, number>>;
 }
 
 /** What a block can wait for: some scene time, or the stage's answer to a question. */

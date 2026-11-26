@@ -171,6 +171,41 @@ export function describeStageContract(name: string, make: () => Stage | Promise<
       expect(stage.speech(cat)).toBeNull();
     });
 
+    it('plays a sound as nothing on the stage, and lists each missing one once (decision 0076)', async () => {
+      const stage = await loaded();
+      stage.seek(micros(1));
+      const still = stage.stateHash();
+      stage.schedule([
+        cmd(2, 0, { object: SCENE, kind: 'sound', sound: 'sn9', missing: true }),
+        cmd(0.5, 1.5, { object: cat, kind: 'sound', sound: 'sn1' }),
+        cmd(1, 0, { object: dog, kind: 'sound', sound: 'kenney/gone', missing: true }),
+        cmd(3, 0, { object: cat, kind: 'sound', sound: 'sn9', missing: true }),
+      ]);
+      stage.seek(micros(1));
+      expect(stage.stateHash()).toBe(still);
+      expect(stage.speech(cat)).toBeNull();
+      // In the order of their first start, after anything the load couldn't find.
+      expect(stage.missing()).toEqual([
+        { kind: 'sound', sound: 'kenney/gone' },
+        { kind: 'sound', sound: 'sn9' },
+      ]);
+      stage.reset();
+      expect(stage.missing()).toEqual([]);
+      stage.schedule([cmd(0, 0, { object: cat, kind: 'sound', sound: 'sn9', missing: true })]);
+      await stage.load(SETUP);
+      expect(stage.missing()).toEqual([]);
+    });
+
+    it('refuses a sound with no name, or a missing one that takes time', async () => {
+      const stage = await loaded();
+      for (const c of [
+        cmd(0, 1, { object: cat, kind: 'sound', sound: '' }),
+        cmd(0, 1, { object: cat, kind: 'sound', sound: 'sn9', missing: true }),
+      ])
+        expect(() => stage.schedule([c])).toThrow(StageError);
+      expect(stage.missing()).toEqual([]);
+    });
+
     it("carries a speak line's caption and its script line, for the studio to draw and voice", async () => {
       const caption = (line?: string) =>
         cmd(1, 2, {

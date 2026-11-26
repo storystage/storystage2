@@ -57,12 +57,15 @@ export interface LoadOptions {
  * Something a scene names that the stage couldn't find (spec 03 sections 1.3 and 2.2): a model,
  * which shows as a stand-in labelled with its name; a backdrop's ground, sky or lighting, which
  * is the default instead; or a posed joint the loaded model hasn't got, which is left out (never
- * reported for an object shown as a stand-in). The scene still loads and plays.
+ * reported for an object shown as a stand-in). The scene still loads and plays. A `sound` is one
+ * a `sound` command named, scheduled since the load and marked `missing` (an imported clip that's
+ * gone, or a shelf sound this Backstage hasn't got): it's silent, and the run goes on.
  */
 export type Missing =
   | { readonly kind: 'model'; readonly object: ObjectId; readonly model: BackstageId }
   | { readonly kind: 'backdrop'; readonly id: BackstageId }
-  | { readonly kind: 'joint'; readonly object: ObjectId; readonly joint: JointName };
+  | { readonly kind: 'joint'; readonly object: ObjectId; readonly joint: JointName }
+  | { readonly kind: 'sound'; readonly sound: string };
 
 export interface Stage {
   /**
@@ -85,7 +88,8 @@ export interface Stage {
 
   /**
    * What the last `load` couldn't find, in set-up order: the backdrop's parts, then each object's
-   * model, or the posed joints its model hasn't got.
+   * model, or the posed joints its model hasn't got; then each missing sound that commands
+   * scheduled since have named, once, in the order of their first start (`reset` forgets them).
    */
   missing(): readonly Missing[];
 

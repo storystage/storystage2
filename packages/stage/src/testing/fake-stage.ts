@@ -114,7 +114,7 @@ export class FakeStage implements EditableStage {
   }
 
   missing(): readonly Missing[] {
-    return this.lost;
+    return [...this.lost, ...this.timeline.missingSounds()];
   }
 
   /** Records preloading; there's nothing to get ready. */

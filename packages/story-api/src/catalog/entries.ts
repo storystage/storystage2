@@ -173,7 +173,7 @@ export const ENTRIES: readonly ApiEntry[] = [
     unreal: 'Delay',
   }),
   proc('Thing', 'playAudio', [param('audioSource', 'Audio')], {
-    runs: 'needs:audio',
+    runs: 'command:sound',
     unreal: 'Play Sound 2D',
   }),
   func('Thing', 'isCollidingWith', [other], 'Boolean', {
@@ -487,7 +487,6 @@ export const ENTRIES: readonly ApiEntry[] = [
  * now; these wait for their own work packages.
  */
 export const STAGE_NEEDS: Readonly<Record<string, string>> = {
-  audio: 'Play a sound at a scene time, for the export to mix (with WP11)',
   ask: 'Ask the learner for a value while a program runs (the runtime, not the stage)',
 };
 

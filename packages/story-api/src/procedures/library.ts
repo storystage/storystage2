@@ -552,6 +552,21 @@ export const STORY_LIBRARY: StoryLibrary = {
   })),
   say: say('say'),
   think: say('think'),
+  // Decision 0076: a sound plays for the part the film uses, and the block waits for it, as
+  // Alice's does. One the film hasn't got is missing: silent, instant, and the stage lists it.
+  playAudio: (call, context) => {
+    const sound = words(call.args.audioSource, 'The sound');
+    const seconds = Object.hasOwn(context.sounds ?? {}, sound) ? context.sounds![sound]! : null;
+    const found = seconds !== null && Number.isFinite(seconds) && seconds > 0;
+    return perform(context, {
+      object: self(call),
+      kind: 'sound',
+      sound,
+      ...(found ? {} : { missing: true as const }),
+      duration: found ? micros(seconds) : 0,
+      style: 'beginAndEndGently',
+    });
+  },
   // Spec 06, 4.2 and 4.7: a caption the studio voices, timed by its words unless `duration` is
   // given. `line` is the script line it came from, if any.
   speakLine: procedure((call) => {

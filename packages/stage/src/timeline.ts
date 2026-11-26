@@ -34,7 +34,7 @@ import {
   type Vec3,
 } from '@storystage/story-api';
 import { ROOM, resolveBackdrop, type Colour } from './backdrops.ts';
-import type { ObjectChange, Speech } from './contract.ts';
+import type { Missing, ObjectChange, Speech } from './contract.ts';
 import type { Box } from './hull.ts';
 import type { Navigation, NavigationArea, NavigationMaker } from './navigation.ts';
 import {
@@ -197,6 +197,8 @@ type Resolved =
   | { kind: 'skyColour'; part: SkyPart; base: Sky; from: Colour; to: Colour }
   | { kind: 'fog'; base: Sky; from: number; to: number }
   | { kind: 'fade'; from: number; to: number }
+  /** A sound changes nothing in the scene: Rehearse's player and the export play it. */
+  | { kind: 'sound' }
   | { kind: 'action'; action: Action };
 
 const ORIGIN: Pose = { position: v(0, 0, 0), rotation: IDENTITY_Q };
@@ -481,6 +483,16 @@ export class Timeline {
     for (let i = first; i >= 0 && i < this.commands.length; i++)
       this.resolved.delete(this.commands[i]!.seq);
     this.state = this.evaluate(this.now);
+  }
+
+  /**
+   * The missing sounds the commands scheduled so far name (spec 03 section 1.7), each once, in
+   * the order of their first start: the end of the stage's `missing()`.
+   */
+  missingSounds(): readonly Missing[] {
+    const named = new Set<string>();
+    for (const c of this.commands) if (c.kind === 'sound' && c.missing) named.add(c.sound);
+    return [...named].map((sound) => ({ kind: 'sound', sound }));
   }
 
   reset(): void {
@@ -837,6 +849,8 @@ export class Timeline {
           return { kind: 'fog', base: sky, from: sky.fog, to: c.density };
         case 'fade':
           return { kind: 'fade', from: self.fade ?? 0, to: c.to };
+        case 'sound':
+          return { kind: 'sound' };
       }
       // Only the character actions are left (WP4c).
       return { kind: 'action', action: resolveAction(this.world, c, before, here) };
@@ -1034,9 +1048,11 @@ export class Timeline {
       if (typeof space === 'object') this.checkTarget(space.asSeenBy);
     };
     const isSky = SKY_KINDS.includes(c.kind);
-    if (isSky ? c.object !== SCENE : c.object === SCENE)
+    // Anything can play a sound, the scene too, as in Alice (`playAudio` is on `SThing`).
+    const sceneToo = c.kind === 'sound' && c.object === SCENE;
+    if (!sceneToo && (isSky ? c.object !== SCENE : c.object === SCENE))
       throw bad(isSky ? 'Only the scene has a sky, light and fog.' : `The scene can't do that.`);
-    if (!isSky) exists(c.object);
+    if (!isSky && !sceneToo) exists(c.object);
     if (c.kind === 'lens' && c.object !== CAMERA) throw bad('Only the camera has a lens.');
     if (
       !Number.isInteger(c.start) ||
@@ -1182,6 +1198,10 @@ export class Timeline {
         break;
       case 'fade':
         if (!(c.to >= 0 && c.to <= 1)) throw bad('A fade goes from 0 to 1.');
+        break;
+      case 'sound':
+        if (typeof c.sound !== 'string' || c.sound === '') throw bad('A sound needs its name.');
+        if (c.missing && c.duration !== 0) throw bad('A missing sound takes no time.');
         break;
     }
   }
@@ -1462,6 +1482,8 @@ function apply(
       return;
     case 'fade':
       s.fade = lerp(r.from, r.to, p);
+      return;
+    case 'sound':
       return;
   }
 }
