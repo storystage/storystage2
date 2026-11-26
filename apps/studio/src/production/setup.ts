@@ -112,6 +112,44 @@ function rotate(q: Quat, v: { x: number; y: number; z: number }) {
   };
 }
 
+/**
+ * Which way an arrow key goes along the ground as a camera sees it, as (x, z): Up away from the
+ * camera, Right to its right. Null for any other key.
+ */
+function groundWay(key: string, camera: Transform): [number, number] | null {
+  // The camera looks along its +Z (spec 08 section 9.2); its right on the ground is (-fz, fx).
+  const ahead = rotate(camera.rotation, { x: 0, y: 0, z: 1 });
+  const flat = Math.hypot(ahead.x, ahead.z) || 1;
+  const fx = ahead.x / flat;
+  const fz = ahead.z / flat;
+  const ground: Record<string, [number, number]> = {
+    ArrowUp: [fx, fz],
+    ArrowDown: [-fx, -fz],
+    ArrowRight: [-fz, fx],
+    ArrowLeft: [fz, -fx],
+  };
+  return ground[key] ?? null;
+}
+
+/**
+ * Where a key moves a hand or foot in Pose (0073; S3's `handlePlace` and `posedReaching`), or
+ * `null` for a key that does nothing: the arrow keys along the ground as the view sees it, and
+ * Page Up and Page Down up and down, 10 cm, or 1 m with Shift, as a picked-up object moves.
+ */
+export function nudgePlace(at: Vec3, key: string, shift: boolean, view: Transform): Vec3 | null {
+  const step = shift ? NUDGE.large : NUDGE.small;
+  const along = groundWay(key, view);
+  if (along)
+    return {
+      x: toMillimetre(at.x + along[0] * step),
+      y: at.y,
+      z: toMillimetre(at.z + along[1] * step),
+    };
+  if (key === 'PageUp' || key === 'PageDown')
+    return { ...at, y: toMillimetre(at.y + (key === 'PageUp' ? step : -step)) };
+  return null;
+}
+
 /** How far one key moves a picked-up object, in metres: 10 cm, or 1 m with Shift. */
 export const NUDGE = { small: 0.1, large: 1 } as const;
 
@@ -136,18 +174,7 @@ export function nudgeObject(
   camera: Transform,
 ): Nudge | null {
   const step = shift ? NUDGE.large : NUDGE.small;
-  // The camera looks along its +Z (spec 08 section 9.2); its right on the ground is (-fz, fx).
-  const ahead = rotate(camera.rotation, { x: 0, y: 0, z: 1 });
-  const flat = Math.hypot(ahead.x, ahead.z) || 1;
-  const fx = ahead.x / flat;
-  const fz = ahead.z / flat;
-  const ground: Record<string, [number, number]> = {
-    ArrowUp: [fx, fz],
-    ArrowDown: [-fx, -fz],
-    ArrowRight: [-fz, fx],
-    ArrowLeft: [fz, -fx],
-  };
-  const along = ground[key];
+  const along = groundWay(key, camera);
   if (along) {
     const x = withField(t, 'x', toMillimetre(t.position.x + along[0] * step));
     return {

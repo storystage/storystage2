@@ -856,6 +856,25 @@
   color: var(--ss-text-2);
   font-size: calc(14px * var(--ss-text-size, 1));
 }
+/* Pose on the stage (7.16): the switch and what it does, then a button for each hand and foot. */
+.pr-pose-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pr-pose-hint {
+  margin: 0;
+  color: var(--ss-text-2);
+  font-size: calc(14px * var(--ss-text-size, 1));
+}
+.pr-pose-hands {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 10px;
+}
+.pr-pose-hands > .pr-pose-hint {
+  grid-column: 1 / -1;
+}
 /* Picked up from the keyboard: held, until Enter, Space or Esc puts it down. */
 .pr-object[data-lifted] {
   background: var(--ss-amber-tint);

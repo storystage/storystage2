@@ -53,7 +53,7 @@ import {
   addMarker,
 } from './setup.ts';
 import { addObject, objectName, withObject } from '@storystage/production';
-import type { EditTarget } from '@storystage/stage';
+import type { EditTarget, EditableStage } from '@storystage/stage';
 import {
   CAMERA,
   type BackstageId,
@@ -439,6 +439,9 @@ export function ProductionStage({
   // What's chosen on the stage and in Objects in this scene, for the scene it was chosen in.
   const [choice, setChoice] = useState<{ scene: SceneId; target: EditTarget } | null>(null);
   const chosen = choice && choice.scene === scene ? choice.target : null;
+  // The scene view's stage, for the Pose panel's hands and feet (7.16), and how many times it has
+  // shown the set-up, so the panel asks it again after each load.
+  const [poseStage, setPoseStage] = useState<{ stage: EditableStage; shown: number } | null>(null);
   // Set the stage from the storyboard (WP10.10): what it shows that the stage doesn't have yet.
   const planBackstage = useMemo<PlanBackstage | null>(
     () =>
@@ -672,6 +675,7 @@ export function ProductionStage({
                       }
                     : {})}
                   canEdit={!!studio && studio.readOnly === null}
+                  onEditable={(stage, shown) => setPoseStage(stage ? { stage, shown } : null)}
                   onMoved={(target, transform) => {
                     if (!studio) return;
                     const step = moved(studio.production, scene, target, transform);
@@ -728,6 +732,8 @@ export function ProductionStage({
                     )
                   }
                   onAnnounce={onAnnounce}
+                  poseStage={poseStage?.stage ?? null}
+                  poseShown={poseStage?.shown ?? 0}
                   poseJoints={(o) =>
                     typeof o.model === 'string'
                       ? poseJoints(o.class, models.item(o.model)?.joints)

@@ -8,6 +8,7 @@ import {
   poseJoints,
   sameTurn,
   withJoint,
+  withPose,
   type JointTurns,
 } from './pose.ts';
 
@@ -81,6 +82,19 @@ describe('posing an object', () => {
     expect('joints' in penguin(q)).toBe(false);
     // Nothing else changed.
     expect(penguin(q)).toEqual(penguin(p));
+  });
+
+  it('sets a whole pose from a drag, leaving the joints at rest out (0073)', () => {
+    const turned = jointTurn({ heading: 0.125, tilt: 0, roll: 0 });
+    const shoulder = jointName('leftUpperArm');
+    let q = withJoint(p, scene, 'penguin', head, turned);
+    q = withPose(q, scene, 'penguin', { [shoulder]: turned, [neck]: REST, [head]: turned });
+    expect(Object.keys(penguin(q).joints!).sort()).toEqual(['head', 'leftUpperArm']);
+    q = withPose(q, scene, 'penguin', { [shoulder]: REST, [head]: { x: 0, y: 0, z: 0, w: -1 } });
+    expect('joints' in penguin(q)).toBe(false);
+    expect(penguin(q)).toEqual(penguin(p));
+    // Another scene's penguin, or another object, is left alone.
+    expect(withPose(p, scene, 'nobody', { [head]: turned })).toEqual(p);
   });
 
   it('is kept when the film is saved and opened again (S4’s 1.5.0)', () => {

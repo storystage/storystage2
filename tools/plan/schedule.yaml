@@ -435,6 +435,8 @@ items:
     weeks: 0.5
     basis: Alice depth
     after: [WP5d, WP7]
+    started: 2026-11-26
+    finished: 2026-11-26
   - id: WP7s
     label: 'Sound in the studio: the Sound view, the trim dialog, choosing a sound (7.17)'
     lane: Interface
