@@ -177,17 +177,28 @@ export function eventSettings(event: NonNullable<ReturnType<typeof findEvent>>):
 const keyed = (event: NonNullable<ReturnType<typeof findEvent>>) => event.details.includes('keys');
 
 /**
- * The keys a key event's when step is for, by Key name, or null for any key (spec 02, section
+ * A key as a step names it, as its Key value: by its name in any case ("Space", "W"), or by its
+ * own words ("up arrow", "space bar"; S6's review). A digit is its number key, so "3" and
+ * "number 3" are digit3. One that is none of these is left as it's given, to be refused.
+ */
+function keyValue(given: string): string {
+  const digit = /^(?:number\s+)?([0-9])$/i.exec(given);
+  if (digit) return `digit${digit[1]}`;
+  const plain = given.toLowerCase().replace(/\s+/g, ' ');
+  return (
+    enumValues('Key').find(
+      (v) => v.toLowerCase() === plain || word(`value.Key.${v}`).toLowerCase() === plain,
+    ) ?? given
+  );
+}
+
+/**
+ * The keys a key event's when step is for, as Key values, or null for any key (spec 02, section
  * 6a; spec 04, section 6.10): its `keys` setting, or `key`, a list such as "space" or "w, up".
- * A digit stands for its number key, so "3" and "number 3" are digit3.
  */
 export function stepKeys(step: PlanStep): string[] | null {
   const given = step.details.find((d) => d.name === 'keys' || d.name === 'key');
-  if (!given) return null;
-  return listItems(given.value).map((k) => {
-    const digit = /^(?:number\s+)?([0-9])$/i.exec(k);
-    return digit ? `digit${digit[1]}` : k;
-  });
+  return given ? listItems(given.value).map(keyValue) : null;
 }
 
 /** Why a key event's keys can't be built, or null (spec 02, section 6a). */

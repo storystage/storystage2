@@ -938,6 +938,7 @@ Section 6.4 holds an event's objects and number to its step. Three more things:
 - **Which keys** (spec 02 section 6a; built on 26 Nov 2026, on S6's Story API 0.12.0):
   - a when step's `keys` (or `key`) detail, a list of Key names such as "space" or "w, up", is built as the listener's `keys`: a list of `Key` in the step's order;
   - for `numberKeyPress`, "number 3" or "3" is `digit3`;
+  - a key is read by its name in any case ("Space", "W") or by its own words ("up arrow", "space bar"), so Claude needn't retry for those (S6's review);
   - `arrowKeyPress` takes only `up`, `down`, `left` and `right`, and `numberKeyPress` only `digit0` to `digit9`, as the catalogue lists each event's keys (`EventDef.keys`), and any other is refused at the plan, as 6a rule 2 says;
   - refused at the plan too: an empty list, which would never run, a name that isn't a `Key`, a key named twice, and both `key` and `keys` on one step;
   - a step with neither builds a listener for any key, as before;

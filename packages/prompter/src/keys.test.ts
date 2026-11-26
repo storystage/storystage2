@@ -54,6 +54,9 @@ describe('which keys a when step is for (spec 02, section 6a)', () => {
     expect(stepKeys(when('keyPress', 'w, up'))).toEqual(['w', 'up']);
     expect(stepKeys(when('numberKeyPress', '3'))).toEqual(['digit3']);
     expect(stepKeys(when('numberKeyPress', 'number 3, Number 4'))).toEqual(['digit3', 'digit4']);
+    // By its name in any case, or by its own words (S6's review).
+    expect(stepKeys(when('keyPress', 'Space, W, backspace'))).toEqual(['space', 'w', 'backSpace']);
+    expect(stepKeys(when('arrowKeyPress', 'up arrow, Space bar'))).toEqual(['up', 'space']);
     const key = when('keyPress', undefined, { details: [{ name: 'key', value: 'space' }] });
     expect(stepKeys(key)).toEqual(['space']);
   });
@@ -70,6 +73,7 @@ describe('which keys a when step is for (spec 02, section 6a)', () => {
     expect(problems([when('numberKeyPress', 'space')])).toEqual([
       "A numberKeyPress event isn't for space: it's for digit0, digit1, digit2, digit3, digit4, digit5, digit6, digit7, digit8, digit9.",
     ]);
+    expect(problems([when('arrowKeyPress', 'Left arrow')])).toEqual([]);
     expect(problems([when('keyPress', 'spacebar')])).toEqual([
       "spacebar isn't a key. Use a Key name, such as space or w.",
     ]);
