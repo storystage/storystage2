@@ -236,19 +236,31 @@ function setUp(production: Production = film(), extra: Partial<RunnerSetup> = {}
     runner.run(name, value as JsonObject);
   const plan = (steps: PlanStep[], frame?: string) =>
     run('propose_plan', frame === undefined ? { steps } : { frame, steps });
-  /** Shows a plan and agrees to it as it was shown. */
+  /**
+   * Shows a plan for a request and agrees to it as it was shown, in the panel's order: the
+   * request, the plan, then Build these steps (spec 04, section 4.5).
+   */
   const agree = (steps: PlanStep[], request = 'waddle please', frame?: string) => {
+    runner.begin(request, {});
     expect(plan(steps, frame)).toMatchObject({ ok: true });
+    runner.end();
     const shown = runner.latestPlan()!;
-    runner.begin(request, { agreedPlan: shown as unknown as Json });
+    runner.begin('Build these steps.', { agreedPlan: shown as unknown as Json });
     return shown;
+  };
+  /** The plan check's message for a request's plan, or null if it's shown. */
+  const refused = (steps: PlanStep[], request: string, frame?: string) => {
+    runner.begin(request, {});
+    const result = plan(steps, frame);
+    runner.end();
+    return result.ok ? null : result.message;
   };
   const problem = (s: Partial<PlanStep>, frame: string | null = null) =>
     runner.checkSteps([step(s)], frame)[0]?.message ?? null;
   const scene = () => session.program().types.find((t) => t.name === 'Scene2')!;
   const script = () => scene().methods.find((m) => m.name === 'myFirstMethod')!;
   const last = () => script().body.at(-1) as Extract<Statement, { kind: 'call' }>;
-  return { session, runner, run, plan, agree, problem, scene, script, last };
+  return { session, runner, run, plan, agree, refused, problem, scene, script, last };
 }
 
 /** The same film, one method changed. */
@@ -641,6 +653,12 @@ describe("the learner's own in a plan (spec 04, section 6.9): building", () => {
 
 // ---- Words in the film --------------------------------------------------------------------------
 
+/** The plan check's words rule (section 6.5), as the build holds it (the owner, 26 Nov 2026). */
+const NOT_THEIRS =
+  "Words in the film come from the script or the learner's own words. Ask the learner what they should be.";
+const NOT_A_LINE =
+  'In a storyboard frame, words come from the script. Choose a script line for this step, or change the line in the script first.';
+
 describe('words in the film (spec 04, sections 6.5 and 6.9)', () => {
   const greets = (message: string) => step({ action: 'greet', details: pairs({ message }) });
 
@@ -652,21 +670,36 @@ describe('words in the film (spec 04, sections 6.5 and 6.9)', () => {
     });
   });
 
-  it("refuses words of the Prompter's in a text input, spoken or not", () => {
-    const { agree, run } = setUp();
-    agree([greets('Welcome, traveller!')], 'make the penguin greet');
-    expect(
-      run('insert_statement', call('greet', { message: 'Welcome, traveller!' })),
-    ).toMatchObject({ error: 'not_in_script' });
+  it("shows no plan with words of the Prompter's in a text input, spoken or not", () => {
+    const { refused } = setUp();
+    expect(refused([greets('Welcome, traveller!')], 'make the penguin greet')).toContain(
+      `step 1: ${NOT_THEIRS}`,
+    );
   });
 
   it("holds each of several text inputs to the learner's words", () => {
-    const { agree, run } = setUp();
+    const { refused } = setUp();
     const values = { first: 'Hello', second: 'Farewell, friend' };
-    agree([step({ action: 'chat', details: pairs(values) })], 'chat, starting Hello');
-    expect(run('insert_statement', call('chat', values))).toMatchObject({
-      error: 'not_in_script',
-    });
+    const chat = step({ action: 'chat', details: pairs(values) });
+    expect(refused([chat], 'chat, starting Hello')).toContain(`step 1: ${NOT_THEIRS}`);
+    expect(refused([chat], 'chat: Hello, then Farewell, friend')).toBeNull();
+  });
+
+  it('in a frame, shows no plan whose text input is not its script line', () => {
+    const { refused } = setUp();
+    expect(refused([greets('Hello!')], 'Code frame f2. Say Hello!', 'f2')).toContain(
+      `step 1: ${NOT_A_LINE}`,
+    );
+    expect(
+      refused(
+        [step({ action: 'greet', line: 'l3', details: pairs({ message: 'Hello!' }) })],
+        'Code frame f2.',
+        'f2',
+      ),
+    ).toContain(
+      'step 1: These words must match the script line: "Don\'t be scared. I\'m lost too."',
+    );
+    expect(refused([step({ action: 'greet', line: 'l3' })], 'Code frame f2.', 'f2')).toBeNull();
   });
 
   it("takes a line's exact words in a frame, and only those", () => {
@@ -687,14 +720,11 @@ describe('words in the film (spec 04, sections 6.5 and 6.9)', () => {
     const put = (value: string, extra: JsonObject = {}) =>
       call('setValue', { text: value }, { target: 'sign', ...extra });
 
-    it("refuses words of the Prompter's", () => {
-      const { agree, run, session } = setUp();
-      const before = session.program();
-      agree([shows('The Great Adventure')], 'change the sign');
-      expect(run('insert_statement', put('The Great Adventure'))).toMatchObject({
-        error: 'not_in_script',
-      });
-      expect(session.program()).toBe(before);
+    it("shows no plan with words of the Prompter's", () => {
+      const { refused } = setUp();
+      expect(refused([shows('The Great Adventure')], 'change the sign')).toContain(
+        `step 1: ${NOT_THEIRS}`,
+      );
     });
 
     it("takes the learner's", () => {
@@ -706,10 +736,9 @@ describe('words in the film (spec 04, sections 6.5 and 6.9)', () => {
     it('takes only a line in a frame', () => {
       const words = "Don't be scared. I'm lost too.";
       const none = setUp();
-      none.agree([shows('The End')], 'make the sign say The End', 'f2');
-      expect(none.run('insert_statement', put('The End'))).toMatchObject({
-        error: 'not_in_script',
-      });
+      expect(none.refused([shows('The End')], 'make the sign say The End', 'f2')).toContain(
+        `step 1: ${NOT_A_LINE}`,
+      );
       const lined = setUp();
       lined.agree([shows(words, 'l3')], 'Code frame f2.', 'f2');
       expect(lined.run('insert_statement', put(words, { line: 'l3' }))).toMatchObject({ ok: true });
@@ -1350,14 +1379,10 @@ describe('3D text the Prompter adds (format 1.10.0; spec 04, section 6.5)', () =
     expect(runner.checkSteps([title(), dance], null)).toEqual([]);
   });
 
-  it("refuses words of the Prompter's on it", () => {
-    const { agree, run, session } = setUpText();
-    agree([title(), shows('The Great Adventure')], 'make a title');
-    expect(add(run)).toMatchObject({ ok: true });
-    const before = session.program();
-    expect(run('insert_statement', put('The Great Adventure'))).toMatchObject({
-      error: 'not_in_script',
-    });
-    expect(session.program()).toBe(before);
+  it("shows no plan with words of the Prompter's on it", () => {
+    const { refused } = setUpText();
+    expect(refused([title(), shows('The Great Adventure')], 'make a title')).toContain(
+      `step 2: ${NOT_THEIRS}`,
+    );
   });
 });

@@ -382,6 +382,8 @@ items:
     weeks: 1
     basis: Alice depth
     after: [WP4c]
+    started: 2026-11-26
+    finished: 2026-11-26
   - id: WP7c
     label: Alice-style tile editor, full (option C)
     lane: Tile editor

@@ -190,7 +190,7 @@ The tables in this section are the plan: estimates only, from week 0. This forec
 
 <!-- schedule:forecast -->
 
-**As of 25 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 38 of 69 items finished and 18 more started:
+**As of 25 Nov 2026** (`as_of` in `tools/plan/schedule.yaml`), with 39 of 69 items finished and 18 more started:
 
 - **Release candidate:** week 8.5 (18 Dec 2026). The plan above says week 18.5 (26 Feb 2027).
 - **Pilot ends:** week 14.5 (29 Jan 2027). The plan says week 24.5 (9 Apr 2027).
@@ -289,7 +289,7 @@ Generated from `tools/plan/schedule.yaml` by `pnpm schedule` (WP0.10); CI fails 
 | WP7v | Copy and paste of blocks (7.15) | Interface | WP7, WP7c | 0.5 | wk 14.5 (29 Jan 2027) | 3.5 | 0.3 (21–22 Nov) |
 | WP13c | Prompter panel, storyboard tools, story coach, live eval | Prompter and speech | WP13b, WP10a, WP7 | 2 | wk 14.5 (29 Jan 2027) | **0 (critical)** | started 17 Nov; ends about 30 Nov |
 | WP11m | Sound: three tracks, playing, and the export's mix (11.7) | Screening room | WP11s, WP11b, WP6 | 2 | wk 14.5 (29 Jan 2027) | 2 | forecast: 4 Dec to 18 Dec |
-| WP5d | Drag posing: hand and foot handles, by inverse kinematics (5.9) | Stage | WP4c | 1 | wk 14.5 (29 Jan 2027) | 2.5 | forecast: 26 Nov to 4 Dec |
+| WP5d | Drag posing: hand and foot handles, by inverse kinematics (5.9) | Stage | WP4c | 1 | wk 14.5 (29 Jan 2027) | 2.5 | 0.1 (26 Nov) |
 | WP7t | Editor switch, parity tests, study build (7.11–7.13) | Tile editor | WP7, WP7c | 1.5 | wk 14.5 (29 Jan 2027) | 0.5 | 0.1 (17 Nov) |
 | WP7d | The Pose panel's drag (7.16) | Interface | WP5d, WP7 | 0.5 | wk 15.5 (4 Feb 2027) | 2.5 | 0.1 (26 Nov) |
 | WP18b | Milestone gate tests and device runs (18.2, 18.3) | Foundations | WP7, WP7t, WP8, WP9b, WP10b, WP11b, WP13c, WP14b, WP4c, WP5b, WP15k, WP15b, WP24b | 2 | wk 16.5 (12 Feb 2027) | **0 (critical)** | started 12 Nov; ends about 30 Nov |
@@ -619,7 +619,7 @@ Borderline items get one home section by how they're usually used (a vehicle is 
     - bone IK and look-at controllers.
 
     Performance is checked on the reference devices. (C)
-- [ ] 5.9 **Drag posing (0073):** a hand and foot handle on `EditableStage`, and a drag that turns the arm's or leg's joints by inverse kinematics (`ik.ts`), so the hand or foot follows the pointer; joints still only turn (0051). S3; the Pose panel's side is 7.16 (S5). (C)
+- [x] 5.9 **Drag posing (0073):** a hand and foot handle on `EditableStage`, and a drag that turns the arm's or leg's joints by inverse kinematics (`ik.ts`), so the hand or foot follows the pointer; joints still only turn (0051). S3; the Pose panel's side is 7.16 (S5). (C)
 
 **Done when:** the reference scenes in `tests/scenes/` render at 30 fps or better on both reference devices at "low", and the offscreen render is deterministic.
 

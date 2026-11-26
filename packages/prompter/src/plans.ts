@@ -55,7 +55,19 @@ export interface PlanWorld {
    * step adds. Without it, a step can use only the Story API's blocks.
    */
   readonly code?: PlanCode;
+  /**
+   * Words in the film (section 6.5): whether the plan is for a frame, where they are a script
+   * line, and whether words are the learner's own, as they must be outside one. Without it, a
+   * step's words are checked only as they're built.
+   */
+  readonly words?: { readonly forFrame: boolean; readonly learners: (words: string) => boolean };
 }
+
+/**
+ * The blocks whose `text` is words in the film, held to the script or the learner's own words
+ * (section 6.5): what a character says or thinks, and on-screen text (the owner, 22 Nov 2026).
+ */
+export const WORDED: ReadonlySet<string> = new Set(['say', 'think', 'speakLine', 'setValue']);
 
 export interface PlanProblem {
   /** From 1, as the learner sees the steps numbered. */
@@ -182,6 +194,33 @@ function eventDetailProblem(
   return null;
 }
 
+/**
+ * Whether a step's words in the film keep section 6.5's rule, as the build holds them: a script
+ * line's exact words, or, outside a frame, the learner's own (the owner's choice, 26 Nov 2026).
+ * `lineFills` says the step's line, if it has one, gives these words. Words not given are the
+ * line's, or are asked for by the step's other rules.
+ */
+function wordsProblem(
+  value: string | undefined,
+  step: PlanStep,
+  lineFills: boolean,
+  world: PlanWorld,
+): string | null {
+  const { words } = world;
+  if (!words) return null;
+  const line = lineFills && step.line !== '' ? world.lines.get(step.line) : undefined;
+  if (line !== undefined)
+    return value === undefined || value === line
+      ? null
+      : `These words must match the script line: "${line}".`;
+  if (value === undefined) return null;
+  if (words.forFrame)
+    return 'In a storyboard frame, words come from the script. Choose a script line for this step, or change the line in the script first.';
+  return words.learners(value)
+    ? null
+    : "Words in the film come from the script or the learner's own words. Ask the learner what they should be.";
+}
+
 /** Whether a step's value fits an input of a learner's procedure (section 6.9). */
 function inputFits(input: OwnInput, value: string, stage: Stage, code: PlanCode): boolean {
   if (input.kind === 'object') {
@@ -195,7 +234,13 @@ function inputFits(input: OwnInput, value: string, stage: Stage, code: PlanCode)
 }
 
 /** The problem with a step that calls one of the learner's procedures (section 6.9). */
-function ownProblem(step: PlanStep, move: OwnMove, stage: Stage, code: PlanCode): string | null {
+function ownProblem(
+  step: PlanStep,
+  move: OwnMove,
+  stage: Stage,
+  code: PlanCode,
+  world: PlanWorld,
+): string | null {
   const cant = unplannable(code, move);
   if (cant !== null) return cant;
   const { name } = move.method;
@@ -209,6 +254,9 @@ function ownProblem(step: PlanStep, move: OwnMove, stage: Stage, code: PlanCode)
   const acted: string[] = [];
   for (const input of move.inputs) {
     const given = step.details.find((d) => d.name === input.name)?.value;
+    // Every text input is words in the film (6.9), and only the line's input takes its words.
+    const said = input.kind === 'text' ? wordsProblem(given, step, input === lined, world) : null;
+    if (said !== null) return said;
     // A line's words can be longer than a step's value may be, so they aren't given again.
     if (given === undefined && input === lined) continue;
     const value = given ?? (input === targeted ? target : undefined);
@@ -246,7 +294,7 @@ function stepProblem(step: PlanStep, stage: Stage, world: PlanWorld): string | n
         const setting = move ? twice : settingWords(twice);
         return `A ${step.action} block can have ${setting} only once.`;
       }
-      if (move) return ownProblem(step, move, stage, world.code!);
+      if (move) return ownProblem(step, move, stage, world.code!, world);
       const cls = objects.get(step.actor);
       // Without the code, an object added earlier in the plan has no class yet: its blocks are
       // checked as it's built.
@@ -269,7 +317,10 @@ function stepProblem(step: PlanStep, stage: Stage, world: PlanWorld): string | n
       const needed =
         step.details.find((d) => d.value.trim() === '')?.name ??
         entry.params.find((p) => !filled(p))?.name;
-      return needed ? `A ${step.action} block needs a value for ${settingWords(needed)}.` : null;
+      if (needed) return `A ${step.action} block needs a value for ${settingWords(needed)}.`;
+      return WORDED.has(step.action)
+        ? wordsProblem(step.details.find((d) => d.name === 'text')?.value, step, true, world)
+        : null;
     }
     case 'add':
       if (!world.isBackstageItem(step.action)) return `${step.action} isn't in Backstage.`;
