@@ -431,7 +431,7 @@ describe('the plan check and events (spec 04, section 6.10)', () => {
     ]);
   });
 
-  it("passes a key event's key, which builds nothing until spec 02 section 6a is built", () => {
+  it("takes a key event's key as its keys, and refuses it on another event (keys.test.ts has the rest)", () => {
     expect(
       check([when('keyPress', { actor: 'scene', details: [{ name: 'key', value: 'space' }] })]),
     ).toEqual([]);

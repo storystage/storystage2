@@ -150,7 +150,7 @@
                       "required": ["name", "value"],
                       "additionalProperties": false
                     },
-                    "description": "For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words."
+                    "description": "For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words. For when, the number an event needs, and its settings: a key event gives keys, the keys it is for by Key name (\"space\", or \"w, up\"), or none for any key."
                   },
                   "line": {
                     "type": "string",
@@ -252,7 +252,7 @@
                       "required": ["name", "value"],
                       "additionalProperties": false
                     },
-                    "description": "For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words."
+                    "description": "For do, every setting the block needs, with the value to build, and any details, as name and value pairs. The target and line fill in the object and the words. For when, the number an event needs, and its settings: a key event gives keys, the keys it is for by Key name (\"space\", or \"w, up\"), or none for any key."
                   },
                   "line": {
                     "type": "string",
