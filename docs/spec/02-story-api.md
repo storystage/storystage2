@@ -287,7 +287,7 @@ An event kind is the `event` of a `listener` in the AST.
 
 ### 6a. Which keys (approved, 23 Nov 2026)
 
-**The owner approved this in #659. The Story API's part is built (Story API 0.12.0):** the detail, each event's own keys (`EventDef.keys`), the check, the words, and Tiles' pills and choices. **Still to build:** the runtime (S2), Blocks (S5) and the Prompter (S7). Until the runtime is built, a listener with `keys` still runs for every key. The owner asked for this spec on 22 Nov 2026, after S7 found that a plan step "When I press space" builds a listener that runs for every key. `keyPress`, `arrowKeyPress` and `numberKeyPress` have nothing that says which key. Today only an `if` on the handler's `key` narrows one, as in Alice (`if event.isKey(Key.SPACE)`), and a plan can't build that.
+**The owner approved this in #659. The Story API's part is built (Story API 0.12.0):** the detail, each event's own keys (`EventDef.keys`), the check, the words, and Tiles' pills and choices. **The runtime is built (S2, 26 Nov 2026):** a key listener runs only for a key in its list, and never for an empty one. Blocks is built (S5, #672 and #675). **Still to build:** the Prompter (S7, #703). The owner asked for this spec on 22 Nov 2026, after S7 found that a plan step "When I press space" builds a listener that runs for every key. `keyPress`, `arrowKeyPress` and `numberKeyPress` have nothing that says which key. Today only an `if` on the handler's `key` narrows one, as in Alice (`if event.isKey(Key.SPACE)`), and a plan can't build that.
 
 **The proposal:** a detail, `keys`, as `setOfVisuals` says which objects a click is about.
 

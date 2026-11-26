@@ -50,6 +50,15 @@ const enumValue = (value: Value | undefined, fallback: string) =>
 const inSet = (set: Value | undefined, object: ObjectValue) =>
   Array.isArray(set) && set.some((v) => sameValue(v, object));
 
+/**
+ * Whether a key listener's `keys` detail lets this key through (spec 02 section 6a, rule 1):
+ * without the detail, every key the event is for; with it, only a key in the list, so an empty
+ * list lets none through, as an empty `setOfVisuals` matches nothing.
+ */
+const keyListed = (keys: Value | undefined, key: string) =>
+  keys === undefined ||
+  (Array.isArray(keys) && keys.some((v) => isEnumValue(v) && v.value === key));
+
 /** Whether a key listener with this `heldKeyPolicy` fires at this phase. */
 function firesAt(held: string, phase: KeyPhase): boolean {
   switch (held) {
@@ -213,20 +222,24 @@ export class EventRouter {
     });
   }
 
-  /** Each key listener, if its `heldKeyPolicy` fires at this phase. */
-  private keyed(event: string, phase: KeyPhase, values: Values): void {
+  /**
+   * Each key listener whose `keys` lists this key (or that has no `keys`), if its
+   * `heldKeyPolicy` fires at this phase.
+   */
+  private keyed(event: string, key: string, phase: KeyPhase, values: Values): void {
     this.each(event, (armed) => {
-      if (firesAt(armed.held, phase)) this.trigger(armed, values);
+      if (keyListed(armed.details.keys, key) && firesAt(armed.held, phase))
+        this.trigger(armed, values);
     });
   }
 
   private key(key: string, phase: KeyPhase): void {
-    this.keyed('keyPress', phase, { key: enumOf('Key', key) });
+    this.keyed('keyPress', key, phase, { key: enumOf('Key', key) });
     const digit = /^digit([0-9])$/.exec(key);
-    if (digit) this.keyed('numberKeyPress', phase, { number: Number(digit[1]) });
+    if (digit) this.keyed('numberKeyPress', key, phase, { number: Number(digit[1]) });
     const arrow = Object.hasOwn(ARROWS, key) ? ARROWS[key]! : null;
     if (!arrow) return;
-    this.keyed('arrowKeyPress', phase, {
+    this.keyed('arrowKeyPress', key, phase, {
       moveDirection: enumOf('MoveDirection', arrow.move),
       turnDirection: enumOf('TurnDirection', arrow.turn),
     });
