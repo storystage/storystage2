@@ -8,23 +8,13 @@ import {
   type SceneId,
 } from '@storystage/production';
 import { describe, expect, it } from 'vitest';
-import {
-  addCue,
-  changeCue,
-  cueFor,
-  dragCue,
-  heardMusic,
-  removeCue,
-  rulerStep,
-  type SceneLength,
-} from './music.ts';
+import { addCue, changeCue, cueFor, dragCue, removeCue, rulerStep } from './music.ts';
 import { RAIN } from './testing.ts';
 
-// The music timeline's sums (07-ux 7.7): where each cue is heard, and the cue changes.
+// The music timeline's cue changes (07-ux 7.7). Where each cue is heard is @storystage/sound's.
 
 const p0 = withSound(exampleProduction(), RAIN);
-const [s1, s2, s3] = p0.manifest.runningOrder.map((r) => r.scene) as [SceneId, SceneId, SceneId];
-const PLAN: SceneLength = { seconds: 12, from: 'plan' };
+const s1 = p0.manifest.runningOrder[0]!.scene;
 
 const cue = (start: number, more: Partial<MusicCue> = {}): MusicCue => ({
   ...cueFor(RAIN, start),
@@ -32,61 +22,6 @@ const cue = (start: number, more: Partial<MusicCue> = {}): MusicCue => ({
 });
 const withCues = (scene: SceneId, cues: MusicCue[], p: Production = p0) =>
   withSceneMusic(p, scene, cues);
-
-describe('heardMusic', () => {
-  it('hears a cue for its part, to the next cue or the end of the timeline', () => {
-    // Rain plays 3.5 seconds.
-    const p = withCues(s1, [cue(1), cue(3), cue(8, { loop: true })]);
-    const { cues, span } = heardMusic(p, s1, PLAN);
-    expect(span).toBe(12);
-    expect(cues.map((c) => [c.start, c.end, c.until])).toEqual([
-      [1, 3, 'next'],
-      [3, 6.5, 'own'],
-      [8, 12, 'scene'],
-    ]);
-  });
-
-  it('draws the loops, the fades and the crossfade into the next cue', () => {
-    const p = withCues(s1, [cue(0, { loop: true, fadeIn: 1, to: 2 }), cue(5, { fadeOut: 0.5 })]);
-    const [first, second] = heardMusic(p, s1, PLAN).cues;
-    expect(first!.loops).toEqual([2, 4]);
-    expect(first!.fadeIn).toEqual([0, 1]);
-    expect(first!.crossfade).toEqual([4, 5]);
-    expect(second!.fadeOut).toEqual([8, 8.5]);
-    expect(second!.crossfade).toBeNull();
-  });
-
-  it('stretches the timeline to a cue past the planned length, and greys none by a plan', () => {
-    const p = withCues(s1, [cue(20)]);
-    const { cues, span } = heardMusic(p, s1, PLAN);
-    expect(span).toBe(23.5);
-    expect(cues[0]!.past).toBe(false);
-  });
-
-  it('greys a cue that starts after a run’s end', () => {
-    const p = withCues(s1, [cue(2), cue(20)]);
-    const { cues } = heardMusic(p, s1, { seconds: 12, from: 'run' });
-    expect(cues.map((c) => c.past)).toEqual([false, true]);
-    expect(cues[0]!.end).toBe(5.5);
-  });
-
-  it('carries in the last cue of the scene before that carries on, until this scene’s first', () => {
-    const p = withCues(s3, [cue(4)], withCues(s1, [cue(0), cue(2, { carriesOn: true })]));
-    // Scene 2 has no music, so Rain carries through it into scene 3.
-    expect(heardMusic(p, s2, PLAN).carried).toEqual({
-      cue: cue(2, { carriesOn: true }),
-      scene: s1,
-      end: 12,
-    });
-    expect(heardMusic(p, s3, PLAN).carried?.end).toBe(4);
-    expect(heardMusic(p, s1, PLAN).carried).toBeNull();
-  });
-
-  it('carries nothing past a scene whose last cue stops there', () => {
-    const p = withCues(s2, [cue(0)], withCues(s1, [cue(0, { carriesOn: true })]));
-    expect(heardMusic(p, s3, PLAN).carried).toBeNull();
-  });
-});
 
 describe('the cue changes', () => {
   it('adds the whole trimmed sound at the playhead, at full volume, no fades or loop', () => {
