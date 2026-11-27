@@ -258,6 +258,8 @@ describe('sounds kept once, on disk (spec 03 1.4.1, spec 05 sections 6.2 and 6.3
     // Another window's tidy, or something outside StoryStage, deletes it.
     await store.remove(['pupils', pupil.id, key, owl.name]);
     expect(await folder.kept(key)).toEqual([]);
+    // Opening the version finds its sound missing: damaged, not an unreadable folder.
+    await expect(folder.readKept(key, owl.name)).rejects.toMatchObject({ code: 'not_found' });
     await expect(
       folder.write(key, 'Film', bytes('v2'), { kept: { uses: [owl.name] } }),
     ).rejects.toMatchObject({ code: 'not_found' });

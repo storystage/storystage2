@@ -622,6 +622,7 @@ Each session keeps its own section current. Newest entries first. One line each.
   - Owner: a real push of a setting, including `speech.dictation`, through managed Google Play and iPad device management.
   - Not yet run anywhere: the in-app download of the optional model. It needs a device. (Android reading the bundled one now runs on an emulator in every Android job, #693.)
 - For D: 0047 and 0061 name GitHub as a host in the DPIA (17.3) and the privacy notice (17.4): for update checks, and for the optional speech model, downloaded only when a learner asks. The bundled model's licence (MIT) is in `NOTICE` for you to confirm (spec 06 §7), and since #433 whisper.js's (whisper.cpp, MIT) too.
+- In review: **a missing kept sound is `not_found`** (S8's review of S4's #711; spec 05 §6.2): `readKept` of a sound `meta.json` lists but the folder no longer has gave `unreadable`, so `openFromFolder` called the folder unavailable. It's now `not_found`, as `kept` already counts it, so the version opens as damaged (spec 03 §1.4.1, point 4).
 - Next: WP24a needs the owner's classroom ground truth (WP1g) and S2's WP8f. WP15b needs the owner's certificates and store accounts.
 - Working notes: no Cargo on the PC, so a `Cargo.lock` with new crates comes from a temporary CI workflow. The worktree is `...\Dropbox\6 - IT\dev\storystage2-s8`, sparse. Merging `main` into a branch stacked on a squash-merged PR can silently drop other sessions' lines: rebuild it as `main` plus the branch's own diff, and check each file.
 
