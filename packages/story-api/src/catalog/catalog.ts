@@ -211,7 +211,7 @@ function eventSettings(event: EventDef): string {
 /** Every block as compact text for the system prompt. It must stay under 40,000 tokens. */
 export function catalogText(): string {
   const lines: string[] = [
-    'Each line is a block, with its parameters and, after a semicolon, optional details.',
+    'Each line is a block: its parameters, then its optional details, each marked ?.',
     'A class has its own blocks and those of the classes it extends.',
   ];
   for (const cls of API_CLASSES) {
@@ -223,7 +223,7 @@ export function catalogText(): string {
   lines.push(
     '',
     'Events',
-    'Each line is an event, with what it needs and, after a semicolon, its optional settings, then what it gives.',
+    'Each line is an event: what it needs, then its optional settings, each marked ?, then what it gives.',
   );
   for (const event of EVENTS) {
     const gives = event.gives.length > 0 ? ` gives ${signature(event.gives)}` : '';

@@ -477,6 +477,9 @@ describe('catalogText', () => {
       'timer(seconds: Number; multipleEventPolicy?: MultipleEventPolicy) gives seconds: Number',
     );
     expect(text).toContain('  sceneStart()\n');
+    // "?" marks a setting optional, as a line with nothing required has no semicolon (S8).
+    expect(text).toContain('then its optional settings, each marked ?, then what it gives.');
+    expect(text).toContain('  clickOnScreen(multipleEventPolicy?: MultipleEventPolicy) gives');
     // Its objects come from the step's targets, not a setting (spec 04, section 6.10).
     expect(text).toContain('clickOnObject(multipleEventPolicy?: MultipleEventPolicy) gives');
     expect(text).not.toContain('setOfVisuals');
