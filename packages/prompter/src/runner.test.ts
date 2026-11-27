@@ -535,6 +535,25 @@ describe('PrompterRunner: the scene set-up (spec 04, section 3.1)', () => {
     expect(checkReferences(session.production())).toEqual([]);
   });
 
+  it('keeps the capitals of a name given in camelCase (scene-03)', () => {
+    const { runner, run, session } = setUp();
+    const add = (actor: string) => step({ ...addOwl, actor });
+    runner.begin('add', agreed([add('cornField'), add('bigOwl2'), add('owl2Small')]));
+    expect(run('add_model', owl({ name: 'cornField' }))).toMatchObject({
+      ids: { name: 'cornField' },
+      summary: 'Added cornField.',
+    });
+    expect(run('add_model', owl({ name: 'bigOwl2', plan_step: 2 }))).toMatchObject({
+      ids: { name: 'bigOwl2' },
+    });
+    expect(run('add_model', owl({ name: 'owl2Small', plan_step: 3 }))).toMatchObject({
+      ids: { name: 'owl2Small' },
+    });
+    runner.end();
+    expect(session.history()).toHaveLength(1);
+    expect(checkReferences(session.production())).toEqual([]);
+  });
+
   it("refuses a model that isn't in Backstage, and a bad scale, changing nothing", () => {
     const { runner, run, session } = setUp();
     const before = session.production();
