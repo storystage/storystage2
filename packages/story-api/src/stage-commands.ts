@@ -161,6 +161,8 @@ export type StageCommand =
    * Show a speech or thought bubble for the duration. Without `look`, Alice's defaults. A
    * `caption` is a speak line's (WP14.3, spec 06 section 4.7): a film subtitle that the studio
    * draws and voices, not a bubble; `line` is the script line's id (the production's `LineId`).
+   * `node` is the block that said it, so the Sound view's Speech bars and Rehearse's timing can
+   * pair a caption with its block exactly, even when two start at once (asked by S5, 27 Nov).
    */
   | (Timed & {
       readonly kind: 'say';
@@ -168,6 +170,7 @@ export type StageCommand =
       readonly bubble: 'say' | 'think' | 'caption';
       readonly look?: BubbleLook;
       readonly line?: string;
+      readonly node?: NodeId;
     })
   /** Ride on another object, or on the scene again (instant). */
   | (Timed & { readonly kind: 'vehicle'; readonly vehicle: ObjectId | null })
