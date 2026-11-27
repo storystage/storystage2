@@ -1,5 +1,5 @@
 import { FILE_LIMIT, KEPT_FILE, type FilePicker, type PupilFolder } from '@storystage/host';
-import { memoryClassFolders, memoryFilePicker } from '@storystage/host/testing';
+import { memoryClassFolders, memoryFilePicker, memoryStore } from '@storystage/host/testing';
 import {
   ARCHIVE_LIMITS,
   KEPT_SOUND_NAME,
@@ -19,6 +19,30 @@ import { describe, expect, it } from 'vitest';
 
 // Checks between the host and production that neither package can make alone (07-ux 9.7,
 // S4's review of #242): the studio is where both meet.
+
+/** A film with one imported sound, of bytes that don't compress, as a real sound's don't. */
+function filmWithOwl() {
+  let seed = 7;
+  const owl = Uint8Array.from(
+    { length: 50_000 },
+    () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % 256,
+  );
+  owl.set([0xff, 0xfb, 0x90, 0x44]);
+  const film = withSound(exampleProduction(), {
+    id: 'sn1',
+    file: 'sn1.mp3',
+    label: 'Owl',
+    length: 2,
+    bytes: owl.length,
+    trim: { start: 0, end: 2 },
+  });
+  const files = {
+    audio: new Map(),
+    models: new Map(),
+    sounds: new Map([['sounds/sn1.mp3', owl]]),
+  };
+  return { owl, film, files };
+}
 
 describe('the host and production agree', () => {
   it('a pupil’s folder is a save folder, and the picker a copy picker', () => {
@@ -40,27 +64,7 @@ describe('the host and production agree', () => {
   it('a film’s sounds are kept once in the host’s folder, and come back whole (spec 03 1.4.1)', async () => {
     const classes = memoryClassFolders();
     const folder = await classes.folder((await classes.addPupil('Ava')).id);
-    // Bytes that don't compress, as a real sound's don't.
-    let seed = 7;
-    const owl = Uint8Array.from(
-      { length: 50_000 },
-      () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % 256,
-    );
-    owl.set([0xff, 0xfb, 0x90, 0x44]);
-    const p = exampleProduction();
-    const film = withSound(p, {
-      id: 'sn1',
-      file: 'sn1.mp3',
-      label: 'Owl',
-      length: 2,
-      bytes: owl.length,
-      trim: { start: 0, end: 2 },
-    });
-    const files = {
-      audio: new Map(),
-      models: new Map(),
-      sounds: new Map([['sounds/sn1.mp3', owl]]),
-    };
+    const { owl, film, files } = filmWithOwl();
     const saver = new ProductionSaver(folder, { key: null });
     for (const kind of ['auto', 'auto', 'asked'] as const)
       expect(await saver.save(film, files, kind)).toMatchObject({ ok: true });
@@ -78,6 +82,26 @@ describe('the host and production agree', () => {
     const picker = memoryFilePicker({ handBack: () => picker.collected });
     await collectClass(classes, picker);
     expect(picker.collected[0]?.bytes).toEqual(saveProduction(film, files));
+  });
+
+  it('a film whose kept sound has gone opens as damaged, not the folder as unavailable (#712)', async () => {
+    // S8's review of #711: something outside StoryStage deletes the sound from the pupil's folder.
+    const store = memoryStore();
+    const classes = memoryClassFolders(undefined, undefined, store);
+    const folder = await classes.folder((await classes.addPupil('Ava')).id);
+    const { film, files } = filmWithOwl();
+    const saver = new ProductionSaver(folder, { key: null });
+    expect(await saver.save(film, files, 'asked')).toMatchObject({ ok: true });
+    const key = saver.key!;
+    const kept = [...store.files.keys()].filter((name) => KEPT_FILE.test(name.split('/').at(-1)!));
+    expect(kept).toHaveLength(1);
+    await store.remove(kept[0]!.split('/'));
+    expect(await folder.kept(key)).toEqual([]);
+    expect(await openFromFolder(folder, key)).toMatchObject({
+      status: 'broken',
+      message: expect.stringMatching(/damaged/),
+      key,
+    });
   });
 
   it('Collect then Hand back returns every file to its pupil, with names that differ only by case', async () => {
