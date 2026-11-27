@@ -54,12 +54,17 @@ export function largest(csv) {
 
 const mb = (bytes) => `${(bytes / 1e6).toFixed(1)} MB`;
 
-/** Each size against its limit: one line each, and whether all are within. */
-export function sizeLines({ base, pack }) {
+/**
+ * Each size against its limit: one line each, and whether all are within. `base` is the base
+ * module's download, and `together` the base module's and the pack's. bundletool always counts
+ * the base module in, even with `--modules=backstage` alone (#723's first runs gave 348.4 MB for
+ * that, from a 361.6 MB bundle whose base is 117.4 MB), so the pack is the difference.
+ */
+export function sizeLines({ base, together }) {
   const rows = [
     ['The base module', base, PLAY_LIMITS.base],
-    [`The ${PACK} pack`, pack, PLAY_LIMITS.pack],
-    ['Everything installed with the app', base + pack, PLAY_LIMITS.installTime],
+    [`The ${PACK} pack`, together - base, PLAY_LIMITS.pack],
+    ['Everything installed with the app', together, PLAY_LIMITS.installTime],
   ];
   const lines = rows.map(
     ([what, bytes, limit]) =>
@@ -87,7 +92,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
         { encoding: 'utf8' },
       ),
     );
-  const { lines, ok } = sizeLines({ base: size('base'), pack: size(PACK) });
+  const base = size('base');
+  const together = size(`base,${PACK}`);
+  // What bundletool gives for the pack named alone, to show it counts the base module in.
+  console.log(`bundletool, --modules=${PACK} alone: ${mb(size(PACK))}`);
+  const { lines, ok } = sizeLines({ base, together });
   for (const line of lines) console.log(line);
   process.exit(problems.length === 0 && ok ? 0 : 1);
 }

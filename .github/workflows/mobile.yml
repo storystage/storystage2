@@ -13,6 +13,10 @@ on:
       - apps/desktop/**
       - .github/workflows/mobile.yml
       - .github/actions/**
+      # What the app bundles, and so its size against Play's limits (S1's review of #723).
+      - backstage.lock.json
+      - tools/backstage-sources/**
+      - packages/speech/scripts/fetch-kokoro-assets.mjs
   workflow_dispatch:
 
 permissions:
@@ -52,6 +56,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: apps/desktop/src-tauri -> target
+          # Each saves about 440 MB, so only main saves, and branches restore main's (S1's
+          # review of #723: the repository's Actions cache is over its 10 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
@@ -205,6 +212,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: apps/desktop/src-tauri -> target
+          # Each saves about 440 MB, so only main saves, and branches restore main's (S1's
+          # review of #723: the repository's Actions cache is over its 10 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs

@@ -129,15 +129,18 @@ describe("the bundle against Play's limits (15.8)", () => {
   });
 
   test('each part is checked against its limit, and the two together', () => {
-    const fits = sizeLines({ base: 150e6, pack: 346e6 });
+    // The pack is what the two together add to the base module.
+    const fits = sizeLines({ base: 117.4e6, together: 348.4e6 });
     expect(fits.ok).toBe(true);
     expect(fits.lines).toEqual([
-      'PASS  The base module: 150.0 MB to download, of 500.0 MB',
-      'PASS  The backstage pack: 346.0 MB to download, of 1500.0 MB',
-      'PASS  Everything installed with the app: 496.0 MB to download, of 4000.0 MB',
+      'PASS  The base module: 117.4 MB to download, of 500.0 MB',
+      'PASS  The backstage pack: 231.0 MB to download, of 1500.0 MB',
+      'PASS  Everything installed with the app: 348.4 MB to download, of 4000.0 MB',
     ]);
-    expect(sizeLines({ base: PLAY_LIMITS.base + 1, pack: 1 }).ok).toBe(false);
-    expect(sizeLines({ base: 1, pack: PLAY_LIMITS.pack + 1 }).ok).toBe(false);
-    expect(sizeLines({ base: PLAY_LIMITS.base, pack: PLAY_LIMITS.pack }).ok).toBe(true);
+    const { base, pack, installTime } = PLAY_LIMITS;
+    expect(sizeLines({ base: base + 1, together: base + 2 }).ok).toBe(false);
+    expect(sizeLines({ base: 1, together: pack + 2 }).ok).toBe(false);
+    expect(sizeLines({ base, together: base + pack }).ok).toBe(true);
+    expect(sizeLines({ base: 1, together: installTime + 1 }).ok).toBe(false);
   });
 });
