@@ -134,10 +134,13 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
       case 'fault':
         end = { kind: 'fault', message: e.message };
         break;
-      case 'missing':
-        if (!missing.some((m) => m.scene === e.scene))
-          missing.push({ scene: e.scene, missing: e.missing });
+      case 'missing': {
+        // A scene reports again, with the whole list, as missing sounds are named.
+        const known = missing.findIndex((m) => m.scene === e.scene);
+        if (known < 0) missing.push({ scene: e.scene, missing: e.missing });
+        else missing[known] = { scene: e.scene, missing: e.missing };
         break;
+      }
       default:
         break;
     }

@@ -27,6 +27,7 @@ import type { Stage } from '@storystage/stage';
 
 /** Something a scene names that the stage couldn't find. */
 export type Missing = ReturnType<Stage['missing']>[number];
+import { soundLengths } from './sounds.ts';
 import { errorWords } from './words.ts';
 import {
   StageError,
@@ -79,8 +80,10 @@ export type PlaybackEvent =
       readonly words: string;
     }
   /**
-   * What the scene just loaded couldn't find (`stage.missing()`, spec 03 section 1.3): models
-   * shown as stand-ins, backdrop parts left as the default. Play goes on.
+   * What the scene couldn't find (`stage.missing()`, spec 03 section 1.3): models shown as
+   * stand-ins, backdrop parts left as the default, when it loads; and, as the run names them,
+   * sounds the film hasn't got (decision 0076), each time with the whole list so far, so the
+   * scene's last report has everything. Play goes on.
    */
   | { readonly kind: 'missing'; readonly scene: SceneId; readonly missing: readonly Missing[] }
   /** Play can't go on: too many scene starts, or a scene that isn't there. */
@@ -129,6 +132,8 @@ export class Playback {
   private scene: SceneId | null = null;
   /** The film time the scene playing started at. */
   private sceneStart: Micros = 0;
+  /** How much of the stage's `missing()` the scene has reported, so a missing sound adds to it. */
+  private missingReported = 0;
   /** The film time of the frame being worked on. */
   private film: Micros = 0;
   /** After a `load`, everything from the worker is the old scene's until `loaded`. */
@@ -270,6 +275,7 @@ export class Playback {
     switch (message.type) {
       case 'commands':
         this.options.stage.schedule(message.commands);
+        this.reportMissingSounds(scene, message.commands);
         this.player.runtime(message);
         if (message.commands.length > 0)
           this.emit({ kind: 'commands', scene, commands: message.commands });
@@ -403,6 +409,7 @@ export class Playback {
       seed: action.seed,
       disabled: this.options.disabled ?? [],
       scenes: action.scenes,
+      sounds: soundLengths(production),
     });
     port.post({
       type: 'start',
@@ -411,6 +418,19 @@ export class Playback {
     this.running = true;
     this.emit({ kind: 'scene', scene: action.scene, transition: action.transition, at: this.film });
     const missing = stage.missing();
+    this.missingReported = missing.length;
     if (missing.length > 0) this.emit({ kind: 'missing', scene: action.scene, missing });
+  }
+
+  /**
+   * A missing sound joins the stage's `missing()` when its command is scheduled, after the
+   * load: says the whole list again when one arrives, so the last report has everything.
+   */
+  private reportMissingSounds(scene: SceneId, commands: readonly StageCommand[]): void {
+    if (!commands.some((c) => c.kind === 'sound' && c.missing)) return;
+    const missing = this.options.stage.missing();
+    if (missing.length <= this.missingReported) return;
+    this.missingReported = missing.length;
+    this.emit({ kind: 'missing', scene, missing });
   }
 }
