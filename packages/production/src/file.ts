@@ -20,7 +20,13 @@ import {
   type TypeRef,
 } from '@storystage/ast';
 import type { ObjectId } from '@storystage/story-api';
-import { readArchive, readJson, writeArchive, type ArchiveEntry } from './archive.ts';
+import {
+  ARCHIVE_LIMITS,
+  readArchive,
+  readJson,
+  writeArchive,
+  type ArchiveEntry,
+} from './archive.ts';
 import { readFountain, writeFountain, type FountainProblem } from './fountain.ts';
 import {
   FORMAT_VERSION,
@@ -45,7 +51,7 @@ import {
 } from './validate.ts';
 import { keptJoints } from './pose.ts';
 import { keptVoices, voiceNames } from './voices.ts';
-import { soundTypeOf } from './sound.ts';
+import { SOUND_TYPES, soundTypeOf } from './sound.ts';
 
 /** Files a production carries besides its JSON and script, by their path inside the file. */
 export interface ProductionFiles {
@@ -110,6 +116,11 @@ function packedPaths(manifest: ProductionManifest): string[] {
  * opens.
  */
 export function saveProduction(p: Production, files: ProductionFiles = NO_FILES): Uint8Array {
+  return writeArchive(productionEntries(p, files));
+}
+
+/** The entries `saveProduction` writes, in its order. Refuses as it does. */
+function productionEntries(p: Production, files: ProductionFiles): ArchiveEntry[] {
   const problems = checkReferences(p);
   const audio = p.manifest.audio.map((a) => `${ZIP_LAYOUT.audio}${a.file}`);
   const sounds = (p.manifest.sounds ?? []).map((c) => `${ZIP_LAYOUT.sounds}${c.file}`);
@@ -140,7 +151,137 @@ export function saveProduction(p: Production, files: ProductionFiles = NO_FILES)
       .map((name) => ({ name, bytes: files.models.get(name)! }))
       .sort(byName),
   ];
-  return writeArchive(entries);
+  return entries;
+}
+
+// ---- Versions in a pupil's folder (spec 03, section 1.4.1) -----------------------------------
+
+/**
+ * The entry a version in a pupil's folder has in place of its sounds: `{ "version": 1, "sounds":
+ * { "<clip file>": "<kept name>" } }`. It's never in a whole film, and opening a picked file
+ * ignores it, as any entry the format doesn't name.
+ */
+export const KEPT_SOUNDS = 'kept-sounds.json';
+
+/** A kept sound's name: by its bytes' SHA-256, with its type (`@storystage/host`'s `KEPT_FILE`). */
+export const KEPT_SOUND_NAME = new RegExp(
+  `^sound-[0-9a-f]{32}\\.(${Object.keys(SOUND_TYPES).join('|')})$`,
+);
+
+/** An imported clip's file name: its id, then its type. */
+const CLIP_FILE = new RegExp(`^([^/.]+)\\.(${Object.keys(SOUND_TYPES).join('|')})$`);
+
+/** A production packed for a pupil's folder: the film without its sounds, and the sounds. */
+export interface PackedVersion {
+  /** The version: `saveProduction`'s file with `kept-sounds.json` in place of `sounds/`. */
+  readonly bytes: Uint8Array;
+  /** Every kept sound the version uses, each once, sorted. */
+  readonly uses: readonly string[];
+  /** Each kept sound's bytes, by its name. */
+  readonly sounds: ReadonlyMap<string, Uint8Array>;
+  /** At least the size of the whole film `saveProduction` would give, for its limit. */
+  readonly wholeBytes: number;
+}
+
+/** An archive entry's share of the file, beyond its data: its local and central headers. */
+const entryOverhead = (name: string) => 30 + 46 + 2 * new TextEncoder().encode(name).length;
+
+/**
+ * Packs a production for a pupil's folder (spec 03, section 1.4.1, point 2). `names` gives each
+ * clip file's kept name (`keptSoundName`). A film with no sounds packs as `saveProduction` does,
+ * so its version is the whole film. Refuses as `saveProduction` does.
+ */
+export function packVersion(
+  p: Production,
+  files: ProductionFiles,
+  names: ReadonlyMap<string, string>,
+): PackedVersion {
+  const entries = productionEntries(p, files);
+  const clips = p.manifest.sounds ?? [];
+  if (clips.length === 0) {
+    const bytes = writeArchive(entries);
+    return { bytes, uses: [], sounds: new Map(), wholeBytes: bytes.length };
+  }
+  const kept: Record<string, string> = {};
+  const sounds = new Map<string, Uint8Array>();
+  let soundBytes = 0;
+  for (const c of clips) {
+    const path = `${ZIP_LAYOUT.sounds}${c.file}`;
+    const name = names.get(c.file);
+    if (name === undefined || !KEPT_SOUND_NAME.test(name))
+      throw new Error(`No kept name for ${path}.`);
+    const bytes = files.sounds!.get(path)!;
+    kept[c.file] = name;
+    sounds.set(name, bytes);
+    soundBytes += entryOverhead(path) + bytes.length;
+  }
+  // Where the sounds would be, so putting them back gives `saveProduction`'s bytes (point 5).
+  const at = entries.findIndex((e) => e.name.startsWith(ZIP_LAYOUT.sounds));
+  const rest = entries.filter((e) => !e.name.startsWith(ZIP_LAYOUT.sounds));
+  rest.splice(at, 0, { name: KEPT_SOUNDS, bytes: text(stableJson({ version: 1, sounds: kept })) });
+  const bytes = writeArchive(rest);
+  return { bytes, uses: [...sounds.keys()].sort(), sounds, wholeBytes: bytes.length + soundBytes };
+}
+
+/** A version's kept sounds: each clip file's kept name, or `null` for a whole film. */
+export type VersionSounds =
+  | { readonly ok: true; readonly kept: ReadonlyMap<string, string> | null }
+  | { readonly ok: false; readonly opened: OpenedProduction };
+
+/**
+ * Reads a version's `kept-sounds.json` (spec 03, section 1.4.1, point 4). A version without one is
+ * a whole film: a folder's from before kept sounds, or one with no sounds. One that isn't what
+ * StoryStage writes makes the version damaged.
+ */
+export function versionSounds(bytes: Uint8Array): VersionSounds {
+  const read = readArchive(bytes, { wanted: (name) => name === KEPT_SOUNDS });
+  if (!read.ok) return { ok: false, opened: broken(read.problem.message, [read.problem.code]) };
+  const entry = read.entries.get(KEPT_SOUNDS);
+  if (!entry) return { ok: true, kept: null };
+  const damaged = (problem: string) => ({ ok: false as const, opened: broken(DAMAGED, [problem]) });
+  const parsed = readJson(entry);
+  if (!parsed.ok) return damaged(`${KEPT_SOUNDS}: ${parsed.problem.code}`);
+  const value = parsed.value as { version?: unknown; sounds?: unknown } | null;
+  if (!isRecord(value) || value.version !== 1 || !isRecord(value.sounds))
+    return damaged(`${KEPT_SOUNDS} isn't a list of kept sounds.`);
+  const kept = new Map<string, string>();
+  for (const [file, name] of Object.entries(value.sounds)) {
+    const clip = CLIP_FILE.exec(file);
+    const sound = typeof name === 'string' ? KEPT_SOUND_NAME.exec(name) : null;
+    if (!clip || !SAFE_ID.test(clip[1]!) || !sound || sound[1] !== clip[2])
+      return damaged(`${KEPT_SOUNDS} names a sound it can't have.`);
+    kept.set(file, name as string);
+  }
+  return { ok: true, kept };
+}
+
+/** A version's entries in its order, with its sounds (by `sounds/<clip file>`) put back. */
+function wholeEntries(
+  names: readonly string[],
+  entries: ReadonlyMap<string, Uint8Array>,
+  sounds: ReadonlyMap<string, Uint8Array>,
+): ArchiveEntry[] {
+  const back = [...sounds].map(([name, bytes]) => ({ name, bytes })).sort(byName);
+  return names.flatMap((name) => {
+    if (name === KEPT_SOUNDS) return back;
+    const bytes = entries.get(name);
+    return bytes ? [{ name, bytes }] : [];
+  });
+}
+
+/**
+ * The whole film from a version and its sounds (spec 03, section 1.4.1, point 5), by
+ * `sounds/<clip file>`: the version's entries, every one, with `kept-sounds.json` replaced by the
+ * sounds. For a version `packVersion` wrote, the same bytes as `saveProduction`. A whole film is
+ * given back as it is.
+ */
+export function wholeFilm(
+  version: Uint8Array,
+  sounds: ReadonlyMap<string, Uint8Array>,
+): Uint8Array {
+  const read = readArchive(version, { wanted: () => true });
+  if (!read.ok || !read.names.includes(KEPT_SOUNDS)) return version;
+  return writeArchive(wholeEntries(read.names, read.entries, sounds));
 }
 
 // ---- Opening ---------------------------------------------------------------------------------
@@ -148,6 +289,7 @@ export function saveProduction(p: Production, files: ProductionFiles = NO_FILES)
 const DAMAGED = "This file can't be opened: part of it is damaged.";
 const TOO_OLD = "This film was made with a very old StoryStage, so this one can't open it.";
 const NOT_A_FILM = "This isn't a StoryStage film.";
+const TOO_BIG = 'This film is too big to open.';
 const NEWER =
   'This film was made with a newer StoryStage. You can watch it and read its code, but not change it. Update StoryStage to change it.';
 
@@ -372,12 +514,36 @@ export function openProduction(
     readonly program?: OpenOptions;
     /** The format's migrations. Tests pass their own. */
     readonly migrations?: FormatMigrations;
+    /**
+     * For a version from a pupil's folder (spec 03, section 1.4.1, point 4): its kept sounds, by
+     * `sounds/<clip file>`, already checked against their names. They're read as if they were in
+     * the file, so every check is the one a whole film has.
+     */
+    readonly sounds?: ReadonlyMap<string, Uint8Array>;
   } = {},
 ): OpenedProduction {
   const current = options.formatVersion ?? FORMAT_VERSION;
   const read = readArchive(bytes, { wanted: (name) => FORMAT_ENTRY.test(name) });
   if (!read.ok) return broken(read.problem.message, [read.problem.code]);
-  const entries = read.entries;
+  let entries = read.entries;
+  /** The file as it was, whole: for a version, with its sounds put back. */
+  let whole = () => bytes;
+  if (options.sounds !== undefined && options.sounds.size > 0) {
+    const sounds = options.sounds;
+    let size = bytes.length;
+    for (const [path, got] of sounds) {
+      // A version keeps its sounds beside it, never in it; and the whole film has the limits.
+      if (!path.startsWith(ZIP_LAYOUT.sounds) || entries.has(path))
+        return broken(DAMAGED, [`${path} is in the version and beside it.`]);
+      if (got.length > ARCHIVE_LIMITS.entryBytes)
+        return broken(DAMAGED, [`${path} is larger than an entry may be.`]);
+      size += entryOverhead(path) + got.length;
+    }
+    if (size > ARCHIVE_LIMITS.fileBytes)
+      return broken(TOO_BIG, ['The whole film is larger than a file may be.']);
+    entries = new Map([...entries, ...sounds]);
+    whole = () => writeArchive(wholeEntries(read.names, entries, sounds));
+  }
   const json = (name: string): { ok: true; value: unknown } | { ok: false; problem: string } => {
     const entry = entries.get(name);
     if (!entry) return { ok: false, problem: `${name} is missing.` };
@@ -562,7 +728,7 @@ export function openProduction(
     production,
     files: { audio, models, sounds },
     message: status === 'readOnly' ? NEWER : null,
-    original: status === 'migrated' ? bytes : null,
+    original: status === 'migrated' ? whole() : null,
     dropped,
   };
 }

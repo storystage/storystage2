@@ -8,7 +8,9 @@ import {
   type CollectedFile,
 } from './collect.ts';
 import { exampleProduction } from './example.ts';
-import { saveProduction } from './file.ts';
+import { readArchive } from './archive.ts';
+import { KEPT_SOUNDS, saveProduction } from './file.ts';
+import { withSound } from './sound.ts';
 import { plainName } from './saving.ts';
 import type { Production } from './types.ts';
 
@@ -21,7 +23,10 @@ const film = (title: string) => saveProduction(titled(title), NO_FILES);
 
 /** A class as the host keeps it, with `folder(id)` that never changes the current pupil. */
 function fakeClass(pupils: { id: string; name: string; films: string[] }[]) {
-  const folders = new Map<string, Map<string, { name: string; bytes: Uint8Array }>>();
+  const folders = new Map<
+    string,
+    Map<string, { name: string; bytes: Uint8Array; sounds?: Map<string, Uint8Array> }>
+  >();
   let next = 1;
   for (const p of pupils)
     folders.set(p.id, new Map(p.films.map((t) => [`k${next++}`, { name: t, bytes: film(t) }])));
@@ -41,13 +46,25 @@ function fakeClass(pupils: { id: string; name: string; films: string[] }[]) {
         async read(key) {
           return store.get(key)!.bytes;
         },
-        async write(key, name, bytes) {
+        async readBackup() {
+          throw Object.assign(new Error('Files: not_found'), { code: 'not_found' });
+        },
+        async kept(key) {
+          return [...(store.get(key)?.sounds?.keys() ?? [])].sort();
+        },
+        async readKept(key, name) {
+          const bytes = store.get(key)?.sounds?.get(name);
+          if (!bytes) throw Object.assign(new Error('Files: not_found'), { code: 'not_found' });
+          return bytes;
+        },
+        async write(key, name, bytes, options) {
           // As the host's checkName: a name over 80 characters is refused.
           if (name.trim().length > 80)
             throw Object.assign(new Error('Files: invalid'), { code: 'invalid' });
           const k = key ?? `k${next++}`;
-          store.set(k, { name, bytes });
-          return { key: k, savedAt: '2026-11-08T12:00:00Z' };
+          const sounds = new Map((options?.kept?.add ?? []).map((a) => [a.name, a.bytes]));
+          store.set(k, { name, bytes, sounds });
+          return { key: k, savedAt: '2026-11-08T12:00:00Z', kept: [...sounds.keys()].sort() };
         },
         async keepOriginal() {},
       };
@@ -176,6 +193,34 @@ describe('handBackClass', () => {
       'Pip (handed back)',
     ]);
     expect([...folders.get('b')!.values()].map((v) => v.name)).toEqual(['Marked (handed back)']);
+  });
+
+  it('collects a film with its sounds put back, and hands it back with each kept once', async () => {
+    const owl = new Uint8Array(64).fill(7);
+    owl.set([0xff, 0xfb, 0x90, 0x44]);
+    const clip = { id: 'sn1', file: 'sn1.mp3', label: 'Owl', length: 2, bytes: 64 };
+    const withOwl = withSound(titled('Owls'), { ...clip, trim: { start: 0, end: 2 } });
+    const files = { ...NO_FILES, sounds: new Map([['sounds/sn1.mp3', owl]]) };
+    const whole = saveProduction(withOwl, files);
+    const { classes, folders } = fakeClass([{ id: 'a', name: 'Amara', films: [] }]);
+    const { picker, collected } = fakePicker([
+      { folder: 'Amara', file: 'Owls.storystage', bytes: whole },
+    ]);
+    expect(await handBackClass(classes, picker)).toEqual({ written: 1, skipped: [] });
+    const [stored] = [...folders.get('a')!.values()];
+    // In the folder: the film without its sound, and the sound once beside it.
+    const read = readArchive(stored!.bytes, { wanted: () => false });
+    expect(read.ok && read.names).toEqual(expect.arrayContaining([KEPT_SOUNDS]));
+    expect(read.ok && read.names.filter((n) => n.startsWith('sounds/'))).toEqual([]);
+    expect([...stored!.sounds!.values()]).toEqual([owl]);
+    // Collect gives the whole film again, the same bytes.
+    await collectClass(classes, picker);
+    expect(collected.at(-1)!.bytes).toEqual(whole);
+
+    // A film whose kept sound has gone is collected as saved: it's damaged there too.
+    stored!.sounds!.clear();
+    await collectClass(classes, picker);
+    expect(collected.at(-1)!.bytes).toEqual(stored!.bytes);
   });
 
   it('skips files that fail the checks, or have no pupil, saying why', async () => {
