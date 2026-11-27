@@ -58,6 +58,16 @@ export interface NumberedLine {
   readonly text: string;
 }
 
+/**
+ * A sound the scene's run played that the film hasn't got (decision 0076): the stage's
+ * `sound` command marked `missing`, with its block and when it played, on the film's clock.
+ */
+export interface SilentSound {
+  readonly node: NodeId | null;
+  readonly sound: string;
+  readonly start: Micros;
+}
+
 export interface FrameRun {
   readonly frame: Frame;
   /** The scene's place in the running order, and the frame's number ("2.1"). */
@@ -85,6 +95,11 @@ export interface FrameRun {
     readonly words: string;
   } | null;
   readonly missing: readonly Missing[];
+  /**
+   * The scene's sounds that played silent, because the film hasn't got them. Optional, so a
+   * frame run built before decision 0076 (staging's tests, say) still compares, with none.
+   */
+  readonly silent?: readonly SilentSound[];
   /** The scene card's cast: a sketch of one of them is a character, even with no object for it. */
   readonly cast: readonly (BackstageId | StandIn)[];
 }
@@ -458,6 +473,21 @@ export function compareFrame(run: FrameRun): CheckItem[] {
       outcome: 'note',
       words: plural('missingJoints.note', joints.length, { name: object, joints: names(joints) }),
     });
+  // A sound the film hasn't got: a note where it plays, once for each block (decision 0076).
+  const silentBlocks = new Set<string>();
+  for (const s of run.silent ?? []) {
+    if (s.start < run.span.start || s.start >= run.span.end) continue;
+    const key = s.node ?? `${s.sound}@${s.start}`;
+    if (silentBlocks.has(key)) continue;
+    silentBlocks.add(key);
+    add({
+      id: `silentSound:${key}`,
+      kind: 'missing',
+      outcome: 'note',
+      words: t('silentSound.note'),
+      ...(s.node ? { node: s.node } : {}),
+    });
+  }
 
   return items.sort((a, b) => ITEM_ORDER.indexOf(a.outcome) - ITEM_ORDER.indexOf(b.outcome));
 }
