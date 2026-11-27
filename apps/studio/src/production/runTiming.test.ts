@@ -114,6 +114,25 @@ describe('TimingRecorder', () => {
     expect(failed.timing.whole).toBe(false);
   });
 
+  it('ends where the scene changes, cutting what was still playing (S3’s review)', () => {
+    const r = recorder();
+    // A 5 s move and a speak line in a do together with the change, which comes at 1 s.
+    r.hear(ran([walk, 0], [speak, 0]));
+    r.hear(
+      commands(
+        cmd(0, 5, { object: 'cat', kind: 'move', to: { x: 1, y: 0, z: 0 } }),
+        cmd(0, 3, { object: 'cat', kind: 'say', text: 'Hello there', bubble: 'caption' }),
+      ),
+    );
+    r.hear(ran([nodeId('change1'), 1]));
+    r.hear({ kind: 'next', heading: 'Scene 2' } as PlaybackEvent);
+    expect(r.timing).toEqual({
+      whole: true,
+      length: 1,
+      sounds: [{ node: speak, kind: 'speech', start: 0, length: 1, text: 'Hello there' }],
+    });
+  });
+
   it('leaves out a caption with no speak line, and another scene’s events', () => {
     const r = recorder();
     r.hear(commands(cmd(1, 1, { object: 'cat', kind: 'say', text: 'Hi', bubble: 'caption' })));
