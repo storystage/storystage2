@@ -9,8 +9,9 @@
  *   `MUSIC_CROSSFADE_SECONDS`, both on equal-power curves, so the two together don't dip.
  * - A cue that carries on plays into the next scene played, and on, until another cue starts; it
  *   crossfades there. Every other cue stops at its scene's end, and everything at the last.
- * - A plain fade is a straight ramp. A cue stopped at full loudness (by its scene's end, or its
- *   own end with no fade out) ramps down over `CLICK_FREE_SECONDS`, so nothing clicks.
+ * - A plain fade is a straight ramp. A cue's fade out ends wherever it stops (its own end, its
+ *   scene's, the film's, or a loop's stop), unless a crossfade takes it (the owner's choice, 27
+ *   Nov). A cue stopped at full loudness ramps down over `CLICK_FREE_SECONDS`, so nothing clicks.
  * - A cue's loudness is its `volume` and its fades. The music track's volume, and the export
  *   lowering music under speech, are the player's and the mix's (`mixOf`), not these.
  */
@@ -35,6 +36,11 @@ export interface ScenePlace {
   readonly scene: SceneId;
   readonly start: number;
   readonly length: number;
+  /**
+   * While `length` is `Infinity`: the length its last whole run had, if it has one. A cue that
+   * would stop at the scene's end fades out by then, as it will at the real end. Live play only.
+   */
+  readonly expected?: number;
 }
 
 /** One cue playing, on the film's clock, in seconds. */
@@ -71,6 +77,8 @@ interface Placed {
   readonly limit: number;
   /** The end of the scene it starts in. */
   readonly sceneEnd: number;
+  /** Where its fade out ends if nothing else stops it: `limit`, or the expected scene end. */
+  readonly fadeBy: number;
 }
 
 /**
@@ -95,10 +103,12 @@ export function musicPlays(
       start: first.start,
       limit: filmEnd,
       sceneEnd: first.start + first.length,
+      fadeBy: filmEnd,
     });
-  for (const { scene, start, length } of scenes) {
+  for (const { scene, start, length, expected } of scenes) {
     const music = musicOf(p, scene);
     const sceneEnd = start + length;
+    const fadeBy = Number.isFinite(length) ? sceneEnd : start + (expected ?? Infinity);
     for (const [index, cue] of music.entries()) {
       if (cue.start >= length) continue;
       const carries = cue.carriesOn && index === music.length - 1;
@@ -111,6 +121,7 @@ export function musicPlays(
         start: at,
         limit: carries ? filmEnd : sceneEnd,
         sceneEnd,
+        fadeBy: carries ? filmEnd : fadeBy,
       });
     }
   }
@@ -142,7 +153,7 @@ export function musicPlays(
       from: round(from),
       to: round(from + part),
       loop: c.cue.loop,
-      gain: gainOf(c, end, own, crossIn, cut ? next.start : null),
+      gain: gainOf(c, end, crossIn, cut ? next.start : null),
     });
   }
   return plays;
@@ -153,7 +164,7 @@ function carriedIn(
   p: Production,
   first: ScenePlace,
   lengthOf: (scene: SceneId) => number,
-): Omit<Placed, 'start' | 'limit' | 'sceneEnd'> | null {
+): Omit<Placed, 'start' | 'limit' | 'sceneEnd' | 'fadeBy'> | null {
   const from = carriedInto(p, first.scene);
   if (!from) return null;
   const order = p.manifest.runningOrder.map((r) => r.scene);
@@ -187,7 +198,6 @@ function ramp(a: number, b: number, down: boolean, power: boolean): Fade {
 function gainOf(
   c: Placed,
   end: number,
-  own: number,
   crossIn: boolean,
   next: number | null,
 ): readonly (readonly [number, number])[] {
@@ -202,7 +212,10 @@ function gainOf(
   if (cue.fadeIn > 0) add(c.cueStart, c.cueStart + cue.fadeIn, false, false);
   if (crossIn) add(c.start, c.start + MUSIC_CROSSFADE_SECONDS, false, true);
   if (next !== null) add(next, next + MUSIC_CROSSFADE_SECONDS, true, true);
-  else if (cue.fadeOut > 0 && end === own) add(own - cue.fadeOut, own, true, false);
+  else {
+    const stop = Math.min(end, c.fadeBy);
+    if (cue.fadeOut > 0 && Number.isFinite(stop)) add(stop - cue.fadeOut, stop, true, false);
+  }
   const level = (t: number) => cue.volume * Math.min(1, ...fades.map((f) => f(t)));
   if (Number.isFinite(end)) {
     if (level(end) > 0) add(Math.max(c.start, end - CLICK_FREE_SECONDS), end, true, false);

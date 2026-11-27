@@ -44,6 +44,15 @@ describe('heardMusic', () => {
     expect(run[1]!.crossfadeIn).toEqual([11.5, 12]);
   });
 
+  it('fades a cue out at a run’s end, but not by a plan or when it carries on', () => {
+    const RUN: SceneLength = { seconds: 12, from: 'run' };
+    const looped = withCues(s1, [cue(1, { loop: true, fadeOut: 2 })]);
+    expect(heardMusic(looped, s1, RUN).cues[0]!.fadeOut).toEqual([10, 12]);
+    expect(heardMusic(looped, s1, PLAN).cues[0]!.fadeOut).toBeNull();
+    const carried = withCues(s1, [cue(1, { loop: true, fadeOut: 2, carriesOn: true })]);
+    expect(heardMusic(carried, s1, RUN).cues[0]!.fadeOut).toBeNull();
+  });
+
   it('stretches the timeline to a cue past the planned length, and greys none by a plan', () => {
     const p = withCues(s1, [cue(20)]);
     const { cues, span } = heardMusic(p, s1, PLAN);
