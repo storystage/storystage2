@@ -3,7 +3,7 @@
 - **Covers:** Manifest, sections, sources and licences, budgets, the import pipeline, licence capture, in-app sketches
 - **Work package:** WP3
 - **Owner:** S4
-- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1; pipelines, WP3b, growing with each source) and 7 (sketches, WP10.5) written 25 Oct 2026; sections 1 (the manifest) and 4 (budgets) written with WP3c, 7 Nov 2026. The other sections are written before the code they govern: 2 with 3.10, 5 and 6 with WP3i.
+- **Status:** sections 2a (the joint map, WP3.3), 3 (sources and licences, WP3.1; pipelines, WP3b, growing with each source) and 7 (sketches, WP10.5) written 25 Oct 2026; sections 1 (the manifest) and 4 (budgets) written with WP3c, 7 Nov 2026. The other sections are written before the code they govern: 2 with 3.10, 2b (the sound shelf, 11.7) on 27 Nov 2026, and 5 and 6 with WP3i.
 
 ## 0. Decisions this spec relies on
 
@@ -11,7 +11,7 @@
 
 ## 1. Manifest
 
-`backstage.json` lists every model in a Backstage folder: the shipped catalogue (built in [storystage/backstage-assets](https://github.com/storystage/backstage-assets)) or a class's imports (3.11). The code is the source of truth: `packages/backstage/src/manifest.ts`, a WP0.8 contract. A change to it is a `contract` pull request, reviewed by S3 (the stage), S5 (the Storyboard), S7 (the Prompter's catalogue) and the export's owner (film credits).
+`backstage.json` lists every model in a Backstage folder, and in the shipped one every sound on the shelf (section 2b): the shipped catalogue (built in [storystage/backstage-assets](https://github.com/storystage/backstage-assets)) or a class's imports (3.11). The code is the source of truth: `packages/backstage/src/manifest.ts`, a WP0.8 contract. A change to it is a `contract` pull request, reviewed by S3 (the stage), S5 (the Storyboard), S7 (the Prompter's catalogue) and the export's owner (film credits).
 
 ### Each item
 
@@ -127,6 +127,57 @@ The joint map (workplan 3.3) is the list of joints every model is mapped onto, s
 - **No bone maps to two joints, and no joint to two bones.** The result lists the bones left unmapped and the required joints missing. The import report (3.11) turns these into plain words ("skeleton mapped (20 of 22 joints)").
 
 The bone-name fixtures in the tests are written from each tool's documented naming. WP3b checks them against real files from each source, and adds a fixture for every source it ships.
+
+## 2b. The sound shelf
+
+Backstage's sounds: openly licensed music and sound effects that any film can play, as it can place any shipped model (decision 0076, workplan 11.7; the owner's choices of 21 and 22 Nov 2026). Each sound's `length` was agreed with S2 and S3 on 26 Nov 2026, so the runtime can time `playAudio` without decoding anything. This section is written before the code: the shelf's first build brings the manifest change (rule 10) with it.
+
+### Each sound
+
+`backstage.json` lists the shelf's sounds in `sounds`, beside the models in `items`. A sound isn't a model: it has no class, joints, budget of triangles or sketches. `@storystage/backstage`'s manifest type is `ShelfSound`.
+
+| Field | What it holds |
+|---|---|
+| `id` | `source/Kind/name`, where the kind is `Music` or `Effect`: `kenney/Effect/door-creak`, `macleod/Music/morning-walk`. It's what a film's `SoundRef` holds (spec 03, section 1.7), and matches the form production checks a shelf id by (`SHELF_SOUND`). Unique, never reused, and never a model's id |
+| `displayName`, `themes` | The name learners see, and words to browse by |
+| `description` | Optional. What it sounds like in plain words, one line of at most 120 characters, as for a model (section 1, rule 5): "a wooden door creaks slowly open" |
+| `files.sound` | The MP3 file (rule 3) |
+| `length` | The whole file's length in seconds, more than 0, measured when the shelf is built (rule 4). The same name and meaning as `SoundClip.length` |
+| `bytes` | The file's size |
+| `licence`, `credit`, `source`, `publicDomain` | Section 3, as for a model |
+| `origin` | `shipped`. The shelf is shipped only: a class imports a sound into a film (spec 03, section 1.7), not into Backstage |
+
+### Rules
+
+1. **A shelf sound plays whole.** It has no trim: its part runs from 0 to `length`. So:
+    - `playAudio` takes `length` (spec 02, section 9, point 9), and the runtime's `load` gives it as `StoryContext.sounds[id]` (S2), as an imported clip gives `trim.end − trim.start`;
+    - a music cue that plays it has `0 ≤ from < to ≤ length` (spec 03, section 2.3), checked against the shelf.
+2. **A sound the shelf hasn't got plays as silence** and reads "Missing sound", as spec 02 and spec 03 say: an id from a newer Backstage, or one taken off the shelf. Ids are never reused, so an id never names a different sound.
+3. **The files are MP3** (owner, 22 Nov 2026): music at 160 kbps and effects at 128 kbps. The build makes each once from the source's own file (Kenney's OGG, Kevin MacLeod's 256 to 320 kbps MP3s) with ffmpeg, a build tool only, never linked into the app (CLAUDE.md, rule 8). ffmpeg isn't installed yet, and adding it needs the owner's agreement. Each file keeps within an import's limits (`SOUND_LIMITS`): at most 10 minutes and 25 MB. So a shelf sound plays wherever an imported one does.
+4. **The build measures `length`** from the MP3 it ships, not from a tag or the source's own listing:
+    - the frames times the samples in each (1,152 for MPEG-1 Layer III), at the file's sample rate;
+    - less the encoder's delay and padding, where the file's LAME header gives them;
+    - in seconds to three decimal places.
+    The app never measures a shelf sound. A file whose frames can't be read is refused by the build. The test that loads every shipped model (section 8) does the same for each pinned sound.
+5. **What's on it** (owner, 22 Nov 2026): about 50 pieces of music, each whole, about 180 MB, and about 300 effects. They come from Kenney (CC0), Freesound item by item (CC0 or CC BY 4.0), Kevin MacLeod (CC BY 4.0) and Musopen (public domain, item by item). Nothing goes on the shelf before the owner has listened to it and picked it. There are no weapon sounds, as there are no swords or shields among the models (owner, 21 Nov 2026). The shelf is part of the bundled Backstage (decision 0062, as updated on 23 Nov 2026), and the build report gives its size.
+6. **Licences are checked item by item,** as for models (section 3):
+    - Shipped sounds carry only CC0, CC BY 4.0 or `public-domain`.
+    - A Musopen recording ships only if its own Wikimedia Commons page shows that same recording as public domain (owner, 22 Nov 2026), with its record in `docs/legal/public-domain/musopen.md`.
+    - The licence audit gains each sound source first, then the manifest.
+7. **Credits** (section 3a):
+    - The About screen lists every shelf sound, after the models, under **Music** and **Sound effects**.
+    - A film's end credits list the shelf sounds it plays, by the same rules: each once, A to Z, with its credit line, licence and page.
+    - Kevin MacLeod's line is the one he asks for: "<Title> Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0".
+    - The build re-encodes every file, so a CC BY sound is credited with `creditFor` as changed, as a glTF model is (section 3a, rule 4).
+8. **The studio shows the shelf by kind:** the id's middle part, Music or Effect, each A to Z by name. Add music… lists music and effects (07-ux, section 7.7), and `playAudio`'s cascade lists them all (spec 14, section 3a). Shelf sounds aren't in the Prompter's catalogue (section 4a) in this version; adding them would need a decision of its own.
+9. **Loading** (section 4b):
+    - `openBackstage` answers `sounds`, and `sound(id)` gives the file's address and `length`.
+    - `checkBundle` checks the sound files as it checks every file the manifest names.
+    - A sound is fetched only when it plays, and Rehearse's player decodes it then (`packages/sound`, S3). The export decodes each sound it mixes (spec 08, section 4).
+10. **The manifest change:** version 2.5.0 adds `sounds`, required and possibly empty, and `ShelfSound`, in a `contract` pull request.
+    - It's reviewed by S3 (Rehearse's player), S5 (the Sound view and the cascade), S7 (the Prompter's catalogue, which leaves sounds out) and S2 (the runtime's lengths and the export's credits).
+    - An older manifest is rebuilt, not read (section 1, rule 4), so the change lands with a rebuilt Backstage pinned in `backstage.lock.json`.
+    - **S2:** the runtime adds shelf lengths once that type is on main.
 
 ## 3. Sources and licences
 
