@@ -17,8 +17,8 @@ function project() {
   const android = join(root, 'gen', 'android');
   mkdirSync(join(android, 'app', 'src', 'main', 'assets'), { recursive: true });
   writeFileSync(
-    join(android, 'settings.gradle.kts'),
-    'include(":app")\napply(from = "tauri.settings.gradle")\n',
+    join(android, 'settings.gradle'),
+    "include ':app'\n\napply from: 'tauri.settings.gradle'\n",
   );
   writeFileSync(
     join(android, 'app', 'build.gradle.kts'),
@@ -37,8 +37,8 @@ describe('the Backstage in an install-time pack (15.8)', () => {
   test('adds the pack module, lists it in the app, and copies the Backstage into it', () => {
     const { android, backstage } = project();
     addAssetPack(android, backstage);
-    expect(read(android, 'settings.gradle.kts')).toBe(
-      'include(":app")\ninclude(":backstage")\napply(from = "tauri.settings.gradle")\n',
+    expect(read(android, 'settings.gradle')).toBe(
+      "include ':app'\ninclude ':backstage'\n\napply from: 'tauri.settings.gradle'\n",
     );
     expect(read(android, 'app', 'build.gradle.kts')).toContain(
       'android {\n    assetPacks += listOf(":backstage")\n    compileSdk = 36\n',
@@ -58,7 +58,7 @@ describe('the Backstage in an install-time pack (15.8)', () => {
     const assets = join(android, PACK, 'src', 'main', 'assets', PACK);
     writeFileSync(join(assets, 'gone.glb'), 'from an older Backstage');
     addAssetPack(android, backstage);
-    expect(read(android, 'settings.gradle.kts').match(/:backstage/g)).toHaveLength(1);
+    expect(read(android, 'settings.gradle').match(/:backstage/g)).toHaveLength(1);
     expect(read(android, 'app', 'build.gradle.kts').match(/assetPacks/g)).toHaveLength(1);
     expect(existsSync(join(assets, 'gone.glb'))).toBe(false);
   });
@@ -79,8 +79,11 @@ describe('the Backstage in an install-time pack (15.8)', () => {
     rmSync(join(backstage, 'backstage.json'));
     expect(() => addAssetPack(android, backstage)).toThrow(/backstage:fetch/);
     const other = project();
-    writeFileSync(join(other.android, 'settings.gradle.kts'), 'include(":mobile")\n');
+    writeFileSync(join(other.android, 'settings.gradle'), "include ':mobile'\n");
     expect(() => addAssetPack(other.android, other.backstage)).toThrow(/:app/);
+    const notInit = project();
+    rmSync(join(notInit.android, 'settings.gradle'));
+    expect(() => addAssetPack(notInit.android, notInit.backstage)).toThrow(/android init/);
     const noBlock = project();
     writeFileSync(join(noBlock.android, 'app', 'build.gradle.kts'), 'plugins {}\n');
     expect(() => addAssetPack(noBlock.android, noBlock.backstage)).toThrow(/android \{/);

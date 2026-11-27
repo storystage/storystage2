@@ -43,12 +43,14 @@ export function addAssetPack(android, backstage) {
   if (!existsSync(join(backstage, 'backstage.json')))
     throw new Error(`${backstage} has no backstage.json: run pnpm backstage:fetch first.`);
 
-  const settings = join(android, 'settings.gradle.kts');
+  // Tauri's template has a Groovy `settings.gradle`, with `include ':app'`.
+  const settings = join(android, 'settings.gradle');
+  if (!existsSync(settings)) throw new Error(`${settings} isn't there: run tauri android init.`);
   edit(settings, (text) => {
-    if (!text.includes('include(":app")'))
+    if (!/^include ':app'$/m.test(text))
       throw new Error(`${settings} doesn't include :app, so it isn't Tauri's project.`);
-    if (text.includes(`include(":${PACK}")`)) return text;
-    return text.replace('include(":app")', () => `include(":app")\ninclude(":${PACK}")`);
+    if (new RegExp(`^include ':${PACK}'$`, 'm').test(text)) return text;
+    return text.replace(/^include ':app'$/m, () => `include ':app'\ninclude ':${PACK}'`);
   });
 
   const app = join(android, 'app', 'build.gradle.kts');
