@@ -56,6 +56,8 @@
   "roughCut.missingBackdrop": "Scene {n}'s backdrop isn't all here, so it shows plain ground and sky. Choose it again in Backstage.",
   "roughCut.missingJoints.one": "In scene {n}, {name} has no joint called {joints}, so that part of its pose isn't shown.",
   "roughCut.missingJoints.other": "In scene {n}, {name} has no joints called {joints}, so those parts of its pose aren't shown.",
+  "roughCut.missingSounds.one": "In scene {n}, a sound that's played isn't in this film, so it's silent.",
+  "roughCut.missingSounds.other": "In scene {n}, {count} sounds that are played aren't in this film, so they're silent.",
   "roughCut.missingModels.one": "Scene {n} uses {names}, which this device can't find, so it shows as an outline. Choose it again in Backstage.",
   "roughCut.missingModels.other": "Scene {n} uses {names}, which this device can't find, so they show as outlines. Choose them again in Backstage.",
   "compare.title": "Compare with storyboard",
