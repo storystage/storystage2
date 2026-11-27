@@ -569,6 +569,80 @@ describe('errorWords', () => {
   });
 });
 
+describe('sounds (decision 0076, workplan 11.7)', () => {
+  const playAudio = (sound: string): Statement => ({
+    id: id(),
+    kind: 'call',
+    target: the(PENGUIN),
+    callee: { kind: 'story', name: 'playAudio' },
+    args: { audioSource: text(sound) },
+    details: {},
+  });
+  /** Scene 1 plays `sound` and then says "after"; the film has one clip, sn1, trimmed to 1.5 s. */
+  const withSound = (sound: string): Production => {
+    const p = withSceneOne([playAudio(sound), say('after')]);
+    const clip = {
+      id: 'sn1',
+      file: 'sn1.mp3',
+      label: 'Door knock',
+      length: 4,
+      bytes: 1000,
+      trim: { start: 0.5, end: 2 },
+    };
+    return { ...p, manifest: { ...p.manifest, sounds: [clip] } };
+  };
+  const sounds = (stage: FakeStage) =>
+    stage.calls
+      .filter((c) => c.method === 'schedule')
+      .flatMap((c) => c.args[0] as StageCommand[])
+      .filter((c) => c.kind === 'sound');
+
+  it("sends the runtime each clip's trimmed length, and the block waits for it", async () => {
+    const loads: ToRuntime[] = [];
+    const { stage } = await play(withSound('sn1'), {
+      mode: 'rehearse',
+      port: runtime((m) => {
+        if (m.type === 'load') loads.push(m);
+      }),
+    });
+    expect(loads[0]).toMatchObject({ sounds: { sn1: 1.5 } });
+    expect(sounds(stage)).toMatchObject([
+      { kind: 'sound', sound: 'sn1', start: 0, duration: micros(1.5) },
+    ]);
+    const after = stage.calls
+      .filter((c) => c.method === 'schedule')
+      .flatMap((c) => c.args[0] as StageCommand[])
+      .find((c) => c.kind === 'say');
+    expect(after?.start).toBe(micros(1.5));
+  });
+
+  it('says when a scene plays a sound the film hasn’t got, with the whole list, and plays on', async () => {
+    const { events, stage } = await play(withSound('sn9'), { mode: 'rehearse' });
+    expect(sounds(stage)).toMatchObject([{ sound: 'sn9', missing: true, duration: 0 }]);
+    const missing = events.flatMap((e) => (e.kind === 'missing' ? [e] : []));
+    // The load's report first (the fake stage's backdrop), then the list again with the sound.
+    const last = missing.at(-1)!;
+    expect(last.scene).toBe('s1');
+    expect(last.missing.slice(0, missing[0]!.missing.length)).toEqual(missing[0]!.missing);
+    expect(last.missing.filter((m) => m.kind === 'sound')).toEqual([
+      { kind: 'sound', sound: 'sn9' },
+    ]);
+    expect(events.some((e) => e.kind === 'error')).toBe(false);
+  });
+
+  it('measures a missing sound into its scene’s list, after what the load couldn’t find', async () => {
+    await settle();
+    const timeline = await measure({
+      production: withSound('sn9'),
+      stage: new FakeStage(),
+      port: runtime(),
+      seed: 1,
+    });
+    const first = timeline.missing.find((m) => m.scene === 's1');
+    expect(first?.missing).toContainEqual({ kind: 'sound', sound: 'sn9' });
+  });
+});
+
 describe('measure', () => {
   const measured = async (production: Production, limit?: number) => {
     await settle();

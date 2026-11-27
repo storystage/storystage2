@@ -33,6 +33,12 @@ export interface StoryContext {
   emit(command: WithoutTiming<StageCommand>): void;
   /** From the run's seed, so deterministic runs repeat (WP6.5): 0 up to, but not including, 1. */
   random(): number;
+  /**
+   * Each sound the film can play, by the name a `playAudio` block gives it, with the length of
+   * the part it uses, in seconds (decision 0076): the `load` message's `sounds`, as the Story
+   * API's `StoryContext.sounds`. Not there when the load has none.
+   */
+  readonly sounds?: Readonly<Record<string, number>>;
 }
 
 /** One procedure or function: emits commands, sleeps, asks the stage, returns its value. */
