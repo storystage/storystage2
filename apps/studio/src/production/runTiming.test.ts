@@ -133,6 +133,24 @@ describe('TimingRecorder', () => {
     });
   });
 
+  it('is whole when a scene waiting for the viewer is stopped after it has done everything', () => {
+    const r = recorder();
+    r.hear(commands(cmd(0, 2, { object: 'cat', kind: 'move', to: { x: 1, y: 0, z: 0 } })));
+    // Stopped before its script finishes: not whole.
+    expect(r.stopped(micros(5))).toBe(false);
+    r.hear({ kind: 'finished', scene: s1, at: micros(1) });
+    // Still moving: not whole either.
+    expect(r.stopped(micros(1.5))).toBe(false);
+    expect(r.stopped(micros(2))).toBe(true);
+    expect(r.timing).toEqual({ whole: true, length: 2, sounds: [] });
+    expect(r.stopped(micros(9))).toBe(false);
+
+    const failed = recorder();
+    failed.hear({ kind: 'finished', scene: s1, at: micros(1) });
+    failed.hear({ kind: 'fault', message: 'Too many scenes' } as PlaybackEvent);
+    expect(failed.stopped(micros(5))).toBe(false);
+  });
+
   it('leaves out a caption with no speak line, and another scene’s events', () => {
     const r = recorder();
     r.hear(commands(cmd(1, 1, { object: 'cat', kind: 'say', text: 'Hi', bubble: 'caption' })));

@@ -91,6 +91,8 @@ export class TimingRecorder {
   private cut: number | null = null;
   private whole = false;
   private failed = false;
+  /** The scene's script has finished; listeners may still run. */
+  private finished = false;
   private current: RunTiming = { whole: false, length: 0, sounds: [] };
 
   constructor(scene: SceneId, lines: readonly SpeakLineAt[]) {
@@ -100,6 +102,20 @@ export class TimingRecorder {
 
   get timing(): RunTiming {
     return this.current;
+  }
+
+  /**
+   * The run was stopped at `at`, on the film's clock. A scene that waits for the viewer never ends
+   * by itself, so a Stop after its script has finished and nothing is still playing makes the run
+   * whole, to its last action's end, as the rough cut times it (the owner's choice, 27 Nov). True
+   * when that made it whole.
+   */
+  stopped(at: number): boolean {
+    if (this.whole || this.failed || !this.finished || at - this.sceneStart < this.end)
+      return false;
+    this.whole = true;
+    this.current = { ...this.current, whole: true };
+    return true;
   }
 
   /** Hears an event; true when the timing changed. */
@@ -147,7 +163,9 @@ export class TimingRecorder {
         }
         break;
       case 'finished':
-        if (event.scene === this.scene) this.end = Math.max(this.end, event.at - this.sceneStart);
+        if (event.scene !== this.scene) break;
+        this.finished = true;
+        this.end = Math.max(this.end, event.at - this.sceneStart);
         break;
       case 'error':
       case 'fault':

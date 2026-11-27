@@ -105,6 +105,8 @@ export class Rehearsal {
   /** Set while Rehearse to here runs ahead: no line sounds. */
   private quiet = false;
   private current: RehearsalState = IDLE;
+  /** The run's timing, as it goes. */
+  private recorder: TimingRecorder | null = null;
   private readonly listeners = new Set<() => void>();
   /** Each run's number: events from a run that was replaced are ignored. */
   private run = 0;
@@ -202,6 +204,9 @@ export class Rehearsal {
   /** Stop, which always works (6.3): the run ends and the set-up shows again, as it was. */
   async stop(): Promise<void> {
     const playback = this.playback;
+    // A scene waiting for the viewer, stopped once it has done everything: a whole run.
+    if (this.active && this.recorder?.stopped(this.clock.time()))
+      this.set({ timing: this.recorder.timing });
     this.end();
     if (playback && !playback.ended()) {
       // The driver loads the set-up again; its first moment is drawn here.
@@ -267,6 +272,7 @@ export class Rehearsal {
     });
     this.playback = playback;
     const timing = new TimingRecorder(scene, speakLines(production));
+    this.recorder = timing;
     playback.on((event) => {
       if (run !== this.run) return;
       // First, so a run that has just ended says how long it was.
