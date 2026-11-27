@@ -15,6 +15,7 @@
     "@storystage/backstage": "workspace:*",
     "@storystage/playback": "workspace:*",
     "@storystage/production": "workspace:*",
+    "@storystage/sound": "workspace:*",
     "@storystage/stage": "workspace:*",
     "@storystage/story-api": "workspace:*",
     "mediabunny": "^1.62.0"
