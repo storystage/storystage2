@@ -45,6 +45,12 @@ const filmMenu = (page: Page) => page.getByRole('button', { name: /^Film: / });
  * is already ticked on this device, so the switch goes straight there (its dialog has its own
  * tests in `switch.e2e.ts`).
  */
+/**
+ * How long an editor or the Sound view may take to load the first time: each is loaded on demand,
+ * and under CI's load the Tiles editor has taken more than the default 5 s (S4's finding on #720).
+ */
+export const LOADING = { timeout: 15_000 };
+
 export async function openFilm(page: Page, program: Program | Uint8Array, editor: EditorName) {
   await standInPickers(page);
   await page.addInitScript(() => {
@@ -79,17 +85,22 @@ export async function openFilm(page: Page, program: Program | Uint8Array, editor
     page.getByRole('button', { name: /^Film: The Lost Penguin \(demo\)/ }),
   ).toBeVisible();
   await page.getByRole('tab', { name: /Production stage/ }).click();
-  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible(LOADING);
   if (editor === 'Tiles') await switchTo(page, 'Tiles');
-  await expect(page.locator(`.pr-code[data-editor="${editor.toLowerCase()}"]`)).toBeVisible();
+  await expect(page.locator(`.pr-code[data-editor="${editor.toLowerCase()}"]`)).toBeVisible(
+    LOADING,
+  );
 }
 
 /** The studio's switch, clicked where it's drawn (React Aria's radio input is hidden). */
 export async function switchTo(page: Page, editor: EditorName) {
   await page.locator('.pr-editor-switch .ss-segment', { hasText: editor }).click();
-  await expect(page.locator(`.pr-code[data-editor="${editor.toLowerCase()}"]`)).toBeVisible();
-  if (editor === 'Blocks') await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
-  else await expect(page.locator('.pr-tiles [role="tree"]')).toBeVisible();
+  await expect(page.locator(`.pr-code[data-editor="${editor.toLowerCase()}"]`)).toBeVisible(
+    LOADING,
+  );
+  if (editor === 'Blocks')
+    await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible(LOADING);
+  else await expect(page.locator('.pr-tiles [role="tree"]')).toBeVisible(LOADING);
   // Focus goes into the editor a frame after it's drawn (section 4.5), once the switch has let go
   // of it: wait for that, so it doesn't undo where a task puts focus next.
   await expect
