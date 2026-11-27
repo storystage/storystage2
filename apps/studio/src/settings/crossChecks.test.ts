@@ -1,18 +1,23 @@
-import { FILE_LIMIT, type FilePicker, type PupilFolder } from '@storystage/host';
+import { FILE_LIMIT, KEPT_FILE, type FilePicker, type PupilFolder } from '@storystage/host';
 import { memoryClassFolders, memoryFilePicker } from '@storystage/host/testing';
 import {
   ARCHIVE_LIMITS,
+  KEPT_SOUND_NAME,
   ProductionSaver,
+  SOUND_TYPES,
   collectClass,
   exampleProduction,
   handBackClass,
+  openFromFolder,
   openProduction,
+  saveProduction,
+  withSound,
   type CopyPicker,
   type SaveFolder,
 } from '@storystage/production';
 import { describe, expect, it } from 'vitest';
 
-// Three checks between the host and production that neither package can make alone (07-ux 9.7,
+// Checks between the host and production that neither package can make alone (07-ux 9.7,
 // S4's review of #242): the studio is where both meet.
 
 describe('the host and production agree', () => {
@@ -25,6 +30,54 @@ describe('the host and production agree', () => {
 
   it('the host’s file limit is the archive reader’s', () => {
     expect(FILE_LIMIT).toBe(ARCHIVE_LIMITS.fileBytes);
+  });
+
+  it('the host keeps sounds under the names, and of the types, production gives them', () => {
+    expect(KEPT_FILE.source).toBe(KEPT_SOUND_NAME.source);
+    expect(KEPT_FILE.source).toContain(`(${Object.keys(SOUND_TYPES).join('|')})`);
+  });
+
+  it('a film’s sounds are kept once in the host’s folder, and come back whole (spec 03 1.4.1)', async () => {
+    const classes = memoryClassFolders();
+    const folder = await classes.folder((await classes.addPupil('Ava')).id);
+    // Bytes that don't compress, as a real sound's don't.
+    let seed = 7;
+    const owl = Uint8Array.from(
+      { length: 50_000 },
+      () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) % 256,
+    );
+    owl.set([0xff, 0xfb, 0x90, 0x44]);
+    const p = exampleProduction();
+    const film = withSound(p, {
+      id: 'sn1',
+      file: 'sn1.mp3',
+      label: 'Owl',
+      length: 2,
+      bytes: owl.length,
+      trim: { start: 0, end: 2 },
+    });
+    const files = {
+      audio: new Map(),
+      models: new Map(),
+      sounds: new Map([['sounds/sn1.mp3', owl]]),
+    };
+    const saver = new ProductionSaver(folder, { key: null });
+    for (const kind of ['auto', 'auto', 'asked'] as const)
+      expect(await saver.save(film, files, kind)).toMatchObject({ ok: true });
+    const key = saver.key!;
+    expect(await folder.kept(key)).toHaveLength(1);
+    // The version alone is small; the list shows the whole film's size.
+    expect((await folder.read(key)).length).toBeLessThan(owl.length);
+    expect((await folder.list())[0]?.bytes).toBeGreaterThan(owl.length);
+
+    for (const backup of [undefined, 0]) {
+      const opened = await openFromFolder(folder, key, { backup });
+      expect(opened).toMatchObject({ status: 'ok', key });
+      if (opened.status === 'ok') expect(opened.files.sounds).toEqual(files.sounds);
+    }
+    const picker = memoryFilePicker({ handBack: () => picker.collected });
+    await collectClass(classes, picker);
+    expect(picker.collected[0]?.bytes).toEqual(saveProduction(film, files));
   });
 
   it('Collect then Hand back returns every file to its pupil, with names that differ only by case', async () => {

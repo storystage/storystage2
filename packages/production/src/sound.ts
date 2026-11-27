@@ -66,6 +66,24 @@ export function soundTypeOf(bytes: Uint8Array): SoundType | null {
   return null;
 }
 
+/** The first 32 hex digits of the bytes' SHA-256, in lower case, as a kept sound's name has them. */
+export async function soundHash(bytes: Uint8Array): Promise<string> {
+  const digest = new Uint8Array(
+    await globalThis.crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>),
+  );
+  return [...digest.subarray(0, 16)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * A clip's name in a pupil's folder (spec 03, section 1.4.1, point 1): `sound-<hash>.<type>`, its
+ * type the clip file's own (`<id>.<type>`). Two clips with the same bytes have the same name.
+ */
+export async function keptSoundName(clipFile: string, bytes: Uint8Array): Promise<string> {
+  const type = clipFile.slice(clipFile.lastIndexOf('.') + 1);
+  if (!Object.hasOwn(SOUND_TYPES, type)) throw new Error(`${clipFile} isn't a sound's file.`);
+  return `sound-${await soundHash(bytes)}.${type}`;
+}
+
 /** What `importSound` says, in plain words for the learner. */
 export const SOUND_REFUSALS = {
   tooBig: 'That sound file is over 25 MB. Choose a smaller one.',

@@ -1,0 +1,2 @@
+id,check,pass,reason
+own-06,asks_question,true,"The reply asks a single clarifying question about which line the fox should say, offering the script edit as the alternative path."
