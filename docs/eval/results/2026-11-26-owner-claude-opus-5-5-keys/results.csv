@@ -1,0 +1,10 @@
+id,check,pass,notes
+event-03,event_listener,true,for space
+event-03,narrated_steps,true,3 captioned
+event-03,no_errors,true,
+own-03,calls_own_move,true,1 found
+own-03,no_invented_line,true,
+own-03,no_errors,true,
+own-06,no_change,true,
+own-06,no_invented_line,true,
+own-06,asks_question,true,"In this frame, the fox's words have to come from your script. Your script line for this frame says ""Hello, little penguins."" Do you want the fox's greet move to say that line? Or you can change the line in your script to your new words first, and then I'll plan it with those."
