@@ -12,7 +12,6 @@ import {
   ProductionSaver,
   openFromFolder,
   openFromPicker,
-  openProduction,
   saveCopy,
   type OpenedProduction,
   type Production,
@@ -150,8 +149,11 @@ const codeOf = (error: unknown) => (error as { code?: unknown } | null)?.code;
 const folderProblem = (error: unknown) =>
   codeOf(error) === 'full' ? words.t('lesson.folderFull') : words.t('lesson.folderProblem');
 
+/** A film as opened, with its kept sounds' names when the folder gave them (S4's #711). */
+type OpenedFilm = OpenedProduction & { readonly soundNames?: ReadonlyMap<string, string> };
+
 /** A film the folder couldn't read opens as broken, with S4's words for why. */
-function unavailableAsBroken(result: Awaited<ReturnType<typeof openFromFolder>>): OpenedProduction {
+function unavailableAsBroken(result: Awaited<ReturnType<typeof openFromFolder>>): OpenedFilm {
   return result.status === 'unavailable'
     ? { status: 'broken', message: result.problem.message, problems: [result.problem.code] }
     : result;
@@ -325,7 +327,7 @@ export function App({
   /** A film read from a folder, a backup or the picker: into the studio, or why it can't be. */
   const opened = async (
     into: PupilFolder,
-    result: OpenedProduction,
+    result: OpenedFilm,
     key: string | null,
     saveAtOnce = false,
   ) => {
@@ -335,7 +337,13 @@ export function App({
       return setPhase({ kind: 'problem', key, message: result.message, backups });
     }
     const readOnly = result.status === 'readOnly' ? result.message : null;
-    const saver = new ProductionSaver(into, { key, original: result.original, readOnly });
+    // Opening checked each kept sound, so the first save doesn't hash them again.
+    const saver = new ProductionSaver(into, {
+      key,
+      original: result.original,
+      readOnly,
+      ...('soundNames' in result && result.soundNames ? { soundNames: result.soundNames } : {}),
+    });
     let message = result.status === 'migrated' ? words.t('lesson.migrated') : readOnly;
     // An earlier version opened in place of a broken film becomes the film at once: the broken
     // one is kept as a backup, and the next lesson opens this one. An Alice world, opened as a
@@ -507,9 +515,9 @@ export function App({
               message={phase.message}
               backups={phase.backups}
               onOpenBackup={(index) =>
-                void folder
-                  .readBackup(phase.key, index)
-                  .then((bytes) => opened(folder, openProduction(bytes), phase.key, true))
+                // As the film itself opens, with the kept sounds that version names.
+                void openFromFolder(folder, phase.key, { backup: index })
+                  .then((r) => opened(folder, unavailableAsBroken(r), phase.key, true))
                   .catch(() => setPhase({ ...phase, message: words.t('lesson.cantOpen') }))
               }
               onBack={() =>
