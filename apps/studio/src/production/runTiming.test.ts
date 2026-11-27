@@ -151,6 +151,26 @@ describe('TimingRecorder', () => {
     expect(failed.stopped(micros(5))).toBe(false);
   });
 
+  it('pairs two speak lines on one speaker at once by the block each caption names', () => {
+    const other = nodeId('speak2');
+    const r = new TimingRecorder(s1, [
+      { node: speak, scene: s1, object: 'cat', text: 'One' },
+      { node: other, scene: s1, object: 'cat', text: 'Two' },
+    ]);
+    r.hear(ran([speak, 0], [other, 0]));
+    // The second block's caption comes first: each still goes to its own block.
+    r.hear(
+      commands(
+        cmd(0, 2, { object: 'cat', kind: 'say', text: 'Two', bubble: 'caption', node: other }),
+        cmd(0, 1, { object: 'cat', kind: 'say', text: 'One', bubble: 'caption', node: speak }),
+      ),
+    );
+    expect(r.timing.sounds.map((s) => [s.node, s.text])).toEqual([
+      [other, 'Two'],
+      [speak, 'One'],
+    ]);
+  });
+
   it('leaves out a caption with no speak line, and another scene’s events', () => {
     const r = recorder();
     r.hear(commands(cmd(1, 1, { object: 'cat', kind: 'say', text: 'Hi', bubble: 'caption' })));
