@@ -158,7 +158,7 @@ Backstage's sounds: openly licensed music and sound effects that any film can pl
     - the frames times the samples in each (1,152 for MPEG-1 Layer III), at the file's sample rate;
     - less the encoder's delay and padding, where the file's LAME header gives them;
     - in seconds to three decimal places.
-    The app never measures a shelf sound. A file whose frames can't be read is refused by the build. The test that loads every shipped model (section 8) does the same for each pinned sound.
+    The app never measures a shelf sound. A file whose frames can't be read is refused by the build. The test that loads every shipped model (section 8) does the same for each pinned sound. **S3:** with the first build's first file, S3 checks whether a browser's decoding keeps the encoder's delay, in Edge and on the reference Chromebook, so a loop from 0 to `length` starts on time; the player makes up for it if one does.
 5. **What's on it** (owner, 22 Nov 2026): about 50 pieces of music, each whole, about 180 MB, and about 300 effects. They come from Kenney (CC0), Freesound item by item (CC0 or CC BY 4.0), Kevin MacLeod (CC BY 4.0) and Musopen (public domain, item by item). Nothing goes on the shelf before the owner has listened to it and picked it. There are no weapon sounds, as there are no swords or shields among the models (owner, 21 Nov 2026). The shelf is part of the bundled Backstage (decision 0062, as updated on 23 Nov 2026), and the build report gives its size.
 6. **Licences are checked item by item,** as for models (section 3):
     - Shipped sounds carry only CC0, CC BY 4.0 or `public-domain`.
@@ -177,7 +177,7 @@ Backstage's sounds: openly licensed music and sound effects that any film can pl
 9. **Loading** (section 4b):
     - `openBackstage` answers `sounds`, and `sound(id)` gives the file's address and `length`.
     - `checkBundle` checks the sound files as it checks every file the manifest names.
-    - A sound is fetched only when it plays, and Rehearse's player decodes it then (`packages/sound`, S3). The export decodes each sound it mixes (spec 08, section 4).
+    - A sound is fetched only when a film plays it, never the whole shelf and never at start-up (S3's review). Rehearse's player (`packages/sound`, `LiveSounds.prepare`) reads a scene's sounds as the run starts, so music starts on time: its music cues, the cue carried in from an earlier scene, and each sound a `playAudio` block names in words. Any other, such as one named by a variable, is fetched when it's first heard, and starts part-way in, in time with the picture. A fetch that fails, offline for example, plays as silence (rule 2). The export decodes each sound it mixes (spec 08, section 4).
 10. **The manifest change:** version 2.5.0 adds `sounds`, required and possibly empty, and `ShelfSound`, in a `contract` pull request.
     - It's reviewed by S3 (Rehearse's player), S5 (the Sound view and the cascade), S7 (the Prompter's catalogue, which leaves sounds out) and S2 (the runtime's lengths and the export's credits).
     - An older manifest is rebuilt, not read (section 1, rule 4), so the change lands with a rebuilt Backstage pinned in `backstage.lock.json`.
