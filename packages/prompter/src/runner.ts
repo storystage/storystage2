@@ -309,6 +309,14 @@ function asPlan(value: Json | undefined): Plan | null {
     : null;
 }
 
+/**
+ * A name as words for `objectName`, which makes a field name of a display name's words and
+ * lowercases each after its first letter: a name already in camelCase ("cornField") is split
+ * where a small letter or a digit meets a capital ("corn Field"), so it keeps its capitals.
+ * Without this, Claude's `cornField` was added as `cornfield` (scene-03, 25 Nov).
+ */
+const camelWords = (name: string) => name.replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, '$1 $2');
+
 export class PrompterRunner<S extends string = string> implements ToolRunner {
   readonly #setup: RunnerSetup<S>;
   /**
@@ -1419,7 +1427,7 @@ export class PrompterRunner<S extends string = string> implements ToolRunner {
     const production = this.#setup.session.production();
     const scene = this.#setup.scene();
     const wanted = text(input.name).trim() || item.split('/').at(-1) || 'model';
-    const name = objectName(production, scene, wanted);
+    const name = objectName(production, scene, camelWords(wanted));
     if (name === null) return fail('unknown_method', "This scene can't be found.");
     const [x, y, z] = position as number[];
     const object = { model: item as SceneObjectSetup['model'], class: cls };

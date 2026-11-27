@@ -1,6 +1,7 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { exampleProduction } from '@storystage/production';
+import { LOADING } from './parity/film.ts';
 
 // The Sound view's first part in a browser (07-ux 7.7; workplan 7.17): Code | Sound, a real WAV
 // read and decoded by the browser, the trim dialog by keys and by pointer, Add sound as one undo
@@ -46,13 +47,14 @@ async function openSound(page: Page) {
   await page.setViewportSize({ width: 1366, height: 900 });
   await page.goto('/?example');
   await page.getByRole('tab', { name: /Production stage/ }).click();
-  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible(LOADING);
   await page
     .getByRole('radiogroup', { name: 'Code or Sound' })
     .getByText('Sound', { exact: true })
     .click();
+  // Sound is loaded on demand, the first time it's shown.
   const sound = page.getByRole('region', { name: 'Sound' });
-  await expect(sound).toBeVisible();
+  await expect(sound).toBeVisible(LOADING);
   return sound;
 }
 

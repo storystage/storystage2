@@ -211,6 +211,31 @@ describe('RoughCut', () => {
     expect(screen.queryByText(/which this device can't find/)).toBeNull();
   });
 
+  it('says how many sounds a scene plays that the film hasn’t got (decision 0076)', () => {
+    setup({
+      timeline: timeline({
+        missing: [
+          { scene: S1, missing: [{ kind: 'sound', sound: 'sn9' }] },
+          {
+            scene: S2,
+            missing: [
+              { kind: 'sound', sound: 'sn9' },
+              { kind: 'sound', sound: 'kenney/impact/door-knock' },
+            ],
+          },
+        ],
+      }),
+    });
+    expect(
+      screen.getByText("In scene 1, a sound that's played isn't in this film, so it's silent."),
+    ).toBeTruthy();
+    expect(
+      screen.getByText(
+        "In scene 2, 2 sounds that are played aren't in this film, so they're silent.",
+      ),
+    ).toBeTruthy();
+  });
+
   it('says "they" for more than one missing model', () => {
     setup({
       timeline: timeline({

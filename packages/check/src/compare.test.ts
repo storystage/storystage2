@@ -109,6 +109,7 @@ function matching(over: Partial<FrameRun> = {}): FrameRun {
     otherFrames: [],
     error: null,
     missing: [],
+    silent: [],
     cast: [OWL, FOX],
     ...over,
   };
@@ -253,6 +254,37 @@ describe('compareFrame', () => {
       "pip has no joint called tailFan, so that part of its pose isn't shown",
     ]);
     expect(notes.map((i) => i.id)).toEqual(['missingJoints:owl', 'missingJoints:pip']);
+  });
+
+  it('notes a sound the film hasn’t got where it plays, at its block (decision 0076)', () => {
+    const run = matching({
+      missing: [{ kind: 'sound', sound: 'sn9' }],
+      silent: [
+        // In this frame (10 s to 13 s), twice from one block in a loop, and once from another.
+        { node: nodeId('playa1'), sound: 'sn9', start: micros(10) },
+        { node: nodeId('playa1'), sound: 'sn9', start: micros(11) },
+        { node: nodeId('playb1'), sound: 'kenney/impact/door-knock', start: micros(12.5) },
+        // In the next frame.
+        { node: nodeId('playc1'), sound: 'sn9', start: micros(13) },
+      ],
+    });
+    const notes = compareFrame(run).filter((i) => i.kind === 'missing');
+    expect(notes).toEqual([
+      {
+        id: 'silentSound:playa1',
+        kind: 'missing',
+        outcome: 'note',
+        words: "A sound played here isn't in this film, so it's silent",
+        node: 'playa1',
+      },
+      {
+        id: 'silentSound:playb1',
+        kind: 'missing',
+        outcome: 'note',
+        words: "A sound played here isn't in this film, so it's silent",
+        node: 'playb1',
+      },
+    ]);
   });
 
   it('gives each item a stable id, unique in the frame', () => {

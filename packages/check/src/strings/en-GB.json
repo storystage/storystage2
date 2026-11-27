@@ -39,5 +39,6 @@
   "missing.note": "{name} can't be found on this device, so it shows as an outline",
   "missingJoints.note.one": "{name} has no joint called {joints}, so that part of its pose isn't shown",
   "missingJoints.note.other": "{name} has no joints called {joints}, so those parts of its pose aren't shown",
+  "silentSound.note": "A sound played here isn't in this film, so it's silent",
   "scriptWords.step": "Use the script’s words for line {number}"
 }
