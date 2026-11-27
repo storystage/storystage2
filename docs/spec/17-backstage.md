@@ -169,7 +169,11 @@ Backstage's sounds: openly licensed music and sound effects that any film can pl
     - A film's end credits list the shelf sounds it plays, by the same rules: each once, A to Z, with its credit line, licence and page.
     - Kevin MacLeod's line is the one he asks for: "<Title> Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0".
     - The build re-encodes every file, so a CC BY sound is credited with `creditFor` as changed, as a glTF model is (section 3a, rule 4).
-8. **The studio shows the shelf by kind:** the id's middle part, Music or Effect, each A to Z by name. Add music… lists music and effects (07-ux, section 7.7), and `playAudio`'s cascade lists them all (spec 14, section 3a). Shelf sounds aren't in the Prompter's catalogue (section 4a) in this version; adding them would need a decision of its own.
+8. **The studio shows the shelf by kind** (S5's review): the id's middle part, `Music` or `Effect`, under the headings learners see, **Music** and **Sound effects**, as the About screen has them (rule 7). The Sound FX track keeps its own name: a track isn't a shelf heading.
+    - **Add music…** lists the film's own sounds first, then the shelf's Music, then its Sound effects, each A to Z by name (07-ux, section 7.7, S5).
+    - **`playAudio`'s cascade** groups them by kind as spec 14, section 3a groups a long list (S5 and S6), not as one list of some 350.
+    - **A shelf sound says it's from Backstage** wherever a film's own sound of the same name could be beside it, in a list row or on a timeline bar. The words are 07-ux's (S5).
+    - Shelf sounds aren't in the Prompter's catalogue (section 4a) in this version; adding them would need a decision of its own.
 9. **Loading** (section 4b):
     - `openBackstage` answers `sounds`, and `sound(id)` gives the file's address and `length`.
     - `checkBundle` checks the sound files as it checks every file the manifest names.
