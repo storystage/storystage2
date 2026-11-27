@@ -343,6 +343,7 @@ const say = (bubbleKind: 'say' | 'think') =>
     text: words(call.args.text, 'text'),
     bubble: bubbleKind,
     look: bubble(call),
+    node: call.node,
     ...timing(call),
   }));
 
@@ -582,6 +583,7 @@ export const STORY_LIBRARY: StoryLibrary = {
       text,
       bubble: 'caption',
       ...(line === undefined ? {} : { line: words(line, 'line') }),
+      node: call.node,
       duration: micros(seconds),
       // A caption has no motion; the style is `say`'s usual one.
       style: 'beginAndEndGently',
