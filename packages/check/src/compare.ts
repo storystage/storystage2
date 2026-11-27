@@ -95,8 +95,11 @@ export interface FrameRun {
     readonly words: string;
   } | null;
   readonly missing: readonly Missing[];
-  /** The scene's sounds that played silent, because the film hasn't got them. */
-  readonly silent: readonly SilentSound[];
+  /**
+   * The scene's sounds that played silent, because the film hasn't got them. Optional, so a
+   * frame run built before decision 0076 (staging's tests, say) still compares, with none.
+   */
+  readonly silent?: readonly SilentSound[];
   /** The scene card's cast: a sketch of one of them is a character, even with no object for it. */
   readonly cast: readonly (BackstageId | StandIn)[];
 }
@@ -472,7 +475,7 @@ export function compareFrame(run: FrameRun): CheckItem[] {
     });
   // A sound the film hasn't got: a note where it plays, once for each block (decision 0076).
   const silentBlocks = new Set<string>();
-  for (const s of run.silent) {
+  for (const s of run.silent ?? []) {
     if (s.start < run.span.start || s.start >= run.span.end) continue;
     const key = s.node ?? `${s.sound}@${s.start}`;
     if (silentBlocks.has(key)) continue;
