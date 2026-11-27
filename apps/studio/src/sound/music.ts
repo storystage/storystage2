@@ -1,10 +1,9 @@
 /**
- * The music timeline's sums (`07-ux.md` section 7.7; decision 0076, workplan 7.17): where each of
- * a scene's cues is heard, the cue carried in from an earlier scene, and the changes the cue
- * controls make. Pure, for the Sound view's timeline and its tests.
+ * The music timeline's cue changes (`07-ux.md` section 7.7; decision 0076, workplan 7.17): adding,
+ * changing, dragging and removing cues. Pure, for the Sound view's timeline and its tests. Where
+ * each cue is heard is `@storystage/sound`'s (`heardMusic`), which Rehearse and the export play by.
  */
 import {
-  MUSIC_CROSSFADE_SECONDS,
   SOUND_LIMITS,
   withSceneMusic,
   type MusicCue,
@@ -12,107 +11,26 @@ import {
   type SceneId,
   type SoundClip,
 } from '@storystage/production';
+import { musicOf, SHORTEST_CUE } from '@storystage/sound';
 
-/** The shortest part a cue can play, in seconds (as the trim dialog keeps). */
-export const SHORTEST_CUE = 0.1;
+export {
+  heardMusic,
+  musicOf,
+  partOf,
+  SHORTEST_CUE,
+  type CarriedCue,
+  type HeardCue,
+  type HeardMusic,
+  type SceneLength,
+} from '@storystage/sound';
+
 /** The latest a cue can start: a sound's own longest. */
 export const LATEST_START = SOUND_LIMITS.seconds;
-
-/** A scene's length, from the storyboard's plan or a whole Rehearse run. */
-export interface SceneLength {
-  readonly seconds: number;
-  readonly from: 'plan' | 'run';
-}
-
-/** A cue as the timeline draws it, in seconds from the scene's start. */
-export interface HeardCue {
-  /** Its place in the scene's music, in start order. */
-  readonly index: number;
-  readonly cue: MusicCue;
-  readonly start: number;
-  readonly end: number;
-  /** What ends it: its own end, the next cue, or the end of the scene (or the timeline). */
-  readonly until: 'own' | 'next' | 'scene';
-  /** Where each loop starts again. */
-  readonly loops: readonly number[];
-  readonly fadeIn: readonly [number, number] | null;
-  readonly fadeOut: readonly [number, number] | null;
-  /** The crossfade into the next cue, drawn as the second before it. */
-  readonly crossfade: readonly [number, number] | null;
-  /** It starts after a run's end, so it isn't heard yet. Never by a plan. */
-  readonly past: boolean;
-}
-
-/** A cue carried on from an earlier scene, heard from 0 until this scene's first takes over. */
-export interface CarriedCue {
-  readonly cue: MusicCue;
-  readonly scene: SceneId;
-  readonly end: number;
-}
-
-export interface HeardMusic {
-  readonly cues: readonly HeardCue[];
-  readonly carried: CarriedCue | null;
-  /** The timeline's length: the scene's, or further to show a cue that starts after it. */
-  readonly span: number;
-}
-
-/** How long a cue's part plays once. */
-export const partOf = (cue: MusicCue) => Math.max(SHORTEST_CUE, cue.to - cue.from);
 
 /** A tenth of a second, as the timeline keeps times. */
 export const tenth = (seconds: number) => Math.round(seconds * 10) / 10;
 const between = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const round = (seconds: number) => Math.round(seconds * 1000) / 1000;
-
-export const musicOf = (p: Production, scene: SceneId): readonly MusicCue[] =>
-  p.scenes.find((s) => s.id === scene)?.music ?? [];
-
-export function heardMusic(p: Production, scene: SceneId, length: SceneLength): HeardMusic {
-  const music = musicOf(p, scene);
-  const sceneEnd = Math.max(0, length.seconds);
-  const span = Math.max(1, sceneEnd, ...music.map((c) => c.start + partOf(c)));
-  const cues = music.map((cue, index): HeardCue => {
-    const part = partOf(cue);
-    const next = music[index + 1]?.start ?? Infinity;
-    const past = length.from === 'run' && cue.start >= sceneEnd;
-    const own = cue.loop ? Infinity : cue.start + part;
-    const last = past ? cue.start + part : length.from === 'run' ? sceneEnd : span;
-    const end = round(Math.min(own, next, last));
-    const until = end === round(own) ? 'own' : end === next ? 'next' : 'scene';
-    const loops: number[] = [];
-    if (cue.loop) for (let t = cue.start + part; t < end - 1e-9; t += part) loops.push(round(t));
-    return {
-      index,
-      cue,
-      start: cue.start,
-      end,
-      until,
-      loops,
-      fadeIn: cue.fadeIn > 0 ? [cue.start, round(Math.min(end, cue.start + cue.fadeIn))] : null,
-      fadeOut:
-        until === 'own' && cue.fadeOut > 0
-          ? [round(Math.max(cue.start, end - cue.fadeOut)), end]
-          : null,
-      crossfade:
-        until === 'next' ? [round(Math.max(cue.start, end - MUSIC_CROSSFADE_SECONDS)), end] : null,
-      past,
-    };
-  });
-  return { cues, carried: carriedInto(p, scene, music[0]?.start ?? span), span };
-}
-
-/** The cue an earlier scene carries on into `scene`, if its last music carries on. */
-function carriedInto(p: Production, scene: SceneId, end: number): CarriedCue | null {
-  const order = p.manifest.runningOrder.map((r) => r.scene);
-  for (let i = order.indexOf(scene) - 1; i >= 0; i--) {
-    const music = musicOf(p, order[i]!);
-    if (music.length === 0) continue;
-    const last = music[music.length - 1]!;
-    return last.carriesOn ? { cue: last, scene: order[i]!, end } : null;
-  }
-  return null;
-}
 
 /** A new cue: the whole trimmed sound from `start`, at full volume, no fades or loop. */
 export const cueFor = (clip: SoundClip, start: number): MusicCue => ({

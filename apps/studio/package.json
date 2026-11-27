@@ -28,6 +28,7 @@
     "@storystage/screening": "workspace:*",
     "@storystage/selftest": "workspace:*",
     "@storystage/sketches": "workspace:*",
+    "@storystage/sound": "workspace:*",
     "@storystage/speech": "workspace:*",
     "@storystage/stage": "workspace:*",
     "@storystage/staging": "workspace:*",
