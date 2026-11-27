@@ -466,7 +466,20 @@ describe('catalogText', () => {
     expect(text).toContain('func isCollidingWith(other: Thing) -> Boolean');
     expect(text).toContain('class Biped extends JointedModel');
     expect(text).toContain('MoveDirection: left, right, up, down, forward, backward');
-    expect(text).toContain('timer(seconds: Number) gives seconds: Number');
+  });
+
+  it('lists each event’s settings, typed, with its own keys (27 Nov 2026)', () => {
+    expect(text).toContain(
+      'keyPress(keys?: Key[], heldKeyPolicy?: HeldKeyPolicy, multipleEventPolicy?: MultipleEventPolicy) gives key: Key',
+    );
+    expect(text).toContain('arrowKeyPress(keys?: Key[] (up, down, left, right only), ');
+    expect(text).toContain(
+      'timer(seconds: Number; multipleEventPolicy?: MultipleEventPolicy) gives seconds: Number',
+    );
+    expect(text).toContain('  sceneStart()\n');
+    // Its objects come from the step's targets, not a setting (spec 04, section 6.10).
+    expect(text).toContain('clickOnObject(multipleEventPolicy?: MultipleEventPolicy) gives');
+    expect(text).not.toContain('setOfVisuals');
   });
 
   it('stays well under the Prompter’s budget of 40,000 tokens', () => {
