@@ -40,17 +40,18 @@ export function filmWith(program: Program): Uint8Array {
 const filmMenu = (page: Page) => page.getByRole('button', { name: /^Film: / });
 
 /**
- * A fresh page with the film whose code is `program` (or that film itself), opened with Open a copy, on the Production
- * stage's scene 1 in `editor`, chosen with the studio's own switch. "Don't explain this again"
- * is already ticked on this device, so the switch goes straight there (its dialog has its own
- * tests in `switch.e2e.ts`).
- */
-/**
- * How long an editor or the Sound view may take to load the first time: each is loaded on demand,
- * and under CI's load the Tiles editor has taken more than the default 5 s (S4's finding on #720).
+ * How long an editor or the Sound view may take to load the first time: each is loaded on
+ * demand, and under CI's load the Tiles editor has taken more than the default 5 s (S4's finding
+ * on #720).
  */
 export const LOADING = { timeout: 15_000 };
 
+/**
+ * A fresh page with the film whose code is `program` (or that film itself), opened with Open a
+ * copy, on the Production stage's scene 1 in `editor`, chosen with the studio's own switch.
+ * "Don't explain this again" is already ticked on this device, so the switch goes straight there
+ * (its dialog has its own tests in `switch.e2e.ts`).
+ */
 export async function openFilm(page: Page, program: Program | Uint8Array, editor: EditorName) {
   await standInPickers(page);
   await page.addInitScript(() => {
