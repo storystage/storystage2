@@ -9,7 +9,9 @@ import { memoryClassFolders, memoryFilePicker } from '@storystage/host/testing';
 import {
   ProductionSaver,
   exampleProduction,
+  openFromFolder,
   openProduction,
+  withSound,
   type ProductionFiles,
 } from '@storystage/production';
 import { render, screen, waitFor, within } from '@testing-library/react';
@@ -114,6 +116,41 @@ describe('My films (07-ux 9.1)', () => {
     // The earlier version is the film now, before any change: the next lesson opens it.
     const now = openProduction(await folder.read(info!.key));
     expect(now.status === 'ok' && now.production.manifest.title).toBe('The Lost Kite');
+  });
+
+  it('opens an earlier version with its kept sounds (spec 03 1.4.1, S4’s #711)', async () => {
+    const { classes, pupils } = await classOf('Sam');
+    const folder = await classes.folder(pupils[0]!.id);
+    const owl = new Uint8Array(2000).map((_, i) => (i * 37) % 256);
+    owl.set([0xff, 0xfb, 0x90, 0x44]);
+    const p = exampleProduction();
+    const film = withSound(
+      { ...p, manifest: { ...p.manifest, title: 'Night Owl' } },
+      {
+        id: 'sn1',
+        file: 'sn1.mp3',
+        label: 'Owl',
+        length: 2,
+        bytes: owl.length,
+        trim: { start: 0, end: 2 },
+      },
+    );
+    const files = { ...NO_FILES, sounds: new Map([['sounds/sn1.mp3', owl]]) };
+    const saver = new ProductionSaver(folder, { key: null });
+    const saved = await saver.save(film, files, 'asked');
+    if (!saved.ok) throw new Error(saved.problem.message);
+    const [info] = await folder.list();
+    await folder.write(info!.key, info!.name, new TextEncoder().encode('not a film'));
+    await classes.close();
+    render(<App host={hostWith(classes)} />);
+    await userEvent.click(await screen.findByRole('row', { name: 'Sam' }));
+    await userEvent.click(await screen.findByRole('row', { name: /Night Owl/ }));
+    await userEvent.click(await screen.findByRole('button', { name: /Open the version saved/ }));
+    expect(await screen.findByRole('button', { name: 'Film: Night Owl · Sam' })).toBeTruthy();
+    // Saved at once as the film, with its sound still there.
+    const now = await openFromFolder(folder, info!.key);
+    expect(now.status).toBe('ok');
+    if (now.status === 'ok') expect(now.files.sounds).toEqual(files.sounds);
   });
 });
 
