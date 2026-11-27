@@ -124,7 +124,9 @@ describe('TimingRecorder', () => {
         cmd(0, 3, { object: 'cat', kind: 'say', text: 'Hello there', bubble: 'caption' }),
       ),
     );
-    r.hear(ran([nodeId('change1'), 1]));
+    r.hear(ran([nodeId('change1'), 1], [knock, 1]));
+    // A sound in a do together with the change starts as the scene ends: it isn't heard.
+    r.hear(commands(cmd(1, 0.75, { object: 'dog', kind: 'sound', sound: 'sn1', node: knock })));
     r.hear({ kind: 'next', heading: 'Scene 2' } as PlaybackEvent);
     expect(r.timing).toEqual({
       whole: true,

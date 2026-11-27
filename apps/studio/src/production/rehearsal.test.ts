@@ -183,6 +183,9 @@ describe('Rehearsal', () => {
     expect(rehearsal.state.status).toBe('playing');
     await rehearsal.stop();
     expect(seen).toContain(true);
+    // Still there once Stop has put the set-up back (S3's review of #714).
+    expect(rehearsal.state.status).toBe('idle');
+    expect(rehearsal.state.timing?.whole).toBe(true);
   });
 
   it('isn’t whole when it’s stopped', async () => {

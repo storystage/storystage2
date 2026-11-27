@@ -201,7 +201,8 @@ export class TimingRecorder {
       cut === null
         ? [...this.sounds]
         : this.sounds
-            .filter((s) => s.start <= seconds(cut))
+            // One starting at the cut, in a do together with the change, isn't heard (S3).
+            .filter((s) => s.start < seconds(cut))
             .map((s) =>
               s.start + s.length > seconds(cut)
                 ? { ...s, length: Math.round((seconds(cut) - s.start) * 1000) / 1000 }
