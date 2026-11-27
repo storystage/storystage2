@@ -34,7 +34,10 @@ jobs:
   android:
     name: android
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Each step's limit is about 1.5 times its slowest run in #723 (S1's review of #693); the job's
+    # is the steps' together. The slowest runs: 4:23 to build, 0:55 for the APKs, 1:29 for the
+    # emulator and 0:51 for the check. A cold Rust cache is taken as the release build's, 8:55.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
@@ -73,10 +76,12 @@ jobs:
       - name: Put the Backstage in an install-time asset pack (15.8)
         run: node apps/desktop/scripts/android-asset-pack.mjs
       - name: Build a debug app bundle
+        timeout-minutes: 15
         working-directory: apps/desktop
         # The config leaves .backstage/ out of the app's own assets: it's in the pack.
         run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android build --debug --aab --target aarch64 --target x86_64 --ci --config "$GITHUB_WORKSPACE/apps/desktop/src-tauri/android-bundle.conf.json"
       - name: Make the APKs Play would make, and one universal APK to sideload
+        timeout-minutes: 5
         run: |
           aab=apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalDebug/app-universal-debug.aab
           out="$RUNNER_TEMP/bundle"
@@ -107,6 +112,7 @@ jobs:
           retention-days: 30
       # Spike 1.7's emulator (spike-android.yml), with room for the Backstage.
       - name: Start an Android emulator (x86_64, 4 GB)
+        # Longer than its own waits (5 minutes to appear, 10 to boot), which fail first, saying why.
         timeout-minutes: 20
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -138,7 +144,7 @@ jobs:
           [ -n "$booted" ] || { echo "Android didn't finish booting."; tail -50 "$RUNNER_TEMP/android/emulator.log"; exit 1; }
           echo "Android $(adb shell getprop ro.build.version.release) booted"
       - name: Bundled files are read in place, from the pack, not copied to the cache (spec 05, 5.2 and 7; 15.8)
-        timeout-minutes: 20
+        timeout-minutes: 10
         run: |
           # The screen and the whole logcat, however the step ends.
           trap 'adb exec-out screencap -p > "$RUNNER_TEMP/android/screen.png"; adb logcat -d > "$RUNNER_TEMP/android/logcat.txt"' EXIT
@@ -184,7 +190,8 @@ jobs:
   android-release:
     name: android (release)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # As for android: 8:55 to build with a cold Rust cache, and 1:05 to check.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
@@ -221,9 +228,11 @@ jobs:
       - name: Put the Backstage in an install-time asset pack (15.8)
         run: node apps/desktop/scripts/android-asset-pack.mjs
       - name: Build the release app bundle, unsigned
+        timeout-minutes: 15
         working-directory: apps/desktop
         run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android build --aab --target aarch64 --target x86_64 --ci --config "$GITHUB_WORKSPACE/apps/desktop/src-tauri/android-bundle.conf.json"
       - name: Each part is within Play's limits (15.8; decision 0062)
+        timeout-minutes: 5
         run: |
           aab=apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
           ls -l "$aab"
