@@ -119,7 +119,7 @@ describe('procedures', () => {
     });
   });
 
-  it('speak line: a caption timed by its words, or by its duration (spec 06, 4.2 and 4.7)', () => {
+  it('speak line: a caption timed by its words, or by its duration, naming its block (spec 06, 4.2 and 4.7)', () => {
     const { sent } = run('speakLine', { args: { text: 'Here is the key.' } });
     expect(sent).toEqual([
       {
@@ -127,6 +127,7 @@ describe('procedures', () => {
         kind: 'say',
         text: 'Here is the key.',
         bubble: 'caption',
+        node: 'n1',
         duration: micros(2),
         style: 'beginAndEndGently',
       },
@@ -208,12 +209,13 @@ describe('procedures', () => {
     );
   });
 
-  it('say and think with Alice’s bubble', () => {
+  it('say and think with Alice’s bubble, naming their block', () => {
     const { sent } = run('think', { args: { text: 'Hmm' } });
     expect(sent[0]).toMatchObject({
       kind: 'say',
       text: 'Hmm',
       bubble: 'think',
+      node: 'n1',
       look: {
         position: 'automatic',
         textScale: 1,

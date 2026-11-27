@@ -26,7 +26,7 @@ import type {
 } from '@storystage/story-api';
 
 /** Bumped on any change that an older main thread or worker couldn't read. */
-export const RUNTIME_PROTOCOL = 2;
+export const RUNTIME_PROTOCOL = 3;
 
 export type RunMode =
   /**
@@ -60,6 +60,12 @@ export type ToRuntime =
       readonly disabled: readonly NodeId[];
       /** The production's scene ids, which `goToScene` and `crossfade` may name (WP8.3). */
       readonly scenes: readonly string[];
+      /**
+       * Each sound the film can play, by the name a `playAudio` block gives it, with the length
+       * of the part it uses, in seconds (decision 0076): the blocks' `StoryContext.sounds`. A
+       * sound not in it plays as missing. Protocol 3.
+       */
+      readonly sounds?: Readonly<Record<string, number>>;
     }
   | { readonly type: 'start'; readonly mode: RunMode }
   /** Fixed-step mode: run everything due up to and including `until`, then send `commands`. */

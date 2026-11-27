@@ -144,6 +144,14 @@ export function serve(
       post({ type: 'error', error: fault('protocol', 'The load has no scenes.') });
       return;
     }
+    const { sounds } = message;
+    if (
+      sounds !== undefined &&
+      (typeof sounds !== 'object' || sounds === null || Array.isArray(sounds))
+    ) {
+      post({ type: 'error', error: fault('protocol', "The load's sounds aren't a table.") });
+      return;
+    }
     // A new scene: whatever the last run left goes (WP8.3: the player loads scene after scene).
     halt();
     if (run && !run.scheduler.stopped) run.scheduler.stop();
@@ -184,6 +192,7 @@ export function serve(
       disabled: message.disabled,
       seed: message.seed,
       scenes: message.scenes,
+      ...(sounds === undefined ? {} : { sounds }),
       onBlock: (node, at) => {
         if (tracing) ran.push({ node, at });
       },

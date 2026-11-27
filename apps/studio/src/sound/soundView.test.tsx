@@ -385,7 +385,7 @@ describe('SoundView: the timeline', () => {
     open(withRain([rainAt(1, { loop: true, to: 2, fadeIn: 0.5 }), rainAt(6)]));
     const bars = within(musicTrack()).getAllByRole('button');
     expect(bars.map((b) => b.getAttribute('aria-label'))).toEqual([
-      'Rain, 1 to 6 seconds, loops, fades in, crossfades into the next',
+      'Rain, 1 to 7 seconds, loops, fades in, crossfades into the next',
       'Rain, 6 to 9.5 seconds',
     ]);
   });

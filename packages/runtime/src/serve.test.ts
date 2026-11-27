@@ -248,6 +248,42 @@ describe('the protocol', () => {
     expect(of_(x.heard, 'error')[0]?.error.code).toBe('protocol');
   });
 
+  it("gives the blocks each sound's length from the load (decision 0076)", async () => {
+    const seen: (Readonly<Record<string, number>> | undefined)[] = [];
+    const blocks: StoryLibrary = {
+      ...library,
+      *playAudio(_call, context) {
+        seen.push(context.sounds);
+        yield { kind: 'sleep', duration: 0 };
+        return null;
+      },
+    };
+    const play: Statement = {
+      id: id(),
+      kind: 'call',
+      target: of(CAT),
+      callee: { kind: 'story', name: 'playAudio' },
+      args: { audioSource: text('sn1') },
+      details: {},
+    };
+    for (const sounds of [{ sn1: 1.5, 'kenney/impact/knock': 0.75 }, undefined]) {
+      const w = worker(blocks);
+      await w.settle();
+      await w.send({ ...load(program([play])), ...(sounds ? { sounds } : {}) } as ToRuntime);
+      await w.send({ type: 'start', mode: FIXED });
+      await w.send({ type: 'advance', until: micros(1) });
+    }
+    expect(seen).toEqual([{ sn1: 1.5, 'kenney/impact/knock': 0.75 }, undefined]);
+  });
+
+  it('refuses sounds that are not a table of names and lengths', async () => {
+    for (const sounds of [[1.5], 'sn1', null]) {
+      const w = worker();
+      await w.send({ ...load(program([])), sounds } as never);
+      expect(of_(w.heard, 'error')[0]?.error.code).toBe('protocol');
+    }
+  });
+
   it('refuses start before load', async () => {
     const w = worker();
     await w.send({ type: 'start', mode: FIXED });

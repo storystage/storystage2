@@ -56,6 +56,8 @@ export interface InterpreterOptions {
   readonly seed: number;
   /** The production's scene ids, for the blocks that end a scene. */
   readonly scenes?: readonly string[];
+  /** Each sound's used length, in seconds, for `playAudio` (decision 0076). */
+  readonly sounds?: Readonly<Record<string, number>>;
   /** Called as each block (a call statement) starts, at the scene time it starts. */
   readonly onBlock?: (node: NodeId, at: Micros) => void;
 }
@@ -140,6 +142,8 @@ export class Interpreter {
   private readonly onBlock: ((node: NodeId, at: Micros) => void) | undefined;
   private readonly disabled: ReadonlySet<NodeId>;
   private readonly random: () => number;
+  /** Each sound's used length, from the load (decision 0076). */
+  private readonly sounds: Readonly<Record<string, number>> | undefined;
   /** Fields with a value of their own, by object and field. */
   private readonly fields = new Map<string, Value>();
   private seq = 0;
@@ -159,6 +163,7 @@ export class Interpreter {
     this.onBlock = options.onBlock;
     this.disabled = new Set(options.disabled);
     this.random = seededRandom(options.seed);
+    this.sounds = options.sounds;
   }
 
   /** The scene's value: the object its methods and listeners run on. */
@@ -393,6 +398,7 @@ export class Interpreter {
           start: this.scheduler.now,
         } as StageCommand),
       random: this.random,
+      ...(this.sounds === undefined ? {} : { sounds: this.sounds }),
     };
   }
 
