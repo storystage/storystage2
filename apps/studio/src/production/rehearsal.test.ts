@@ -147,6 +147,44 @@ describe('Rehearsal', () => {
     expect(timing.length).toBeGreaterThan(spoken!.length);
   });
 
+  it('times a scene that waits for the viewer when it’s stopped after doing everything', async () => {
+    const line = say(words('Hi'));
+    const p = withSceneOne([line]);
+    const [first, ...rest] = p.program.types;
+    const waiting = {
+      ...p,
+      program: {
+        ...p.program,
+        types: [
+          {
+            ...first!,
+            listeners: [
+              {
+                id: id(),
+                kind: 'listener' as const,
+                event: 'keyPress',
+                args: {},
+                details: {},
+                params: [],
+                body: [say(words('Pressed'))],
+              },
+            ],
+          },
+          ...rest,
+        ],
+      },
+    } as Production;
+    const { rehearsal, frames } = rehearse(waiting);
+    const seen: boolean[] = [];
+    rehearsal.subscribe(() => seen.push(rehearsal.state.timing?.whole ?? false));
+    await rehearsal.start();
+    await frames(30);
+    // It never ends by itself: it waits for a key.
+    expect(rehearsal.state.status).toBe('playing');
+    await rehearsal.stop();
+    expect(seen).toContain(true);
+  });
+
   it('isn’t whole when it’s stopped', async () => {
     const p = withSceneOne([say(words('A long line for the penguin to say slowly.'))]);
     const { rehearsal, frames } = rehearse(p);
