@@ -24,6 +24,7 @@ import type { Highlights } from './BlocksPanel.tsx';
 import { CodeEditor } from './CodeEditor.tsx';
 import type { RehearsalState } from './rehearsal.ts';
 import { NONE_REHEARSED, framesReached, withRehearsed, type Rehearsed } from './frameProgress.ts';
+import { NO_TIMINGS, timingOf, withTiming, type RunTimings } from './runTiming.ts';
 import { ProductionFrames } from './ProductionFrames.tsx';
 import { HistoryButtons, useHistory } from '../history.tsx';
 import { FrameCheck } from './FrameCheck.tsx';
@@ -116,6 +117,9 @@ export interface ProductionStageProps {
   /** The frames Rehearse has played since they last changed, kept by the App for the session. */
   rehearsed?: Rehearsed;
   onRehearsed?: (next: Rehearsed) => void;
+  /** Each scene's last whole Rehearse run, for the Sound view's ruler (07-ux 7.7). */
+  timings?: RunTimings;
+  onTimings?: (next: RunTimings) => void;
   /** The studio, for the frame's automatic check (spec 08 section 9). Without it, no check. */
   studio?: Studio;
   /** Opens the Code editor at a block: the check's Go to the block. */
@@ -369,6 +373,8 @@ export function ProductionStage({
   onPlaceChange,
   rehearsed = NONE_REHEARSED,
   onRehearsed,
+  timings = NO_TIMINGS,
+  onTimings,
   studio,
   onReveal,
   voices = null,
@@ -647,6 +653,11 @@ export function ProductionStage({
                   selectedBlock={() => editorRef.current?.selection()[0] ?? null}
                   onRehearsal={(state) => {
                     setRehearsal(state);
+                    // A whole run's timing is kept for the Sound view, until the next one.
+                    if (onTimings && state.status === 'ended') {
+                      const kept = withTiming(timings, p, scene, state.timing);
+                      if (kept !== timings) onTimings(kept);
+                    }
                     // The frames this run has reached are Rehearsed until they change (section 2.3).
                     if (!onRehearsed) return;
                     const reached = framesReached(
@@ -848,6 +859,7 @@ export function ProductionStage({
                         sounds={sounds}
                         onAnnounce={onAnnounce}
                         scene={scene}
+                        timing={timingOf(timings, p, scene)}
                         onGoToScene={
                           onPlaceChange && ((at) => onPlaceChange({ scene: at, frame: null }))
                         }

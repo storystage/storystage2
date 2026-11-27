@@ -11,6 +11,8 @@ import { ThemeRoot } from '@storystage/ui';
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { nodeId } from '@storystage/ast';
+import type { SceneTiming } from '../production/runTiming.ts';
 import { sceneSeconds } from '../storyboard/edits.ts';
 import { useStudio, type Studio } from '../studio.ts';
 import { FilmSounds } from './filmSounds.ts';
@@ -53,7 +55,7 @@ interface Opened {
 
 function open(
   start: Production,
-  options: { readOnly?: boolean; bytes?: boolean; scene?: SceneId } = {},
+  options: { readOnly?: boolean; bytes?: boolean; scene?: SceneId; timing?: SceneTiming } = {},
 ): Opened {
   const sounds = new FilmSounds();
   sounds.reset(
@@ -83,6 +85,7 @@ function open(
         onAnnounce={onAnnounce}
         onGoToBlock={onGoToBlock}
         scene={scene}
+        timing={options.timing ?? null}
         onGoToScene={onGoToScene}
       />
     );
@@ -312,13 +315,70 @@ describe('SoundView: the timeline', () => {
     open(p);
     const planned = sceneSeconds(p, p.manifest.runningOrder[0]!.scene);
     expect(
-      within(timeline()).getByText(`About ${planned} seconds, from your storyboard.`),
+      within(timeline()).getByText(
+        `About ${planned} seconds, from your storyboard. Rehearse to see the real timing.`,
+      ),
     ).toBeTruthy();
     expect(musicTrack()).toBeTruthy();
-    expect(within(timeline()).getAllByText('Rehearse can’t time these yet.')).toHaveLength(2);
+    expect(within(timeline()).getAllByText('Rehearse to see these.')).toHaveLength(2);
     expect(within(timeline()).getByText('Speech')).toBeTruthy();
     expect(within(timeline()).getByText('Sound FX')).toBeTruthy();
     expect(screen.getByText('No music in this scene yet.')).toBeTruthy();
+  });
+
+  it('takes its length, Speech and Sound FX from the last whole run, each going to its block', async () => {
+    const user = userEvent.setup();
+    const p = withRain([rainAt(9)]);
+    const speak = nodeId('speak1');
+    const knock = nodeId('play1');
+    const { onGoToBlock } = open(p, {
+      timing: {
+        changed: false,
+        timing: {
+          whole: true,
+          length: 7.25,
+          sounds: [
+            { node: speak, kind: 'speech', start: 0.5, length: 1.2, text: 'Hello there' },
+            { node: knock, kind: 'sound', start: 2, length: 3.5, ref: 'sn1' },
+            {
+              node: nodeId('play2'),
+              kind: 'sound',
+              start: 4,
+              length: 0,
+              ref: 'sn9',
+              missing: true,
+            },
+          ],
+        },
+      },
+    });
+    expect(within(timeline()).getByText('7.3 seconds, from your last Rehearse.')).toBeTruthy();
+    expect(within(timeline()).queryByText('Rehearse to see these.')).toBeNull();
+    const speech = within(timeline()).getByRole('list', { name: 'Speech' });
+    const effects = within(timeline()).getByRole('list', { name: 'Sound FX' });
+    expect(
+      within(speech).getByRole('button', { name: '“Hello there”, 0.5 to 1.7 seconds' }),
+    ).toBeTruthy();
+    expect(
+      within(effects).getByRole('button', { name: 'Missing sound, at 4 seconds' }),
+    ).toBeTruthy();
+    // Music past the run's end is greyed, as it isn't heard.
+    expect(within(musicTrack()).getByRole('button').dataset['past']).toBe('true');
+    await user.click(within(effects).getByRole('button', { name: 'Rain, 2 to 5.5 seconds' }));
+    expect(screen.getByText('Rain, 2 to 5.5 seconds')).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'Go to the block' }));
+    expect(onGoToBlock).toHaveBeenCalledWith(p.manifest.runningOrder[0]!.scene, knock);
+  });
+
+  it('keeps the last run’s timing after the code changes, and says so', () => {
+    open(exampleProduction(), {
+      timing: { changed: true, timing: { whole: true, length: 1, sounds: [] } },
+    });
+    expect(within(timeline()).getByText('1 second, from your last Rehearse.')).toBeTruthy();
+    expect(
+      within(timeline()).getByText('The code has changed since. Rehearse to update the timing.'),
+    ).toBeTruthy();
+    expect(within(timeline()).getAllByText('None in the last Rehearse.')).toHaveLength(2);
   });
 
   it('names each cue’s bar for when it’s heard and what it does', () => {

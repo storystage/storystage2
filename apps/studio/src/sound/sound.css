@@ -540,6 +540,47 @@
   pointer-events: none;
 }
 
+/* Speech and Sound FX: where the last whole run played each, 44 px tall to touch. */
+.sd-tl-heard {
+  min-height: 56px;
+}
+
+.sd-heard-slot {
+  position: absolute;
+  top: 6px;
+  height: 44px;
+}
+
+.sd-heard {
+  display: block;
+  width: 100%;
+  min-width: 8px;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid var(--ss-block-sound);
+  border-radius: 8px;
+  background: var(--ss-field);
+  color: var(--ss-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.sd-heard[aria-pressed='true'] {
+  border-width: 4px;
+  border-color: var(--ss-text);
+}
+
+.sd-heard:focus-visible {
+  outline: 3px solid var(--ss-focus);
+  outline-offset: 2px;
+}
+
+.sd-heard[data-missing] {
+  border-style: dotted;
+}
+
+.sd-heard-chosen,
 .sd-carried {
   display: flex;
   flex-wrap: wrap;
@@ -547,6 +588,7 @@
   align-items: center;
 }
 
+.sd-heard-chosen p,
 .sd-carried p {
   margin: 0;
 }

@@ -15,6 +15,8 @@ import {
 } from '@storystage/playback';
 import type { Production, SceneId } from '@storystage/production';
 import type { Stage } from '@storystage/stage';
+import { speakLines } from '../speech/speakLines.ts';
+import { TimingRecorder, type RunTiming } from './runTiming.ts';
 
 /** Every run of a scene plays the same way (WP6.5), as the Screening room's does. */
 export const REHEARSE_SEED = 1;
@@ -43,6 +45,11 @@ export interface RehearsalState {
   readonly reachedEnd: boolean;
   /** What the scene's objects are saying or thinking now, in the set-up's order: the captions. */
   readonly speech: readonly Said[];
+  /**
+   * This run's timing so far, for the Sound view's ruler (section 7.7): how long the scene ran and
+   * where each speak line and sound played. `null` before a run.
+   */
+  readonly timing: RunTiming | null;
 }
 
 /** A line on the stage now: said, or thought (shown so it doesn't read as speech). */
@@ -62,6 +69,7 @@ export const IDLE: RehearsalState = {
   ran: new Set(),
   reachedEnd: false,
   speech: [],
+  timing: null,
 };
 
 export interface RehearsalOptions {
@@ -258,8 +266,12 @@ export class Rehearsal {
       trace: true,
     });
     this.playback = playback;
+    const timing = new TimingRecorder(scene, speakLines(production));
     playback.on((event) => {
-      if (run === this.run) this.event(event);
+      if (run !== this.run) return;
+      // First, so a run that has just ended says how long it was.
+      if (timing.hear(event)) this.set({ timing: timing.timing });
+      this.event(event);
     });
     this.clock = new LiveClock(this.options.wall);
     this.clock.setSpeed(speed);

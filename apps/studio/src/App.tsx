@@ -30,6 +30,7 @@ import { classPacking } from './lesson/packing.ts';
 import { useSaving, type OpenFilm } from './lesson/useSaving.ts';
 import { useStorageKept } from './lesson/useStorageKept.ts';
 import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
+import { NO_TIMINGS, type RunTimings } from './production/runTiming.ts';
 import { ProductionStage, type CodeView } from './production/ProductionStage.tsx';
 import { FilmSounds, packingSounds } from './sound/filmSounds.ts';
 import { usePrompter } from './prompter/usePrompter.ts';
@@ -254,6 +255,11 @@ export function App({
   const editors = useEditorHost(studio.session, setSaid, host.policy.editor.locked);
   // The frames Rehearse has played since they last changed (07-ux 2.3), for this session only.
   const [rehearsed, setRehearsed] = useState<Rehearsed>(NONE_REHEARSED);
+  // Each film's last whole Rehearse runs, by its session, while the studio is open (07-ux 7.7):
+  // the last few films opened, so a study task's film doesn't lose the learner's own.
+  const [timingsByFilm, setTimingsByFilm] = useState<readonly (readonly [object, RunTimings])[]>(
+    [],
+  );
   // The open film's imported sounds' bytes, kept while it's open so Undo and Redo work across a
   // save (07-ux 7.7); each save gives them to the packer, and writes those the film names.
   const filmSounds = useMemo(() => new FilmSounds(), []);
@@ -673,6 +679,15 @@ export function App({
                   onPlaceChange={setPlace}
                   rehearsed={rehearsed}
                   onRehearsed={setRehearsed}
+                  timings={
+                    timingsByFilm.find(([film]) => film === studio.session)?.[1] ?? NO_TIMINGS
+                  }
+                  onTimings={(next) =>
+                    setTimingsByFilm((kept) => [
+                      ...kept.filter(([film]) => film !== studio.session).slice(-3),
+                      [studio.session, next],
+                    ])
+                  }
                   studio={studio}
                   voices={voices}
                   onReveal={(node) => setReveal((r) => ({ node, n: (r?.n ?? 0) + 1 }))}

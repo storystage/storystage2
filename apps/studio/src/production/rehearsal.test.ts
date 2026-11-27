@@ -122,6 +122,42 @@ describe('Rehearsal', () => {
     expect(rehearsal.state.status).toBe('idle');
   });
 
+  it('times the run as it goes: its speak lines, its sounds, and its length once whole', async () => {
+    const line = say(words('Hello there'), 'speakLine');
+    const sound: Statement = {
+      id: id(),
+      kind: 'call',
+      target: the(PENGUIN),
+      callee: { kind: 'story', name: 'playAudio' },
+      args: { audioSource: words('sn9') },
+      details: {},
+    };
+    const { rehearsal, frames } = rehearse(withSceneOne([line, sound, say(words('Bye'))]));
+    expect(rehearsal.state.timing).toBeNull();
+    await rehearsal.start();
+    await frames(30);
+    expect(rehearsal.state.status).toBe('ended');
+    const timing = rehearsal.state.timing!;
+    expect(timing.whole).toBe(true);
+    const [spoken, played] = timing.sounds;
+    expect(spoken).toMatchObject({ node: line.id, kind: 'speech', start: 0, text: 'Hello there' });
+    // The film has no sound called sn9: it's missing, and takes no time.
+    expect(played).toMatchObject({ node: sound.id, kind: 'sound', ref: 'sn9', missing: true });
+    expect(played!.start).toBe(spoken!.length);
+    expect(timing.length).toBeGreaterThan(spoken!.length);
+  });
+
+  it('isn’t whole when it’s stopped', async () => {
+    const p = withSceneOne([say(words('A long line for the penguin to say slowly.'))]);
+    const { rehearsal, frames } = rehearse(p);
+    const seen: boolean[] = [];
+    rehearsal.subscribe(() => seen.push(rehearsal.state.timing?.whole ?? false));
+    await rehearsal.start();
+    await frames(0.5);
+    await rehearsal.stop();
+    expect(seen).not.toContain(true);
+  });
+
   it('stops at an error, in plain words, at its block', async () => {
     const bad = say({ id: id(), kind: 'number', value: 3 });
     const { rehearsal, frames } = rehearse(withSceneOne([bad]));
