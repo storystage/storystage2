@@ -546,15 +546,15 @@ export function checkReferences(p: Production): string[] {
   return problems;
 }
 
+/** The longest credit line a sound can have: its name, a maker and the licence. */
+export const SOUND_CREDIT_MAX = 400;
+
 /**
  * Imported sounds and scene music (format 1.9.0): safe ids, one of each, a file named by its id
  * and type, a trim within the file, the limits, and every cue's sound and part within its clip.
  * A shelf sound's id is only checked for its form: the shelf judges whether it has it, and one it
  * lacks plays as silence, as a missing model shows as a stand-in.
  */
-/** The longest credit line a sound can have: its name, a maker and the licence. */
-export const SOUND_CREDIT_MAX = 400;
-
 function checkSounds(p: Production, problems: string[]): void {
   const clips = new Map<string, SoundClip>();
   const sounds = p.manifest.sounds ?? [];

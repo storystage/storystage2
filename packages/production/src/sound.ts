@@ -170,7 +170,7 @@ export async function importSound(
 /**
  * `clip` with where it came from, from the learner's answers on the licence step, with its credit
  * made from them and its label (spec 03, section 1.7; spec 17, section 6). A clip trimmed shorter
- * than its file is changed, so a CC BY credit says so. The trim dialog gives it last, once the
+ * than its file is changed, so a CC BY credit says so. The Sound view gives it once the label is final, after
  * label and trim are set (S5).
  */
 export function licensedSound(
