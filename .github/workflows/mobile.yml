@@ -1,6 +1,8 @@
 # Tauri mobile builds (WP0.3): Android for Chromebooks and tablets, and iOS for iPads.
-# Android produces a debug APK as a workflow artifact. iOS stays off until the Apple developer
-# account exists (WP15.5): set the repository variable APPLE_DEVELOPMENT_TEAM to switch it on.
+# Android is a Play app bundle with the Backstage in an install-time asset pack (15.8); the debug
+# bundle and a universal APK to sideload are workflow artifacts. iOS stays off until the Apple
+# developer account exists (WP15.5): set the repository variable APPLE_DEVELOPMENT_TEAM to switch
+# it on.
 name: Mobile
 
 on:
@@ -11,20 +13,35 @@ on:
       - apps/desktop/**
       - .github/workflows/mobile.yml
       - .github/actions/**
+      # What the app bundles, and so its size against Play's limits (S1's review of #723).
+      - backstage.lock.json
+      - tools/backstage-sources/**
+      - packages/speech/scripts/fetch-kokoro-assets.mjs
   workflow_dispatch:
 
 permissions:
   contents: read
+
+# bundletool makes and measures the APKs Play would make from a bundle, by its release and its
+# jar's SHA-256 (GitHub's digest of the release asset).
+env:
+  BUNDLETOOL_VERSION: 1.18.3
+  BUNDLETOOL_SHA256: a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29
 
 concurrency:
   group: mobile-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # The Android app as a Play app bundle, with the Backstage in an install-time asset pack (15.8):
+  # built for debug, installed on an emulator as Play would install it, and checked there.
   android:
     name: android
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # Each step's limit is about 1.5 times its slowest run in #723 (S1's review of #693); the job's
+    # is the steps' together. The slowest runs: 4:23 to build, 0:55 for the APKs, 1:29 for the
+    # emulator and 0:51 for the check. A cold Rust cache is taken as the release build's, 8:55.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
@@ -39,6 +56,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
         with:
           workspaces: apps/desktop/src-tauri -> target
+          # Each saves about 440 MB, so only main saves, and branches restore main's (S1's
+          # review of #723: the repository's Actions cache is over its 10 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
       - uses: ./.github/actions/setup
       - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
         run: node apps/desktop/scripts/fetch-models.mjs
@@ -52,28 +72,54 @@ jobs:
         run: pnpm -w run speech:fetch
       - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
         run: node apps/desktop/scripts/fetch-whisper.mjs
+      - name: Fetch bundletool and check it against its pin
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/bundletool.jar" "https://github.com/google/bundletool/releases/download/$BUNDLETOOL_VERSION/bundletool-all-$BUNDLETOOL_VERSION.jar"
+          echo "$BUNDLETOOL_SHA256  $RUNNER_TEMP/bundletool.jar" | sha256sum -c -
       - name: Generate the Android project
         working-directory: apps/desktop
         # The runner image ships the Android SDK and NDK.
         run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android init --ci
-      - name: Build a debug APK
+      - name: Put the Backstage in an install-time asset pack (15.8)
+        run: node apps/desktop/scripts/android-asset-pack.mjs
+      - name: Build a debug app bundle
+        timeout-minutes: 15
         working-directory: apps/desktop
-        run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android build --debug --apk --target aarch64 --target x86_64 --ci
-      - name: The school's settings are in the app (spec 05, 3.2)
-        working-directory: apps/desktop/src-tauri/gen/android/app/build/outputs/apk
+        # The config leaves .backstage/ out of the app's own assets: it's in the pack.
+        run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android build --debug --aab --target aarch64 --target x86_64 --ci --config "$GITHUB_WORKSPACE/apps/desktop/src-tauri/android-bundle.conf.json"
+      - name: Make the APKs Play would make, and one universal APK to sideload
+        timeout-minutes: 5
         run: |
-          apk=$(find . -name '*.apk' | head -1)
+          aab=apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalDebug/app-universal-debug.aab
+          out="$RUNNER_TEMP/bundle"
+          mkdir -p "$out"
+          cp "$aab" "$out/storystage2-debug.aab"
+          ks="$HOME/.android/debug.keystore"
+          [ -f "$ks" ] || keytool -genkeypair -keystore "$ks" -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          sign=(--ks="$ks" --ks-pass=pass:android --ks-key-alias=androiddebugkey --key-pass=pass:android)
+          java -jar "$RUNNER_TEMP/bundletool.jar" build-apks --bundle="$aab" --output="$out/app.apks" "${sign[@]}"
+          java -jar "$RUNNER_TEMP/bundletool.jar" build-apks --bundle="$aab" --output="$out/universal.apks" --mode=universal "${sign[@]}"
+          unzip -p "$out/universal.apks" universal.apk > "$out/storystage2-universal-debug.apk"
+          # Sideloaded on a Chromebook, the universal APK carries the pack too.
+          unzip -l "$out/storystage2-universal-debug.apk" | grep -q ' assets/backstage/backstage.json$'
+          ls -l "$out"
+      - name: The school's settings are in the app (spec 05, 3.2)
+        run: |
+          apk="$RUNNER_TEMP/bundle/storystage2-universal-debug.apk"
           aapt2=$(ls -d "$ANDROID_HOME"/build-tools/* | tail -1)/aapt2
           "$aapt2" dump xmltree --file AndroidManifest.xml "$apk" | grep -q android.content.APP_RESTRICTIONS
           "$aapt2" dump xmltree --file res/xml/app_restrictions.xml "$apk" | grep -q prompter.enabled
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: storystage2-android
-          path: apps/desktop/src-tauri/gen/android/app/build/outputs/apk/**/*.apk
+          path: |
+            ${{ runner.temp }}/bundle/storystage2-debug.aab
+            ${{ runner.temp }}/bundle/storystage2-universal-debug.apk
           if-no-files-found: error
           retention-days: 30
       # Spike 1.7's emulator (spike-android.yml), with room for the Backstage.
       - name: Start an Android emulator (x86_64, 4 GB)
+        # Longer than its own waits (5 minutes to appear, 10 to boot), which fail first, saying why.
         timeout-minutes: 20
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -85,7 +131,6 @@ jobs:
           yes | "$sdk/sdkmanager" --licenses > /dev/null
           "$sdk/sdkmanager" "system-images;android-34;google_apis;x86_64" "emulator" "platform-tools" > /dev/null
           # The emulator is whatever is latest, so a run broken by a new release, or a full disk, says so.
-          emulator -version | head -1
           "$sdk/sdkmanager" --list_installed 2>/dev/null | grep -E 'system-images|emulator' || true
           df -h /
           emulator -accel-check
@@ -105,15 +150,16 @@ jobs:
           done
           [ -n "$booted" ] || { echo "Android didn't finish booting."; tail -50 "$RUNNER_TEMP/android/emulator.log"; exit 1; }
           echo "Android $(adb shell getprop ro.build.version.release) booted"
-      - name: Bundled files are read in place, not copied to the cache (spec 05, 5.2 and 7; WP15c)
-        timeout-minutes: 20
+      - name: Bundled files are read in place, from the pack, not copied to the cache (spec 05, 5.2 and 7; 15.8)
+        timeout-minutes: 10
         run: |
           # The screen and the whole logcat, however the step ends.
           trap 'adb exec-out screencap -p > "$RUNNER_TEMP/android/screen.png"; adb logcat -d > "$RUNNER_TEMP/android/logcat.txt"' EXIT
           app=org.storystage.storystage2
-          apk=$(find apps/desktop/src-tauri/gen/android/app/build/outputs/apk -name '*universal*debug*.apk' | head -1)
-          [ -n "$apk" ] || { echo "No universal debug APK."; exit 1; }
-          adb install -r "$apk"
+          # As Play installs it: the base module, its splits for this device, and the pack.
+          java -jar "$RUNNER_TEMP/bundletool.jar" install-apks --apks="$RUNNER_TEMP/bundle/app.apks"
+          adb shell pm path "$app" | tr -d '\r' | tee "$RUNNER_TEMP/android/installed.txt"
+          grep -q 'backstage' "$RUNNER_TEMP/android/installed.txt" || { echo "FAIL  the backstage pack wasn't installed"; exit 1; }
           # The copies an older build left: the app removes these when it starts.
           adb shell run-as "$app" mkdir -p cache/_assets/backstage cache/_assets/speech
           adb shell run-as "$app" touch cache/_assets/backstage/backstage.json cache/_assets/speech/old
@@ -145,6 +191,63 @@ jobs:
           path: ${{ runner.temp }}/android/
           if-no-files-found: ignore
           retention-days: 30
+
+  # The release app bundle, as Play would be sent it once signed (WP15b), checked against Play's
+  # limits (15.8). The debug bundle's native code is much larger, so its sizes would mislead.
+  android-release:
+    name: android (release)
+    runs-on: ubuntu-latest
+    # As for android: 8:55 to build with a cold Rust cache, and 1:05 to check.
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # master
+        with:
+          toolchain: stable
+          targets: aarch64-linux-android,x86_64-linux-android
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: apps/desktop/src-tauri -> target
+          # Each saves about 440 MB, so only main saves, and branches restore main's (S1's
+          # review of #723: the repository's Actions cache is over its 10 GB).
+          save-if: ${{ github.ref == 'refs/heads/main' }}
+      - uses: ./.github/actions/setup
+      - name: Fetch the bundled speech model and check its pin (spec 05, 5.2)
+        run: node apps/desktop/scripts/fetch-models.mjs
+      - name: Fetch the shipped Backstage and check it against its lock (decision 0062)
+        run: pnpm -w run backstage:fetch
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .speech-cache
+          key: speech-kokoro-${{ hashFiles('packages/speech/scripts/fetch-kokoro-assets.mjs') }}
+      - name: Fetch speak line's engine and check each file (decision 0068)
+        run: pnpm -w run speech:fetch
+      - name: Fetch whisper.js for Talk to type and check it against its pin (spec 06, 1.11)
+        run: node apps/desktop/scripts/fetch-whisper.mjs
+      - name: Fetch bundletool and check it against its pin
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/bundletool.jar" "https://github.com/google/bundletool/releases/download/$BUNDLETOOL_VERSION/bundletool-all-$BUNDLETOOL_VERSION.jar"
+          echo "$BUNDLETOOL_SHA256  $RUNNER_TEMP/bundletool.jar" | sha256sum -c -
+      - name: Generate the Android project
+        working-directory: apps/desktop
+        run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android init --ci
+      - name: Put the Backstage in an install-time asset pack (15.8)
+        run: node apps/desktop/scripts/android-asset-pack.mjs
+      - name: Build the release app bundle, unsigned
+        timeout-minutes: 15
+        working-directory: apps/desktop
+        run: NDK_HOME="$ANDROID_NDK_LATEST_HOME" pnpm tauri android build --aab --target aarch64 --target x86_64 --ci --config "$GITHUB_WORKSPACE/apps/desktop/src-tauri/android-bundle.conf.json"
+      - name: Each part is within Play's limits (15.8; decision 0062)
+        timeout-minutes: 5
+        run: |
+          aab=apps/desktop/src-tauri/gen/android/app/build/outputs/bundle/universalRelease/app-universal-release.aab
+          ls -l "$aab"
+          java -jar "$RUNNER_TEMP/bundletool.jar" build-apks --bundle="$aab" --output="$RUNNER_TEMP/app.apks"
+          node apps/desktop/scripts/android-bundle-sizes.mjs "$aab" "$RUNNER_TEMP/app.apks" "$RUNNER_TEMP/bundletool.jar"
 
   # Compiles the native layer for iPad. This needs no Apple account, so it runs from now on.
   ios-rust:
