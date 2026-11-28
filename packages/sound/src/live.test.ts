@@ -25,8 +25,15 @@ async function rig(p: Production, more: Partial<LiveSoundsOptions> = {}) {
   /** The level a source is heard at, at context time `t`. */
   const level = (source: FakeSource, t: number) =>
     ctx.gains.find((g) => g === source.destination)!.gain.at(t);
-  const track = (source: FakeSource) => (source.destination as FakeGain).destination;
-  return { ctx, out, sounds, level, track };
+  /** The track a source reaches, through the music's lowering under speech for music. */
+  const track = (source: FakeSource) => {
+    let node = (source.destination as FakeGain).destination;
+    if (node === duck()) node = duck().destination;
+    return node;
+  };
+  /** The gain the music is lowered under speech by: the one feeding the Music track. */
+  const duck = () => ctx.gains.find((g) => g.destination === out.track('music'))!;
+  return { ctx, out, sounds, level, track, duck };
 }
 
 describe('LiveSounds', () => {
@@ -177,6 +184,102 @@ describe('LiveSounds', () => {
     sounds.end();
     sounds.play(0, 1);
     expect(ctx.sources).toHaveLength(1);
+  });
+});
+
+describe('LiveSounds: music under speech', () => {
+  const line = (from: number, to: number) => ({ start: from * 1_000_000, end: to * 1_000_000 });
+
+  it('lowers the music under a voiced line, down before it and back up after, as the export does', async () => {
+    const { ctx, out, sounds, duck, track } = await rig(withCues(s1, [cue(0, { loop: true })]));
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    sounds.speech(s1, [line(2, 4)]);
+    // The music goes through it; the Sound FX don't.
+    expect(track(ctx.sources[0]!)).toBe(out.track('music'));
+    expect([1.7, 2, 4, 4.6].map((t) => duck().gain.at(t))).toEqual([1, 0.4, 0.4, 1]);
+    expect(duck().gain.at(1.85)).toBeCloseTo(0.7, 5);
+  });
+
+  it('stays down between lines less than a second apart, told of one after the other', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]));
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    sounds.speech(s1, [line(2, 4)]);
+    ctx.currentTime = 3;
+    sounds.speech(s1, [line(4.5, 5)]);
+    expect([3.5, 4.3, 5, 5.6].map((t) => duck().gain.at(t))).toEqual([0.4, 0.4, 0.4, 1]);
+  });
+
+  it('lowers it from where it is, without a click, for a line known late', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]));
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    ctx.currentTime = 1.9;
+    sounds.speech(s1, [line(2, 3)]);
+    expect(duck().gain.at(1.9)).toBe(1);
+    // Over 10 ms to where the ramp down is by then, then on down with it.
+    expect(duck().gain.at(1.91)).toBeCloseTo(1 - 0.6 * (0.21 / 0.3), 5);
+    expect(duck().gain.at(2)).toBe(0.4);
+  });
+
+  it('keeps pace with the picture at another speed', async () => {
+    const { sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]));
+    sounds.scene(s1, 0);
+    sounds.play(0, 2);
+    sounds.speech(s1, [line(2, 4)]);
+    expect([0.85, 1, 2, 2.3].map((t) => duck().gain.at(t))).toEqual([1, 0.4, 0.4, 1]);
+  });
+
+  it('takes a scene’s lines from its last whole run at its start, so it goes down before each', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]), {
+      spoken: (scene) => (scene === s2 ? [{ start: 1, end: 2 }] : null),
+    });
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    ctx.currentTime = 3;
+    sounds.scene(s2, 3);
+    expect([3.7, 4, 5, 5.6].map((t) => duck().gain.at(t))).toEqual([1, 0.4, 0.4, 1]);
+    // The same line, as it's known live a moment ahead, changes nothing.
+    ctx.currentTime = 3.9;
+    sounds.speech(s2, [line(1, 2)]);
+    expect([3.95, 4, 5, 5.6].map((t) => duck().gain.at(t))).toEqual([
+      duck().gain.at(3.95),
+      0.4,
+      0.4,
+      1,
+    ]);
+    expect(duck().gain.at(3.95)).toBeCloseTo(0.5, 5);
+  });
+
+  it('keeps the run’s lines still to come over a pause, as they’re spoken when Play gets there', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]), {
+      spoken: () => [
+        { start: 2, end: 3 },
+        { start: 6, end: 7 },
+      ],
+    });
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    ctx.currentTime = 2.5;
+    sounds.pause();
+    ctx.currentTime = 10;
+    sounds.play(2.5, 1);
+    // The line playing at the pause isn't spoken again; the next one lowers the music.
+    expect([10, 13, 13.5, 14.5, 15.1].map((t) => duck().gain.at(t))).toEqual([1, 1, 0.4, 0.4, 1]);
+  });
+
+  it('forgets lines on pause, as they aren’t spoken after it, and takes none while paused', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]));
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    sounds.speech(s1, [line(2, 4)]);
+    ctx.currentTime = 1;
+    sounds.pause();
+    sounds.speech(s1, [line(5, 6)]);
+    ctx.currentTime = 10;
+    sounds.play(1, 1);
+    expect([10, 11, 14, 15.5].map((t) => duck().gain.at(t))).toEqual([1, 1, 1, 1]);
   });
 });
 
