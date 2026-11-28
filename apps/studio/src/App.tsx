@@ -10,6 +10,7 @@ import {
 } from '@storystage/host';
 import {
   ProductionSaver,
+  mixOf,
   openFromFolder,
   openFromPicker,
   saveCopy,
@@ -32,6 +33,7 @@ import { NONE_REHEARSED, type Rehearsed } from './production/frameProgress.ts';
 import { NO_TIMINGS, type RunTimings } from './production/runTiming.ts';
 import { ProductionStage, type CodeView } from './production/ProductionStage.tsx';
 import { FilmSounds, packingSounds } from './sound/filmSounds.ts';
+import { StudioSoundOut } from './sound/rehearseSounds.ts';
 import { usePrompter } from './prompter/usePrompter.ts';
 import { usePrompterSetup } from './prompter/usePrompterSetup.tsx';
 import { StudyBar, StudyQuestion } from './study/StudyBar.tsx';
@@ -233,12 +235,23 @@ export function App({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [models, castRead],
   );
+  // The studio's audio, made at the first Rehearse, at the open film's volumes (decision 0076).
+  // Speak lines play through it too, so they follow the film's Speech volume.
+  const [soundOut] = useState(() => new StudioSoundOut(mixOf(studio.production)));
+  const mix = mixOf(studio.production);
+  useEffect(() => soundOut.setMix(mix), [soundOut, mix]);
+  useEffect(() => () => soundOut.close(), [soundOut]);
   // Speak lines' voices, for Rehearse and the export: asleep away from those two tabs.
   const voices = useVoices(
     studio.production,
     mode === 'production' || mode === 'screening',
     // The browser version downloads the voices once, with agreement; the apps bundle them.
-    { browser: host.version === null, accent: accentSetting.get, ...makeVoices },
+    {
+      browser: host.version === null,
+      accent: accentSetting.get,
+      context: () => soundOut.get()?.speechContext() ?? null,
+      ...makeVoices,
+    },
   );
   const [exports] = useState(() => exportSlot<ExportJob>());
   const [exportOpen, setExportOpen] = useState(false);
@@ -715,6 +728,7 @@ export function App({
                   {...(tasks.open ? { taskCard: <TaskCard tasks={tasks} /> } : {})}
                   heldEditor={tasks.heldNote}
                   sounds={filmSounds}
+                  soundOut={soundOut}
                   view={codeView}
                   onViewChange={setCodeView}
                   onGoToBlock={(scene, node) => {

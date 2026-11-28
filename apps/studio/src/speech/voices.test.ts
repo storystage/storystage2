@@ -1,5 +1,7 @@
 import { nodeId, type Statement } from '@storystage/ast';
-import { exampleProduction, type Production } from '@storystage/production';
+import { exampleProduction, SOUND_MIX_DEFAULT, type Production } from '@storystage/production';
+import { createSoundOut } from '@storystage/sound';
+import { FakeAudioContext } from '@storystage/sound/fake-audio';
 import type { AudioOut } from '@storystage/speech';
 import { describe, expect, it, vi } from 'vitest';
 import { hasSpeakLines, speakLines } from './speakLines.ts';
@@ -145,6 +147,23 @@ describe('Voices', () => {
     expect(f.played).toHaveLength(1);
     voices.stop();
     expect(f.out.stop).toHaveBeenCalled();
+  });
+
+  it('plays its lines through the studio’s audio, on its Speech track, when given it', async () => {
+    const f = fakes();
+    const context = new FakeAudioContext();
+    const out = createSoundOut(SOUND_MIX_DEFAULT, context);
+    const voices = new Voices({
+      engine: () => f.engine,
+      context: () => out.speechContext(),
+      settle: 0,
+    });
+    voices.update(withLines(one));
+    await settle();
+    voices.start(one.id);
+    // So a line follows the film's Speech volume, as music and sounds follow theirs.
+    expect(context.sources).toHaveLength(1);
+    expect(context.sources[0]!.destination).toBe(out.track('speech'));
   });
 
   it('gives the export the same sounds (S2’s FilmVoices)', async () => {

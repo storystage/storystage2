@@ -71,6 +71,7 @@ import type { PanelPhase, PrompterPanel } from '@storystage/prompter';
 import { PrompterAside } from '../prompter/PrompterAside.tsx';
 import type { StepWorld } from '../prompter/StepEditor.tsx';
 import type { FilmSounds } from '../sound/filmSounds.ts';
+import type { SceneSounds, StudioSoundOut } from '../sound/rehearseSounds.ts';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
 // The Sound view loads when it's first chosen (07-ux 7.7).
@@ -140,6 +141,8 @@ export interface ProductionStageProps {
    * editor's area has the Code | Sound switch; without them, only the Code editor.
    */
   sounds?: FilmSounds;
+  /** The studio's audio: with `sounds`, Rehearse plays the film's music and sounds (decision 0076). */
+  soundOut?: StudioSoundOut;
   /** Code or Sound, kept by the App while the studio is open; the stage keeps its own without. */
   view?: CodeView;
   onViewChange?: (view: CodeView) => void;
@@ -385,6 +388,7 @@ export function ProductionStage({
   taskCard,
   heldEditor = null,
   sounds,
+  soundOut,
   view,
   onViewChange,
   onGoToBlock,
@@ -409,6 +413,9 @@ export function ProductionStage({
   // Code or Sound: the App's choice, or the stage's own in tests that give none.
   const [ownView, setOwnView] = useState<CodeView>('code');
   const soundHere = studio !== undefined && sounds !== undefined;
+  // Rehearse's music and sounds: read by the scene view's player each time it needs them.
+  const sceneSounds: SceneSounds | undefined =
+    sounds && soundOut ? { out: () => soundOut.get(), film: sounds, timings } : undefined;
   const shownView: CodeView = soundHere ? (view ?? ownView) : 'code';
   const changeView = (next: CodeView) => {
     setOwnView(next);
@@ -675,6 +682,7 @@ export function ProductionStage({
                   {...(startWorker ? { startWorker } : {})}
                   speaker={voices ?? undefined}
                   silentLines={silentLines}
+                  sounds={sceneSounds}
                   chosen={chosen}
                   onChoose={choose}
                   {...(studio && studio.readOnly === null && hasFrames && offer.length === 0

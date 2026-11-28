@@ -18,6 +18,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
+import { rehearseSounds, type SceneSounds } from '../sound/rehearseSounds.ts';
 import { ViewPad } from './ViewPad.tsx';
 import { IDLE, Rehearsal, type RehearsalState, type Speaker } from './rehearsal.ts';
 
@@ -43,6 +44,8 @@ export interface SceneViewProps {
   readonly startWorker?: () => RuntimeWorker;
   /** Speak lines' voices (spec 06 section 4.5): Rehearse starts each line as its block starts. */
   readonly speaker?: Speaker | undefined;
+  /** The film's music and sounds, for Rehearse (decision 0076): none without them. */
+  readonly sounds?: SceneSounds | undefined;
   /** Speak lines that are silent for now, with their captions: a note under the view. */
   readonly silentLines?: string | null;
   /** What's chosen, on the stage or in Objects in this scene. */
@@ -139,6 +142,8 @@ export default function SceneView(props: SceneViewProps) {
   const onRehearsal = useRef(props.onRehearsal);
   // The studio's voices, read when a rehearsal is made; they last as long as the App.
   const speaker = useRef(props.speaker);
+  // The output, the film's sounds and the last runs' lengths, read when the player needs them.
+  const sounds = useRef(props.sounds);
   const onChoose = useRef(props.onChoose);
   const onMoved = useRef(props.onMoved);
   const onEditable = useRef(props.onEditable);
@@ -146,6 +151,7 @@ export default function SceneView(props: SceneViewProps) {
     announce.current = props.onAnnounce;
     onRehearsal.current = props.onRehearsal;
     speaker.current = props.speaker;
+    sounds.current = props.sounds;
     onChoose.current = props.onChoose;
     onMoved.current = props.onMoved;
     onEditable.current = props.onEditable;
@@ -199,6 +205,7 @@ export default function SceneView(props: SceneViewProps) {
         start: (node, delay) => speaker.current?.start(node, delay),
         stop: () => speaker.current?.stop(),
       },
+      sounds: () => rehearseSounds(production, () => sounds.current),
     });
     if (changed.current?.running && changed.current.scene === scene)
       announce.current(words.t('production.rehearse.codeChanged'));
