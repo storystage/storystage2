@@ -23,7 +23,7 @@ export interface LicenceAnswers {
   readonly choice: LicenceChoice;
   /** CC BY only: 4.0 unless they say 3.0. */
   readonly version?: '4.0' | '3.0';
-  /** The model's own page. Required, except for "I made it". */
+  /** The model's own page. Required, except for "I made it" and "not sure" (the owner, 28 Nov 2026). */
   readonly sourceUrl?: string;
   /** Who made it. Required for every CC BY licence; optional for CC0. */
   readonly maker?: string;
@@ -116,12 +116,12 @@ export function licenceRecord(
 
   let source: string | null = null;
   const given = (answers.sourceUrl ?? '').trim();
-  if (licence !== 'own-work') {
+  if (licence !== 'own-work' && licence !== 'not-sure') {
     if (given === '') problems.push('needsSource');
     else if (given.length > SOURCE_MAX || (source = webPage(given)) === null)
       problems.push('badSource');
   } else if (given !== '') {
-    // "I made it" needs no page, but one given is kept if it's a web page.
+    // "I made it" and "not sure" need no page, but one given is kept if it's a web page.
     source = given.length <= SOURCE_MAX ? webPage(given) : null;
     if (source === null) problems.push('badSource');
   }

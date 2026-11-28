@@ -43,13 +43,15 @@ describe('licenceRecord (spec 17, section 6)', () => {
     expect(made({ choice: 'own-work', maker: 'Sam' }).credit).toBe('Robot, made by our class');
   });
 
-  it('asks for a page except for "I made it", and a maker for every CC BY', () => {
+  it('asks for a page except for "I made it" and "not sure", and a maker for every CC BY', () => {
     expect(licenceRecord('Robot', { choice: 'CC BY' })).toEqual({
       ok: false,
       problems: ['needsMaker', 'needsSource'],
     });
-    expect(licenceRecord('Robot', { choice: 'not-sure' })).toMatchObject({
-      problems: ['needsSource'],
+    // A learner who isn't sure often has no page to give (the owner, 28 Nov 2026).
+    expect(licenceRecord('Robot', { choice: 'not-sure' })).toEqual({
+      ok: true,
+      record: { licence: 'not-sure', credit: 'Robot, source not checked' },
     });
     expect(licenceRecord(' ', { choice: 'own-work' })).toMatchObject({ problems: ['needsName'] });
   });
@@ -65,6 +67,9 @@ describe('licenceRecord (spec 17, section 6)', () => {
         problems: ['badSource'],
       });
     expect(licenceRecord('Robot', { choice: 'own-work', sourceUrl: 'nope' })).toMatchObject({
+      problems: ['badSource'],
+    });
+    expect(licenceRecord('Robot', { choice: 'not-sure', sourceUrl: 'nope' })).toMatchObject({
       problems: ['badSource'],
     });
   });
