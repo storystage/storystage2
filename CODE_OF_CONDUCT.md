@@ -56,6 +56,42 @@ Examples of representing our community include using an official e-mail address,
 posting via an official social media account, or acting as an appointed
 representative at an online or offline event.
 
+In StoryStage, **community spaces** are the StoryStage repositories on GitHub
+(issues, pull requests, reviews, commits and comments), the feedback email,
+storystage.org, and any lesson, pilot or event run for the project. The
+**community leaders** are the project's maintainers: today, the project owner.
+
+## Children and safeguarding
+
+StoryStage is made for learners aged 6 to 13. The people in its community spaces
+are adults: teachers, parents, school staff and developers. Children don't post
+here (GitHub accounts are for people aged 13 and over); a teacher or parent
+emails the project instead.
+
+* **Never post anything that could identify a child:** a name, face, voice,
+  school or town, or a screenshot or recording of their work. Use made-up
+  examples. If you see one, report it, and the community leaders will remove it.
+* **If you're worried about a child's safety** (a worrying reply from the
+  Prompter, a child's details posted online, or how an adult is behaving
+  towards a child):
+  1. If a child is in immediate danger, call the emergency services (999 in the
+     UK, 911 in the US).
+  2. At a school or club, follow its safeguarding procedure and tell its
+     designated safeguarding lead.
+  3. Then tell the community leaders privately, at the address under
+     Enforcement, never in a public issue. Give only what's needed to
+     understand the concern.
+* **The community leaders deal with safeguarding first,** before any other
+  report, following the project's safeguarding steps
+  ([docs/feedback.md](https://github.com/storystage/storystage2/blob/main/docs/feedback.md)
+  in StoryStage 2), and refer a concern to the police or the local authority
+  wherever the law or good practice expects it.
+* **Behaviour that puts a child at risk** (sexual content involving children,
+  grooming, or trying to contact a child through the project) leads straight to
+  a permanent ban, and a report to the police or the national reporting body
+  (CEOP in the UK, NCMEC in the US) and to GitHub. It doesn't go through the
+  four steps under Enforcement Guidelines.
+
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be
@@ -69,7 +105,8 @@ reporter of any incident.
 ## Enforcement Guidelines
 
 Community leaders will follow these Community Impact Guidelines in determining
-the consequences for any action they deem in violation of this Code of Conduct:
+the consequences for any action they deem in violation of this Code of Conduct.
+Safeguarding concerns follow "Children and safeguarding" above instead:
 
 ### 1. Correction
 
@@ -120,6 +157,9 @@ https://www.contributor-covenant.org/version/2/0/code_of_conduct.html.
 
 Community Impact Guidelines were inspired by [Mozilla's code of conduct
 enforcement ladder](https://github.com/mozilla/diversity).
+
+StoryStage added the paragraph on community spaces and leaders under Scope, and
+the section on children and safeguarding.
 
 [homepage]: https://www.contributor-covenant.org
 
