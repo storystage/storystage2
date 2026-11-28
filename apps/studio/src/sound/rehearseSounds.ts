@@ -57,6 +57,26 @@ export class StudioSoundOut {
   }
 }
 
+/**
+ * Only the film's volumes are different (`withMix`): Rehearse plays on, as the studio's audio
+ * follows them (the owner's choice, 28 Nov).
+ */
+export function onlyVolumesChanged(a: Production, b: Production): boolean {
+  const same = <T extends object>(x: T, y: T, but: keyof T | null) =>
+    Object.keys({ ...x, ...y }).every((k) => k === but || x[k as keyof T] === y[k as keyof T]);
+  return same(a, b, 'manifest') && same(a.manifest, b.manifest, 'mix');
+}
+
+/** Only scenes' music is different, so Rehearse stops saying the music changed, not the code. */
+export function onlyMusicChanged(a: Production, b: Production): boolean {
+  return (
+    a.program === b.program &&
+    a.scenes.length === b.scenes.length &&
+    a.scenes.every((s, i) => s.setup === b.scenes[i]!.setup) &&
+    a.scenes.some((s, i) => s.music !== b.scenes[i]!.music)
+  );
+}
+
 /** How long each scene is, for the player: from its last whole Rehearse, or else the plan. */
 export function lengthsOf(p: Production, timings: RunTimings) {
   return {
