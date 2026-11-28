@@ -518,7 +518,13 @@ export function Music(props: MusicProps) {
                               studio.seal();
                           }}
                         >
-                          <Envelope cue={h} px={px} />
+                          <Envelope
+                            cue={h}
+                            before={
+                              h.index === 0 ? heard.carried?.cue : heard.cues[h.index - 1]?.cue
+                            }
+                            px={px}
+                          />
                           <span className="sd-cue-name" aria-hidden="true">
                             {nameOf(h.cue)}
                             {missing(h.cue) && clipOf(p, h.cue)
@@ -798,10 +804,20 @@ function barWords(h: HeardCue, name: string, missing: boolean): string {
  * A cue's loudness drawn on its bar: ramps for its fades and the crossfade, and a mark where each
  * loop starts again. Shapes, never colour alone; for sighted learners, as the bar's name says it.
  */
-function Envelope({ cue: h, px }: { cue: HeardCue; px: number }) {
+function Envelope({
+  cue: h,
+  before,
+  px,
+}: {
+  cue: HeardCue;
+  /** The cue it comes in under: the one before it, or the one carried in. */
+  before: MusicCue | undefined;
+  px: number;
+}) {
   const w = Math.max(1, (h.end - h.start) * px);
   const x = (t: number) => (t - h.start) * px;
-  const top = 100 - Math.max(0.15, h.cue.volume) * 80;
+  const height = (cue: MusicCue) => 100 - Math.max(0.15, cue.volume) * 80;
+  const top = height(h.cue);
   // It comes in by its own fade in, or under the cue before as they crossfade: the later of the two.
   const up = Math.max(h.fadeIn?.[1] ?? h.start, h.crossfadeIn?.[1] ?? h.start);
   const points: [number, number][] = [[0, up > h.start ? 100 : top]];
@@ -824,13 +840,14 @@ function Envelope({ cue: h, px }: { cue: HeardCue; px: number }) {
       />
       {/*
        * The crossfade, drawn on the cue coming in, which is drawn over the one going out: a
-       * dashed line for the cue before fading out under its rise (07-ux 7.7; S3's #716).
+       * dashed line for the cue before fading out under its rise, from that cue's own volume
+       * (07-ux 7.7; S3's #716 and its review of #727).
        */}
       {h.crossfadeIn && (
         <line
           className="sd-envelope-cross"
           x1={x(h.crossfadeIn[0])}
-          y1={top}
+          y1={before ? height(before) : top}
           x2={x(h.crossfadeIn[1])}
           y2={100}
         />

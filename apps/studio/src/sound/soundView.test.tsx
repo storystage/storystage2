@@ -404,6 +404,28 @@ describe('SoundView: the timeline', () => {
     expect(going!.querySelector('.sd-envelope-cross')).toBeNull();
   });
 
+  it('starts the crossfade line at the volume of the cue going out', () => {
+    // Half volume is drawn at 60 of 100 down the bar, full volume at 20 (S3's review of #727).
+    open(withRain([rainAt(1, { volume: 0.5 }), rainAt(3)]));
+    const [, coming] = within(musicTrack()).getAllByRole('button');
+    const line = coming!.querySelector('.sd-envelope-cross')!;
+    expect(line.getAttribute('y1')).toBe('60');
+    expect(line.getAttribute('y2')).toBe('100');
+  });
+
+  it('starts the crossfade line at the volume of a cue carried in', () => {
+    let p = withRain([rainAt(0, { volume: 0.5, carriesOn: true })]);
+    const second = p.manifest.runningOrder[1]!.scene;
+    p = withSceneMusic(p, second, [rainAt(1)]);
+    open(p, { scene: second });
+    const track = within(screen.getByRole('region', { name: 'Scene 2’s music' })).getByRole(
+      'list',
+      { name: 'Music' },
+    );
+    const coming = track.querySelector('.sd-cue')!;
+    expect(coming.querySelector('.sd-envelope-cross')!.getAttribute('y1')).toBe('60');
+  });
+
   it('reads Missing sound for a cue whose sound the film hasn’t got', () => {
     const p = withRain([rainAt(0)]);
     open({ ...p, manifest: { ...p.manifest, sounds: [] } } as Production);
