@@ -8,8 +8,18 @@
  * At half or double speed, music and sounds keep pace with the picture, so their pitch changes
  * (the owner's choice, 27 Nov 2026). After a pause, the music plays on from where the picture is,
  * and a sound that was playing doesn't, as speak lines don't (spec 06 section 4.5).
+ *
+ * The music is lowered under voiced speak lines by `duckOf`, as the export lowers it, through a
+ * gain of its own between the music and the Music track, so the film's volumes never fight it.
+ * Live, a line is known only as the runtime gets to it, a moment ahead of the picture (its
+ * lookahead, 0.1 s), too late to go down before it or to join it to the line before. So a scene's
+ * lines from its last whole run of the code as it is now (`spoken`) are taken at its start, as its
+ * fade out is: then the music goes down before each line and stays down between lines less than a
+ * second apart, as in the export. Each line as it's known (`speech`) is added, so a scene with no
+ * such run is still lowered, from as soon as each line is known.
  */
 import type { Production, SceneId, SoundRef } from '@storystage/production';
+import { duckOf, type SpeechSpan } from './duck.ts';
 import { carriedInto, musicOf } from './music.ts';
 import type { BufferLike, GainLike, SoundOut, SourceLike, Track } from './out.ts';
 import { CLICK_FREE_SECONDS, musicPlays, type ScenePlace } from './plays.ts';
@@ -24,6 +34,12 @@ export interface CommandLike {
   readonly missing?: true;
 }
 
+/** A voiced speak line, in microseconds from its scene's start, as `commands` gives its times. */
+export interface SpokenLike {
+  readonly start: number;
+  readonly end: number;
+}
+
 export interface LiveSoundsOptions {
   readonly out: SoundOut;
   readonly production: Production;
@@ -31,6 +47,11 @@ export interface LiveSoundsOptions {
   readonly lengthOf: (scene: SceneId) => number;
   /** A scene's last whole run length, if it has one: live music fades out by it. */
   readonly runLength?: (scene: SceneId) => number | null;
+  /**
+   * A scene's voiced lines in that same run, in seconds from its start, or `null` without one:
+   * the music goes down under them from the scene's start.
+   */
+  readonly spoken?: (scene: SceneId) => readonly SpeechSpan[] | null;
   /** A sound's file, or `null` when the film hasn't got it. */
   readonly bytes: (sound: SoundRef) => Promise<Uint8Array | null> | Uint8Array | null;
 }
@@ -120,11 +141,19 @@ export class LiveSounds {
   /** The `playAudio` sounds heard since the last pause, by command. */
   #effects = new Map<string, Wanted>();
   #voices = new Map<string, Voice>();
+  /** The voiced lines, in film seconds, by where they are: `heard` if from `speech`. */
+  #spoken = new Map<string, SpeechSpan & { readonly heard: boolean }>();
+  /** The music under speech: between the music's voices and the Music track. */
+  readonly #duck: GainLike;
+  /** What `#duck` was last told, in film seconds. */
+  #ducked: Points = [];
   /** While playing: film time `film` is at the context's `at`, and the picture's speed. */
   #clock: { film: number; at: number; speed: number } | null = null;
 
   constructor(options: LiveSoundsOptions) {
     this.#options = options;
+    this.#duck = options.out.context.createGain();
+    this.#duck.connect(options.out.track('music'));
   }
 
   /** Reads the music of `scenes`, the cue carried into the first, and every sound named in words. */
@@ -154,6 +183,9 @@ export class LiveSounds {
       ...(run !== null && run > 0 ? { expected: run } : {}),
     });
     this.#plan();
+    const lines = this.#options.spoken?.(scene) ?? [];
+    for (const s of lines) this.#hear(at + s.start, at + s.end, false);
+    if (lines.length > 0) this.#lower(this.#clock ? levelAt(this.#ducked, this.#now()) : undefined);
   }
 
   /**
@@ -162,8 +194,31 @@ export class LiveSounds {
    */
   play(time: number, speed: number): void {
     this.#options.out.wake();
+    // At a change of speed, the music under speech goes on from where it is.
+    const was = this.#clock ? levelAt(this.#ducked, this.#now()) : undefined;
     this.#clock = { film: time, at: this.#options.out.context.currentTime, speed };
     this.#plan();
+    this.#lower(was);
+  }
+
+  /**
+   * Voiced speak lines in `scene`, as soon as they're known: the music goes down under them. Ones
+   * heard while paused aren't spoken, so they don't lower it; a line known late lowers it from
+   * where it is, over 10 ms.
+   */
+  speech(scene: SceneId, spans: readonly SpokenLike[]): void {
+    if (!this.#clock) return;
+    const place = [...this.#scenes].reverse().find((s) => s.scene === scene);
+    if (!place) return;
+    const before = this.#spoken.size;
+    for (const s of spans)
+      this.#hear(place.start + s.start / MICROS, place.start + s.end / MICROS, true);
+    if (this.#spoken.size !== before) this.#lower(levelAt(this.#ducked, this.#now()));
+  }
+
+  #hear(start: number, end: number, heard: boolean): void {
+    const key = `${start}:${end}`;
+    if (end > start && !this.#spoken.has(key)) this.#spoken.set(key, { start, end, heard });
   }
 
   /**
@@ -208,6 +263,10 @@ export class LiveSounds {
     const now = this.#now();
     for (const key of [...this.#voices.keys()]) this.#silence(key, now);
     this.#effects.clear();
+    // Lines don't go on after a pause (spec 06 section 4.5), so they don't lower the music then:
+    // only those from the last run still to come stay, as they'll be spoken when Play gets there.
+    for (const [key, s] of this.#spoken) if (s.heard || s.start < now) this.#spoken.delete(key);
+    this.#ducked = [];
     this.#clock = null;
   }
 
@@ -215,11 +274,13 @@ export class LiveSounds {
   end(): void {
     this.pause();
     this.#scenes = [];
+    this.#spoken.clear();
   }
 
   /** Lets the sounds' audio go. The output is the caller's. */
   dispose(): void {
     this.end();
+    this.#duck.disconnect();
     this.#buffers.clear();
     this.#ready.clear();
   }
@@ -250,6 +311,13 @@ export class LiveSounds {
       this.#buffers.set(sound, buffer);
     }
     return buffer;
+  }
+
+  /** The music under the lines known so far, from now: from `was` if it was already playing. */
+  #lower(was: number | undefined): void {
+    if (!this.#clock) return;
+    this.#ducked = duckOf([...this.#spoken.values()]);
+    this.#ramp(this.#duck, this.#ducked, this.#now(), was);
   }
 
   /** What should be playing from now, and the voices playing it. */
@@ -304,7 +372,7 @@ export class LiveSounds {
     }
     source.playbackRate.value = this.#clock!.speed;
     source.connect(gain);
-    gain.connect(out.track(w.track));
+    gain.connect(w.track === 'music' ? this.#duck : out.track(w.track));
     const voice: Voice = {
       sound: w.sound,
       start: from,
