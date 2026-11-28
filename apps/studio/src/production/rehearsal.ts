@@ -101,7 +101,7 @@ export interface RehearsalOptions {
 /** What Rehearse tells the film's music and sounds: each scene, its commands, play and pause. */
 export type RehearsalSounds = Pick<
   LiveSounds,
-  'prepare' | 'scene' | 'play' | 'commands' | 'pause' | 'end' | 'dispose'
+  'prepare' | 'scene' | 'play' | 'commands' | 'speech' | 'pause' | 'end' | 'dispose'
 >;
 
 /** What Rehearse needs of the studio's voices. */
@@ -109,6 +109,8 @@ export interface Speaker {
   /** A block started, `delay` seconds before the picture gets there. */
   start(node: NodeId, delay: number): void;
   stop(): void;
+  /** A block's speak line has its sound, so it's heard: the music goes down under it. */
+  voiced?(node: NodeId): boolean;
 }
 
 /**
@@ -357,7 +359,19 @@ export class Rehearsal {
         break;
       case 'commands':
         // Running ahead to a block plays nothing, as it speaks nothing.
-        if (!this.quiet) this.sounds?.commands(event.scene, event.commands);
+        if (!this.quiet && this.sounds) {
+          // A voiced speak line's caption, as soon as it's known: the music goes down under it.
+          const spoken = event.commands.flatMap((c) =>
+            c.kind === 'say' &&
+            c.bubble === 'caption' &&
+            c.node !== undefined &&
+            this.options.speaker?.voiced?.(c.node)
+              ? [{ start: c.start, end: c.start + c.duration }]
+              : [],
+          );
+          if (spoken.length > 0) this.sounds.speech(event.scene, spoken);
+          this.sounds.commands(event.scene, event.commands);
+        }
         break;
       case 'running':
         this.set({ running: event.nodes });

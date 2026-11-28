@@ -4,12 +4,14 @@
  * made when it's first needed, which the speak lines' voices play through too; and for each run,
  * a player that reads the film's sounds and the scenes' lengths from their last whole Rehearse.
  */
+import type { NodeId } from '@storystage/ast';
 import type { Production, SceneId, SoundClip, SoundMix } from '@storystage/production';
 import {
   createSoundOut,
   LiveSounds,
   type AudioContextLike,
   type SoundOut,
+  type SpeechSpan,
 } from '@storystage/sound';
 import type { RehearsalSounds } from '../production/rehearsal.ts';
 import { timingOf, type RunTimings } from '../production/runTiming.ts';
@@ -96,6 +98,25 @@ export function lengthsOf(p: Production, timings: RunTimings) {
   };
 }
 
+/**
+ * A scene's voiced speak lines in its last whole run of the code as it is now, in seconds from its
+ * start, or `null` without one: the music goes down before each (S3's #740). A line without its
+ * sound (`voiced`) isn't heard, so it doesn't lower the music.
+ */
+export function spokenOf(
+  p: Production,
+  timings: RunTimings,
+  voiced: (node: NodeId) => boolean,
+): (scene: SceneId) => readonly SpeechSpan[] | null {
+  return (scene) => {
+    const kept = timingOf(timings, p, scene);
+    if (!kept || kept.changed) return null;
+    return kept.timing.sounds
+      .filter((s) => s.kind === 'speech' && voiced(s.node))
+      .map((s) => ({ start: s.start, end: s.start + s.length }));
+  };
+}
+
 /** What a scene view's player needs from the studio, read each time it's needed. */
 export interface SceneSounds {
   readonly out: () => SoundOut | null;
@@ -103,10 +124,11 @@ export interface SceneSounds {
   readonly timings: RunTimings;
 }
 
-/** A player for Rehearse of `p`, or `null` without an output. */
+/** A player for Rehearse of `p`, or `null` without an output. `voiced`: a line has its sound. */
 export function rehearseSounds(
   p: Production,
   sounds: () => SceneSounds | undefined,
+  voiced: (node: NodeId) => boolean = () => false,
 ): RehearsalSounds | null {
   const out = sounds()?.out();
   if (!out) return null;
@@ -116,6 +138,7 @@ export function rehearseSounds(
     production: p,
     lengthOf: (scene) => lengths().lengthOf(scene),
     runLength: (scene) => lengths().runLength(scene),
+    spoken: (scene) => spokenOf(p, sounds()?.timings ?? new Map(), voiced)(scene),
     bytes: (sound) => {
       const clip = p.manifest.sounds?.find((c) => c.id === sound);
       return clip ? (sounds()?.film.bytes(clip) ?? null) : null;
