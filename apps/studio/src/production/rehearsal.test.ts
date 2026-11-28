@@ -4,7 +4,7 @@ import { inMemoryPorts, serve, type Timers } from '@storystage/runtime';
 import { FakeStage } from '@storystage/stage/testing';
 import { STORY_LIBRARY } from '@storystage/story-api';
 import { describe, expect, it, vi } from 'vitest';
-import { Rehearsal, type Speaker } from './rehearsal.ts';
+import { Rehearsal, type RehearsalSounds, type Speaker } from './rehearsal.ts';
 
 // Rehearse (07-ux 7.4) on S2's driver, a fake stage and a real runtime over in-memory ports.
 
@@ -34,7 +34,11 @@ function withSceneOne(body: readonly Statement[]): Production {
   };
 }
 
-function rehearse(production: Production, speaker?: Speaker) {
+function rehearse(
+  production: Production,
+  speaker?: Speaker,
+  sounds?: () => RehearsalSounds | null,
+) {
   const stage = new FakeStage();
   let ms = 0;
   let ended = 0;
@@ -44,6 +48,7 @@ function rehearse(production: Production, speaker?: Speaker) {
     stage,
     wall: () => ms,
     ...(speaker ? { speaker } : {}),
+    ...(sounds ? { sounds } : {}),
     startWorker: () => {
       const { main, worker } = inMemoryPorts();
       const timers: Timers = { now: () => 0, every: () => () => undefined };
@@ -345,5 +350,118 @@ describe('Rehearsal’s speak lines (spec 06 section 4.5)', () => {
     await rehearsal.toHere(third.id);
     expect(rehearsal.state.status).toBe('paused');
     expect(s.start).not.toHaveBeenCalled();
+  });
+});
+
+describe('Rehearsal’s music and sounds (decision 0076, S3’s LiveSounds)', () => {
+  /** A player that keeps what it was told, in order. */
+  const player = () => {
+    const calls: (readonly unknown[])[] = [];
+    const sounds: RehearsalSounds = {
+      prepare: async (scenes) => void calls.push(['prepare', scenes]),
+      scene: (scene, at) => void calls.push(['scene', scene, at]),
+      play: (time, speed) => void calls.push(['play', time, speed]),
+      commands: (scene, commands) => void calls.push(['commands', scene, commands.length]),
+      pause: () => void calls.push(['pause']),
+      end: () => void calls.push(['end']),
+      dispose: () => void calls.push(['dispose']),
+    };
+    const made = vi.fn(() => sounds);
+    const told = (what: string) => calls.filter((c) => c[0] === what);
+    return { calls, made, told };
+  };
+
+  it('is made on the first Rehearse, not before, and once for every run after', async () => {
+    const s = player();
+    const { rehearsal, frames } = rehearse(withSceneOne([say(words('Hi'))]), undefined, s.made);
+    await rehearsal.showSetup();
+    expect(s.made).not.toHaveBeenCalled();
+    await rehearsal.start();
+    await frames(30);
+    await rehearsal.start();
+    expect(s.made).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads the scene’s sounds, starts with the scene, and plays from the clock', async () => {
+    const p = withSceneOne([say(words('Hello'))]);
+    const s = player();
+    const { rehearsal, frames } = rehearse(p, undefined, s.made);
+    await rehearsal.start();
+    const scene = p.scenes[0]!.id;
+    expect(s.told('prepare')).toEqual([['prepare', [scene]]]);
+    expect(s.told('scene')).toEqual([['scene', scene, 0]]);
+    expect(s.calls.at(-1)).toEqual(['play', 0, 1]);
+    await frames(0.5);
+    // The runtime's commands are passed on as they come: the player plays the sound ones.
+    expect(s.told('commands').length).toBeGreaterThan(0);
+    expect(s.told('commands')[0]![1]).toBe(scene);
+  });
+
+  it('goes quiet on pause, plays on from the picture, and keeps pace with the speed', async () => {
+    const s = player();
+    const p = withSceneOne([say(words('A long line for the penguin to say slowly.'))]);
+    const { rehearsal, frames } = rehearse(p, undefined, s.made);
+    await rehearsal.start();
+    await frames(0.5);
+    rehearsal.pause();
+    expect(s.calls.at(-1)).toEqual(['pause']);
+    // Paused, a new speed waits for Play.
+    rehearsal.setSpeed(2);
+    expect(s.calls.at(-1)).toEqual(['pause']);
+    rehearsal.play();
+    const [, time, speed] = s.calls.at(-1)!;
+    expect(time).toBeCloseTo(0.5, 1);
+    expect(speed).toBe(2);
+    rehearsal.setSpeed(0.5);
+    expect(s.calls.at(-1)).toEqual(['play', time, 0.5]);
+  });
+
+  it('ends with the run, on Stop and on Restart, and lets go when the view closes', async () => {
+    const s = player();
+    const { rehearsal, frames } = rehearse(withSceneOne([say(words('Hi'))]), undefined, s.made);
+    await rehearsal.start();
+    await frames(30);
+    expect(rehearsal.state.status).toBe('ended');
+    expect(s.calls.at(-1)).toEqual(['end']);
+    await rehearsal.start();
+    const restarted = s.calls.length;
+    await rehearsal.start();
+    expect(s.calls.slice(restarted)).toContainEqual(['end']);
+    await rehearsal.stop();
+    expect(s.calls.at(-1)).toEqual(['end']);
+    rehearsal.dispose();
+    expect(s.calls.at(-1)).toEqual(['dispose']);
+  });
+
+  it('plays nothing while it runs ahead to a block, and the music from there on Play', async () => {
+    const third = say(words('Three'));
+    const s = player();
+    const p = withSceneOne([say(words('One')), say(words('Two')), third]);
+    const { rehearsal } = rehearse(p, undefined, s.made);
+    await rehearsal.toHere(third.id);
+    expect(rehearsal.state.status).toBe('paused');
+    expect(s.told('commands')).toEqual([]);
+    expect(s.told('play')).toEqual([]);
+    rehearsal.play();
+    const [what, time] = s.calls.at(-1)!;
+    expect(what).toBe('play');
+    expect(time).toBeGreaterThan(0);
+  });
+
+  it('rehearses anyway when the sounds can’t be read, or there’s no audio', async () => {
+    const s = player();
+    const failing: RehearsalSounds = {
+      ...s.made(),
+      prepare: () => Promise.reject(new Error('no file')),
+    };
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const one = rehearse(withSceneOne([say(words('Hi'))]), undefined, () => failing);
+    await one.rehearsal.start();
+    expect(one.rehearsal.state.status).toBe('playing');
+    const none = rehearse(withSceneOne([say(words('Hi'))]), undefined, () => null);
+    await none.rehearsal.start();
+    await none.frames(30);
+    expect(none.rehearsal.state.status).toBe('ended');
+    quiet.mockRestore();
   });
 });

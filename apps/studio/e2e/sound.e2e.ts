@@ -414,3 +414,61 @@ test('a whole Rehearse run gives the timeline its length and its Speech and Soun
     timeline.getByText(/^\d+(\.\d)? seconds?, from your last Rehearse\.$/),
   ).toBeVisible();
 });
+
+test('Rehearse plays the scene’s music from its file, through its gain and the Music track', async ({
+  page,
+}) => {
+  // Decision 0076 (S3's LiveSounds): each sound the page starts, by its length, how many gains it
+  // goes through to the speakers (a cue's own, then its track's), and whether its audio is running.
+  await page.addInitScript(() => {
+    type Heard = { seconds: number; hops: number; context: BaseAudioContext };
+    const started: Heard[] = [];
+    (window as unknown as { started: Heard[] }).started = started;
+    const next = new WeakMap<AudioNode, AudioNode>();
+    const connect = AudioNode.prototype.connect;
+    AudioNode.prototype.connect = function (this: AudioNode, ...args: unknown[]) {
+      if (args[0] instanceof AudioNode) next.set(this, args[0]);
+      return (connect as (...a: unknown[]) => AudioNode).apply(this, args);
+    } as typeof AudioNode.prototype.connect;
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (this: AudioBufferSourceNode, ...args) {
+      let hops = 0;
+      for (let n = next.get(this); n && n !== this.context.destination; n = next.get(n)) hops++;
+      started.push({ seconds: this.buffer?.duration ?? 0, hops, context: this.context });
+      return start.apply(this, args);
+    };
+  });
+  const sound = await openSound(page);
+  await sound.locator('input[type="file"]').setInputFiles({
+    name: 'rain.wav',
+    mimeType: 'audio/wav',
+    buffer: toneWav(2),
+  });
+  await page
+    .getByRole('dialog', { name: 'Trim your sound' })
+    .getByRole('button', { name: 'Add sound' })
+    .click();
+  const timeline = sound.getByRole('region', { name: 'Scene 1’s music' });
+  await timeline.getByRole('button', { name: 'Add music…' }).click();
+  await page
+    .getByRole('dialog', { name: 'Add music' })
+    .getByRole('button', { name: 'Add rain' })
+    .click();
+  await expect(undoButton(page)).toHaveText('Undo: Add music rain');
+
+  const view = page.getByRole('region', { name: 'Scene view' });
+  await view.getByRole('button', { name: 'Rehearse', exact: true }).click();
+  // The cue's 2 s tone starts, through its own gain and the Music track's, on running audio.
+  const rain = () =>
+    page.evaluate(() =>
+      (
+        window as unknown as {
+          started: { seconds: number; hops: number; context: BaseAudioContext }[];
+        }
+      ).started
+        .filter((s) => Math.abs(s.seconds - 2) < 0.01)
+        .map((s) => ({ hops: s.hops, state: s.context.state })),
+    );
+  await expect.poll(rain, { timeout: 15_000 }).toContainEqual({ hops: 2, state: 'running' });
+  await view.getByRole('button', { name: 'Stop' }).click();
+});
