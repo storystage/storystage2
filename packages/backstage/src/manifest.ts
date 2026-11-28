@@ -130,7 +130,7 @@ export interface BackstageItem {
   readonly licence: Licence;
   /** The credit line, as it appears in film credits ("Cat by Kenney (CC0)"). Never empty. */
   readonly credit: string;
-  /** Where it came from. Required, except for `own-work`. */
+  /** Where it came from. Required, except for `own-work` and `not-sure` (the owner, 28 Nov 2026). */
   readonly source?: { readonly url: string; readonly retrieved?: string };
   /** For `permission`: the record in `docs/legal/` that grants it. */
   readonly permission?: string;
@@ -227,8 +227,12 @@ export function validateManifest(json: unknown): ValidationResult {
       e('vrm must be "0" or "1", or left out for a glTF model.');
     if (!oneOf(LICENCES, item.licence)) e(`licence must be one of ${LICENCES.join(', ')}.`);
     if (!isText(item.credit)) e('needs a credit line.');
-    if (item.licence !== 'own-work' && !(isObject(item.source) && isText(item.source.url)))
-      e('needs a source URL (only "own-work" may leave it out).');
+    if (
+      item.licence !== 'own-work' &&
+      item.licence !== 'not-sure' &&
+      !(isObject(item.source) && isText(item.source.url))
+    )
+      e('needs a source URL (only "own-work" and "not-sure" may leave it out).');
     if (item.licence === 'permission' && !isText(item.permission))
       e('a "permission" licence must name its record in docs/legal/.');
     if (item.licence === 'public-domain' && !isText(item.publicDomain))

@@ -86,6 +86,17 @@ describe('validateManifest', () => {
     expect(validateManifest(manifest(own))).toMatchObject({ ok: true });
   });
 
+  it('lets an imported "not sure" model leave out the source (owner, 28 Nov 2026)', () => {
+    const unsure = {
+      ...cat,
+      id: 'class/Prop/crate',
+      licence: 'not-sure',
+      source: undefined,
+      origin: 'imported',
+    };
+    expect(validateManifest(manifest(unsure))).toMatchObject({ ok: true });
+  });
+
   it('needs a permission record for a "permission" licence', () => {
     expect(validateManifest(manifest({ ...cat, licence: 'permission' })).ok).toBe(false);
     expect(

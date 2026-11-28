@@ -34,7 +34,7 @@
 
 ### Rules
 
-1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` has a source URL; a `permission` licence names its record in `docs/legal/`, and so does a `public-domain` one (`publicDomain`, for example `docs/legal/public-domain/nasa.md`).
+1. **Every item has a section, a licence, a credit line, a budget and its sketches.** Every item but `own-work` and `not-sure` has a source URL; a `permission` licence names its record in `docs/legal/`, and so does a `public-domain` one (`publicDomain`, for example `docs/legal/public-domain/nasa.md`).
 2. **Shipped items carry only CC0, CC BY 3.0 or 4.0, `permission`, `public-domain`, or `VRM-PL-1.0`** (`SHIPPED_LICENCES`; licence audit, section 2, rule 1). A class may import share-alike, non-commercial, own-work or "not sure" models (3.12); `mayDistribute` then keeps films that use them in school.
 3. **Every model faces +Z.** The pipelines turn models that don't (Alice's, section 3), except VRM files, which are kept byte for byte: **a VRM 0.x avatar faces -Z, and whatever shows it (the stage, sketches, the AR baker) turns it half a turn.** `vrm` says which files need it.
 4. **The manifest is generated,** by `tools/backstage-sources` for the shipped catalogue and by the import pipeline for a class. Its `manifestVersion` must match the code's exactly; an older manifest is rebuilt, not read. Version 2.0.0 (WP3c) added `budget` as required, `vrm`, and the shipped-licence rule; 2.1.0 added `description`; 2.2.0 (owner, 18 Nov 2026) added the `public-domain` licence and `publicDomain`; 2.3.0 (owner, 19 Nov 2026) added `VRM-PL-1.0`, the VRM Public License 1.0, for a VRM file; 2.4.0 (owner, 20 Nov 2026, agreed with S3) added an animal's `gait`, `hop`, for the frog. `permission`, `public-domain` and `VRM-PL-1.0` (`SHIPPED_ONLY_LICENCES`) are for shipped items only: an imported item with either is refused, since a class picks from the short list (section 6).
@@ -422,7 +422,7 @@ Workplan 3.12. Licences and credits are part of what learners learn, as they are
     - not sure.
 
    These are the manifest's `LICENCES`, but for `permission` and `public-domain`, which only shipped items have.
-2. **They give where it came from:** the model's own page (`source.url`), required except for "I made it". For any CC BY licence, they also give **who made it**, for the credit.
+2. **They give where it came from:** the model's own page (`source.url`), required except for "I made it" and "not sure". A learner who isn't sure often has no page to give, and shouldn't be pushed to make one up (the owner's choice of 28 Nov 2026, so models and imported sounds have one rule: spec 03, section 1.7). A page given for either is kept if it's a web page. For any CC BY licence, they also give **who made it**, for the credit.
 3. **The credit line is made from these.**
     - CC0: "<Name> by <maker> (CC0)", or "<Name> (CC0)" with no maker.
     - CC BY, BY-SA and BY-NC: "<Name> by <maker>, CC BY 4.0", for example. The import changes the model, so `creditFor` adds ", changed for StoryStage" (section 3a, rule 4).
