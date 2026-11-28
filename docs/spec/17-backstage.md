@@ -144,7 +144,7 @@ Backstage's sounds: openly licensed music and sound effects that any film can pl
 | `files.sound` | The MP3 file (rule 3) |
 | `length` | The whole file's length in seconds, more than 0, measured when the shelf is built (rule 4). The same name and meaning as `SoundClip.length` |
 | `bytes` | The file's size |
-| `licence`, `credit`, `source`, `publicDomain` | Section 3, as for a model |
+| `licence`, `credit`, `source`, `publicDomain` | Section 3, in the same types as a model's, so the credits code (`creditsBySection`, `LICENCES_NAMED_IN_CREDIT`) serves both unchanged (S2's review) |
 | `origin` | `shipped`. The shelf is shipped only: a class imports a sound into a film (spec 03, section 1.7), not into Backstage |
 
 ### Rules
@@ -158,7 +158,7 @@ Backstage's sounds: openly licensed music and sound effects that any film can pl
     - the frames times the samples in each (1,152 for MPEG-1 Layer III), at the file's sample rate;
     - less the encoder's delay and padding, where the file's LAME header gives them;
     - in seconds to three decimal places.
-    The app never measures a shelf sound. A file whose frames can't be read is refused by the build. The test that loads every shipped model (section 8) does the same for each pinned sound. **S3:** with the first build's first file, S3 checks whether a browser's decoding keeps the encoder's delay, in Edge and on the reference Chromebook, so a loop from 0 to `length` starts on time; the player makes up for it if one does.
+    The app never measures a shelf sound. A file whose frames can't be read is refused by the build. The test that loads every shipped model (section 8) does the same for each pinned sound. **S3 and S2:** with the first build's first file, S3 checks whether a browser's decoding keeps the encoder's delay, in Edge and on the reference Chromebook, so a loop from 0 to `length` starts on time; the player makes up for it if one does. The export decodes with the browser too, so its mix makes up for it in the same way (S2), or a looped shelf track would drift apart between Rehearse and the film.
 5. **What's on it** (owner, 22 Nov 2026): about 50 pieces of music, each whole, about 180 MB, and about 300 effects. They come from Kenney (CC0), Freesound item by item (CC0 or CC BY 4.0), Kevin MacLeod (CC BY 4.0) and Musopen (public domain, item by item). Nothing goes on the shelf before the owner has listened to it and picked it. There are no weapon sounds, as there are no swords or shields among the models (owner, 21 Nov 2026). The shelf is part of the bundled Backstage (decision 0062, as updated on 23 Nov 2026), and the build report gives its size.
 6. **Licences are checked item by item,** as for models (section 3):
     - Shipped sounds carry only CC0, CC BY 4.0 or `public-domain`.
@@ -166,7 +166,8 @@ Backstage's sounds: openly licensed music and sound effects that any film can pl
     - The licence audit gains each sound source first, then the manifest.
 7. **Credits** (section 3a):
     - The About screen lists every shelf sound, after the models, under **Music** and **Sound effects**.
-    - A film's end credits list the shelf sounds it plays, by the same rules: each once, A to Z, with its credit line, licence and page.
+    - A film's end credits list the shelf sounds it plays, by the same rules: each once, A to Z, with its credit line, licence and page. **Plays** means what the export mixes (S2): each Sound FX the measured run played, and each music cue `musicPlays` places, in the scenes played. So a cue placed after its scene's end isn't credited.
+    - In the credits, **Music** and **Sound effects** come after the models' four sections (spec 08, section 7). A CC BY 4.0 line links its deed; a CC0 or public-domain line has no link.
     - Kevin MacLeod's line is the one he asks for: "<Title> Kevin MacLeod (incompetech.com) Licensed under Creative Commons: By Attribution 4.0".
     - The build re-encodes every file, so a CC BY sound is credited with `creditFor` as changed, as a glTF model is (section 3a, rule 4).
 8. **The studio shows the shelf by kind** (S5's review): the id's middle part, `Music` or `Effect`, under the headings learners see, **Music** and **Sound effects**, as the About screen has them (rule 7). The Sound FX track keeps its own name: a track isn't a shelf heading.
@@ -410,7 +411,7 @@ The teacher saves the class's models to one file, and opens it on another device
 
 ## 6. Licence capture
 
-Workplan 3.12. Licences and credits are part of what learners learn, as they are in industry.
+Workplan 3.12. Licences and credits are part of what learners learn, as they are in industry. An imported sound asks the same, by these rules (spec 03, section 1.7; the owner's choice of 28 Nov 2026).
 
 1. **On import, the person picks the licence** from a short list:
     - CC0;
