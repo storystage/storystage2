@@ -3,7 +3,8 @@
  *
  * - **Speech:** each speak line voiced at its caption's start (`soundtrack`).
  * - **Sound FX:** each sound a `playAudio` block played, from its trim, at its start, for the
- *   time it played: cut by its scene's end, with a short fade so the cut doesn't click.
+ *   time it played (cut by its scene's end), fading over its last 10 ms so it doesn't click
+ *   wherever it stops, as Rehearse's player does.
  * - **Music:** the scenes' cues as `musicPlays` places them, with their fades, loops and
  *   crossfades (S3's `@storystage/sound`), lowered under speech by `duckOf`, as Rehearse plays it.
  *
@@ -12,7 +13,7 @@
  * is silent, and counted.
  */
 import { mixOf, type Production, type SceneId } from '@storystage/production';
-import { duckOf, levelAt, musicPlays, type ScenePlace } from '@storystage/sound';
+import { duckOf, levelsFrom, musicPlays, type ScenePlace } from '@storystage/sound';
 import type { Micros } from '@storystage/story-api';
 import type { SpokenLine } from './captions.ts';
 import { FADE, TRACK_RATE, soundtrack, type FilmVoices } from './soundtrack.ts';
@@ -123,7 +124,7 @@ export function mixFilm(input: MixInput): FilmMix {
   let unplayed = 0;
   let heard = (speech?.voiced ?? 0) > 0;
 
-  // Sound FX: each from its trim, for the time it played, faded where its scene cut it.
+  // Sound FX: each from its trim, for the time it played, its last 10 ms faded (as Rehearse does).
   const effects = new Float32Array(length);
   for (const s of input.sounds) {
     const file = input.files?.sound(s.sound);
@@ -134,10 +135,9 @@ export function mixFilm(input: MixInput): FilmMix {
     heard = true;
     const clip = clipOf(p, s.sound);
     const skip = clip?.trim.start ?? 0;
-    const used = clip ? clip.trim.end - clip.trim.start : file.samples.length / file.sampleRate;
     const from = sampleAt(seconds(offset + s.start));
     const count = Math.max(0, Math.min(sampleAt(seconds(s.duration)), length - from));
-    const fade = seconds(s.duration) < used - 0.001 ? Math.min(FADE, count) : 0;
+    const fade = Math.min(FADE, count);
     for (let k = 0; k < count; k++) {
       let v = read(file, skip + k / TRACK_RATE);
       const left = count - k;
@@ -158,23 +158,23 @@ export function mixFilm(input: MixInput): FilmMix {
     const part = play.to - play.from;
     const first = sampleAt(play.start);
     const last = Number.isFinite(play.end) ? Math.min(sampleAt(play.end), length) : length;
+    const gain = levelsFrom(play.gain);
     for (let i = Math.max(0, first); i < last; i++) {
       const t = i / TRACK_RATE;
       const into = play.offset - play.from + (t - play.start);
       if (!play.loop && into >= part) break;
       const at = play.from + (play.loop && part > 0 ? into % part : into);
-      music[i]! += read(file, at) * levelAt(play.gain, t);
+      music[i]! += read(file, at) * gain(t);
     }
   }
 
   // Together: music lowered under speech, each track at its volume, within ±1.
-  const duck = duckOf(speech?.spans ?? []);
+  const lowered = levelsFrom(duckOf(speech?.spans ?? []));
   const samples = new Float32Array(length);
   for (let i = 0; i < length; i++) {
-    const lowered = duck.length > 0 ? levelAt(duck, i / TRACK_RATE) : 1;
     const v =
       (speech?.samples[i] ?? 0) * volume.speech +
-      music[i]! * volume.music * lowered +
+      music[i]! * volume.music * lowered(i / TRACK_RATE) +
       effects[i]! * volume.effects;
     samples[i] = Math.max(-1, Math.min(1, v));
   }

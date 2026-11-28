@@ -54,20 +54,40 @@ export function duckOf(spans: readonly SpeechSpan[]): (readonly [number, number]
   return points;
 }
 
+type Points = readonly (readonly [number, number])[];
+
+/** From point `i`, which `t` has reached: its level, or the straight line on to the next. */
+function along(points: Points, i: number, t: number): number {
+  const [t0, v0] = points[i]!;
+  const next = points[i + 1];
+  if (!next) return v0;
+  return v0 + ((next[1] - v0) * (t - t0)) / (next[0] - t0);
+}
+
 /**
  * The level at `t` from `[time, level]` points: a straight line between neighbours, the first
- * point's level before it and the last's after it, and full (1) with no points. For `duckOf`'s
- * points and a `MusicPlay`'s `gain` alike.
+ * point's level before it and the last's after it, full (1) with no points, and the later point's
+ * level at a time two share. For `duckOf`'s points and a `MusicPlay`'s `gain` alike. The same as
+ * S3's in Rehearse's player (agreed, 28 Nov 2026), so the two read levels alike.
  */
-export function levelAt(points: readonly (readonly [number, number])[], t: number): number {
+export function levelAt(points: Points, t: number): number {
   if (points.length === 0) return 1;
-  if (t <= points[0]![0]) return points[0]![1];
-  for (let i = 1; i < points.length; i++) {
-    const [t1, v1] = points[i]!;
-    if (t <= t1) {
-      const [t0, v0] = points[i - 1]!;
-      return t1 === t0 ? v1 : v0 + ((v1 - v0) * (t - t0)) / (t1 - t0);
-    }
-  }
-  return points[points.length - 1]![1];
+  if (t < points[0]![0]) return points[0]![1];
+  let i = 0;
+  while (i + 1 < points.length && points[i + 1]![0] <= t) i++;
+  return along(points, i, t);
+}
+
+/**
+ * `levelAt` for times that only go forwards, as a mix's samples do: it keeps its place in the
+ * points, so a long film with many points costs one pass, not a search for every sample.
+ */
+export function levelsFrom(points: Points): (t: number) => number {
+  if (points.length === 0) return () => 1;
+  let i = 0;
+  return (t) => {
+    if (t < points[0]![0]) return points[0]![1];
+    while (i + 1 < points.length && points[i + 1]![0] <= t) i++;
+    return along(points, i, t);
+  };
 }

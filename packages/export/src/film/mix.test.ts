@@ -100,6 +100,8 @@ describe('mixFilm', () => {
     // A second in, it's at 3 seconds into its file: the trim starts at 2.
     expect(mix.samples[at(6)]).toBeCloseTo(0.03, 3);
     expect(mix.samples[at(8.4)]).toBeCloseTo(0.054, 3);
+    // It plays its whole part, and still fades over its last 10 ms, as Rehearse does.
+    expect(Math.abs(mix.samples[at(8.5) - 1]!)).toBeLessThan(0.001);
     expect(mix.samples[at(8.5) + 10]).toBe(0);
     expect(mix).toMatchObject({ heard: true, unplayed: 0 });
   });
