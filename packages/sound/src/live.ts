@@ -87,10 +87,11 @@ const MICROS = 1_000_000;
 
 /**
  * How long after its start a line from the last run waits to be known live, in film seconds,
- * and how near a live line's start must be to it to be that line. The runtime gives a line
- * a moment ahead of the picture (its lookahead, 0.1 s), so a line that comes is known by then.
+ * and how near a live line's start must be to it to be that line. The runtime gives a line a
+ * moment ahead of the picture (its lookahead, 0.1 s), less a frame; this leaves room for a frame
+ * or two held up on the main thread, which the audio clock doesn't wait for (S2, 28 Nov).
  */
-export const UNSAID_SECONDS = 0.2;
+export const UNSAID_SECONDS = 0.35;
 
 /** A voiced line, in film seconds: `heard` if from `speech`; `said` once a live line matched it. */
 interface Line extends SpeechSpan {
