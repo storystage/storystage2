@@ -289,6 +289,15 @@ ull where they're bundled. */
     if (line && this.#allowed) this.#playerFor()?.start(line, delay);
   }
 
+  /**
+   * Whether the block's speak line has its sound now, so it would sound as it starts, as `start`
+   * finds: Rehearse lowers the music only under lines that are heard (S3's #740).
+   */
+  voiced(node: NodeId): boolean {
+    const line = this.#byNode.get(node);
+    return !!line && this.#allowed && this.#cache?.get(line) !== undefined;
+  }
+
   /** Rehearse stopped, paused or ended: silence. */
   stop(): void {
     this.#player?.stop();

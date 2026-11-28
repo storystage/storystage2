@@ -364,6 +364,7 @@ describe('Rehearsal’s music and sounds (decision 0076, S3’s LiveSounds)', ()
       scene: (scene, at) => void calls.push(['scene', scene, at]),
       play: (time, speed) => void calls.push(['play', time, speed]),
       commands: (scene, commands) => void calls.push(['commands', scene, commands.length]),
+      speech: (scene, spans) => void calls.push(['speech', scene, spans]),
       pause: () => void calls.push(['pause']),
       end: () => void calls.push(['end']),
       dispose: () => void calls.push(['dispose']),
@@ -443,6 +444,7 @@ describe('Rehearsal’s music and sounds (decision 0076, S3’s LiveSounds)', ()
     await rehearsal.toHere(third.id);
     expect(rehearsal.state.status).toBe('paused');
     expect(s.told('commands')).toEqual([]);
+    expect(s.told('speech')).toEqual([]);
     expect(s.told('play')).toEqual([]);
     rehearsal.play();
     const [what, time] = s.calls.at(-1)!;
@@ -465,6 +467,26 @@ describe('Rehearsal’s music and sounds (decision 0076, S3’s LiveSounds)', ()
     const ahead = rehearsal.toHere(p.program.types[0]!.methods[0]!.body[2]!.id);
     expect(wake).toHaveBeenCalledTimes(3);
     await ahead;
+  });
+
+  it('tells the player each voiced speak line as it’s known, so the music goes down (S3’s #740)', async () => {
+    const heard = say(words('Hello there'), 'speakLine');
+    const unheard = say(words('Not voiced yet'), 'speakLine');
+    const p = withSceneOne([heard, unheard]);
+    const s = player();
+    const speaker: Speaker = { start: () => {}, stop: () => {}, voiced: (n) => n === heard.id };
+    const { rehearsal, frames } = rehearse(p, speaker, s.made);
+    await rehearsal.start();
+    await frames(30);
+    expect(rehearsal.state.status).toBe('ended');
+    const line = rehearsal.state.timing!.sounds.find((t) => t.node === heard.id)!;
+    // In microseconds from the scene's start, as the commands give them; only the heard one.
+    const told = s.told('speech');
+    expect(told).toHaveLength(1);
+    expect(told[0]![1]).toBe(p.scenes[0]!.id);
+    const [span] = told[0]![2] as { start: number; end: number }[];
+    expect(span!.start).toBe(0);
+    expect(span!.end / 1e6).toBeCloseTo(line.length, 2);
   });
 
   it('rehearses anyway when the sounds can’t be read, or there’s no audio', async () => {

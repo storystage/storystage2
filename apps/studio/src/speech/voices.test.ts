@@ -179,6 +179,22 @@ describe('Voices', () => {
     expect(film.sound({ ...line, object: 'nobody' })).toBeUndefined();
   });
 
+  it('says which blocks’ lines have a sound now, for the music to go down under (S3’s #740)', async () => {
+    const f = fakes();
+    const voices = new Voices({ engine: () => f.engine, out: () => f.out, settle: 0 });
+    // Not before the lines are made: such a line is silent, so nothing goes down under it.
+    voices.update(withLines(one));
+    expect(voices.voiced(one.id)).toBe(false);
+    await settle();
+    expect(voices.voiced(one.id)).toBe(true);
+    expect(voices.voiced(nodeId('notASpeakLine'))).toBe(false);
+    const failing = fakes(true);
+    const silent = new Voices({ engine: () => failing.engine, out: () => failing.out, settle: 0 });
+    silent.update(withLines(one));
+    await settle();
+    expect(silent.voiced(one.id)).toBe(false);
+  });
+
   it('says when the lines can’t be voiced on this device, and keeps their captions', async () => {
     const f = fakes(true);
     const voices = new Voices({ engine: () => f.engine, out: () => f.out, settle: 0 });

@@ -1,10 +1,11 @@
 import { exampleProduction, SOUND_MIX_DEFAULT, type Production } from '@storystage/production';
 import { FakeAudioContext } from '@storystage/sound/fake-audio';
 import { describe, expect, it } from 'vitest';
+import { nodeId, type NodeId } from '@storystage/ast';
 import { NO_TIMINGS, withTiming } from '../production/runTiming.ts';
 import { sceneSeconds } from '../storyboard/edits.ts';
 import { FilmSounds } from './filmSounds.ts';
-import { lengthsOf, rehearseSounds, StudioSoundOut } from './rehearseSounds.ts';
+import { lengthsOf, rehearseSounds, spokenOf, StudioSoundOut } from './rehearseSounds.ts';
 
 // Rehearse's music and sounds in the studio (decision 0076, workplan 7.17; S3's LiveSounds).
 
@@ -66,6 +67,34 @@ describe('lengthsOf', () => {
     expect(lengthsOf(changed, kept).runLength(first!)).toBeNull();
     // The timeline still draws by it, so the cue carried from it is heard as drawn.
     expect(lengthsOf(changed, kept).lengthOf(first!)).toBe(2.5);
+  });
+});
+
+describe('spokenOf', () => {
+  const p = exampleProduction();
+  const [first, second] = p.manifest.runningOrder.map((s) => s.scene);
+  const [heard, unheard, sound] = [nodeId('heard'), nodeId('unheard'), nodeId('sound')];
+  const whole = {
+    whole: true,
+    length: 6,
+    sounds: [
+      { node: heard, kind: 'speech' as const, start: 0.5, length: 1.25, text: 'Hello' },
+      { node: unheard, kind: 'speech' as const, start: 2, length: 1, text: 'Not voiced' },
+      { node: sound, kind: 'sound' as const, start: 3, length: 1, ref: 'sn1' },
+    ],
+  };
+  const voiced = (node: NodeId) => node === heard;
+
+  it('gives the voiced speak lines of a scene’s last whole run, in seconds', () => {
+    const spoken = spokenOf(p, withTiming(NO_TIMINGS, p, first!, whole), voiced);
+    expect(spoken(first!)).toEqual([{ start: 0.5, end: 1.75 }]);
+    expect(spoken(second!)).toBeNull();
+  });
+
+  it('gives none from a run of code that has changed since', () => {
+    const kept = withTiming(NO_TIMINGS, p, first!, whole);
+    const changed: Production = { ...p, program: { ...p.program } };
+    expect(spokenOf(changed, kept, voiced)(first!)).toBeNull();
   });
 });
 

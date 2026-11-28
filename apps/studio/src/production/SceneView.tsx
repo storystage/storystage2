@@ -217,8 +217,14 @@ export default function SceneView(props: SceneViewProps) {
       speaker: {
         start: (node, delay) => speaker.current?.start(node, delay),
         stop: () => speaker.current?.stop(),
+        voiced: (node) => speaker.current?.voiced?.(node) ?? false,
       },
-      sounds: () => rehearseSounds(production, () => sounds.current),
+      sounds: () =>
+        rehearseSounds(
+          production,
+          () => sounds.current,
+          (node) => speaker.current?.voiced?.(node) ?? false,
+        ),
       // Within the press: the studio's audio is made here the first time, and woken after.
       wake: () => sounds.current?.out()?.wake(),
     });
@@ -468,7 +474,10 @@ export default function SceneView(props: SceneViewProps) {
           </div>
         )}
       </DropZone>
-      {/* Always there, so the Code editor below doesn't move as the stage gets ready or a run starts. */}
+      {/*
+       * Always there, so the Code editor below doesn't move as the stage gets ready or a run starts.
+       * ProductionStage's loading placeholder copies this toolbar: a control added here goes there too.
+       */}
       <div className="pr-scene-tools">
         <Segmented
           label={words.t('production.view.label')}
