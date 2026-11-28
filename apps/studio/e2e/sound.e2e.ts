@@ -419,7 +419,8 @@ test('Rehearse plays the scene’s music from its file, through its gain and the
   page,
 }) => {
   // Decision 0076 (S3's LiveSounds): each sound the page starts, by its length, how many gains it
-  // goes through to the speakers (a cue's own, then its track's), and whether its audio is running.
+  // goes through to the speakers (a cue's own, the music's lowering under speech, then its
+  // track's), and whether its audio is running.
   await page.addInitScript(() => {
     type Heard = { seconds: number; hops: number; context: BaseAudioContext };
     const started: Heard[] = [];
@@ -458,7 +459,8 @@ test('Rehearse plays the scene’s music from its file, through its gain and the
 
   const view = page.getByRole('region', { name: 'Scene view' });
   await view.getByRole('button', { name: 'Rehearse', exact: true }).click();
-  // The cue's 2 s tone starts, through its own gain and the Music track's, on running audio.
+  // The cue's 2 s tone starts, through its own gain, the lowering under speech and the Music
+  // track's, on running audio.
   const rain = () =>
     page.evaluate(() =>
       (
@@ -469,6 +471,6 @@ test('Rehearse plays the scene’s music from its file, through its gain and the
         .filter((s) => Math.abs(s.seconds - 2) < 0.01)
         .map((s) => ({ hops: s.hops, state: s.context.state })),
     );
-  await expect.poll(rain, { timeout: 15_000 }).toContainEqual({ hops: 2, state: 'running' });
+  await expect.poll(rain, { timeout: 15_000 }).toContainEqual({ hops: 3, state: 'running' });
   await view.getByRole('button', { name: 'Stop' }).click();
 });
