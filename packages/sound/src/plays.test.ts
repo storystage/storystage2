@@ -56,6 +56,48 @@ describe('musicPlays', () => {
     ]);
   });
 
+  it('fades a cue out wherever it stops, unless a crossfade takes it (the owner’s choice)', () => {
+    const p = withCues(s1, [cue(1, { loop: true, fadeOut: 2 })]);
+    const [looped] = musicPlays(p, [{ scene: s1, start: 0, length: 12 }], none);
+    // Faded to silence, so it needs no 10 ms ramp.
+    expect(looped!.gain).toEqual([
+      [1, 1],
+      [10, 1],
+      [12, 0],
+    ]);
+    const carried = withCues(s1, [cue(2, { loop: true, carriesOn: true, fadeOut: 3 })]);
+    const film = [
+      { scene: s1, start: 0, length: 12 },
+      { scene: s2, start: 12, length: 8 },
+    ];
+    expect(musicPlays(carried, film, none)[0]!.gain.slice(-2)).toEqual([
+      [17, 1],
+      [20, 0],
+    ]);
+    const taken = withCues(s1, [cue(0, { loop: true, fadeOut: 2 }), cue(5)]);
+    const [a] = musicPlays(taken, [{ scene: s1, start: 0, length: 12 }], none);
+    expect(a!.end).toBe(6);
+    expect(a!.gain.filter(([, level]) => level === 1).map(([t]) => t)).toEqual([0, 5]);
+  });
+
+  it('fades by the last whole run’s length while the scene plays, and not a cue carrying on', () => {
+    const p = withCues(s1, [cue(0, { loop: true, fadeOut: 2 })]);
+    const [live] = musicPlays(p, [{ scene: s1, start: 0, length: Infinity, expected: 8 }], none);
+    expect(live!.end).toBe(Infinity);
+    expect(live!.gain).toEqual([
+      [0, 1],
+      [6, 1],
+      [8, 0],
+    ]);
+    const on = withCues(s1, [cue(0, { loop: true, fadeOut: 2, carriesOn: true })]);
+    const [carrying] = musicPlays(
+      on,
+      [{ scene: s1, start: 0, length: Infinity, expected: 8 }],
+      none,
+    );
+    expect(carrying!.gain).toEqual([[0, 1]]);
+  });
+
   it('loops its part until the scene ends, and plays no cue that starts after it', () => {
     const p = withCues(s1, [cue(1, { loop: true, from: 1, to: 2 }), cue(20)]);
     const plays = musicPlays(p, [{ scene: s1, start: 0, length: 12 }], none);

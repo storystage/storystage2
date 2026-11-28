@@ -2,10 +2,11 @@
   "name": "@storystage/sound",
   "version": "0.0.0",
   "private": true,
-  "description": "When and how loud the film's music plays, for the Sound view's timeline, Rehearse's player and the export's mix.",
+  "description": "When and how loud the film's music plays, and Rehearse's player: for the Sound view's timeline, Rehearse and the export's mix.",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./fake-audio": "./src/fake-audio.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit -p ."

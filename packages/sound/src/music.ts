@@ -100,6 +100,13 @@ export function heardMusic(p: Production, scene: SceneId, length: SceneLength): 
     const cut = next < Math.min(own, limit);
     const end = round(Math.min(own, limit, cut ? next + MUSIC_CROSSFADE_SECONDS : Infinity));
     const until = cut ? 'next' : !cue.loop && end === round(own) ? 'own' : 'scene';
+    // The fade out ends wherever the cue stops, unless a crossfade takes it (the owner's choice,
+    // 27 Nov): its own end, or a run's end of a scene it doesn't carry on from.
+    const carries = cue.carriesOn && index === music.length - 1;
+    const fadesOut =
+      cue.fadeOut > 0 &&
+      Number.isFinite(end) &&
+      (until === 'own' || (until === 'scene' && run && !past && !carries));
     const loops: number[] = [];
     if (cue.loop && Number.isFinite(end))
       for (let t = cue.start + part; t < end - 1e-9; t += part) loops.push(round(t));
@@ -111,10 +118,7 @@ export function heardMusic(p: Production, scene: SceneId, length: SceneLength): 
       until,
       loops,
       fadeIn: cue.fadeIn > 0 ? [cue.start, round(Math.min(end, cue.start + cue.fadeIn))] : null,
-      fadeOut:
-        until === 'own' && cue.fadeOut > 0
-          ? [round(Math.max(cue.start, end - cue.fadeOut)), end]
-          : null,
+      fadeOut: fadesOut ? [round(Math.max(cue.start, end - cue.fadeOut)), end] : null,
       crossfade: cut ? [round(next), end] : null,
       crossfadeIn:
         cutBefore && !past
