@@ -506,13 +506,17 @@ export default function SceneView(props: SceneViewProps) {
             {words.t('production.fromStoryboard.button')}
           </Button>
         )}
-        {shot && (
-          <p className="pr-in-shot">
-            {shot.length > 0
+        {/*
+         * Its own line from the start, empty until the set-up is shown: appearing later, it pushed
+         * everything below down, under a click on the way (a CI run of #739).
+         */}
+        <p className="pr-in-shot">
+          {shot === null
+            ? ''
+            : shot.length > 0
               ? words.t('production.view.inShot', { names: shot.join(', ') })
               : words.t('production.view.inShotNone')}
-          </p>
-        )}
+        </p>
       </div>
       {/* Move the view: always there, so nothing below moves as the stage gets ready. */}
       <ViewPad

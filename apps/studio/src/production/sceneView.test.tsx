@@ -206,6 +206,30 @@ describe('Rehearse (07-ux 7.4)', () => {
     });
   });
 
+  it('keeps In this shot’s line before the stage is ready, so nothing below moves', async () => {
+    // A click on the Code switch was lost in CI as the line appeared and pushed it down (#739).
+    const never: StageMaker = () => new Promise<never>(() => {});
+    const p = exampleProduction();
+    render(
+      <ThemeRoot>
+        <ProductionStage
+          production={p}
+          scene={p.scenes[0]!.id}
+          host={host}
+          onGoToStoryboard={() => {}}
+          announcement=""
+          models={models}
+          onAnnounce={() => {}}
+          makeStage={never}
+        />
+      </ThemeRoot>,
+    );
+    await screen.findByRole('radiogroup', { name: 'View' });
+    const line = document.querySelector('.pr-in-shot');
+    expect(line).not.toBeNull();
+    expect(line!.textContent).toBe('');
+  });
+
   it('stops when the code changes while it runs, and says so', async () => {
     const user = userEvent.setup();
     const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);
