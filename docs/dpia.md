@@ -33,7 +33,7 @@ StoryStage is designed to process almost everything **on the device**. There are
 | F6 | **Speech output** | Text to be read aloud | The device's own voices only (voices marked `localService`) | When text is read aloud | Specified (14.2) |
 | F7 | **Recorded lines** | The learner's recorded voice, for lines they choose to record | Inside the production file (spec 03 §1) | Release 1.2 (14.4), not the first release | Later |
 | F8 | **Study logs** | A random id per session; which editor, switches, time per study task, errors, undos, help requests, and answers to two short questions per task. No names, program content, camera or voice | On the device until the teacher exports them as a file, then to the study team | Pilot schools only, when a school switches the study on (`study.enabled`) | Specified (7.13); spec 14 §5 not yet written |
-| F9 | **Report a problem** | Scrubbed logs, the self-test result, versions, the policy in force | A file on the device that the teacher may attach to an email to the feedback address; the triager files an anonymised GitHub issue (decision 0063, `docs/feedback.md`) | When a teacher asks | Specified (18.5); the address and its mail host: **open** (owner) |
+| F9 | **Report a problem** | Scrubbed logs, the self-test result, versions, the policy in force | A file on the device that the teacher may attach to an email to the feedback address; the triager files an anonymised GitHub issue (decision 0063, `docs/feedback.md`) | When a teacher asks | Specified (18.5). **The address is live** (owner, 28 Nov 2026): `feedback@storystage.org`, forwarded by Bluehost to the project's Microsoft 365 mailbox; replies are sent as that address |
 | F10 | **Settings, policy and counters** | The class's settings, the policy in force, the day's Prompter count, the update rollout bucket | The device only | Always | Specified (spec 05) |
 | F11 | **Update checks** | None about the learner. The request reveals the device's IP address | **Leaves the device:** GitHub Releases (decision 0047), once a day at most | Desktop apps, unless the school sets `update.channel=off` | Specified (spec 05 §4) |
 | F12 | **App stores** | What Apple and Google collect as stores | Apple and Google, under their own terms | When the app is installed or updated | Outside StoryStage's control |
@@ -92,7 +92,8 @@ StoryStage is designed to process almost everything **on the device**. There are
 | **A parent** using StoryStage at home | Likely within the household exemption | Their own family's use |
 | **The StoryStage project** (today the owner, trading as StoryStage; who runs it after the pilot is open) | Controller | The website (F13), update checks (F11), the feedback mailbox (F9), and the editor study's data once received (F8) |
 | **The StoryStage project** | Designer and provider | The design of everything else. It receives none of that data, but it decides what the app does with it, so it carries the duty to build privacy in: this DPIA |
-| **Bluehost (Newfold Digital), GitHub (Microsoft)** | Processors or independent controllers of their own logs, per their terms | GitHub: F5 (the optional model) and F11; Bluehost: F13 |
+| **Bluehost (Newfold Digital), GitHub (Microsoft)** | Processors or independent controllers of their own logs, per their terms | GitHub: F5 (the optional model) and F11; Bluehost: F13, and forwarding the project's email (F9) |
+| **Microsoft (Microsoft 365)** | The project's processor, under Microsoft's Products and Services Data Protection Addendum | F9: the mailbox that holds feedback emails, and the code of conduct's reports |
 | **Apple, Google** | Independent controllers | F12 |
 | **Google, Microsoft** (Drive, OneDrive) | The school's processors, under the school's existing agreements; StoryStage only saves files there through the system's file picker, with no sign-in of its own (0065) | F1, when a teacher chooses them |
 
@@ -155,7 +156,7 @@ Because StoryStage holds nothing centrally, most rights are exercised **on the d
 - **Access, erasure, rectification:** the learner, teacher or parent opens, edits or deletes the production file. Requests about pupils' data go to the school as controller.
 - **Prompter requests:** the key holder deals with Anthropic, under their account.
 - **Study logs:** they are pseudonymous, and the study team can't link a log to a child without the session id. The information sheet (19.6) says how to withdraw: the teacher can delete a pupil's sessions before export, and, if the school keeps a key between session ids and pupils, the study team deletes on request.
-- **Website and feedback:** the contact address (**open**).
+- **Website and feedback:** `feedback@storystage.org`.
 - **Complaints:** the ICO.
 
 ### 4.6 Transfers outside the UK
@@ -163,10 +164,11 @@ Because StoryStage holds nothing centrally, most rights are exercised **on the d
 - **Anthropic** (US): a restricted transfer, made by the key holder's organisation. It relies on Anthropic's terms and data processing addendum. **To check** (Q7): the transfer mechanism (the UK Extension to the EU–US Data Privacy Framework, or the IDTA or UK Addendum in Anthropic's DPA), and say which in the privacy notice.
 - **GitHub** (US) for update checks: IP addresses only.
 - **Bluehost:** **to check** where it hosts `storystage.org` (Q8).
+- **Microsoft 365:** **to check** where the project's mailbox is stored (the tenant's data location, Q8).
 
 ### 4.7 Processors and suppliers
 
-Each must be named in the privacy notice: Anthropic (F2), Bluehost (F13), GitHub (F11), Poly Pizza only if search is switched on (F14), and Google or Microsoft only as the school's own storage, when a teacher collects work there (F1).
+Each must be named in the privacy notice: Anthropic (F2), Bluehost (F13, and forwarding email), Microsoft 365 (the feedback mailbox, F9), GitHub (F11), Poly Pizza only if search is switched on (F14), and Google or Microsoft only as the school's own storage, when a teacher collects work there (F1).
 
 ## 5. Risks
 
@@ -256,7 +258,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | Q5 | *Decided by the owner (0065): pupil folders on the device, and files through the school's own storage.* For advice: does accepting PS2 (R17) on shared desktop logins need anything more from schools than the teacher guide's recommendation of per-pupil sign-in? |
 | Q6 | How the Prompter reaches a group (24.3): what changes for the DPIA under option B (the classroom relay) or C (keys on devices)? |
 | Q7 | Anthropic: how long it keeps API inputs and outputs under the current Commercial Terms, and which UK transfer mechanism its DPA uses. |
-| Q8 | Bluehost and GitHub: where the logs are held, for how long, and under which terms. |
+| Q8 | Bluehost, GitHub and Microsoft 365: where the logs and the feedback mailbox are held, for how long, and under which terms. |
 | Q9 | *Answered:* the default speech model ships inside the app (decision 0057); the optional larger model downloads on request from a GitHub release on the update host (decision 0061, spec 05 §5.3), so no new third party is added. |
 | Q10 | With R1 at medium after measures, is prior consultation with the ICO needed? |
 | Q11 | The Data (Use and Access) Act 2025's changes for services likely to be used by children: has anything commenced that changes this assessment? |
@@ -280,7 +282,7 @@ Likelihood and severity before the measures in section 6: **remote**, **possible
 | 12 | **Profiling:** off by default | None at all | None |
 | 13 | **Nudge techniques:** don't nudge children to give more data or weaken protections | No dark patterns; "Skip" is always offered in set-up; nothing rewards using the Prompter | S5 to keep the set-up's Skip as visible as Continue |
 | 14 | **Connected toys and devices** | Not applicable | None |
-| 15 | **Online tools:** help children exercise their rights and report concerns | Report a problem (18.5); the teacher guide's safeguarding steps; a contact address (**open**) | Owner: set up the feedback address (decision 0063) |
+| 15 | **Online tools:** help children exercise their rights and report concerns | Report a problem (18.5); the project's safeguarding steps (`docs/feedback.md` §7) and the teacher guide's; `feedback@storystage.org` (live, 28 Nov 2026) | Owner: approve the safeguarding steps (#750) |
 
 ## Annex B: the United States (decision 0043)
 
