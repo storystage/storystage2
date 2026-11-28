@@ -219,6 +219,8 @@ export default function SceneView(props: SceneViewProps) {
         stop: () => speaker.current?.stop(),
       },
       sounds: () => rehearseSounds(production, () => sounds.current),
+      // Within the press: the studio's audio is made here the first time, and woken after.
+      wake: () => sounds.current?.out()?.wake(),
     });
     const before = changed.current;
     if (before?.running && before.scene === scene)

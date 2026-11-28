@@ -38,6 +38,7 @@ function rehearse(
   production: Production,
   speaker?: Speaker,
   sounds?: () => RehearsalSounds | null,
+  wake?: () => void,
 ) {
   const stage = new FakeStage();
   let ms = 0;
@@ -49,6 +50,7 @@ function rehearse(
     wall: () => ms,
     ...(speaker ? { speaker } : {}),
     ...(sounds ? { sounds } : {}),
+    ...(wake ? { wake } : {}),
     startWorker: () => {
       const { main, worker } = inMemoryPorts();
       const timers: Timers = { now: () => 0, every: () => () => undefined };
@@ -446,6 +448,23 @@ describe('Rehearsal’s music and sounds (decision 0076, S3’s LiveSounds)', ()
     const [what, time] = s.calls.at(-1)!;
     expect(what).toBe('play');
     expect(time).toBeGreaterThan(0);
+  });
+
+  it('wakes the audio within the press, before it waits for anything (Safari, S3)', async () => {
+    const wake = vi.fn();
+    const p = withSceneOne([say(words('One')), say(words('Two')), say(words('Three'))]);
+    const { rehearsal, frames } = rehearse(p, undefined, undefined, wake);
+    const started = rehearsal.start();
+    expect(wake).toHaveBeenCalledTimes(1);
+    await started;
+    await frames(0.2);
+    rehearsal.pause();
+    rehearsal.play();
+    // Play is a press too, after which Safari may have suspended the audio (a call, Siri).
+    expect(wake).toHaveBeenCalledTimes(2);
+    const ahead = rehearsal.toHere(p.program.types[0]!.methods[0]!.body[2]!.id);
+    expect(wake).toHaveBeenCalledTimes(3);
+    await ahead;
   });
 
   it('rehearses anyway when the sounds can’t be read, or there’s no audio', async () => {
