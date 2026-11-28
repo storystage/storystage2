@@ -2,6 +2,17 @@
 
 The versions of the `.storystage` file (`formatVersion` in `manifest.json`), newest first. The promise behind them is in `docs/spec/03-production-format.md`, section 1.2. The program inside has its own versions: `packages/ast/CHANGELOG.md`.
 
+## 1.11.0
+
+Where an imported sound came from (spec 03 section 1.7; the owner's choice of 28 Nov 2026, on S2's question in reviewing spec 17 section 2b, with S2 and S5). An older file opens, is migrated, and keeps its original.
+
+- `SoundClip` gains `licence` and `credit`, required, and `source`, a page required for the CC licences and optional for "I made it" and "not sure". The licence is one an import may have (`IMPORT_LICENCES`), never a shipped item's own.
+- `licensedSound` gives a clip its licence from the learner's answers on the licence step, with the credit made from its label. A CC BY clip trimmed shorter than its file is credited as changed. `withSoundLicence` changes a clip's licence in the production, one undo step. `SOUND_LICENCE_PROBLEMS` gives the step's words.
+- `importSound` gives a new clip "not sure" until the licence step says.
+- The rules are shared with a model's import: `captureLicence`, `LICENCE_CHOICES`, `needsSourcePage` and `webPage` move into `@storystage/backstage` (`licence-capture.ts`), and `@storystage/backstage-import` keeps `licenceRecord` and the model's words.
+- `checkReferences` checks each clip's licence, that it has a credit line of up to 400 characters, and its page. The credit can't be made again from the file, since a maker's name is only in it, as for a model.
+- **The migration** gives each clip of a 1.10.0 file "not sure" and the credit "<label>, source not checked", so the film shows in school and its maker sets the licence before Export for distribution (`mayDistribute`).
+
 ## 1.10.0
 
 3D text is `TextModel` in code, as `Text` is words (spec 02 section 1, rule 3; the owner's choice of 22 Nov 2026, from S6's review of #642, with S6 and S7; spec 03 sections 1.2 and 2.1). An older file opens, is migrated, and keeps its original.

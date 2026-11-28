@@ -5,7 +5,9 @@ import { openProduction, saveProduction } from './file.ts';
 import { ProductionSession } from './session.ts';
 import {
   importSound,
+  licensedSound,
   mixOf,
+  SOUND_LICENCE_PROBLEMS,
   SOUND_LIMITS,
   SOUND_MIX_DEFAULT,
   SOUND_REFUSALS,
@@ -14,6 +16,7 @@ import {
   withoutSound,
   withSceneMusic,
   withSound,
+  withSoundLicence,
 } from './sound.ts';
 import { checkReferences, type MusicCue, type Production, type SoundClip } from './types.ts';
 
@@ -39,6 +42,8 @@ const clip: SoundClip = {
   length: 12,
   bytes: wav.length,
   trim: { start: 2, end: 10 },
+  licence: 'not-sure' as const,
+  credit: 'A sound, source not checked',
 };
 const cue = (over: Partial<MusicCue> = {}): MusicCue => ({
   sound: 'sn1',
@@ -129,6 +134,8 @@ describe('importSound', () => {
         length: 30,
         bytes: mp3Id3.length,
         trim: { start: 0, end: 30 },
+        licence: 'not-sure' as const,
+        credit: 'Rain on the roof, source not checked',
       },
       bytes: mp3Id3,
     });
@@ -284,6 +291,164 @@ describe('sound in a film (format 1.9.0)', () => {
       }),
     );
     expect(openProduction(old)).toMatchObject({ status: 'migrated', original: old });
+  });
+});
+
+describe('where an imported sound came from (format 1.11.0; the owner, 28 Nov 2026)', () => {
+  const files = { audio: new Map(), models: new Map(), sounds: new Map([['sounds/sn1.wav', wav]]) };
+  const whole = { ...clip, trim: { start: 0, end: clip.length } };
+
+  it('imports a sound as "not sure", credited by its name, until the licence step says', async () => {
+    const picked = await importSound(
+      p,
+      { name: 'Birdsong.wav', size: wav.length, read: async () => wav },
+      async () => 12,
+    );
+    expect(picked).toMatchObject({
+      ok: true,
+      clip: { licence: 'not-sure', credit: 'Birdsong, source not checked' },
+    });
+  });
+
+  it('credits a CC BY clip as changed only when its trim is shorter than its file', () => {
+    const answers = {
+      choice: 'CC BY',
+      sourceUrl: 'https://example.org/birds',
+      maker: 'A. Maker',
+    } as const;
+    expect(licensedSound(clip, answers)).toEqual({
+      ok: true,
+      clip: {
+        ...clip,
+        licence: 'CC-BY-4.0',
+        credit: 'Birdsong by A. Maker, CC BY 4.0, changed for StoryStage',
+        source: { url: 'https://example.org/birds' },
+      },
+    });
+    expect(licensedSound(whole, answers)).toMatchObject({
+      clip: { credit: 'Birdsong by A. Maker, CC BY 4.0' },
+    });
+    // A hair from the file's ends, as decoding and the handles leave it, is still the whole file.
+    const nearly = { ...clip, length: 2.00042, trim: { start: 0.004, end: 2 } };
+    expect(licensedSound(nearly, answers)).toMatchObject({
+      clip: { credit: 'Birdsong by A. Maker, CC BY 4.0' },
+    });
+    const cut = { ...clip, length: 2.00042, trim: { start: 0, end: 1.98 } };
+    expect(licensedSound(cut, answers)).toMatchObject({
+      clip: { credit: 'Birdsong by A. Maker, CC BY 4.0, changed for StoryStage' },
+    });
+  });
+
+  it('needs a page for the CC licences, and none for "not sure" or "I made it"', () => {
+    expect(licensedSound(clip, { choice: 'CC0' })).toEqual({
+      ok: false,
+      problems: ['needsSource'],
+    });
+    expect(licensedSound(clip, { choice: 'not-sure' })).toMatchObject({
+      ok: true,
+      clip: { licence: 'not-sure', credit: 'Birdsong, source not checked' },
+    });
+    const own = licensedSound(
+      { ...clip, source: { url: 'https://example.org/old' } },
+      { choice: 'own-work', maker: 'Sam' },
+    );
+    // A learner's name is never put in a credit, and the old page goes with the old licence.
+    expect(own).toEqual({
+      ok: true,
+      clip: { ...clip, licence: 'own-work', credit: 'Birdsong, made by our class' },
+    });
+    for (const problem of ['needsSource', 'badSource', 'needsMaker', 'needsName'] as const)
+      expect(SOUND_LICENCE_PROBLEMS[problem]).toBeTruthy();
+  });
+
+  it('changes a clip’s licence in one pure step, or gives the problems', () => {
+    const film = withSound(p, clip);
+    const changed = withSoundLicence(film, 'sn1', {
+      choice: 'CC0',
+      sourceUrl: 'https://example.org/birds',
+    });
+    expect(changed).toMatchObject({ ok: true });
+    if (!changed.ok) return;
+    expect(changed.production.manifest.sounds).toEqual([
+      {
+        ...clip,
+        licence: 'CC0-1.0',
+        credit: 'Birdsong (CC0)',
+        source: { url: 'https://example.org/birds' },
+      },
+    ]);
+    expect(film.manifest.sounds).toEqual([clip]);
+    expect(withSoundLicence(film, 'sn1', { choice: 'CC BY' })).toEqual({
+      ok: false,
+      problems: ['needsMaker', 'needsSource'],
+    });
+    expect(withSoundLicence(film, 'sn9', { choice: 'not-sure' })).toEqual({
+      ok: true,
+      production: film,
+    });
+  });
+
+  it('checks the licence is an import’s, the credit is there, and the page', () => {
+    for (const [bad, problem] of [
+      [{ ...clip, licence: 'permission' }, /licence should be one an import may have/],
+      [{ ...clip, credit: ' ' }, /credit line/],
+      [{ ...clip, licence: 'CC0-1.0' }, /needs the page it came from/],
+      [{ ...clip, source: { url: 'file:///C:/birds.wav' } }, /page should be a web address/],
+    ] as const)
+      expect(checkReferences(withSound(p, bad as SoundClip)).join('\n')).toMatch(problem);
+    expect(checkReferences(withSound(p, clip))).toEqual([]);
+  });
+
+  it('keeps where it came from through a save and an open', () => {
+    const made = licensedSound(clip, {
+      choice: 'CC BY-NC',
+      sourceUrl: 'https://example.org/b',
+      maker: 'Jo',
+    });
+    if (!made.ok) throw new Error('not licensed');
+    const film = withSound(p, made.clip);
+    const opened = openProduction(saveProduction(film, files));
+    expect(opened.status).toBe('ok');
+    if (opened.status === 'broken') return;
+    expect(opened.production.manifest.sounds).toEqual([made.clip]);
+  });
+
+  const asVersion = (
+    film: Production,
+    version: string,
+    edit: (c: Record<string, unknown>) => unknown,
+  ) => {
+    const read = readArchive(saveProduction(film, files), { wanted: () => true });
+    if (!read.ok) throw new Error(read.problem.code);
+    return writeArchive(
+      read.names.map((name) => {
+        const bytes = read.entries.get(name)!;
+        if (name !== 'manifest.json') return { name, bytes };
+        const m = JSON.parse(new TextDecoder().decode(bytes)) as Record<string, unknown>;
+        const sounds = (m.sounds as Record<string, unknown>[]).map(edit);
+        return {
+          name,
+          bytes: new TextEncoder().encode(JSON.stringify({ ...m, formatVersion: version, sounds })),
+        };
+      }),
+    );
+  };
+  const without = ({ licence: _l, credit: _c, source: _s, ...rest }: Record<string, unknown>) =>
+    rest;
+
+  it('opens a 1.10.0 file with each clip "not sure", credited by its name', () => {
+    const old = asVersion(withSound(p, clip), '1.10.0', without);
+    const opened = openProduction(old);
+    expect(opened).toMatchObject({ status: 'migrated', original: old });
+    if (opened.status === 'broken') return;
+    expect(opened.production.manifest.sounds).toEqual([
+      { ...clip, licence: 'not-sure', credit: 'Birdsong, source not checked' },
+    ]);
+  });
+
+  it('calls a 1.11.0 file damaged when a clip doesn’t say where it came from', () => {
+    const opened = openProduction(asVersion(withSound(p, clip), '1.11.0', without));
+    expect(opened.status).toBe('broken');
   });
 });
 

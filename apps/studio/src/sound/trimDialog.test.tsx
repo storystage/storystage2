@@ -15,6 +15,8 @@ const CLIP: SoundClip = {
   length: 12,
   bytes: 3,
   trim: { start: 0, end: 12 },
+  licence: 'not-sure' as const,
+  credit: 'A sound, source not checked',
 };
 
 function open(overrides: { player?: SoundPlayer } = {}) {
@@ -123,6 +125,8 @@ describe('TrimDialog', () => {
       ...CLIP,
       label: 'Heavy rain',
       trim: { start: 0, end: 11 },
+      licence: 'not-sure' as const,
+      credit: 'A sound, source not checked',
     });
     expect(player.stop).toHaveBeenCalled();
   });

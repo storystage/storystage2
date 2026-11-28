@@ -10,6 +10,8 @@ export const RAIN: SoundClip = {
   length: 10,
   bytes: 1_572_864,
   trim: { start: 2, end: 5.5 },
+  licence: 'not-sure' as const,
+  credit: 'A sound, source not checked',
 };
 
 /** The example production with the fox playing `sound` at the end of scene 2's script. */

@@ -35,6 +35,8 @@ function filmWithOwl() {
     length: 2,
     bytes: owl.length,
     trim: { start: 0, end: 2 },
+    licence: 'not-sure' as const,
+    credit: 'A sound, source not checked',
   });
   const files = {
     audio: new Map(),

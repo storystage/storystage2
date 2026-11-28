@@ -508,6 +508,8 @@ describe('ScreeningTab', () => {
       length: 2,
       bytes: 4,
       trim: { start: 0, end: 1 },
+      licence: 'not-sure' as const,
+      credit: 'A sound, source not checked',
     };
     const p = withSound(exampleProduction(), clip);
     const [type1, ...types] = p.program.types;

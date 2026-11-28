@@ -133,6 +133,8 @@ describe('My films (07-ux 9.1)', () => {
         length: 2,
         bytes: owl.length,
         trim: { start: 0, end: 2 },
+        licence: 'not-sure' as const,
+        credit: 'A sound, source not checked',
       },
     );
     const files = { ...NO_FILES, sounds: new Map([['sounds/sn1.mp3', owl]]) };

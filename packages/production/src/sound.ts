@@ -7,6 +7,7 @@
  * Importing never trusts the file: its size is checked before it's read, its type from its first
  * bytes whatever its name says, and its length as the device decodes it.
  */
+import { captureLicence, type LicenceAnswers, type LicenceProblem } from '@storystage/backstage';
 import type { MusicCue, Production, SoundClip, SoundMix } from './types.ts';
 
 /** The types a sound may be, by file extension, with the media type it's served as. */
@@ -93,13 +94,22 @@ export const SOUND_REFUSALS = {
   filmFull: "This film has all the imported sound it can hold. Remove a sound you don't use first.",
 } as const;
 
+/** In plain words, for the sound import's licence step (spec 03, section 1.7; 07-ux, S5). */
+export const SOUND_LICENCE_PROBLEMS: Readonly<Record<LicenceProblem, string>> = {
+  needsSource: "Paste the address of the sound's own page, where you found it.",
+  badSource: "That doesn't look like a web page's address. It should start with https://.",
+  needsMaker:
+    'This licence asks you to name who made the sound. Their name is usually on its page.',
+  needsName: 'Give the sound a name first.',
+};
+
 export type SoundImport =
   | { readonly ok: true; readonly clip: SoundClip; readonly bytes: Uint8Array }
   | { readonly ok: false; readonly message: string };
 
 /**
  * A picked file, ready for the trim dialog: a clip with the next free id and the whole file as its
- * trim, or a refusal. The size is checked before `read`, then the type from the bytes, then
+ * trim, "not sure" where it came from until `licensedSound` says, or a refusal. The size is checked before `read`, then the type from the bytes, then
  * `measure` decodes it on this device and gives its length in seconds, throwing if it can't.
  * `withSound` then adds it, with the trim the learner chose.
  */
@@ -150,9 +160,60 @@ export async function importSound(
       length,
       bytes: bytes.length,
       trim: { start: 0, end: length },
+      licence: 'not-sure',
+      credit: `${label}, source not checked`,
     },
     bytes,
   };
+}
+
+/**
+ * How near a file's ends a trim can be and still be the whole file, in seconds (S2's review): the
+ * length is as the device decoded it, and the trim as the dialog's handles left it.
+ */
+export const TRIM_UNCHANGED = 0.01;
+
+/**
+ * `clip` with where it came from, from the learner's answers on the licence step, with its credit
+ * made from them and its label (spec 03, section 1.7; spec 17, section 6). A clip trimmed shorter
+ * than its file is changed, so a CC BY credit says so. The Sound view gives it once the label is
+ * final, after it's made free in the film and before `withSound` (S5).
+ */
+export function licensedSound(
+  clip: SoundClip,
+  answers: LicenceAnswers,
+):
+  | { readonly ok: true; readonly clip: SoundClip }
+  | { readonly ok: false; readonly problems: readonly LicenceProblem[] } {
+  const trimmed = clip.trim.start > TRIM_UNCHANGED || clip.trim.end < clip.length - TRIM_UNCHANGED;
+  const made = captureLicence(clip.label, answers, trimmed);
+  if (!made.ok) return made;
+  const { licence, credit, source } = made.record;
+  const next: { -readonly [K in keyof SoundClip]: SoundClip[K] } = { ...clip, licence, credit };
+  // The page goes with the licence it was given for.
+  if (source) next.source = { url: source.url };
+  else delete next.source;
+  return { ok: true, clip: next };
+}
+
+/**
+ * The production with clip `id`'s licence changed (`withSoundLicence`, "Change where Birdsong
+ * came from", one undo step), or the problems with the answers. A pure change. The production is
+ * returned as it was if it has no clip `id`.
+ */
+export function withSoundLicence(
+  p: Production,
+  id: string,
+  answers: LicenceAnswers,
+):
+  | { readonly ok: true; readonly production: Production }
+  | { readonly ok: false; readonly problems: readonly LicenceProblem[] } {
+  const clip = (p.manifest.sounds ?? []).find((c) => c.id === id);
+  if (!clip) return { ok: true, production: p };
+  const made = licensedSound(clip, answers);
+  if (!made.ok) return made;
+  const sounds = (p.manifest.sounds ?? []).map((c) => (c.id === id ? made.clip : c));
+  return { ok: true, production: { ...p, manifest: { ...p.manifest, sounds } } };
 }
 
 /** The production with `clip` added, or replaced if its id is there. A pure change. */

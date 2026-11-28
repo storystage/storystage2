@@ -374,6 +374,8 @@ function playing(): Production {
     length: 4,
     bytes: 1000,
     trim: { start: 0, end: 1 },
+    licence: 'not-sure' as const,
+    credit: 'A sound, source not checked',
   };
   const p = withSound(exampleProduction(), clip);
   const [type1, ...types] = p.program.types;
