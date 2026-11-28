@@ -124,7 +124,9 @@ describe('TimingRecorder', () => {
         cmd(0, 3, { object: 'cat', kind: 'say', text: 'Hello there', bubble: 'caption' }),
       ),
     );
-    r.hear(ran([nodeId('change1'), 1]));
+    r.hear(ran([nodeId('change1'), 1], [knock, 1]));
+    // A sound in a do together with the change starts as the scene ends: it isn't heard.
+    r.hear(commands(cmd(1, 0.75, { object: 'dog', kind: 'sound', sound: 'sn1', node: knock })));
     r.hear({ kind: 'next', heading: 'Scene 2' } as PlaybackEvent);
     expect(r.timing).toEqual({
       whole: true,
@@ -149,6 +151,26 @@ describe('TimingRecorder', () => {
     failed.hear({ kind: 'finished', scene: s1, at: micros(1) });
     failed.hear({ kind: 'fault', message: 'Too many scenes' } as PlaybackEvent);
     expect(failed.stopped(micros(5))).toBe(false);
+  });
+
+  it('pairs two speak lines on one speaker at once by the block each caption names', () => {
+    const other = nodeId('speak2');
+    const r = new TimingRecorder(s1, [
+      { node: speak, scene: s1, object: 'cat', text: 'One' },
+      { node: other, scene: s1, object: 'cat', text: 'Two' },
+    ]);
+    r.hear(ran([speak, 0], [other, 0]));
+    // The second block's caption comes first: each still goes to its own block.
+    r.hear(
+      commands(
+        cmd(0, 2, { object: 'cat', kind: 'say', text: 'Two', bubble: 'caption', node: other }),
+        cmd(0, 1, { object: 'cat', kind: 'say', text: 'One', bubble: 'caption', node: speak }),
+      ),
+    );
+    expect(r.timing.sounds.map((s) => [s.node, s.text])).toEqual([
+      [other, 'Two'],
+      [speak, 'One'],
+    ]);
   });
 
   it('leaves out a caption with no speak line, and another scene’s events', () => {

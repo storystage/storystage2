@@ -148,8 +148,12 @@ export class TimingRecorder {
               ...(c.missing ? { missing: true as const } : {}),
             });
           else if (c.kind === 'say' && c.bubble === 'caption') {
-            // A speak line's caption starts as its block does.
-            const i = this.pending.findIndex((p) => p.object === c.object && p.at === c.start);
+            // A caption names its block (S3's #717); one that doesn't is its speaker's line that
+            // started then, as a caption starts as its block does.
+            const i =
+              c.node !== undefined
+                ? this.pending.findIndex((p) => p.node === c.node)
+                : this.pending.findIndex((p) => p.object === c.object && p.at === c.start);
             if (i < 0) continue;
             const [line] = this.pending.splice(i, 1);
             this.sounds.push({
@@ -197,7 +201,8 @@ export class TimingRecorder {
       cut === null
         ? [...this.sounds]
         : this.sounds
-            .filter((s) => s.start <= seconds(cut))
+            // One starting at the cut, in a do together with the change, isn't heard (S3).
+            .filter((s) => s.start < seconds(cut))
             .map((s) =>
               s.start + s.length > seconds(cut)
                 ? { ...s, length: Math.round((seconds(cut) - s.start) * 1000) / 1000 }

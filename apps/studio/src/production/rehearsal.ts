@@ -47,7 +47,8 @@ export interface RehearsalState {
   readonly speech: readonly Said[];
   /**
    * This run's timing so far, for the Sound view's ruler (section 7.7): how long the scene ran and
-   * where each speak line and sound played. `null` before a run.
+   * where each speak line and sound played. `null` before a run; after Stop, kept only if the run
+   * was whole, so it can still be read once Stop has put the set-up back.
    */
   readonly timing: RunTiming | null;
 }
@@ -214,7 +215,8 @@ export class Rehearsal {
       this.options.stage.seek(0);
     } else await this.showSetup();
     playback?.dispose();
-    this.set({ ...IDLE, speed: this.current.speed });
+    const timing = this.current.timing?.whole ? this.current.timing : null;
+    this.set({ ...IDLE, speed: this.current.speed, timing });
   }
 
   /** Lets the worker go: for when the scene view closes. The stage is the view's to dispose. */

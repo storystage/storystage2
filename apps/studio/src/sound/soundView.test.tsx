@@ -390,6 +390,20 @@ describe('SoundView: the timeline', () => {
     ]);
   });
 
+  it('draws the crossfade on the cue coming in, which is drawn over the one going out', () => {
+    // Rain at 1 is cut by Rain at 3, and plays on under it for a second (S3's #716).
+    open(withRain([rainAt(1), rainAt(3)]));
+    const [going, coming] = within(musicTrack()).getAllByRole('button');
+    const corners = (bar: HTMLElement) =>
+      bar.querySelector('.sd-envelope-fill')!.getAttribute('points')!.split(' ');
+    // The one coming in rises from nothing over that second, with the one going out falling across it.
+    expect(corners(coming!)[0]).toBe('0,100');
+    expect(coming!.querySelector('.sd-envelope-cross')).not.toBeNull();
+    // The one going out starts at its full height and has no crossfade line of its own.
+    expect(corners(going!)[0]).not.toBe('0,100');
+    expect(going!.querySelector('.sd-envelope-cross')).toBeNull();
+  });
+
   it('reads Missing sound for a cue whose sound the film hasn’t got', () => {
     const p = withRain([rainAt(0)]);
     open({ ...p, manifest: { ...p.manifest, sounds: [] } } as Production);

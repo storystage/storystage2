@@ -671,11 +671,13 @@ function gripsOf(h: HeardCue, width: number, px: number, clip: SoundClip | null)
     },
     { grip: 'fadeIn', left: x(c.fadeIn), value: c.fadeIn, min: 0, max: tenth(part) },
   ];
-  // A fade out is heard only when the cue ends by itself.
-  if (h.until === 'own')
+  // The fade out's corner, wherever it's heard: as the cue ends by itself, or where the scene stops
+  // it (the owner's choice, 27 Nov). A drag moves it by how far it goes, so only its place moves.
+  // With no fade yet it sits at the cue's own end, where one starts from.
+  if (h.fadeOut || h.until === 'own')
     all.push({
       grip: 'fadeOut',
-      left: x(part - c.fadeOut),
+      left: h.fadeOut ? x(h.fadeOut[0] - h.start) : x(part - c.fadeOut),
       value: c.fadeOut,
       min: 0,
       max: tenth(part),
@@ -800,8 +802,10 @@ function Envelope({ cue: h, px }: { cue: HeardCue; px: number }) {
   const w = Math.max(1, (h.end - h.start) * px);
   const x = (t: number) => (t - h.start) * px;
   const top = 100 - Math.max(0.15, h.cue.volume) * 80;
-  const points: [number, number][] = [[0, h.fadeIn ? 100 : top]];
-  if (h.fadeIn) points.push([x(h.fadeIn[1]), top]);
+  // It comes in by its own fade in, or under the cue before as they crossfade: the later of the two.
+  const up = Math.max(h.fadeIn?.[1] ?? h.start, h.crossfadeIn?.[1] ?? h.start);
+  const points: [number, number][] = [[0, up > h.start ? 100 : top]];
+  if (up > h.start) points.push([x(up), top]);
   const down = h.fadeOut ?? h.crossfade;
   if (down) points.push([x(down[0]), top], [x(down[1]), 100]);
   else points.push([w, top]);
@@ -818,13 +822,17 @@ function Envelope({ cue: h, px }: { cue: HeardCue; px: number }) {
         className="sd-envelope-fill"
         points={points.map(([a, b]) => `${a},${b}`).join(' ')}
       />
-      {h.crossfade && (
+      {/*
+       * The crossfade, drawn on the cue coming in, which is drawn over the one going out: a
+       * dashed line for the cue before fading out under its rise (07-ux 7.7; S3's #716).
+       */}
+      {h.crossfadeIn && (
         <line
           className="sd-envelope-cross"
-          x1={x(h.crossfade[0])}
-          y1={100}
-          x2={x(h.crossfade[1])}
-          y2={top}
+          x1={x(h.crossfadeIn[0])}
+          y1={top}
+          x2={x(h.crossfadeIn[1])}
+          y2={100}
         />
       )}
       {h.loops.map((t) => (
