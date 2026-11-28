@@ -168,6 +168,12 @@ export async function importSound(
 }
 
 /**
+ * How near a file's ends a trim can be and still be the whole file, in seconds (S2's review): the
+ * length is as the device decoded it, and the trim as the dialog's handles left it.
+ */
+export const TRIM_UNCHANGED = 0.01;
+
+/**
  * `clip` with where it came from, from the learner's answers on the licence step, with its credit
  * made from them and its label (spec 03, section 1.7; spec 17, section 6). A clip trimmed shorter
  * than its file is changed, so a CC BY credit says so. The Sound view gives it once the label is
@@ -179,7 +185,7 @@ export function licensedSound(
 ):
   | { readonly ok: true; readonly clip: SoundClip }
   | { readonly ok: false; readonly problems: readonly LicenceProblem[] } {
-  const trimmed = clip.trim.start > 0 || clip.trim.end < clip.length;
+  const trimmed = clip.trim.start > TRIM_UNCHANGED || clip.trim.end < clip.length - TRIM_UNCHANGED;
   const made = captureLicence(clip.label, answers, trimmed);
   if (!made.ok) return made;
   const { licence, credit, source } = made.record;

@@ -328,6 +328,15 @@ describe('where an imported sound came from (format 1.11.0; the owner, 28 Nov 20
     expect(licensedSound(whole, answers)).toMatchObject({
       clip: { credit: 'Birdsong by A. Maker, CC BY 4.0' },
     });
+    // A hair from the file's ends, as decoding and the handles leave it, is still the whole file.
+    const nearly = { ...clip, length: 2.00042, trim: { start: 0.004, end: 2 } };
+    expect(licensedSound(nearly, answers)).toMatchObject({
+      clip: { credit: 'Birdsong by A. Maker, CC BY 4.0' },
+    });
+    const cut = { ...clip, length: 2.00042, trim: { start: 0, end: 1.98 } };
+    expect(licensedSound(cut, answers)).toMatchObject({
+      clip: { credit: 'Birdsong by A. Maker, CC BY 4.0, changed for StoryStage' },
+    });
   });
 
   it('needs a page for the CC licences, and none for "not sure" or "I made it"', () => {
