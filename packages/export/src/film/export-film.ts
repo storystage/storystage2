@@ -105,6 +105,11 @@ export interface FilmExport {
     readonly voiced: number;
     readonly silent: number;
     readonly unencoded: boolean;
+    /**
+     * Sound FX and music cues whose file couldn't be played (not decoded, or not on this device),
+     * so they're silent. The export always gives it; optional so a summary made by hand needn't.
+     */
+    readonly unplayed?: number;
   } | null;
 }
 
@@ -226,7 +231,7 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
       if (probe.audioCodec) audio = { channels: [track.samples], sampleRate: TRACK_RATE };
       else unencoded = true;
     }
-    sound = { voiced: track.voiced, silent: track.silent, unencoded };
+    sound = { voiced: track.voiced, silent: track.silent, unencoded, unplayed: track.unplayed };
   }
 
   const compositor = (options.compositor ?? canvasCompositor)(size);

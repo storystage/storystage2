@@ -743,6 +743,8 @@ export function App({
                     studio={studio}
                     // The export's voices: the same sounds as Rehearse (spec 08 section 4, S2's #367).
                     {...(voices ? { voices: voices.forFilm() } : {})}
+                    // Its Sound FX and music: the film's imported sounds (S2, decision 0076).
+                    sounds={filmSounds}
                     host={host}
                     models={models}
                     exports={exports}

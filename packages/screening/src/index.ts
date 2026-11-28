@@ -11,3 +11,4 @@ export * from './export-job.ts';
 export * from './ExportDialog.tsx';
 export * from './Compare.tsx';
 export * from './CheckPanel.tsx';
+export * from './sound-files.ts';

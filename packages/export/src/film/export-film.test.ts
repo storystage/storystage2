@@ -321,7 +321,7 @@ describe('exportFilm: the speak lines’ sound (spec 08 section 4)', () => {
     const samples = encoder.log.audio.reduce((n, c) => n + c.channels[0]!.length, 0);
     expect(samples).toBe(Math.round(film.seconds * 48_000));
     expect(encoder.log.audio.some((c) => c.channels[0]!.some((s) => s > 0.4))).toBe(true);
-    expect(film.sound).toEqual({ voiced: 1, silent: 0, unencoded: false });
+    expect(film.sound).toEqual({ voiced: 1, silent: 0, unencoded: false, unplayed: 0 });
   });
 
   it('leaves a line with no sound silent, with no track when no line is voiced', async () => {
@@ -330,7 +330,7 @@ describe('exportFilm: the speak lines’ sound (spec 08 section 4)', () => {
     const { options, encoder } = setup({ production: speaking(), voices });
     const film = await exportFilm(options);
     expect(encoder.log.config?.audio).toBeNull();
-    expect(film.sound).toEqual({ voiced: 0, silent: 1, unencoded: false });
+    expect(film.sound).toEqual({ voiced: 0, silent: 1, unencoded: false, unplayed: 0 });
     expect(film.vtt).toContain('Wait for me!');
   });
 
@@ -340,13 +340,18 @@ describe('exportFilm: the speak lines’ sound (spec 08 section 4)', () => {
     const { options, encoder } = setup({ production: speaking(), voices }, PENGUIN, false);
     const film = await exportFilm(options);
     expect(encoder.log.config?.audio).toBeNull();
-    expect(film.sound).toEqual({ voiced: 1, silent: 0, unencoded: true });
+    expect(film.sound).toEqual({ voiced: 1, silent: 0, unencoded: true, unplayed: 0 });
   });
 
   it('counts speak lines as silent when the studio has no voices', async () => {
     await settle();
     const { options } = setup({ production: speaking() });
-    expect((await exportFilm(options)).sound).toEqual({ voiced: 0, silent: 1, unencoded: false });
+    expect((await exportFilm(options)).sound).toEqual({
+      voiced: 0,
+      silent: 1,
+      unencoded: false,
+      unplayed: 0,
+    });
   });
 
   it('has no sound to speak of for a film with no speak lines, and prepares nothing', async () => {
@@ -426,7 +431,7 @@ describe('exportFilm: Sound FX and music (decision 0076)', () => {
     expect(prepared).toEqual([['sn1']]);
     expect(encoder.log.config?.audio).toEqual({ codec: 'aac', channels: 1, sampleRate: 48_000 });
     expect(encoder.log.audio.some((c) => c.channels[0]!.some((v) => v > 0.3))).toBe(true);
-    expect(film.sound).toEqual({ voiced: 0, silent: 0, unencoded: false });
+    expect(film.sound).toEqual({ voiced: 0, silent: 0, unencoded: false, unplayed: 0 });
   });
 
   it('has no track when the studio gives no files, as nothing is heard', async () => {
@@ -434,6 +439,7 @@ describe('exportFilm: Sound FX and music (decision 0076)', () => {
     const { options, encoder } = setup({ production: playing() });
     const film = await exportFilm(options);
     expect(encoder.log.config?.audio).toBeNull();
-    expect(film.sound).toEqual({ voiced: 0, silent: 0, unencoded: false });
+    // The knock and the music cue, both silent.
+    expect(film.sound).toEqual({ voiced: 0, silent: 0, unencoded: false, unplayed: 2 });
   });
 });

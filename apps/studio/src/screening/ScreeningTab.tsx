@@ -26,15 +26,18 @@ import {
   ScreeningPlayer,
   currentFrame,
   filmFlags,
+  filmSoundFiles,
   framesInOrder,
   sceneAt,
   segments,
   stillMoment,
   type StillState,
   type ExportChoices,
+  type DecodeSound,
   type ExportRun,
   type Place as ScreeningPlace,
   type ScreeningState,
+  type SoundSource,
 } from '@storystage/screening';
 import '@storystage/screening/styles.css';
 import { Button, NeutralNote } from '@storystage/ui';
@@ -44,6 +47,7 @@ import { frameDrawer } from '../storyboard/FramePicture.tsx';
 import { useCheckRun } from '../check/useCheckRun.ts';
 import { makeStage, hiddenCanvas, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
+import { decodeForExport } from './decodeSound.ts';
 import type { ExportSlot } from './exportSlot.ts';
 import { words } from '../strings.ts';
 import { saveFilm } from './saveFilm.ts';
@@ -83,6 +87,13 @@ export interface ScreeningTabProps {
    * the export, with their captions, and the dialog says so.
    */
   readonly voices?: FilmVoices;
+  /**
+   * The film's imported sound files (the App's `FilmSounds`), for the export's Sound FX and music
+   * (decision 0076). Without them, both are silent in the export, and the dialog counts them.
+   */
+  readonly sounds?: SoundSource;
+  /** For tests: how a sound file is decoded. Default: the browser's, at 48 kHz. */
+  readonly decodeSound?: DecodeSound;
   /** For tests: how stages and runtime workers are made, and Backstage fetched. */
   readonly makeStage?: StageMaker;
   readonly startWorker?: () => RuntimeWorker;
@@ -307,6 +318,15 @@ export function ScreeningTab(props: ScreeningTabProps) {
           signal,
           onProgress,
           ...(props.voices ? { voices: props.voices } : {}),
+          ...(props.sounds
+            ? {
+                sounds: filmSoundFiles(
+                  production,
+                  props.sounds,
+                  props.decodeSound ?? decodeForExport,
+                ),
+              }
+            : {}),
           ...props.exportOptions,
         });
       } finally {
