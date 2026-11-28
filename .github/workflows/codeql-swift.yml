@@ -50,8 +50,7 @@ jobs:
           toolchain: stable
           targets: aarch64-apple-ios
       # No Rust cache: a cached build script wouldn't run again, and then no Swift is compiled.
-      - id: init
-        uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+      - uses: github/codeql-action/init@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
         with:
           languages: swift
           build-mode: manual
@@ -62,26 +61,3 @@ jobs:
         with:
           category: /language:swift
           upload: never # TEMPORARY: default setup is still on
-          output: ${{ runner.temp }}/codeql-results
-      # TEMPORARY (S8's review of #747): what went into the database and what it found.
-      - name: TEMPORARY what the Swift scan read and found
-        if: always()
-        env:
-          CODEQL: ${{ steps.init.outputs.codeql-path }}
-          DB: ${{ runner.temp }}/codeql_databases/swift
-          OUT: ${{ runner.temp }}/codeql-results
-        run: |
-          echo "::group::Source files in the database"
-          unzip -Z1 "$DB/src.zip" | sort
-          echo "::endgroup::"
-          echo "Results: $(jq '[.runs[].results[]] | length' "$OUT/swift.sarif")"
-          jq -r '.runs[].results[] | "\(.ruleId)  \(.locations[0].physicalLocation.artifactLocation.uri):\(.locations[0].physicalLocation.region.startLine)  \(.message.text)"' "$OUT/swift.sarif"
-          echo "::group::Diagnostics"
-          "$CODEQL" database export-diagnostics "$DB" --format=sarif-latest --output="$OUT/diagnostics.sarif"
-          jq -r '.runs[].invocations[]?.toolExecutionNotifications[]? | "\(.level // "")  \(.descriptor.id // "")  \(.message.text)"' "$OUT/diagnostics.sarif"
-          echo "::endgroup::"
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: codeql-swift-trial
-          path: ${{ runner.temp }}/codeql-results
