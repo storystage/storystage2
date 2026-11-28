@@ -19,7 +19,14 @@ import {
   type TypeDecl,
   type TypeRef,
 } from '@storystage/ast';
-import type { BackstageItem, Facing } from '@storystage/backstage';
+import {
+  IMPORT_LICENCES,
+  needsSourcePage,
+  webPage,
+  type BackstageItem,
+  type Facing,
+  type Licence,
+} from '@storystage/backstage';
 import type { CastVoice } from './voices.ts';
 import {
   classOfType,
@@ -32,7 +39,7 @@ import {
 } from '@storystage/story-api';
 import { SOUND_LIMITS, SOUND_TYPES } from './sound.ts';
 
-export const FORMAT_VERSION = '1.10.0';
+export const FORMAT_VERSION = '1.11.0';
 
 export type SceneId = string & { readonly __sceneId: true };
 export type FrameId = string & { readonly __frameId: true };
@@ -83,6 +90,16 @@ export interface SoundClip {
   readonly bytes: number;
   /** The part the film uses, in seconds into the file, set once on import. */
   readonly trim: { readonly start: number; readonly end: number };
+  /**
+   * Where it came from (format 1.11.0; the owner's choice of 28 Nov 2026): a licence from the
+   * imports' short list (`IMPORT_LICENCES`), as a model's import has. "Not sure" and CC BY-NC keep
+   * the film in school (`mayDistribute`).
+   */
+  readonly licence: Licence;
+  /** Its credit line, made from the licence by `licensedSound`, never typed freely. */
+  readonly credit: string;
+  /** Its own page: required for the CC licences, optional for "I made it" and "not sure". */
+  readonly source?: { readonly url: string };
 }
 
 /**
@@ -535,6 +552,9 @@ export function checkReferences(p: Production): string[] {
  * A shelf sound's id is only checked for its form: the shelf judges whether it has it, and one it
  * lacks plays as silence, as a missing model shows as a stand-in.
  */
+/** The longest credit line a sound can have: its name, a maker and the licence. */
+export const SOUND_CREDIT_MAX = 400;
+
 function checkSounds(p: Production, problems: string[]): void {
   const clips = new Map<string, SoundClip>();
   const sounds = p.manifest.sounds ?? [];
@@ -553,6 +573,17 @@ function checkSounds(p: Production, problems: string[]): void {
       problems.push(`Sound ${clip.id}'s trim should be a part of the file.`);
     if (!(Number.isInteger(clip.bytes) && clip.bytes > 0 && clip.bytes <= SOUND_LIMITS.fileBytes))
       problems.push(`Sound ${clip.id} should be up to ${SOUND_LIMITS.fileBytes} bytes.`);
+    // Where it came from (format 1.11.0): an import's licence, and a page for the CC ones.
+    if (!IMPORT_LICENCES.includes(clip.licence))
+      problems.push(`Sound ${clip.id}'s licence should be one an import may have.`);
+    if (clip.credit.trim() === '' || clip.credit.length > SOUND_CREDIT_MAX)
+      problems.push(
+        `Sound ${clip.id} should have a credit line of up to ${SOUND_CREDIT_MAX} characters.`,
+      );
+    if (clip.source !== undefined && webPage(clip.source.url) === null)
+      problems.push(`Sound ${clip.id}'s page should be a web address.`);
+    else if (clip.source === undefined && needsSourcePage(clip.licence))
+      problems.push(`Sound ${clip.id}'s licence needs the page it came from.`);
     total += clip.bytes;
   }
   if (total > SOUND_LIMITS.totalBytes)

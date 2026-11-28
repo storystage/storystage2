@@ -14,6 +14,8 @@ const clip = (id: string, label = 'Rain', type = 'mp3'): SoundClip => ({
   length: 4,
   bytes: 3,
   trim: { start: 0, end: 4 },
+  licence: 'not-sure' as const,
+  credit: 'A sound, source not checked',
 });
 
 describe('FilmSounds', () => {

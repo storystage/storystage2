@@ -85,6 +85,8 @@ describe('rehearseSounds', () => {
       length: 2,
       bytes: 2,
       trim: { start: 0, end: 2 },
+      licence: 'not-sure' as const,
+      credit: 'A sound, source not checked',
     };
     const withClip: Production = { ...p, manifest: { ...p.manifest, sounds: [clip] } };
     const film = new FilmSounds();

@@ -388,7 +388,28 @@ export const FORMAT_MIGRATIONS: FormatMigrations = {
   // 1.10.0 types 3D text as `TextModel` in code, where it was `Text`, which is words: the first
   // migration that changes the program.
   '1.9.0': { to: '1.10.0', manifest: (m) => m, program: textIsTextModel },
+  // 1.11.0 says where each imported sound came from (spec 03 section 1.7; the owner's choice of
+  // 28 Nov 2026): a clip kept before is "not sure", so the film shows in school until it's set.
+  '1.10.0': { to: '1.11.0', manifest: soundsNotSure },
 };
+
+/** 1.10.0 to 1.11.0: each imported clip gains the licence "not sure", and its credit. */
+function soundsNotSure<M extends object>(m: M): M {
+  const sounds = (m as { sounds?: unknown }).sounds;
+  if (!Array.isArray(sounds)) return m;
+  return {
+    ...m,
+    sounds: sounds.map((c: unknown) =>
+      c !== null && typeof c === 'object' && !Array.isArray(c)
+        ? {
+            ...c,
+            licence: 'not-sure',
+            credit: `${String((c as { label?: unknown }).label ?? '')}, source not checked`,
+          }
+        : c,
+    ),
+  };
+}
 
 /**
  * A frame's saved check is only a cached result (spec 08 section 9.6): one that doesn't fit its

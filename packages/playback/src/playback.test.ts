@@ -588,6 +588,8 @@ describe('sounds (decision 0076, workplan 11.7)', () => {
       length: 4,
       bytes: 1000,
       trim: { start: 0.5, end: 2 },
+      licence: 'not-sure' as const,
+      credit: 'A sound, source not checked',
     };
     return { ...p, manifest: { ...p.manifest, sounds: [clip] } };
   };

@@ -300,6 +300,8 @@ describe('sounds kept once in the folder (spec 03, section 1.4.1)', () => {
     length: 2,
     bytes: bytes.length,
     trim: { start: 0, end: 2 },
+    licence: 'not-sure' as const,
+    credit: 'A sound, source not checked',
   });
   /** The example film with these sounds imported. */
   const withSounds = (sounds: Record<string, Uint8Array>) => {

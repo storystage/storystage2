@@ -24,6 +24,8 @@ const KNOCK: SoundClip = {
   length: 10,
   bytes: 1000,
   trim: { start: 2, end: 5.5 },
+  licence: 'not-sure' as const,
+  credit: 'A sound, source not checked',
 };
 const p0 = withSound(exampleProduction(), KNOCK);
 const [s1, s2] = p0.manifest.runningOrder.map((r) => r.scene) as [SceneId, SceneId];

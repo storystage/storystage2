@@ -163,6 +163,8 @@ describe('SoundView: importing', () => {
       label: 'rain',
       length: 4,
       trim: { start: 1, end: 4 },
+      licence: 'not-sure' as const,
+      credit: 'rain, source not checked',
     });
     expect(sounds.bytes(added!)?.length).toBe(12);
     expect(studio().undoLabel).toBe('Add sound rain');

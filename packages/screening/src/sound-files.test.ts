@@ -12,6 +12,8 @@ const clip = (id: string): SoundClip => ({
   length: 2,
   bytes: 10,
   trim: { start: 0, end: 2 },
+  licence: 'not-sure' as const,
+  credit: 'A sound, source not checked',
 });
 const p = withSound(withSound(exampleProduction(), clip('sn1')), clip('sn2'));
 const bytesOf = new Map([

@@ -198,7 +198,15 @@ describe('handBackClass', () => {
   it('collects a film with its sounds put back, and hands it back with each kept once', async () => {
     const owl = new Uint8Array(64).fill(7);
     owl.set([0xff, 0xfb, 0x90, 0x44]);
-    const clip = { id: 'sn1', file: 'sn1.mp3', label: 'Owl', length: 2, bytes: 64 };
+    const clip = {
+      id: 'sn1',
+      file: 'sn1.mp3',
+      label: 'Owl',
+      length: 2,
+      bytes: 64,
+      licence: 'not-sure' as const,
+      credit: 'Owl, source not checked',
+    };
     const withOwl = withSound(titled('Owls'), { ...clip, trim: { start: 0, end: 2 } });
     const files = { ...NO_FILES, sounds: new Map([['sounds/sn1.mp3', owl]]) };
     const whole = saveProduction(withOwl, files);

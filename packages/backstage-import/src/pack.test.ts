@@ -93,6 +93,8 @@ describe('packModels (spec 03, section 1.3)', () => {
       length: 2,
       bytes: wav.length,
       trim: { start: 0, end: 2 },
+      licence: 'not-sure' as const,
+      credit: 'A sound, source not checked',
     });
     const first = await packModels(film, { ...NO_FILES, sounds }, classModels);
     // Again, as the next save does, from the files the last one gave.

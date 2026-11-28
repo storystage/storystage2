@@ -175,7 +175,8 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
   // Imported sounds and the tracks' volumes (format 1.9.0); `checkReferences` checks the rest.
   if (v.sounds !== undefined)
     s.array(v.sounds, 'sounds', (c, p) => {
-      if (!s.object(c, p, ['id', 'file', 'label', 'length', 'bytes', 'trim'])) return;
+      const required = ['id', 'file', 'label', 'length', 'bytes', 'trim', 'licence', 'credit'];
+      if (!s.object(c, p, required, ['source'])) return;
       s.string(c.id, join(p, 'id'));
       s.string(c.file, join(p, 'file'));
       s.string(c.label, join(p, 'label'), SOUND_LIMITS.label);
@@ -185,6 +186,11 @@ export function checkManifestShape(v: unknown, options: ShapeOptions = {}): stri
         s.number(c.trim.start, join(p, 'trim.start'), 0);
         s.number(c.trim.end, join(p, 'trim.end'), 0);
       }
+      // Where it came from (format 1.11.0); `checkReferences` checks the licence and the page.
+      s.string(c.licence, join(p, 'licence'));
+      s.string(c.credit, join(p, 'credit'));
+      if (c.source !== undefined && s.object(c.source, join(p, 'source'), ['url']))
+        s.string(c.source.url, join(p, 'source.url'));
     });
   if (v.mix !== undefined && s.object(v.mix, 'mix', ['speech', 'music', 'effects']))
     for (const track of ['speech', 'music', 'effects'] as const)
