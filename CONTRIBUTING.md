@@ -22,7 +22,7 @@ For help using StoryStage, see [SUPPORT.md](SUPPORT.md).
 - **No API key, token or password** anywhere: not in code, tests, issues, logs or screenshots. Tests use the fake Claude server in `tools/fake-claude`.
 - **No learner data** in a change, a test fixture or a report.
 
-## The rules that never bend
+## The rules that never change
 
 The full list is in [CLAUDE.md](CLAUDE.md). In short:
 
