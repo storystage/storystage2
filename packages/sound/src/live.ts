@@ -16,7 +16,9 @@
  * lines from its last whole run of the code as it is now (`spoken`) are taken at its start, as its
  * fade out is: then the music goes down before each line and stays down between lines less than a
  * second apart, as in the export. Each line as it's known (`speech`) is added, so a scene with no
- * such run is still lowered, from as soon as each line is known.
+ * such run is still lowered, from as soon as each line is known. In a scene that waits on a
+ * click or a key, a line from the last run may not come this time: one with no line known live
+ * near it by `UNSAID_SECONDS` after its start ends there, and the music comes back up after it.
  */
 import type { Production, SceneId, SoundRef } from '@storystage/production';
 import { duckOf, type SpeechSpan } from './duck.ts';
@@ -84,6 +86,19 @@ interface Voice {
 const MICROS = 1_000_000;
 
 /**
+ * How long after its start a line from the last run waits to be known live, in film seconds,
+ * and how near a live line's start must be to it to be that line. The runtime gives a line
+ * a moment ahead of the picture (its lookahead, 0.1 s), so a line that comes is known by then.
+ */
+export const UNSAID_SECONDS = 0.2;
+
+/** A voiced line, in film seconds: `heard` if from `speech`; `said` once a live line matched it. */
+interface Line extends SpeechSpan {
+  readonly heard: boolean;
+  said: boolean;
+}
+
+/**
  * A level on straight ramps between `points`: the first holds before them and the last after.
  * At a time two points share, the later one's level. No points is full (1), as S2's `duckOf`
  * gives none when there's no speech (agreed with S2, 27 Nov).
@@ -141,8 +156,10 @@ export class LiveSounds {
   /** The `playAudio` sounds heard since the last pause, by command. */
   #effects = new Map<string, Wanted>();
   #voices = new Map<string, Voice>();
-  /** The voiced lines, in film seconds, by where they are: `heard` if from `speech`. */
-  #spoken = new Map<string, SpeechSpan & { readonly heard: boolean }>();
+  /** The voiced lines, in film seconds, by where they are. */
+  #spoken = new Map<string, Line>();
+  /** Set while a line from the last run waits to be known live. */
+  #unsaid: ReturnType<typeof setTimeout> | undefined;
   /** The music under speech: between the music's voices and the Music track. */
   readonly #duck: GainLike;
   /** What `#duck` was last told, in film seconds. */
@@ -217,8 +234,13 @@ export class LiveSounds {
   }
 
   #hear(start: number, end: number, heard: boolean): void {
+    if (end <= start) return;
+    // A line from the last run that this one starts near is said, so it stays.
+    if (heard)
+      for (const s of this.#spoken.values())
+        if (!s.heard && Math.abs(s.start - start) <= UNSAID_SECONDS) s.said = true;
     const key = `${start}:${end}`;
-    if (end > start && !this.#spoken.has(key)) this.#spoken.set(key, { start, end, heard });
+    if (!this.#spoken.has(key)) this.#spoken.set(key, { start, end, heard, said: heard });
   }
 
   /**
@@ -268,6 +290,8 @@ export class LiveSounds {
     for (const [key, s] of this.#spoken) if (s.heard || s.start < now) this.#spoken.delete(key);
     this.#ducked = [];
     this.#clock = null;
+    clearTimeout(this.#unsaid);
+    this.#unsaid = undefined;
   }
 
   /** The run is over (ended, stopped, or replaced): quiet, and forgets its scenes. */
@@ -318,6 +342,39 @@ export class LiveSounds {
     if (!this.#clock) return;
     this.#ducked = duckOf([...this.#spoken.values()]);
     this.#ramp(this.#duck, this.#ducked, this.#now(), was);
+    this.#watch();
+  }
+
+  /**
+   * Waits for the first line from the last run not yet known live: by `UNSAID_SECONDS` after its
+   * start, one that hasn't come ends there, and the music comes up from where it is.
+   */
+  #watch(): void {
+    clearTimeout(this.#unsaid);
+    this.#unsaid = undefined;
+    const clock = this.#clock;
+    if (!clock) return;
+    let due = Infinity;
+    for (const s of this.#spoken.values())
+      if (!s.said) due = Math.min(due, s.start + UNSAID_SECONDS);
+    if (!Number.isFinite(due)) return;
+    const now = this.#now();
+    // Within a microsecond is there: the clock's arithmetic isn't exact.
+    if (due > now + 1 / MICROS) {
+      // On the audio clock, so it's checked again if the timer comes early.
+      this.#unsaid = setTimeout(() => this.#watch(), ((due - now) / clock.speed) * 1000);
+      return;
+    }
+    // It ends now, so the music comes back up as after a line, unless another is near.
+    for (const [key, s] of [...this.#spoken])
+      if (!s.said && s.start + UNSAID_SECONDS <= now + 1 / MICROS) {
+        s.said = true;
+        if (s.end > now) {
+          this.#spoken.delete(key);
+          this.#spoken.set(`${s.start}:${now}`, { ...s, end: now });
+        }
+      }
+    this.#lower(levelAt(this.#ducked, now));
   }
 
   /** What should be playing from now, and the voices playing it. */
