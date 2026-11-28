@@ -658,7 +658,7 @@ Each session keeps its own section current. Newest entries first. One line each.
 - Open, waiting for the owner:
   - **To send:** #52 Anthropic's terms for under-18s, with a question for Anthropic.
   - **To decide or get advice on:** #53 trade mark (register search, attorney, before M6); #54 storybook characters (a decision per character; **S4:** WP3d waits); #55 commissioning contract (solicitor).
-  - **To review, ideally with teachers:** #73 eight use cases (16.6); #79 website pages and #81 teacher guide (19.1, 19.2); #162 the teacher interview kit (16.7, interviews due M1); #166 the editor study protocol and consent sheets (19.5, 19.6: co-design the decision rule with pilot teachers; ethics review; pre-register);
+  - **To review, ideally with teachers:** #73 eight use cases (16.6); #79 website pages and #81 teacher guide (19.1, 19.2); #162 the teacher interview kit (16.7, interviews due M1); #166 the editor study protocol and consent sheets (19.5, 19.6: co-design the decision rule with pilot teachers; ethics review; pre-register).
   - **To approve:** #139 the DPIA (17.3; legal questions for a DPO or solicitor, and a US review); #140 the privacy notice (17.4; name, contact, date).
 - Blocked on: nothing for D's own drafting; everything left needs the owner's reviews, sends and decisions above.
 - 8 Nov: the DPIA (#139) and privacy notice (#140) now follow S8's speech design: the optional model downloads from a GitHub release on the update host (0061), and dictation has its own key, `speech.dictation`. #51 is now the one CMU letter, combined with S4's (340 models, with spreadsheets).
