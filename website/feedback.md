@@ -8,7 +8,7 @@ order: 6
 
 We'd love to hear how StoryStage works in your classroom, club or home: what goes wrong, what gets in a learner's way, and what you'd change.
 
-**Email us at [feedback@storystage.org].** One email per problem or idea helps us keep track. We read everything; we can't promise to reply to every message, but we'll answer questions about privacy and safeguarding.
+**Email us at [feedback@storystage.org](mailto:feedback@storystage.org).** One email per problem or idea helps us keep track. We read everything; we can't promise to reply to every message, but we'll answer questions about privacy and safeguarding.
 
 ## What to send
 
@@ -39,5 +39,3 @@ We copy the useful part of your email into our public list of issues on GitHub, 
 ## Security problems
 
 If you find a way for StoryStage to leak a Claude key or learners' data, please don't email it: report it privately through GitHub (the **Security** tab of [github.com/storystage/storystage2](https://github.com/storystage/storystage2), then **Report a vulnerability**).
-
-**[Open: the address, once the owner sets it up (decision 0063).]**
