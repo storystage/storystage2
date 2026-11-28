@@ -20,7 +20,7 @@
 
 ### Who we are
 
-StoryStage is a free app for making 3D animated films, for learners aged 6 to 13. It is provided by **[owner's name], trading as StoryStage** ("we"). Contact: **[email address]**.
+StoryStage is a free app for making 3D animated films, for learners aged 6 to 13. It is provided by **[owner's name], trading as StoryStage** ("we"). Contact: **feedback@storystage.org**.
 
 ### The short version
 
@@ -89,7 +89,7 @@ The Windows and Mac apps check for updates at most once a day, by reading a file
 
 ### Problem reports
 
-**Report a problem** (in Settings) makes a file on the device with information that helps fix problems: versions, the settings in force, and a check of the app. The Claude key and personal details are removed. Nothing is sent automatically; a teacher can attach the file to an email to **[feedback address]** ([how](https://storystage.org/feedback)). We copy what helps into our public list of issues on GitHub without anyone's name or school, and keep the email until the issue is closed, plus 12 months.
+**Report a problem** (in Settings) makes a file on the device with information that helps fix problems: versions, the settings in force, and a check of the app. The Claude key and personal details are removed. Nothing is sent automatically; a teacher can attach the file to an email to **feedback@storystage.org** ([how](https://storystage.org/feedback)). We copy what helps into our public list of issues on GitHub without anyone's name or school, and keep the email until the issue is closed, plus 12 months. Emails to us pass through **Bluehost**, which hosts our domain, and are kept in our **Microsoft 365** mailbox.
 
 ### Optional features a school can switch on
 
@@ -111,7 +111,7 @@ We process personal data ourselves only for the website, update checks, problem 
 
 ### Your rights
 
-You have rights to see, correct and delete your personal data, and to object to or restrict how it's used. Because StoryStage keeps learners' work on their own devices, you can usually see, change or delete it there yourself. For work on school devices, ask the school. For Prompter requests, the key holder can manage them with Anthropic. For anything we hold, contact **[email address]**.
+You have rights to see, correct and delete your personal data, and to object to or restrict how it's used. Because StoryStage keeps learners' work on their own devices, you can usually see, change or delete it there yourself. For work on school devices, ask the school. For Prompter requests, the key holder can manage them with Anthropic. For anything we hold, contact **feedback@storystage.org**.
 
 If you're unhappy with how your data has been handled, you can complain to the Information Commissioner's Office (ico.org.uk, 0303 123 1113).
 
