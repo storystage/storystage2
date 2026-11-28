@@ -134,6 +134,34 @@ describe('importing a model (07-ux 9.6)', () => {
     expect(stored.map((m) => [m.id, m.owner])).toEqual([['class/Prop/wooden-crate', 'class']]);
   }, 30_000);
 
+  it('says the page is optional for "Made it myself" and "Not sure", as the check does (#741)', async () => {
+    render(<ClassSetup host={hostWith(memoryClassFolders())} startWorker={inPageWorker} />);
+    await userEvent.click(
+      await within(await screen.findByRole('region', { name: 'Class models' })).findByRole(
+        'button',
+        { name: 'Import a model…' },
+      ),
+    );
+    const dialog = await screen.findByRole('dialog', { name: 'Import a model' });
+    const hint = () =>
+      within(dialog)
+        .getByRole('textbox', { name: 'Where is it from?' })
+        .getAttribute('aria-describedby') ?? '';
+    const said = () =>
+      hint()
+        .split(' ')
+        .map((id) => document.getElementById(id)?.textContent ?? '')
+        .join(' ');
+    const choose = (name: RegExp) => userEvent.click(within(dialog).getByRole('radio', { name }));
+
+    await choose(/Made it myself/);
+    expect(said()).toContain('Optional: a page about it, if there is one.');
+    await choose(/Not sure/);
+    expect(said()).toContain('Optional: a page about it, if there is one.');
+    await choose(/^CC BY Free, give credit/);
+    expect(said()).toContain('The address of the model’s own page.');
+  });
+
   it('says why a file can’t be imported', async () => {
     const classes = memoryClassFolders();
     render(<ClassSetup host={hostWith(classes)} startWorker={inPageWorker} />);
