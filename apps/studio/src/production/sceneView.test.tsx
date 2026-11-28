@@ -236,6 +236,30 @@ describe('Rehearse (07-ux 7.4)', () => {
     expect(ended()).toBe(0);
   });
 
+  it('says the music changed when a sound’s trim changes while it runs (S3’s review)', async () => {
+    const user = userEvent.setup();
+    const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);
+    const clip = {
+      id: 'sn1',
+      label: 'Rain',
+      file: 'sn1.wav',
+      length: 4,
+      bytes: 4,
+      trim: { start: 0, end: 4 },
+    };
+    const before: Production = { ...p, manifest: { ...p.manifest, sounds: [clip] } };
+    const { onAnnounce, rerender, ended } = harness(before);
+    const rehearse = await screen.findByRole('button', { name: 'Rehearse' });
+    await waitFor(() => expect(rehearse.hasAttribute('disabled')).toBe(false));
+    await user.click(rehearse);
+    await screen.findByRole('button', { name: 'Stop' });
+    const trimmed = { ...clip, trim: { start: 1, end: 3 } };
+    rerender({ ...before, manifest: { ...before.manifest, sounds: [trimmed] } });
+    await screen.findByRole('button', { name: 'Rehearse' });
+    expect(said(onAnnounce)).toContain('Rehearse stopped because the music changed.');
+    expect(ended()).toBe(1);
+  });
+
   it('stops when the scene’s music changes while it runs, and says the music changed', async () => {
     const user = userEvent.setup();
     const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);

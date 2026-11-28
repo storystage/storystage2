@@ -67,13 +67,18 @@ export function onlyVolumesChanged(a: Production, b: Production): boolean {
   return same(a, b, 'manifest') && same(a.manifest, b.manifest, 'mix');
 }
 
-/** Only scenes' music is different, so Rehearse stops saying the music changed, not the code. */
+/**
+ * Only scenes' music or the film's sounds are different, so Rehearse stops saying the music
+ * changed, not the code.
+ */
 export function onlyMusicChanged(a: Production, b: Production): boolean {
   return (
     a.program === b.program &&
     a.scenes.length === b.scenes.length &&
     a.scenes.every((s, i) => s.setup === b.scenes[i]!.setup) &&
-    a.scenes.some((s, i) => s.music !== b.scenes[i]!.music)
+    // A clip trimmed, renamed or swapped plays differently too: a cue's or a block's (S3).
+    (a.scenes.some((s, i) => s.music !== b.scenes[i]!.music) ||
+      a.manifest.sounds !== b.manifest.sounds)
   );
 }
 
