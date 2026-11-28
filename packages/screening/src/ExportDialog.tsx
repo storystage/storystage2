@@ -194,9 +194,16 @@ export function ExportDialog(props: ExportDialogProps) {
             {job.capped && <> {words.t('export.capped')}</>}
             {job.sound?.unencoded ? (
               <> {words.t('export.noSound')}</>
-            ) : job.sound && job.sound.silent > 0 ? (
-              <> {words.plural('export.silent', job.sound.silent)}</>
-            ) : null}
+            ) : (
+              <>
+                {job.sound && job.sound.silent > 0 && (
+                  <> {words.plural('export.silent', job.sound.silent)}</>
+                )}
+                {job.sound?.unplayed ? (
+                  <> {words.plural('export.unplayed', job.sound.unplayed)}</>
+                ) : null}
+              </>
+            )}
           </NeutralNote>
         )}
         {job.kind === 'unsaved' && (

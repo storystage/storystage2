@@ -1,6 +1,11 @@
 import { basisFor } from '@storystage/check';
 import { browserHost, type HostInterface } from '@storystage/host';
-import { exampleProduction, type Production, type ProductionFiles } from '@storystage/production';
+import {
+  exampleProduction,
+  withSound,
+  type Production,
+  type ProductionFiles,
+} from '@storystage/production';
 import type { ImportWorker } from '@storystage/backstage-import/worker-client';
 import type { EncoderBackend, FilmExport, FilmVoices, Frame, VoicedLine } from '@storystage/export';
 import { nodeId, type Statement } from '@storystage/ast';
@@ -82,6 +87,8 @@ function harness(
     importWorker?: () => ImportWorker;
     saveFilm?: (film: FilmExport) => Promise<void>;
     voices?: FilmVoices;
+    sounds?: ScreeningTabProps['sounds'];
+    decodeSound?: ScreeningTabProps['decodeSound'];
   } = {},
 ) {
   const made: { hidden: boolean; stage: FakeStage }[] = [];
@@ -130,6 +137,8 @@ function harness(
         startWorker={startWorker}
         {...(over.saveFilm ? { saveFilm: over.saveFilm } : {})}
         {...(over.voices ? { voices: over.voices } : {})}
+        {...(over.sounds ? { sounds: over.sounds } : {})}
+        {...(over.decodeSound ? { decodeSound: over.decodeSound } : {})}
         exportOptions={FAKE_ENCODING}
       />
     );
@@ -488,7 +497,58 @@ describe('ScreeningTab', () => {
     await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
     await waitFor(() => expect(saved).toHaveLength(1), { timeout: 15_000 });
     expect(prepared.map((l) => l.text)).toEqual(['Wait for me!']);
-    expect(saved[0]!.sound).toEqual({ voiced: 1, silent: 0, unencoded: false });
+    expect(saved[0]!.sound).toEqual({ voiced: 1, silent: 0, unencoded: false, unplayed: 0 });
+  }, 30_000);
+
+  it('plays an exported film’s imported sounds from the film’s files, decoded first', async () => {
+    const clip = {
+      id: 'sn1',
+      file: 'sn1.wav',
+      label: 'Knock',
+      length: 2,
+      bytes: 4,
+      trim: { start: 0, end: 1 },
+    };
+    const p = withSound(exampleProduction(), clip);
+    const [type1, ...types] = p.program.types;
+    const [method, ...methods] = type1!.methods;
+    const play: Statement = {
+      id: nodeId('knocktbb'),
+      kind: 'call',
+      target: { id: nodeId('knocktbs'), kind: 'this' },
+      callee: { kind: 'story', name: 'playAudio' },
+      args: { audioSource: { id: nodeId('knocktbx'), kind: 'text', value: 'sn1' } },
+      details: {},
+    };
+    const production: Production = {
+      ...p,
+      program: {
+        ...p.program,
+        types: [
+          { ...type1!, methods: [{ ...method!, body: [play, ...method!.body] }, ...methods] },
+          ...types,
+        ],
+      },
+    };
+    const file = new Uint8Array([7, 7, 7, 7]);
+    const decoded: Uint8Array[] = [];
+    const saved: FilmExport[] = [];
+    harness({
+      production,
+      sounds: { bytes: (c) => (c.id === 'sn1' ? file : null) },
+      decodeSound: async (bytes) => {
+        decoded.push(bytes);
+        return { channels: [new Float32Array(48_000).fill(0.5)], sampleRate: 48_000 };
+      },
+      saveFilm: async (film) => void saved.push(film),
+    });
+    await screen.findByRole('button', { name: 'Play' });
+    await userEvent.click(screen.getByRole('button', { name: 'Export film' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Export film' });
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Export film' }));
+    await waitFor(() => expect(saved).toHaveLength(1), { timeout: 15_000 });
+    expect(decoded).toEqual([file]);
+    expect(saved[0]!.sound).toEqual({ voiced: 0, silent: 0, unencoded: false, unplayed: 0 });
   }, 30_000);
 
   it("says so in plain words when this device can't make a stage", async () => {

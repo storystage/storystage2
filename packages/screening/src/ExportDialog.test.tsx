@@ -140,6 +140,22 @@ describe('ExportDialog', () => {
     expect(screen.getByText(/This device can’t put sound into a film/)).toBeTruthy();
   });
 
+  it('says how many sounds couldn’t be played, and that they’re silent', () => {
+    setup({
+      job: {
+        kind: 'done',
+        name: 'The Owl',
+        capped: false,
+        sound: { voiced: 0, silent: 0, unencoded: false, unplayed: 2 },
+      },
+    });
+    expect(
+      screen.getByText(
+        /2 sounds couldn’t be played on this device, so they’re silent in the film./,
+      ),
+    ).toBeTruthy();
+  });
+
   it('says nothing of sound when every line is voiced', () => {
     setup({
       job: {

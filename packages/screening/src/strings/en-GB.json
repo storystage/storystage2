@@ -48,6 +48,8 @@
   "export.capped": "The film is longer than 10 minutes, so it stops there.",
   "export.silent.one": "One speak line is silent, because its voice wasn’t ready. Its caption is still there.",
   "export.silent.other": "{count} speak lines are silent, because their voices weren’t ready. Their captions are still there.",
+  "export.unplayed.one": "One sound couldn’t be played on this device, so it’s silent in the film.",
+  "export.unplayed.other": "{count} sounds couldn’t be played on this device, so they’re silent in the film.",
   "export.noSound": "This device can’t put sound into a film, so it’s silent. The captions are still there.",
   "export.unsaved": "{name} is made, but not saved yet.",
   "export.saveAgain": "Save it",
