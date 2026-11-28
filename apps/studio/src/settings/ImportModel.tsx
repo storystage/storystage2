@@ -269,7 +269,8 @@ export function ImportModel({
           <TextField
             label={words.t('models.source')}
             description={
-              licence === 'own-work'
+              // The check asks for a page only for the CC licences (#741), as for sounds.
+              licence === 'own-work' || licence === 'not-sure'
                 ? words.t('models.sourceOptional')
                 : words.t('models.sourceHelp')
             }
