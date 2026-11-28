@@ -18,7 +18,12 @@ import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { makeStage, type ShownStage, type StageMaker } from '../stage/makeStage.ts';
 import type { ModelSourceHandle } from '../stage/useModelSource.ts';
 import { words } from '../strings.ts';
-import { rehearseSounds, type SceneSounds } from '../sound/rehearseSounds.ts';
+import {
+  onlyMusicChanged,
+  onlyVolumesChanged,
+  rehearseSounds,
+  type SceneSounds,
+} from '../sound/rehearseSounds.ts';
 import { ViewPad } from './ViewPad.tsx';
 import { IDLE, Rehearsal, type RehearsalState, type Speaker } from './rehearsal.ts';
 
@@ -190,11 +195,19 @@ export default function SceneView(props: SceneViewProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // The film as Rehearse plays it: kept while only its volumes change, which the studio's audio
+  // follows as they change (the owner's choice, 28 Nov).
+  const [rehearsed, setRehearsed] = useState(production);
+  if (rehearsed !== production && !onlyVolumesChanged(rehearsed, production))
+    setRehearsed(production);
+
   // A Rehearsal for this version of the scene. A change to the code while it runs stops it and
-  // says so (section 7.4); either way the set-up as it is now shows.
-  const changed = useRef<{ scene: SceneId; running: boolean } | null>(null);
+  // says so (section 7.4), as a change to the scene's music does; either way the set-up as it is
+  // now shows.
+  const changed = useRef<{ scene: SceneId; running: boolean; production: Production } | null>(null);
   useEffect(() => {
     if (!stage) return;
+    const production = rehearsed;
     const rehearsal = new Rehearsal({
       production,
       scene,
@@ -206,9 +219,18 @@ export default function SceneView(props: SceneViewProps) {
         stop: () => speaker.current?.stop(),
       },
       sounds: () => rehearseSounds(production, () => sounds.current),
+      // Within the press: the studio's audio is made here the first time, and woken after.
+      wake: () => sounds.current?.out()?.wake(),
     });
-    if (changed.current?.running && changed.current.scene === scene)
-      announce.current(words.t('production.rehearse.codeChanged'));
+    const before = changed.current;
+    if (before?.running && before.scene === scene)
+      announce.current(
+        words.t(
+          onlyMusicChanged(before.production, production)
+            ? 'production.rehearse.musicChanged'
+            : 'production.rehearse.codeChanged',
+        ),
+      );
     slot.set(rehearsal);
     const setup = production.scenes.find((s) => s.id === scene)?.setup;
     void models
@@ -231,14 +253,14 @@ export default function SceneView(props: SceneViewProps) {
     };
     frame = requestAnimationFrame(tick);
     return () => {
-      changed.current = { scene, running: rehearsal.active };
+      changed.current = { scene, running: rehearsal.active, production };
       cancelAnimationFrame(frame);
       if (slot.get() === rehearsal) slot.set(null);
       rehearsal.dispose();
     };
     // `make`, `startWorker` and the model source last as long as the view.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stage, production, scene]);
+  }, [stage, rehearsed, scene]);
 
   // Out of sight: pause, and stop drawing until the tab shows again.
   const active = props.active ?? true;
@@ -484,13 +506,17 @@ export default function SceneView(props: SceneViewProps) {
             {words.t('production.fromStoryboard.button')}
           </Button>
         )}
-        {shot && (
-          <p className="pr-in-shot">
-            {shot.length > 0
+        {/*
+         * Its own line from the start, empty until the set-up is shown: appearing later, it pushed
+         * everything below down, under a click on the way (a CI run of #739).
+         */}
+        <p className="pr-in-shot">
+          {shot === null
+            ? ''
+            : shot.length > 0
               ? words.t('production.view.inShot', { names: shot.join(', ') })
               : words.t('production.view.inShotNone')}
-          </p>
-        )}
+        </p>
       </div>
       {/* Move the view: always there, so nothing below moves as the stage gets ready. */}
       <ViewPad

@@ -1,6 +1,11 @@
 import { nodeId, type Expression, type NodeId, type Statement } from '@storystage/ast';
 import type { EditorHost, HighlightKind, HighlightMark } from '@storystage/editor-contract';
-import { exampleProduction, type Production } from '@storystage/production';
+import {
+  exampleProduction,
+  withMix,
+  withSceneMusic,
+  type Production,
+} from '@storystage/production';
 import { inMemoryPorts, serve, type Timers } from '@storystage/runtime';
 import type { Stage } from '@storystage/stage';
 import type { ModelSource } from '@storystage/stage/babylon';
@@ -201,6 +206,30 @@ describe('Rehearse (07-ux 7.4)', () => {
     });
   });
 
+  it('keeps In this shot’s line before the stage is ready, so nothing below moves', async () => {
+    // A click on the Code switch was lost in CI as the line appeared and pushed it down (#739).
+    const never: StageMaker = () => new Promise<never>(() => {});
+    const p = exampleProduction();
+    render(
+      <ThemeRoot>
+        <ProductionStage
+          production={p}
+          scene={p.scenes[0]!.id}
+          host={host}
+          onGoToStoryboard={() => {}}
+          announcement=""
+          models={models}
+          onAnnounce={() => {}}
+          makeStage={never}
+        />
+      </ThemeRoot>,
+    );
+    await screen.findByRole('radiogroup', { name: 'View' });
+    const line = document.querySelector('.pr-in-shot');
+    expect(line).not.toBeNull();
+    expect(line!.textContent).toBe('');
+  });
+
   it('stops when the code changes while it runs, and says so', async () => {
     const user = userEvent.setup();
     const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);
@@ -212,6 +241,72 @@ describe('Rehearse (07-ux 7.4)', () => {
     rerender(withSceneOne([say(words('Changed.'))], p));
     await screen.findByRole('button', { name: 'Rehearse' });
     expect(said(onAnnounce)).toContain('Rehearse stopped because the code changed.');
+    expect(ended()).toBe(1);
+  });
+
+  // The owner's choice, 28 Nov: the volumes change live; a change to the music stops it.
+  it('plays on when the film’s volumes change while it runs', async () => {
+    const user = userEvent.setup();
+    const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);
+    const { onAnnounce, rerender, ended } = harness(p);
+    const rehearse = await screen.findByRole('button', { name: 'Rehearse' });
+    await waitFor(() => expect(rehearse.hasAttribute('disabled')).toBe(false));
+    await user.click(rehearse);
+    await screen.findByRole('button', { name: 'Stop' });
+    rerender(withMix(p, { speech: 1, music: 0.2, effects: 0.9 }));
+    await new Promise((r) => setTimeout(r, 50));
+    expect(screen.getByRole('button', { name: 'Stop' })).toBeTruthy();
+    expect(said(onAnnounce)).not.toContain('Rehearse stopped because the code changed.');
+    expect(ended()).toBe(0);
+  });
+
+  it('says the music changed when a sound’s trim changes while it runs (S3’s review)', async () => {
+    const user = userEvent.setup();
+    const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);
+    const clip = {
+      id: 'sn1',
+      label: 'Rain',
+      file: 'sn1.wav',
+      length: 4,
+      bytes: 4,
+      trim: { start: 0, end: 4 },
+    };
+    const before: Production = { ...p, manifest: { ...p.manifest, sounds: [clip] } };
+    const { onAnnounce, rerender, ended } = harness(before);
+    const rehearse = await screen.findByRole('button', { name: 'Rehearse' });
+    await waitFor(() => expect(rehearse.hasAttribute('disabled')).toBe(false));
+    await user.click(rehearse);
+    await screen.findByRole('button', { name: 'Stop' });
+    const trimmed = { ...clip, trim: { start: 1, end: 3 } };
+    rerender({ ...before, manifest: { ...before.manifest, sounds: [trimmed] } });
+    await screen.findByRole('button', { name: 'Rehearse' });
+    expect(said(onAnnounce)).toContain('Rehearse stopped because the music changed.');
+    expect(ended()).toBe(1);
+  });
+
+  it('stops when the scene’s music changes while it runs, and says the music changed', async () => {
+    const user = userEvent.setup();
+    const p = withSceneOne([say(words('A long line, said slowly, for the fox to hear.'))]);
+    const { onAnnounce, rerender, ended } = harness(p);
+    const rehearse = await screen.findByRole('button', { name: 'Rehearse' });
+    await waitFor(() => expect(rehearse.hasAttribute('disabled')).toBe(false));
+    await user.click(rehearse);
+    await screen.findByRole('button', { name: 'Stop' });
+    const cue = {
+      sound: 'sn1',
+      start: 0,
+      from: 0,
+      to: 2,
+      fadeIn: 0,
+      fadeOut: 0,
+      loop: false,
+      volume: 1,
+      carriesOn: false,
+    };
+    rerender(withSceneMusic(p, p.manifest.runningOrder[0]!.scene, [cue]));
+    await screen.findByRole('button', { name: 'Rehearse' });
+    expect(said(onAnnounce)).toContain('Rehearse stopped because the music changed.');
+    expect(said(onAnnounce)).not.toContain('Rehearse stopped because the code changed.');
     expect(ended()).toBe(1);
   });
 });

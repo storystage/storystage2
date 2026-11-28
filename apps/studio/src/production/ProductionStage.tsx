@@ -72,6 +72,7 @@ import { PrompterAside } from '../prompter/PrompterAside.tsx';
 import type { StepWorld } from '../prompter/StepEditor.tsx';
 import type { FilmSounds } from '../sound/filmSounds.ts';
 import type { SceneSounds, StudioSoundOut } from '../sound/rehearseSounds.ts';
+import { ViewPad } from './ViewPad.tsx';
 
 const SceneView = lazy(() => import('./SceneView.tsx'));
 // The Sound view loads when it's first chosen (07-ux 7.7).
@@ -640,14 +641,29 @@ export function ProductionStage({
               // The same height as the scene view, band and all, so nothing below moves as it loads.
               <Suspense
                 fallback={
-                  <div className="pr-scene" aria-hidden="true">
+                  // Built from the view's own parts, switched off, so their heights match: a
+                  // placeholder shorter than the view moved the Code switch under a click (#739).
+                  <div className="pr-scene" aria-hidden="true" inert>
                     <div className="pr-scene-band">
-                      <p className="pr-scene-title">{sceneTitle(p, scene)}</p>
+                      <h2 className="pr-scene-title">{sceneTitle(p, scene)}</h2>
                       <div className="pr-scene-controls pr-scene-controls-waiting" />
                     </div>
                     {unavailable && <p className="pr-scene-why">{unavailable}</p>}
                     <div className="pr-scene-view" />
-                    <div className="pr-scene-tools pr-scene-controls-waiting" />
+                    <div className="pr-scene-tools">
+                      <Segmented
+                        label={words.t('production.view.label')}
+                        isDisabled
+                        options={[
+                          { id: 'camera', label: words.t('production.view.camera') },
+                          { id: 'look', label: words.t('production.view.look') },
+                        ]}
+                        value="camera"
+                        onChange={() => {}}
+                      />
+                      <p className="pr-in-shot" />
+                    </div>
+                    <ViewPad isDisabled onMove={() => {}} onMoveEnd={() => {}} />
                   </div>
                 }
               >

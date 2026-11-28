@@ -612,3 +612,28 @@ test('an arrow key listener’s keys are chosen one at a time, added with “or 
   // Focus goes to the listener, not lost with the list (S6's review).
   await expect.poll(() => focusedBlock(page)).toBeTruthy();
 });
+
+test('nothing below the scene view moves as its stage gets ready', async ({ page }) => {
+  // A click on the Code switch was lost in CI when In this shot appeared and pushed it down
+  // (#739): where the switch is, every frame from the page's start.
+  await page.addInitScript(() => {
+    const tops: number[] = [];
+    (window as unknown as { switchTops: number[] }).switchTops = tops;
+    const frame = () => {
+      const at = document.querySelector('.pr-editor-switch')?.getBoundingClientRect();
+      if (at) tops.push(Math.round(at.top + window.scrollY));
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  });
+  await page.setViewportSize({ width: 1366, height: 900 });
+  await page.goto('/?example');
+  await page.getByRole('tab', { name: /Production stage/ }).click();
+  await expect(page.getByText(/^In this shot:/)).toBeVisible({ timeout: 15_000 });
+  await expect(page.locator('.pr-workspace[data-ready]')).toBeVisible();
+  const tops = await page.evaluate(
+    () => (window as unknown as { switchTops: number[] }).switchTops,
+  );
+  expect(tops.length).toBeGreaterThan(0);
+  expect([...new Set(tops)]).toEqual([tops[0]]);
+});

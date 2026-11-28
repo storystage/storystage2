@@ -91,6 +91,11 @@ export interface RehearsalOptions {
    * as the learner's press lets audio start, and kept for every run after. `null` with no audio.
    */
   readonly sounds?: () => RehearsalSounds | null;
+  /**
+   * Makes or wakes the audio, within the learner's press: Safari leaves audio made or resumed
+   * after an `await` suspended, so Rehearse, Rehearse to here and Play call it before any (S3).
+   */
+  readonly wake?: () => void;
 }
 
 /** What Rehearse tells the film's music and sounds: each scene, its commands, play and pause. */
@@ -153,6 +158,7 @@ export class Rehearsal {
 
   /** Plays the scene from its set-up, from the start. */
   async start(): Promise<void> {
+    this.options.wake?.();
     const run = await this.begin();
     if (run === null) return;
     this.clock.play();
@@ -165,6 +171,7 @@ export class Rehearsal {
    * A block that never runs leaves the run paused where play ended, and says so.
    */
   async toHere(node: NodeId): Promise<void> {
+    this.options.wake?.();
     const run = await this.begin();
     if (run === null || !this.playback) return;
     const playback = this.playback;
@@ -196,6 +203,8 @@ export class Rehearsal {
 
   play(): void {
     if (this.current.status !== 'paused') return;
+    // Safari may have suspended the audio since (a call, Siri): Play is the next press.
+    this.options.wake?.();
     this.clock.play();
     this.playSounds();
     this.set({ status: 'playing', notReached: false });

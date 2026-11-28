@@ -593,6 +593,11 @@
   gap: 8px 16px;
 }
 .pr-in-shot {
+  /* A line of its own, kept while it's empty, so nothing below moves when it's filled. */
+  flex-basis: 100%;
+  /* The theme's line (1.35), for a browser without the lh unit. */
+  min-height: 1.35em;
+  min-height: 1lh;
   margin: 0;
   color: var(--ss-text-2);
 }
