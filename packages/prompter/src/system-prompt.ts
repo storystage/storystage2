@@ -120,11 +120,19 @@ export interface SystemCatalogs {
   readonly backstage: string;
 }
 
-/** The request's `system`: fixed for a release, so the native layer can pin its hash. */
+/**
+ * The request's `system`: fixed for a release, so the native layer can pin its hash. Its last
+ * block carries a cache mark (spec 04 section 1.2), so `tools` and `system`, the same in every
+ * request, are read from the cache by every conversation, not only the one that wrote them.
+ */
 export function buildSystem(catalogs: SystemCatalogs) {
   return [
     { type: 'text', text: INSTRUCTIONS },
     { type: 'text', text: `# Story API catalog\n\n${catalogs.storyApi}` },
-    { type: 'text', text: `# Backstage index\n\n${catalogs.backstage}` },
+    {
+      type: 'text',
+      text: `# Backstage index\n\n${catalogs.backstage}`,
+      cache_control: { type: 'ephemeral' },
+    },
   ] as const;
 }
