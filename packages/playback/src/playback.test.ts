@@ -630,6 +630,25 @@ describe('sounds (decision 0076, workplan 11.7)', () => {
     expect(events.some((e) => e.kind === 'error')).toBe(false);
   });
 
+  it('measures every sound the film plays, on the film’s clock, for the export’s mix', async () => {
+    await settle();
+    const played = await measure({
+      production: withSound('sn1'),
+      stage: new FakeStage(),
+      port: runtime(),
+      seed: 1,
+    });
+    expect(played.sounds).toEqual([{ scene: 's1', sound: 'sn1', start: 0, duration: micros(1.5) }]);
+    // One the film hasn't got plays silent, so the mix has nothing to play for it.
+    const silent = await measure({
+      production: withSound('sn9'),
+      stage: new FakeStage(),
+      port: runtime(),
+      seed: 1,
+    });
+    expect(silent.sounds).toEqual([]);
+  });
+
   it('measures a missing sound into its scene’s list, after what the load couldn’t find', async () => {
     await settle();
     const timeline = await measure({

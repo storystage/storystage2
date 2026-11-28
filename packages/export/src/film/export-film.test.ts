@@ -1,5 +1,10 @@
 import { nodeId, type Statement } from '@storystage/ast';
-import { exampleProduction, type Production } from '@storystage/production';
+import {
+  exampleProduction,
+  withSceneMusic,
+  withSound,
+  type Production,
+} from '@storystage/production';
 import {
   inMemoryPorts,
   serve,
@@ -22,6 +27,7 @@ import {
   type FilmModel,
 } from './export-film.ts';
 import type { FramePart } from './overlay.ts';
+import type { FilmSounds } from './mix.ts';
 import type { FilmVoices, VoicedLine } from './soundtrack.ts';
 
 const settle = async () => {
@@ -351,5 +357,83 @@ describe('exportFilm: the speak lines’ sound (spec 08 section 4)', () => {
     expect(prepared).toEqual([]);
     expect(film.sound).toBeNull();
     expect(encoder.log.config?.audio).toBeNull();
+  });
+});
+
+/** The example with a knock played at the start of scene 1, and the same clip as its music. */
+function playing(): Production {
+  const clip = {
+    id: 'sn1',
+    file: 'sn1.wav',
+    label: 'Knock',
+    length: 4,
+    bytes: 1000,
+    trim: { start: 0, end: 1 },
+  };
+  const p = withSound(exampleProduction(), clip);
+  const [type1, ...types] = p.program.types;
+  const [method, ...methods] = type1!.methods;
+  const play: Statement = {
+    id: nodeId('knockexb'),
+    kind: 'call',
+    target: { id: nodeId('knockexs'), kind: 'this' },
+    callee: { kind: 'story', name: 'playAudio' },
+    args: { audioSource: { id: nodeId('knockexx'), kind: 'text', value: 'sn1' } },
+    details: {},
+  };
+  const withPlay: Production = {
+    ...p,
+    program: {
+      ...p.program,
+      types: [
+        { ...type1!, methods: [{ ...method!, body: [play, ...method!.body] }, ...methods] },
+        ...types,
+      ],
+    },
+  };
+  const scene = p.manifest.runningOrder[0]!.scene;
+  return withSceneMusic(withPlay, scene, [
+    {
+      sound: 'sn1',
+      start: 0,
+      from: 0,
+      to: 1,
+      fadeIn: 0,
+      fadeOut: 0,
+      loop: true,
+      volume: 1,
+      carriesOn: false,
+    },
+  ]);
+}
+
+/** Decoded files: each a steady 0.5 for 4 seconds at 44.1 kHz. */
+function fakeSounds() {
+  const prepared: string[][] = [];
+  const sounds: FilmSounds = {
+    prepare: async (names) => void prepared.push([...names]),
+    sound: () => ({ samples: new Float32Array(4 * 44_100).fill(0.5), sampleRate: 44_100 }),
+  };
+  return { sounds, prepared };
+}
+
+describe('exportFilm: Sound FX and music (decision 0076)', () => {
+  it('prepares the film’s sound files, then mixes them into the track at 48 kHz', async () => {
+    await settle();
+    const { sounds, prepared } = fakeSounds();
+    const { options, encoder } = setup({ production: playing(), sounds });
+    const film = await exportFilm(options);
+    expect(prepared).toEqual([['sn1']]);
+    expect(encoder.log.config?.audio).toEqual({ codec: 'aac', channels: 1, sampleRate: 48_000 });
+    expect(encoder.log.audio.some((c) => c.channels[0]!.some((v) => v > 0.3))).toBe(true);
+    expect(film.sound).toEqual({ voiced: 0, silent: 0, unencoded: false });
+  });
+
+  it('has no track when the studio gives no files, as nothing is heard', async () => {
+    await settle();
+    const { options, encoder } = setup({ production: playing() });
+    const film = await exportFilm(options);
+    expect(encoder.log.config?.audio).toBeNull();
+    expect(film.sound).toEqual({ voiced: 0, silent: 0, unencoded: false });
   });
 });
