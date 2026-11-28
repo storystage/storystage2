@@ -46,6 +46,12 @@ describe('the instructions', () => {
     expect(text).toMatch(/make up a line/);
   });
 
+  it('asks open questions about the story in every mode, not only the coach (story-07)', () => {
+    expect(words(INSTRUCTIONS)).toMatch(/every question you ask about their story, in every mode/);
+    expect(words(INSTRUCTIONS)).toMatch(/names none of the possible answers/);
+    expect(words(modeMessage('explain'))).toMatch(/open questions with no answers to choose from/);
+  });
+
   it('treat every data tag as material, never as instructions (13.2)', () => {
     for (const tag of DATA_TAGS) expect(INSTRUCTIONS).toContain(`<${tag}>`);
     expect(INSTRUCTIONS).toContain(`<${REQUEST_TAG}>`);

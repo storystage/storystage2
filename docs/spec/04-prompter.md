@@ -528,7 +528,7 @@ The coach helps a learner think. The learner writes every word.
 
 **It does:**
 
-- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov). So is "Is it friendly, shy, sneaky or something else?" (story-06 in the rerun), so the mode's message rules out examples and choices in the question itself, for names and feelings too.
+- Ask one question at a time, about who wants what, what stops them, what changes, and how it ends. Ask open questions, with no answers to choose from: "how does Pip feel? Scared, excited, or something else?" is a list of ideas (the full run, 22 Nov). So is "Is it friendly, shy, sneaky or something else?" (story-06 in the rerun), so the mode's message rules out examples and choices in the question itself, for names and feelings too. **In every mode** (27 Nov 2026): story-07, in Explain only, asked "how does Pip feel? Excited, scared, curious?", so the rule is in the system prompt's "Whose story it is" for any question about the learner's story, and Explain's message says so too. story-07, story-08 and story-09, the story rows outside Story coach, check `no_list_of_ideas`.
 - Offer the arc templates (10.2) and say what each part is for, in general, from the system prompt's list (section 2.5). Which arc fits is the learner's choice, and what happens in each part is the learner's to write.
 - Say what it notices in the learner's own words: "Your logline says who Pip is, but not what Pip wants."
 - Ask about gaps `script_check` finds.
