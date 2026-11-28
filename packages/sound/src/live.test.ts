@@ -1,5 +1,5 @@
 import type { Production } from '@storystage/production';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { FakeAudioContext, type FakeGain, type FakeSource } from './fake-audio.ts';
 import { LiveSounds, levelAt, soundsNamed, type LiveSoundsOptions } from './live.ts';
 import { createSoundOut } from './out.ts';
@@ -280,6 +280,76 @@ describe('LiveSounds: music under speech', () => {
     ctx.currentTime = 10;
     sounds.play(1, 1);
     expect([10, 11, 14, 15.5].map((t) => duck().gain.at(t))).toEqual([1, 1, 1, 1]);
+  });
+});
+
+describe('LiveSounds: a line from the last run that isn’t said this time', () => {
+  const line = (from: number, to: number) => ({ start: from * 1_000_000, end: to * 1_000_000 });
+  const timers = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  afterEach(() => void vi.useRealTimers());
+
+  it('ends it 0.35 s after its start when it isn’t known live, and the music comes back up', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]), {
+      spoken: () => [{ start: 2, end: 4 }],
+    });
+    timers();
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    expect(duck().gain.at(3)).toBe(0.4);
+    // A timer that comes early changes nothing: it's checked on the audio clock.
+    ctx.currentTime = 2.2;
+    vi.advanceTimersByTime(2350);
+    expect(duck().gain.at(3)).toBe(0.4);
+    ctx.currentTime = 2.35;
+    vi.advanceTimersByTime(150);
+    // Up over 0.6 s from 2.35, as after a line, instead of down until 4.
+    expect(duck().gain.at(2.35)).toBe(0.4);
+    expect(duck().gain.at(2.65)).toBeCloseTo(0.7, 5);
+    expect([2.95, 3.5, 4.5].map((t) => duck().gain.at(t))).toEqual([1, 1, 1]);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('keeps one known live near it, and waits on for the next', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]), {
+      spoken: () => [
+        { start: 2, end: 3 },
+        { start: 6, end: 7 },
+      ],
+    });
+    timers();
+    sounds.scene(s1, 0);
+    sounds.play(0, 1);
+    // This time it comes a little later, as a listener's line may.
+    ctx.currentTime = 1.95;
+    sounds.speech(s1, [line(2.05, 3.05)]);
+    ctx.currentTime = 2.2;
+    vi.advanceTimersByTime(2200);
+    expect([2.5, 3, 3.05].map((t) => duck().gain.at(t))).toEqual([0.4, 0.4, 0.4]);
+    expect(duck().gain.at(3.65)).toBe(1);
+    // The second line doesn't come.
+    ctx.currentTime = 6.35;
+    vi.advanceTimersByTime(4150);
+    expect([6.35, 6.95, 7].map((t) => duck().gain.at(t))).toEqual([0.4, 1, 1]);
+  });
+
+  it('waits on the picture’s time at another speed, and not while paused', async () => {
+    const { ctx, sounds, duck } = await rig(withCues(s1, [cue(0, { loop: true })]), {
+      spoken: () => [{ start: 4, end: 6 }],
+    });
+    timers();
+    sounds.scene(s1, 0);
+    sounds.play(0, 2);
+    // Film 2 at context 1: paused there, nothing is waited on.
+    ctx.currentTime = 1;
+    sounds.pause();
+    expect(vi.getTimerCount()).toBe(0);
+    ctx.currentTime = 10;
+    sounds.play(2, 2);
+    // Film 4.35 is context 11.175.
+    ctx.currentTime = 11.175;
+    vi.advanceTimersByTime(1175);
+    expect(duck().gain.at(11.175)).toBe(0.4);
+    expect(duck().gain.at(11.5)).toBe(1);
   });
 });
 
