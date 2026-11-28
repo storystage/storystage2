@@ -74,6 +74,11 @@ export interface Soundtrack {
   /** Speak lines with sound, and without (silent, with their captions). */
   readonly voiced: number;
   readonly silent: number;
+  /**
+   * When each voiced line sounds, in seconds on the export's clock (title card included): where
+   * the music is lowered (`duckOf`, decision 0076).
+   */
+  readonly spans: readonly { readonly start: number; readonly end: number }[];
 }
 
 /**
@@ -89,6 +94,7 @@ export function soundtrack(
   const spoken = lines.filter((l) => l.kind === 'caption').sort((a, b) => a.start - b.start);
   let voicedCount = 0;
   let silent = 0;
+  const spans: { start: number; end: number }[] = [];
   spoken.forEach((l, i) => {
     const sound = voices.sound(voiced(l));
     if (!sound) {
@@ -103,6 +109,7 @@ export function soundtrack(
     const until = Math.min(sampleAt(options.offset + end), samples.length);
     const track = resample(sound, voices.sampleRate);
     const n = Math.max(0, Math.min(track.length, until - from));
+    if (n > 0) spans.push({ start: from / TRACK_RATE, end: (from + n) / TRACK_RATE });
     // Lines never overlap here, each cut at the next; kept within ±1 all the same (S1).
     for (let k = 0; k < n; k++) samples[from + k] = Math.max(-1, Math.min(1, track[k]!));
     if (n < track.length) {
@@ -111,5 +118,5 @@ export function soundtrack(
       for (let k = 0; k < fade; k++) samples[from + n - fade + k]! *= 1 - (k + 1) / fade;
     }
   });
-  return { samples, voiced: voicedCount, silent };
+  return { samples, voiced: voicedCount, silent, spans };
 }

@@ -328,6 +328,9 @@ importers:
       '@storystage/production':
         specifier: workspace:*
         version: link:../production
+      '@storystage/sound':
+        specifier: workspace:*
+        version: link:../sound
       '@storystage/stage':
         specifier: workspace:*
         version: link:../stage

@@ -67,10 +67,28 @@ export type MeasuredEnd =
   /** It reached the length cap. */
   | { readonly kind: 'cap' };
 
+/**
+ * A sound the film plays (`playAudio`'s `sound` command; decision 0076), on the film's clock:
+ * `duration` is how long it plays: the part it uses, cut at its scene's end. One the film hasn't got
+ * plays silent, so it isn't here.
+ */
+export interface MeasuredSound {
+  readonly scene: SceneId;
+  /** As the block names it: an imported clip's id, or a shelf sound's Backstage id. */
+  readonly sound: string;
+  readonly start: Micros;
+  readonly duration: Micros;
+}
+
 export interface Timeline {
   readonly scenes: readonly MeasuredScene[];
   readonly blocks: readonly MeasuredBlock[];
   readonly lines: readonly MeasuredLine[];
+  /**
+   * Every sound the film plays, in the order played, for the export's mix. `measure` always
+   * gives it; optional so a timeline built by hand (the rough cut's empty one, tests) needn't.
+   */
+  readonly sounds?: readonly MeasuredSound[];
   /** The whole film, without a title card or credits. */
   readonly length: Micros;
   readonly end: MeasuredEnd;
@@ -101,6 +119,7 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
   const scenes: { scene: SceneId; transition: Transition | null; start: Micros }[] = [];
   const blocks: MeasuredBlock[] = [];
   const lines: MeasuredLine[] = [];
+  const sounds: MeasuredSound[] = [];
   const missing: { scene: SceneId; missing: readonly Missing[] }[] = [];
   let end: MeasuredEnd | null = null;
 
@@ -111,7 +130,14 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
         break;
       case 'commands': {
         const start = scenes.at(-1)?.start ?? 0;
-        for (const c of e.commands)
+        for (const c of e.commands) {
+          if (c.kind === 'sound' && !c.missing)
+            sounds.push({
+              scene: e.scene,
+              sound: c.sound,
+              start: start + c.start,
+              duration: c.duration,
+            });
           if (c.kind === 'say')
             lines.push({
               scene: e.scene,
@@ -123,6 +149,7 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
               duration: c.duration,
               length: c.duration,
             });
+        }
         break;
       }
       case 'ran':
@@ -184,6 +211,10 @@ export async function measure(options: MeasureOptions): Promise<Timeline> {
     lines: lines
       .filter((l) => l.start < endOf(l.scene, l.start))
       .map((l) => ({ ...l, duration: Math.min(l.duration, endOf(l.scene, l.start) - l.start) })),
+    // Cut by their scene's end, as lines are (spec 08 section 4).
+    sounds: sounds
+      .filter((s) => s.start < endOf(s.scene, s.start))
+      .map((s) => ({ ...s, duration: Math.min(s.duration, endOf(s.scene, s.start) - s.start) })),
     length,
     end: end ?? { kind: 'ended' },
     missing,

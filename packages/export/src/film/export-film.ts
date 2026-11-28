@@ -6,8 +6,10 @@
  *
  * Refused before anything is drawn when a model may not leave the school (3.12), or when the
  * film stops with an error. A film longer than 10 minutes stops at the cap and says so.
- * Speak lines are voiced with the studio's sounds (`voices`, spec 08 section 4): prepared first,
- * then mixed into one track. Recorded lines and narration come later: they need their times.
+ * Speak lines are voiced with the studio's sounds (`voices`, spec 08 section 4), and Sound FX and
+ * music played from the studio's decoded files (`sounds`, decision 0076): prepared first, then
+ * mixed into one track (`mixFilm`), music lowered under speech. Recorded lines and narration come
+ * later: they need their times.
  */
 import { mayDistribute, type BackstageItem } from '@storystage/backstage';
 import { FILM_CAP, Playback, measure, type RuntimeWorker } from '@storystage/playback';
@@ -19,7 +21,8 @@ import { ExportError, exportMp4, probeExport } from '../encoder/export-mp4.ts';
 import { captionsFor, srt, webVtt } from './captions.ts';
 import { filmCredits, usedModels, type CreditOptions, type FilmCreditable } from './credits.ts';
 import { drawPart, filmPlan, partAt, type FramePart } from './overlay.ts';
-import { TRACK_RATE, soundtrack, voicedLines, type FilmVoices } from './soundtrack.ts';
+import { mixFilm, soundsToPrepare, type FilmSounds } from './mix.ts';
+import { TRACK_RATE, voicedLines, type FilmVoices } from './soundtrack.ts';
 import { bylineFor, titleCard } from './titles.ts';
 
 /** A scene that waits on the viewer ends this long after its last stage command (rule 11). */
@@ -75,6 +78,8 @@ export interface ExportFilmOptions extends CreditOptions {
   readonly audioCodecs?: readonly AudioCodecChoice[];
   /** The studio's voices for speak lines. Without them, speak lines are silent, with captions. */
   readonly voices?: FilmVoices;
+  /** The studio's decoded sound files, for Sound FX and music. Without them, both are silent. */
+  readonly sounds?: FilmSounds;
   readonly signal?: AbortSignal;
   readonly onProgress?: (progress: ExportProgress) => void;
   /** Default 10 minutes. */
@@ -184,22 +189,34 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
   const size = RESOLUTIONS[options.resolution ?? '720p'];
   const report = (step: ExportStep, fraction: number) => options.onProgress?.({ step, fraction });
 
-  // The speak lines' voices: prepared first, then one track (section 4).
+  // The sound: speak lines' voices and the sound files prepared first, then one track (section 4).
   const speaking = voicedLines(timeline.lines);
+  const files = soundsToPrepare(production, timeline.sounds ?? [], timeline.scenes);
   let audio: { channels: Float32Array[]; sampleRate: number } | null = null;
   let sound: FilmExport['sound'] = null;
-  if (speaking.length > 0) {
-    const voices = options.voices;
-    if (voices) {
+  if (speaking.length > 0 || files.length > 0) {
+    const { voices, sounds } = options;
+    if (voices && speaking.length > 0) {
       report('voices', 0);
       await voices.prepare(speaking, signal);
       if (signal?.aborted) throw new ExportError('cancelled');
     }
-    const track = voices
-      ? soundtrack(timeline.lines, voices, { offset: title?.duration ?? 0, total: plan.total })
-      : null;
+    if (sounds && files.length > 0) {
+      await sounds.prepare(files, signal);
+      if (signal?.aborted) throw new ExportError('cancelled');
+    }
+    const track = mixFilm({
+      production,
+      lines: timeline.lines,
+      sounds: timeline.sounds ?? [],
+      scenes: timeline.scenes,
+      ...(voices ? { voices } : {}),
+      ...(sounds ? { files: sounds } : {}),
+      offset: title?.duration ?? 0,
+      total: plan.total,
+    });
     let unencoded = false;
-    if (track && track.voiced > 0) {
+    if (track.heard) {
       const probe = await probeExport({
         ...size,
         audio: { channels: 1, sampleRate: TRACK_RATE },
@@ -209,11 +226,7 @@ export async function exportFilm(options: ExportFilmOptions): Promise<FilmExport
       if (probe.audioCodec) audio = { channels: [track.samples], sampleRate: TRACK_RATE };
       else unencoded = true;
     }
-    sound = {
-      voiced: track?.voiced ?? 0,
-      silent: track?.silent ?? speaking.length,
-      unencoded,
-    };
+    sound = { voiced: track.voiced, silent: track.silent, unencoded };
   }
 
   const compositor = (options.compositor ?? canvasCompositor)(size);

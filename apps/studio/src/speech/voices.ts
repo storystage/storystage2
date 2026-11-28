@@ -27,6 +27,7 @@ import {
   voiceFor,
   webAudioOut,
   type Accent,
+  type AudioContextLike,
   type AudioOut,
   type CastMember,
   type CastVoice,
@@ -185,6 +186,11 @@ export interface VoicesOptions {
   readonly engine?: () => SpeechEngine & { dispose(): void };
   /** Where Rehearse's lines sound; by default the page's audio. */
   readonly out?: () => AudioOut;
+  /**
+   * The studio's audio (`StudioSoundOut`'s speech context), so lines follow the film's Speech
+   * volume; `null`, or none, for the page's own.
+   */
+  readonly context?: () => AudioContextLike | null;
   /** How long the code stays still before its lines are made. Default 400 ms. */
   readonly settle?: number;
   /**
@@ -446,7 +452,7 @@ ull where they're bundled. */
   #outFor(): AudioOut | null {
     if (!this.#out) {
       try {
-        this.#out = this.#options.out?.() ?? webAudioOut();
+        this.#out = this.#options.out?.() ?? webAudioOut(this.#options.context?.() ?? undefined);
       } catch (e) {
         console.error('Speak lines could not be played.', e);
         return null;

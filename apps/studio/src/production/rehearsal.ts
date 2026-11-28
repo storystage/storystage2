@@ -14,6 +14,7 @@ import {
   type RuntimeWorker,
 } from '@storystage/playback';
 import type { Production, SceneId } from '@storystage/production';
+import type { LiveSounds } from '@storystage/sound';
 import type { Stage } from '@storystage/stage';
 import { speakLines } from '../speech/speakLines.ts';
 import { TimingRecorder, type RunTiming } from './runTiming.ts';
@@ -85,7 +86,18 @@ export interface RehearsalOptions {
    * sounds as its block starts, and told to stop on Stop, pause, restart and leaving.
    */
   readonly speaker?: Speaker;
+  /**
+   * The film's music and sounds (decision 0076; S3's `LiveSounds`), made on the first Rehearse,
+   * as the learner's press lets audio start, and kept for every run after. `null` with no audio.
+   */
+  readonly sounds?: () => RehearsalSounds | null;
 }
+
+/** What Rehearse tells the film's music and sounds: each scene, its commands, play and pause. */
+export type RehearsalSounds = Pick<
+  LiveSounds,
+  'prepare' | 'scene' | 'play' | 'commands' | 'pause' | 'end' | 'dispose'
+>;
 
 /** What Rehearse needs of the studio's voices. */
 export interface Speaker {
@@ -109,6 +121,8 @@ export class Rehearsal {
   /** The run's timing, as it goes. */
   private recorder: TimingRecorder | null = null;
   private readonly listeners = new Set<() => void>();
+  /** The music and sounds, once the first run has made them (`null`: none on this device). */
+  private sounds: RehearsalSounds | null | undefined;
   /** Each run's number: events from a run that was replaced are ignored. */
   private run = 0;
   /**
@@ -142,6 +156,7 @@ export class Rehearsal {
     const run = await this.begin();
     if (run === null) return;
     this.clock.play();
+    this.playSounds();
     this.set({ status: 'playing' });
   }
 
@@ -175,17 +190,21 @@ export class Rehearsal {
     if (this.current.status !== 'playing') return;
     this.options.speaker?.stop();
     this.clock.pause();
+    this.sounds?.pause();
     this.set({ status: 'paused' });
   }
 
   play(): void {
     if (this.current.status !== 'paused') return;
     this.clock.play();
+    this.playSounds();
     this.set({ status: 'playing', notReached: false });
   }
 
   setSpeed(speed: number): void {
     this.clock.setSpeed(speed);
+    // Music and sounds keep pace with the picture (the owner's choice, 27 Nov); paused, from Play.
+    if (this.current.status === 'playing') this.playSounds();
     this.set({ speed });
   }
 
@@ -222,6 +241,7 @@ export class Rehearsal {
   /** Lets the worker go: for when the scene view closes. The stage is the view's to dispose. */
   dispose(): void {
     this.end();
+    this.sounds?.dispose();
     this.playback?.dispose();
     this.playback = null;
     this.listeners.clear();
@@ -283,8 +303,18 @@ export class Rehearsal {
     });
     this.clock = new LiveClock(this.options.wall);
     this.clock.setSpeed(speed);
-    await playback.start();
+    // The scene's music and sounds are read while the run starts; one that's late starts part-way.
+    if (this.sounds === undefined) this.sounds = this.options.sounds?.() ?? null;
+    const reading = this.sounds
+      ?.prepare([scene])
+      .catch((e: unknown) => console.error('The scene’s sounds could not be read.', e));
+    await Promise.all([playback.start(), reading]);
     return run === this.run ? run : null;
+  }
+
+  /** Music and sounds from where the picture is, at its speed. */
+  private playSounds(): void {
+    this.sounds?.play(this.clock.time() / 1_000_000, this.clock.speed);
   }
 
   /** What's being said now, from the stage, when it has changed. */
@@ -305,6 +335,7 @@ export class Rehearsal {
   /** Ends the run that's going, without touching the stage. */
   private end(): void {
     this.options.speaker?.stop();
+    this.sounds?.end();
     this.run++;
     this.busy = false;
     this.clock.pause();
@@ -312,6 +343,13 @@ export class Rehearsal {
 
   private event(event: PlaybackEvent): void {
     switch (event.kind) {
+      case 'scene':
+        this.sounds?.scene(event.scene, event.at / 1_000_000);
+        break;
+      case 'commands':
+        // Running ahead to a block plays nothing, as it speaks nothing.
+        if (!this.quiet) this.sounds?.commands(event.scene, event.commands);
+        break;
       case 'running':
         this.set({ running: event.nodes });
         break;
@@ -345,6 +383,7 @@ export class Rehearsal {
         break;
       case 'ended':
         this.clock.pause();
+        this.sounds?.end();
         this.set({
           status: 'ended',
           running: [],
