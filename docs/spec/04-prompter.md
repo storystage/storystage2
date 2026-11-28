@@ -43,7 +43,7 @@ The body is a Messages API request. These settings hold for every mode unless th
 | Sampling (`temperature`, `top_p`, `top_k`) | Never sent | Rejected |
 | `tools` | The whole list in section 3, every request, in every mode | `tools` is part of the conversation's prefix (section 1.5); section 4 says how modes limit them |
 | Each tool | `eager_input_streaming: true`; `strict: true` on the read and plan tools (`STRICT_TOOLS`) | Schema-shaped inputs where the API can compile them, streamed. Every input is still validated before running, because streamed input can be cut off and the change tools aren't strict |
-| `cache_control` | `{ "type": "ephemeral" }` at the top level | Automatic caching; the stable content comes first |
+| `cache_control` | `{ "type": "ephemeral" }` at the top level, and on the last `system` block | Automatic caching for the conversation; the stable content comes first. The mark on `system` is a read point for `tools` and `system`, which are the same in every request of a release, so a new conversation reads them instead of writing them again (section 1.5) |
 
 **Thinking blocks.** Under the default display they arrive with empty text and a `signature`. They count towards `max_tokens`. The conversation keeps them exactly as they came, including the empty ones: never drop or rewrite a block because its text is empty. The panel never shows them. Read content by block `type`, never by position.
 
@@ -77,6 +77,8 @@ Requests on Opus 5.5 set `fallbacks: "default"` with the beta `server-side-fallb
 ### 1.5 Conversations are append-only
 
 The order in a request is `tools`, then `system`, then `messages`. Nothing that changes between turns sits above the last cache breakpoint.
+
+**Shared between conversations** (28 Nov 2026). The top-level mark lands at the end of each request, which only that conversation's next request extends. So in the story rows' live rerun no row read another's cache, and each conversation's first request wrote all of `tools` and `system` again: about 60,000 tokens, US$0.30 on Opus 5.5, of a request of 60,000 to 68,000. The last `system` block carries its own mark, so every request writes or reads an entry for `tools` and `system` alone, and the top-level mark still follows the conversation (two of the four marks). The cache is kept for each API workspace, five minutes from the last request that used it, so a class on one school's key shares it while anyone is asking. It is one entry for each model (section 1.3).
 
 **Scope.** One conversation per open production. It ends when the production closes, when the learner presses **New conversation**, or at the limit below. Conversations are never saved (`packages/production`: "Never stored in a production").
 

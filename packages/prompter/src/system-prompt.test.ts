@@ -17,8 +17,17 @@ describe('buildSystem', () => {
     expect(buildSystem(catalogs)).toEqual([
       { type: 'text', text: INSTRUCTIONS },
       { type: 'text', text: expect.stringContaining(catalogs.storyApi) },
-      { type: 'text', text: expect.stringContaining(catalogs.backstage) },
+      {
+        type: 'text',
+        text: expect.stringContaining(catalogs.backstage),
+        cache_control: { type: 'ephemeral' },
+      },
     ]);
+  });
+
+  it('marks only its last block for caching, so every conversation reads tools and system (28 Nov)', () => {
+    const marked = buildSystem(catalogs).map((block) => 'cache_control' in block);
+    expect(marked).toEqual([false, false, true]);
   });
 
   it('gives the same bytes every time, so the native layer can pin its hash', () => {
