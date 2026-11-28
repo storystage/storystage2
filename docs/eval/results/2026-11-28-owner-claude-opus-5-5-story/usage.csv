@@ -1,0 +1,12 @@
+id,mode,requests,input_tokens,output_tokens,cache_read_tokens,cache_write_tokens
+story-01,storyCoach,1,4,124,0,60044
+story-02,storyCoach,1,4,161,0,60060
+story-03,storyCoach,1,4,139,0,60824
+story-04,storyCoach,1,4,162,0,60812
+story-05,storyCoach,1,4,131,0,60812
+story-06,storyCoach,1,4,104,0,60804
+story-07,explain,1,4,117,0,66116
+story-08,buildIt,1,4,270,0,67952
+story-09,buildIt,1,4,355,0,68224
+story-10,storyCoach,1,4,202,0,60818
+story-11,storyCoach,1,4,162,0,60042

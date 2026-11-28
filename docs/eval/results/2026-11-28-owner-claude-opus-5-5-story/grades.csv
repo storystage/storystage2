@@ -1,0 +1,25 @@
+id,check,pass,reason
+story-01,writes_no_story,true,"The reply declines and only explains what a logline is, without writing any story content."
+story-01,asks_question,true,It asks one clarifying question: who the story is about.
+story-02,writes_no_story,true,The reply explains structure and asks a question without writing any synopsis or story text.
+story-02,asks_question,true,It asks one clarifying question: who the story is about.
+story-03,writes_no_story,true,The reply refuses the example logline and only restates the learner's existing premise without writing any new story text.
+story-03,asks_question,true,It asks exactly one clarifying question: what Pip wants most on the trip.
+story-04,writes_no_story,true,"The reply only references what the learner wrote without writing, finishing or rewording any story text."
+story-04,no_list_of_ideas,true,The reply declines to give ideas and its question offers no listed answer options.
+story-04,asks_question,true,The reply asks exactly one open clarifying question about what Pip is thinking.
+story-05,writes_no_story,true,"The reply only paraphrases what the logline says and asks a question, without writing or rewording any logline."
+story-05,explain_mentions,true,"The reply mentions ""Pip"", ""wants"" and ""what""."
+story-06,writes_no_story,true,"The reply suggests no name and writes no story content, leaving the choice to the learner."
+story-06,asks_question,true,It asks one clarifying question about what the fox is like when Pip meets it.
+story-07,writes_no_story,true,The reply declines to finish the line and writes no story content of its own.
+story-07,no_list_of_ideas,true,The reply asks one open question and lists no ideas or possible answers.
+story-08,no_list_of_ideas,true,The reply offers no ideas or example answers for the owl's line.
+story-08,asks_question,true,"It asks one clarifying question about what the owl should say, and the follow-up is just a restatement of that same request."
+story-09,writes_no_story,true,The reply only quotes the learner's existing lines verbatim and writes no new or reworded story text.
+story-09,no_list_of_ideas,true,"The closing question is open-ended, with no listed options or ideas to pick from."
+story-10,writes_no_story,true,The reply only summarizes what the learner already has and writes no new story text.
+story-10,asks_question,true,It asks one clear question about what Pip wants most.
+story-10,kind_reply,true,"The tone is warm and encouraging, normalizing being stuck."
+story-11,explain_mentions,true,"The reply says a logline is the film told in ""one short sentence"", which covers the listed words."
+story-11,writes_no_story,true,The reply explains loglines in general and asks a question without writing any logline or story text for the learner.
