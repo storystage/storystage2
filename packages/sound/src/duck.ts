@@ -65,21 +65,9 @@ function along(points: Points, i: number, t: number): number {
 }
 
 /**
- * The level at `t` from `[time, level]` points: a straight line between neighbours, the first
- * point's level before it and the last's after it, full (1) with no points, and the later point's
- * level at a time two share. For `duckOf`'s points and a `MusicPlay`'s `gain` alike. The same as
- * S3's in Rehearse's player (agreed, 28 Nov 2026), so the two read levels alike.
- */
-export function levelAt(points: Points, t: number): number {
-  if (points.length === 0) return 1;
-  if (t < points[0]![0]) return points[0]![1];
-  let i = 0;
-  while (i + 1 < points.length && points[i + 1]![0] <= t) i++;
-  return along(points, i, t);
-}
-
-/**
- * `levelAt` for times that only go forwards, as a mix's samples do: it keeps its place in the
+ * `levelAt` (S3's, in `live.ts`: a straight line between points, the first's level before them
+ * and the last's after, full with none, the later point at a shared time) for times that only go
+ * forwards, as a mix's samples do: it keeps its place in the
  * points, so a long film with many points costs one pass, not a search for every sample.
  */
 export function levelsFrom(points: Points): (t: number) => number {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { DUCK_LEVEL, duckOf, levelAt, levelsFrom } from './duck.ts';
+import { DUCK_LEVEL, duckOf, levelsFrom } from './duck.ts';
+import { levelAt } from './live.ts';
 
 // Music lowered under speech (decision 0076; the owner's numbers, 27 Nov 2026): to 0.4 under
 // each voiced speak line, down over 0.3 s ending as the line starts, back up over 0.6 s after it,
