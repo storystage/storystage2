@@ -193,10 +193,25 @@ function entryLine(entry: ApiEntry): string {
   return `  ${entry.kind === 'function' ? 'func' : 'proc'} ${entry.name}(${inside})${returns}`;
 }
 
+/**
+ * An event's settings, typed, as they come after its semicolon: "keys?: Key[] (up, down, left,
+ * right only)". Its objects (`setOfVisuals`) aren't a setting the Prompter takes (spec 04,
+ * section 6.10), so they're left out (27 Nov 2026).
+ */
+function eventSettings(event: EventDef): string {
+  return event.details
+    .filter((d) => d !== 'setOfVisuals')
+    .map((d) => {
+      const own = d === 'keys' && event.keys ? ` (${event.keys.join(', ')} only)` : '';
+      return `${d}?: ${DETAILS[d]?.type ?? 'unknown'}${own}`;
+    })
+    .join(', ');
+}
+
 /** Every block as compact text for the system prompt. It must stay under 40,000 tokens. */
 export function catalogText(): string {
   const lines: string[] = [
-    'Each line is a block, with its parameters and, after a semicolon, optional details.',
+    'Each line is a block: its parameters, then its optional details, each marked ?.',
     'A class has its own blocks and those of the classes it extends.',
   ];
   for (const cls of API_CLASSES) {
@@ -205,10 +220,15 @@ export function catalogText(): string {
     lines.push('', parent ? `class ${cls} extends ${parent}` : `class ${cls}`);
     lines.push(...own.map(entryLine));
   }
-  lines.push('', 'Events');
+  lines.push(
+    '',
+    'Events',
+    'Each line is an event: what it needs, then its optional settings, each marked ?, then what it gives.',
+  );
   for (const event of EVENTS) {
     const gives = event.gives.length > 0 ? ` gives ${signature(event.gives)}` : '';
-    lines.push(`  ${event.name}(${signature(event.args)})${gives}`);
+    const inside = [signature(event.args), eventSettings(event)].filter(Boolean).join('; ');
+    lines.push(`  ${event.name}(${inside})${gives}`);
   }
   lines.push('', 'Values');
   for (const [name, values] of Object.entries(ENUMS)) {

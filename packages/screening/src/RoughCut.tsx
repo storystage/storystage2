@@ -210,7 +210,10 @@ export function RoughCut(props: RoughCutProps) {
                 joints.set(m.object, list);
               }
             const backdrop = missing.some((m) => m.kind === 'backdrop');
-            if (models.length === 0 && !backdrop && joints.size === 0) return null;
+            // Sounds the film hasn't got, which played silent (decision 0076).
+            const sounds = new Set(missing.flatMap((m) => (m.kind === 'sound' ? [m.sound] : [])));
+            if (models.length === 0 && !backdrop && joints.size === 0 && sounds.size === 0)
+              return null;
             return (
               <NeutralNote key={scene}>
                 {models.length > 0 && (
@@ -232,6 +235,15 @@ export function RoughCut(props: RoughCutProps) {
                     })}
                   </span>
                 ))}
+                {sounds.size > 0 && (
+                  <span>
+                    {' '}
+                    {words.plural('roughCut.missingSounds', sounds.size, {
+                      n,
+                      count: sounds.size,
+                    })}
+                  </span>
+                )}
               </NeutralNote>
             );
           })}

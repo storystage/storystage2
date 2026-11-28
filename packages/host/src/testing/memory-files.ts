@@ -68,13 +68,15 @@ export function memoryStore(): FileStore & { readonly files: ReadonlyMap<string,
 
 /**
  * The class folders over a memory store. `clock` gives each save its time; `limit` stands in for
- * `FILE_LIMIT`, so a test can reach it without 512 MiB.
+ * `FILE_LIMIT`, so a test can reach it without 512 MiB. `store` is given when a test changes the
+ * files behind the folders' back, as something outside StoryStage might.
  */
 export function memoryClassFolders(
   clock: () => Date = () => new Date(),
   limit = FILE_LIMIT,
+  store: FileStore = memoryStore(),
 ): ClassFolders {
-  return storedClassFolders(memoryStore(), { clock, limit });
+  return storedClassFolders(store, { clock, limit });
 }
 
 /**

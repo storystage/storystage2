@@ -942,7 +942,7 @@ Section 6.4 holds an event's objects and number to its step. Three more things:
   - `arrowKeyPress` takes only `up`, `down`, `left` and `right`, and `numberKeyPress` only `digit0` to `digit9`, as the catalogue lists each event's keys (`EventDef.keys`), and any other is refused at the plan, as 6a rule 2 says;
   - refused at the plan too: an empty list, which would never run, a name that isn't a `Key`, a key named twice, and both `key` and `keys` on one step;
   - a step with neither builds a listener for any key, as before;
-  - the step's `details` description in the tools tells Claude so. The events in the catalogue text don't list their settings, which is S6's to change if wanted.
+  - the step's `details` description in the tools tells Claude so, and the catalogue text lists each event's settings, typed, with an event's own keys: "arrowKeyPress(keys?: Key[] (up, down, left, right only), …)". An event's objects aren't listed, as they come from the step's targets (S6, 27 Nov 2026).
 
   **What the runtime does** is S2's (6a): until it's built, a listener with `keys` still runs for every key, though the program and its words say which. The owner chose (23 Nov) not to hold the paid rerun for keys. event-03, which now wants a listener for space alone, reruns with own-03 and own-06 once the runtime is built.
 

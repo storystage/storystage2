@@ -82,7 +82,7 @@ const foxLeaves: Statement = {
   target: {
     id: nodeId('scene1q'),
     kind: 'fieldRef',
-    target: { id: nodeId('scene1u'), kind: 'this' },
+    target: { id: nodeId('sound1u'), kind: 'this' },
     field: nodeId('scene1f'),
   },
   callee: { kind: 'story', name: 'move' },
@@ -253,6 +253,34 @@ describe('the automatic check (WP11 done-when)', () => {
         'This frame lasts about 6 seconds, as planned',
       ]),
     );
+  });
+
+  it('notes a sound the film hasn’t got on the frame it plays in, at its block', async () => {
+    await settle();
+    const play: Statement = {
+      id: nodeId('sound1a'),
+      kind: 'call',
+      target: { id: nodeId('sound1t'), kind: 'this' },
+      callee: { kind: 'story', name: 'playAudio' },
+      args: { audioSource: { id: nodeId('sound1u'), kind: 'text', value: 'sn9' } },
+      details: {},
+    };
+    const result = await checkFrame({
+      production: film({ body: [play, say('Here is the key.', 6)] }),
+      stage: new FakeStage(),
+      startWorker: workers().start,
+      frame: F1,
+    });
+    expect(result.items.filter((i) => i.id.startsWith('silentSound:'))).toEqual([
+      {
+        id: 'silentSound:sound1a',
+        kind: 'missing',
+        outcome: 'note',
+        words: "A sound played here isn't in this film, so it's silent",
+        node: 'sound1a',
+      },
+    ]);
+    expect(result.items.filter((i) => i.outcome === 'flag')).toEqual([]);
   });
 
   it('flags a missing character', async () => {

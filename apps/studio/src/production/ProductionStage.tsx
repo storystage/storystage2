@@ -654,7 +654,7 @@ export function ProductionStage({
                   onRehearsal={(state) => {
                     setRehearsal(state);
                     // A whole run's timing is kept for the Sound view, until the next one.
-                    if (onTimings && state.status === 'ended') {
+                    if (onTimings && state.timing?.whole) {
                       const kept = withTiming(timings, p, scene, state.timing);
                       if (kept !== timings) onTimings(kept);
                     }

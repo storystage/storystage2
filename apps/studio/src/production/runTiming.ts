@@ -85,8 +85,14 @@ export class TimingRecorder {
   private sceneStart = 0;
   private sounds: TimedSound[] = [];
   private end = 0;
+  /** The latest block start, on the scene's clock. */
+  private lastRan = 0;
+  /** Where the scene changed to the next, if it did. */
+  private cut: number | null = null;
   private whole = false;
   private failed = false;
+  /** The scene's script has finished; listeners may still run. */
+  private finished = false;
   private current: RunTiming = { whole: false, length: 0, sounds: [] };
 
   constructor(scene: SceneId, lines: readonly SpeakLineAt[]) {
@@ -96,6 +102,20 @@ export class TimingRecorder {
 
   get timing(): RunTiming {
     return this.current;
+  }
+
+  /**
+   * The run was stopped at `at`, on the film's clock. A scene that waits for the viewer never ends
+   * by itself, so a Stop after its script has finished and nothing is still playing makes the run
+   * whole, to its last action's end, as the rough cut times it (the owner's choice, 27 Nov). True
+   * when that made it whole.
+   */
+  stopped(at: number): boolean {
+    if (this.whole || this.failed || !this.finished || at - this.sceneStart < this.end)
+      return false;
+    this.whole = true;
+    this.current = { ...this.current, whole: true };
+    return true;
   }
 
   /** Hears an event; true when the timing changed. */
@@ -108,6 +128,7 @@ export class TimingRecorder {
       case 'ran':
         if (event.scene !== this.scene) break;
         for (const b of event.blocks) {
+          this.lastRan = Math.max(this.lastRan, b.at - this.sceneStart);
           const object = this.speakers.get(b.node);
           if (object !== undefined)
             this.pending.push({ node: b.node, object, at: b.at - this.sceneStart });
@@ -142,13 +163,19 @@ export class TimingRecorder {
         }
         break;
       case 'finished':
-        if (event.scene === this.scene) this.end = Math.max(this.end, event.at - this.sceneStart);
+        if (event.scene !== this.scene) break;
+        this.finished = true;
+        this.end = Math.max(this.end, event.at - this.sceneStart);
         break;
       case 'error':
       case 'fault':
         this.failed = true;
         break;
       case 'next':
+        // The scene ends where it changes, though moves already sent run on (S3's review of
+        // #713). The block that changes scene is the last to start, so it's that start, until
+        // the driver says when the change came.
+        this.cut = this.lastRan;
         if (!this.failed) this.whole = true;
         break;
       case 'ended':
@@ -157,14 +184,26 @@ export class TimingRecorder {
       default:
         return false;
     }
-    const length = seconds(this.end);
+    const cut = this.cut;
+    const length = seconds(cut === null ? this.end : Math.min(this.end, cut));
     if (
       before.whole === this.whole &&
       before.length === length &&
       before.sounds.length === this.sounds.length
     )
       return false;
-    this.current = { whole: this.whole, length, sounds: [...this.sounds] };
+    // Cut where the scene changed, as `measure` cuts captions there.
+    const sounds =
+      cut === null
+        ? [...this.sounds]
+        : this.sounds
+            .filter((s) => s.start <= seconds(cut))
+            .map((s) =>
+              s.start + s.length > seconds(cut)
+                ? { ...s, length: Math.round((seconds(cut) - s.start) * 1000) / 1000 }
+                : s,
+            );
+    this.current = { whole: this.whole, length, sounds };
     return true;
   }
 }

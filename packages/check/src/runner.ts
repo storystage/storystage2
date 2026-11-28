@@ -37,7 +37,13 @@ import {
   type Transform,
   type Vec3,
 } from '@storystage/story-api';
-import { compareFrame, type NumberedLine, type Seen, type Spoken } from './compare.ts';
+import {
+  compareFrame,
+  type NumberedLine,
+  type Seen,
+  type SilentSound,
+  type Spoken,
+} from './compare.ts';
 import { project } from './geometry.ts';
 import { frameSpans, type FrameSpan } from './spans.ts';
 import { basisFor } from './status.ts';
@@ -92,6 +98,8 @@ export interface SceneRun {
     readonly words: string;
   } | null;
   readonly missing: readonly Missing[];
+  /** The sounds the run played silent, because the film hasn't got them (decision 0076). */
+  readonly silent: readonly SilentSound[];
   /**
    * The events `traceScene` was given that never played, because the scene ended before their
    * `at`: so a caller can tell "the code didn't react" from "the click came too late".
@@ -142,6 +150,7 @@ async function runScene(
   const captions: Omit<Spoken, 'node' | 'name'>[] = [];
   let error: SceneRun['error'] = null;
   let missing: readonly Missing[] = [];
+  const silent: SilentSound[] = [];
   let now: Micros = 0;
   playback.on((e) => {
     switch (e.kind) {
@@ -150,6 +159,12 @@ async function runScene(
         break;
       case 'commands':
         for (const c of e.commands) {
+          if (c.kind === 'sound' && c.missing)
+            silent.push({
+              node: (c.node ?? null) as NodeId | null,
+              sound: c.sound,
+              start: c.start,
+            });
           if (c.kind !== 'say' || c.bubble === 'think') continue;
           said.push({ object: c.object, text: c.text, start: c.start });
           if (c.bubble === 'caption')
@@ -227,6 +242,7 @@ async function runScene(
     captions,
     error,
     missing,
+    silent,
     heights,
     unplayed: waiting,
   };
@@ -358,6 +374,7 @@ function judge(production: Production, scene: SceneId, done: SceneRun): Map<Fram
           .map((f) => ({ frameNumber: numberOf(f), span: spans.get(f.id)! })),
         error: done.error,
         missing: done.missing,
+        silent: done.silent,
         cast: card?.cast ?? [],
       });
     }
